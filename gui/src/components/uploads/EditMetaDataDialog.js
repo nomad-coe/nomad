@@ -510,7 +510,7 @@ function EditMetaDataDialog({...props}) {
         <EditIcon />
       </Tooltip>
     </IconButton>}
-    {!isIcon && <Button onClick={() => handleOpenDialog()} variant='contained' color='primary' disabled={isProcessing}>
+    {!isIcon && <Button onClick={() => handleOpenDialog()} variant='contained' color='primary' disabled={isProcessing} data-testid='edit-metadata-button'>
       {upload?.entries && (upload?.entries > 1 ? `Edit author metadata of all ${upload?.entries} entries` : `Edit author metadata of all the entries`)}
     </Button>}
     {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown>

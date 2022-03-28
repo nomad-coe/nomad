@@ -39,7 +39,7 @@ const keycloak = Keycloak({
 
 export default function App() {
   return (
-    <KeycloakProvider keycloak={keycloak} initConfig={{ onLoad: 'check-sso', 'checkLoginIframe': false }} LoadingComponent={<div />}>
+    <KeycloakProvider keycloak={keycloak} initConfig={{ onLoad: 'check-sso', 'checkLoginIframe': false, promiseType: 'native' }} LoadingComponent={<div />}>
       <RecoilRoot>
         <APIProvider>
           <MuiPickersUtilsProvider utils={DateFnsUtils}>

@@ -17,112 +17,152 @@
  */
 
 import React from 'react'
-import 'regenerator-runtime/runtime'
-import { waitFor, within } from '@testing-library/dom'
-import { renderNoAPI as render, screen, archives, wait } from '../conftest'
-import { getIndex } from '../../../tests/DFTBulk'
-import { useApi } from '../api'
-import { UploadsPage } from './UploadsPage'
-import supertest from 'supertest'
+import {
+  render,
+  screen,
+  startAPI,
+  closeAPI
+} from '../conftest'
+import {UploadsPage} from './UploadsPage'
+import {withLoginRequired} from '../api'
+import {within} from '@testing-library/dom'
+import {fireEvent, waitFor} from '@testing-library/react'
 
-const express = require('express')
-const createMiddleware = require('@apidevtools/swagger-express-middleware')
-let app = express()
+test('Render uploads page: not authenticated', async () => {
+  startAPI('tests.states.uploads.published', 'tests/data/uploads/uploads_not_authenticated')
+  let Component = withLoginRequired(UploadsPage, undefined)
+  render(<Component/>)
 
-// eslint-disable-next-line handle-callback-err
-createMiddleware('openapi.json', app, (err, middleware) => {
-  app.use(
-    middleware.metadata(),
-    middleware.parseRequest(),
-    middleware.validateRequest(),
-    middleware.mock()
-  )
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('You have to login to use this functionality.')
+  await expect(screen.getByTestId('login-register-button')).toBeEnabled()
 
-  supertest(app)
-    .get('/info')
-    .then(response => {
-      if (response) {}
-      // console.log(response.body)
-    })
-    // .end(function(err, res) {
-    //   if (err) console.log(err)
-    // })
+  closeAPI()
 })
 
-jest.mock('../api')
-const index = getIndex()
+test('Render uploads page: authenticated', async () => {
+  startAPI('tests.states.uploads.empty', 'tests/data/uploads/empty', 'test', 'password')
+  let Component = withLoginRequired(UploadsPage, undefined)
+  render(<Component/>)
 
-beforeAll(() => {
-  // API mock init
-  useApi.mockReturnValue({
-    api: {
-      post: () => wait({response: {data: {archive: archives.get(index.entry_id)}}}), // results
-      get: (url) => {
-        switch (url) {
-          case '/uploads?page_size=10&page=1&order_by=upload_create_time&order=desc':
-            return wait({response: { // response when page_size != 0
-              query: {},
-              data: [index],
-              pagination: {
-                'page_size': 10,
-                'order_by': 'upload_create_time',
-                'order': 'desc',
-                'page': 1,
-                'total': 1
-              }
-            }})
-          case '/uploads?is_published=false&page_size=0&order_by=upload_create_time&order=desc':
-            return wait(
-              { // response when page_size=0
-                query: {
-                  'is_published': false
-                },
-                data: [],
-                pagination: {
-                  'page_size': 0,
-                  'order_by': 'upload_create_time',
-                  'order': 'desc',
-                  'page': 1,
-                  'total': 0
-                }
-              })
-          default:
-            return wait({response: { // response any other url
-            }})
-        }
-      }}})
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('Create a new upload')
+  expect(screen.queryByText('Your existing uploads')).not.toBeInTheDocument()
+
+  closeAPI()
 })
 
-afterAll(() => {
-  // API mock cleanup
-  jest.unmock('../api')
+test('Render uploads page: maximum unpublished exceeded', async () => {
+  startAPI('tests.states.uploads.maximum_unpublished', 'tests/data/uploads/maximum_unpublished', 'test', 'password')
+  let Component = withLoginRequired(UploadsPage, undefined)
+  render(<Component/>)
+
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('Create a new upload')
+  expect(screen.queryByText('Your existing uploads')).toBeInTheDocument()
+  expect(screen.queryByText('Create a new upload')).toBeDisabled()
+  expect(screen.queryByText('You have reached maximum number of unpublished uploads!')).toBeInTheDocument()
+
+  closeAPI()
 })
 
-test('correctly renders uploads page', async () => {
-  render(<UploadsPage/>)
+test('Render uploads page: sort by upload create time', async () => {
+  startAPI('tests.states.uploads.multiple_uploads', 'tests/data/uploads/multiple_uploads', 'test', 'password')
+  let Component = withLoginRequired(UploadsPage, undefined)
+  render(<Component/>)
 
-  // Wait to load the UploadsPage
+  // Wait to load the page, i.e. wait for some text to appear
   await waitFor(() => {
-    expect(screen.queryByRole('new-upload-button')).toBeInTheDocument()
+    expect(screen.queryByText('1-10 of 11')).toBeInTheDocument()
   })
 
-  expect(screen.queryByRole('upload-commands')).toBeInTheDocument()
-  expect(screen.queryByRole('error-maximum-number-of-unpublished')).toBeNull()
-
-  // Test if the table header is rendered correctly
   expect(screen.queryByText('Your existing uploads')).toBeInTheDocument()
-  expect(screen.queryByRole('table-pagination')).toBeInTheDocument()
-  expect(screen.queryByRole('datatable-body')).toBeInTheDocument()
+  expect(screen.queryByText('Create a new upload')).toBeEnabled()
+  expect(screen.queryByText('You have reached maximum number of unpublished uploads!')).not.toBeInTheDocument()
 
-  let datatableBody = screen.getByRole('datatable-body')
+  expect(screen.queryByTestId('table-pagination')).toBeInTheDocument()
+  expect(screen.queryByTestId('datatable-body')).toBeInTheDocument()
 
-  // Test if the times are printed correctly
-  expect(within(datatableBody).queryByText('2021-03-17T13:47:32.899000')).toBeNull()
-  expect(within(datatableBody).queryByText(new Date('2021-03-17T13:47:32.899000').toLocaleString())).toBeInTheDocument()
+  let datatableBody = screen.getByTestId('datatable-body')
 
-  // Test if the published icon is printed not unpublished icon
-  expect(within(datatableBody).queryByTitle('published upload')).toBeInTheDocument()
-  expect(within(datatableBody).queryByTitle('this upload is not yet published')).toBeNull()
+  // Test if the pagination works correctly
+  let rows = screen.queryAllByTestId('datatable-row')
+  expect(rows.length).toBe(10)
+  expect(within(datatableBody).queryByText('dft_upload_1')).not.toBeInTheDocument()
 
-  // TODO: test if the data is sorted by upload_create_time. It needs more test data in DFTBulk.js.
+  // Test the order of uploads: by default is descending upload create time
+  for (let i = 0; i < 10; i++) {
+    expect(within(rows[i]).queryByText(`dft_upload_${11 - i}`)).toBeInTheDocument()
+    expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0 ? 'published upload' : 'this upload is not yet published'))).toBeInTheDocument()
+  }
+
+  // Test the order of uploads: ascending sort by upload create time
+  fireEvent.click(screen.queryByTestId('sortable_upload_create_time'))
+  rows = screen.queryAllByTestId('datatable-row')
+  expect(rows.length).toBe(10)
+  await waitFor(() =>
+    expect(within(rows[9]).queryByText(`dft_upload_10`)).toBeInTheDocument()
+  )
+
+  expect(within(datatableBody).queryByText('dft_upload_11')).not.toBeInTheDocument()
+  for (let i = 0; i < 10; i++) {
+    expect(within(rows[i]).queryByText(`dft_upload_${i + 1}`)).toBeInTheDocument()
+    expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0 ? 'published upload' : 'this upload is not yet published'))).toBeInTheDocument()
+  }
+
+  closeAPI()
+})
+
+test('Render uploads page: sort by upload name', async () => {
+  startAPI('tests.states.uploads.multiple_uploads', 'tests/data/uploads/sort_by_upload_name', 'test', 'password')
+  let Component = withLoginRequired(UploadsPage, undefined)
+  render(<Component/>)
+
+  // Wait to load the page, i.e. wait for some text to appear
+  await waitFor(() => {
+    expect(screen.queryByText('1-10 of 11')).toBeInTheDocument()
+  })
+
+  // Test the order of uploads: sort by Upload name
+  fireEvent.click(screen.queryByTestId('sortable_upload_name'))
+  let rows = screen.queryAllByTestId('datatable-row')
+  expect(rows.length).toBe(10)
+  await waitFor(() =>
+    expect(within(rows[9]).queryByText(`dft_upload_10`)).toBeInTheDocument()
+  )
+  for (let i = 0; i < 10; i++) expect(within(rows[i]).queryByText(`dft_upload_${i + 1}`)).toBeInTheDocument()
+
+  closeAPI()
+})
+
+test('Render uploads page: sort by published', async () => {
+  startAPI('tests.states.uploads.multiple_uploads', 'tests/data/uploads/sort_by_published', 'test', 'password')
+  let Component = withLoginRequired(UploadsPage, undefined)
+  render(<Component/>)
+
+  // Wait to load the page, i.e. wait for some text to appear
+  await waitFor(() => {
+    expect(screen.queryByText('1-10 of 11')).toBeInTheDocument()
+  })
+
+  // Test the order of uploads: sort by Published
+  fireEvent.click(screen.queryByTestId(`sortable_published`))
+  let rows = screen.queryAllByTestId('datatable-row')
+  expect(rows.length).toBe(10)
+  await waitFor(() =>
+    expect(within(rows[9]).queryByText(`dft_upload_8`)).toBeInTheDocument()
+  )
+  for (let i = 0; i < 6; i++) expect(within(rows[i]).queryByTitle('this upload is not yet published')).toBeInTheDocument()
+  for (let i = 6; i < 10; i++) expect(within(rows[i]).queryByTitle('published upload')).toBeInTheDocument()
+  expect(within(rows[0]).queryByText(`dft_upload_1`)).toBeInTheDocument()
+  expect(within(rows[1]).queryByText(`dft_upload_3`)).toBeInTheDocument()
+  expect(within(rows[2]).queryByText(`dft_upload_5`)).toBeInTheDocument()
+  expect(within(rows[3]).queryByText(`dft_upload_7`)).toBeInTheDocument()
+  expect(within(rows[4]).queryByText(`dft_upload_9`)).toBeInTheDocument()
+  expect(within(rows[5]).queryByText(`dft_upload_11`)).toBeInTheDocument()
+  expect(within(rows[6]).queryByText(`dft_upload_2`)).toBeInTheDocument()
+  expect(within(rows[7]).queryByText(`dft_upload_4`)).toBeInTheDocument()
+  expect(within(rows[8]).queryByText(`dft_upload_6`)).toBeInTheDocument()
+
+  closeAPI()
 })

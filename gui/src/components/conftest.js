@@ -39,9 +39,11 @@ import { APIProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import searchQuantities from '../searchQuantities'
 import '@testing-library/jest-dom/extend-expect' // Adds convenient expect-methods
+import { keycloakBase } from '../config'
 const fs = require('fs')
 const crypto = require('crypto')
 const { execSync } = require('child_process')
+const keycloakURL = `${keycloakBase}realms/fairdi_nomad_test/protocol/openid-connect/token`
 
 /*****************************************************************************/
 // Renders
@@ -49,15 +51,117 @@ const { execSync } = require('child_process')
 // Mocked keycloak setup. The real keycloak does not work within the test
 // environment because access to the test realm is limited. Inspired by:
 // https://stackoverflow.com/questions/63627652/testing-pages-secured-by-react-keycloak
-const mockKeycloak = {
+let mockKeycloak = {
   init: jest.fn().mockResolvedValue(true),
   updateToken: jest.fn(),
   login: jest.fn(),
   logout: jest.fn(),
   register: jest.fn(),
   accountManagement: jest.fn(),
-  createLoginUrl: jest.fn()
+  createLoginUrl: jest.fn(),
+  loadUserInfo: jest.fn(),
+  authenticated: false,
+  token: '',
+  refreshToken: ''
 }
+
+const getRefreshToken = (username, password) => {
+  let command = `curl -X POST ${keycloakURL} \\
+    -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
+    -d 'username=${username}&grant_type=password&password=${password}&client_id=nomad_gui_dev'`
+  let response = require('child_process').execSync(command).toString()
+  response = JSON.parse(response)
+  if (response.error !== undefined) throw Error(response.error)
+  mockKeycloak.login = (username ? () => login(username, password) : jest.fn())
+  mockKeycloak.loadUserInfo = (username ? () => loadUserInfo(username) : jest.fn())
+  return response
+}
+
+const updateToken = (refresh_token) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let command = `curl -X POST ${keycloakURL} \\
+    -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
+    -d 'refresh_token=${refresh_token}&grant_type=refresh_token&client_id=nomad_gui_dev'`
+      let response = require('child_process').execSync(command).toString()
+      response = JSON.parse(response)
+      if (response.error !== undefined) return {}
+      let authenticated = response.access_token !== undefined
+      mockKeycloak.updateToken = (authenticated ? () => updateToken(response.refresh_token) : jest.fn())
+      mockKeycloak.authenticated = authenticated
+      mockKeycloak.token = (authenticated ? response.access_token : '')
+      mockKeycloak.refreshToken = (authenticated ? response.refresh_token : '')
+      resolve(response)
+    } catch (error) {
+      reject(new Error(error))
+    }
+  })
+}
+
+const testUsers = {
+  'test': {
+    'sub': '68878af7-6845-46c0-b2c1-250d4d8eb470',
+    'email_verified': true,
+    'name': 'Markus Scheidgen',
+    'preferred_username': 'test',
+    'given_name': 'Markus',
+    'family_name': 'Scheidgen',
+    'email': 'markus.scheidgen@fhi-berlin.de'
+  },
+  'scooper': {
+    'sub': 'a03af8b6-3aa7-428a-b3b1-4a6317e576b6',
+    'email_verified': true,
+    'name': 'Sheldon Cooper',
+    'preferred_username': 'scooper',
+    'given_name': 'Sheldon',
+    'family_name': 'Cooper',
+    'email': 'sheldon.cooper@nomad-coe.eu'
+  },
+  'ttester': {
+    'sub': '54cb1f64-f84e-4815-9ade-440ce0b5430f',
+    'email_verified': true,
+    'name': 'Test Tester',
+    'preferred_username': 'ttester',
+    'given_name': 'Test',
+    'family_name': 'Tester',
+    'email': 'test@nomad-coe.eu'
+  },
+  'admin': {
+    'sub': 'c97facc2-92ec-4fa6-80cf-a08ed957255b',
+    'email_verified': true,
+    'name': 'Admin Administrator',
+    'preferred_username': 'admin',
+    'given_name': 'Admin',
+    'family_name': 'Administrator',
+    'email': 'markus.scheidgen@physik.hu-berlin.de'
+  }
+}
+
+const loadUserInfo = (username) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const user = testUsers[username]
+      resolve(user)
+    } catch (error) {
+      reject(new Error(error))
+    }
+  })
+}
+
+const login = (username, password) => {
+  if ((username === undefined || username === '') && (password === undefined || password === '')) return
+  let response = getRefreshToken(username, password)
+  let authenticated = response.access_token !== undefined
+  if (authenticated) updateToken(response.refresh_token)
+}
+
+const logout = () => {
+  mockKeycloak.updateToken = jest.fn()
+  mockKeycloak.authenticated = false
+  mockKeycloak.token = ''
+  mockKeycloak.refreshToken = ''
+}
+
 export const KeycloakProviderMock = (props) => {
   const { children } = props
   return (
@@ -231,11 +335,12 @@ if (!fs.existsSync(`../${configPath}`)) {
     with other NOMAD installations.
   `)
 }
-export function startAPI(state, path) {
+export function startAPI(state, path, username = '', password = '') {
   const jsonPath = `${path}.json`
   responseCapture[jsonPath] = {}
 
   // Prepare API state for reading responses directly from it.
+  login(username, password)
   if (readMode === 'api') {
     // Prepare the test state
     const splits = state.split('.')
@@ -345,6 +450,8 @@ function hashRequest(req) {
  * cleared.
  */
 export function closeAPI() {
+  logout()
+
   // Tear down the test state when running a live API
   if (readMode === 'api') {
     execSync(`

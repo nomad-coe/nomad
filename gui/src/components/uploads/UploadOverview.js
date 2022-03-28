@@ -243,6 +243,7 @@ function PublishUpload({upload, onPublish}) {
               size="small" variant="contained"
               onClick={() => setOpenConfirmDialog(true)} color="primary"
               disabled={upload.process_running}
+              data-testid='publish-upload-button'
             >
               {buttonLabel}
             </Button>
@@ -308,7 +309,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-function UploadOverview() {
+function UploadOverview(props) {
   const classes = useStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
@@ -408,9 +409,9 @@ function UploadOverview() {
           </WithButton>
         </Grid>
         <Grid>
-          <EditMembersDialog/>
+          <EditMembersDialog disabled={!isWriter}/>
           <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
-          <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess}>
+          <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess} data-testid='upload-reprocess-action'>
             <Tooltip title="Reprocess">
               <ReprocessIcon />
             </Tooltip>
@@ -418,7 +419,7 @@ function UploadOverview() {
           <SourceApiDialogButton maxWidth="lg" fullWidth>
             <SourceApiCall {...apiData} />
           </SourceApiDialogButton>
-          <IconButton disabled={isPublished || !isWriter} onClick={handleDeleteButtonClicked}>
+          <IconButton disabled={isPublished || !isWriter} onClick={handleDeleteButtonClicked} data-testid='upload-delete-action'>
             <Tooltip title="Delete the upload">
               <DeleteIcon />
             </Tooltip>

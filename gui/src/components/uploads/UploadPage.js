@@ -24,15 +24,17 @@ import UploadOverview from './UploadOverview'
 import UploadFilesView from './UploadFilesView'
 import UploadContext from './UploadContext'
 import UploadProcessingStatus from './UploadProcessingStatus'
+import PropTypes from 'prop-types'
 
-const UploadPage = React.memo(() => {
+const UploadPage = React.memo((props) => {
   const history = useHistory()
+  const { uploadId: propsUploadId } = props
   const currentPath = history.location.pathname
   const {path, url} = useRouteMatch()
   const urlNoSlash = trimEnd(url, '/')
   const match = matchPath(currentPath, { path: `${path}/:tab?` })
   const {params: {tab = 'overview'}} = match
-  const uploadId = match?.params?.uploadId
+  const uploadId = propsUploadId || match?.params?.uploadId
 
   // We use a useRef object to keep track of the current urls of each tab. Switching
   // tabs would go to the previous tab url. This way, the views behind a tab can add
@@ -66,5 +68,8 @@ const UploadPage = React.memo(() => {
     </CacheSwitch>
   </UploadContext>
 })
+UploadPage.propTypes = {
+  uploadId: PropTypes.string
+}
 
 export default UploadPage

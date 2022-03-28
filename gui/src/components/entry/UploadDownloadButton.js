@@ -64,6 +64,7 @@ const UploadDownloadButton = React.memo(function UploadDownloadButton(props) {
       disabled={disabled || preparingDownload}
       onClick={handleClick}
       style={dark ? {color: 'white'} : null}
+      data-testid='upload-download-action'
     >
       <Tooltip title={tooltip || 'Download'}>
         <DownloadIcon />

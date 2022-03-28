@@ -1,0 +1,1645 @@
+{
+  "2c3be7c79c4f054bf81d6dc32a4dba98": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/info",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIzZWVkOTE3ZC1kMDc3LTRlZDItYmUwMi1kODlkZjYwOTgxMjYiLCJleHAiOjE2NDgwNjUxMjMsIm5iZiI6MCwiaWF0IjoxNjQ4MDI5MTMxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjJmZjRlNTZiLTRkNWMtNDU1NS1iNGQ1LTI3NjI1NWVlMDYyZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.diW5DSU5Gb6waqp6z5dmmgPoIs2KA7OTnc2JG0-3L_wJiV7id0sHGfZercTCOczyKlPYCql0_fSO6z_4OyPrg3S8OKWAG3MfjXzRGb3ADEwuNtPKdt0N8EgFLio5OCwMST523m6ah2ys1s9rcvMYkm8o_L2UH-l8iLbfVfxEi__54o9-l-Ghr-FZz8pA_OhIc_M3aRyM0XZ2H3O3w4ZK0F2AIj4F4KC_nvkq__xAiEXUWlyxU8RmAs0poomVVlUgpYiFWUeJPtL96CJZ0tIaHA6TtzsUD0bQCxWuY-aDyqVuqE9CxSgHB-np3GLAg0OgbU1DRQ5up3bMnRCPzYfDyA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "parsers": [
+            "random",
+            "template",
+            "chaos",
+            "abinit",
+            "atk",
+            "band",
+            "bigdft",
+            "castep",
+            "charmm",
+            "cp2k",
+            "cpmd",
+            "crystal",
+            "dmol",
+            "elk",
+            "exciting",
+            "fhi-aims",
+            "fleur",
+            "fplo",
+            "gamess",
+            "gaussian",
+            "gpaw",
+            "molcas",
+            "nwchem",
+            "octopus",
+            "onetep",
+            "orca",
+            "psi4",
+            "qball",
+            "qbox",
+            "quantumespresso",
+            "siesta",
+            "turbomole",
+            "vasp",
+            "wien2k",
+            "yambo",
+            "amber",
+            "asap",
+            "dftbplus",
+            "dl-poly",
+            "gromacs",
+            "gromos",
+            "gulp",
+            "lammps",
+            "lib-atoms",
+            "mopac",
+            "namd",
+            "openkim",
+            "tinker",
+            "aflow",
+            "asr",
+            "elastic",
+            "fhi-vibes",
+            "lobster",
+            "mp",
+            "phonopy",
+            "eels",
+            "nexus",
+            "archive",
+            "broken",
+            "octopus",
+            "crystal",
+            "wien2k",
+            "fhi-aims",
+            "vaspoutcar",
+            "broken",
+            "fleur",
+            "molcas",
+            "octopus",
+            "onetep"
+          ],
+          "metainfo_packages": [
+            "general",
+            "general.experimental",
+            "common",
+            "public",
+            "abinit",
+            "aflow",
+            "amber",
+            "archive",
+            "asap",
+            "asr",
+            "atk",
+            "band",
+            "bigdft",
+            "broken",
+            "broken",
+            "castep",
+            "chaos",
+            "charmm",
+            "cp2k",
+            "cpmd",
+            "crystal",
+            "crystal",
+            "dftbplus",
+            "dl-poly",
+            "dmol",
+            "eels",
+            "elastic",
+            "elk",
+            "exciting",
+            "fhi-aims",
+            "fhi-aims",
+            "fhi-vibes",
+            "fleur",
+            "fleur",
+            "fplo",
+            "gamess",
+            "gaussian",
+            "gpaw",
+            "gromacs",
+            "gromos",
+            "gulp",
+            "lammps",
+            "lib-atoms",
+            "lobster",
+            "molcas",
+            "molcas",
+            "mopac",
+            "mp",
+            "namd",
+            "nexus",
+            "nwchem",
+            "octopus",
+            "octopus",
+            "octopus",
+            "onetep",
+            "onetep",
+            "openkim",
+            "orca",
+            "phonopy",
+            "psi4",
+            "qball",
+            "qbox",
+            "quantumespresso",
+            "random",
+            "siesta",
+            "template",
+            "tinker",
+            "turbomole",
+            "vasp",
+            "vaspoutcar",
+            "wien2k",
+            "wien2k",
+            "yambo"
+          ],
+          "codes": [
+            {
+              "code_name": "ABINIT",
+              "code_homepage": "https://www.abinit.org/"
+            },
+            {
+              "code_name": "AFlow",
+              "code_homepage": "http://www.aflowlib.org/"
+            },
+            {
+              "code_name": "Amber"
+            },
+            {
+              "code_name": "ASAP"
+            },
+            {
+              "code_name": "ASR",
+              "code_homepage": "https://asr.readthedocs.io/en/latest/index.html"
+            },
+            {
+              "code_name": "AtomistixToolKit",
+              "code_homepage": "https://www.synopsys.com/silicon/quantumatk.html"
+            },
+            {
+              "code_name": "BAND",
+              "code_homepage": "https://www.scm.com/product/band_periodicdft/"
+            },
+            {
+              "code_name": "BigDFT",
+              "code_homepage": "http://bigdft.org/"
+            },
+            {
+              "code_name": "CASTEP",
+              "code_homepage": "http://www.castep.org/"
+            },
+            {
+              "code_name": "Charmm"
+            },
+            {
+              "code_name": "CP2K",
+              "code_homepage": "https://www.cp2k.org/"
+            },
+            {
+              "code_name": "CPMD",
+              "code_homepage": "https://www.lcrc.anl.gov/for-users/software/available-software/cpmd/"
+            },
+            {
+              "code_name": "Crystal",
+              "code_homepage": "https://www.crystal.unito.it/"
+            },
+            {
+              "code_name": "DFTB+"
+            },
+            {
+              "code_name": "DL_POLY",
+              "code_homepage": "https://www.scd.stfc.ac.uk/Pages/DL_POLY.aspx"
+            },
+            {
+              "code_name": "DMol3",
+              "code_homepage": "http://dmol3.web.psi.ch/dmol3.html"
+            },
+            {
+              "code_name": "elastic",
+              "code_homepage": "http://exciting-code.org/elastic"
+            },
+            {
+              "code_name": "elk",
+              "code_homepage": "http://elk.sourceforge.net/"
+            },
+            {
+              "code_name": "exciting",
+              "code_homepage": "http://exciting-code.org/"
+            },
+            {
+              "code_name": "FHI-aims",
+              "code_homepage": "https://aimsclub.fhi-berlin.mpg.de/"
+            },
+            {
+              "code_name": "FHI-vibes",
+              "code_homepage": "https://vibes.fhi-berlin.mpg.de/"
+            },
+            {
+              "code_name": "fleur",
+              "code_homepage": "https://www.flapw.de/"
+            },
+            {
+              "code_name": "fplo"
+            },
+            {
+              "code_name": "GAMESS",
+              "code_homepage": "https://www.msg.chem.iastate.edu/gamess/versions.html"
+            },
+            {
+              "code_name": "Gaussian",
+              "code_homepage": "http://gaussian.com/"
+            },
+            {
+              "code_name": "GPAW",
+              "code_homepage": "https://wiki.fysik.dtu.dk/gpaw/"
+            },
+            {
+              "code_name": "Gromacs",
+              "code_homepage": "http://www.gromacs.org/"
+            },
+            {
+              "code_name": "Gromos"
+            },
+            {
+              "code_name": "gulp",
+              "code_homepage": "http://gulp.curtin.edu.au/gulp/"
+            },
+            {
+              "code_name": "LAMMPS",
+              "code_homepage": "https://lammps.sandia.gov/"
+            },
+            {
+              "code_name": "libAtoms",
+              "code_homepage": "https://libatoms.github.io/"
+            },
+            {
+              "code_name": "LOBSTER",
+              "code_homepage": "http://schmeling.ac.rwth-aachen.de/cohp/"
+            },
+            {
+              "code_name": "MaterialsProject",
+              "code_homepage": "https://materialsproject.org"
+            },
+            {
+              "code_name": "MOLCAS",
+              "code_homepage": "http://www.molcas.org/"
+            },
+            {
+              "code_name": "MOPAC"
+            },
+            {
+              "code_name": "Namd"
+            },
+            {
+              "code_name": "NEXUS",
+              "code_homepage": "https://www.nexus.eu/"
+            },
+            {
+              "code_name": "NWChem",
+              "code_homepage": "http://www.nwchem-sw.org/"
+            },
+            {
+              "code_name": "Octopus",
+              "code_homepage": "https://octopus-code.org/"
+            },
+            {
+              "code_name": "ONETEP",
+              "code_homepage": "https://www.onetep.org/"
+            },
+            {
+              "code_name": "OpenKIM"
+            },
+            {
+              "code_name": "ORCA",
+              "code_homepage": "https://orcaforum.kofo.mpg.de/"
+            },
+            {
+              "code_name": "Phonopy",
+              "code_homepage": "https://phonopy.github.io/phonopy/"
+            },
+            {
+              "code_name": "Psi4",
+              "code_homepage": "https://psicode.org/"
+            },
+            {
+              "code_name": "qball"
+            },
+            {
+              "code_name": "qbox",
+              "code_homepage": "http://qboxcode.org/"
+            },
+            {
+              "code_name": "Quantum Espresso",
+              "code_homepage": "https://www.quantum-espresso.org/"
+            },
+            {
+              "code_name": "Siesta",
+              "code_homepage": "https://departments.icmab.es/leem/siesta/"
+            },
+            {
+              "code_name": "TINKER"
+            },
+            {
+              "code_name": "turbomole",
+              "code_homepage": "https://www.turbomole.org/"
+            },
+            {
+              "code_name": "VASP",
+              "code_homepage": "https://www.vasp.at/"
+            },
+            {
+              "code_name": "WIEN2k",
+              "code_homepage": "http://www.wien2k.at/"
+            },
+            {
+              "code_name": "YAMBO",
+              "code_homepage": "https://yambo-code.org/"
+            }
+          ],
+          "normalizers": [
+            "SystemNormalizer",
+            "OptimadeNormalizer",
+            "DosNormalizer",
+            "BandStructureNormalizer",
+            "WorkflowNormalizer",
+            "ResultsNormalizer",
+            "MetainfoNormalizer"
+          ],
+          "statistics": {
+            "n_entries": 1,
+            "n_uploads": 1,
+            "n_quantities": 0,
+            "n_calculations": 0,
+            "n_materials": 1
+          },
+          "search_quantities": {
+            "upload_id": {
+              "name": "upload_id",
+              "description": "The persistent and globally unique identifier for the upload of the entry",
+              "many": false
+            },
+            "upload_name": {
+              "name": "upload_name",
+              "description": "The user provided upload name",
+              "many": false
+            },
+            "upload_create_time": {
+              "name": "upload_create_time",
+              "description": "The date and time when the upload was created in nomad",
+              "many": false
+            },
+            "entry_id": {
+              "name": "entry_id",
+              "description": "A persistent and globally unique identifier for the entry",
+              "many": false
+            },
+            "entry_name": {
+              "name": "entry_name",
+              "description": "A brief human readable name for the entry.",
+              "many": false
+            },
+            "entry_name.prefix": {
+              "name": "entry_name.prefix",
+              "description": "A brief human readable name for the entry.",
+              "many": false
+            },
+            "entry_type": {
+              "name": "entry_type",
+              "description": "The main schema definition. This is the name of the section used for data.",
+              "many": false
+            },
+            "calc_id": {
+              "name": "calc_id",
+              "description": "Legacy field name, use `entry_id` instead.",
+              "many": false
+            },
+            "entry_create_time": {
+              "name": "entry_create_time",
+              "description": "The date and time when the entry was created in nomad",
+              "many": false
+            },
+            "parser_name": {
+              "name": "parser_name",
+              "description": "The NOMAD parser used for the last processing",
+              "many": false
+            },
+            "mainfile": {
+              "name": "mainfile",
+              "description": "The path to the mainfile from the root directory of the uploaded files",
+              "many": false
+            },
+            "mainfile.path": {
+              "name": "mainfile.path",
+              "description": "The path to the mainfile from the root directory of the uploaded files",
+              "many": false
+            },
+            "files": {
+              "name": "files",
+              "description": "The paths to the files within the upload that belong to this entry.\nAll files within the same directory as the entry's mainfile are considered the\nauxiliary files that belong to the entry.",
+              "many": true
+            },
+            "files.path": {
+              "name": "files.path",
+              "description": "The paths to the files within the upload that belong to this entry.\nAll files within the same directory as the entry's mainfile are considered the\nauxiliary files that belong to the entry.",
+              "many": true
+            },
+            "pid": {
+              "name": "pid",
+              "description": "The unique, sequentially enumerated, integer PID that was used in the legacy\nNOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.",
+              "many": false
+            },
+            "raw_id": {
+              "name": "raw_id",
+              "description": "The code specific identifier extracted from the entry's raw files by the parser,\nif supported.",
+              "many": false
+            },
+            "external_id": {
+              "name": "external_id",
+              "description": "A user provided external id. Usually the id for an entry in an external database\nwhere the data was imported from.",
+              "many": false
+            },
+            "published": {
+              "name": "published",
+              "description": "Indicates if the entry is published",
+              "many": false
+            },
+            "publish_time": {
+              "name": "publish_time",
+              "description": "The date and time when the upload was published in nomad",
+              "many": false
+            },
+            "with_embargo": {
+              "name": "with_embargo",
+              "description": "Indicated if this entry is under an embargo",
+              "many": false
+            },
+            "processed": {
+              "name": "processed",
+              "description": "Indicates that the entry is successfully processed.",
+              "many": false
+            },
+            "last_processing_time": {
+              "name": "last_processing_time",
+              "description": "The date and time of the last processing.",
+              "many": false
+            },
+            "processing_errors": {
+              "name": "processing_errors",
+              "description": "Errors that occured during processing",
+              "many": true
+            },
+            "nomad_version": {
+              "name": "nomad_version",
+              "description": "The NOMAD version used for the last processing",
+              "many": false
+            },
+            "nomad_commit": {
+              "name": "nomad_commit",
+              "description": "The NOMAD commit used for the last processing",
+              "many": false
+            },
+            "comment": {
+              "name": "comment",
+              "description": "A user provided comment for this entry",
+              "many": false
+            },
+            "references": {
+              "name": "references",
+              "description": "User provided references (URLs) for this entry",
+              "many": true
+            },
+            "external_db": {
+              "name": "external_db",
+              "description": "The repository or external database where the original data resides",
+              "many": false
+            },
+            "origin": {
+              "name": "origin",
+              "description": "A short human readable description of the entries origin. Usually it is the\nhandle of an external database/repository or the name of the main author.",
+              "many": false
+            },
+            "main_author.name": {
+              "name": "main_author.name",
+              "many": false
+            },
+            "main_author.name.text": {
+              "name": "main_author.name.text",
+              "many": false
+            },
+            "main_author.name__suggestion": {
+              "name": "main_author.name__suggestion",
+              "many": false
+            },
+            "main_author.user_id": {
+              "name": "main_author.user_id",
+              "description": "The unique, persistent keycloak UUID",
+              "many": false
+            },
+            "main_author": {
+              "name": "main_author",
+              "description": "The main author of the entry",
+              "many": false
+            },
+            "authors.name": {
+              "name": "authors.name",
+              "many": false
+            },
+            "authors.name.text": {
+              "name": "authors.name.text",
+              "many": false
+            },
+            "authors.name__suggestion": {
+              "name": "authors.name__suggestion",
+              "many": false
+            },
+            "authors": {
+              "name": "authors",
+              "description": "All authors (main author and co-authors)",
+              "many": true
+            },
+            "writers.name": {
+              "name": "writers.name",
+              "many": false
+            },
+            "writers.name.text": {
+              "name": "writers.name.text",
+              "many": false
+            },
+            "writers.name__suggestion": {
+              "name": "writers.name__suggestion",
+              "many": false
+            },
+            "writers.user_id": {
+              "name": "writers.user_id",
+              "description": "The unique, persistent keycloak UUID",
+              "many": false
+            },
+            "writers": {
+              "name": "writers",
+              "description": "All writers (main author, upload coauthors)",
+              "many": true
+            },
+            "viewers.name": {
+              "name": "viewers.name",
+              "many": false
+            },
+            "viewers.name.text": {
+              "name": "viewers.name.text",
+              "many": false
+            },
+            "viewers.name__suggestion": {
+              "name": "viewers.name__suggestion",
+              "many": false
+            },
+            "viewers.user_id": {
+              "name": "viewers.user_id",
+              "description": "The unique, persistent keycloak UUID",
+              "many": false
+            },
+            "viewers": {
+              "name": "viewers",
+              "description": "All viewers (main author, upload coauthors, and reviewers)",
+              "many": true
+            },
+            "datasets.dataset_id": {
+              "name": "datasets.dataset_id",
+              "description": "The unique identifier for this dataset as a string. It should be\na randomly generated UUID, similar to other nomad ids.",
+              "many": false
+            },
+            "datasets.dataset_name": {
+              "name": "datasets.dataset_name",
+              "description": "The human readable name of the dataset as string. The dataset name must be\nunique for the user.",
+              "many": false
+            },
+            "datasets.dataset_name__suggestion": {
+              "name": "datasets.dataset_name__suggestion",
+              "description": "The human readable name of the dataset as string. The dataset name must be\nunique for the user.",
+              "many": false
+            },
+            "datasets.doi": {
+              "name": "datasets.doi",
+              "description": "The optional Document Object Identifier (DOI) associated with this dataset.\nNomad can register DOIs that link back to the respective representation of\nthe dataset in the nomad UI. This quantity holds the string representation of\nthis DOI. There is only one per dataset. The DOI is just the DOI name, not its\nfull URL, e.g. \"10.17172/nomad/2019.10.29-1\".",
+              "many": false
+            },
+            "datasets.dataset_create_time": {
+              "name": "datasets.dataset_create_time",
+              "description": "The date when the dataset was first created.",
+              "many": false
+            },
+            "datasets.dataset_modified_time": {
+              "name": "datasets.dataset_modified_time",
+              "description": "The date when the dataset was last modified. An owned dataset\ncan only be extended after a DOI was assigned. A foreign dataset cannot be changed\nonce a DOI was assigned.",
+              "many": false
+            },
+            "datasets.dataset_type": {
+              "name": "datasets.dataset_type",
+              "description": "The type determined if a dataset is owned, i.e. was created by\nthe authors of the contained entries; or if a dataset is foreign,\ni.e. it was created by someone not necessarily related to the entries.",
+              "many": false
+            },
+            "datasets": {
+              "name": "datasets",
+              "description": "A list of user curated datasets this entry belongs to.",
+              "many": true
+            },
+            "domain": {
+              "name": "domain",
+              "description": "The material science domain",
+              "many": false
+            },
+            "n_quantities": {
+              "name": "n_quantities",
+              "description": "Number of metainfo quantities parsed from the entry.",
+              "many": false
+            },
+            "quantities": {
+              "name": "quantities",
+              "description": "All quantities that are used by this entry.",
+              "many": true
+            },
+            "quantities.path": {
+              "name": "quantities.path",
+              "description": "All quantities that are used by this entry.",
+              "many": true
+            },
+            "sections": {
+              "name": "sections",
+              "description": "All sections that are present in this entry.",
+              "many": true
+            },
+            "results.material.material_id": {
+              "name": "results.material.material_id",
+              "description": "A fixed length, unique material identifier in the form of a hash\ndigest.",
+              "many": false
+            },
+            "results.material.material_name": {
+              "name": "results.material.material_name",
+              "description": "Meaningful names for this a material if any can be assigned.",
+              "many": false
+            },
+            "results.material.material_name__suggestion": {
+              "name": "results.material.material_name__suggestion",
+              "description": "Meaningful names for this a material if any can be assigned.",
+              "many": false
+            },
+            "results.material.structural_type": {
+              "name": "results.material.structural_type",
+              "description": "Classification based on structural features.",
+              "many": false
+            },
+            "results.material.structural_type__suggestion": {
+              "name": "results.material.structural_type__suggestion",
+              "description": "Classification based on structural features.",
+              "many": false
+            },
+            "results.material.functional_type": {
+              "name": "results.material.functional_type",
+              "description": "Classification based on the functional properties.",
+              "many": true
+            },
+            "results.material.functional_type__suggestion": {
+              "name": "results.material.functional_type__suggestion",
+              "description": "Classification based on the functional properties.",
+              "many": true
+            },
+            "results.material.compound_type": {
+              "name": "results.material.compound_type",
+              "description": "Classification based on the chemical formula.",
+              "many": true
+            },
+            "results.material.compound_type__suggestion": {
+              "name": "results.material.compound_type__suggestion",
+              "description": "Classification based on the chemical formula.",
+              "many": true
+            },
+            "results.material.elements": {
+              "name": "results.material.elements",
+              "description": "Names of the different elements present in the structure.",
+              "many": true
+            },
+            "results.material.elements__suggestion.suggestion": {
+              "name": "results.material.elements__suggestion.suggestion",
+              "description": "Names of the different elements present in the structure.",
+              "many": true
+            },
+            "results.material.n_elements": {
+              "name": "results.material.n_elements",
+              "description": "Number of different elements in the structure as an integer.",
+              "many": false
+            },
+            "results.material.elements_exclusive": {
+              "name": "results.material.elements_exclusive",
+              "description": "String containing the chemical elements in alphabetical order and\nseparated by a single whitespace. This quantity can be used for\nexclusive element searches where you want to find entries/materials\nwith only certain given elements.",
+              "many": false
+            },
+            "results.material.chemical_formula_descriptive": {
+              "name": "results.material.chemical_formula_descriptive",
+              "description": "The chemical formula for a structure as a string in a form chosen by the API\nimplementation.",
+              "many": false
+            },
+            "results.material.chemical_formula_descriptive__suggestion": {
+              "name": "results.material.chemical_formula_descriptive__suggestion",
+              "description": "The chemical formula for a structure as a string in a form chosen by the API\nimplementation.",
+              "many": false
+            },
+            "results.material.chemical_formula_reduced": {
+              "name": "results.material.chemical_formula_reduced",
+              "description": "The reduced chemical formula for a structure as a string with element symbols and\ninteger chemical proportion numbers. The proportion number MUST be omitted if it is 1.",
+              "many": false
+            },
+            "results.material.chemical_formula_reduced__suggestion": {
+              "name": "results.material.chemical_formula_reduced__suggestion",
+              "description": "The reduced chemical formula for a structure as a string with element symbols and\ninteger chemical proportion numbers. The proportion number MUST be omitted if it is 1.",
+              "many": false
+            },
+            "results.material.chemical_formula_hill": {
+              "name": "results.material.chemical_formula_hill",
+              "description": "The chemical formula for a structure in Hill form with element symbols followed by\ninteger chemical proportion numbers. The proportion number MUST be omitted if it is 1.",
+              "many": false
+            },
+            "results.material.chemical_formula_hill__suggestion": {
+              "name": "results.material.chemical_formula_hill__suggestion",
+              "description": "The chemical formula for a structure in Hill form with element symbols followed by\ninteger chemical proportion numbers. The proportion number MUST be omitted if it is 1.",
+              "many": false
+            },
+            "results.material.chemical_formula_anonymous": {
+              "name": "results.material.chemical_formula_anonymous",
+              "description": "The anonymous formula is the chemical_formula_reduced, but where the elements are\ninstead first ordered by their chemical proportion number, and then, in order left to\nright, replaced by anonymous symbols A, B, C, ..., Z, Aa, Ba, ..., Za, Ab, Bb, ... and\nso on.",
+              "many": false
+            },
+            "results.material.chemical_formula_anonymous__suggestion": {
+              "name": "results.material.chemical_formula_anonymous__suggestion",
+              "description": "The anonymous formula is the chemical_formula_reduced, but where the elements are\ninstead first ordered by their chemical proportion number, and then, in order left to\nright, replaced by anonymous symbols A, B, C, ..., Z, Aa, Ba, ..., Za, Ab, Bb, ... and\nso on.",
+              "many": false
+            },
+            "results.material.chemical_formula_reduced_fragments": {
+              "name": "results.material.chemical_formula_reduced_fragments",
+              "description": "The reduced formula separated into individual terms containing both the atom\ntype and count. Used for searching parts of a formula.",
+              "many": true
+            },
+            "results.material.symmetry.bravais_lattice": {
+              "name": "results.material.symmetry.bravais_lattice",
+              "description": "Identifier for the Bravais lattice in Pearson notation. The first lowercase letter\nidentifies the crystal family and can be one of the following: a (triclinic), b\n(monoclinic), o (orthorhombic), t (tetragonal), h (hexagonal) or c (cubic). The\nsecond uppercase letter identifies the centring and can be one of the following: P\n(primitive), S (face centred), I (body centred), R (rhombohedral centring) or F\n(all faces centred).",
+              "many": false
+            },
+            "results.material.symmetry.bravais_lattice__suggestion.suggestion": {
+              "name": "results.material.symmetry.bravais_lattice__suggestion.suggestion",
+              "description": "Identifier for the Bravais lattice in Pearson notation. The first lowercase letter\nidentifies the crystal family and can be one of the following: a (triclinic), b\n(monoclinic), o (orthorhombic), t (tetragonal), h (hexagonal) or c (cubic). The\nsecond uppercase letter identifies the centring and can be one of the following: P\n(primitive), S (face centred), I (body centred), R (rhombohedral centring) or F\n(all faces centred).",
+              "many": false
+            },
+            "results.material.symmetry.crystal_system": {
+              "name": "results.material.symmetry.crystal_system",
+              "description": "Name of the crystal system.",
+              "many": false
+            },
+            "results.material.symmetry.crystal_system__suggestion.suggestion": {
+              "name": "results.material.symmetry.crystal_system__suggestion.suggestion",
+              "description": "Name of the crystal system.",
+              "many": false
+            },
+            "results.material.symmetry.hall_number": {
+              "name": "results.material.symmetry.hall_number",
+              "description": "The Hall number for this system.",
+              "many": false
+            },
+            "results.material.symmetry.hall_symbol": {
+              "name": "results.material.symmetry.hall_symbol",
+              "description": "The Hall symbol for this system.",
+              "many": false
+            },
+            "results.material.symmetry.hall_symbol__suggestion.suggestion": {
+              "name": "results.material.symmetry.hall_symbol__suggestion.suggestion",
+              "description": "The Hall symbol for this system.",
+              "many": false
+            },
+            "results.material.symmetry.point_group": {
+              "name": "results.material.symmetry.point_group",
+              "description": "Symbol of the crystallographic point group in the Hermann-Mauguin notation.",
+              "many": false
+            },
+            "results.material.symmetry.point_group__suggestion.suggestion": {
+              "name": "results.material.symmetry.point_group__suggestion.suggestion",
+              "description": "Symbol of the crystallographic point group in the Hermann-Mauguin notation.",
+              "many": false
+            },
+            "results.material.symmetry.space_group_number": {
+              "name": "results.material.symmetry.space_group_number",
+              "description": "Specifies the International Union of Crystallography (IUC) number of the 3D space\ngroup of this system.",
+              "many": false
+            },
+            "results.material.symmetry.space_group_symbol": {
+              "name": "results.material.symmetry.space_group_symbol",
+              "description": "The International Union of Crystallography (IUC) short symbol of the 3D\nspace group of this system.",
+              "many": false
+            },
+            "results.material.symmetry.space_group_symbol__suggestion.suggestion": {
+              "name": "results.material.symmetry.space_group_symbol__suggestion.suggestion",
+              "description": "The International Union of Crystallography (IUC) short symbol of the 3D\nspace group of this system.",
+              "many": false
+            },
+            "results.material.symmetry.prototype_formula": {
+              "name": "results.material.symmetry.prototype_formula",
+              "description": "The formula of the prototypical material for this structure.",
+              "many": false
+            },
+            "results.material.symmetry.prototype_aflow_id": {
+              "name": "results.material.symmetry.prototype_aflow_id",
+              "description": "The identifier of this structure in the AFLOW encyclopedia of\ncrystallographic prototypes:\nhttp://www.aflowlib.org/prototype-encyclopedia/index.html",
+              "many": false
+            },
+            "results.material.symmetry.prototype_aflow_id__suggestion.suggestion": {
+              "name": "results.material.symmetry.prototype_aflow_id__suggestion.suggestion",
+              "description": "The identifier of this structure in the AFLOW encyclopedia of\ncrystallographic prototypes:\nhttp://www.aflowlib.org/prototype-encyclopedia/index.html",
+              "many": false
+            },
+            "results.material.symmetry.structure_name": {
+              "name": "results.material.symmetry.structure_name",
+              "description": "A common name for this structure, e.g. fcc, bcc.",
+              "many": false
+            },
+            "results.material.symmetry.structure_name__suggestion": {
+              "name": "results.material.symmetry.structure_name__suggestion",
+              "description": "A common name for this structure, e.g. fcc, bcc.",
+              "many": false
+            },
+            "results.material.symmetry.strukturbericht_designation": {
+              "name": "results.material.symmetry.strukturbericht_designation",
+              "description": "Classification of the material according to the historically grown\n'strukturbericht'.",
+              "many": false
+            },
+            "results.material.symmetry.strukturbericht_designation__suggestion.suggestion": {
+              "name": "results.material.symmetry.strukturbericht_designation__suggestion.suggestion",
+              "description": "Classification of the material according to the historically grown\n'strukturbericht'.",
+              "many": false
+            },
+            "results.method.method_id": {
+              "name": "results.method.method_id",
+              "description": "Identifier for the used method. Only available for a subset of entries\nfor which the methodology has been identified with precision.",
+              "many": false
+            },
+            "results.method.method_name": {
+              "name": "results.method.method_name",
+              "description": "Common name for the used method.",
+              "many": false
+            },
+            "results.method.method_name__suggestion": {
+              "name": "results.method.method_name__suggestion",
+              "description": "Common name for the used method.",
+              "many": false
+            },
+            "results.method.workflow_name": {
+              "name": "results.method.workflow_name",
+              "description": "The workflow type.",
+              "many": true
+            },
+            "results.method.workflow_name__suggestion": {
+              "name": "results.method.workflow_name__suggestion",
+              "description": "The workflow type.",
+              "many": true
+            },
+            "results.method.simulation.program_name": {
+              "name": "results.method.simulation.program_name",
+              "description": "The name of the used program.",
+              "many": false
+            },
+            "results.method.simulation.program_name__suggestion": {
+              "name": "results.method.simulation.program_name__suggestion",
+              "description": "The name of the used program.",
+              "many": false
+            },
+            "results.method.simulation.program_version": {
+              "name": "results.method.simulation.program_version",
+              "description": "The version of the used program.",
+              "many": false
+            },
+            "results.method.simulation.program_version__suggestion": {
+              "name": "results.method.simulation.program_version__suggestion",
+              "description": "The version of the used program.",
+              "many": false
+            },
+            "results.method.simulation.dft.basis_set_type": {
+              "name": "results.method.simulation.dft.basis_set_type",
+              "description": "The used basis set functions.",
+              "many": false
+            },
+            "results.method.simulation.dft.basis_set_type__suggestion": {
+              "name": "results.method.simulation.dft.basis_set_type__suggestion",
+              "description": "The used basis set functions.",
+              "many": false
+            },
+            "results.method.simulation.dft.basis_set_name": {
+              "name": "results.method.simulation.dft.basis_set_name",
+              "description": "Identifies the basis set.",
+              "many": false
+            },
+            "results.method.simulation.dft.basis_set_name__suggestion": {
+              "name": "results.method.simulation.dft.basis_set_name__suggestion",
+              "description": "Identifies the basis set.",
+              "many": false
+            },
+            "results.method.simulation.dft.core_electron_treatment": {
+              "name": "results.method.simulation.dft.core_electron_treatment",
+              "description": "How the core electrons are described.",
+              "many": false
+            },
+            "results.method.simulation.dft.core_electron_treatment__suggestion": {
+              "name": "results.method.simulation.dft.core_electron_treatment__suggestion",
+              "description": "How the core electrons are described.",
+              "many": false
+            },
+            "results.method.simulation.dft.spin_polarized": {
+              "name": "results.method.simulation.dft.spin_polarized",
+              "description": "Whether the calculation is spin-polarized.",
+              "many": false
+            },
+            "results.method.simulation.dft.scf_threshold_energy_change": {
+              "name": "results.method.simulation.dft.scf_threshold_energy_change",
+              "description": "Specifies the threshold for the total energy change between two subsequent\nself-consistent field (SCF) iterations. The SCF is considered converged when the\ntotal-energy change between two SCF cycles is below the threshold (possibly in\ncombination with other criteria).",
+              "many": false
+            },
+            "results.method.simulation.dft.van_der_Waals_method": {
+              "name": "results.method.simulation.dft.van_der_Waals_method",
+              "description": "The used van der Waals method.",
+              "many": false
+            },
+            "results.method.simulation.dft.van_der_Waals_method__suggestion": {
+              "name": "results.method.simulation.dft.van_der_Waals_method__suggestion",
+              "description": "The used van der Waals method.",
+              "many": false
+            },
+            "results.method.simulation.dft.relativity_method": {
+              "name": "results.method.simulation.dft.relativity_method",
+              "description": "Describes the relativistic treatment used for the calculation of the final energy\nand related quantities. If skipped or empty, no relativistic treatment is applied.",
+              "many": false
+            },
+            "results.method.simulation.dft.relativity_method__suggestion": {
+              "name": "results.method.simulation.dft.relativity_method__suggestion",
+              "description": "Describes the relativistic treatment used for the calculation of the final energy\nand related quantities. If skipped or empty, no relativistic treatment is applied.",
+              "many": false
+            },
+            "results.method.simulation.dft.smearing_kind": {
+              "name": "results.method.simulation.dft.smearing_kind",
+              "description": "Specifies the kind of smearing on the electron occupation used to calculate the\nfree energy (see energy_free)\n\nValid values are:\n\n| Smearing kind             | Description                       |\n\n| ------------------------- | --------------------------------- |\n\n| `\"empty\"`                 | No smearing is applied            |\n\n| `\"gaussian\"`              | Gaussian smearing                 |\n\n| `\"fermi\"`                 | Fermi smearing                    |\n\n| `\"marzari-vanderbilt\"`    | Marzari-Vanderbilt smearing       |\n\n| `\"methfessel-paxton\"`     | Methfessel-Paxton smearing        |\n\n| `\"tetrahedra\"`            | Interpolation of state energies and occupations\n(ignores smearing_width) |",
+              "many": false
+            },
+            "results.method.simulation.dft.smearing_kind__suggestion": {
+              "name": "results.method.simulation.dft.smearing_kind__suggestion",
+              "description": "Specifies the kind of smearing on the electron occupation used to calculate the\nfree energy (see energy_free)\n\nValid values are:\n\n| Smearing kind             | Description                       |\n\n| ------------------------- | --------------------------------- |\n\n| `\"empty\"`                 | No smearing is applied            |\n\n| `\"gaussian\"`              | Gaussian smearing                 |\n\n| `\"fermi\"`                 | Fermi smearing                    |\n\n| `\"marzari-vanderbilt\"`    | Marzari-Vanderbilt smearing       |\n\n| `\"methfessel-paxton\"`     | Methfessel-Paxton smearing        |\n\n| `\"tetrahedra\"`            | Interpolation of state energies and occupations\n(ignores smearing_width) |",
+              "many": false
+            },
+            "results.method.simulation.dft.smearing_width": {
+              "name": "results.method.simulation.dft.smearing_width",
+              "description": "Specifies the width of the smearing in energy for the electron occupation used to\ncalculate the free energy (see energy_free).\n\n*NOTE:* Not all methods specified in smearing_kind uses this value.",
+              "many": false
+            },
+            "results.method.simulation.dft.xc_functional_type": {
+              "name": "results.method.simulation.dft.xc_functional_type",
+              "description": "The libXC based xc functional classification used in the simulation.",
+              "many": false
+            },
+            "results.method.simulation.dft.xc_functional_names": {
+              "name": "results.method.simulation.dft.xc_functional_names",
+              "description": "The list of libXC functional names that where used in this entry.",
+              "many": true
+            },
+            "results.method.simulation.dft.xc_functional_names__suggestion": {
+              "name": "results.method.simulation.dft.xc_functional_names__suggestion",
+              "description": "The list of libXC functional names that where used in this entry.",
+              "many": true
+            },
+            "results.method.simulation.gw.type": {
+              "name": "results.method.simulation.gw.type",
+              "description": "GW methodology: G0W0; ev-scGW: (eigenvalues self-consistent GW) – Phys.Rev.B 34,\n5390 (1986); qp-scGW: (quasi-particle self-consistent GW) – Phys. Rev. Lett. 96,\n226402 (2006)  scGW0: (self-consistent G with fixed W0) – Phys.Rev.B 54, 8411\n(1996); scG0W: (self-consistent W with fixed G0); scGW: (self-consistent GW) –\nPhys. Rev. B 88, 075105 (2013)",
+              "many": false
+            },
+            "results.method.simulation.gw.type__suggestion": {
+              "name": "results.method.simulation.gw.type__suggestion",
+              "description": "GW methodology: G0W0; ev-scGW: (eigenvalues self-consistent GW) – Phys.Rev.B 34,\n5390 (1986); qp-scGW: (quasi-particle self-consistent GW) – Phys. Rev. Lett. 96,\n226402 (2006)  scGW0: (self-consistent G with fixed W0) – Phys.Rev.B 54, 8411\n(1996); scG0W: (self-consistent W with fixed G0); scGW: (self-consistent GW) –\nPhys. Rev. B 88, 075105 (2013)",
+              "many": false
+            },
+            "results.method.simulation.gw.starting_point": {
+              "name": "results.method.simulation.gw.starting_point",
+              "description": "The list of libXC functional names that were used for the ground state calculation.",
+              "many": true
+            },
+            "results.properties.n_calculations": {
+              "name": "results.properties.n_calculations",
+              "description": "The number of performed single configuration calculations.'",
+              "many": false
+            },
+            "results.properties.available_properties": {
+              "name": "results.properties.available_properties",
+              "description": "Subset of the property names that are present in this entry.",
+              "many": true
+            },
+            "results.properties.structures.structure_original.nperiodic_dimensions": {
+              "name": "results.properties.structures.structure_original.nperiodic_dimensions",
+              "description": "An integer specifying the number of periodic dimensions in the\nstructure, equivalent to the number of non-zero entries in\ndimension_types.",
+              "many": false
+            },
+            "results.properties.structures.structure_original.n_sites": {
+              "name": "results.properties.structures.structure_original.n_sites",
+              "description": "An integer specifying the length of the cartesian_site_positions property.",
+              "many": false
+            },
+            "results.properties.structures.structure_original.cell_volume": {
+              "name": "results.properties.structures.structure_original.cell_volume",
+              "description": "Volume of the cell.",
+              "many": false
+            },
+            "results.properties.structures.structure_original.lattice_parameters.a": {
+              "name": "results.properties.structures.structure_original.lattice_parameters.a",
+              "description": "Length of the first basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_original.lattice_parameters.b": {
+              "name": "results.properties.structures.structure_original.lattice_parameters.b",
+              "description": "Length of the second basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_original.lattice_parameters.c": {
+              "name": "results.properties.structures.structure_original.lattice_parameters.c",
+              "description": "Length of the third basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_original.lattice_parameters.alpha": {
+              "name": "results.properties.structures.structure_original.lattice_parameters.alpha",
+              "description": "Angle between second and third basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_original.lattice_parameters.beta": {
+              "name": "results.properties.structures.structure_original.lattice_parameters.beta",
+              "description": "Angle between first and third basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_original.lattice_parameters.gamma": {
+              "name": "results.properties.structures.structure_original.lattice_parameters.gamma",
+              "description": "Angle between first and second basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_conventional.nperiodic_dimensions": {
+              "name": "results.properties.structures.structure_conventional.nperiodic_dimensions",
+              "description": "An integer specifying the number of periodic dimensions in the\nstructure, equivalent to the number of non-zero entries in\ndimension_types.",
+              "many": false
+            },
+            "results.properties.structures.structure_conventional.n_sites": {
+              "name": "results.properties.structures.structure_conventional.n_sites",
+              "description": "An integer specifying the length of the cartesian_site_positions property.",
+              "many": false
+            },
+            "results.properties.structures.structure_conventional.cell_volume": {
+              "name": "results.properties.structures.structure_conventional.cell_volume",
+              "description": "Volume of the cell.",
+              "many": false
+            },
+            "results.properties.structures.structure_conventional.lattice_parameters.a": {
+              "name": "results.properties.structures.structure_conventional.lattice_parameters.a",
+              "description": "Length of the first basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_conventional.lattice_parameters.b": {
+              "name": "results.properties.structures.structure_conventional.lattice_parameters.b",
+              "description": "Length of the second basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_conventional.lattice_parameters.c": {
+              "name": "results.properties.structures.structure_conventional.lattice_parameters.c",
+              "description": "Length of the third basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_conventional.lattice_parameters.alpha": {
+              "name": "results.properties.structures.structure_conventional.lattice_parameters.alpha",
+              "description": "Angle between second and third basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_conventional.lattice_parameters.beta": {
+              "name": "results.properties.structures.structure_conventional.lattice_parameters.beta",
+              "description": "Angle between first and third basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_conventional.lattice_parameters.gamma": {
+              "name": "results.properties.structures.structure_conventional.lattice_parameters.gamma",
+              "description": "Angle between first and second basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_primitive.nperiodic_dimensions": {
+              "name": "results.properties.structures.structure_primitive.nperiodic_dimensions",
+              "description": "An integer specifying the number of periodic dimensions in the\nstructure, equivalent to the number of non-zero entries in\ndimension_types.",
+              "many": false
+            },
+            "results.properties.structures.structure_primitive.n_sites": {
+              "name": "results.properties.structures.structure_primitive.n_sites",
+              "description": "An integer specifying the length of the cartesian_site_positions property.",
+              "many": false
+            },
+            "results.properties.structures.structure_primitive.cell_volume": {
+              "name": "results.properties.structures.structure_primitive.cell_volume",
+              "description": "Volume of the cell.",
+              "many": false
+            },
+            "results.properties.structures.structure_primitive.lattice_parameters.a": {
+              "name": "results.properties.structures.structure_primitive.lattice_parameters.a",
+              "description": "Length of the first basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_primitive.lattice_parameters.b": {
+              "name": "results.properties.structures.structure_primitive.lattice_parameters.b",
+              "description": "Length of the second basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_primitive.lattice_parameters.c": {
+              "name": "results.properties.structures.structure_primitive.lattice_parameters.c",
+              "description": "Length of the third basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_primitive.lattice_parameters.alpha": {
+              "name": "results.properties.structures.structure_primitive.lattice_parameters.alpha",
+              "description": "Angle between second and third basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_primitive.lattice_parameters.beta": {
+              "name": "results.properties.structures.structure_primitive.lattice_parameters.beta",
+              "description": "Angle between first and third basis vector.",
+              "many": false
+            },
+            "results.properties.structures.structure_primitive.lattice_parameters.gamma": {
+              "name": "results.properties.structures.structure_primitive.lattice_parameters.gamma",
+              "description": "Angle between first and second basis vector.",
+              "many": false
+            },
+            "results.properties.electronic.band_structure_electronic.spin_polarized": {
+              "name": "results.properties.electronic.band_structure_electronic.spin_polarized",
+              "description": "Whether the band structure is spin-polarized, i.e. is contains channels\nfor both spin values.",
+              "many": false
+            },
+            "results.properties.electronic.band_structure_electronic.band_gap.index": {
+              "name": "results.properties.electronic.band_structure_electronic.band_gap.index",
+              "description": "Spin channel index.",
+              "many": false
+            },
+            "results.properties.electronic.band_structure_electronic.band_gap.value": {
+              "name": "results.properties.electronic.band_structure_electronic.band_gap.value",
+              "description": "Band gap value. Value of zero corresponds to not having a band gap.",
+              "many": false
+            },
+            "results.properties.electronic.band_structure_electronic.band_gap.type": {
+              "name": "results.properties.electronic.band_structure_electronic.band_gap.type",
+              "description": "Band gap type.",
+              "many": false
+            },
+            "results.properties.electronic.band_structure_electronic.band_gap.type__suggestion.suggestion": {
+              "name": "results.properties.electronic.band_structure_electronic.band_gap.type__suggestion.suggestion",
+              "description": "Band gap type.",
+              "many": false
+            },
+            "results.properties.electronic.dos_electronic.spin_polarized": {
+              "name": "results.properties.electronic.dos_electronic.spin_polarized",
+              "description": "Whether the DOS is spin-polarized, i.e. is contains channels for both\nspin values.",
+              "many": false
+            },
+            "results.properties.electronic.dos_electronic.band_gap.index": {
+              "name": "results.properties.electronic.dos_electronic.band_gap.index",
+              "description": "Spin channel index.",
+              "many": false
+            },
+            "results.properties.electronic.dos_electronic.band_gap.value": {
+              "name": "results.properties.electronic.dos_electronic.band_gap.value",
+              "description": "Band gap value. Value of zero corresponds to not having a band gap.",
+              "many": false
+            },
+            "results.properties.electronic.dos_electronic.band_gap.type": {
+              "name": "results.properties.electronic.dos_electronic.band_gap.type",
+              "description": "Band gap type.",
+              "many": false
+            },
+            "results.properties.electronic.dos_electronic.band_gap.type__suggestion.suggestion": {
+              "name": "results.properties.electronic.dos_electronic.band_gap.type__suggestion.suggestion",
+              "description": "Band gap type.",
+              "many": false
+            },
+            "results.properties.mechanical.energy_volume_curve.type": {
+              "name": "results.properties.mechanical.energy_volume_curve.type",
+              "many": false
+            },
+            "results.properties.mechanical.energy_volume_curve.type__suggestion": {
+              "name": "results.properties.mechanical.energy_volume_curve.type__suggestion",
+              "many": false
+            },
+            "results.properties.mechanical.bulk_modulus.type": {
+              "name": "results.properties.mechanical.bulk_modulus.type",
+              "description": "Describes the methodology for obtaining the value.",
+              "many": false
+            },
+            "results.properties.mechanical.bulk_modulus.type__suggestion": {
+              "name": "results.properties.mechanical.bulk_modulus.type__suggestion",
+              "description": "Describes the methodology for obtaining the value.",
+              "many": false
+            },
+            "results.properties.mechanical.bulk_modulus.value": {
+              "name": "results.properties.mechanical.bulk_modulus.value",
+              "description": "Bulk modulus value.",
+              "many": false
+            },
+            "results.properties.mechanical.shear_modulus.type": {
+              "name": "results.properties.mechanical.shear_modulus.type",
+              "description": "Describes the methodology for obtaining the value.",
+              "many": false
+            },
+            "results.properties.mechanical.shear_modulus.type__suggestion": {
+              "name": "results.properties.mechanical.shear_modulus.type__suggestion",
+              "description": "Describes the methodology for obtaining the value.",
+              "many": false
+            },
+            "results.properties.mechanical.shear_modulus.value": {
+              "name": "results.properties.mechanical.shear_modulus.value",
+              "description": "Shear modulus value.",
+              "many": false
+            },
+            "results.properties.spectroscopy.eels.detector_type": {
+              "name": "results.properties.spectroscopy.eels.detector_type",
+              "many": false
+            },
+            "results.properties.spectroscopy.eels.detector_type__suggestion": {
+              "name": "results.properties.spectroscopy.eels.detector_type__suggestion",
+              "many": false
+            },
+            "results.properties.spectroscopy.eels.resolution": {
+              "name": "results.properties.spectroscopy.eels.resolution",
+              "many": false
+            },
+            "results.properties.spectroscopy.eels.max_energy": {
+              "name": "results.properties.spectroscopy.eels.max_energy",
+              "many": false
+            },
+            "results.properties.spectroscopy.eels.min_energy": {
+              "name": "results.properties.spectroscopy.eels.min_energy",
+              "many": false
+            },
+            "results.properties.geometry_optimization.convergence_tolerance_energy_difference": {
+              "name": "results.properties.geometry_optimization.convergence_tolerance_energy_difference",
+              "description": "The input energy difference tolerance criterion.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.convergence_tolerance_force_maximum": {
+              "name": "results.properties.geometry_optimization.convergence_tolerance_force_maximum",
+              "description": "The input maximum net force tolerance criterion.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.final_force_maximum": {
+              "name": "results.properties.geometry_optimization.final_force_maximum",
+              "description": "The maximum net force in the last optimization step.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.final_energy_difference": {
+              "name": "results.properties.geometry_optimization.final_energy_difference",
+              "description": "The difference in the energy_total between the last two steps during\noptimization.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.final_displacement_maximum": {
+              "name": "results.properties.geometry_optimization.final_displacement_maximum",
+              "description": "The maximum displacement in the last optimization step with respect to previous.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.structure_optimized.nperiodic_dimensions": {
+              "name": "results.properties.geometry_optimization.structure_optimized.nperiodic_dimensions",
+              "description": "An integer specifying the number of periodic dimensions in the\nstructure, equivalent to the number of non-zero entries in\ndimension_types.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.structure_optimized.n_sites": {
+              "name": "results.properties.geometry_optimization.structure_optimized.n_sites",
+              "description": "An integer specifying the length of the cartesian_site_positions property.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.structure_optimized.cell_volume": {
+              "name": "results.properties.geometry_optimization.structure_optimized.cell_volume",
+              "description": "Volume of the cell.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.structure_optimized.lattice_parameters.a": {
+              "name": "results.properties.geometry_optimization.structure_optimized.lattice_parameters.a",
+              "description": "Length of the first basis vector.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.structure_optimized.lattice_parameters.b": {
+              "name": "results.properties.geometry_optimization.structure_optimized.lattice_parameters.b",
+              "description": "Length of the second basis vector.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.structure_optimized.lattice_parameters.c": {
+              "name": "results.properties.geometry_optimization.structure_optimized.lattice_parameters.c",
+              "description": "Length of the third basis vector.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.structure_optimized.lattice_parameters.alpha": {
+              "name": "results.properties.geometry_optimization.structure_optimized.lattice_parameters.alpha",
+              "description": "Angle between second and third basis vector.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.structure_optimized.lattice_parameters.beta": {
+              "name": "results.properties.geometry_optimization.structure_optimized.lattice_parameters.beta",
+              "description": "Angle between first and third basis vector.",
+              "many": false
+            },
+            "results.properties.geometry_optimization.structure_optimized.lattice_parameters.gamma": {
+              "name": "results.properties.geometry_optimization.structure_optimized.lattice_parameters.gamma",
+              "description": "Angle between first and second basis vector.",
+              "many": false
+            }
+          },
+          "version": "1.1.0",
+          "deployment": "devel",
+          "git": {
+            "ref": "heads/section_editor",
+            "version": "v0.10.6-842-g4350ae6f",
+            "commit": "4350ae6f",
+            "log": "4350ae6f Save the data in the level of sub-section"
+          },
+          "oasis": false
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "45630",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "31f8db5a713f7d27a9062a1a04d5ad41": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?page_size=5&page=1&order=asc&order_by=process_status",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIzZWVkOTE3ZC1kMDc3LTRlZDItYmUwMi1kODlkZjYwOTgxMjYiLCJleHAiOjE2NDgwNjUxMjMsIm5iZiI6MCwiaWF0IjoxNjQ4MDI5MTMxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjJmZjRlNTZiLTRkNWMtNDU1NS1iNGQ1LTI3NjI1NWVlMDYyZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.diW5DSU5Gb6waqp6z5dmmgPoIs2KA7OTnc2JG0-3L_wJiV7id0sHGfZercTCOczyKlPYCql0_fSO6z_4OyPrg3S8OKWAG3MfjXzRGb3ADEwuNtPKdt0N8EgFLio5OCwMST523m6ah2ys1s9rcvMYkm8o_L2UH-l8iLbfVfxEi__54o9-l-Ghr-FZz8pA_OhIc_M3aRyM0XZ2H3O3w4ZK0F2AIj4F4KC_nvkq__xAiEXUWlyxU8RmAs0poomVVlUgpYiFWUeJPtL96CJZ0tIaHA6TtzsUD0bQCxWuY-aDyqVuqE9CxSgHB-np3GLAg0OgbU1DRQ5up3bMnRCPzYfDyA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pagination": {
+            "page_size": 5,
+            "order_by": "process_status",
+            "order": "asc",
+            "page": 1,
+            "total": 1,
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?page_size=5&page=1&order=asc&order_by=process_status",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?page_size=5&order=asc&order_by=process_status"
+          },
+          "processing_successful": 1,
+          "processing_failed": 0,
+          "upload": {
+            "process_running": false,
+            "current_process": "process_upload",
+            "process_status": "SUCCESS",
+            "errors": [],
+            "warnings": [],
+            "complete_time": "2022-03-23T09:52:08.904000",
+            "upload_id": "dft_upload",
+            "upload_create_time": "2022-03-23T09:52:08.903000",
+            "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+            "coauthors": [
+              "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
+            ],
+            "reviewers": [
+              "54cb1f64-f84e-4815-9ade-440ce0b5430f"
+            ],
+            "viewers": [
+              "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+              "54cb1f64-f84e-4815-9ade-440ce0b5430f"
+            ],
+            "writers": [
+              "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
+            ],
+            "published": true,
+            "published_to": [],
+            "publish_time": "2022-03-23T09:52:08.906000",
+            "with_embargo": false,
+            "embargo_length": 0,
+            "license": "CC BY 4.0",
+            "entries": 1
+          },
+          "data": [
+            {
+              "process_running": false,
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "entry_id": "dft_bulk",
+              "entry_create_time": "2022-03-23T09:52:08.907000",
+              "mainfile": "vasp.xml",
+              "upload_id": "dft_upload",
+              "parser_name": "parsers/vasp",
+              "entry_metadata": {
+                "last_processing_time": "2021-03-17T15:47:32.899000",
+                "upload_id": "dft_upload",
+                "references": [
+                  "doi"
+                ],
+                "parser_name": "parsers/vasp",
+                "origin": "Markus Scheidgen",
+                "calc_id": "dft_bulk",
+                "published": true,
+                "writers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  },
+                  {
+                    "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                    "name": "Sheldon Cooper"
+                  }
+                ],
+                "n_quantities": 0,
+                "nomad_version": "0.10.0",
+                "upload_create_time": "2022-03-23T09:52:08.903312",
+                "nomad_commit": "bf3c06fa",
+                "processed": true,
+                "mainfile": "vasp.xml",
+                "main_author": {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                "viewers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  },
+                  {
+                    "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                    "name": "Sheldon Cooper"
+                  },
+                  {
+                    "user_id": "54cb1f64-f84e-4815-9ade-440ce0b5430f",
+                    "name": "Test Tester"
+                  }
+                ],
+                "entry_create_time": "2022-03-23T09:52:08.907312",
+                "publish_time": "2022-03-23T09:52:08.906312",
+                "with_embargo": false,
+                "domain": "dft",
+                "comment": "Mocked",
+                "results": {
+                  "material": {
+                    "symmetry": {
+                      "bravais_lattice": "cP",
+                      "space_group_symbol": "Fd-3m",
+                      "structure_name": "rock salt",
+                      "space_group_number": 227,
+                      "point_group": "6mm",
+                      "crystal_system": "cubic"
+                    },
+                    "elements": [
+                      "Si"
+                    ],
+                    "elements_exclusive": "Si",
+                    "chemical_formula_anonymous": "A2",
+                    "material_id": "bulk_material",
+                    "structural_type": "bulk",
+                    "chemical_formula_reduced": "Si2",
+                    "n_elements": 1,
+                    "chemical_formula_descriptive": "Si2",
+                    "material_name": "Silicon",
+                    "chemical_formula_hill": "Si2"
+                  },
+                  "method": {
+                    "method_name": "DFT",
+                    "simulation": {
+                      "program_version": "1",
+                      "dft": {
+                        "basis_set_type": "plane waves",
+                        "core_electron_treatment": "unavailable",
+                        "xc_functional_type": "GGA",
+                        "xc_functional_names": [
+                          "GGA_C_PBE",
+                          "GGA_X_PBE"
+                        ],
+                        "van_der_Waals_method": "G06",
+                        "relativity_method": "scalar_relativistic_atomic_ZORA",
+                        "basis_set_name": "STO-3G"
+                      },
+                      "program_name": "VASP"
+                    }
+                  },
+                  "properties": {
+                    "available_properties": [
+                      "dos_electronic",
+                      "band_structure_electronic",
+                      "dos_phonon",
+                      "band_structure_phonon",
+                      "heat_capacity_constant_volume",
+                      "energy_free_helmholtz",
+                      "bulk_modulus",
+                      "shear_modulus",
+                      "energy_volume_curve"
+                    ],
+                    "structures": {
+                      "structure_primitive": {
+                        "nperiodic_dimensions": 0,
+                        "n_sites": 0,
+                        "cell_volume": 1.25e-28,
+                        "lattice_parameters": {
+                          "a": 5e-10,
+                          "b": 5e-10,
+                          "c": 5e-10,
+                          "alpha": 1.5707963267948966,
+                          "beta": 1.5707963267948966,
+                          "gamma": 1.5707963267948966
+                        }
+                      },
+                      "structure_conventional": {
+                        "nperiodic_dimensions": 0,
+                        "n_sites": 0,
+                        "cell_volume": 1.25e-35,
+                        "lattice_parameters": {
+                          "a": 5e-10,
+                          "b": 5e-10,
+                          "c": 5e-10,
+                          "alpha": 1.5707963267948966,
+                          "beta": 1.5707963267948966,
+                          "gamma": 1.5707963267948966
+                        }
+                      },
+                      "structure_original": {
+                        "nperiodic_dimensions": 0,
+                        "n_sites": 0,
+                        "cell_volume": 1.25e-28,
+                        "lattice_parameters": {
+                          "a": 5e-10,
+                          "b": 5e-10,
+                          "c": 5e-10,
+                          "alpha": 1.5707963267948966,
+                          "beta": 1.5707963267948966,
+                          "gamma": 1.5707963267948966
+                        }
+                      }
+                    },
+                    "electronic": {
+                      "dos_electronic": {},
+                      "band_structure_electronic": {
+                        "band_gap": [
+                          {
+                            "type": "indirect",
+                            "value": 1e-19
+                          }
+                        ]
+                      }
+                    },
+                    "mechanical": {
+                      "energy_volume_curve": [
+                        {
+                          "type": "murhaghan"
+                        }
+                      ],
+                      "shear_modulus": [
+                        {
+                          "type": "voigt_reuss_hill_average",
+                          "value": 1
+                        }
+                      ],
+                      "bulk_modulus": [
+                        {
+                          "type": "murnaghan",
+                          "value": 1
+                        }
+                      ]
+                    }
+                  }
+                },
+                "entry_id": "dft_bulk",
+                "authors": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  },
+                  {
+                    "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                    "name": "Sheldon Cooper"
+                  }
+                ],
+                "license": "CC BY 4.0"
+              }
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "4646",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

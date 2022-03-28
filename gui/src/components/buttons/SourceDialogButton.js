@@ -78,7 +78,7 @@ const DialogButton = React.memo(function DialogButton(props) {
   const button = useMemo(() => {
     return React.createElement(
       componentToUse,
-      {onClick: () => setOpen(true), ...buttonProps},
+      {onClick: () => setOpen(true), 'data-testid': 'source-api-action', ...buttonProps},
       label || icon || <CodeIcon/>
     )
   }, [componentToUse, setOpen, label, icon, buttonProps])

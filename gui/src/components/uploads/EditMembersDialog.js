@@ -319,7 +319,7 @@ const DeleteAction = React.memo((props) => {
 
   const isOwner = data.role === 'Main author'
 
-  return <IconButton disabled={isOwner} onClick={handleRemove}>
+  return <IconButton disabled={isOwner} onClick={handleRemove} data-testid='member-delete-button'>
     <Tooltip title="Remove the member">
       <DeleteIcon />
     </Tooltip>
@@ -415,7 +415,7 @@ function EditMembersDialog({...props}) {
           <MembersIcon/>
         </Tooltip>
       </IconButton>
-      {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown>
+      {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown data-testid='edit-members-dialog'>
         <DialogTitle>Manage upload members</DialogTitle>
         <DialogContent>
           <DialogContentText>
