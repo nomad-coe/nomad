@@ -27,6 +27,7 @@ import { CodeList } from '../About'
 import FilesBrower from './FilesBrowser'
 import { useErrors } from '../errors'
 import ProcessingTable from './ProcessingTable'
+import DownloadIcon from '@material-ui/icons/CloudDownload'
 import EditIcon from '@material-ui/icons/Edit'
 import DeleteIcon from '@material-ui/icons/Delete'
 import ReprocessIcon from '@material-ui/icons/Autorenew'
@@ -38,7 +39,7 @@ import EditMembersDialog from './EditMembersDialog'
 import EditMetaDataDialog from './EditMetaDataDialog'
 import Page from '../Page'
 import { combinePagination } from '../datatable/Datatable'
-import UploadDownloadButton from '../entry/UploadDownloadButton'
+import Download from '../entry/Download'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
@@ -410,7 +411,13 @@ function UploadOverview(props) {
         </Grid>
         <Grid>
           <EditMembersDialog disabled={!isWriter}/>
-          <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
+          <Download
+            component={IconButton} tooltip="Download files"
+            url={`uploads/${uploadId}/raw/?compress=true`}
+            data-testid='upload-download-action'
+          >
+            <DownloadIcon />
+          </Download>
           <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess} data-testid='upload-reprocess-action'>
             <Tooltip title="Reprocess">
               <ReprocessIcon />

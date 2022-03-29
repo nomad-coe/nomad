@@ -33,7 +33,7 @@ from tests.test_files import (
 from tests.test_search import assert_search_upload
 from tests.processing.test_edit_metadata import (
     assert_metadata_edited, all_coauthor_metadata, all_admin_metadata)
-from tests.app.v1.routers.common import assert_response
+from tests.app.v1.routers.common import assert_response, assert_browser_download_headers
 from nomad import config, files, infrastructure
 from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
@@ -798,8 +798,12 @@ def test_get_upload_raw_path(
 
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        mime_type = response.headers.get('content-type')
-        assert mime_type == expected_mime_type
+        mime_type = response.headers.get('Content-Type')
+        if not path:
+            expected_filename = upload_id + '.zip'
+        else:
+            expected_filename = os.path.basename(path.rstrip('/')) + ('.zip' if mime_type == 'application/zip' else '')
+        assert_browser_download_headers(response, expected_mime_type, expected_filename)
         if mime_type == 'application/zip':
             if expected_content:
                 with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:

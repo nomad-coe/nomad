@@ -17,51 +17,27 @@
  */
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import { useErrors } from '../errors'
 import { apiBase } from '../../config'
 import { Tooltip, IconButton, Menu, MenuItem } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import { useApi } from '../api'
 import { toAPIFilter } from '../search/SearchContext'
 
 const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
   const {tooltip, disabled, buttonProps, dark, query} = props
-  const {api, user} = useApi()
-  const {raiseError} = useErrors()
 
-  const [preparingDownload, setPreparingDownload] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
-
-  const download = (choice) => {
-    let queryStringData = toAPIFilter(query)
-    const owner = query.visibility || 'visible'
-    const openDownload = (token) => {
-      const url = `${apiBase}/v1/entries/${choice}/download?owner=${owner}&signature_token=${token}&json_query=${JSON.stringify(queryStringData)}`
-      window.location.assign(url)
-    }
-
-    if (user) {
-      setPreparingDownload(true)
-      api.get('/auth/signature_token')
-        .then(response => {
-          const token = response.signature_token
-          openDownload(token)
-        })
-        .catch(raiseError)
-        .finally(setPreparingDownload(false))
-    } else {
-      openDownload()
-    }
-  }
 
   const handleClick = event => {
     event.stopPropagation()
     setAnchorEl(event.currentTarget)
   }
 
-  const handleSelect = (choice) => {
+  const handleSelect = (urlSuffix) => {
     setAnchorEl(null)
-    download(choice)
+    let queryStringData = toAPIFilter(query)
+    const owner = query.visibility || 'visible'
+    const url = `${apiBase}/v1/entries/${urlSuffix}?owner=${owner}&json_query=${JSON.stringify(queryStringData)}`
+    window.location.assign(url)
   }
 
   const handleClose = () => {
@@ -71,7 +47,7 @@ const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
   return <React.Fragment>
     <IconButton
       {...buttonProps}
-      disabled={disabled || preparingDownload}
+      disabled={disabled}
       onClick={handleClick}
       style={dark ? {color: 'white'} : null}
     >
@@ -85,7 +61,7 @@ const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
       onClose={handleClose}
     >
       <MenuItem onClick={() => handleSelect('raw')}>Raw uploaded files</MenuItem>
-      <MenuItem onClick={() => handleSelect('archive')}>Processed data</MenuItem>
+      <MenuItem onClick={() => handleSelect('archive/download')}>Processed data</MenuItem>
     </Menu>
   </React.Fragment>
 })

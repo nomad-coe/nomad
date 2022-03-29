@@ -184,9 +184,6 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
   } else {
     // Data loaded
     const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?compress=true`
-    const segments = path.split('/')
-    const lastSegment = segments[segments.length - 1]
-    const downloadFilename = `${uploadId}${lastSegment ? ' - ' + lastSegment : ''}.zip`
     return (
       <Dropzone
         disabled={!editable}
@@ -213,7 +210,6 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
                     component={IconButton} disabled={false} size="small"
                     tooltip="download this folder"
                     url={downloadUrl}
-                    fileName={downloadFilename}
                   >
                     <DownloadIcon />
                   </Download>
@@ -438,7 +434,6 @@ function RawFileContent({uploadId, path, data, editable}) {
                   component={IconButton} disabled={false} size="small"
                   tooltip="download this file"
                   url={downloadUrl}
-                  fileName={data.name}
                 >
                   <DownloadIcon />
                 </Download>

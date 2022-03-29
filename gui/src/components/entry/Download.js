@@ -15,13 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState } from 'react'
+import React from 'react'
 import PropTypes from 'prop-types'
-import FileSaver from 'file-saver'
-import { useErrors } from '../errors'
 import { apiBase } from '../../config'
 import { makeStyles, Tooltip } from '@material-ui/core'
-import { useApi } from '../api'
 
 const useStyles = makeStyles(theme => ({
   root: {}
@@ -29,31 +26,10 @@ const useStyles = makeStyles(theme => ({
 
 export const Download = React.memo(function Download(props) {
   const classes = useStyles(props)
-  const {url, fileName, component, children, disabled, color, size, tooltip} = props
-  const {api, user} = useApi()
-  const {raiseError} = useErrors()
-
-  const [preparingDownload, setPreparingDownload] = useState(false)
+  const {url, component, children, disabled, color, size, tooltip} = props
 
   const handleClick = () => {
-    let fullUrl = `${apiBase}/v1/${url}`
-    let downloadUrl = fullUrl
-    if (user) {
-      setPreparingDownload(true)
-      api.get('/auth/signature_token')
-        .then(response => {
-          if (fullUrl.startsWith('/')) {
-            fullUrl = `${window.location.origin}${fullUrl}`
-          }
-          const downloadUrl = new URL(fullUrl)
-          downloadUrl.searchParams.append('signature_token', response.signature_token)
-          FileSaver.saveAs(downloadUrl.href, fileName)
-        })
-        .catch(raiseError)
-        .finally(() => setPreparingDownload(false))
-    } else {
-      FileSaver.saveAs(downloadUrl, fileName)
-    }
+    window.location.assign(`${apiBase}/v1/${url}`)
   }
 
   const Component = component
@@ -61,21 +37,21 @@ export const Download = React.memo(function Download(props) {
   const button = (
     <Component
       className={classes.root}
-      disabled={disabled || preparingDownload} color={color} size={size}
+      disabled={disabled} color={color} size={size}
       onClick={handleClick}
+      data-testid={props['data-testid']}
     >
       {children}
     </Component>
   )
 
-  if (tooltip && !disabled && !preparingDownload) {
+  if (tooltip && !disabled) {
     return <Tooltip title={tooltip}>{button}</Tooltip>
   } else {
     return button
   }
 })
 Download.propTypes = {
-  fileName: PropTypes.string,
   url: PropTypes.string,
   component: PropTypes.any,
   children: PropTypes.oneOfType([
@@ -85,7 +61,8 @@ Download.propTypes = {
   disabled: PropTypes.bool,
   tooltip: PropTypes.string,
   color: PropTypes.string,
-  size: PropTypes.string
+  size: PropTypes.string,
+  'data-testid': PropTypes.string
 }
 
 export default Download

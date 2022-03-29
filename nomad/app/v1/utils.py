@@ -223,6 +223,20 @@ def create_responses(*args):
         for status_code, response in args}
 
 
+def browser_download_headers(filename: str, media_type: str = 'application/octet-stream') -> Dict[str, str]:
+    '''
+    Creates standardized headers which tells browsers that they should download the
+    data to a file with the specified filename. Note, the `media_type` should normally be
+    either `application/octet-stream` or `application/zip`, using for example `application/json`
+    will cause most browsers to try to open and view the file instead of downloading it.
+    '''
+    assert filename, 'Filename must be specified'
+    filename = filename.replace('"', '\\"')
+    return {
+        'Content-Type': media_type,
+        'Content-Disposition': f'attatchment; filename="{filename}"'}
+
+
 def update_url_query_arguments(original_url: str, **kwargs) -> str:
     '''
     Takes an url, and returns a new url, obtained by updating the query arguments in the

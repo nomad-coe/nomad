@@ -58,7 +58,6 @@ const viewerImg = {
   name: 'image',
   fileExtensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'],
   maxSizeAutoPreview: 10e6,
-  requiresUrlWithAuth: true,
   render: ({classes, url, setFailedToPreview}) => {
     return <img
       src={url} className={classes.img}
@@ -86,11 +85,10 @@ const viewerPDF = {
   name: 'pdf',
   fileExtensions: ['pdf'],
   maxSizeAutoPreview: 10e6,
-  requiresUrlWithAuth: true,
   width: 700,
   render: ({url, setFailedToPreview}) => {
     return <FilePreviewPdf
-      file={{url: url}}
+      file={{url: url, withCredentials: true}}
       error={(error) => {
         console.log(error)
         setFailedToPreview(true)
@@ -160,34 +158,23 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
   const [dataLoaded, setDataLoaded] = useState(false)
 
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-  let fullUrl = `${apiBase}/v1/uploads/${uploadId}/raw/${encodedPath}`
-  if (fullUrl.startsWith('/')) {
-    fullUrl = `${window.location.origin}${fullUrl}`
+  let url = `${apiBase}/v1/uploads/${uploadId}/raw/${encodedPath}`
+  if (url.startsWith('/')) {
+    url = `${window.location.origin}${url}`
   }
-  const [fullUrlWithAuth, setFullUrlWithAuth] = useState(undefined)
 
   useEffect(() => {
-    if (preview && user && !fullUrlWithAuth && selectedViewer.requiresUrlWithAuth) {
-      // Need to fetch signature token for the viewer
-      api.get('/auth/signature_token')
-        .then(response => {
-          const fullUrlWithAuth = new URL(fullUrl)
-          fullUrlWithAuth.searchParams.append('signature_token', response.signature_token)
-          setFullUrlWithAuth(fullUrlWithAuth.href)
-        })
-        .catch(raiseError)
-    }
     if (preview && selectedViewer.requiresLoadedData && data.current === undefined) {
       // Need to load the file data content for the viewer
       data.current = null
-      api.get(fullUrl)
+      api.get(url)
         .then(response => {
           data.current = response
           setDataLoaded(true)
         })
         .catch(raiseError)
     }
-  }, [preview, selectedViewer, user, fullUrl, fullUrlWithAuth, setFullUrlWithAuth, data, dataLoaded, setDataLoaded, api, raiseError])
+  }, [preview, selectedViewer, user, url, data, dataLoaded, setDataLoaded, api, raiseError])
 
   if (!preview) {
     return (
@@ -200,8 +187,7 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
   }
 
   let content
-  const url = user ? fullUrlWithAuth : fullUrl
-  if ((selectedViewer.requiresUrlWithAuth && !url) || (selectedViewer.requiresLoadedData && !dataLoaded)) {
+  if (selectedViewer.requiresLoadedData && !dataLoaded) {
     // Not ready to invoke the viewer yet
     content = <Typography>Loading...</Typography>
   } else if (!failedToPreview) {

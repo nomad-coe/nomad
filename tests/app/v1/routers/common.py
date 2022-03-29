@@ -751,6 +751,16 @@ def assert_pagination(pagination, pagination_response, data, order_by=None, orde
             assert_url_query_args(prev_page_url, page=page - 1, page_after_value=None)
 
 
+def assert_browser_download_headers(response, media_type: str, filename: str):
+    if media_type:
+        assert response.headers['Content-Type'].split(';')[0] == media_type.split(';')[0]
+    content_disposition = response.headers['Content-Disposition']
+    assert 'attatchment;' in content_disposition
+    if filename:
+        filename_in_header = content_disposition.split('filename="')[1][:-1]
+        assert filename_in_header == filename
+
+
 def perform_metadata_test(
         client, endpoint: str, owner=None, headers={}, status_code=200,
         total=None, http_method='get', **kwargs):

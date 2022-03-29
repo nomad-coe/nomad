@@ -30,7 +30,7 @@ from tests.test_files import example_mainfile_contents, append_raw_files  # pyli
 
 from .common import (
     aggregation_exclude_from_search_test_parameters, assert_response, assert_base_metadata_response,
-    assert_metadata_response, assert_required, assert_aggregations, assert_pagination,
+    assert_metadata_response, assert_required, assert_aggregations, assert_pagination, assert_browser_download_headers,
     perform_metadata_test, post_query_test_parameters, get_query_test_parameters,
     perform_owner_test, owner_test_parameters, pagination_test_parameters,
     aggregation_test_parameters)
@@ -204,6 +204,7 @@ def assert_raw_zip_file(
     manifest_keys = ['entry_id', 'upload_id', 'mainfile']
 
     assert len(response.content) > 0
+    assert_browser_download_headers(response, 'application/zip', 'raw_files.zip')
     with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
         with zip_file.open('manifest.json', 'r') as f:
             manifest = json.load(f)
@@ -267,6 +268,7 @@ def assert_archive_zip_file(response, total: int = -1, compressed: bool = False)
     manifest_keys = ['entry_id', 'upload_id', 'path', 'parser_name']
 
     assert len(response.content) > 0
+    assert_browser_download_headers(response, 'application/zip', 'archives.zip')
     with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
         assert zip_file.testzip() is None
         with zip_file.open('manifest.json', 'r') as f:
@@ -644,16 +646,25 @@ def test_entry_archive(client, example_data, test_auth_dict, user, entry_id, sta
         assert_archive_response(response.json())
 
 
-@pytest.mark.parametrize('user, entry_id, status_code', [
-    pytest.param(None, 'id_01', 200, id='id'),
-    pytest.param('test_user', 'id_child_entries_child1', 200, id='child-entry'),
-    pytest.param(None, 'id_02', 404, id='404-not-visible'),
-    pytest.param(None, 'doesnotexist', 404, id='404-does-not-exist')])
-def test_entry_archive_download(client, example_data, test_auth_dict, user, entry_id, status_code):
+@pytest.mark.parametrize('user, entry_id, ignore_mime_type, status_code', [
+    pytest.param(None, 'id_01', False, 200, id='id'),
+    pytest.param(None, 'id_01', True, 200, id='id'),
+    pytest.param('test_user', 'id_child_entries_child1', False, 200, id='child-entry'),
+    pytest.param('test_user', 'id_child_entries_child1', True, 200, id='child-entry'),
+    pytest.param(None, 'id_02', True, 404, id='404-not-visible'),
+    pytest.param(None, 'doesnotexist', False, 404, id='404-does-not-exist')])
+def test_entry_archive_download(
+        client, example_data, test_auth_dict, user, entry_id, ignore_mime_type, status_code):
     user_auth, _ = test_auth_dict[user]
-    response = client.get('entries/%s/archive/download' % entry_id, headers=user_auth)
+    response = client.get(
+        f'entries/{entry_id}/archive/download' + ('?ignore_mime_type=true' if ignore_mime_type else ''),
+        headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
+        assert_browser_download_headers(
+            response,
+            media_type='application/octet-stream' if ignore_mime_type else 'application/json',
+            filename=entry_id + '.json')
         archive = response.json()
         assert 'metadata' in archive
         assert 'run' in archive
