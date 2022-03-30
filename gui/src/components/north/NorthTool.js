@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import React, {useCallback, useContext, useEffect, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -28,6 +28,12 @@ import Icon from '@material-ui/core/Icon'
 import {useApi} from '../api.js'
 import { useErrors } from '../errors'
 import { northBase } from '../../config'
+
+const northToolContext = React.createContext()
+
+export function useNorthTool() {
+  return useContext(northToolContext)
+}
 
 const launchButtonLabels = {
   'idle': 'Launch',
@@ -43,6 +49,24 @@ const stoppButtonLabels = {
 
 const LaunchButton = React.memo(function LaunchButton(props) {
   return <Button color="primary" variant="contained" size="small" {...props} />
+})
+
+export const NorthToolButtons = React.memo(function NorthToolButton() {
+  const {name, launch, stop, state} = useNorthTool()
+  return (
+    <Box display="flex" flexDirection="row">
+      <LaunchButton fullWidth name={name} onClick={launch} disabled={state === 'stopping' || state === 'launching'}>
+        {launchButtonLabels[state]}
+      </LaunchButton>
+      {(state === 'running' || state === 'stopping') && (
+        <Box marginLeft={1}>
+          <LaunchButton color="default" fullWidth onClick={stop} disabled={state === 'stopping'}>
+            {stoppButtonLabels[state]}
+          </LaunchButton>
+        </Box>
+      )}
+    </Box>
+  )
 })
 
 /**
@@ -65,18 +89,8 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-const NorthTool = React.memo(({
-  name,
-  title,
-  version,
-  description,
-  path_prefix,
-  icon,
-  disableDescription,
-  disableActions,
-  uploadId,
-  path
-}) => {
+const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}) {
+  const {name, title, version, description, short_description, path_prefix, icon} = tool
   const styles = useStyles()
   const {northApi, user} = useApi()
   const {raiseError} = useErrors()
@@ -84,6 +98,9 @@ const NorthTool = React.memo(({
   const [state, setState] = useState('idle')
 
   const toolUrl = useMemo(() => {
+    if (!user) {
+      return null
+    }
     let toolPath = ''
     if (path_prefix) {
       toolPath += `/${path_prefix}`
@@ -95,7 +112,6 @@ const NorthTool = React.memo(({
       toolPath += `/${path}`
     }
     const toolUrl = `${northBase}/user/${user.preferred_username}/${name}${toolPath}`
-    console.log('###', toolUrl)
     return toolUrl
   }, [user, name, path_prefix, uploadId, path])
 
@@ -123,9 +139,12 @@ const NorthTool = React.memo(({
   }, [northApi, raiseError, name])
 
   useEffect(() => {
-    getToolStatus().then((toolStatus) => {
-      setState(toolStatus)
-    })
+    const toolStatus = getToolStatus()
+    if (toolStatus) {
+      toolStatus.then((toolStatus) => {
+        setState(toolStatus)
+      })
+    }
   }, [setState, getToolStatus])
 
   const launch = useCallback(() => {
@@ -159,45 +178,49 @@ const NorthTool = React.memo(({
       .catch(raiseError)
   }, [northApi, raiseError, setState, name])
 
-  return <Box marginY={1}>
-    <Box display="flex" flexDirection="row" marginBottom={1}>
-      {icon ? (
-        <Icon classes={{root: styles.iconRoot}}>
-          <img className={styles.imageIcon} src={`${process.env.PUBLIC_URL}/${icon}`} alt="icon"/>
-        </Icon>
-      ) : (
-        <AssessmentIcon classes={{root: styles.iconRoot}}/>
-      )}
-      <Box flexGrow={1}>
-        <Typography><b>{title || name}{version && <span> ({version})</span>}</b>: {description}</Typography>
-      </Box>
-    </Box>
-    <Box display="flex" flexDirection="row">
-      <LaunchButton fullWidth name={name} onClick={launch} disabled={state === 'stopping' || state === 'launching'}>
-        {launchButtonLabels[state]}
-      </LaunchButton>
-      {(state === 'running' || state === 'stopping') && (
-        <Box marginLeft={1}>
-          <LaunchButton color="default" fullWidth onClick={stop} disabled={state === 'stopping'}>
-            {stoppButtonLabels[state]}
-          </LaunchButton>
+  const value = useMemo(() => ({
+    state: state,
+    launch: launch,
+    stop: stop,
+    ...tool
+  }), [tool, state, launch, stop])
+
+  if (children) {
+    return (
+      <northToolContext.Provider value={value}>
+        {children}
+      </northToolContext.Provider>
+    )
+  }
+
+  return (
+    <northToolContext.Provider value={value}>
+      <Box marginY={1}>
+        <Box display="flex" flexDirection="row" marginBottom={1}>
+          {icon ? (
+            <Icon classes={{root: styles.iconRoot}}>
+              <img className={styles.imageIcon} src={`${process.env.PUBLIC_URL}/${icon}`} alt="icon"/>
+            </Icon>
+          ) : (
+            <AssessmentIcon classes={{root: styles.iconRoot}}/>
+          )}
+          <Box flexGrow={1}>
+            <Typography><b>{title || name}{version && <span> ({version})</span>}</b>: {short_description || description}</Typography>
+          </Box>
         </Box>
-      )}
-    </Box>
-  </Box>
+        <NorthToolButtons/>
+      </Box>
+    </northToolContext.Provider>
+  )
 })
 
 NorthTool.propTypes = {
-  name: PropTypes.string.isRequired, // The unique identitifier for this tool
-  title: PropTypes.string.isRequired, // The displayed name of this tool
-  version: PropTypes.string, // Version number if available
-  description: PropTypes.string, // Version number if available
-  path_prefix: PropTypes.string, // A path prefix. With path prefix selected upload or file will be added to path.
-  icon: PropTypes.string, // Path to tool icon if available, relative to gui/public
-  running: PropTypes.bool, // Whether the tool is running
-  disableDescription: PropTypes.bool, // Whether to hide the description
-  disableActions: PropTypes.bool, // Whether to hide actions for this tool
-  uploadId: PropTypes.string, // Upload id
+  tool: PropTypes.object.isRequired,
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]),
+  uploadId: PropTypes.string, // the upload id with the path in it
   path: PropTypes.string // path to a file within the upload
 }
 
