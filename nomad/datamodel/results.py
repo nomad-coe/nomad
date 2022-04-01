@@ -142,7 +142,7 @@ class BandGap(MSection):
         '''
     )
     index = Quantity(
-        type=np.dtype(np.int64),
+        type=np.dtype(np.int32),
         description='''
         Spin channel index.
         ''',

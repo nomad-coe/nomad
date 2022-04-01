@@ -390,7 +390,7 @@ def test_index_entry(elastic, indices, example_entry):
     [np.dtype(np.float64), 'double'],
     [int, 'integer'],
     [np.dtype(np.int32), 'integer'],
-    [np.dtype(np.int64), 'integer'],
+    [np.dtype(np.int64), 'long'],
     [bool, 'boolean'],
     [Datetime, 'date'],
     [Unit, 'keyword'],

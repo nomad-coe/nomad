@@ -740,7 +740,9 @@ class Elasticsearch(DefinitionAnnotation):
                 return dict(type='double')
             elif quantity.type == np.float32:
                 return dict(type='float')
-            elif quantity.type in [int, np.int32, np.int64]:
+            elif quantity.type in [np.int64]:
+                return dict(type='long')
+            elif quantity.type in [int, np.int32]:
                 return dict(type='integer')
             elif quantity.type == bool:
                 return dict(type='boolean')
