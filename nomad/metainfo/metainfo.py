@@ -481,6 +481,14 @@ class _QuantityType(DataType):
                 return Reference(SectionProxy(type_data))
             if type_kind == 'Any':
                 return Any
+            if type_kind == 'custom':
+                try:
+                    module_name, impl_name = type_data.rsplit('.', 1)
+                    module = importlib.import_module(module_name)
+                    return getattr(module, impl_name)
+                except Exception:
+                    raise MetainfoError(
+                        f'Could not load python implementation of custom datatype {type_data}')
             if type_kind in ['numpy', 'custom']:
                 raise NotImplementedError()
             raise MetainfoError(f'{type_kind} is not a valid quantity type kind.')
