@@ -68,6 +68,9 @@ app.mount(app_base, WSGIMiddleware(flask_app))  # type: ignore
 
 @app.on_event('startup')
 async def startup_event():
+    from nomad.parsing.parsers import import_all_parsers
+    import_all_parsers()
+
     from nomad import infrastructure
     # each subprocess is supposed disconnect connect again: https://jira.mongodb.org/browse/PYTHON-2090
     try:

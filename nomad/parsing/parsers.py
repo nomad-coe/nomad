@@ -619,3 +619,13 @@ for parser in parsers:
 code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
 results.Simulation.program_name.a_elasticsearch[0].values = code_names + [
     config.services.unavailable_value, config.services.not_processed_value]
+
+
+def import_all_parsers():
+    '''
+    Imports all the parsers. This will instantiate all parser metainfo as a side
+    effect.
+    '''
+    for parser in parsers:
+        if isinstance(parser, MatchingParserInterface):
+            parser.import_parser_class()
