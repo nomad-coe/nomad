@@ -420,16 +420,21 @@ QuantityItemPreview.propTypes = ({
 
 const QuantityValue = React.memo(function QuantityValue({value, def}) {
   const units = useUnits()
-  let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
-  let finalUnit
-  if (def.unit) {
-    const a = new Q(finalValue, def.unit).toSystem(units)
-    finalValue = a.value
-    finalUnit = a.unit.label
-  }
 
-  let isMathValue = def.type.type_kind === 'numpy'
+  const getRenderValue = useCallback(value => {
+    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
+    let finalUnit
+    if (def.unit) {
+      const a = new Q(finalValue, def.unit).toSystem(units)
+      finalValue = a.value
+      finalUnit = a.unit.label
+    }
+    return [finalValue, finalUnit]
+  }, [def, units])
+
+  const isMathValue = def.type.type_kind === 'numpy'
   if (isMathValue) {
+    const [finalValue, finalUnit] = getRenderValue(value)
     if (def.shape.length > 0) {
       return <Box textAlign="center">
         <Matrix
@@ -449,16 +454,19 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
       return <Number value={finalValue} exp={16} variant="body1" unit={finalUnit}/>
     }
   } else if (def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
-    return <div dangerouslySetInnerHTML={{ __html: finalValue }}/>
+    return <div dangerouslySetInnerHTML={{ __html: value }}/>
   } else {
-    if (Array.isArray(finalValue)) {
+    if (Array.isArray(value)) {
       return <ul style={{margin: 0}}>
-        {finalValue.map((value, index) =>
-          <li key={index}>
-            <Typography>{typeof value === 'object' ? JSON.stringify(value) : value}</Typography>
-          </li>)}
+        {value.map((value, index) => {
+          const [finalValue] = getRenderValue(value)
+          return <li key={index}>
+            <Typography>{typeof finalValue === 'object' ? JSON.stringify(finalValue) : finalValue?.toString()}</Typography>
+          </li>
+        })}
       </ul>
     } else {
+      const [finalValue] = getRenderValue(value)
       return <Typography>{finalValue}</Typography>
     }
   }

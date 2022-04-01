@@ -1,0 +1,37 @@
+{
+  "definitions": {
+    "section_definitions": [
+      {
+        "name": "MySection",
+        "base_sections": [
+          "nomad.datamodel.data.EntryData"
+        ],
+        "quantities": [
+          {
+            "name": "my_quantity",
+            "type": {
+              "type_kind": "python",
+              "type_data": "str"
+            }
+          },
+          {
+            "name": "datetime_list",
+            "type": {
+              "type_kind": "custom",
+              "type_data": "nomad.metainfo.metainfo.Datetime"
+            },
+            "shape": ["*"]
+          }
+        ]
+      }
+    ]
+  },
+  "data": {
+    "m_def": "#/definitions/section_definitions/0",
+    "my_quantity": "test_value",
+    "datetime_list": [
+      "2022-04-01",
+      "2022-04-02"
+    ]
+  }
+}

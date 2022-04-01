@@ -21,6 +21,7 @@ from typing import Tuple, List, Dict
 
 from nomad import config
 from nomad.datamodel import EntryArchive, EntryMetadata, results
+from nomad.datamodel.context import Context
 
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
@@ -132,6 +133,14 @@ def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tu
     return None, None
 
 
+class ParserContext(Context):
+    def __init__(self, mainfile_dir):
+        self._mainfile_dir = mainfile_dir
+
+    def raw_file(self, path, *args, **kwargs):
+        return open(os.path.join(self._mainfile_dir, path), *args, **kwargs)
+
+
 def run_parser(
         mainfile_path: str, parser: Parser, mainfile_keys: List[str] = None, logger=None) -> List[EntryArchive]:
     '''
@@ -141,7 +150,7 @@ def run_parser(
     for parsers that create children the list will consist of the main entry followed by the
     child entries. The returned archive objects will have minimal metadata.
     '''
-    entry_archive = EntryArchive()
+    entry_archive = EntryArchive(m_context=ParserContext(os.path.dirname(mainfile_path)))
     metadata = entry_archive.m_create(EntryMetadata)
     metadata.mainfile = mainfile_path
     entry_archives = [entry_archive]
