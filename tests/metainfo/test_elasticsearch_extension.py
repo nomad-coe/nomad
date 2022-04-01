@@ -385,14 +385,16 @@ def test_index_entry(elastic, indices, example_entry):
 
 @pytest.mark.parametrize('metainfo_type,es_type', [
     [str, 'keyword'],
+    [np.dtype(np.float32), 'float'],
     [float, 'double'],
     [np.dtype(np.float64), 'double'],
     [int, 'integer'],
+    [np.dtype(np.int32), 'integer'],
+    [np.dtype(np.int64), 'integer'],
     [bool, 'boolean'],
     [Datetime, 'date'],
     [Unit, 'keyword'],
     [MEnum('test'), 'keyword'],
-    [np.dtype(np.int64), 'long'],
 ])
 def test_mapping_detection(metainfo_type, es_type):
     '''Tests that the mappings are correctly determined from the quantity type.
