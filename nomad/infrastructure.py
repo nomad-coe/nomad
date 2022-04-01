@@ -308,6 +308,7 @@ class Keycloak():
         kwargs = {key: value[0] for key, value in keycloak_user.get('attributes', {}).items()}
         oasis_admin = kwargs.pop('is_oasis_admin', None) is not None
         return datamodel.User(
+            m_ignore_additional_keys=True,
             user_id=keycloak_user['id'],
             email=keycloak_user.get('email'),
             username=keycloak_user.get('username'),

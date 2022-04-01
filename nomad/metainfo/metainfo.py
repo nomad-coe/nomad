@@ -1292,30 +1292,28 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return cast(MSectionBound, sub_section)
 
-    def m_update(self, safe: bool = True, **kwargs):
+    def m_update(self, m_ignore_additional_keys: bool = False, **kwargs):
         ''' Updates all quantities and sub-sections with the given arguments. '''
         self.m_mod_count += 1
-        if safe:
-            for name, value in kwargs.items():
-                prop = self.m_def.all_aliases.get(name, None)
-                if prop is None:
-                    raise KeyError('%s is not an attribute of this section %s' % (name, self))
+        for name, value in kwargs.items():
+            prop = self.m_def.all_aliases.get(name, None)
+            if prop is None:
+                if m_ignore_additional_keys:
+                    continue
+                raise KeyError('%s is not an attribute of this section %s' % (name, self))
 
-                if isinstance(prop, SubSection):
-                    if prop.repeats:
-                        if isinstance(value, List):
-                            for item in value:
-                                self.m_add_sub_section(prop, item)
-                        else:
-                            raise TypeError('Sub section %s repeats, but no list was given' % prop.name)
+            if isinstance(prop, SubSection):
+                if prop.repeats:
+                    if isinstance(value, List):
+                        for item in value:
+                            self.m_add_sub_section(prop, item)
                     else:
-                        self.m_add_sub_section(prop, value)
-
+                        raise TypeError('Sub section %s repeats, but no list was given' % prop.name)
                 else:
-                    self.m_set(prop, value)
+                    self.m_add_sub_section(prop, value)
 
-        else:
-            self.__dict__.update(**kwargs)
+            else:
+                self.m_set(prop, value)
 
     def m_as(self, section_cls: Type[MSectionBound]) -> MSectionBound:
         ''' 'Casts' this section to the given extending sections. '''
