@@ -23,7 +23,7 @@ from elasticsearch_dsl import Keyword
 
 from nomad import config
 from nomad.utils.exampledata import ExampleData
-from nomad.metainfo import MSection, Quantity, SubSection, Datetime
+from nomad.metainfo import MSection, Quantity, SubSection, Datetime, Unit, MEnum
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch, create_indices, index_entries_with_materials,
     entry_type, material_type, material_entry_type, entry_index, material_index)
@@ -381,6 +381,25 @@ def test_index_docs(indices):
 def test_index_entry(elastic, indices, example_entry):
     index_entries_with_materials([example_entry], refresh=True)
     assert_entry_indexed(example_entry)
+
+
+@pytest.mark.parametrize('metainfo_type,es_type', [
+    [str, 'keyword'],
+    [float, 'double'],
+    [np.dtype(np.float64), 'double'],
+    [int, 'integer'],
+    [bool, 'boolean'],
+    [Datetime, 'date'],
+    [Unit, 'keyword'],
+    [MEnum('test'), 'keyword'],
+    [np.dtype(np.int64), 'long'],
+])
+def test_mapping_detection(metainfo_type, es_type):
+    '''Tests that the mappings are correctly determined from the quantity type.
+    '''
+    a = Quantity(type=metainfo_type, a_elasticsearch=Elasticsearch())
+    a.__init_metainfo__()
+    assert a.m_annotations['elasticsearch'].mapping['type'] == es_type
 
 
 def create_entry(spec: str, material_kwargs: dict = None):
