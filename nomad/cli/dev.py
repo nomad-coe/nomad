@@ -77,8 +77,8 @@ def _all_metainfo_packages():
 
     # TODO similar to before, due to lazyloading, we need to explicily access parsers
     # to actually import all parsers and indirectly all metainfo packages
-    from nomad.parsing import parsers
-    parsers.parsers
+    from nomad.parsing.parsers import import_all_parsers
+    import_all_parsers()
 
     # Create the ES mapping to populate ES annoations with search keys.
     from nomad.search import entry_type
