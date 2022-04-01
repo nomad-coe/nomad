@@ -166,7 +166,7 @@ from nomad import config, utils
 
 from .metainfo import (
     MSectionBound, Section, Quantity, MSection, MEnum, Datetime, Reference, DefinitionAnnotation,
-    Definition, QuantityReference)
+    Definition, QuantityReference, Unit)
 
 
 class DocumentType():
@@ -370,7 +370,7 @@ class DocumentType():
                 continue
 
             assert not isinstance(annotation, list), \
-                'sub sections can onyl have one elasticsearch annotation'
+                'sub sections can only have one elasticsearch annotation'
             continue_with_auto_include_subsections = auto_include_subsections or (
                 False if annotation is None else annotation.auto_include_subsections)
 
@@ -740,14 +740,16 @@ class Elasticsearch(DefinitionAnnotation):
                 return dict(type='double')
             elif quantity.type == np.float32:
                 return dict(type='float')
-            elif quantity.type in [int, np.int32]:
-                return dict(type='integer')
             elif quantity.type == np.int64:
                 return dict(type='long')
+            elif quantity.type in [int, np.int32]:
+                return dict(type='integer')
             elif quantity.type == bool:
                 return dict(type='boolean')
             elif quantity.type == Datetime:
                 return dict(type='date')
+            elif quantity.type == Unit:
+                return dict(type='keyword')
             elif isinstance(quantity.type, QuantityReference):
                 return compute_mapping(quantity.type.target_quantity_def)
             elif isinstance(quantity.type, Reference):
