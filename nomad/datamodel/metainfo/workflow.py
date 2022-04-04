@@ -1331,12 +1331,51 @@ class MolecularDynamics(MSection):
         Indicates if calculation contains thermodynamic data.
         ''')
 
-    ensemble_properties = SubSection(sub_section=SectionProxy('EnsembleProperties'), repeats=False)
+    radial_distribution_functions = SubSection(sub_section=SectionProxy('Rdf'), repeats=True)
+
+    mean_squared_displacements = SubSection(sub_section=SectionProxy('Msd'), repeats=True)
 
 
-class EnsembleProperties(MSection):
+class EnsemblePropertyValues(MSection):
     '''
-    Describes any observable calculated from an ensemble average.
+    Generic section containing information regarding the values of an ensemble property.
+    '''
+
+    m_def = Section(validate=False)
+
+    type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the atoms or molecule types involved in determining this property.
+        ''')
+
+    bins = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Distances along which the rdf was calculated.
+        ''')
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Values of the rdf.
+        ''')
+
+    error_value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Error bars associated with the determination of the ensemble property.
+        ''')
+
+
+class EnsembleProperty(MSection):
+    '''
+    Generic section containing information about a calculation of any static observable
+    from a trajectory (i.e., from an ensemble average).
     '''
 
     m_def = Section(validate=False)
@@ -1348,11 +1387,19 @@ class EnsembleProperties(MSection):
         Label of the observable.
         ''')
 
-    types = Quantity(
-        type=np.dtype(str),
+    n_smooth = Quantity(
+        type=int,
         shape=[],
         description='''
-        List of types for multi-component functions.
+        Number of bins over which the running average was computed for
+        the observable `values'.
+        ''')
+
+    error_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the type of error reported for this observable.
         ''')
 
     variables_name = Quantity(
@@ -1362,26 +1409,144 @@ class EnsembleProperties(MSection):
         Name/description of the independent variables along which the observable is defined.
         ''')
 
+
+class RdfValues(EnsemblePropertyValues):
+    '''
+    Section containing information regarding the values of
+    radial distribution functions (rdfs).
+    '''
+
+    m_def = Section(validate=False)
+
     bins = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        units='angstrom',
+        description='''
+        Distances along which the rdf was calculated.
+        ''')
+
+
+class Rdf(EnsembleProperty):
+    '''
+    Section containing information about the calculation of
+    radial distribution functions (rdfs).
+    '''
+
+    m_def = Section(validate=False)
+
+    rdf_values = SubSection(sub_section=RdfValues.m_def, repeats=True)
+
+
+class CorrelationFunctionValues(MSection):
+    '''
+    Generic section containing information regarding the values of a correlation function.
+    '''
+
+    m_def = Section(validate=False)
+
+    type = Quantity(
+        type=np.dtype(str),
+        shape=[],
+        description='''
+        List of types for multi-component functions.
+        ''')
+
+    times = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         description='''
         Bins along which the observable is calculated (i.e., values of the variables).
         ''')
 
-    values = Quantity(
+    value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         description='''
         Values of the observables.
         ''')
 
-    n_smooth = Quantity(
-        type=int,
+
+class CorrelationFunction(MSection):
+    '''
+    Generic section containing information about a calculation of any time correlation
+    function from a trajectory.
+    '''
+
+    m_def = Section(validate=False)
+
+    label = Quantity(
+        type=str,
         shape=[],
         description='''
-        Number of bins over which the running average was computed for `values'.
+        Label of the observable.
         ''')
+
+
+class DiffusionConstantValues(EnsemblePropertyValues):
+    '''
+    Section containing information regarding the diffusion constants.
+    '''
+
+    m_def = Section(validate=False)
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        units='nanometer^2/picosecond',
+        description='''
+        Values of the diffusion constants.
+        ''')
+
+    error_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the type of error reported for this observable.
+        ''')
+
+    error_value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        units='nanometer^2/picosecond',
+        description='''
+        Error bars associated with the determination of the diffusion constant.
+        ''')
+
+
+class MsdValues(MSection):
+    '''
+    Section containing information regarding the values of a mean squared displacements (msds).
+    '''
+
+    m_def = Section(validate=False)
+
+    times = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        units='picosecond',
+        description='''
+        Time windows used for the calculation of the msds.
+        ''')
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Msd values.
+        ''')
+
+    diffusion_constant = SubSection(sub_section=DiffusionConstantValues.m_def, repeats=False)
+
+
+class Msd(CorrelationFunction):
+    '''
+    Section containing information about a calculation of any mean squared displacements (msds).
+    '''
+
+    m_def = Section(validate=False)
+
+    msd_values = SubSection(sub_section=MsdValues.m_def, repeats=True)
 
 
 class SinglePoint(MSection):
