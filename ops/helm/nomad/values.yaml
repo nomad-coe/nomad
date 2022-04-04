@@ -1,6 +1,6 @@
 ## Default values for nomad@FAIRDI
 version:
-  label: "1.0.7"
+  label: "1.0.8"
   isTest: false
   isBeta: false
   usesBetaData: false
