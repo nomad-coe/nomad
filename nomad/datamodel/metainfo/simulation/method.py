@@ -232,7 +232,7 @@ class MoleculeParameters(MSection):
         Number of atoms in the molecule.
         ''')
 
-    atoms = SubSection(sub_section=AtomParameters.m_def, repeats=True)
+    atom_parameters = SubSection(sub_section=AtomParameters.m_def, repeats=True)
 
 
 class GaussianBasisGroup(MSection):
@@ -432,8 +432,7 @@ class Interaction(MSection):
         type=str,
         shape=[],
         description='''
-        Denotes the classification of the potential. Could be one of pair, LJ, Morse, EAM,
-        MEAM.
+        Denotes the classification of the potential.
         ''')
 
     name = Quantity(
@@ -444,16 +443,24 @@ class Interaction(MSection):
         cut-offs, potential versions.
         ''')
 
+    n_atoms = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of atoms included in the interaction
+        '''
+    )
+
     atom_labels = Quantity(
         type=str,
-        shape=[2],
+        shape=['n_atoms'],
         description='''
         Labels of the atoms described by the interaction.
         ''')
 
     atom_indices = Quantity(
         type=np.dtype(np.int32),
-        shape=[2],
+        shape=['n_atoms'],
         description='''
         Indices of the atoms in the system described by the interaction.
         ''')

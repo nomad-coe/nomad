@@ -237,17 +237,26 @@ class MatchingParserInterface(MatchingParser):
     def mainfile_parser(self):
         if self._mainfile_parser is None:
             try:
-                module_path, parser_class = self._parser_class_name.rsplit('.', 1)
-                module = importlib.import_module(module_path)
-                self._mainfile_parser = getattr(module, parser_class)()
+                Parser = self.import_parser_class()
+                self._mainfile_parser = Parser()
             except Exception as e:
                 logger = utils.get_logger(__name__)
-                logger.error('Error importing parser.', exc_info=e)
+                logger.error('cannot instantiate parser.', exc_info=e)
                 raise e
         return self._mainfile_parser
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None):
         self.mainfile_parser.parse(mainfile, archive, logger)
+
+    def import_parser_class(self):
+        try:
+            module_path, parser_class = self._parser_class_name.rsplit('.', 1)
+            module = importlib.import_module(module_path)
+            return getattr(module, parser_class)
+        except Exception as e:
+            logger = utils.get_logger(__name__)
+            logger.error('cannot import parser', exc_info=e)
+            raise e
 
 
 class ArchiveParser(MatchingParser):

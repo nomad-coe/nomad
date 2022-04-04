@@ -399,7 +399,7 @@ class Constraint(MSection):
         Number of atoms involved in this constraint.
         ''')
 
-    indices = Quantity(
+    atom_indices = Quantity(
         type=np.dtype(np.int32),
         shape=['n_constraints', 'n_atoms'],
         description='''
