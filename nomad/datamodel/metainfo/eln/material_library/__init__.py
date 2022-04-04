@@ -271,16 +271,17 @@ class PVDEvaporation(Process):
     def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
-        from nomad.datamodel.metainfo.material_library.PvdPImporter import Importer
-        importer = Importer()
-        if (self.data_file):
-            with archive.m_context.raw_file(self.data_file) as f:
-                self.process_time, substrate_temperature, \
-                    set_substrate_temperature, chamber_pressure = importer.read(f)
-                self.substrate_temperature = substrate_temperature * ureg.degC
-                self.set_substrate_temperature = set_substrate_temperature * ureg.degC
-                self.chamber_pressure = chamber_pressure * ureg('mbar')
-                # self.n_values = self.n_values
+        if not self.data_file:
+            return
+
+        from .pvd import PVDImporter
+        importer = PVDImporter()
+        with archive.m_context.raw_file(self.data_file) as f:
+            self.process_time, substrate_temperature, \
+                set_substrate_temperature, chamber_pressure = importer.read(f)
+            self.substrate_temperature = substrate_temperature * ureg.degC
+            self.set_substrate_temperature = set_substrate_temperature * ureg.degC
+            self.chamber_pressure = chamber_pressure * ureg('mbar')
 
 
 class Targets(MSection):
@@ -536,20 +537,23 @@ class XrayDiffraction(Measurement):
         a_eln=dict(component='FileEditQuantity'))
 
     def normalize(self, archive, logger):
+        if not self.data_file:
+            return
+
         import xrdtools
-        if (self.data_file):
-            with archive.m_context.raw_file(self.data_file) as f:
-                xrdml_dict = xrdtools.read_xrdml(f.name)
-                self.intensity = xrdml_dict['data']
-                self.two_theta = xrdml_dict['x'] * ureg('degree')
-                self.omega = xrdml_dict['Omega'] * ureg('degree')
-                self.kalpha_one = xrdml_dict['kAlpha1']
-                self.kalpha_two = xrdml_dict['kAlpha2']
-                self.ratio_kalphatwo_kalphaone = xrdml_dict['kAlphaRatio']
-                self.kbeta = xrdml_dict['kBeta']
-                self.scan_axis = xrdml_dict['scanAxis']
-                self.integration_time = xrdml_dict['time']
-                self.q_vector = (4 * np.pi / self.kalpha_one) * np.sin((self.two_theta))
+
+        with archive.m_context.raw_file(self.data_file) as f:
+            xrdml_dict = xrdtools.read_xrdml(f.name)
+            self.intensity = xrdml_dict['data']
+            self.two_theta = xrdml_dict['x'] * ureg('degree')
+            self.omega = xrdml_dict['Omega'] * ureg('degree')
+            self.kalpha_one = xrdml_dict['kAlpha1']
+            self.kalpha_two = xrdml_dict['kAlpha2']
+            self.ratio_kalphatwo_kalphaone = xrdml_dict['kAlphaRatio']
+            self.kbeta = xrdml_dict['kBeta']
+            self.scan_axis = xrdml_dict['scanAxis']
+            self.integration_time = xrdml_dict['time']
+            self.q_vector = (4 * np.pi / self.kalpha_one) * np.sin((self.two_theta))
 
 
 class RamanSpectroscopy(Measurement): pass
