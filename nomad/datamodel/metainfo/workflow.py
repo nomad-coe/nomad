@@ -1347,28 +1347,28 @@ class EnsemblePropertyValues(MSection):
         type=str,
         shape=[],
         description='''
-        Describes the atoms or molecule types involved in determining this property.
+        Describes the atoms or molecule types involved in determining the property.
         ''')
 
     bins = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         description='''
-        Distances along which the rdf was calculated.
+        Values of the variable/s along which the property was calculated.
         ''')
 
     value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         description='''
-        Values of the rdf.
+        Values of the property.
         ''')
 
     error_value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         description='''
-        Error bars associated with the determination of the ensemble property.
+        Error bars associated with the determination of the property.
         ''')
 
 
@@ -1421,7 +1421,7 @@ class RdfValues(EnsemblePropertyValues):
     bins = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        units='angstrom',
+        unit='angstrom',
         description='''
         Distances along which the rdf was calculated.
         ''')
@@ -1456,14 +1456,14 @@ class CorrelationFunctionValues(MSection):
         type=np.dtype(np.float64),
         shape=[],
         description='''
-        Bins along which the observable is calculated (i.e., values of the variables).
+        Time windows used for the calculation of the correlation function.
         ''')
 
     value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         description='''
-        Values of the observables.
+        Values of the correlation function.
         ''')
 
 
@@ -1479,7 +1479,7 @@ class CorrelationFunction(MSection):
         type=str,
         shape=[],
         description='''
-        Label of the observable.
+        Label of the correlation function.
         ''')
 
 
@@ -1493,7 +1493,7 @@ class DiffusionConstantValues(EnsemblePropertyValues):
     value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        units='nanometer^2/picosecond',
+        unit='nanometer^2/picosecond',
         description='''
         Values of the diffusion constants.
         ''')
@@ -1508,13 +1508,13 @@ class DiffusionConstantValues(EnsemblePropertyValues):
     error_value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        units='nanometer^2/picosecond',
+        unit='nanometer^2/picosecond',
         description='''
-        Error bars associated with the determination of the diffusion constant.
+        Error associated with the determination of the diffusion constant.
         ''')
 
 
-class MsdValues(MSection):
+class MsdValues(CorrelationFunctionValues):
     '''
     Section containing information regarding the values of a mean squared displacements (msds).
     '''
@@ -1524,7 +1524,7 @@ class MsdValues(MSection):
     times = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        units='picosecond',
+        unit='picosecond',
         description='''
         Time windows used for the calculation of the msds.
         ''')
@@ -1532,6 +1532,7 @@ class MsdValues(MSection):
     value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='nanometer^2',
         description='''
         Msd values.
         ''')
