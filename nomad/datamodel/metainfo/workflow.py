@@ -1421,7 +1421,7 @@ class RdfValues(EnsemblePropertyValues):
     bins = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        unit='angstrom',
+        unit='m',
         description='''
         Distances along which the rdf was calculated.
         ''')
@@ -1493,7 +1493,7 @@ class DiffusionConstantValues(EnsemblePropertyValues):
     value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        unit='nanometer^2/picosecond',
+        unit='m^2/s',
         description='''
         Values of the diffusion constants.
         ''')
@@ -1508,7 +1508,7 @@ class DiffusionConstantValues(EnsemblePropertyValues):
     error_value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        unit='nanometer^2/picosecond',
+        unit='m^2/s',
         description='''
         Error associated with the determination of the diffusion constant.
         ''')
@@ -1524,7 +1524,7 @@ class MsdValues(CorrelationFunctionValues):
     times = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        unit='picosecond',
+        unit='s',
         description='''
         Time windows used for the calculation of the msds.
         ''')
@@ -1532,7 +1532,7 @@ class MsdValues(CorrelationFunctionValues):
     value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        unit='nanometer^2',
+        unit='m^2',
         description='''
         Msd values.
         ''')
