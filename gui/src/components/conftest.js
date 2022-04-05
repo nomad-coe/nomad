@@ -362,10 +362,11 @@ ${func}()"`)
           const hash = hashRequest(req)
           const counter = counterMap[hash] || 0
           const responseSnap = apiSnapshot[hash][counter].response
+          const isJson = !responseSnap.headers['content-type'] || responseSnap.headers['content-type'] === 'application/json'
           const response = res(
             ctx.status(responseSnap.status),
             ctx.set(responseSnap.headers),
-            ctx.json(responseSnap.body)
+            isJson ? ctx.json(responseSnap.body) : ctx.body(responseSnap.body)
           )
           counterMap[hash] = counter + 1
           return response
@@ -390,9 +391,10 @@ ${func}()"`)
     const capture = async (req, res, ctx) => {
       const hash = hashRequest(req)
       const response = await ctx.fetch(req)
-      const responseJSON = await response.json()
       const headers = Object.fromEntries(response.headers.entries())
       delete headers['date']
+      const isJson = !headers['content-type'] || headers['content-type'] === 'application/json'
+      const body = isJson ? await response.json() : await response.text()
       const snapshot = {
         request: {
           url: req.url,
@@ -402,7 +404,7 @@ ${func}()"`)
         },
         response: {
           status: response.status,
-          body: responseJSON,
+          body: body,
           headers: headers
         }
       }
@@ -413,8 +415,8 @@ ${func}()"`)
       }
       return res(
         ctx.status(response.status),
-        ctx.set(response.headers),
-        ctx.json(responseJSON)
+        ctx.set(headers),
+        isJson ? ctx.json(body) : ctx.body(body)
       )
     }
     const captureHandlers = [
@@ -503,3 +505,34 @@ export async function readArchive(path) {
 export const archives = new Map()
 const archive = getArchive()
 archives.set(archive.metadata.entry_id, archive)
+
+/**
+ * Convenience utility providing an easy way to find a button associated with a certain text,
+ * without needing to care about the exact implementation (i.e. exactly how the text and the
+ * button are related). We try a number of different ways to find a matching button. Note,
+ * that if the button/text association is created in some unusual way, this method may not
+ * find it. The role must be 'button' for this method to find it. If no button can be found,
+ * null is returned.
+ * @param {string} text Text to look for. Can be a string (case sensitive) or regex.
+ * @param {*} findWithin An optional object within which to search for the button.
+ */
+export function findButton(text, findWithin = undefined) {
+  const buttons = findWithin ? within(findWithin).queryAllByRole('button') : screen.queryAllByRole('button')
+  for (const button of buttons) {
+    if (typeof text === 'string') {
+      // String provided - exact match required.
+      if (button.title === text || button.text === text) {
+        return button
+      }
+    } else {
+      // Regex provided
+      if (text.test(button.title) || text.test(button.text)) {
+        return button
+      }
+    }
+    if (within(button).queryByTitle(text) || within(button).queryByText(text)) {
+      return button
+    }
+  }
+  return null
+}

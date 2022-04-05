@@ -305,7 +305,7 @@ function Lane({lane}) {
     if (!adaptor) {
       return ''
     }
-    return <div className={classes.root} data-testid={`lane${lane.index}`}>
+    return <div className={classes.root} data-testid={`lane${lane.index}:${lane.key}`}>
       <div className={classes.container} ref={containerRef}>
         <laneContext.Provider value={lane}>
           <ErrorHandler message='This section could not be rendered, due to an unexpected error.' className={classes.error}>

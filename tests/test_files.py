@@ -551,7 +551,8 @@ def create_test_upload_files(
         published: bool = True,
         embargo_length: int = 0,
         template_files: str = example_file,
-        template_mainfile: str = example_mainfile_raw_path) -> UploadFiles:
+        template_mainfile: str = example_mainfile_raw_path,
+        additional_files_path: str = None) -> UploadFiles:
     '''
     Creates an upload_files object and the underlying files for test/mock purposes.
 
@@ -568,12 +569,15 @@ def create_test_upload_files(
         template_files: A zip file with example files in it. One directory will be used
             as a template. It will be copied for each given archive.
         template_mainfile: Path of the template mainfile within the given template_files.
+        additional_files_path: Path to additional files to add.
     '''
     if upload_id is None: upload_id = utils.create_uuid()
     if archives is None: archives = []
 
     upload_files = StagingUploadFiles(upload_id, create=True)
     upload_files.add_rawfiles(template_files)
+    if additional_files_path:
+        upload_files.add_rawfiles(additional_files_path)
 
     upload_raw_files = upload_files.join_dir('raw')
     source = upload_raw_files.join_dir(os.path.dirname(template_mainfile)).os_path

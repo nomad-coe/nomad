@@ -76,10 +76,10 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test --env=jest-environment-jsdom-sixteen --watchAll=false",
-    "watch-test": "react-scripts test --env=jest-environment-jsdom-sixteen",
-    "test-integration": "export READ_MODE=api WRITE_MODE=none && react-scripts test --env=jest-environment-jsdom-sixteen --watchAll=false --runInBand",
-    "test-record": "export READ_MODE=api WRITE_MODE=snapshot && react-scripts test --env=jest-environment-jsdom-sixteen --watchAll=false --runInBand",
+    "test": "react-scripts test --env=jest-environment-jsdom-sixteen --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false",
+    "watch-test": "react-scripts test --env=jest-environment-jsdom-sixteen --testPathIgnorePatterns=.*/conftest.spec.js",
+    "test-integration": "export READ_MODE=api WRITE_MODE=none && react-scripts test --env=jest-environment-jsdom-sixteen --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --runInBand",
+    "test-record": "export READ_MODE=api WRITE_MODE=snapshot && react-scripts test --env=jest-environment-jsdom-sixteen --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --runInBand",
     "lint": "eslint 'src/**/*.js'",
     "eject": "react-scripts eject"
   },

@@ -243,18 +243,18 @@ function FilePreviewText({uploadId, path}) {
   const {raiseError} = useErrors()
   const [contents, setContents] = useState(null)
   const [hasMore, setHasMore] = useState(true)
-  const [loading, setLoading] = useState(false)
+  const loading = useRef(false)
   const containerRef = React.createRef()
 
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
 
-  const loadMore = useCallback(() => {
-    // The infinite scroll component has the issue if calling load more whenever it
+  const loadMore = useCallback(async () => {
+    // The infinite scroll component normally calls the loadMore hook whenever it
     // gets updates, therefore calling this infinitely before it gets any chances of
     // receiving the results (https://github.com/CassetteRocks/react-infinite-scroller/issues/163).
-    // Therefore, we have to set hasMore to false first and set it to true again after
-    // receiving actual results.    setLoading(true)
-    if (hasMore && !loading) {
+    // Therefore, we use `loading` to keep track of if we are already running a load request.
+    if (hasMore && !loading.current) {
+      loading.current = true
       api.get(
         `/uploads/${uploadId}/raw/${encodedPath}`,
         {
@@ -269,11 +269,18 @@ function FilePreviewText({uploadId, path}) {
           setHasMore(contents?.length === 16 * 1024)
         })
         .catch(raiseError)
-        .finally(() => setLoading(false))
+        .finally(() => { loading.current = false })
     }
   }, [uploadId, encodedPath, loading, hasMore, setHasMore, setContents, api, raiseError, contents])
 
-  if (loading && !contents) {
+  useEffect(() => {
+    // Trigger loading the first chunk
+    if (contents === null && !loading.current) {
+      loadMore()
+    }
+  }, [contents, loading, loadMore])
+
+  if (loading.current && !contents) {
     return <Typography>Loading ...</Typography>
   }
   return (

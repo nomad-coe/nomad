@@ -166,3 +166,30 @@ def maximum_unpublished():
         )
 
     data.save()
+
+
+def _browser_test(published: bool):
+    infrastructure.setup()
+    main_author = infrastructure.keycloak.get_user(username='test')
+    coauthors = [infrastructure.keycloak.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.keycloak.get_user(username='ttester').user_id]
+    data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
+
+    upload_id = 'browser_test'
+    data.create_upload(upload_id=upload_id, published=published, embargo_length=12 if published else 0)
+    entry_id = 'dft_bulk'
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=entry_id,
+        mainfile='test_entry/vasp.xml',
+        entry_archive=archive_dft_bulk()
+    )
+    data.save(additional_files_path='tests/data/gui/browser_test.zip')
+
+
+def browser_test_published():
+    _browser_test(True)
+
+
+def browser_test_unpublished():
+    _browser_test(False)

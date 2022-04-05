@@ -244,13 +244,7 @@ To run the worker directly with celery, do (from the root)
 celery -A nomad.processing worker -l info
 ```
 
-Before you can run the gui, make sure that generated artifacts have been created:
-```sh
-nomad dev metainfo > gui/src/metainfo.json
-nomad dev search-quantities > gui/src/searchQuantities.json
-nomad dev toolkit-metadata > gui/src/toolkitMetadata.json
-nomad dev units > gui/src/unitsData.js
-```
+Before you can run the gui, make sure that generated artifacts have been created (see above).
 
 If you run the gui on its own (e.g. with react dev server below), you also have to have
 the app manually. The gui and its dependencies run on [node](https://nodejs.org) and
@@ -316,7 +310,7 @@ of the code base.
 
 You have to provide static files to serve the docs and NOMAD distribution:
 ```sh
-mkdocs build && mv site docs/build
+rm -rf docs/build && mkdocs build && mv site docs/build
 python setup.py compile
 python setup.py sdist
 cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
@@ -375,7 +369,7 @@ These utilities can usually be placed into the following categories:
    as exported from `src/components/conftest.js` wraps your components with an
    infrastructure that is very similar to the production app. See
    [here](https://testing-library.com/docs/react-testing-library/setup/#custom-render)
-   for more information. 
+   for more information.
  - Custom queries: See
    [here](https://testing-library.com/docs/react-testing-library/setup/#add-custom-queries)
    for more information.
@@ -388,7 +382,7 @@ Often you components will need to communicate with the API during tests. One
 should generally avoid using manually created mocks for the API traffic, and
 instead prefer using API responses that originate from an actual API call
 during testing. Manually created mocks require a lot of manual work in creating
-them and keeping them up to date and fact true integration tests are impossible
+them and keeping them up to date and true integration tests are impossible
 to perform without live communication with an API. In order to simplify the API
 communication during testing, you can use the `startAPI`+`closeAPI` functions, that
 will prepare the API traffic for you. A simple example could look like this:
@@ -460,7 +454,7 @@ for running the test suite, as configured in `package.json`:
    mode: `startAPI` will use pre-recorded API snapshot files that are found in
    gui/tests.
  - `yarn test-integration filename>]`: Runs the tests serially and `startAPI`
-   will forward any API traffic to a live API that is running locally. 
+   will forward any API traffic to a live API that is running locally.
  - `yarn test-record [<filename>]`: Runs the tests serially and `startAPI` will
    forward traffic to a live API that is running locally, additionally
    recording the traffic to the specified snapshot file.
@@ -567,6 +561,9 @@ Terms:
   in a directory structure.
 - entry: An archive item, created by parsing a *mainfile*. Each entry belongs to an upload and
   is associated with various metadata (an upload may have many entries).
+- child entry: Some parsers generate multiple entries - a *main* entry plus some number of
+  *child* entries. Child entries are identified by the mainfile plus a *mainfile_key*
+  (string value).
 - calculation: denotes the results of a theoretical computation, created by CMS code.
   Note that entries do not have to be based on calculations; they can also be based on
   experimental results.
