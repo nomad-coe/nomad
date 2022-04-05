@@ -26,6 +26,72 @@ import Page from '../Page'
 import { useErrors } from '../errors'
 import { useApi } from '../api'
 import { useEntryContext } from './EntryContext'
+import Checkbox from '@material-ui/core/Checkbox'
+import FormControlLabel from '@material-ui/core/FormControlLabel'
+
+const CheckboxINFO = () => {
+  const [checked, setChecked] = useState(false);
+  return (
+    <FormControlLabel 
+      control={
+                <Checkbox 
+                  checked={checked}
+                  onChange={(e) => setChecked(e.target.checked)}
+                  inputProps={{'aria-label': 'secodnary checkbox'}}
+              />
+            }
+      label="INFO"
+    />
+  )
+}
+
+const CheckboxWARNING = () => {
+  const [checked, setChecked] = useState(false);
+  return (
+    <FormControlLabel 
+      control={
+                <Checkbox 
+                  checked={checked}
+                  onChange={(e) => setChecked(e.target.checked)}
+                  inputProps={{'aria-label': 'secodnary checkbox'}}
+              />
+            }
+      label="WARNING"
+    />
+  )
+}
+
+const CheckboxERROR = () => {
+  const [checked, setChecked] = useState(false);
+  return (
+    <FormControlLabel 
+      control={
+                <Checkbox 
+                  checked={checked}
+                  onChange={(e) => setChecked(e.target.checked)}
+                  inputProps={{'aria-label': 'secodnary checkbox'}}
+              />
+            }
+      label="ERROR"
+    />
+  )
+}
+
+const CheckboxCRITICAL = () => {
+  const [checked, setChecked] = useState(false);
+  return (
+    <FormControlLabel 
+      control={
+                <Checkbox 
+                  checked={checked}
+                  onChange={(e) => setChecked(e.target.checked)}
+                  inputProps={{'aria-label': 'secodnary checkbox'}}
+              />
+            }
+      label="CRITICAL"
+    />
+  )
+}
 
 const useLogEntryStyles = makeStyles(theme => ({
   warning: {
@@ -36,6 +102,7 @@ const useLogEntryStyles = makeStyles(theme => ({
     margin: 0
   }
 }))
+
 
 const LogEntry = React.memo(function LogEntry(props) {
   const classes = useLogEntryStyles()
@@ -118,7 +185,12 @@ export default function ArchiveLogView(props) {
 
   let content = 'loading ...'
   if (data) {
-    content = <div>
+    content = 
+    <div>
+      <CheckboxINFO />
+      <CheckboxWARNING />
+      <CheckboxERROR />
+      <CheckboxCRITICAL />
       {data.slice(0, maxLogsToShow).map((entry, i) => <LogEntry key={i} entry={entry}/>)}
       {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
         There are {data.length - maxLogsToShow} more log entries. Download the log to see all of them.
