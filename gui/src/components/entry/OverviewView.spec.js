@@ -19,13 +19,13 @@
 import React from 'react'
 import 'regenerator-runtime/runtime'
 import { waitFor, within } from '@testing-library/dom'
-import { render, screen, expectQuantity, readArchive, startAPI, closeAPI } from '../conftest'
-import { expectPlotButtons } from '../visualization/conftest'
+import { render, screen, expectQuantity, readArchive, startAPI, closeAPI } from '../conftest.spec'
+import { expectPlotButtons } from '../visualization/conftest.spec'
 import {
   expectComposition,
   expectSymmetry,
   expectLatticeParameters
-} from './conftest'
+} from './conftest.spec'
 import OverviewView from './OverviewView'
 import EntryContext from './EntryContext'
 

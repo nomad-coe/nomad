@@ -16,11 +16,9 @@
  * limitations under the License.
  */
 
-/* eslint-disable no-undef */
-
 import React from 'react'
 import PropTypes from 'prop-types'
-import { screen, WrapperDefault, WrapperNoAPI } from '../conftest'
+import { screen, WrapperDefault, WrapperNoAPI } from '../conftest.spec'
 import { render } from '@testing-library/react'
 import { SearchContext } from './SearchContext'
 import { filterData } from './FilterRegistry'

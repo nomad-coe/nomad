@@ -19,7 +19,7 @@
 import React from 'react'
 import 'regenerator-runtime/runtime'
 import { within } from '@testing-library/react'
-import { render, screen } from '../conftest'
+import { render, screen } from '../conftest.spec'
 import MainMenu from './MainMenu'
 import { routes } from './Routes'
 

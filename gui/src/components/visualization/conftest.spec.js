@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* eslint-disable no-undef */
-
 import { within } from '@testing-library/react'
 
 /*****************************************************************************/

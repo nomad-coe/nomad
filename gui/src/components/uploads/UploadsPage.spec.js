@@ -22,7 +22,7 @@ import {
   screen,
   startAPI,
   closeAPI
-} from '../conftest'
+} from '../conftest.spec'
 import {UploadsPage} from './UploadsPage'
 import {withLoginRequired} from '../api'
 import {within} from '@testing-library/dom'

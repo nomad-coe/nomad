@@ -22,7 +22,7 @@ import {
   screen,
   startAPI,
   closeAPI
-} from '../conftest'
+} from '../conftest.spec'
 import { within } from '@testing-library/dom'
 import UploadPage from './UploadPage'
 import {fireEvent, waitFor} from '@testing-library/react'

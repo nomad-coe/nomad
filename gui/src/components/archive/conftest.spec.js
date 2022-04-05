@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import { waitFor, within } from '@testing-library/dom'
-import { screen, findButton } from '../conftest'
+import { screen, findButton } from '../conftest.spec'
 import userEvent from '@testing-library/user-event'
 
 /*****************************************************************************************

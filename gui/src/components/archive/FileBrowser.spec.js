@@ -19,7 +19,7 @@ import React from 'react'
 import { fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { waitFor, within } from '@testing-library/dom'
-import { render, screen, startAPI, closeAPI, findButton } from '../conftest'
+import { render, screen, startAPI, closeAPI, findButton } from '../conftest.spec'
 import FileBrowser from './FileBrowser'
 import { purgeTreePath, getLane, checkLanes, navigateAndCheck, checkDirectoryLane, checkFileLane } from './conftest.spec'
 

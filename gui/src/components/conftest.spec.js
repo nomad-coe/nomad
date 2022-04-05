@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* eslint-disable no-undef */
-
 import React from 'react'
 import { get, isPlainObject } from 'lodash'
 import { rest } from 'msw'
