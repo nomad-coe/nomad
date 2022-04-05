@@ -120,7 +120,7 @@ test.each([
 ])('Upload page: %s', async (name, state, snapshot, username, password, editable) => {
   startAPI(state, snapshot, username, password)
   await testBrowseAround(editable)
-})
+}, 180000)
 
 test('starting in entry dir', async () => {
   startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_entrydir', 'test', 'password')
