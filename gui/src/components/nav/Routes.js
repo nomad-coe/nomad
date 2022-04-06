@@ -26,6 +26,7 @@ import About from '../About'
 import AIToolkitPage from '../aitoolkit/AIToolkitPage'
 import TutorialsPage from '../aitoolkit/TutorialsPage'
 import ReproducePage from '../aitoolkit/ReproducePage'
+import CoursePage from '../aitoolkit/CoursePage'
 import { MetainfoPage, help as metainfoHelp } from '../archive/MetainfoBrowser'
 import EntryPage, { help as entryHelp } from '../entry/EntryPage'
 import UploadPage from '../uploads/UploadPage'
@@ -296,6 +297,11 @@ export const routes = [
         path: 'reproduce',
         title: 'Artificial Intelligence Toolkit',
         component: ReproducePage
+      },
+      {
+        path: 'course',
+        title: 'Artificial Intelligence Toolkit',
+        component: CoursePage
       }
     ]
   },
