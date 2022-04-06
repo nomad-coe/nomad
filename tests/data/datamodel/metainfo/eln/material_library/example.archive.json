@@ -1,0 +1,18 @@
+{
+    "data": {
+        "m_def": "nomad.datamodel.metainfo.eln.material_library.Sample",
+        "processes": {
+            "pvd_evaporation": {
+                "data_file": "pvd_process.csv",
+                "creates_layer": true
+            }
+        },
+        "measurements": {
+            "xray_diffraction": [
+                {
+                    "data_file": "xrd_measurement.xrdml"
+                }
+            ]
+        }
+    }
+}

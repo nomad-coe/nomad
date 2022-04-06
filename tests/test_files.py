@@ -547,9 +547,10 @@ def assert_upload_files(
 
 def create_test_upload_files(
         upload_id: str,
-        archives: List[datamodel.EntryArchive],
+        archives: List[datamodel.EntryArchive] = None,
         published: bool = True,
         embargo_length: int = 0,
+        raw_files: str = None,
         template_files: str = example_file,
         template_mainfile: str = example_mainfile_raw_path) -> UploadFiles:
     '''
@@ -565,6 +566,8 @@ def create_test_upload_files(
             instead of a :class:`StagingUploadFiles` object with staging files. Default
             is published.
         embargo_length: The embargo length
+        raw_files: A directory path. All files here will be copied into the raw files
+            dir of the created upload files.
         template_files: A zip file with example files in it. One directory will be used
             as a template. It will be copied for each given archive.
         template_mainfile: Path of the template mainfile within the given template_files.
@@ -573,11 +576,16 @@ def create_test_upload_files(
     if archives is None: archives = []
 
     upload_files = StagingUploadFiles(upload_id, create=True)
+    if raw_files:
+        shutil.rmtree(upload_files._raw_dir.os_path)
+        shutil.copytree(raw_files, upload_files._raw_dir.os_path)
     upload_files.add_rawfiles(template_files)
 
     upload_raw_files = upload_files.join_dir('raw')
     source = upload_raw_files.join_dir(os.path.dirname(template_mainfile)).os_path
 
+    if archives is None:
+        archives = []
     for archive in archives:
         # create a copy of the given template files for each archive
         mainfile = archive.metadata.mainfile

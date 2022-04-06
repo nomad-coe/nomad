@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 
-class Importer:
+class PVDImporter:
     def __init__(self):
         self.import_name = "pvd_p_evaporation"
         self.import_type = "processes"

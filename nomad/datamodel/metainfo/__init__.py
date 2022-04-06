@@ -16,4 +16,4 @@
 # limitations under the License.
 #
 from .simulation import m_env
-from .material_library import m_package
+from .eln.material_library import m_package

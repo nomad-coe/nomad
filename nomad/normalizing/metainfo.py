@@ -23,8 +23,12 @@ class MetainfoNormalizer(Normalizer):
     domain = None
 
     def normalize(self, logger=None) -> None:
-        if logger is not None:
-            self.logger = logger.bind(normalizer=self.__class__.__name__)
+        if logger is None:
+            from nomad import utils
+            logger = utils.get_logger(__name__)
+
+        logger = logger.bind(normalizer=self.__class__.__name__)
+        self.logger = logger
 
         if not self.entry_archive.data:
             return
