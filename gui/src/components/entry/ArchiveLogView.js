@@ -17,7 +17,7 @@
  */
 import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles } from '@material-ui/core'
+import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles, FormGroup } from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { amber } from '@material-ui/core/colors'
@@ -28,70 +28,6 @@ import { useApi } from '../api'
 import { useEntryContext } from './EntryContext'
 import Checkbox from '@material-ui/core/Checkbox'
 import FormControlLabel from '@material-ui/core/FormControlLabel'
-
-const CheckboxINFO = () => {
-  const [checked, setChecked] = useState(false);
-  return (
-    <FormControlLabel 
-      control={
-                <Checkbox 
-                  checked={checked}
-                  onChange={(e) => setChecked(e.target.checked)}
-                  inputProps={{'aria-label': 'secodnary checkbox'}}
-              />
-            }
-      label="INFO"
-    />
-  )
-}
-
-const CheckboxWARNING = () => {
-  const [checked, setChecked] = useState(false);
-  return (
-    <FormControlLabel 
-      control={
-                <Checkbox 
-                  checked={checked}
-                  onChange={(e) => setChecked(e.target.checked)}
-                  inputProps={{'aria-label': 'secodnary checkbox'}}
-              />
-            }
-      label="WARNING"
-    />
-  )
-}
-
-const CheckboxERROR = () => {
-  const [checked, setChecked] = useState(false);
-  return (
-    <FormControlLabel 
-      control={
-                <Checkbox 
-                  checked={checked}
-                  onChange={(e) => setChecked(e.target.checked)}
-                  inputProps={{'aria-label': 'secodnary checkbox'}}
-              />
-            }
-      label="ERROR"
-    />
-  )
-}
-
-const CheckboxCRITICAL = () => {
-  const [checked, setChecked] = useState(false);
-  return (
-    <FormControlLabel 
-      control={
-                <Checkbox 
-                  checked={checked}
-                  onChange={(e) => setChecked(e.target.checked)}
-                  inputProps={{'aria-label': 'secodnary checkbox'}}
-              />
-            }
-      label="CRITICAL"
-    />
-  )
-}
 
 const useLogEntryStyles = makeStyles(theme => ({
   warning: {
@@ -157,6 +93,14 @@ export default function ArchiveLogView(props) {
   const [data, setData] = useState(null)
   const [doesNotExist, setDoesNotExist] = useState(false)
 
+  const [checkList, setCheckList] = useState({
+    DEBUG: true,
+    ERROR: true,
+    CRITICAL: true,
+    WARNING: true,
+    INFO: true
+  }); 
+
   useEffect(() => {
     api.post(`/entries/${entryId}/archive/query`, {required: {processing_logs: '*'}})
       .then(response => {
@@ -187,11 +131,57 @@ export default function ArchiveLogView(props) {
   if (data) {
     content = 
     <div>
-      <CheckboxINFO />
-      <CheckboxWARNING />
-      <CheckboxERROR />
-      <CheckboxCRITICAL />
-      {data.slice(0, maxLogsToShow).map((entry, i) => <LogEntry key={i} entry={entry}/>)}
+      <FormGroup row>
+        <Typography style={{padding: '8px', textAlign: 'bottom'}}>
+          Filter by: 
+        </Typography>
+        <FormControlLabel 
+          control={<Checkbox 
+            checked={checkList.INFO} 
+            onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
+            name={'INFO'} 
+            id={'1'} />
+          } 
+          label={'INFO'}
+          />
+        <FormControlLabel 
+          control={<Checkbox 
+            checked={checkList.WARNING} 
+            onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
+            name={'WARNING'} 
+            id={'2'}/>
+          } 
+          label={'WARNING'}
+        />
+        <FormControlLabel 
+          control={<Checkbox 
+            checked={checkList.ERROR} 
+            onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
+            name={'ERROR'}
+            id={'3'}/>
+          } 
+          label={'ERROR'}
+        />
+        <FormControlLabel 
+          control={<Checkbox 
+            checked={checkList.CRITICAL} 
+            onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
+            name={'CRITICAL'}
+            id={'4'}/>
+          } 
+          label={'CRITICAL'}
+        />
+        <FormControlLabel 
+          control={<Checkbox 
+            checked={checkList.DEBUG} 
+            onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
+            name={'DEBUG'} 
+            id={'5'}/>
+          } 
+          label={'DEBUG'}
+        />
+      </FormGroup>
+      {data.slice(0, maxLogsToShow).map((entry, i) => (checkList[entry.level] ? <LogEntry key={i} entry={entry}/> : null))}
       {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
         There are {data.length - maxLogsToShow} more log entries. Download the log to see all of them.
       </Typography>}
