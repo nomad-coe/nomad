@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { waitFor, within } from '@testing-library/dom'
-import { screen, findButton } from '../conftest.spec'
+import { waitFor } from '@testing-library/dom'
+import { screen, within } from '../conftest.spec'
 import userEvent from '@testing-library/user-event'
 
 /*****************************************************************************************
@@ -147,13 +147,13 @@ export async function checkDirectoryLane({lane, laneIndex, lanePath, lastSegment
     expect(within(lane).getByText(item)).toBeVisible()
   })
   // Buttons
-  expect(findButton('download this folder', lane)).toBeEnabled()
-  expect(findButton('reload directory contents', lane)).toBeEnabled()
+  expect(within(lane).getByButtonText('download this folder')).toBeEnabled()
+  expect(within(lane).getByButtonText('reload directory contents')).toBeEnabled()
   for (const buttonTitle of ['upload to this folder (click or drop files)', 'create new folder', 'delete this folder']) {
     if (editable) {
-      expect(findButton(buttonTitle, lane)).toBeEnabled()
+      expect(within(lane).getByButtonText(buttonTitle)).toBeEnabled()
     } else {
-      expect(findButton(buttonTitle, lane)).toBeNull()
+      expect(within(lane).queryByButtonText(buttonTitle)).toBeNull()
     }
   }
 }
@@ -171,10 +171,10 @@ export async function checkFileLane(
     expect(within(lane).getByText(parserName)).toBeVisible()
   }
   // Buttons
-  expect(findButton('download this file', lane)).toBeEnabled()
+  expect(within(lane).getByButtonText('download this file')).toBeEnabled()
   if (editable) {
-    expect(findButton('delete this file', lane)).toBeEnabled()
+    expect(within(lane).getByButtonText('delete this file')).toBeEnabled()
   } else {
-    expect(findButton('delete this file', lane)).toBeNull()
+    expect(within(lane).queryByButtonText('delete this file')).toBeNull()
   }
 }

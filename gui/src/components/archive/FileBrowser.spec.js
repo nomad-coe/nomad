@@ -18,8 +18,8 @@
 import React from 'react'
 import { fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { waitFor, within } from '@testing-library/dom'
-import { render, screen, startAPI, closeAPI, findButton } from '../conftest.spec'
+import { waitFor } from '@testing-library/dom'
+import { render, screen, within, startAPI, closeAPI } from '../conftest.spec'
 import FileBrowser from './FileBrowser'
 import { purgeTreePath, getLane, checkLanes, navigateAndCheck, checkDirectoryLane, checkFileLane } from './conftest.spec'
 
@@ -78,8 +78,8 @@ async function testBrowseAround(editable) {
   // Simulate a load error on the image (images are not actually loaded during testing, for efficiency reasons)
   fireEvent.error(within(getLane(2)).getByRole('img'))
   await within(getLane(2)).findByText('Failed to open with image viewer. Bad file format?')
-  expect(findButton('Open with text viewer')).toBeEnabled()
-  userEvent.click(findButton('Open with text viewer'))
+  expect(within(getLane(2)).getByButtonText('Open with text viewer')).toBeEnabled()
+  userEvent.click(within(getLane(2)).getByButtonText('Open with text viewer'))
   await within(getLane(2)).findByText('this is not an image!') // text content of the file
 
   // json
@@ -172,10 +172,10 @@ test('delete files', async () => {
   await navigateAndCheck('test_entry', browserConfig)
   for (const fileName of ['vasp.xml', '1.aux']) {
     await navigateAndCheck(`test_entry/${fileName}`, browserConfig)
-    userEvent.click(findButton('delete this file', getLane(2)))
+    userEvent.click(within(getLane(2)).getByButtonText('delete this file'))
     await screen.findByText(/Really delete the file/)
     expect(screen.queryAllByText(fileName).length).toBeGreaterThan(1)
-    userEvent.click(findButton('OK'))
+    userEvent.click(screen.getByButtonText('OK'))
     await waitFor(() => {
       expect(screen.queryAllByText(fileName).length).toEqual(0)
     }, {timeout: 1500})
@@ -208,10 +208,10 @@ test('delete folder', async () => {
       navPath += (navPath ? '/' : '') + segment
       await navigateAndCheck(navPath, browserConfig)
     }
-    userEvent.click(findButton('delete this folder', getLane(segments.length)))
+    userEvent.click(within(getLane(segments.length)).getByButtonText('delete this folder'))
     await screen.findByText(/Really delete the directory/)
     expect(screen.queryAllByText(folderName).length).toBeGreaterThan(1)
-    userEvent.click(findButton('OK'))
+    userEvent.click(screen.getByButtonText('OK'))
     await waitFor(() => {
       expect(screen.queryAllByText(folderName).length).toEqual(0)
     }, {timeout: 1500})
