@@ -219,7 +219,7 @@ class SectionProxy(MProxy):
         if 'm_proxy_type' in kwargs:
             super().__init__(m_proxy_value=m_proxy_value, **kwargs)
         else:
-            super().__init__(m_proxy_value=m_proxy_value, m_proxy_type=section_reference, **kwargs)
+            super().__init__(m_proxy_value=m_proxy_value, m_proxy_type=SectionReference, **kwargs)
 
     # TODO recursive proxy stuff
     def _resolve_name(self, name: str, context: 'Definition') -> 'Definition':
@@ -250,7 +250,7 @@ class SectionProxy(MProxy):
         return None
 
     def m_proxy_resolve(self):
-        if '#' in self.m_proxy_value:
+        if '#' in self.m_proxy_value or '/' in self.m_proxy_value:
             # This is not a python reference, use the usual mechanism
             return super().m_proxy_resolve()
 
@@ -449,6 +449,9 @@ class _QuantityType(DataType):
             return dict(type_kind='numpy', type_data=str(value))
 
         if isinstance(value, Reference):
+            if isinstance(value, QuantityReference):
+                return dict(type_kind='quantity_reference', type_data=value.target_quantity_def.m_path())
+
             return dict(type_kind='reference', type_data=value.target_section_def.m_path())
 
         if isinstance(value, DataType):
@@ -478,7 +481,10 @@ class _QuantityType(DataType):
             if type_kind == 'Enum':
                 return MEnum(*type_data)
             if type_kind == 'reference':
-                return Reference(SectionProxy(type_data))
+                return Reference(SectionProxy(type_data, m_proxy_section=section))
+            if type_kind == 'quantity_reference':
+                return QuantityReference(cast(Quantity, MProxy(
+                    type_data, m_proxy_section=section, m_proxy_type=Reference(Quantity.m_def))))
             if type_kind == 'Any':
                 return Any
             if type_kind == 'custom':
@@ -505,8 +511,7 @@ class _QuantityType(DataType):
             if value in predefined_datatypes:
                 return predefined_datatypes[value]
 
-            return Reference(SectionProxy(
-                value, m_proxy_section=section, m_proxy_type=quantity_def.type))
+            return Reference(SectionProxy(value, m_proxy_section=section))
 
         if isinstance(value, list):
             return MEnum(*value)
@@ -634,7 +639,7 @@ class Reference(DataType):
 
 
 # TODO has to deal with URLs, Python qualified names, and Metainfo references
-class SectionReference(Reference):
+class _SectionReference(Reference):
     value_re = re.compile(r'^\w*(\.\w*)*$')
 
     def __init__(self):
@@ -645,7 +650,7 @@ class SectionReference(Reference):
         return Section.m_def
 
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        if isinstance(value, str) and SectionReference.value_re.match(value):
+        if isinstance(value, str) and _SectionReference.value_re.match(value):
             return SectionProxy(value, m_proxy_section=section, m_proxy_type=quantity_def.type)
 
         return super().set_normalize(section, quantity_def, value)
@@ -661,8 +666,8 @@ class SectionReference(Reference):
         return super().serialize(section, quantity_def, value)
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        proxy_type = quantity_def.type if quantity_def else section_reference
-        if isinstance(value, str) and SectionReference.value_re.match(value):
+        proxy_type = quantity_def.type if quantity_def else SectionReference
+        if isinstance(value, str) and _SectionReference.value_re.match(value):
             # First assume its a python name and try to resolve it.
             if '.' in value:
                 try:
@@ -684,15 +689,19 @@ class SectionReference(Reference):
         return MProxy(value, m_proxy_section=section, m_proxy_type=proxy_type)
 
 
-section_reference = SectionReference()
+SectionReference = _SectionReference()
 
 
 class QuantityReference(Reference):
     ''' Datatype used for reference quantities that reference other quantities. '''
 
     def __init__(self, quantity_def: 'Quantity'):
-        super().__init__(cast(Section, quantity_def.m_parent))
+        super().__init__(None)
         self.target_quantity_def = quantity_def
+
+    @property
+    def target_section_def(self):
+        return cast(Section, self.target_quantity_def.m_parent)
 
     def serialize_proxy_value(self, proxy):
         return f'{proxy.m_proxy_value}/{self.target_quantity_def.name}'
@@ -1079,7 +1088,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         'base classes.')
                 base_sections.append(base_section)
 
-        m_def.m_set(Section.base_sections, base_sections)
+        if len(base_sections) > 0:
+            m_def.m_set(Section.base_sections, base_sections)
 
         # transfer names, descriptions, constraints, event_handlers
         constraints: Set[str] = set()
@@ -1130,8 +1140,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             for event_handler in base_section.event_handlers:
                 event_handlers.add(event_handler)
 
-        m_def.constraints = list(constraints)
-        m_def.event_handlers = list(event_handlers)
+        if len(constraints) > 0: m_def.constraints = list(constraints)
+        if len(event_handlers) > 0: m_def.event_handlers = list(event_handlers)
 
         # add section cls' section to the module's package
         module_name = cls.__module__
@@ -1871,12 +1881,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         # first try to find a m_def in the data
         if 'm_def' in dct:
-            # We re-use the SectionReference implementation for m_def
+            # We re-use the _SectionReference implementation for m_def
             m_def = dct['m_def']
             context_section = None
             if isinstance(m_context, MSection):
                 context_section = m_context
-            m_def_proxy = section_reference.deserialize(context_section, None, m_def)
+            m_def_proxy = SectionReference.deserialize(context_section, None, m_def)
             if isinstance(m_context, Context):
                 m_def_proxy.m_proxy_context = m_context
             cls = m_def_proxy.section_cls
@@ -3371,9 +3381,9 @@ Section.inner_section_definitions = SubSection(
     aliases=['inner_section_defs', 'section_defs'])
 
 Section.base_sections = Quantity(
-    type=section_reference, shape=['0..*'], default=[], name='base_sections')
+    type=SectionReference, shape=['0..*'], default=[], name='base_sections')
 Section.extending_sections = Quantity(
-    type=section_reference, shape=['0..*'], default=[], name='extending_sections')
+    type=SectionReference, shape=['0..*'], default=[], name='extending_sections')
 Section.extends_base_section = Quantity(type=bool, default=False, name='extends_base_section')
 Section.constraints = Quantity(type=str, shape=['0..*'], default=[], name='constraints')
 Section.event_handlers = Quantity(
@@ -3507,7 +3517,7 @@ Property.template = Quantity(type=bool, name='template', default=False)
 SubSection.repeats = Quantity(type=bool, name='repeats', default=False)
 
 SubSection.sub_section = Quantity(
-    type=section_reference, name='sub_section',
+    type=SectionReference, name='sub_section',
     aliases=['section_definition', 'section_def'])
 
 Quantity.m_def._section_cls = Quantity

@@ -184,6 +184,22 @@ def test_quantity_references_serialize():
     assert source == root.m_to_dict()
 
 
+def test_section_reference_serialize():
+    class TargetSection(MSection):
+        test_quantity = Quantity(type=str)
+
+    class SourceSection(MSection):
+        section_ref = Quantity(type=Reference(TargetSection.m_def))
+        quantity_ref = Quantity(type=QuantityReference(TargetSection.test_quantity))
+
+    pkg = MetainfoPackage(section_definitions=[TargetSection.m_def, SourceSection.m_def])
+
+    json_data = pkg.m_to_dict()
+    assert 'base_sections' not in json_data['section_definitions'][0]
+    assert 'constraints' not in json_data['section_definitions'][0]
+    assert MetainfoPackage.m_from_dict(json_data).m_to_dict() == json_data
+
+
 @pytest.mark.parametrize('url,value', [
     pytest.param('/referenced', '/referenced', id='archive-plain'),
     pytest.param('#/referenced', '/referenced', id='archive-anchor'),
