@@ -39,7 +39,6 @@ const useLogEntryStyles = makeStyles(theme => ({
   }
 }))
 
-
 const LogEntry = React.memo(function LogEntry(props) {
   const classes = useLogEntryStyles()
   const {entry} = props
@@ -99,8 +98,9 @@ export default function ArchiveLogView(props) {
     CRITICAL: true,
     WARNING: true,
     INFO: true
-  }); 
+  })
 
+  // const [page, setPage] = useState(0)
   useEffect(() => {
     api.post(`/entries/${entryId}/archive/query`, {required: {processing_logs: '*'}})
       .then(response => {
@@ -129,21 +129,23 @@ export default function ArchiveLogView(props) {
 
   let content = 'loading ...'
   if (data) {
-    content = 
+    content =
     <div>
       <FormGroup row>
         <Typography style={{padding: '8px', textAlign: 'bottom'}}>
-          Filter by: 
+          Filter by:
         </Typography>
-        {Object.keys(checkList).map((key, i) => { return (
-            <FormControlLabel 
-              control={<Checkbox 
-                checked={checkList[key]} 
-                onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
-                name={key} id={`${i}`}/>} 
-                label={key}
+        {Object.keys(checkList).map((key, i) => {
+          return (
+            <FormControlLabel key={i}
+              control={<Checkbox
+                checked={checkList[key]}
+                onChange={(e) => setCheckList({...checkList, [e.target.name]: e.target.checked})}
+                name={key} id={`${i}`}/>}
+              label={key}
             />
-        )})}
+          )
+        })}
       </FormGroup>
       {data.slice(0, maxLogsToShow).map((entry, i) => (checkList[entry.level] ? <LogEntry key={i} entry={entry}/> : null))}
       {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
