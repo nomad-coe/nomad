@@ -17,7 +17,7 @@
  */
 import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles, FormGroup } from '@material-ui/core'
+import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles, FormGroup, Button, Grid } from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { amber } from '@material-ui/core/colors'
@@ -100,7 +100,8 @@ export default function ArchiveLogView(props) {
     INFO: true
   })
 
-  // const [page, setPage] = useState(0)
+  const [numberOfLogs, setNumberOflogs] = useState(5)
+
   useEffect(() => {
     api.post(`/entries/${entryId}/archive/query`, {required: {processing_logs: '*'}})
       .then(response => {
@@ -114,7 +115,9 @@ export default function ArchiveLogView(props) {
           raiseError(error)
         }
       })
-  }, [setData, setDoesNotExist, api, raiseError, entryId])
+
+    setNumberOflogs(10)
+  }, [setData, setDoesNotExist, api, raiseError, entryId, checkList])
 
   if (doesNotExist) {
     return (
@@ -147,10 +150,15 @@ export default function ArchiveLogView(props) {
           )
         })}
       </FormGroup>
-      {data.slice(0, maxLogsToShow).map((entry, i) => (checkList[entry.level] ? <LogEntry key={i} entry={entry}/> : null))}
+      {data.slice(0, numberOfLogs).map((entry, i) => (checkList[entry.level] ? <LogEntry key={i} entry={entry}/> : null))}
       {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
         There are {data.length - maxLogsToShow} more log entries. Download the log to see all of them.
       </Typography>}
+      <Grid container justifyContent='center'>
+        {numberOfLogs < data.length ? (<Button variant='contained' color='primary' onClick={() => setNumberOflogs(numberOfLogs + numberOfLogs)}>
+          See More
+        </Button>) : ''}
+      </Grid>
     </div>
   }
 
