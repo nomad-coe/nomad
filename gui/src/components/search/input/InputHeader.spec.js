@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { renderSearchEntry, expectInputHeader } from '../conftest'
+import { renderSearchEntry, expectInputHeader } from '../conftest.spec'
 import InputHeader from './InputHeader'
 
 test('initial state is loaded correctly', async () => {

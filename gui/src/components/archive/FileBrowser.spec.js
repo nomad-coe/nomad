@@ -16,139 +16,206 @@
  * limitations under the License.
  */
 import React from 'react'
-import { waitFor, within } from '@testing-library/dom'
-import { renderNoAPI, screen, wait } from '../conftest'
-import FileBrowser from './FileBrowser'
-import { useApi } from '../api'
+import { fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-
-jest.mock('../api')
+import { waitFor } from '@testing-library/dom'
+import { render, screen, within, startAPI, closeAPI } from '../conftest.spec'
+import FileBrowser from './FileBrowser'
+import { purgeTreePath, getLane, checkLanes, navigateAndCheck, checkDirectoryLane, checkFileLane } from './conftest.spec'
 
 const dirSpecialChars = 'dir special chars ~!?*\\()[]{}<>,.;:\'"`&@#$%=|'
-const directoryTree = {
-  '': [
-    {name: 'rootdir1', is_file: false, size: 456},
-    {name: 'rootdir2', is_file: false, size: 456},
-    {name: 'rootfile1', is_file: true, size: 123}],
-  'rootdir1': [
-    {name: 'subdir1', is_file: false, size: 456},
-    {name: 'file1.json', is_file: true, size: 123, entry_id: 'entry_1', parser_name: 'parsers/vasp'}],
-  'rootdir2': [
-    {name: dirSpecialChars, is_file: false, size: 123}],
-  'rootdir2/dir special chars ~!?*\\()[]{}<>,.;:\'"`&@#$%=|': [
-    {name: 'file2', is_file: true, size: 123}]
+const fileBrowserTree = {
+  '': {cb: checkDirectoryLane},
+  'deepdir': {cb: checkDirectoryLane},
+  'deepdir/subdir1': {cb: checkDirectoryLane},
+  'deepdir/subdir1/subdir2': {cb: checkDirectoryLane},
+  'deepdir/subdir1/subdir2/dir special chars ~!?*\\()[]{}<>,.;:\'"`&@#$%=|': {cb: checkDirectoryLane},
+  'deepdir/subdir1/subdir2/dir special chars ~!?*\\()[]{}<>,.;:\'"`&@#$%=|/f.txt': {cb: checkFileLane},
+  'filetypes': {cb: checkDirectoryLane},
+  'filetypes/image.png': {cb: checkFileLane},
+  'filetypes/not an image.png': {cb: checkFileLane},
+  'filetypes/doc.json': {cb: checkFileLane},
+  'test_entry': {cb: checkDirectoryLane},
+  'test_entry/1.aux': {cb: checkFileLane},
+  'test_entry/2.aux': {cb: checkFileLane},
+  'test_entry/3.aux': {cb: checkFileLane},
+  'test_entry/4.aux': {cb: checkFileLane},
+  'test_entry/vasp.xml': {cb: checkFileLane, extra: {entryId: 'dft_bulk', parserName: 'parsers/vasp'}}
 }
 
-beforeAll(() => {
-  // API mock init
-  useApi.mockReturnValue({
-    api: {
-      get: (url) => {
-        const baseUrl = url.split('?')[0]
-        const decodedBaseUrl = baseUrl.split('/').map(segment => decodeURIComponent(segment)).join('/')
-        const path = decodedBaseUrl.split('/').slice(4).join('/')
-        const segments = path.split('/')
-        const dirContent = directoryTree[path]
-        if (dirContent === undefined) {
-          return wait({detail: 'Not found. Invalid path?'})
-        }
-        const response = {
-          path: path,
-          access: 'unpublished',
-          directory_metadata: {
-            name: segments[segments.length - 1],
-            size: 456,
-            content: dirContent.map(e => { return {...e} })
-          },
-          pagination: {
-            page_size: 500,
-            page: 1,
-            total: dirContent.length
-          }
-        }
-        return wait(response)
-      }
-    }
-  })
-})
+afterEach(() => closeAPI())
 
-afterAll(() => {
-  // API mock cleanup
-  jest.unmock('../api')
-})
-
-function checkLanes(path, rootPath, rootTitle) {
-  // Checks the content of the lanes
-  let lanePath = rootPath
-  const lanePaths = [lanePath]
-  path.split('/').forEach(segment => {
-    if (segment) {
-      lanePath += (lanePath ? '/' : '') + segment
-      lanePaths.push(lanePath)
-    }
-  })
-  lanePaths.forEach((lanePath, i) => {
-    const segments = lanePath.split('/')
-    const lastSegment = segments[segments.length - 1]
-    const lane = screen.getByTestId(`lane${i}`)
-    const expectedContent = directoryTree[lanePath]
-    if (expectedContent === undefined) {
-      // File lane
-      expect(i).toBeGreaterThan(0)
-      const directoryData = directoryTree[lanePaths[i - 1]]
-      expect(directoryData).toBeDefined()
-      const fileData = directoryData.filter(e => e.name === lastSegment)[0]
-      expect(fileData).toBeDefined()
-      expect(within(lane).getByText(lastSegment)).toBeVisible() // Lane title = file name
-      if (fileData.entry_id) {
-        expect(within(lane).getByText(fileData.entry_id)).toBeVisible()
-        expect(within(lane).getByText(fileData.parser_name.replace('parser/', ''))).toBeVisible()
-      }
-    } else {
-      // Directory lane
-      expect(within(lane).getByText(i === 0 ? rootTitle : lastSegment)).toBeVisible()
-      expectedContent.forEach(e => {
-        expect(within(lane).getByText(e.name)).toBeVisible()
-      })
-    }
-  })
-  expect(screen.queryByTestId(`lane${lanePaths.length}`)).not.toBeInTheDocument()
-}
-
-test('render browser and browse around', async () => {
-  renderNoAPI(<FileBrowser uploadId="upload_id_1" path="" rootTitle="Root Title"/>)
+async function testBrowseAround(editable) {
+  // Create browser and check lanes
+  const browserConfig = {
+    rootTitle: 'Root Title',
+    browserTree: fileBrowserTree,
+    editable
+  }
+  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle} editable={editable}/>)
   await waitFor(() => {
     expect(screen.getByText('Root Title')).toBeVisible()
   })
-  checkLanes('', '', 'Root Title')
-  // Select item: rootdir1
-  userEvent.click(screen.getByText('rootdir1'))
+  await checkLanes('', browserConfig)
+
+  // Navigate around
+  await navigateAndCheck('deepdir', browserConfig)
+  await navigateAndCheck('deepdir/subdir1', browserConfig)
+  await navigateAndCheck('deepdir/subdir1/subdir2', browserConfig)
+  await navigateAndCheck(`deepdir/subdir1/subdir2/${dirSpecialChars}`, browserConfig)
+  await navigateAndCheck(`deepdir/subdir1/subdir2/${dirSpecialChars}/f.txt`, browserConfig)
+  await within(getLane(5)).findByText('content of f.txt') // auto-previewing .txt files with text viewer
+
+  // Check file types
+  await navigateAndCheck('filetypes', browserConfig)
+
+  // image: ok -> just check if there is an img tag
+  await navigateAndCheck('filetypes/image.png', browserConfig)
+  expect(within(getLane(2)).getByRole('img')).toBeVisible()
+
+  // image: bad
+  await navigateAndCheck('filetypes/not an image.png', browserConfig)
+  // Simulate a load error on the image (images are not actually loaded during testing, for efficiency reasons)
+  fireEvent.error(within(getLane(2)).getByRole('img'))
+  await within(getLane(2)).findByText('Failed to open with image viewer. Bad file format?')
+  expect(within(getLane(2)).getByButtonText('Open with text viewer')).toBeEnabled()
+  userEvent.click(within(getLane(2)).getByButtonText('Open with text viewer'))
+  await within(getLane(2)).findByText('this is not an image!') // text content of the file
+
+  // json
+  await navigateAndCheck('filetypes/doc.json', browserConfig)
+  await within(getLane(2)).findByText('root')
+  await within(getLane(2)).findByText(/"this is a json string value"/)
+
+  // Check folder with an entry
+  await navigateAndCheck('test_entry', browserConfig)
+  await navigateAndCheck('test_entry/1.aux', browserConfig)
+  await navigateAndCheck('test_entry/vasp.xml', browserConfig)
+  await within(getLane(2)).findByText(/GGA_X_PBE/) // This text should occur in the file preview
+}
+
+test.each([
+  [
+    'Browse unpublished as author',
+    'tests.states.uploads.browser_test_unpublished',
+    'tests/data/uploads/browser_test_unpublished_author',
+    'test',
+    'password',
+    true
+  ], [
+    'Browse unpublished as reviewer',
+    'tests.states.uploads.browser_test_unpublished',
+    'tests/data/uploads/browser_test_unpublished_reviewer',
+    'ttester',
+    'password',
+    false
+  ], [
+    'Browse published as author',
+    'tests.states.uploads.browser_test_published',
+    'tests/data/uploads/browser_test_published_author',
+    'test',
+    'password',
+    false
+  ]
+])('Upload page: %s', async (name, state, snapshot, username, password, editable) => {
+  startAPI(state, snapshot, username, password)
+  await testBrowseAround(editable)
+}, 180000)
+
+test('starting in entry dir', async () => {
+  startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_entrydir', 'test', 'password')
+  const entryDir = 'test_entry'
+  // Extract subtree from the standard fileBrowserTree
+  const fileBrowserTreeModified = {}
+  for (let k in fileBrowserTree) {
+    const v = fileBrowserTree[k]
+    if (k === entryDir) {
+      k = ''
+    } else if (k.startsWith(entryDir + '/')) {
+      k = k.substring(entryDir.length + 1)
+    } else {
+      continue
+    }
+    fileBrowserTreeModified[k] = v
+  }
+
+  const browserConfig = {
+    rootTitle: 'Root Title',
+    browserTree: fileBrowserTreeModified,
+    editable: true
+  }
+  render(<FileBrowser uploadId="browser_test" path={entryDir} rootTitle={browserConfig.rootTitle} editable={true}/>)
   await waitFor(() => {
-    expect(screen.queryByTestId('lane1')).toBeInTheDocument()
+    expect(screen.getByText('Root Title')).toBeVisible()
   })
-  checkLanes('rootdir1', '', 'Root Title')
-  // Select item: rootdir1/file1.json
-  userEvent.click(screen.getByText('file1.json'))
+  await checkLanes('', browserConfig)
+
+  await navigateAndCheck('1.aux', browserConfig)
+  await navigateAndCheck('vasp.xml', browserConfig)
+  await within(getLane(1)).findByText(/GGA_X_PBE/) // This text should occur in the file preview
+})
+
+test('delete files', async () => {
+  startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_delete_files', 'test', 'password')
+  const fileBrowserTreeCopy = {...fileBrowserTree}
+  const browserConfig = {
+    rootTitle: 'Root Title',
+    browserTree: fileBrowserTreeCopy,
+    editable: true
+  }
+  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle} editable={true}/>)
   await waitFor(() => {
-    expect(screen.queryByTestId('lane2')).toBeInTheDocument()
+    expect(screen.getByText('Root Title')).toBeVisible()
   })
-  checkLanes('rootdir1/file1.json', '', 'Root Title')
-  // Select item: rootdir2
-  userEvent.click(screen.getByText('rootdir2'))
+  await checkLanes('', browserConfig)
+
+  await navigateAndCheck('test_entry', browserConfig)
+  for (const fileName of ['vasp.xml', '1.aux']) {
+    await navigateAndCheck(`test_entry/${fileName}`, browserConfig)
+    userEvent.click(within(getLane(2)).getByButtonText('delete this file'))
+    await screen.findByText(/Really delete the file/)
+    expect(screen.queryAllByText(fileName).length).toBeGreaterThan(1)
+    userEvent.click(screen.getByButtonText('OK'))
+    await waitFor(() => {
+      expect(screen.queryAllByText(fileName).length).toEqual(0)
+    }, {timeout: 1500})
+    purgeTreePath(fileBrowserTreeCopy, `test_entry/${fileName}`)
+    checkLanes('test_entry', browserConfig)
+  }
+})
+
+test('delete folder', async () => {
+  startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_delete_folders', 'test', 'password')
+  const fileBrowserTreeCopy = {...fileBrowserTree}
+  const browserConfig = {
+    rootTitle: 'Root Title',
+    browserTree: fileBrowserTreeCopy,
+    editable: true
+  }
+  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle} editable={true}/>)
   await waitFor(() => {
-    expect(within(screen.queryByTestId('lane1')).getByText('rootdir2')).toBeInTheDocument()
+    expect(screen.getByText('Root Title')).toBeVisible()
   })
-  checkLanes('rootdir2', '', 'Root Title')
-  // Select item: rootdir2/dirSpecialChars
-  userEvent.click(screen.getByText(dirSpecialChars))
-  await waitFor(() => {
-    expect(screen.queryByTestId('lane2')).toBeInTheDocument()
-  })
-  checkLanes(`rootdir2/${dirSpecialChars}`, '', 'Root Title')
-  // Select item: rootdir2/dirSpecialChars/file2
-  userEvent.click(screen.getByText('file2'))
-  await waitFor(() => {
-    expect(screen.queryByTestId('lane3')).toBeInTheDocument()
-  })
-  checkLanes(`rootdir2/${dirSpecialChars}/file2`, '', 'Root Title')
+  await checkLanes('', browserConfig)
+
+  for (const path of ['test_entry', 'deepdir/subdir1/subdir2']) {
+    const segments = path.split('/')
+    const folderName = segments[segments.length - 1]
+    const parentPath = (segments.slice(0, segments.length - 1)).join('/')
+    // Navigate to path
+    let navPath = ''
+    for (const segment of segments) {
+      navPath += (navPath ? '/' : '') + segment
+      await navigateAndCheck(navPath, browserConfig)
+    }
+    userEvent.click(within(getLane(segments.length)).getByButtonText('delete this folder'))
+    await screen.findByText(/Really delete the directory/)
+    expect(screen.queryAllByText(folderName).length).toBeGreaterThan(1)
+    userEvent.click(screen.getByButtonText('OK'))
+    await waitFor(() => {
+      expect(screen.queryAllByText(folderName).length).toEqual(0)
+    }, {timeout: 1500})
+    purgeTreePath(fileBrowserTreeCopy, path)
+    checkLanes(parentPath, browserConfig)
+  }
 })

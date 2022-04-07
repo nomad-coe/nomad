@@ -17,9 +17,7 @@
  * limitations under the License.
  */
 
-/* eslint-disable no-undef */
-
-import { expectQuantity, screen } from '../conftest'
+import { expectQuantity, screen } from '../conftest.spec'
 import { within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 

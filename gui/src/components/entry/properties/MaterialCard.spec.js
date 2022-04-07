@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render, readArchive } from '../../conftest'
+import { render, readArchive } from '../../conftest.spec'
 import {
   expectComposition,
   expectLatticeParameters,
@@ -25,7 +25,7 @@ import {
   expectNoStructure,
   expectNoSymmetry,
   expectNoLatticeParameters
-} from '../conftest'
+} from '../conftest.spec'
 import MaterialCard from './MaterialCard'
 import { cloneDeep } from 'lodash'
 

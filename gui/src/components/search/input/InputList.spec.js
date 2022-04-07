@@ -17,8 +17,8 @@
  */
 import React from 'react'
 import { waitForElementToBeRemoved } from '@testing-library/dom'
-import { startAPI, closeAPI, screen } from '../../conftest'
-import { renderSearchEntry, expectInputHeader } from '../conftest'
+import { startAPI, closeAPI, screen } from '../../conftest.spec'
+import { renderSearchEntry, expectInputHeader } from '../conftest.spec'
 import InputList from './InputList'
 
 // Mock the useResizeObserver hook. The test environment does not provide any

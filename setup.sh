@@ -15,3 +15,5 @@ git submodule update --init --recursive --jobs=4
 ./dependencies.sh -e
 
 ./generate_gui_artifacts.sh
+
+rm -rf docs/build && mkdocs build && mv site docs/build

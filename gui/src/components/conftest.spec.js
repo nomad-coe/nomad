@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* eslint-disable no-undef */
-
 import React from 'react'
 import { get, isPlainObject } from 'lodash'
 import { rest } from 'msw'
@@ -26,9 +24,11 @@ import { RecoilRoot } from 'recoil'
 import {
   render,
   screen,
-  within,
+  within as originalWithin,
   buildQueries,
-  queryAllByText
+  queryAllByText,
+  queryAllByRole,
+  queries
 } from '@testing-library/react'
 import { server } from '../setupTests'
 import { getArchive } from '../../tests/DFTBulk'
@@ -263,24 +263,81 @@ const [
   findByMenuItem
 ] = buildQueries(queryAllByMenuItem, multipleErrorMenuItem, missingErrorMenuItem)
 const byMenuItem = {
-  queryByMenuItem,
   queryAllByMenuItem,
-  getByMenuItem,
+  queryByMenuItem,
   getAllByMenuItem,
+  getByMenuItem,
   findAllByMenuItem,
   findByMenuItem
 }
 
+/**
+ * Query for finding buttons associated with a given text somehow. The text may be a string
+ * or a regex. An element will match if it has role = "button" and, for example, the text
+ * matches the button's title or is found somewhere within the button. The goal is for this
+ * method to handle all types of buttons we use, and it should always return an object which
+ * is of a button type and therefore can be used for firing events etc.
+ */
+const queryAllByButtonText = (c, text) => {
+  const allButtons = c.queryAllByRole ? c.queryAllByRole('button') : queryAllByRole(c, 'button')
+  const matchingButtons = []
+  for (const button of allButtons) {
+    if (typeof text === 'string') {
+      // String provided
+      if (button.title === text || button.text === text) {
+        matchingButtons.push(button)
+        continue
+      }
+    } else {
+      // Regex provided
+      if (text.test(button.title) || text.test(button.text)) {
+        matchingButtons.push(button)
+        continue
+      }
+    }
+    if (within(button).queryByTitle(text) || within(button).queryByText(text)) {
+      matchingButtons.push(button)
+    }
+  }
+  return matchingButtons
+}
+const multipleErrorButtonText = (c, value) =>
+  `Found multiple buttons with the text: ${value}`
+const missingErrorButtonText = (c, value) =>
+  `Unable to find a button with the text: ${value}`
+const [
+  queryByButtonText,
+  getAllByButtonText,
+  getByButtonText,
+  findAllByButtonText,
+  findByButtonText
+] = buildQueries(queryAllByButtonText, multipleErrorButtonText, missingErrorButtonText)
+const byButtonText = {
+  queryAllByButtonText,
+  queryByButtonText,
+  getAllByButtonText,
+  getByButtonText,
+  findAllByButtonText,
+  findByButtonText
+}
+
 // Override default screen method by adding custom queries into it
-const boundQueries = Object.entries(byMenuItem).reduce(
+const customQueries = {...byMenuItem, ...byButtonText}
+const defaultAndCustomQueries = {...queries, ...customQueries}
+
+const boundCustomQueries = Object.entries(customQueries).reduce(
   (queries, [queryName, queryFn]) => {
     queries[queryName] = queryFn.bind(null, document.body)
     return queries
   },
   {}
 )
-const customScreen = { ...screen, ...boundQueries }
+const customScreen = { ...screen, ...boundCustomQueries }
 export { customScreen as screen }
+
+export function within(element, queriesToBind = defaultAndCustomQueries) {
+  return originalWithin(element, queriesToBind)
+}
 
 /*****************************************************************************/
 // Expects
@@ -362,10 +419,11 @@ ${func}()"`)
           const hash = hashRequest(req)
           const counter = counterMap[hash] || 0
           const responseSnap = apiSnapshot[hash][counter].response
+          const isJson = !responseSnap.headers['content-type'] || responseSnap.headers['content-type'] === 'application/json'
           const response = res(
             ctx.status(responseSnap.status),
             ctx.set(responseSnap.headers),
-            ctx.json(responseSnap.body)
+            isJson ? ctx.json(responseSnap.body) : ctx.body(responseSnap.body)
           )
           counterMap[hash] = counter + 1
           return response
@@ -390,9 +448,10 @@ ${func}()"`)
     const capture = async (req, res, ctx) => {
       const hash = hashRequest(req)
       const response = await ctx.fetch(req)
-      const responseJSON = await response.json()
       const headers = Object.fromEntries(response.headers.entries())
       delete headers['date']
+      const isJson = !headers['content-type'] || headers['content-type'] === 'application/json'
+      const body = isJson ? await response.json() : await response.text()
       const snapshot = {
         request: {
           url: req.url,
@@ -402,7 +461,7 @@ ${func}()"`)
         },
         response: {
           status: response.status,
-          body: responseJSON,
+          body: body,
           headers: headers
         }
       }
@@ -413,8 +472,8 @@ ${func}()"`)
       }
       return res(
         ctx.status(response.status),
-        ctx.set(response.headers),
-        ctx.json(responseJSON)
+        ctx.set(headers),
+        isJson ? ctx.json(body) : ctx.body(body)
       )
     }
     const captureHandlers = [

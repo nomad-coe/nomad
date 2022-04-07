@@ -52,7 +52,9 @@ class ExampleData:
 
         self._time_stamp = datetime.utcnow()
 
-    def save(self, with_files: bool = True, with_mongo: bool = True, with_es: bool = True):
+    def save(
+            self, with_files: bool = True, with_mongo: bool = True, with_es: bool = True,
+            additional_files_path: str = None):
         from tests.test_files import create_test_upload_files
         from nomad import processing as proc
 
@@ -90,7 +92,8 @@ class ExampleData:
 
                 create_test_upload_files(
                     upload_id, archives, published=upload_dict.get('publish_time') is not None,
-                    embargo_length=upload_dict['embargo_length'])
+                    embargo_length=upload_dict['embargo_length'],
+                    additional_files_path=additional_files_path)
                 from nomad import files
                 assert files.UploadFiles.get(upload_id) is not None
 
