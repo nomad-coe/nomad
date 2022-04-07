@@ -135,51 +135,15 @@ export default function ArchiveLogView(props) {
         <Typography style={{padding: '8px', textAlign: 'bottom'}}>
           Filter by: 
         </Typography>
-        <FormControlLabel 
-          control={<Checkbox 
-            checked={checkList.INFO} 
-            onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
-            name={'INFO'} 
-            id={'1'} />
-          } 
-          label={'INFO'}
-          />
-        <FormControlLabel 
-          control={<Checkbox 
-            checked={checkList.WARNING} 
-            onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
-            name={'WARNING'} 
-            id={'2'}/>
-          } 
-          label={'WARNING'}
-        />
-        <FormControlLabel 
-          control={<Checkbox 
-            checked={checkList.ERROR} 
-            onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
-            name={'ERROR'}
-            id={'3'}/>
-          } 
-          label={'ERROR'}
-        />
-        <FormControlLabel 
-          control={<Checkbox 
-            checked={checkList.CRITICAL} 
-            onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
-            name={'CRITICAL'}
-            id={'4'}/>
-          } 
-          label={'CRITICAL'}
-        />
-        <FormControlLabel 
-          control={<Checkbox 
-            checked={checkList.DEBUG} 
-            onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
-            name={'DEBUG'} 
-            id={'5'}/>
-          } 
-          label={'DEBUG'}
-        />
+        {Object.keys(checkList).map((key, i) => { return (
+            <FormControlLabel 
+              control={<Checkbox 
+                checked={checkList[key]} 
+                onChange={(e) => setCheckList({...checkList, [e.target.name]:e.target.checked})} 
+                name={key} id={`${i}`}/>} 
+                label={key}
+            />
+        )})}
       </FormGroup>
       {data.slice(0, maxLogsToShow).map((entry, i) => (checkList[entry.level] ? <LogEntry key={i} entry={entry}/> : null))}
       {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
