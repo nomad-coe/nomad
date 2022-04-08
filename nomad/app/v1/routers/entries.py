@@ -17,6 +17,10 @@
 #
 
 from datetime import datetime
+import functools
+from itertools import zip_longest
+import multiprocessing
+import operator
 
 from typing import Optional, Set, Union, Dict, Iterator, Any, List
 from fastapi import (
@@ -38,7 +42,6 @@ from nomad.datamodel import EditableUserMetadata
 from nomad.files import StreamedFile, create_zipstream
 from nomad.utils import strip
 from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryError
-from nomad.archive import ArchiveQueryError
 from nomad.search import AuthenticationRequiredError, SearchError, update_metadata as es_update_metadata
 from nomad.search import search, QueryValidationError
 from nomad.metainfo.elasticsearch_extension import entry_type
@@ -69,7 +72,7 @@ archive_required_documentation = strip('''
 The `required` part allows you to specify what parts of the requested archives
 should be returned. The NOMAD Archive is a hierarchical data format and
 you can *require* certain branches (i.e. *sections*) in the hierarchy.
-By specifing certain sections with specific contents or all contents (via
+By specifying certain sections with specific contents or all contents (via
 the directive `"*"`), you can determine what sections and what quantities should
 be returned. The default is the whole archive, i.e., `"*"`.
 
@@ -441,12 +444,19 @@ def _do_exaustive_search(owner: Owner, query: Query, include: List[str], user: U
             break
 
 
-class _Uploads():
+class _Uploads:
     '''
     A helper class that caches subsequent access to upload files the same upload.
     '''
+
     def __init__(self):
         self._upload_files = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def get_upload_files(self, upload_id: str) -> files.UploadFiles:
         if self._upload_files is not None and self._upload_files.upload_id != upload_id:
@@ -492,13 +502,9 @@ def _answer_entries_rawdir_request(
         required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
         user_id=user.user_id if user is not None else None)
 
-    uploads = _Uploads()
-    try:
-        response_data = [
-            _create_entry_rawdir(entry_metadata, uploads)
-            for entry_metadata in search_response.data]
-    finally:
-        uploads.close()
+    with _Uploads() as uploads:
+        response_data = [_create_entry_rawdir(
+            entry_metadata, uploads) for entry_metadata in search_response.data]
 
     return EntriesRawDirResponse(
         owner=search_response.owner,
@@ -670,34 +676,67 @@ def _read_archive(entry_metadata, uploads, required_reader: RequiredReader):
             return {
                 'entry_id': entry_id,
                 'parser_name': entry_metadata['parser_name'],
-                'archive': required_reader.read(archive, entry_id)
-            }
+                'archive': required_reader.read(archive, entry_id)}
     except ArchiveQueryError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 def _validate_required(required: ArchiveRequired) -> RequiredReader:
     try:
         return RequiredReader(required)
     except RequiredValidationError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=[dict(
-            msg=e.msg, loc=['required'] + e.loc)])
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=[dict(msg=e.msg, loc=['required'] + e.loc)])
+
+
+def _read_entry_from_archive(entry, uploads, required_reader: RequiredReader):
+    entry_id, upload_id = entry['entry_id'], entry['upload_id']
+
+    # all other exceptions are handled by the caller `_read_entries_from_archive`
+    try:
+        upload_files = uploads.get_upload_files(upload_id)
+
+        with upload_files.read_archive(entry_id, True) as archive:
+            return {
+                'entry_id': entry_id,
+                'upload_id': upload_id,
+                'parser_name': entry['parser_name'],
+                'archive': required_reader.read(archive, entry_id)}
+    except ArchiveQueryError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except KeyError as e:
+        logger.error('missing archive', exc_info=e, entry_id=entry_id)
+
+        return None
+
+
+def _read_entries_from_archive(entries, required):
+    '''
+    Takes pickleable arguments so that it can be offloaded to worker processes.
+
+    It is important to ensure the return values are also pickleable.
+    '''
+    with _Uploads() as uploads:
+        required_reader = _validate_required(required)
+
+        responses = [_read_entry_from_archive(
+            entry, uploads, required_reader) for entry in entries if entry is not None]
+
+        return list(filter(None, responses))
 
 
 def _answer_entries_archive_request(
         owner: Owner, query: Query, pagination: MetadataPagination, required: ArchiveRequired,
         user: User):
-
     if owner == Owner.all_:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            The owner=all is not allowed for this operation as it will search for entries
-            that you might now be allowed to access.
-            '''))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=strip(
+                '''The owner=all is not allowed for this operation as it will search for entries
+                that you might now be allowed to access.'''))
 
     if required is None:
         required = '*'
-
-    required_reader = _validate_required(required)
 
     search_response = perform_search(
         owner=owner, query=query,
@@ -705,33 +744,39 @@ def _answer_entries_archive_request(
         required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
         user_id=user.user_id if user is not None else None)
 
-    uploads = _Uploads()
-    response_data = {}
-    for entry_metadata in search_response.data:
-        entry_id, upload_id = entry_metadata['entry_id'], entry_metadata['upload_id']
+    # fewer than 8 entries per process is not useful
+    # more than config.max_process_number processes is too much for the server
+    number: int = min(
+        len(search_response.data) // config.archive.min_entires_per_process,
+        config.archive.max_process_number)
 
-        archive_data = None
+    if number <= 1:
+        request_data: list = _read_entries_from_archive(search_response.data, required)
+    else:
+        entries_per_process = len(search_response.data) // number + 1
+
+        # use process pool
+        pool: multiprocessing.pool.Pool = multiprocessing.pool.Pool(processes=number)
 
         try:
-            archive_data = _read_archive(entry_metadata, uploads, required_reader)['archive']
-        except KeyError as e:
-            logger.error('missing archive', exc_info=e, entry_id=entry_id)
-            continue
+            responses = pool.map(
+                functools.partial(_read_entries_from_archive, required=required),
+                zip_longest(*[iter(search_response.data)] * entries_per_process))
+        finally:
+            # gracefully shutdown the pool
+            pool.close()
+            pool.join()
 
-        response_data[entry_id] = {
-            'entry_id': entry_id,
-            'upload_id': upload_id,
-            'parser_name': entry_metadata['parser_name'],
-            'archive': archive_data}
-
-    uploads.close()
+        # collect results from each process
+        # https://stackoverflow.com/a/45323085
+        request_data = functools.reduce(operator.iconcat, responses, [])
 
     return EntriesArchiveResponse(
         owner=search_response.owner,
         query=search_response.query,
         pagination=search_response.pagination,
         required=required,
-        data=list(response_data.values()))
+        data=request_data)
 
 
 _entries_archive_docstring = strip('''
@@ -805,7 +850,6 @@ def _answer_entries_archive_download_request(
                 'The limit of maximum number of entries in a single download (%d) has been '
                 'exeeded (%d).' % (config.max_entry_download, response.pagination.total)))
 
-    uploads = _Uploads()
     manifest = []
     search_includes = ['entry_id', 'upload_id', 'parser_name']
 
@@ -833,12 +877,10 @@ def _answer_entries_archive_download_request(
         manifest_content = json.dumps(manifest, indent=2).encode()
         yield StreamedFile(path='manifest.json', f=io.BytesIO(manifest_content), size=len(manifest_content))
 
-    try:
+    with _Uploads() as uploads:
         # create the streaming response with zip file contents
         content = create_zipstream(streamed_files(), compress=files_params.compress)
         return StreamingResponse(content, media_type='application/zip')
-    finally:
-        uploads.close()
 
 
 _entries_archive_download_docstring = strip('''
@@ -936,11 +978,9 @@ async def get_entry_rawdir(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='The entry with the given id does not exist or is not visible to you.')
 
-    uploads = _Uploads()
-    try:
-        return EntryRawDirResponse(entry_id=entry_id, data=_create_entry_rawdir(response.data[0], uploads))
-    finally:
-        uploads.close()
+    with _Uploads() as uploads:
+        return EntryRawDirResponse(
+            entry_id=entry_id, data=_create_entry_rawdir(response.data[0], uploads))
 
 
 @router.get(
@@ -1044,13 +1084,12 @@ def answer_entry_archive_request(query: Dict[str, Any], required: ArchiveRequire
     entry_metadata = response.data[0]
     entry_id = entry_metadata['entry_id']
 
-    uploads = _Uploads()
-    try:
+    with _Uploads() as uploads:
         try:
             archive_data = _read_archive(entry_metadata, uploads, required_reader)['archive']
         except KeyError:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status.HTTP_404_NOT_FOUND,
                 detail='The entry does exist, but it has no archive.')
 
         return {
@@ -1060,10 +1099,7 @@ def answer_entry_archive_request(query: Dict[str, Any], required: ArchiveRequire
                 'entry_id': entry_id,
                 'upload_id': entry_metadata['upload_id'],
                 'parser_name': entry_metadata['parser_name'],
-                'archive': archive_data
-            }}
-    finally:
-        uploads.close()
+                'archive': archive_data}}
 
 
 @router.get(

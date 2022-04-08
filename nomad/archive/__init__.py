@@ -35,7 +35,7 @@ section annotations/categories.
 
 from .storage import (
     write_archive, read_archive, ArchiveError, ArchiveReader, ArchiveWriter,
-    ArchiveObject, ArchiveList, ArchiveItem)
+    ArchiveDict, ArchiveList, ArchiveItem)
 from .query import query_archive, filter_archive, ArchiveQueryError
 from .partial import (
     read_partial_archive_from_mongo, read_partial_archives_from_mongo,
