@@ -1,0 +1,705 @@
+{
+  "7ad322e63849f68a11b7fe5f6a53a1e1": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/command-examples",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJiMDljZjYwMC1lODYyLTQzYzMtYjk4OC1kMTBkY2U3ZWY1YjEiLCJleHAiOjE2NDkyNzU2MzUsIm5iZiI6MCwiaWF0IjoxNjQ5MjM5NjQ1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwMGY1NzQ5LTgyODYtNDM1Zi05MzRiLWI3NjQyNzA0MGQzYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.EOL9U3BW9QBA4WCh2dKbh8-_sjiRLdHO1Z5dGQChaj5yCCsyb_Akln9K90-5LjgQw92YqDjIJrnI0NoR11mbmMH9APyrdpt192WpFRbryIPHkab8R9Gmzu-e6H64qkV7GaifrTtovBpuYJhJKH55LmnEHecONVThaXdZcDQzs_r2kImAKNkQy644Att58z9ZqwhL5iF6t-uuwlmcx8DVmeBQQnWGkgT7VS90vY-OCrndG84i-qMU_mkEg2S_H41UaGpFQf8FM2EvvXns3NiiolYqR9gKt4Y37uVUrFYGu78WRYgrNGFe3FkF1c5mGejF4tssLT4nJJ9HXqYFS75FGw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "upload_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8",
+          "upload_command": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -T <local_file>",
+          "upload_command_with_name": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8&upload_name=<name>' -T <local_file>",
+          "upload_progress_command": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -T <local_file> | xargs echo",
+          "upload_command_form": "curl -X POST 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -F file=@<local_file>",
+          "upload_tar_command": "tar -cf - <local_folder> | curl -# 'http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?token=aIeK92hFRsCywSUNTY60cA.tGZsicC4U_8DM7RMtu_qniGciL8' -X POST -T - | xargs echo"
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1073",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "f4696db2917dc8691980244300b2e29a": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?page_size=10&page=1&order_by=upload_create_time&order=desc",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJiMDljZjYwMC1lODYyLTQzYzMtYjk4OC1kMTBkY2U3ZWY1YjEiLCJleHAiOjE2NDkyNzU2MzUsIm5iZiI6MCwiaWF0IjoxNjQ5MjM5NjQ1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwMGY1NzQ5LTgyODYtNDM1Zi05MzRiLWI3NjQyNzA0MGQzYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.EOL9U3BW9QBA4WCh2dKbh8-_sjiRLdHO1Z5dGQChaj5yCCsyb_Akln9K90-5LjgQw92YqDjIJrnI0NoR11mbmMH9APyrdpt192WpFRbryIPHkab8R9Gmzu-e6H64qkV7GaifrTtovBpuYJhJKH55LmnEHecONVThaXdZcDQzs_r2kImAKNkQy644Att58z9ZqwhL5iF6t-uuwlmcx8DVmeBQQnWGkgT7VS90vY-OCrndG84i-qMU_mkEg2S_H41UaGpFQf8FM2EvvXns3NiiolYqR9gKt4Y37uVUrFYGu78WRYgrNGFe3FkF1c5mGejF4tssLT4nJJ9HXqYFS75FGw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "query": {},
+          "pagination": {
+            "page_size": 10,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page": 1,
+            "total": 11,
+            "next_page_after_value": "9",
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?page_size=10&page=1&order_by=upload_create_time&order=desc",
+            "next_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?page_size=10&order_by=upload_create_time&order=desc&page_after_value=9",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?page_size=10&order_by=upload_create_time&order=desc"
+          },
+          "data": [
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.893000",
+              "upload_id": "dft_upload_11",
+              "upload_create_time": "2022-04-06T10:07:20.892000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload_11"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.888000",
+              "upload_id": "dft_upload_10",
+              "upload_create_time": "2022-04-06T10:07:20.887000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": true,
+              "published_to": [],
+              "publish_time": "2022-04-06T10:07:20.890000",
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.884000",
+              "upload_id": "dft_upload_9",
+              "upload_create_time": "2022-04-06T10:07:20.883000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload_9"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.879000",
+              "upload_id": "dft_upload_8",
+              "upload_create_time": "2022-04-06T10:07:20.878000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": true,
+              "published_to": [],
+              "publish_time": "2022-04-06T10:07:20.881000",
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.875000",
+              "upload_id": "dft_upload_7",
+              "upload_create_time": "2022-04-06T10:07:20.874000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload_7"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.870000",
+              "upload_id": "dft_upload_6",
+              "upload_create_time": "2022-04-06T10:07:20.869000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": true,
+              "published_to": [],
+              "publish_time": "2022-04-06T10:07:20.872000",
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.866000",
+              "upload_id": "dft_upload_5",
+              "upload_create_time": "2022-04-06T10:07:20.865000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload_5"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.861000",
+              "upload_id": "dft_upload_4",
+              "upload_create_time": "2022-04-06T10:07:20.860000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": true,
+              "published_to": [],
+              "publish_time": "2022-04-06T10:07:20.863000",
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.857000",
+              "upload_id": "dft_upload_3",
+              "upload_create_time": "2022-04-06T10:07:20.856000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload_3"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.852000",
+              "upload_id": "dft_upload_2",
+              "upload_create_time": "2022-04-06T10:07:20.851000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": true,
+              "published_to": [],
+              "publish_time": "2022-04-06T10:07:20.854000",
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "8675",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "46afba2ecf889c3560892443641c6bcc": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&page_size=0&order_by=upload_create_time&order=desc",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJiMDljZjYwMC1lODYyLTQzYzMtYjk4OC1kMTBkY2U3ZWY1YjEiLCJleHAiOjE2NDkyNzU2MzUsIm5iZiI6MCwiaWF0IjoxNjQ5MjM5NjQ1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwMGY1NzQ5LTgyODYtNDM1Zi05MzRiLWI3NjQyNzA0MGQzYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.EOL9U3BW9QBA4WCh2dKbh8-_sjiRLdHO1Z5dGQChaj5yCCsyb_Akln9K90-5LjgQw92YqDjIJrnI0NoR11mbmMH9APyrdpt192WpFRbryIPHkab8R9Gmzu-e6H64qkV7GaifrTtovBpuYJhJKH55LmnEHecONVThaXdZcDQzs_r2kImAKNkQy644Att58z9ZqwhL5iF6t-uuwlmcx8DVmeBQQnWGkgT7VS90vY-OCrndG84i-qMU_mkEg2S_H41UaGpFQf8FM2EvvXns3NiiolYqR9gKt4Y37uVUrFYGu78WRYgrNGFe3FkF1c5mGejF4tssLT4nJJ9HXqYFS75FGw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "query": {
+            "is_published": false
+          },
+          "pagination": {
+            "page_size": 0,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page": 1,
+            "total": 6,
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&page_size=0&order_by=upload_create_time&order=desc"
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "338",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "3300a6ae3ab8247232063bf6948561ee": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?page_size=10&page=1&order_by=upload_name&order=asc",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI4OTBiZjMwOC03MWI3LTQxNmQtOGFjYy1hYzU0MmM4ZTA0NjUiLCJleHAiOjE2NDkyNzU2MzUsIm5iZiI6MCwiaWF0IjoxNjQ5MjM5NjQ3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwMGY1NzQ5LTgyODYtNDM1Zi05MzRiLWI3NjQyNzA0MGQzYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.IB5vfKsnIgyCl1QpCzoLgJ-cKcYhKg1gPYV2QdqON2G_28vWGg7_OHdt0QpfQH0UEK3-ArYXJzljYsW9YIzR9IazzQUAs8VZ3h2Lx9fc_BsRhKDn1rd7uzm2uWwbE8MyibrCuGl739inOT1FhMxTJR2yTDjDTKbpoYFKDgQJiMJN0RK0ZOTAGqzszmqAXQz8WgboaDP1c3-7luCefU27JyMu08dzudoTHJps4g3oMBFSxNgljNrl9PG8-kyetalsHKBRn-sb_K4FvGisu_VtdhJG1eyJ9rZv1zdsXZgywEcOrCx8fggW9syKS-DlyZMaxXwMH6SFl8BC-UEZF7lOaw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "query": {},
+          "pagination": {
+            "page_size": 10,
+            "order_by": "upload_name",
+            "order": "asc",
+            "page": 1,
+            "total": 11,
+            "next_page_after_value": "9",
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?page_size=10&page=1&order_by=upload_name&order=asc",
+            "next_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?page_size=10&order_by=upload_name&order=asc&page_after_value=9",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?page_size=10&order_by=upload_name&order=asc"
+          },
+          "data": [
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.848000",
+              "upload_id": "dft_upload_1",
+              "upload_create_time": "2022-04-06T10:07:20.847000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload_1"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.852000",
+              "upload_id": "dft_upload_2",
+              "upload_create_time": "2022-04-06T10:07:20.851000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": true,
+              "published_to": [],
+              "publish_time": "2022-04-06T10:07:20.854000",
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.857000",
+              "upload_id": "dft_upload_3",
+              "upload_create_time": "2022-04-06T10:07:20.856000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload_3"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.861000",
+              "upload_id": "dft_upload_4",
+              "upload_create_time": "2022-04-06T10:07:20.860000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": true,
+              "published_to": [],
+              "publish_time": "2022-04-06T10:07:20.863000",
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.866000",
+              "upload_id": "dft_upload_5",
+              "upload_create_time": "2022-04-06T10:07:20.865000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload_5"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.870000",
+              "upload_id": "dft_upload_6",
+              "upload_create_time": "2022-04-06T10:07:20.869000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": true,
+              "published_to": [],
+              "publish_time": "2022-04-06T10:07:20.872000",
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.875000",
+              "upload_id": "dft_upload_7",
+              "upload_create_time": "2022-04-06T10:07:20.874000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload_7"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.879000",
+              "upload_id": "dft_upload_8",
+              "upload_create_time": "2022-04-06T10:07:20.878000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": true,
+              "published_to": [],
+              "publish_time": "2022-04-06T10:07:20.881000",
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.884000",
+              "upload_id": "dft_upload_9",
+              "upload_create_time": "2022-04-06T10:07:20.883000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": false,
+              "published_to": [],
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1,
+              "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload_9"
+            },
+            {
+              "process_running": false,
+              "current_process": "process_upload",
+              "process_status": "SUCCESS",
+              "errors": [],
+              "warnings": [],
+              "complete_time": "2022-04-06T10:07:20.888000",
+              "upload_id": "dft_upload_10",
+              "upload_create_time": "2022-04-06T10:07:20.887000",
+              "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "coauthors": [],
+              "reviewers": [],
+              "viewers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "writers": [
+                "68878af7-6845-46c0-b2c1-250d4d8eb470"
+              ],
+              "published": true,
+              "published_to": [],
+              "publish_time": "2022-04-06T10:07:20.890000",
+              "with_embargo": false,
+              "embargo_length": 0,
+              "license": "CC BY 4.0",
+              "entries": 1
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "8641",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "af62f8d6ce98e0c720b0ca97d1330877": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&page_size=0&order_by=upload_name&order=asc",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI4OTBiZjMwOC03MWI3LTQxNmQtOGFjYy1hYzU0MmM4ZTA0NjUiLCJleHAiOjE2NDkyNzU2MzUsIm5iZiI6MCwiaWF0IjoxNjQ5MjM5NjQ3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwMGY1NzQ5LTgyODYtNDM1Zi05MzRiLWI3NjQyNzA0MGQzYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.IB5vfKsnIgyCl1QpCzoLgJ-cKcYhKg1gPYV2QdqON2G_28vWGg7_OHdt0QpfQH0UEK3-ArYXJzljYsW9YIzR9IazzQUAs8VZ3h2Lx9fc_BsRhKDn1rd7uzm2uWwbE8MyibrCuGl739inOT1FhMxTJR2yTDjDTKbpoYFKDgQJiMJN0RK0ZOTAGqzszmqAXQz8WgboaDP1c3-7luCefU27JyMu08dzudoTHJps4g3oMBFSxNgljNrl9PG8-kyetalsHKBRn-sb_K4FvGisu_VtdhJG1eyJ9rZv1zdsXZgywEcOrCx8fggW9syKS-DlyZMaxXwMH6SFl8BC-UEZF7lOaw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "query": {
+            "is_published": false
+          },
+          "pagination": {
+            "page_size": 0,
+            "order_by": "upload_name",
+            "order": "asc",
+            "page": 1,
+            "total": 6,
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads?is_published=false&page_size=0&order_by=upload_name&order=asc"
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "322",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

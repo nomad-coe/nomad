@@ -29,8 +29,8 @@ import {
 import OverviewView from './OverviewView'
 import EntryContext from './EntryContext'
 
-beforeAll(() => {
-  startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
+beforeAll(async () => {
+  await startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
 })
 
 afterAll(() => {

@@ -215,6 +215,10 @@
                   },
                   {
                     "count": 0,
+                    "value": "NEXUS"
+                  },
+                  {
+                    "count": 0,
                     "value": "NWChem"
                   },
                   {
@@ -240,6 +244,10 @@
                   {
                     "count": 0,
                     "value": "Psi4"
+                  },
+                  {
+                    "count": 0,
+                    "value": "qball"
                   },
                   {
                     "count": 0,
@@ -285,7 +293,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "1929",
+          "content-length": "4924",
           "content-type": "application/json",
           "server": "uvicorn"
         }

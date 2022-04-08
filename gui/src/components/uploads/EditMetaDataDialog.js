@@ -46,9 +46,11 @@ function EditComments(props) {
         Comments
       </Typography>
     </Box>
-    <TextField fullWidth label='Comment' multiline
+    <TextField
+      fullWidth label='Comment' multiline
       rows={6} defaultValue={value} variant='filled' size='small'
       onChange={(event) => onChange(event.target.value)}
+      inputProps={{ 'data-testid': 'metadata-comment-field' }}
     />
   </Box>
 }
@@ -114,9 +116,10 @@ function EditReferences(props) {
     <TextField
       style={{width: '100%'}} label='Enter the URL' onChange={handleChangeReference}
       error={!!(validation || urlValidation)} helperText={validation || urlValidation} variant='filled' size='small' value={newReference}
+      inputProps={{ 'data-testid': 'new-reference-field' }}
     />
     <Box display="flex" justifyContent="right" marginY={1}>
-      <Button variant="contained" color="primary" onClick={handleAdd} disabled={!!(validation || newReference === '')}>
+      <Button variant="contained" color="primary" onClick={handleAdd} disabled={!!(validation || newReference === '')} data-testid='reference-add-button'>
         add
       </Button>
     </Box>
@@ -150,7 +153,7 @@ const ReferencesActions = React.memo((props) => {
         <OpenInNewIcon />
       </Tooltip>
     </IconButton>
-    <IconButton size='small' onClick={() => data.onRemove(data.url)}>
+    <IconButton size='small' onClick={() => data.onRemove(data.url)} data-testid='reference-delete-action'>
       <Tooltip title='Remove the reference'>
         <DeleteIcon />
       </Tooltip>
@@ -227,6 +230,7 @@ function EditDatasets(props) {
         style={{width: '100%'}} label='Create a new dataset' placeholder='Dataset name'
         error={validation !== ''} helperText={(validation !== '' && validation)}
         variant='filled' size='small'
+        inputProps={{ 'data-testid': 'new-dataset-field' }}
       />
     </Box>
     <AutoComplete
@@ -281,7 +285,7 @@ const DatasetsActions = React.memo((props) => {
         <OpenInNewIcon />
       </Tooltip>
     </IconButton>
-    <IconButton size='small' onClick={() => data.onRemove(data.dataset)} disabled={!!data.dataset.doi && !data.dataset?.notSubmitted} style={{pointerEvents: 'auto'}}>
+    <IconButton size='small' onClick={() => data.onRemove(data.dataset)} disabled={!!data.dataset.doi && !data.dataset?.notSubmitted} style={{pointerEvents: 'auto'}} data-testid='dataset-delete-action'>
       <Tooltip title={(data.dataset.doi && !data.dataset?.notSubmitted ? 'The dataset cannot be removed. A DOI has been assigned to the dataset.' : 'Remove the dataset')}>
         <DeleteIcon />
       </Tooltip>
@@ -513,7 +517,7 @@ function EditMetaDataDialog({...props}) {
     {!isIcon && <Button onClick={() => handleOpenDialog()} variant='contained' color='primary' disabled={isProcessing} data-testid='edit-metadata-button'>
       {upload?.entries && (upload?.entries > 1 ? `Edit author metadata of all ${upload?.entries} entries` : `Edit author metadata of all the entries`)}
     </Button>}
-    {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown>
+    {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown data-testid='edit-metadata-dialog'>
       <DialogTitle>Edit upload meta data</DialogTitle>
       <DialogContent>
         <DialogContentText>

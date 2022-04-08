@@ -129,7 +129,7 @@ export async function navigateAndCheck(path, browserConfig) {
   await waitFor(() => {
     expect(getLane(parentLaneIndex + 1, item)).not.toBeNull()
     expect(getLane(parentLaneIndex + 2)).toBeNull()
-  })
+  }, {timeout: 2000})
   await checkLanes(path, browserConfig)
 }
 

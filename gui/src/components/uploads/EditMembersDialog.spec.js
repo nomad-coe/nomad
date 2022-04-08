@@ -74,34 +74,37 @@ test.each([
   [
     'Published and logged in as main author',
     'tests.states.uploads.published',
-    'tests/data/uploads/members-dialog-published',
+    'tests/data/uploads/members-dialog-published-author',
     'dft_upload',
     'test',
     'password'
-  ], [
+  ],
+  [
     'Published and logged in as coauthor',
     'tests.states.uploads.published',
-    'tests/data/uploads/members-dialog-published',
+    'tests/data/uploads/members-dialog-published-coauthor',
     'dft_upload',
     'scooper',
     'password'
-  ], [
+  ],
+  [
     'Unpublished and logged in as main author',
     'tests.states.uploads.unpublished',
-    'tests/data/uploads/members-dialog-unpublished',
+    'tests/data/uploads/members-dialog-unpublished-author',
     'dft_upload',
     'test',
     'password'
-  ], [
+  ],
+  [
     'Unpublished and logged in as coauthor',
     'tests.states.uploads.unpublished',
-    'tests/data/uploads/members-dialog-unpublished',
+    'tests/data/uploads/members-dialog-unpublished-coauthor',
     'dft_upload',
     'scooper',
     'password'
   ]
 ])('Members dialog: %s', async (name, state, snapshot, uploadId, username, password) => {
-  startAPI(state, snapshot, username, password)
+  await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await testWritePermissions()
   closeAPI()
@@ -111,34 +114,37 @@ test.each([
   [
     'Published and logged in as reviewer',
     'tests.states.uploads.published',
-    'tests/data/uploads/members-dialog-published',
+    'tests/data/uploads/members-dialog-published-reviewer',
     'dft_upload',
     'ttester',
     'password'
-  ], [
+  ],
+  [
     'Published and logged in as neither reviewer nor coauthor or main author',
     'tests.states.uploads.published',
-    'tests/data/uploads/members-dialog-published',
+    'tests/data/uploads/members-dialog-published-external',
     'dft_upload',
     'admin',
     'password'
-  ], [
+  ],
+  [
     'Published and not authenticated',
     'tests.states.uploads.published',
-    'tests/data/uploads/members-dialog-published',
+    'tests/data/uploads/members-dialog-published-noauth',
     'dft_upload',
     '',
     ''
-  ], [
+  ],
+  [
     'Unpublished and logged in as reviewer',
     'tests.states.uploads.unpublished',
-    'tests/data/uploads/members-dialog-unpublished',
+    'tests/data/uploads/members-dialog-unpublished-reviewer',
     'dft_upload',
     'ttester',
     'password'
   ]
 ])('Members dialog: %s', async (name, state, snapshot, uploadId, username, password) => {
-  startAPI(state, snapshot, username, password)
+  await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await testReadOnlyPermissions()
   closeAPI()

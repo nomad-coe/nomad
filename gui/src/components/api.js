@@ -375,7 +375,6 @@ export const APIProvider = React.memo(({
   const setLoading = useSetLoading()
   const api = useState(new Api(keycloak, setLoading))[0]
   const [user, setUser] = useState()
-  const [info, setInfo] = useState()
 
   // Update user whenever keycloak instance changes
   useEffect(() => {
@@ -386,17 +385,11 @@ export const APIProvider = React.memo(({
     }
   }, [keycloak, setUser])
 
-  // Get info only once
-  useEffect(() => {
-    api.get('/info').then(setInfo).catch(() => {})
-  }, [api])
-
   const value = useMemo(() => ({
     api: api,
     northApi: user ? new NorthApi(api, `users/${user.preferred_username}`) : null,
-    user: user,
-    info: info
-  }), [api, user, info])
+    user: user
+  }), [api, user])
 
   return <apiContext.Provider value={value}>
     {children}
