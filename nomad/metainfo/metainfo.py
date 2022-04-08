@@ -570,15 +570,20 @@ class Reference(DataType):
         '''
         url = ReferenceURL(proxy.m_proxy_value)
         context_section = proxy.m_proxy_section
+        if context_section is not None:
+            context_section = context_section.m_root()
         if url.archive_url:
             context = proxy.m_proxy_context
             if context is None:
-                context = context_section.m_root().m_context
+                context = context_section.m_context
             if not context:
                 raise MetainfoReferenceError('Proxy with archive url, but no context to resolve it.')
             context_section = context.resolve_archive_url(url.archive_url)
 
-        return context_section.m_resolve(url.fragment)
+        return self.resolve_fragment(context_section, url.fragment)
+
+    def resolve_fragment(self, context_section: 'MSection', fragment: str) -> 'MSection':
+        return context_section.m_resolve(fragment)
 
     def serialize_proxy_value(self, proxy):
         return proxy.m_proxy_value
@@ -648,6 +653,29 @@ class _SectionReference(Reference):
     @property
     def target_section_def(self):
         return Section.m_def
+
+    def resolve_fragment(self, context_section: 'MSection', fragment: str) -> 'MSection':
+        # First, we try to resolve based on definition names
+        if isinstance(context_section, Definition):
+            splitted_fragment = fragment.lstrip('/').split('/', 1)
+            if len(splitted_fragment) == 2:
+                first_segment, remaining_fragment = splitted_fragment
+            else:
+                first_segment, remaining_fragment = splitted_fragment[0], None
+
+            resolved: MSection = None
+            for content in context_section.m_contents():
+                if isinstance(content, Definition) and content.name == first_segment:
+                    if remaining_fragment:
+                        resolved = self.resolve_fragment(content, remaining_fragment)
+                    else:
+                        return content
+
+            if resolved:
+                return resolved
+
+        # Resolve regularely as a fallback
+        return super().resolve_fragment(context_section, fragment)
 
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         if isinstance(value, str) and _SectionReference.value_re.match(value):
