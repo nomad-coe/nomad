@@ -94,32 +94,6 @@ def async_api_v1(monkeysession):
     return test_client
 
 
-def test_async_query():
-    required = {
-        'workflow': {
-            'calculation_result_ref': {
-                'energy': '*',
-                'system_ref': {
-                    'chemical_composition_reduced': '*'
-                }
-            }
-        }
-    }
-
-    query = {
-        'results.method.simulation.program_name': 'VASP',
-        'results.material.elements': ['Ti', 'O']
-    }
-
-    async_query = ArchiveQuery(query=query, required=required, page_size=100, results_max=10000)
-
-    num_entry = async_query.fetch(1000)
-    num_entry -= len(async_query.download(100))
-    num_entry -= len(async_query.download(100))
-
-    assert num_entry == sum([count for _, count in async_query.upload_list()])
-
-
 def test_async_query_basic(async_api_v1, published_wo_user_metadata):
     async_query = ArchiveQuery()
 

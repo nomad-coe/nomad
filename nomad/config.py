@@ -381,6 +381,13 @@ bundle_import = NomadConfig(
     )
 )
 
+archive = NomadConfig(
+    block_size=256 * 1024,
+    read_buffer_size=256 * 1024,  # GPFS needs at least 256K to achieve decent performance
+    max_process_number=20,  # maximum number of processes can be assigned to process archive query
+    min_entires_per_process=20  # minimum number of entries per process
+)
+
 auxfile_cutoff = 100
 parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
 console_log_level = logging.WARNING
