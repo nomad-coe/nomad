@@ -16,11 +16,12 @@
 # limitations under the License.
 #
 
+from typing import cast
 import pytest
 
 from nomad.metainfo import (
-    MSection, Quantity, SubSection, MProxy, Reference, QuantityReference, File,
-    MetainfoReferenceError, Package as MetainfoPackage, Context)
+    MSection, Quantity, Section, SubSection, MProxy, Reference, QuantityReference, File,
+    MetainfoReferenceError, Package as MetainfoPackage, Context, Package)
 
 
 class Referenced(MSection):
@@ -198,6 +199,56 @@ def test_section_reference_serialize():
     assert 'base_sections' not in json_data['section_definitions'][0]
     assert 'constraints' not in json_data['section_definitions'][0]
     assert MetainfoPackage.m_from_dict(json_data).m_to_dict() == json_data
+
+
+@pytest.mark.parametrize('ref', [
+    pytest.param('/section_definitions/0/inner_section_definitions/0', id='base'),
+    pytest.param('tests.metainfo.test_references.Referenced', id='python'),
+    pytest.param('/TestSection/Referenced', id='metainfo')
+])
+def test_section_reference_deserialize(ref):
+    json_data = {
+        'm_def': 'nomad.metainfo.metainfo.Package',
+        'section_definitions': [
+            {
+                'base_sections': [ref],
+                'name': 'TestSection',
+                'inner_section_definitions': [
+                    {
+                        'name': 'Referenced'
+                    }
+                ],
+                'quantities': [
+                    {
+                        'name': 'test_quantity',
+                        'type': {
+                            'type_kind': 'reference',
+                            'type_data': ref
+                        }
+                    }
+                ],
+                'sub_sections': [
+                    {
+                        'name': 'test_sub_section',
+                        'section_def': ref
+                    }
+                ]
+            }
+        ]
+    }
+
+    pkg = cast(Package, MSection.from_dict(json_data))
+    section_def = pkg.section_definitions[0]
+
+    def assert_section(section):
+        assert section is not None
+        section = section.m_resolved()
+        assert isinstance(section, Section)
+        assert not isinstance(section, MProxy)
+
+    assert_section(section_def.base_sections[0])
+    assert_section(section_def.quantities[0].type.target_section_def)
+    assert_section(section_def.sub_sections[0].section_def)
 
 
 @pytest.mark.parametrize('url,value', [
