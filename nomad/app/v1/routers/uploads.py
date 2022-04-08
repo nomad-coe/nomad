@@ -388,8 +388,6 @@ _upload_bundle_response = 200, {
         'application/zip': {'example': '<zipped bundle data>'}}}
 
 
-_no_name = 'NO NAME'
-
 _thank_you_message = f'''
 Thanks for uploading your data to nomad.
 Go back to {config.gui_url()} and press
@@ -899,11 +897,15 @@ async def put_upload_raw_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='No upload file provided.')
 
-    is_compressed = files.zipfile.is_zipfile(upload_path) or files.tarfile.is_tarfile(upload_path)
+    decompress = files.auto_decompress(upload_path)
+    if decompress == 'error':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Cannot extract file. Bad file format or file extension?')
 
     if not wait_for_processing:
         # Process on worker (normal case)
-        if is_compressed:
+        if decompress:
             # Uploading an compressed file -> reprocess the entire target directory
             path_filter = path
         else:
@@ -930,7 +932,7 @@ async def put_upload_raw_path(
             media_type = 'text/plain'
     else:
         # Process locally
-        if is_compressed:
+        if decompress:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='`wait_for_processing` can only be used with single files, not with compressed files.')
@@ -944,7 +946,7 @@ async def put_upload_raw_path(
             if upload.process_status == ProcessStatus.FAILURE:
                 # Should only happen if we fail to put the file, match the file, or to *initiate*
                 # entry processing - i.e. normally, this shouldn't happen, not even with
-                # an badly formatted/unparsable mainfile.
+                # a badly formatted/unparsable mainfile.
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f'Failed to put and process: {upload.errors[0]}')
@@ -1177,10 +1179,10 @@ async def post_upload(
 
     There are two basic ways to upload a file: in the multipart-formdata or streaming the
     file data in the http body. Both are supported. Note, however, that the second method
-    does not transfer a filename. If a transfer is made using method 2, you can specify
-    the query argument `file_name` to name it. This *needs* to be specified when using
-    method 2, unless you are uploading a zip/tar file (for zip/tar files the names don't
-    matter since they are extracted).
+    does not transfer a filename. You can always specify the query argument `file_name` to
+    name the destination file. This argument *needs* to be specified when using method 2,
+    unless you are uploading a zip/tar file (for zip/tar files the names don't matter since
+    they are extracted).
 
     Example curl commands for creating an upload and uploading a file:
 
@@ -1213,10 +1215,6 @@ async def post_upload(
             detail='`embargo_length` must be between 0 and 36 months.')
 
     upload_id = utils.create_uuid()
-
-    if upload_name and not file_name and files.is_safe_basename(upload_name):
-        # Try to default the file_name using name
-        file_name = upload_name
 
     upload_path, method = await _get_file_if_provided(
         upload_id, request, file, local_path, file_name, user)
@@ -1668,7 +1666,6 @@ async def _get_file_if_provided(
     data was provided with the api call.
     '''
     # Determine the source data stream
-    file_name_argument_not_given = not file_name
     src_stream = None
     if local_path:
         # Method 0: Local file - only for admins
@@ -1679,17 +1676,19 @@ async def _get_file_if_provided(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 The specified local_path cannot be found or is not a file.'''))
         method = 0
-        file_name = os.path.basename(local_path)
+        file_name = file_name or os.path.basename(local_path)
     elif file:
         # Method 1: Data provided as formdata
         method = 1
-        file_name = file.filename or _no_name
+        file_name = file_name or file.filename
         src_stream = _asyncronous_file_reader(file)
     else:
         # Method 2: Data has to be sent streamed in the body
         method = 2
-        file_name = file_name or _no_name
         src_stream = request.stream()
+
+    no_file_name_info_provided = not file_name
+    file_name = file_name or 'NO NAME'
 
     if not files.is_safe_basename(file_name):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
@@ -1734,10 +1733,15 @@ async def _get_file_if_provided(
         return None, None
 
     logger.info('received uploaded file')
-    if method == 2 and file_name_argument_not_given:
-        if not files.zipfile.is_zipfile(upload_path) and not files.tarfile.is_tarfile(upload_path):
+    if no_file_name_info_provided:
+        # Only ok if uploaded file is a zip or a tar archive.
+        ext = '.zip' if files.zipfile.is_zipfile(upload_path) else '.tar' if files.tarfile.is_tarfile(upload_path) else None
+        if not ext:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-                Using method 2 and file does not look like a zip or tar file - must specify `file_name`.'''))
+                No file name provided, and the file does not look like a zip or tar file.'''))
+        # Add the correct extension
+        shutil.move(upload_path, upload_path + ext)
+        upload_path = upload_path + ext
 
     return upload_path, method
 
