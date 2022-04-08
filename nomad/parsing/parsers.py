@@ -405,7 +405,7 @@ parsers = [
         mainfile_contents_re=(r'\s*<GAP_params\s'),
     ),
     MatchingParserInterface(
-        'atomisticparsers.MopacParser',
+        'electronicparsers.MopacParser',
         name='parsers/mopac', code_name='MOPAC', domain='dft',
         mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
         mainfile_mime_re=r'text/.*',
