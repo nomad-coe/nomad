@@ -107,20 +107,20 @@ test.each([
   [
     'Published and logged in as main author',
     'tests.states.uploads.published',
-    'tests/data/uploads/published',
+    'tests/data/uploads/uploadpage-published-author',
     'dft_upload',
     'test',
     'password'
   ], [
     'Published and logged in as coauthor',
     'tests.states.uploads.published',
-    'tests/data/uploads/published',
+    'tests/data/uploads/uploadpage-published-coauthor',
     'dft_upload',
     'scooper',
     'password'
   ]
 ])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
-  startAPI(state, snapshot, username, password)
+  await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await testPublishedWritePermissions()
   closeAPI()
@@ -130,41 +130,41 @@ test.each([
   [
     'Published and logged in as reviewer',
     'tests.states.uploads.published',
-    'tests/data/uploads/published',
+    'tests/data/uploads/uploadpage-published-reviewer',
     'dft_upload',
     'ttester',
     'password'
   ], [
     'Published and logged in as neither reviewer nor coauthor or main author',
     'tests.states.uploads.published',
-    'tests/data/uploads/published',
+    'tests/data/uploads/uploadpage-published-external',
     'dft_upload',
     'admin',
     'password'
   ], [
     'Published and not authenticated',
     'tests.states.uploads.published',
-    'tests/data/uploads/published',
+    'tests/data/uploads/uploadpage-published-noauth',
     'dft_upload',
     '',
     ''
   ], [
     'Unpublished and logged in as reviewer',
     'tests.states.uploads.unpublished',
-    'tests/data/uploads/unpublished',
+    'tests/data/uploads/uploadpage-unpublished-reviewer',
     'dft_upload',
     'ttester',
     'password'
   ], [
     'Published with embargo and logged in as reviewer',
     'tests.states.uploads.published_with_embargo',
-    'tests/data/uploads/published_with_embargo',
+    'tests/data/uploads/uploadpage-published-with-embargo-reviewer',
     'dft_upload',
     'ttester',
     'password'
   ]
 ])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
-  startAPI(state, snapshot, username, password)
+  await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await testReadOnlyPermissions()
   closeAPI()
@@ -174,27 +174,27 @@ test.each([
   [
     'Unpublished and logged in as main author',
     'tests.states.uploads.unpublished',
-    'tests/data/uploads/unpublished',
+    'tests/data/uploads/uploadpage-unpublished-author',
     'dft_upload',
     'test',
     'password'
   ], [
     'Unpublished and logged in as coauthor',
     'tests.states.uploads.unpublished',
-    'tests/data/uploads/unpublished',
+    'tests/data/uploads/uploadpage-unpublished-coauthor',
     'dft_upload',
     'scooper',
     'password'
   ]
 ])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
-  startAPI(state, snapshot, username, password)
+  await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await testUnpublishedWritePermissions()
   closeAPI()
 })
 
 test('Render upload page: multiple entries', async () => {
-  startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries')
+  await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries')
   render(<UploadPage uploadId="dft_upload_1"/>)
 
   // Wait to load the page, i.e. wait for some text to appear
@@ -226,20 +226,21 @@ test.each([
   [
     'Published with embargo and logged in as main author',
     'tests.states.uploads.published_with_embargo',
-    'tests/data/uploads/published_with_embargo',
+    'tests/data/uploads/uploadpage-published-with-embargo-author',
     'dft_upload',
     'test',
     'password'
-  ], [
+  ],
+  [
     'Published with embargo and logged in as coauthor',
     'tests.states.uploads.published_with_embargo',
-    'tests/data/uploads/published_with_embargo',
+    'tests/data/uploads/uploadpage-published-with-embargo-coauthor',
     'dft_upload',
     'scooper',
     'password'
   ]
 ])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
-  startAPI(state, snapshot, username, password)
+  await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await testEmbargoedPublishesWritePermissions()
   closeAPI()
@@ -247,27 +248,27 @@ test.each([
 
 test.each([
   [
-    'unpublished, not authenticated',
-    'tests.states.uploads.unpublished',
-    'tests/data/uploads/unpublished-not-writer',
-    'dft_upload',
-    '',
-    '',
-    'You do not have access to the specified upload - not published yet.'
-  ],
-  [
     'unpublished, logged in as neither reviewer nor coauthor or main author',
     'tests.states.uploads.unpublished',
-    'tests/data/uploads/unpublished-not-writer',
+    'tests/data/uploads/uploadpage-unpublished-external',
     'dft_upload',
     'admin',
     'password',
     'You do not have access to the specified upload - not published yet.'
   ],
   [
+    'unpublished, not authenticated',
+    'tests.states.uploads.unpublished',
+    'tests/data/uploads/uploadpage-unpublished-noauth',
+    'dft_upload',
+    '',
+    '',
+    'You do not have access to the specified upload - not published yet.'
+  ],
+  [
     'published with embargo, not authenticated',
     'tests.states.uploads.published_with_embargo',
-    'tests/data/uploads/published_with_embargo-not-writer',
+    'tests/data/uploads/uploadpage-published-with-embargo-noauth',
     'dft_upload',
     '',
     '',
@@ -275,7 +276,7 @@ test.each([
   ], [
     'published with embargo, logged in as neither reviewer nor coauthor or main author',
     'tests.states.uploads.published_with_embargo',
-    'tests/data/uploads/published_with_embargo-not-writer',
+    'tests/data/uploads/uploadpage-published-with-embargo-external',
     'dft_upload',
     'admin',
     'password',
@@ -283,14 +284,14 @@ test.each([
   ], [
     'unknown upload_id',
     'tests.states.uploads.published',
-    'tests/data/uploads/not_exists',
+    'tests/data/uploads/uploadpage-nonexistent',
     'a_not_exist_upload_ID',
     '',
     '',
     'The specified upload_id was not found.'
   ]
 ])('Render upload page: error message due to %s', async (name, state, snapshot, uploadId, username, password, msg) => {
-  startAPI(state, snapshot, username, password)
+  await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await screen.findByText(msg)
   closeAPI()

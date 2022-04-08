@@ -118,12 +118,12 @@ test.each([
     false
   ]
 ])('Upload page: %s', async (name, state, snapshot, username, password, editable) => {
-  startAPI(state, snapshot, username, password)
+  await startAPI(state, snapshot, username, password)
   await testBrowseAround(editable)
 }, 180000)
 
 test('starting in entry dir', async () => {
-  startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_entrydir', 'test', 'password')
+  await startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_entrydir', 'test', 'password')
   const entryDir = 'test_entry'
   // Extract subtree from the standard fileBrowserTree
   const fileBrowserTreeModified = {}
@@ -156,7 +156,7 @@ test('starting in entry dir', async () => {
 })
 
 test('delete files', async () => {
-  startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_delete_files', 'test', 'password')
+  await startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_delete_files', 'test', 'password')
   const fileBrowserTreeCopy = {...fileBrowserTree}
   const browserConfig = {
     rootTitle: 'Root Title',
@@ -178,14 +178,14 @@ test('delete files', async () => {
     userEvent.click(screen.getByButtonText('OK'))
     await waitFor(() => {
       expect(screen.queryAllByText(fileName).length).toEqual(0)
-    }, {timeout: 1500})
+    }, {timeout: 2000})
     purgeTreePath(fileBrowserTreeCopy, `test_entry/${fileName}`)
     checkLanes('test_entry', browserConfig)
   }
 })
 
 test('delete folder', async () => {
-  startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_delete_folders', 'test', 'password')
+  await startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_delete_folders', 'test', 'password')
   const fileBrowserTreeCopy = {...fileBrowserTree}
   const browserConfig = {
     rootTitle: 'Root Title',
@@ -214,7 +214,7 @@ test('delete folder', async () => {
     userEvent.click(screen.getByButtonText('OK'))
     await waitFor(() => {
       expect(screen.queryAllByText(folderName).length).toEqual(0)
-    }, {timeout: 1500})
+    }, {timeout: 2000})
     purgeTreePath(fileBrowserTreeCopy, path)
     checkLanes(parentPath, browserConfig)
   }

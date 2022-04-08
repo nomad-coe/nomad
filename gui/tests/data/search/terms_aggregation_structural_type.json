@@ -31,7 +31,7 @@
                   "atom",
                   "unavailable"
                 ],
-                "size": 8
+                "size": 7
               }
             }
           },
@@ -70,7 +70,7 @@
                 "quantity": "results.material.structural_type",
                 "exclude_from_search": true,
                 "metrics": [],
-                "size": 8,
+                "size": 7,
                 "include": [
                   "bulk",
                   "surface",
@@ -104,7 +104,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "544",
+          "content-length": "993",
           "content-type": "application/json",
           "server": "uvicorn"
         }
