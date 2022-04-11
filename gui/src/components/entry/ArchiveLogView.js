@@ -17,7 +17,7 @@
  */
 import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles, FormGroup, Button, Grid } from '@material-ui/core'
+import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles, FormGroup, Button, Grid, FormControl, InputLabel, Input, Select, MenuItem, Chip, useTheme } from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { amber } from '@material-ui/core/colors'
@@ -42,6 +42,7 @@ const useLogEntryStyles = makeStyles(theme => ({
 const LogEntry = React.memo(function LogEntry(props) {
   const classes = useLogEntryStyles()
   const {entry} = props
+  const {keyName} = props
   const data = entry
 
   const summaryProps = {}
@@ -53,7 +54,8 @@ const LogEntry = React.memo(function LogEntry(props) {
   return (
     <Accordion>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography {...summaryProps}>{data.level}: {data.event} {(data.parser || data.normalizer) ? `(${data.parser || data.normalizer})` : ''}</Typography>
+        {/* <Typography {...summaryProps}>{data.level}: {(data.parser || data.normalizer) ? `(${data.parser || data.normalizer})` : ''}</Typography> */}
+        <Typography {...summaryProps}>{data.level}: {keyName.map((key) => `${data[key]} | `)}</Typography>
       </AccordionSummary>
       <AccordionDetails>
         <ReactJson
@@ -68,7 +70,8 @@ const LogEntry = React.memo(function LogEntry(props) {
   )
 })
 LogEntry.propTypes = {
-  entry: PropTypes.object.isRequired
+  entry: PropTypes.object.isRequired,
+  keyName: PropTypes.array.isRequired
 }
 
 const useStyles = makeStyles(theme => ({
@@ -80,11 +83,54 @@ const useStyles = makeStyles(theme => ({
     right: 32,
     bottom: 32,
     position: 'fixed !important'
+  },
+  formControl: {
+    margin: theme.spacing(1),
+    minWidth: 120,
+    maxWidth: 300
+  },
+  chips: {
+    display: 'flex',
+    flexWrap: 'wrap'
+  },
+  chip: {
+    margin: 2
+  },
+  noLabel: {
+    marginTop: theme.spacing(3)
   }
 }))
 
+const Checkboxes = (props) => {
+  const {checkList} = props
+  const {setCheckList} = props
+  return (
+    <FormGroup row>
+      <Typography style={{padding: '8px', textAlign: 'bottom'}}>
+          Filter Logs by Level:
+      </Typography>
+      {Object.keys(checkList).map((key, i) => {
+        return (
+          <FormControlLabel key={i}
+            control={<Checkbox
+              checked={checkList[key]}
+              onChange={(e) => setCheckList({...checkList, [e.target.name]: e.target.checked})}
+              name={key} id={`${i}`}/>}
+            label={key}
+          />
+        )
+      })}
+    </FormGroup>
+  )
+}
+Checkboxes.propTypes = {
+  checkList: PropTypes.object.isRequired,
+  setCheckList: PropTypes.func.isRequired
+}
+
 export default function ArchiveLogView(props) {
   const classes = useStyles()
+  const theme = useTheme()
   const {entryId} = useEntryContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
@@ -101,6 +147,18 @@ export default function ArchiveLogView(props) {
   })
 
   const [numberOfLogs, setNumberOflogs] = useState(5)
+  const [keyName, setKeyName] = useState(['parser'])
+  const handleChange = (event) => {
+    setKeyName(event.target.value)
+  }
+  const getStyles = (name, personName, theme) => {
+    return {
+      fontWeight:
+        personName.indexOf(name) === -1
+          ? theme.typography.fontWeightRegular
+          : theme.typography.fontWeightMedium
+    }
+  }
 
   useEffect(() => {
     api.post(`/entries/${entryId}/archive/query`, {required: {processing_logs: '*'}})
@@ -132,25 +190,37 @@ export default function ArchiveLogView(props) {
 
   let content = 'loading ...'
   if (data) {
+    let uniq = [...new Set(
+      data.reduce((UKeys, item) => [...UKeys, ...Object.keys(item)], []))]
     content =
     <div>
-      <FormGroup row>
-        <Typography style={{padding: '8px', textAlign: 'bottom'}}>
-          Filter by:
-        </Typography>
-        {Object.keys(checkList).map((key, i) => {
-          return (
-            <FormControlLabel key={i}
-              control={<Checkbox
-                checked={checkList[key]}
-                onChange={(e) => setCheckList({...checkList, [e.target.name]: e.target.checked})}
-                name={key} id={`${i}`}/>}
-              label={key}
-            />
-          )
-        })}
-      </FormGroup>
-      {data.slice(0, numberOfLogs).map((entry, i) => (checkList[entry.level] ? <LogEntry key={i} entry={entry}/> : null))}
+      <Checkboxes checkList={checkList} setCheckList={setCheckList}/>
+      <FormControl className={classes.formControl}>
+        <InputLabel id="mutiple-chip-label">Filter keys by:</InputLabel>
+        <Select
+          labelId="mutiple-chip-label"
+          id="mutiple-chip"
+          multiple
+          value={keyName}
+          onChange={handleChange}
+          input={<Input id="select-multiple-chip" />}
+          renderValue={(selected) => (
+            <div className={classes.chips}>
+              {selected.map((value) => (
+                <Chip key={value} label={value} className={classes.chip} />
+              ))}
+            </div>
+          )}
+          // MenuProps={MenuProps}
+        >
+          {uniq.map((name) => (
+            <MenuItem key={name} value={name} style={getStyles(name, keyName, theme)}>
+              {name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      {data.slice(0, numberOfLogs).map((entry, i) => (checkList[entry.level] ? <LogEntry key={i} entry={entry} keyName={keyName}/> : null))}
       {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
         There are {data.length - maxLogsToShow} more log entries. Download the log to see all of them.
       </Typography>}
