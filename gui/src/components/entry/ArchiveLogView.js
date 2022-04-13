@@ -87,7 +87,7 @@ const useStyles = makeStyles(theme => ({
   formControl: {
     margin: theme.spacing(1),
     minWidth: 120,
-    maxWidth: 300
+    maxWidth: 350
   },
   chips: {
     display: 'flex',
@@ -128,6 +128,43 @@ Checkboxes.propTypes = {
   setCheckList: PropTypes.func.isRequired
 }
 
+const MultipleDropdown = (props) => {
+  const {className, keyName, handleChange, uniquekeys, getStyles, theme} = props
+  return (
+    <FormControl className={className.formControl}>
+      <InputLabel id="mutiple-chip-label">Filter keys by:</InputLabel>
+      <Select
+        labelId="mutiple-chip-label"
+        id="mutiple-chip"
+        multiple
+        value={keyName}
+        onChange={handleChange}
+        input={<Input id="select-multiple-chip" />}
+        renderValue={(selected) => (
+          <div className={className.chips}>
+            {selected.map((value) => (
+              <Chip key={value} label={value} className={className.chip} />
+            ))}
+          </div>
+        )}
+      >
+        {uniquekeys.map((name) => (
+          <MenuItem key={name} value={name} style={getStyles(name, keyName, theme)}>
+            {name}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  )
+}
+MultipleDropdown.propTypes = {
+  className: PropTypes.object.isRequired,
+  keyName: PropTypes.array.isRequired,
+  handleChange: PropTypes.func.isRequired,
+  uniquekeys: PropTypes.array.isRequired,
+  getStyles: PropTypes.func.isRequired,
+  theme: PropTypes.object.isRequired
+}
 export default function ArchiveLogView(props) {
   const classes = useStyles()
   const theme = useTheme()
@@ -190,46 +227,36 @@ export default function ArchiveLogView(props) {
 
   let content = 'loading ...'
   if (data) {
-    let uniq = [...new Set(
+    let uniquekeys = [...new Set(
       data.reduce((UKeys, item) => [...UKeys, ...Object.keys(item)], []))]
     content =
-    <div>
-      <Checkboxes checkList={checkList} setCheckList={setCheckList}/>
-      <FormControl className={classes.formControl}>
-        <InputLabel id="mutiple-chip-label">Filter keys by:</InputLabel>
-        <Select
-          labelId="mutiple-chip-label"
-          id="mutiple-chip"
-          multiple
-          value={keyName}
-          onChange={handleChange}
-          input={<Input id="select-multiple-chip" />}
-          renderValue={(selected) => (
-            <div className={classes.chips}>
-              {selected.map((value) => (
-                <Chip key={value} label={value} className={classes.chip} />
-              ))}
-            </div>
-          )}
-          // MenuProps={MenuProps}
-        >
-          {uniq.map((name) => (
-            <MenuItem key={name} value={name} style={getStyles(name, keyName, theme)}>
-              {name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      {data.slice(0, numberOfLogs).map((entry, i) => (checkList[entry.level] ? <LogEntry key={i} entry={entry} keyName={keyName}/> : null))}
-      {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
-        There are {data.length - maxLogsToShow} more log entries. Download the log to see all of them.
-      </Typography>}
-      <Grid container justifyContent='center'>
+    <Grid container alignItems='center'>
+      <Grid item xs={8}>
+        <Checkboxes checkList={checkList} setCheckList={setCheckList}/>
+      </Grid>
+      <Grid item xs={4} >
+        <MultipleDropdown
+          uniquekeys={uniquekeys}
+          className={classes}
+          keyName={keyName}
+          handleChange={handleChange}
+          getStyles={getStyles}
+          theme={theme}
+        />
+      </Grid>
+      <Grid container>
+        {data.slice(0, numberOfLogs).map((entry, i) => (checkList[entry.level]
+          ? <Grid item xs={12} key={i} ><LogEntry key={i} entry={entry} keyName={keyName}/></Grid> : null))}
+        {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
+          There are {data.length - maxLogsToShow} more log entries. Download the log to see all of them.
+        </Typography>}
+      </Grid>
+      <Grid container alignItems='center' justifyContent='center'>
         {numberOfLogs < data.length ? (<Button variant='contained' color='primary' onClick={() => setNumberOflogs(numberOfLogs + numberOfLogs)}>
           See More
         </Button>) : ''}
       </Grid>
-    </div>
+    </Grid>
   }
 
   return (
