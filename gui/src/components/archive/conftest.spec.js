@@ -15,9 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { join, basename } from 'path'
 import { waitFor } from '@testing-library/dom'
 import { screen, within } from '../conftest.spec'
 import userEvent from '@testing-library/user-event'
+import { laneErrorBoundryMessage } from './Browser'
 
 /*****************************************************************************************
  * Utilities for testing browser functionality.
@@ -89,6 +91,22 @@ export function getLane(laneIndex, laneKey) {
 }
 
 /**
+ * Extracts the lane key from a lane object (using its data-testid attribute)
+ */
+export function getLaneKey(lane) {
+  const testId = lane.attributes['data-testid'].value
+  return testId.substring(testId.search(':') + 1)
+}
+
+/**
+ * Extracts the item key from an item object (using its data-testid attribute)
+ */
+export function getItemKey(item) {
+  const testId = item.attributes['data-testid'].value
+  return testId.substring(5)
+}
+
+/**
  * Checks that the browser is correctly rendered, provided the browser's path.
  * Each lane corresponding to a segment in the path is checked by calling the cb function
  * defined in the browserTree (which should be an attribute of browserConfig)
@@ -99,7 +117,7 @@ export async function checkLanes(path, browserConfig) {
   if (path) {
     let lanePath = ''
     path.split('/').forEach(segment => {
-      lanePath += (lanePath ? '/' : '') + segment
+      lanePath = join(lanePath, segment)
       lanePaths.push(lanePath)
     })
   }
@@ -107,7 +125,7 @@ export async function checkLanes(path, browserConfig) {
     const lanePath = lanePaths[laneIndex]
     const { cb, extra } = browserTree[lanePath]
     expect(cb).toBeDefined()
-    const lastSegment = lanePath.split('/').pop()
+    const lastSegment = basename(lanePath)
     const lane = getLane(laneIndex, lastSegment)
     const args = {lane, laneIndex, lanePath, lastSegment, ...browserConfig, ...extra}
     await cb(args)
@@ -116,21 +134,81 @@ export async function checkLanes(path, browserConfig) {
 }
 
 /**
- * Navigates to the specified path by firing a click event on the last item in the path.
- * The parent lane (i.e. the lane containing the item to click) must already be open in the
- * browser. After firing the click event, waits for the rendering to complete, and check
- * the lanes.
+ * Selects (clicks) on an item in the specified lane and waits for the new lane to render.
+ * Note, the item must not already be selected. Throws an exception if the rendering fails.
+ * Returns the new lane when done. If you already have the item object, you can pass it
+ * as the last argument (for optimization purposes), otherwise it will be fetched from the
+ * itemKey.
  */
-export async function navigateAndCheck(path, browserConfig) {
-  const segments = path.split('/')
-  const item = segments[segments.length - 1]
-  const parentLaneIndex = segments.length - 1
-  userEvent.click(within(getLane(parentLaneIndex)).getByText(item))
+export async function selectItemAndWaitForRender(lane, laneIndex, itemKey, item = null) {
+  if (!item) {
+    item = within(lane).getByTestId(`item:${itemKey}`)
+  }
+  userEvent.click(item)
   await waitFor(() => {
-    expect(getLane(parentLaneIndex + 1, item)).not.toBeNull()
-    expect(getLane(parentLaneIndex + 2)).toBeNull()
-  }, {timeout: 2000})
-  await checkLanes(path, browserConfig)
+    expect(getLane(laneIndex + 1, itemKey)).not.toBeNull()
+    expect(getLane(laneIndex + 2)).toBeNull()
+  }, {timeout: 2500})
+  const nextLane = getLane(laneIndex + 1)
+  expect(within(nextLane).queryByText(laneErrorBoundryMessage)).toBeNull()
+  return nextLane
+}
+
+/**
+ * Navigates to the specified path by clicking the appropriate items in the lanes. The method
+ * figures out itself, by inspecting the existing lanes, which clicks are needed. If a browserConfig
+ * with a browserTree attribute is specified, we also call checkLanes after each click.
+ * Returns the final lane.
+ */
+export async function navigateTo(path, browserConfig) {
+  if (!path) {
+    return getLane(0)
+  }
+  const segments = path.split('/')
+  let subpath = ''
+  let laneIndex = 0
+  let lane = getLane(0)
+  let nextLane = getLane(1)
+  for (const segment of segments) {
+    subpath = join(subpath, segment)
+    const selectedItemKey = nextLane ? getLaneKey(nextLane) : null
+    if (selectedItemKey !== segment) {
+      // Need to select a (different) item in this lane
+      lane = await selectItemAndWaitForRender(lane, laneIndex, segment)
+      if (browserConfig?.browserTree) {
+        await checkLanes(subpath, browserConfig)
+      }
+    } else {
+      lane = nextLane
+    }
+    laneIndex += 1
+    nextLane = getLane(laneIndex + 1)
+  }
+  return lane
+}
+
+/**
+ * Browses recursively, navigating to all items that pass the provided itemFilter. If no
+ * itemFilter is provided, all items will be visited. This method provides an easy way to
+ * verify that the browser renders all (or at least a lot of) paths correctly.
+ */
+export async function browseRecursively(lane, laneIndex, path, consoleLogSpy, consoleErrorSpy, itemFilter, ...args) {
+  const items = {}
+  for (const item of within(lane).queryAllByTestId(/^item:/)) {
+    const itemKey = getItemKey(item)
+    items[itemKey] = item
+  }
+  const itemKeys = itemFilter ? itemFilter(path, items, ...args) : Object.keys(items)
+  for (const itemKey of itemKeys) {
+    const item = items[itemKey]
+    const nextPath = `${path}/${itemKey}`
+    process.stdout.write(`Rendering path: ${nextPath}\n`)
+    const nextLane = await selectItemAndWaitForRender(lane, laneIndex, itemKey, item)
+    expect(consoleLogSpy).not.toBeCalled()
+    expect(consoleErrorSpy).not.toBeCalled()
+    // new lane rendered successfully
+    await browseRecursively(nextLane, laneIndex + 1, nextPath, consoleLogSpy, consoleErrorSpy, itemFilter, ...args)
+  }
 }
 
 /*****************************************************************************************

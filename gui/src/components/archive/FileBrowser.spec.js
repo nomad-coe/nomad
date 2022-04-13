@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event'
 import { waitFor } from '@testing-library/dom'
 import { render, screen, within, startAPI, closeAPI } from '../conftest.spec'
 import FileBrowser from './FileBrowser'
-import { purgeTreePath, getLane, checkLanes, navigateAndCheck, checkDirectoryLane, checkFileLane } from './conftest.spec'
+import { purgeTreePath, getLane, checkLanes, navigateTo, checkDirectoryLane, checkFileLane } from './conftest.spec'
 
 const dirSpecialChars = 'dir special chars ~!?*\\()[]{}<>,.;:\'"`&@#$%=|'
 const fileBrowserTree = {
@@ -59,22 +59,17 @@ async function testBrowseAround(editable) {
   await checkLanes('', browserConfig)
 
   // Navigate around
-  await navigateAndCheck('deepdir', browserConfig)
-  await navigateAndCheck('deepdir/subdir1', browserConfig)
-  await navigateAndCheck('deepdir/subdir1/subdir2', browserConfig)
-  await navigateAndCheck(`deepdir/subdir1/subdir2/${dirSpecialChars}`, browserConfig)
-  await navigateAndCheck(`deepdir/subdir1/subdir2/${dirSpecialChars}/f.txt`, browserConfig)
+  await navigateTo(`deepdir/subdir1/subdir2/${dirSpecialChars}/f.txt`, browserConfig)
   await within(getLane(5)).findByText('content of f.txt') // auto-previewing .txt files with text viewer
 
   // Check file types
-  await navigateAndCheck('filetypes', browserConfig)
 
   // image: ok -> just check if there is an img tag
-  await navigateAndCheck('filetypes/image.png', browserConfig)
+  await navigateTo('filetypes/image.png', browserConfig)
   expect(within(getLane(2)).getByRole('img')).toBeVisible()
 
   // image: bad
-  await navigateAndCheck('filetypes/not an image.png', browserConfig)
+  await navigateTo('filetypes/not an image.png', browserConfig)
   // Simulate a load error on the image (images are not actually loaded during testing, for efficiency reasons)
   fireEvent.error(within(getLane(2)).getByRole('img'))
   await within(getLane(2)).findByText('Failed to open with image viewer. Bad file format?')
@@ -83,14 +78,13 @@ async function testBrowseAround(editable) {
   await within(getLane(2)).findByText('this is not an image!') // text content of the file
 
   // json
-  await navigateAndCheck('filetypes/doc.json', browserConfig)
+  await navigateTo('filetypes/doc.json', browserConfig)
   await within(getLane(2)).findByText('root')
   await within(getLane(2)).findByText(/"this is a json string value"/)
 
   // Check folder with an entry
-  await navigateAndCheck('test_entry', browserConfig)
-  await navigateAndCheck('test_entry/1.aux', browserConfig)
-  await navigateAndCheck('test_entry/vasp.xml', browserConfig)
+  await navigateTo('test_entry/1.aux', browserConfig)
+  await navigateTo('test_entry/vasp.xml', browserConfig)
   await within(getLane(2)).findByText(/GGA_X_PBE/) // This text should occur in the file preview
 }
 
@@ -150,8 +144,8 @@ test('starting in entry dir', async () => {
   })
   await checkLanes('', browserConfig)
 
-  await navigateAndCheck('1.aux', browserConfig)
-  await navigateAndCheck('vasp.xml', browserConfig)
+  await navigateTo('1.aux', browserConfig)
+  await navigateTo('vasp.xml', browserConfig)
   await within(getLane(1)).findByText(/GGA_X_PBE/) // This text should occur in the file preview
 })
 
@@ -169,16 +163,15 @@ test('delete files', async () => {
   })
   await checkLanes('', browserConfig)
 
-  await navigateAndCheck('test_entry', browserConfig)
   for (const fileName of ['vasp.xml', '1.aux']) {
-    await navigateAndCheck(`test_entry/${fileName}`, browserConfig)
+    await navigateTo(`test_entry/${fileName}`, browserConfig)
     userEvent.click(within(getLane(2)).getByButtonText('delete this file'))
     await screen.findByText(/Really delete the file/)
     expect(screen.queryAllByText(fileName).length).toBeGreaterThan(1)
     userEvent.click(screen.getByButtonText('OK'))
     await waitFor(() => {
       expect(screen.queryAllByText(fileName).length).toEqual(0)
-    }, {timeout: 2000})
+    }, {timeout: 2500})
     purgeTreePath(fileBrowserTreeCopy, `test_entry/${fileName}`)
     checkLanes('test_entry', browserConfig)
   }
@@ -203,18 +196,14 @@ test('delete folder', async () => {
     const folderName = segments[segments.length - 1]
     const parentPath = (segments.slice(0, segments.length - 1)).join('/')
     // Navigate to path
-    let navPath = ''
-    for (const segment of segments) {
-      navPath += (navPath ? '/' : '') + segment
-      await navigateAndCheck(navPath, browserConfig)
-    }
-    userEvent.click(within(getLane(segments.length)).getByButtonText('delete this folder'))
+    const lane = await navigateTo(path, browserConfig)
+    userEvent.click(within(lane).getByButtonText('delete this folder'))
     await screen.findByText(/Really delete the directory/)
     expect(screen.queryAllByText(folderName).length).toBeGreaterThan(1)
     userEvent.click(screen.getByButtonText('OK'))
     await waitFor(() => {
       expect(screen.queryAllByText(folderName).length).toEqual(0)
-    }, {timeout: 2000})
+    }, {timeout: 2500})
     purgeTreePath(fileBrowserTreeCopy, path)
     checkLanes(parentPath, browserConfig)
   }
