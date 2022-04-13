@@ -42,7 +42,7 @@ async function expectPeriodicTable(elements, root = screen) {
         expect(button).toHaveAttribute('disabled')
       }
     })
-  }, {timeout: 5000})
+  })
 }
 
 describe('', () => {

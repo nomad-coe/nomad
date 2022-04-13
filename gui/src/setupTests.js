@@ -19,6 +19,7 @@
 /* eslint-disable no-undef */
 
 import { setupServer } from 'msw/node'
+import { configure } from '@testing-library/react'
 
 /**
  * Code to configure or set up the testing framework before each test file in
@@ -51,6 +52,11 @@ global.nomadEnv = {
 // Increased the default jest timeout for individual tests
 // eslint-disable-next-line no-undef
 jest.setTimeout(60000)
+
+// Changes the default timeout of waitFor, find*-queries etc. We set this very generously,
+// because when tests are run in parallel, something which normally renders quickly may take
+// long to render if it competes with other tests over limited CPU resources.
+configure({ asyncUtilTimeout: 10000 })
 
 const { ResizeObserver } = window
 export const server = setupServer()

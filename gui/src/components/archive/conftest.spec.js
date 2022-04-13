@@ -148,7 +148,7 @@ export async function selectItemAndWaitForRender(lane, laneIndex, itemKey, item 
   await waitFor(() => {
     expect(getLane(laneIndex + 1, itemKey)).not.toBeNull()
     expect(getLane(laneIndex + 2)).toBeNull()
-  }, {timeout: 2500})
+  })
   const nextLane = getLane(laneIndex + 1)
   expect(within(nextLane).queryByText(laneErrorBoundryMessage)).toBeNull()
   return nextLane

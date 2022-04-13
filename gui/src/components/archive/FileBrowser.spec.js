@@ -171,7 +171,7 @@ test('delete files', async () => {
     userEvent.click(screen.getByButtonText('OK'))
     await waitFor(() => {
       expect(screen.queryAllByText(fileName).length).toEqual(0)
-    }, {timeout: 2500})
+    })
     purgeTreePath(fileBrowserTreeCopy, `test_entry/${fileName}`)
     checkLanes('test_entry', browserConfig)
   }
@@ -203,7 +203,7 @@ test('delete folder', async () => {
     userEvent.click(screen.getByButtonText('OK'))
     await waitFor(() => {
       expect(screen.queryAllByText(folderName).length).toEqual(0)
-    }, {timeout: 2500})
+    })
     purgeTreePath(fileBrowserTreeCopy, path)
     checkLanes(parentPath, browserConfig)
   }

@@ -19,7 +19,7 @@ import React from 'react'
 import { join, basename } from 'path'
 import { waitFor } from '@testing-library/dom'
 import { render, screen } from '../conftest.spec'
-import { getLane, browseRecursively } from './conftest.spec'
+import { navigateTo, browseRecursively } from './conftest.spec'
 import MetainfoBrowser from './MetainfoBrowser'
 
 function metainfoItemFilter(parentPath, items, encounteredLastTwoSegments) {
@@ -70,10 +70,12 @@ test('Browse reursively', async () => {
     })
 
     const encounteredLastTwoSegments = {}
-
-    await browseRecursively(getLane(0), 0, '*MetaInfoBrowser*', consoleLogSpy, consoleErrorSpy, metainfoItemFilter, encounteredLastTwoSegments)
+    const path = ''
+    const lane = await navigateTo(path)
+    const laneIndex = path ? path.split('/').length : 0
+    await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), consoleLogSpy, consoleErrorSpy, metainfoItemFilter, encounteredLastTwoSegments)
   } finally {
     consoleLogSpy.mockRestore()
     consoleErrorSpy.mockRestore()
   }
-}, 360000)
+}, 600000)
