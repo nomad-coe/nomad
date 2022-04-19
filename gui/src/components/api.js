@@ -552,7 +552,7 @@ export const withApi = (Component) => React.forwardRef((props, ref) => {
 
 export const onKeycloakEvent = (keycloak) => {
   const cookies = new Cookies()
-  const path = new URL(apiBase).pathname
+  const path = apiBase.startsWith('/') ? apiBase : new URL(apiBase).pathname
   return () => {
     // Will be called whenever a keycloak event occurs
     if (keycloak.authenticated) {
