@@ -53,7 +53,7 @@ function MatrixPagination({length, page, onChange}) {
     spacing={2}
     container
     direction="row"
-    justify="center"
+    justifyContent="center"
     alignItems="center"
   >
     <MuiGrid item>

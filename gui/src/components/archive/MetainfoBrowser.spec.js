@@ -60,7 +60,7 @@ function metainfoItemFilter(parentPath, items, encounteredLastTwoSegments) {
   return rv
 }
 
-test('Browse reursively', async () => {
+test('Browse metainfo reursively', async () => {
   const consoleLogSpy = jest.spyOn(console, 'log')
   const consoleErrorSpy = jest.spyOn(console, 'error')
   try {

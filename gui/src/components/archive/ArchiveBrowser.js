@@ -442,6 +442,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
           shape={def.shape}
           invert={def.shape.length === 1}
           type={def.type.type_data}
+          key={`matrix:${def.name}`}
         />
         <Typography noWrap variant="caption">
           ({def.shape.map((dimension, index) => <span key={index}>
@@ -467,7 +468,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
       </ul>
     } else {
       const [finalValue] = getRenderValue(value)
-      return <Typography>{finalValue}</Typography>
+      return <Typography>{typeof finalValue === 'object' ? JSON.stringify(finalValue) : finalValue?.toString()}</Typography>
     }
   }
 })
@@ -771,7 +772,10 @@ function PropertyValuesList({label, values, actions}) {
           <Item key={index} itemKey={`${label}:${index}`}>
             <Box display="flex" flexDirection="row" flexGrow={1}>
               <Box component="span" marginLeft={2}>
-                <Typography component="span">{item || index}</Typography>
+                { item && typeof item === 'object'
+                  ? item // item should be a react component
+                  : <Typography component="span">{item || index}</Typography>
+                }
               </Box>
             </Box>
           </Item>
@@ -782,7 +786,7 @@ function PropertyValuesList({label, values, actions}) {
 }
 PropertyValuesList.propTypes = ({
   label: PropTypes.string.isRequired,
-  values: PropTypes.arrayOf(PropTypes.string).isRequired,
+  values: PropTypes.arrayOf(PropTypes.object).isRequired,
   onAdd: PropTypes.func,
   onRemove: PropTypes.func,
   actions: PropTypes.oneOfType([
