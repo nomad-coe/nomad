@@ -98,6 +98,9 @@ const useStyles = makeStyles(theme => ({
   },
   noLabel: {
     marginTop: theme.spacing(3)
+  },
+  seeMore: {
+    margin: theme.spacing(3)
   }
 }))
 
@@ -244,15 +247,15 @@ export default function ArchiveLogView(props) {
           theme={theme}
         />
       </Grid>
-      <Grid container>
+      <Grid container spacing={1}>
         {data.slice(0, numberOfLogs).map((entry, i) => (checkList[entry.level]
-          ? <Grid item xs={12} key={i} ><LogEntry key={i} entry={entry} keyName={keyName}/></Grid> : null))}
+          ? <Grid item xs={12} key={i}><LogEntry key={i} entry={entry} keyName={keyName}/></Grid> : null))}
         {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
           There are {data.length - maxLogsToShow} more log entries. Download the log to see all of them.
         </Typography>}
       </Grid>
       <Grid container alignItems='center' justifyContent='center'>
-        {numberOfLogs < data.length ? (<Button variant='contained' color='primary' onClick={() => setNumberOflogs(numberOfLogs + numberOfLogs)}>
+        {numberOfLogs < data.length ? (<Button className={classes.seeMore} variant='contained' color='primary' onClick={() => setNumberOflogs(numberOfLogs + numberOfLogs)}>
           See More
         </Button>) : ''}
       </Grid>
