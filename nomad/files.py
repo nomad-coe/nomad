@@ -71,14 +71,41 @@ if sys.version_info >= (3, 7):
 else:
     import zipfile37 as zipfile
 
-zip_file_extensions = ('.zip',)
-tar_file_extensions = ('.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar')
+decompress_file_extensions = ('.zip', '.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar')
 bundle_info_filename = 'bundle_info.json'
 
 # Used to check if zip-files/archive files are empty
 # TODO: These should not be needed when we move on to only keep files with the right access
 empty_zip_file_size = 22
 empty_archive_file_size = 32
+
+
+def auto_decompress(path: str):
+    '''
+    Returns the decompression format ('zip', 'tar' or 'error') if `path` specifies a file
+    which should be automatically decompressed before adding it to an upload. If `path`
+    does *not* specify a file which we think should be decompressed, or if it specifies a
+    directory, we return None.
+
+    The value 'error' means that we think this file should be decompressed, but that we cannot
+    decompress it. This indicates that the file is corrupted, has a bad file format, or has
+    the wrong file extension.
+
+    Note, some files, like for example excel files, are actually zip files, and we don't want
+    to extract such files. Therefore, we only auto decompress if the file has an extension
+    we recognize as decompressable, like ".zip", ".tar" etc.
+    '''
+    if os.path.isdir(path):
+        return None
+    basename_lower = os.path.basename(path).lower()
+    for extension in decompress_file_extensions:
+        if basename_lower.endswith(extension):
+            if tarfile.is_tarfile(path):
+                return 'tar'
+            elif zipfile.is_zipfile(path):
+                return 'zip'
+            return 'error'
+    return None
 
 
 def copytree(src, dst):
@@ -825,27 +852,25 @@ class StagingUploadFiles(UploadFiles):
             assert not self.is_frozen
             assert os.path.exists(path), f'{path} does not exist'
             assert is_safe_relative_path(target_dir)
-            ext = os.path.splitext(path)[1]
             self._size += os.stat(path).st_size
 
             is_dir = os.path.isdir(path)
-            if is_dir:
-                is_zipfile = is_tarfile = False
-            else:
-                is_zipfile = zipfile.is_zipfile(path) or ext in zip_file_extensions
-                is_tarfile = tarfile.is_tarfile(path) or ext in tar_file_extensions
-                if is_zipfile or is_tarfile:
-                    tmp_dir = create_tmp_dir(self.upload_id + '_unzip')
-                    if is_zipfile:
-                        with zipfile.ZipFile(path) as zf:
-                            zf.extractall(tmp_dir)
-                    elif is_tarfile:
-                        with tarfile.open(path) as tf:
-                            tf.extractall(tmp_dir)
+            decompress = auto_decompress(path)
+            if decompress:
+                tmp_dir = create_tmp_dir(self.upload_id + '_unzip')
+                if decompress == 'zip':
+                    with zipfile.ZipFile(path) as zf:
+                        zf.extractall(tmp_dir)
+                elif decompress == 'tar':
+                    with tarfile.open(path) as tf:
+                        tf.extractall(tmp_dir)
+                elif decompress == 'error':
+                    # Unknown / bad file format
+                    assert False, 'Cannot extract file. Bad file format or file extension?'
 
             # Determine what to merge
             elements_to_merge: Iterable[Tuple[str, List[str], List[str]]] = []
-            if is_dir or is_zipfile or is_tarfile:
+            if is_dir or decompress:
                 # Directory
                 source_dir = path if is_dir else tmp_dir
                 elements_to_merge = os.walk(source_dir)
@@ -889,7 +914,7 @@ class StagingUploadFiles(UploadFiles):
                             os.makedirs(element_target_path)
                     else:
                         # File - copy or move it
-                        if cleanup_source_file_and_dir or is_zipfile or is_tarfile:
+                        if cleanup_source_file_and_dir or decompress:
                             # Move the file
                             shutil.move(element_source_path, element_target_path)
                         else:

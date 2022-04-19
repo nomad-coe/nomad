@@ -1042,7 +1042,7 @@ def test_get_upload_entry_archive(
             'examples_vasp/xml/perovskite.xml.gz'], id='unzip-and-add-new-mainfiles'),
     pytest.param(
         'stream', 'test_user', 'examples_template', example_file_corrupt_zip, '', {'file_name': 'tmp.zip'},
-        True, False, 200, ['examples_template/template.json'], id='bad-zip'),
+        True, False, 400, None, id='bad-zip'),
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_aux, 'examples_template',
         {'wait_for_processing': True},
