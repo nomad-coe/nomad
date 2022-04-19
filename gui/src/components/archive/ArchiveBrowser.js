@@ -606,7 +606,10 @@ function Section({section, def, parentRelation}) {
       </Compartment>
     </React.Fragment>
   }
-  return <Content>
+  const eln = def?.m_annotations?.eln
+  const laneWidth = (eln && eln.length > 0 ? eln[0].lane_width : undefined)
+  const otherProps = (laneWidth ? {minWidth: laneWidth, maxWidth: laneWidth} : undefined)
+  return <Content {...otherProps}>
     <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions} />
     <Overview section={section} def={def}/>
     {contents}
