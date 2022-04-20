@@ -44,8 +44,7 @@ const useLogEntryStyles = makeStyles(theme => ({
 
 const LogEntry = React.memo(function LogEntry(props) {
   const classes = useLogEntryStyles()
-  const {entry} = props
-  const {keyName} = props
+  const {entry, keyNames} = props
   const data = entry
 
   const summaryProps = {}
@@ -57,7 +56,7 @@ const LogEntry = React.memo(function LogEntry(props) {
   return (
     <Accordion>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography {...summaryProps}>{data.level}: {keyName.map((key) => `${data[key]} | `)}</Typography>
+        <Typography {...summaryProps}>{data.level}: {keyNames.map((key) => `${data[key]} | `)}</Typography>
       </AccordionSummary>
       <AccordionDetails>
         <ReactJson
@@ -73,7 +72,7 @@ const LogEntry = React.memo(function LogEntry(props) {
 })
 LogEntry.propTypes = {
   entry: PropTypes.object.isRequired,
-  keyName: PropTypes.array.isRequired
+  keyNames: PropTypes.array.isRequired
 }
 
 const useStyles = makeStyles(theme => ({
@@ -107,18 +106,17 @@ const useStyles = makeStyles(theme => ({
 }))
 
 const FilterLogsByLevel = React.memo(function FilterLogsByLevel(props) {
-  const {checkList} = props
-  const {onCheckListChanged} = props
+  const {logLevels, onCheckListChanged} = props
   return (
     <FormGroup row>
       <Typography style={{padding: '8px', textAlign: 'bottom'}}>
           Filter Logs by Level:
       </Typography>
-      {Object.keys(checkList).map((key, i) => {
+      {Object.keys(logLevels).map((key, i) => {
         return (
           <FormControlLabel key={i}
             control={<Checkbox
-              checked={checkList[key]}
+              checked={logLevels[key]}
               onChange={onCheckListChanged}
               name={key} id={`${i}`}/>}
             label={key}
@@ -129,13 +127,12 @@ const FilterLogsByLevel = React.memo(function FilterLogsByLevel(props) {
   )
 })
 FilterLogsByLevel.propTypes = {
-  checkList: PropTypes.object.isRequired,
-  handleCheckListChanged: PropTypes.func.isRequired,
+  logLevels: PropTypes.object.isRequired,
   onCheckListChanged: PropTypes.func.isRequired
 }
 
 const FilterLogTagsByKeys = React.memo(function FilterLogTagsByKeys(props) {
-  const {className, keyName, onKeyNameChanged, uniquekeys} = props
+  const {className, keyNames, onKeyNamesChanged, uniquekeys} = props
   return (
     <FormControl className={className.formControl}>
       <InputLabel id="mutiple-chip-label">Filter keys by:</InputLabel>
@@ -143,8 +140,8 @@ const FilterLogTagsByKeys = React.memo(function FilterLogTagsByKeys(props) {
         labelId="mutiple-chip-label"
         id="mutiple-chip"
         multiple
-        value={keyName}
-        onChange={onKeyNameChanged}
+        value={keyNames}
+        onChange={onKeyNamesChanged}
         input={<Input id="select-multiple-chip" />}
         renderValue={(selected) => (
           <div className={className.chips}>
@@ -163,13 +160,13 @@ const FilterLogTagsByKeys = React.memo(function FilterLogTagsByKeys(props) {
     </FormControl>
   )
 })
-
 FilterLogTagsByKeys.propTypes = {
   className: PropTypes.object.isRequired,
-  keyName: PropTypes.array.isRequired,
-  onKeyNameChanged: PropTypes.func.isRequired,
+  keyNames: PropTypes.array.isRequired,
+  onKeyNamesChanged: PropTypes.func.isRequired,
   uniquekeys: PropTypes.array.isRequired
 }
+
 export default function ArchiveLogView(props) {
   const classes = useStyles()
   const {entryId} = useEntryContext()
@@ -179,7 +176,7 @@ export default function ArchiveLogView(props) {
   const [data, setData] = useState(null)
   const [doesNotExist, setDoesNotExist] = useState(false)
 
-  const [checkList, setCheckList] = useState({
+  const [logLevels, setLogLevels] = useState({
     DEBUG: true,
     ERROR: true,
     CRITICAL: true,
@@ -188,13 +185,15 @@ export default function ArchiveLogView(props) {
   })
 
   const [numberOfLogs, setNumberOflogs] = useState(logsDefaultValues.defaultLogsToShowOnFirstMount)
-  const [keyName, setKeyName] = useState(['parser'])
-  const handleKeyNameChanged = (e) => {
-    setKeyName(e.target.value)
+  const [keyNames, setkeyNames] = useState(['parser'])
+  // const [numOfRenderedLogs, setNumOfRenderedLogs] = useState(0)
+
+  const handlekeyNamesChanged = (e) => {
+    setkeyNames(e.target.value)
   }
 
   const handleCheckListChanged = (e) => {
-    setCheckList({...checkList, [e.target.name]: e.target.checked})
+    setLogLevels({...logLevels, [e.target.name]: e.target.checked})
   }
 
   useEffect(() => {
@@ -212,7 +211,7 @@ export default function ArchiveLogView(props) {
       })
 
     setNumberOflogs(logsDefaultValues.defaultLogsToShowOnEachMount)
-  }, [setData, setDoesNotExist, api, raiseError, entryId, checkList])
+  }, [setData, setDoesNotExist, api, raiseError, entryId, logLevels])
 
   if (doesNotExist) {
     return (
@@ -227,29 +226,34 @@ export default function ArchiveLogView(props) {
 
   let content = 'loading ...'
   if (data) {
-    let uniquekeys = [...new Set(
-      data.reduce((uniqueKeys, item) => [...uniqueKeys, ...Object.keys(item)], []))]
+    const uniquekeys = [...new Set(
+      data.reduce((aggregatedKeys, item) => [...aggregatedKeys, ...Object.keys(item)], []))]
     content =
     <Grid container alignItems='center'>
       <Grid item xs={8}>
-        <FilterLogsByLevel checkList={checkList} onCheckListChanged={handleCheckListChanged}/>
+        <FilterLogsByLevel logLevels={logLevels} onCheckListChanged={handleCheckListChanged}/>
       </Grid>
       <Grid item xs={4} >
         <FilterLogTagsByKeys
-          uniquekeys={uniquekeys}
           className={classes}
-          keyName={keyName}
-          onKeyNameChanged={handleKeyNameChanged}
+          keyNames={keyNames}
+          onKeyNamesChanged={handlekeyNamesChanged}
+          uniquekeys={uniquekeys}
         />
       </Grid>
       <Grid container spacing={1}>
-        {data.slice(0, numberOfLogs).map((entry, i) => (checkList[entry.level]
-          ? <Grid item xs={12} key={i}><LogEntry key={i} entry={entry} keyName={keyName}/></Grid> : null))}
+        {data
+          .map((entry, i) => (logLevels[entry.level] ? <Grid item xs={12} key={i}><LogEntry key={i} entry={entry} keyNames={keyNames}/></Grid> : null))
+          .slice(0, numberOfLogs)
+          .filter(el => el !== null)}
       </Grid>
       <Grid container alignItems='center' justifyContent='center'>
-        {numberOfLogs < data.length ? (<Button className={classes.seeMore} variant='contained' color='primary' onClick={() => setNumberOflogs(numberOfLogs + numberOfLogs)}>
+        {(numberOfLogs > data.length ||
+          data
+            .map((entry, i) => (logLevels[entry.level] ? 1 : null))
+            .filter(el => el !== null).length <= numberOfLogs) ? '' : (<Button className={classes.seeMore} variant='contained' color='primary' onClick={() => setNumberOflogs(numberOfLogs + numberOfLogs)}>
           See More
-        </Button>) : ''}
+          </Button>)}
       </Grid>
     </Grid>
   }
