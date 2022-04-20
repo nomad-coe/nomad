@@ -282,6 +282,13 @@ parsers = [
         domain='dft', mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
     ),
     MatchingParserInterface(
+        'electronicparsers.OpenmxParser',
+        name='parsers/openmx', code_name='OpenMX', code_homepage='http://www.openmx-square.org/',
+        mainfile_mime_re=r'(text/.*)',
+        mainfile_name_re=r'.*\.out$',
+        mainfile_contents_re=(r'^\*{59}\s+\*{59}\s+This calculation was performed by OpenMX'),
+    ),
+    MatchingParserInterface(
         'electronicparsers.OrcaParser',
         name='parsers/orca', code_name='ORCA', code_homepage='https://orcaforum.kofo.mpg.de/',
         mainfile_contents_re=(
