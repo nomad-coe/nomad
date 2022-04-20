@@ -54,6 +54,7 @@ api:
   secret: "defaultApiSecret"
   ## Limit of unpublished uploads per user, except admin user
   uploadLimit: 10
+  readonly: true
 
 ## Everything concerning the nomad worker
 worker:

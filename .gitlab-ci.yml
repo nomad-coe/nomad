@@ -158,6 +158,7 @@ dev setup tests:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+  when: manual
 
 deploy dev:
   stage: release

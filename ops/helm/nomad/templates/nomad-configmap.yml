@@ -49,6 +49,7 @@ data:
       https: {{ .Values.proxy.external.https }}
       upload_limit: {{ .Values.api.uploadLimit }}
       admin_user_id: {{ .Values.keycloak.admin_user_id }}
+      readonly: {{ .Values.api.readonly }}
     rabbitmq:
       host: "{{ .Release.Name }}-rabbitmq"
     elastic:

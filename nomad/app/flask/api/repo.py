@@ -29,7 +29,7 @@ from elasticsearch.exceptions import NotFoundError
 import elasticsearch.helpers
 from datetime import datetime
 
-from nomad import search, utils, datamodel, processing as proc, infrastructure, files, metainfo
+from nomad import search, utils, datamodel, processing as proc, infrastructure, files, metainfo, config
 from nomad.datamodel import Dataset, User, EditableUserMetadata
 
 from .. import common
@@ -549,6 +549,8 @@ class EditRepoCalcsResource(Resource):
     @authenticate()
     def post(self):
         ''' Edit repository metadata. '''
+        if config.services.readonly:
+            abort(403, 'This installation of NOMAD is readonly.')
 
         # basic body parsing and some semantic checks
         json_data = request.get_json()

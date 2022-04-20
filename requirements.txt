@@ -89,6 +89,7 @@ a2wsgi==1.4.0
 python-multipart==0.0.5
 
 # [dev]
+markupsafe==2.0.1
 setuptools==57.5.0
 sphinx==2.4.4
 sphinxcontrib.httpdomain==1.8.0
@@ -113,3 +114,4 @@ essential_generators==1.0
 twine==3.4.2
 python-gitlab==2.10.1
 devtools==0.8.0
+markupsafe==2.0.1

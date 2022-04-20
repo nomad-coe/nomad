@@ -246,6 +246,9 @@ class UploadListResource(Resource):
         There is a general limit on how many unpublished uploads a user can have. Will
         return 400 if this limit is exceeded.
         '''
+        if config.services.readonly:
+            abort(403, 'This installation of NOMAD is readonly.')
+
         # check existence of local_path if local_path is used
         local_path = request.args.get('local_path')
         if local_path:
@@ -465,6 +468,9 @@ class UploadResource(Resource):
         Only uploads that are sill in staging, not already deleted, not still uploaded, and
         not currently processed, can be deleted.
         '''
+        if config.services.readonly:
+            abort(403, 'This installation of NOMAD is readonly.')
+
         try:
             upload = Upload.get(upload_id)
         except KeyError:
@@ -515,6 +521,9 @@ class UploadResource(Resource):
         Publish-to-central-nomad will upload the upload to the central NOMAD. This is only
         available on an OASIS. The upload must already be published on the OASIS.
         '''
+        if config.services.readonly:
+            abort(403, 'This installation of NOMAD is readonly.')
+
         try:
             upload = Upload.get(upload_id)
         except KeyError:

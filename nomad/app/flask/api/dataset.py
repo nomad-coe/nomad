@@ -20,7 +20,7 @@ from flask import request, g
 from flask_restplus import Resource, fields, abort
 import re
 
-from nomad import utils, processing as proc
+from nomad import utils, processing as proc, config
 from nomad.datamodel import Dataset
 from nomad.metainfo.flask_extension import generate_flask_restplus_model
 from nomad.doi import DOI
@@ -81,6 +81,9 @@ class DatasetListResource(Resource):
     @authenticate(required=True)
     def put(self):
         ''' Creates a new dataset. '''
+        if config.services.readonly:
+            abort(403, 'This installation of NOMAD is readonly.')
+
         data = request.get_json()
         if data is None:
             data = {}
@@ -131,6 +134,10 @@ class DatasetResource(Resource):
     @authenticate(required=True)
     def post(self, name: str):
         ''' Assign a DOI to the dataset. '''
+
+        if config.services.readonly:
+            abort(403, 'This installation of NOMAD is readonly.')
+
         try:
             result = Dataset.m_def.a_mongo.get(user_id=g.user.user_id, name=name)
         except KeyError:
@@ -173,6 +180,9 @@ class DatasetResource(Resource):
     @authenticate(required=True)
     def delete(self, name: str):
         ''' Delete the dataset. '''
+        if config.services.readonly:
+            abort(403, 'This installation of NOMAD is readonly.')
+
         try:
             result = Dataset.m_def.a_mongo.get(user_id=g.user.user_id, name=name)
         except KeyError:

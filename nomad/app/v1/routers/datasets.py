@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field, validator
 from datetime import datetime
 import enum
 
-from nomad import utils, datamodel, search, processing
+from nomad import utils, datamodel, search, processing, config
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
@@ -196,6 +196,9 @@ async def post_datasets(
     Create a new dataset.
     '''
 
+    if config.services.readonly:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This installation of NOMAD is readonly.')
+
     now = datetime.now()
     dataset_type = create.dataset_type if create.dataset_type is not None else DatasetType.owned
 
@@ -273,6 +276,9 @@ async def delete_dataset(
     Delete an dataset.
     '''
 
+    if config.services.readonly:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This installation of NOMAD is readonly.')
+
     dataset = DatasetDefinitionCls.m_def.a_mongo.objects(dataset_id=dataset_id).first()
     if dataset is None:
         raise HTTPException(
@@ -337,6 +343,9 @@ async def assign_doi(
     '''
     Assign a DOI to a dataset.
     '''
+
+    if config.services.readonly:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This installation of NOMAD is readonly.')
 
     dataset = DatasetDefinitionCls.m_def.a_mongo.objects(dataset_id=dataset_id).first()
     if dataset is None:

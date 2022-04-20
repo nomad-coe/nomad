@@ -46,6 +46,9 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.10.12
+- added a readonly NOMAD api mode
+
 ### v0.10.9
 - new AI Toolkit GUI page
 - many minor parser fixes and improvements

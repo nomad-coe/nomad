@@ -464,6 +464,9 @@ async def post_upload(
     Note, there is a limit on how many unpublished uploads a user can have. If exceeded,
     error code 400 will be returned.
     '''
+    if config.services.readonly:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This installation of NOMAD is readonly.')
+
     # Determine the source data stream
     src_stream = None
     if local_path:
@@ -608,6 +611,9 @@ async def delete_upload(
     Only uploads that are sill in staging, not already deleted, not still uploaded, and
     not currently processed, can be deleted.
     '''
+    if config.services.readonly:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This installation of NOMAD is readonly.')
+
     upload = _get_upload_with_write_access(upload_id, user)
 
     if upload.tasks_running:
@@ -659,6 +665,9 @@ async def post_upload_action_publish(
     Publishes an upload. The upload cannot be modified after this point, and after the
     embargo period (if any) is expired, the generated archive entries will be publicly visible.
     '''
+    if config.services.readonly:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This installation of NOMAD is readonly.')
+
     upload = _get_upload_with_write_access(upload_id, user)
 
     if upload.tasks_running or upload.process_running:
@@ -728,6 +737,9 @@ async def post_upload_action_reprocess(
     Re-processes an upload. The upload must be published, have at least one outdated
     caclulation, and not be processing at the moment.
     '''
+    if config.services.readonly:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This installation of NOMAD is readonly.')
+
     upload = _get_upload_with_write_access(upload_id, user, published_requires_admin=False)
 
     if upload.tasks_running or upload.process_running:
