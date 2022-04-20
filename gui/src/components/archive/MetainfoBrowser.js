@@ -589,7 +589,7 @@ function DefinitionDetails({def, ...props}) {
     </Compartment>}
     {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
       <Compartment title="graph">
-        <VicinityGraph def={def} />
+        <VicinityGraph def={def} key={def.name}/>
       </Compartment>
     }
     {quantityPath &&

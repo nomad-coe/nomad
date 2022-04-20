@@ -192,22 +192,38 @@ export async function navigateTo(path, browserConfig) {
  * itemFilter is provided, all items will be visited. This method provides an easy way to
  * verify that the browser renders all (or at least a lot of) paths correctly.
  */
-export async function browseRecursively(lane, laneIndex, path, consoleLogSpy, consoleErrorSpy, itemFilter, ...args) {
+export async function browseRecursively(lane, laneIndex, path, consoleLogSpy, consoleErrorSpy, itemFilter, filterKeyLength = 2, filterMemory = null) {
+  if (filterMemory === null) {
+    filterMemory = {}
+  }
+  // Click on all discovered item-lists to open them
+  for (const itemList of within(lane).queryAllByRole('item-list')) {
+    const label = itemList.textContent
+    process.stdout.write(`Expanding item list: ${path}/${label}\n`)
+    userEvent.click(itemList)
+    await within(lane).findByTestId(`item-list:${label}`)
+  }
   const items = {}
   for (const item of within(lane).queryAllByTestId(/^item:/)) {
     const itemKey = getItemKey(item)
     items[itemKey] = item
   }
-  const itemKeys = itemFilter ? itemFilter(path, items, ...args) : Object.keys(items)
+  const itemKeys = itemFilter ? itemFilter(path, items) : Object.keys(items)
   for (const itemKey of itemKeys) {
-    const item = items[itemKey]
-    const nextPath = `${path}/${itemKey}`
-    process.stdout.write(`Rendering path: ${nextPath}\n`)
-    const nextLane = await selectItemAndWaitForRender(lane, laneIndex, itemKey, item)
-    expect(consoleLogSpy).not.toBeCalled()
-    expect(consoleErrorSpy).not.toBeCalled()
-    // new lane rendered successfully
-    await browseRecursively(nextLane, laneIndex + 1, nextPath, consoleLogSpy, consoleErrorSpy, itemFilter, ...args)
+    const itemPath = join(path, itemKey)
+    const segments = itemPath.split('/')
+    const filterKey = segments.slice(segments.length - filterKeyLength).join('/')
+    if (!filterMemory[filterKey]) {
+      filterMemory[filterKey] = true
+      const item = items[itemKey]
+      const nextPath = `${path}/${itemKey}`
+      process.stdout.write(`Rendering path: ${nextPath}\n`)
+      const nextLane = await selectItemAndWaitForRender(lane, laneIndex, itemKey, item)
+      expect(consoleLogSpy).not.toBeCalled()
+      expect(consoleErrorSpy).not.toBeCalled()
+      // new lane rendered successfully
+      await browseRecursively(nextLane, laneIndex + 1, nextPath, consoleLogSpy, consoleErrorSpy, itemFilter, filterKeyLength, filterMemory)
+    }
   }
 }
 

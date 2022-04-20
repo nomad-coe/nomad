@@ -16,13 +16,14 @@
  * limitations under the License.
  */
 import React from 'react'
-import { join, basename } from 'path'
+import { join } from 'path'
 import { waitFor } from '@testing-library/dom'
 import { render, screen } from '../conftest.spec'
 import { navigateTo, browseRecursively } from './conftest.spec'
 import MetainfoBrowser from './MetainfoBrowser'
+import { minutes } from '../../setupTests'
 
-function metainfoItemFilter(parentPath, items, encounteredLastTwoSegments) {
+function metainfoItemFilter(parentPath, items) {
   // The metainfo tree is very big, so we need to limit the crawling. This method is used
   // to make the selection.
   if (parentPath.split('/').length === 1) {
@@ -33,28 +34,23 @@ function metainfoItemFilter(parentPath, items, encounteredLastTwoSegments) {
   const encounteredPrefixes = {}
   let countKeysWithoutPrefixes = 0
   for (const itemKey of Object.keys(items)) {
-    const lastTwoSegments = join(basename(parentPath), itemKey)
-    if (!encounteredLastTwoSegments[lastTwoSegments]) {
-      encounteredLastTwoSegments[lastTwoSegments] = true
-      let include = false
-
-      const parts = itemKey.split(/[.@]/)
-      const prefixes = parts.slice(0, parts.length - 1)
-      if (prefixes.length === 0) {
-        countKeysWithoutPrefixes++
-        include = countKeysWithoutPrefixes < 3
-      } else {
-        // We have some number of prefixes. Include only if at least one of the prefixes is new.
-        for (const prefix of prefixes) {
-          if (!encounteredPrefixes[prefix]) {
-            include = true
-            encounteredPrefixes[prefix] = true
-          }
+    let include = false
+    const parts = itemKey.split(/[.@]/)
+    const prefixes = parts.slice(0, parts.length - 1)
+    if (prefixes.length === 0) {
+      countKeysWithoutPrefixes++
+      include = countKeysWithoutPrefixes < 3
+    } else {
+      // We have some number of prefixes. Include only if at least one of the prefixes is new.
+      for (const prefix of prefixes) {
+        if (!encounteredPrefixes[prefix]) {
+          include = true
+          encounteredPrefixes[prefix] = true
         }
       }
-      if (include) {
-        rv.push(itemKey)
-      }
+    }
+    if (include) {
+      rv.push(itemKey)
     }
   }
   return rv
@@ -69,13 +65,12 @@ test('Browse metainfo reursively', async () => {
       expect(screen.getByText(/archive root section/i)).toBeVisible()
     })
 
-    const encounteredLastTwoSegments = {}
     const path = ''
     const lane = await navigateTo(path)
     const laneIndex = path ? path.split('/').length : 0
-    await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), consoleLogSpy, consoleErrorSpy, metainfoItemFilter, encounteredLastTwoSegments)
+    await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), consoleLogSpy, consoleErrorSpy, metainfoItemFilter, 2)
   } finally {
     consoleLogSpy.mockRestore()
     consoleErrorSpy.mockRestore()
   }
-}, 600000)
+}, 12 * minutes)

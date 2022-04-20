@@ -49,14 +49,17 @@ global.nomadEnv = {
   'oasis': false,
   'servicesUploadLimit': 10
 }
+
+export const seconds = 1000
+export const minutes = 60 * seconds
 // Increased the default jest timeout for individual tests
 // eslint-disable-next-line no-undef
-jest.setTimeout(60000)
+jest.setTimeout(2 * minutes)
 
 // Changes the default timeout of waitFor, find*-queries etc. We set this very generously,
 // because when tests are run in parallel, something which normally renders quickly may take
 // long to render if it competes with other tests over limited CPU resources.
-configure({ asyncUtilTimeout: 10000 })
+configure({ asyncUtilTimeout: 10 * seconds })
 
 const { ResizeObserver } = window
 export const server = setupServer()

@@ -22,6 +22,7 @@ import { waitFor } from '@testing-library/dom'
 import { render, screen, within, startAPI, closeAPI } from '../conftest.spec'
 import FileBrowser from './FileBrowser'
 import { purgeTreePath, getLane, checkLanes, navigateTo, checkDirectoryLane, checkFileLane } from './conftest.spec'
+import { minutes } from '../../setupTests'
 
 const dirSpecialChars = 'dir special chars ~!?*\\()[]{}<>,.;:\'"`&@#$%=|'
 const fileBrowserTree = {
@@ -114,7 +115,7 @@ test.each([
 ])('Upload page: %s', async (name, state, snapshot, username, password, editable) => {
   await startAPI(state, snapshot, username, password)
   await testBrowseAround(editable)
-}, 180000)
+}, 3 * minutes)
 
 test('starting in entry dir', async () => {
   await startAPI('tests.states.uploads.browser_test_unpublished', 'tests/data/uploads/browser_test_entrydir', 'test', 'password')

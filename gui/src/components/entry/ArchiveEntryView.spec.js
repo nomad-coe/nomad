@@ -17,27 +17,77 @@
  */
 import React from 'react'
 import { join } from 'path'
-import { render, screen, startAPI, closeAPI } from '../conftest.spec'
-import { navigateTo, browseRecursively } from '../archive/conftest.spec'
+import userEvent from '@testing-library/user-event'
+import { render, screen, within, startAPI, closeAPI } from '../conftest.spec'
+import { getLane, navigateTo, browseRecursively } from '../archive/conftest.spec'
 import EntryContext from './EntryContext'
 import ArchiveEntryView from './ArchiveEntryView'
+import { minutes } from '../../setupTests'
 
 afterEach(() => closeAPI())
 
-test('Browse archive reursively', async () => {
+function archiveItemFilter(parentPath, items) {
+  // The archive tree is very big and contains referential cycles, so we need to limit the crawling.
+  // This method is used to make the selection.
+  const segments = parentPath.split('/')
+  if (segments.length === 1) {
+    // Root - filter nothing
+    return Object.keys(items)
+  }
+  if (segments[segments.length - 2] === '_metainfo') {
+    // Never step deeper than one level into metainfo definitions, these are tested elsewhere
+    return []
+  }
+  const rv = []
+  const itemLists = {}
+  for (const itemKey of Object.keys(items)) {
+    const parts = itemKey.split(':')
+    if (parts.length === 2) {
+      const [label, index] = parts
+      if (itemLists[label]) {
+        itemLists[label].push(index)
+      } else {
+        itemLists[label] = [index]
+      }
+    } else {
+      rv.push(itemKey)
+    }
+  }
+  // For item lists, we want to browse only the first and the last index
+  for (const [label, indices] of Object.entries(itemLists)) {
+    rv.push(`${label}:${indices[0]}`)
+    rv.push(`${label}:${indices[indices.length - 1]}`)
+  }
+  return rv
+}
+
+test.each([
+  ['normal', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, false, 1],
+  ['with definitions', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', true, false, 2],
+  ['with all', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, true, 1]
+])('Browse archive recursively: %s', async (name, entryId, path, withDefinition, withAll, filterKeyLength) => {
   await startAPI('tests.states.uploads.archive_browser_test', 'tests/data/uploads/archive_browser_test', 'test', 'password')
   const consoleLogSpy = jest.spyOn(console, 'log')
   const consoleErrorSpy = jest.spyOn(console, 'error')
   try {
-    render(<EntryContext entryId={'1WGSYo1RrGFEIcM17Re4kjHC7k6p'}><ArchiveEntryView /></EntryContext>)
+    render(<EntryContext entryId={entryId}><ArchiveEntryView /></EntryContext>)
     expect(await screen.findByText('Entry')).toBeVisible()
 
-    const path = ''
+    if (withDefinition) {
+      // Click the definitions checkbox
+      userEvent.click(screen.getByRoleAndText('checkbox', 'definitions'))
+      expect(await within(getLane(0)).findByText('meta')).toBeVisible()
+    }
+    if (withAll) {
+      // Click the metainfo definition
+      userEvent.click(screen.getByRoleAndText('checkbox', 'all defined'))
+      expect(await within(getLane(0)).findByText('processing_logs')).toBeVisible()
+    }
     const lane = await navigateTo(path)
     const laneIndex = path ? path.split('/').length : 0
-    await browseRecursively(lane, laneIndex, join('*ArchiveBrowser*', path), consoleLogSpy, consoleErrorSpy)
+    await browseRecursively(lane, laneIndex, join(`*ArchiveBrowser ${name}*`, path), consoleLogSpy, consoleErrorSpy, archiveItemFilter, filterKeyLength)
   } finally {
     consoleLogSpy.mockRestore()
     consoleErrorSpy.mockRestore()
   }
-}, 180000)
+}, 12 * minutes)

@@ -760,14 +760,14 @@ function PropertyValuesList({label, values, actions}) {
     >
       <Typography onClick={() => setOpen(!open)} className={classes.title}>
         {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
-        <span>{label}</span>
+        <span role="item-list">{label}</span>
       </Typography>
       {actions && <div className={classes.actions}>
         {actions}
       </div>}
     </div>
     {open &&
-      <div>
+      <div data-testid={`item-list:${label}`} >
         {values.map((item, index) => (
           <Item key={index} itemKey={`${label}:${index}`}>
             <Box display="flex" flexDirection="row" flexGrow={1}>

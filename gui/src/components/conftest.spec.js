@@ -30,7 +30,7 @@ import {
   queryAllByRole,
   queries
 } from '@testing-library/react'
-import { server } from '../setupTests'
+import { seconds, server } from '../setupTests'
 import { Router, MemoryRouter } from 'react-router-dom'
 import { createBrowserHistory } from 'history'
 import { APIProvider } from './api'
@@ -151,39 +151,84 @@ const byMenuItem = {
 }
 
 /**
+ * Query for finding a DOM element with a certain role that is "associated" with a certain text.
+ * The text must either be found as title or text ...
+ *  - *on* the returned element itself
+ *  - *within* the returned element itself, or
+ *  - within an *ancestor* of the returned element. This requires that we can find an ancestor
+ *    containing both A) the desired text and B) one and only one element which has the desired role,
+ *    and C) that the ancestor is no more than ancestorDepth ancestors removed from the returned element.
+ *    Setting ancestorDepth to 0 means no ancestors are considered, i.e. the text must be found
+ *    on or within an element with the desired role.
+ */
+const queryAllByRoleAndText = (c, role, text, ancestorDepth = 5) => {
+  const elementsWithRole = c.queryAllByRole ? c.queryAllByRole(role) : queryAllByRole(c, role)
+  const rv = []
+  for (const elementWithRole of elementsWithRole) {
+    let element = elementWithRole
+    for (let i = 0; i <= ancestorDepth; i++) {
+      if (element !== elementWithRole && within(element).queryAllByRole(role).length > 1) {
+        break // There must be only one element with the desired role within the node, or we stop.
+      }
+      if (typeof text === 'string') {
+        // String provided
+        if (element.title === text || element.text === text) {
+          rv.push(elementWithRole)
+          break
+        }
+      } else {
+        // Regex provided
+        if (text.test(element.title) || text.test(element.text)) {
+          rv.push(elementWithRole)
+          break
+        }
+      }
+      if (within(element).queryByTitle(text) || within(element).queryByText(text)) {
+        rv.push(elementWithRole)
+        break
+      }
+      element = element.parentElement
+      if (!element) {
+        break
+      }
+    }
+  }
+  return rv
+}
+const multipleErrorRoleAndText = (c, role, text) =>
+  `Found multiple elements with role '${role}' and text '${text}'`
+const missingErrorRoleAndText = (c, role, text) =>
+  `Unable to find an element with role '${role}' and text '${text}'`
+const [
+  queryByRoleAndText,
+  getAllByRoleAndText,
+  getByRoleAndText,
+  findAllByRoleAndText,
+  findByRoleAndText
+] = buildQueries(queryAllByRoleAndText, multipleErrorRoleAndText, missingErrorRoleAndText)
+const byRoleAndText = {
+  queryAllByRoleAndText,
+  queryByRoleAndText,
+  getAllByRoleAndText,
+  getByRoleAndText,
+  findAllByRoleAndText,
+  findByRoleAndText
+}
+
+/**
  * Query for finding buttons associated with a given text somehow. The text may be a string
  * or a regex. An element will match if it has role = "button" and, for example, the text
  * matches the button's title or is found somewhere within the button. The goal is for this
  * method to handle all types of buttons we use, and it should always return an object which
  * is of a button type and therefore can be used for firing events etc.
  */
-const queryAllByButtonText = (c, text) => {
-  const allButtons = c.queryAllByRole ? c.queryAllByRole('button') : queryAllByRole(c, 'button')
-  const matchingButtons = []
-  for (const button of allButtons) {
-    if (typeof text === 'string') {
-      // String provided
-      if (button.title === text || button.text === text) {
-        matchingButtons.push(button)
-        continue
-      }
-    } else {
-      // Regex provided
-      if (text.test(button.title) || text.test(button.text)) {
-        matchingButtons.push(button)
-        continue
-      }
-    }
-    if (within(button).queryByTitle(text) || within(button).queryByText(text)) {
-      matchingButtons.push(button)
-    }
-  }
-  return matchingButtons
+const queryAllByButtonText = (c, text, ancestorDepth = 0) => {
+  return queryAllByRoleAndText(c, 'button', text, ancestorDepth)
 }
-const multipleErrorButtonText = (c, value) =>
-  `Found multiple buttons with the text: ${value}`
-const missingErrorButtonText = (c, value) =>
-  `Unable to find a button with the text: ${value}`
+const multipleErrorButtonText = (c, text) =>
+  `Found multiple buttons with the text: ${text}`
+const missingErrorButtonText = (c, text) =>
+  `Unable to find a button with the text: ${text}`
 const [
   queryByButtonText,
   getAllByButtonText,
@@ -201,7 +246,7 @@ const byButtonText = {
 }
 
 // Override default screen method by adding custom queries into it
-const customQueries = {...byMenuItem, ...byButtonText}
+const customQueries = {...byMenuItem, ...byRoleAndText, ...byButtonText}
 const defaultAndCustomQueries = {...queries, ...customQueries}
 
 const boundCustomQueries = Object.entries(customQueries).reduce(
@@ -288,7 +333,7 @@ ${func}()"`)
     // We need to wait here for some tasks to finish. TODO: resolve why this is
     // needed, and how could this simple wait be replaced with something
     // better.
-    await wait(undefined, 2000)
+    await wait(undefined, 2 * seconds)
   // Use API responses from snapshot files
   } else if (readMode === 'snapshot') {
     if (fs.existsSync(jsonPath)) {
