@@ -495,6 +495,11 @@ class _QuantityType(DataType):
                 except Exception:
                     raise MetainfoError(
                         f'Could not load python implementation of custom datatype {type_data}')
+            if type_kind == 'numpy':
+                try:
+                    return np.dtype(type_data)
+                except Exception:
+                    raise MetainfoError(f'{type_data} is not a valid numpy type.')
             if type_kind in ['numpy', 'custom']:
                 raise NotImplementedError()
             raise MetainfoError(f'{type_kind} is not a valid quantity type kind.')
@@ -503,8 +508,11 @@ class _QuantityType(DataType):
             return _primitive_type_names[value]
 
         if isinstance(value, str):
-            if value.startswith('np.'):
-                resolved = getattr(np, value[3:])
+            if value.startswith('np.') or value.startswith('numpy.'):
+                try:
+                    resolved = getattr(np, value.split('.', 1)[1])
+                except Exception:
+                    raise MetainfoError(f'{value.split(".", 1)[1]} is not a valid numpy type.')
                 if resolved:
                     return resolved
 
@@ -1883,14 +1891,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 section.__dict__[name] = quantity_value  # type: ignore
 
     @classmethod
-    def m_from_dict(cls: Type[MSectionBound], dct: Dict[str, Any], **kwargs) -> MSectionBound:
+    def m_from_dict(cls: Type[MSectionBound], data: Dict[str, Any], **kwargs) -> MSectionBound:
         ''' Creates a section from the given serializable data dictionary.
 
         This is the 'opposite' of :func:`m_to_dict`. It takes a deserialized dict, e.g
         loaded from JSON, and turns it into a proper section, i.e. instance of the given
         section class.
         '''
-        return MSection.from_dict(dct, cls=cls, **kwargs)
+        return MSection.from_dict(data, cls=cls, **kwargs)
 
     @staticmethod
     def from_dict(
@@ -1925,6 +1933,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             section = cls(m_context=m_context, **kwargs)
         else:
             section = cls(**kwargs)
+
+        if 'm_annotations' in dct:
+            if isinstance(dct['m_annotations'], dict):
+                section.m_annotations.update(dct['m_annotations'])
+            else:
+                raise MetainfoError(
+                    f'The provided m_annotations is of a wrong type. {type(dct["m_annotations"]).__name__} was provided.')
 
         section.m_update_from_dict(dct)
         return section
@@ -3236,6 +3251,27 @@ class Section(Definition):
                         'Alias %s of %s in %s already exists in %s.' % (alias, definition, definition.m_parent, self)
                     names.add(alias)
 
+    @classmethod
+    def m_from_dict(cls, data: Dict[str, Any], **kwargs):
+        if 'quantities' in data and isinstance(data['quantities'], dict):
+            quantities = []
+            for key, value in data['quantities'].items():
+                value.update(dict(name=key))
+                quantities.append(value)
+            data['quantities'] = quantities
+
+        if 'sub_sections' in data and isinstance(data['sub_sections'], dict):
+            sub_sections = []
+            for key, value in data['sub_sections'].items():
+                value.update(dict(name=key))
+                sub_sections.append(value)
+            data['sub_sections'] = sub_sections
+
+        if 'base_section' in data:
+            data['base_sections'] = [data.pop('base_section')]
+
+        return super(Section, cls).m_from_dict(data, **kwargs)
+
 
 class Package(Definition):
     ''' Packages organize metainfo defintions alongside Python modules
@@ -3309,6 +3345,21 @@ class Package(Definition):
             pkg.description = inspect.cleandoc(module.__doc__).strip()
 
         return pkg
+
+    @classmethod
+    def m_from_dict(cls, data: Dict[str, Any], **kwargs):
+        if 'sections' in data:
+            data['section_definitions'] = data.pop('sections')
+
+        if 'section_definitions' in data and isinstance(data['section_definitions'], dict):
+            sections = []
+            for key, value in data['section_definitions'].items():
+                if isinstance(value, dict):
+                    value['name'] = key
+                    sections.append(value)
+                data['section_definitions'] = sections
+
+        return super(Package, cls).m_from_dict(data, **kwargs)
 
 
 class Category(Definition):
@@ -3561,7 +3612,7 @@ Quantity.cached = Quantity(type=bool, name='cached', default=False)
 
 Package.section_definitions = SubSection(
     sub_section=Section.m_def, name='section_definitions', repeats=True,
-    aliases=['section_defs'])
+    aliases=['section_defs', 'sections'])
 
 Package.category_definitions = SubSection(
     sub_section=Category.m_def, name='category_definitions', repeats=True,
