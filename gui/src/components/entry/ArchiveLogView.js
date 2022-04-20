@@ -17,11 +17,10 @@
  */
 import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles, FormGroup, Button, Grid, FormControl, InputLabel, Input, Select, MenuItem, Chip, useTheme } from '@material-ui/core'
+import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles, FormGroup, Button, Grid, FormControl, InputLabel, Input, Select, MenuItem, Chip } from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { amber } from '@material-ui/core/colors'
-import { maxLogsToShow } from '../../config'
 import Page from '../Page'
 import { useErrors } from '../errors'
 import { useApi } from '../api'
@@ -29,6 +28,10 @@ import { useEntryContext } from './EntryContext'
 import Checkbox from '@material-ui/core/Checkbox'
 import FormControlLabel from '@material-ui/core/FormControlLabel'
 
+const logsDefaultValues = {
+  defaultLogsToShowOnFirstMount: 5,
+  defaultLogsToShowOnEachMount: 10
+}
 const useLogEntryStyles = makeStyles(theme => ({
   warning: {
     color: amber[700]
@@ -54,7 +57,6 @@ const LogEntry = React.memo(function LogEntry(props) {
   return (
     <Accordion>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        {/* <Typography {...summaryProps}>{data.level}: {(data.parser || data.normalizer) ? `(${data.parser || data.normalizer})` : ''}</Typography> */}
         <Typography {...summaryProps}>{data.level}: {keyName.map((key) => `${data[key]} | `)}</Typography>
       </AccordionSummary>
       <AccordionDetails>
@@ -104,9 +106,9 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-const Checkboxes = (props) => {
+const FilterLogsByLevel = React.memo(function FilterLogsByLevel(props) {
   const {checkList} = props
-  const {setCheckList} = props
+  const {onCheckListChanged} = props
   return (
     <FormGroup row>
       <Typography style={{padding: '8px', textAlign: 'bottom'}}>
@@ -117,7 +119,7 @@ const Checkboxes = (props) => {
           <FormControlLabel key={i}
             control={<Checkbox
               checked={checkList[key]}
-              onChange={(e) => setCheckList({...checkList, [e.target.name]: e.target.checked})}
+              onChange={onCheckListChanged}
               name={key} id={`${i}`}/>}
             label={key}
           />
@@ -125,14 +127,15 @@ const Checkboxes = (props) => {
       })}
     </FormGroup>
   )
-}
-Checkboxes.propTypes = {
+})
+FilterLogsByLevel.propTypes = {
   checkList: PropTypes.object.isRequired,
-  setCheckList: PropTypes.func.isRequired
+  handleCheckListChanged: PropTypes.func.isRequired,
+  onCheckListChanged: PropTypes.func.isRequired
 }
 
-const MultipleDropdown = (props) => {
-  const {className, keyName, handleChange, uniquekeys, getStyles, theme} = props
+const FilterLogTagsByKeys = React.memo(function FilterLogTagsByKeys(props) {
+  const {className, keyName, onKeyNameChanged, uniquekeys} = props
   return (
     <FormControl className={className.formControl}>
       <InputLabel id="mutiple-chip-label">Filter keys by:</InputLabel>
@@ -141,7 +144,7 @@ const MultipleDropdown = (props) => {
         id="mutiple-chip"
         multiple
         value={keyName}
-        onChange={handleChange}
+        onChange={onKeyNameChanged}
         input={<Input id="select-multiple-chip" />}
         renderValue={(selected) => (
           <div className={className.chips}>
@@ -152,25 +155,23 @@ const MultipleDropdown = (props) => {
         )}
       >
         {uniquekeys.map((name) => (
-          <MenuItem key={name} value={name} style={getStyles(name, keyName, theme)}>
+          <MenuItem key={name} value={name}>
             {name}
           </MenuItem>
         ))}
       </Select>
     </FormControl>
   )
-}
-MultipleDropdown.propTypes = {
+})
+
+FilterLogTagsByKeys.propTypes = {
   className: PropTypes.object.isRequired,
   keyName: PropTypes.array.isRequired,
-  handleChange: PropTypes.func.isRequired,
-  uniquekeys: PropTypes.array.isRequired,
-  getStyles: PropTypes.func.isRequired,
-  theme: PropTypes.object.isRequired
+  onKeyNameChanged: PropTypes.func.isRequired,
+  uniquekeys: PropTypes.array.isRequired
 }
 export default function ArchiveLogView(props) {
   const classes = useStyles()
-  const theme = useTheme()
   const {entryId} = useEntryContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
@@ -186,18 +187,14 @@ export default function ArchiveLogView(props) {
     INFO: true
   })
 
-  const [numberOfLogs, setNumberOflogs] = useState(5)
+  const [numberOfLogs, setNumberOflogs] = useState(logsDefaultValues.defaultLogsToShowOnFirstMount)
   const [keyName, setKeyName] = useState(['parser'])
-  const handleChange = (event) => {
-    setKeyName(event.target.value)
+  const handleKeyNameChanged = (e) => {
+    setKeyName(e.target.value)
   }
-  const getStyles = (name, personName, theme) => {
-    return {
-      fontWeight:
-        personName.indexOf(name) === -1
-          ? theme.typography.fontWeightRegular
-          : theme.typography.fontWeightMedium
-    }
+
+  const handleCheckListChanged = (e) => {
+    setCheckList({...checkList, [e.target.name]: e.target.checked})
   }
 
   useEffect(() => {
@@ -214,7 +211,7 @@ export default function ArchiveLogView(props) {
         }
       })
 
-    setNumberOflogs(10)
+    setNumberOflogs(logsDefaultValues.defaultLogsToShowOnEachMount)
   }, [setData, setDoesNotExist, api, raiseError, entryId, checkList])
 
   if (doesNotExist) {
@@ -231,28 +228,23 @@ export default function ArchiveLogView(props) {
   let content = 'loading ...'
   if (data) {
     let uniquekeys = [...new Set(
-      data.reduce((UKeys, item) => [...UKeys, ...Object.keys(item)], []))]
+      data.reduce((uniqueKeys, item) => [...uniqueKeys, ...Object.keys(item)], []))]
     content =
     <Grid container alignItems='center'>
       <Grid item xs={8}>
-        <Checkboxes checkList={checkList} setCheckList={setCheckList}/>
+        <FilterLogsByLevel checkList={checkList} onCheckListChanged={handleCheckListChanged}/>
       </Grid>
       <Grid item xs={4} >
-        <MultipleDropdown
+        <FilterLogTagsByKeys
           uniquekeys={uniquekeys}
           className={classes}
           keyName={keyName}
-          handleChange={handleChange}
-          getStyles={getStyles}
-          theme={theme}
+          onKeyNameChanged={handleKeyNameChanged}
         />
       </Grid>
       <Grid container spacing={1}>
         {data.slice(0, numberOfLogs).map((entry, i) => (checkList[entry.level]
           ? <Grid item xs={12} key={i}><LogEntry key={i} entry={entry} keyName={keyName}/></Grid> : null))}
-        {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
-          There are {data.length - maxLogsToShow} more log entries. Download the log to see all of them.
-        </Typography>}
       </Grid>
       <Grid container alignItems='center' justifyContent='center'>
         {numberOfLogs < data.length ? (<Button className={classes.seeMore} variant='contained' color='primary' onClick={() => setNumberOflogs(numberOfLogs + numberOfLogs)}>
