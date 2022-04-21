@@ -17,6 +17,7 @@
 #
 
 from nomad import infrastructure
+from nomad.processing import Upload
 from nomad.utils.exampledata import ExampleData
 from .archives.create_archives import archive_dft_bulk
 
@@ -193,3 +194,18 @@ def browser_test_published():
 
 def browser_test_unpublished():
     _browser_test(False)
+
+
+def archive_browser_test():
+    infrastructure.setup()
+    main_author = infrastructure.keycloak.get_user(username='test').user_id
+    coauthors = [infrastructure.keycloak.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.keycloak.get_user(username='ttester').user_id]
+    upload = Upload(
+        upload_id='archive_browser_test',
+        main_author=main_author,
+        coauthors=coauthors,
+        reviewers=reviewers)
+    upload.save()
+    upload.process_upload(
+        file_operation=dict(op='ADD', path='tests/data/proc/examples_vasp.zip', target_dir='', temporary=False))

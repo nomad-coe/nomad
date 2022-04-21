@@ -251,7 +251,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
   }
 }
 
-const Metainfo = React.memo(function Metainfo(props) {
+function Metainfo(props) {
   return <Content>
     <Compartment title="archive root section">
       <Item itemKey="EntryArchive">
@@ -273,7 +273,7 @@ const Metainfo = React.memo(function Metainfo(props) {
       </Item>)}
     </Compartment>
   </Content>
-})
+}
 
 export class SectionDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {
@@ -452,7 +452,7 @@ function DefinitionProperties({def, children}) {
       value => !(value.endsWith('.suggestion') || value.endsWith('__suggestion')))
     )
 
-  if (!(children || def.aliases?.length || def.deprecated || Object.keys(def.more).length || searchAnnotations)) {
+  if (!(children || def.aliases?.length || def.deprecated || (def.more && Object.keys(def.more).length) || searchAnnotations)) {
     return ''
   }
 
@@ -589,7 +589,7 @@ function DefinitionDetails({def, ...props}) {
     </Compartment>}
     {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
       <Compartment title="graph">
-        <VicinityGraph def={def} />
+        <VicinityGraph def={def} key={def.name}/>
       </Compartment>
     }
     {quantityPath &&

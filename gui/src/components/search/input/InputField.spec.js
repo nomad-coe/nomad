@@ -194,7 +194,7 @@ async function expectOptions(selectable, all, visible = true, root = screen) {
         expect(inputCheckbox).toBe(null)
       }
     }
-  }, {timeout: 5000})
+  })
 }
 
 /**

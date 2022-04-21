@@ -252,7 +252,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
           <div className={classes.lanesContainer} ref={outerRef} >
             <div className={classes.lanes} ref={innerRef} >
               {lanes.current && lanes.current.map((lane, index) => (
-                <Lane key={lane.key} lane={lane} />
+                <Lane key={`lane${index}`} lane={lane} />
               ))}
             </div>
           </div>
@@ -273,6 +273,8 @@ export const laneContext = React.createContext()
 export const useLane = () => {
   return useContext(laneContext)
 }
+
+export const laneErrorBoundryMessage = 'This section could not be rendered, due to an unexpected error'
 
 const useLaneStyles = makeStyles(theme => ({
   root: {
@@ -308,7 +310,7 @@ function Lane({lane}) {
     return <div className={classes.root} data-testid={`lane${lane.index}:${lane.key}`}>
       <div className={classes.container} ref={containerRef}>
         <laneContext.Provider value={lane}>
-          <ErrorHandler message='This section could not be rendered, due to an unexpected error.' className={classes.error}>
+          <ErrorHandler message={laneErrorBoundryMessage} className={classes.error}>
             {adaptor.render()}
           </ErrorHandler>
         </laneContext.Provider>
@@ -381,6 +383,7 @@ export const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, 
   if (lane) {
     return <Link
       {...props}
+      data-testid={`item:${itemKey}`}
       to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
     />
   } else {
