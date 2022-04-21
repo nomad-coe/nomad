@@ -26,6 +26,7 @@ import About from '../About'
 import AIToolkitPage from '../aitoolkit/AIToolkitPage'
 import TutorialsPage from '../aitoolkit/TutorialsPage'
 import ReproducePage from '../aitoolkit/ReproducePage'
+import CoursePage from '../aitoolkit/CoursePage'
 import { MetainfoPage, help as metainfoHelp } from '../archive/MetainfoBrowser'
 import EntryPage, { help as entryHelp } from '../entry/EntryPage'
 import UploadsPage, { help as uploadsHelp } from '../uploads/UploadsPage'
@@ -315,6 +316,11 @@ export const routes = [
           content: NORTHHelp
         },
         component: NorthPage
+      },
+      {
+        path: 'course',
+        title: 'Artificial Intelligence Toolkit',
+        component: CoursePage
       }
     ]
   },

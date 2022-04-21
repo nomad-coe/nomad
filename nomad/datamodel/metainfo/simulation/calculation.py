@@ -126,6 +126,7 @@ class AtomicValues(MSection):
 
     m_def = Section(validate=False)
 
+    # TODO rename this to spin_channel
     spin = Quantity(
         type=np.dtype(np.int32),
         shape=[],
@@ -210,6 +211,7 @@ class EnergyEntry(Atomic):
         cell.
         ''')
 
+    # TODO rename this to value_atomic
     values_per_atom = Quantity(
         type=np.dtype(np.float64),
         shape=['n_atoms'],
@@ -310,7 +312,7 @@ class Energy(MSection):
         energy calculated with the functional stored in XC_functional.
         ''')
 
-    # TODO Could potential be generalized for other energy types
+    # TODO Remove this should use xc.potential
     xc_potential = SubSection(
         sub_section=EnergyEntry.m_def,
         description='''
@@ -335,6 +337,7 @@ class Energy(MSection):
         energy.
         ''')
 
+    # TODO remove this or electrostatic
     coulomb = SubSection(
         sub_section=EnergyEntry.m_def,
         description='''
@@ -407,6 +410,38 @@ class Energy(MSection):
         Contains other energy types not already defined.
         ''',
         repeats=True)
+
+    enthalpy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the calculated enthalpy per cell i.e. energy_total + pressure * volume.
+        ''')
+
+    entropy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / kelvin',
+        description='''
+        Value of the entropy.
+        ''')
+
+    chemical_potential = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the chemical potential.
+        ''')
+
+    internal = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the internal energy.
+        ''')
 
     # TODO remove this should be be entropy.correction
     correction_entropy = SubSection(
@@ -613,6 +648,20 @@ class ChargesValue(AtomicValues):
         Value of the charge projected on atom and orbital.
         ''')
 
+    n_electrons = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Value of the number of electrons projected on atom and orbital.
+        ''')
+
+    spin_z = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Value of the azimuthal spin projected on atom and orbital.
+        ''')
+
 
 class Charges(Atomic):
     '''
@@ -637,6 +686,15 @@ class Charges(Atomic):
         Value of the atomic charges calculated through analysis_method.
         ''')
 
+    n_electrons = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_atoms'],
+        description='''
+        Value of the number of electrons on the atoms.
+        ''')
+
+    # TODO should this be on a separate section magnetic_moments or charges should be
+    # renamed population
     spins = Quantity(
         type=np.dtype(np.float64),
         shape=['n_atoms'],
@@ -1129,6 +1187,7 @@ class Multipoles(MSection):
     higher_order = SubSection(sub_section=MultipolesEntry.m_def, repeats=True)
 
 
+# TODO remove this section
 class Thermodynamics(MSection):
     '''
     Section containing results related to a thermodynamics calculation.
@@ -1394,7 +1453,7 @@ class ExcitedStates(MSection):
         ''')
 
 
-class VibrationsValues(MSection):
+class VibrationalFrequenciesValues(MSection):
     '''
     Section describing a vibrational spectrum.
     '''
@@ -1438,7 +1497,7 @@ class VibrationsValues(MSection):
         ''')
 
 
-class Vibrations(MSection):
+class VibrationalFrequencies(MSection):
     '''
     Section containing results related to vibrational frequencies.
     '''
@@ -1457,12 +1516,14 @@ class Vibrations(MSection):
         shape=['n_frequencies'],
         unit='1 / meter',
         description='''
-        Values of vibration Frequenices (cm-1)
+        Values of vibrational frequencies (m-1)
         ''')
 
-    raman = SubSection(sub_section=VibrationsValues.m_def, repeats=False)
+    # TODO add normal modes
 
-    infrared = SubSection(sub_section=VibrationsValues.m_def, repeats=False)
+    raman = SubSection(sub_section=VibrationalFrequenciesValues.m_def, repeats=False)
+
+    infrared = SubSection(sub_section=VibrationalFrequenciesValues.m_def, repeats=False)
 
 
 class BaseCalculation(MSection):
@@ -1564,6 +1625,37 @@ class BaseCalculation(MSection):
         contamination in spin-unrestricted calculations.
         ''')
 
+    pressure = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        Value of the pressure of the system.
+        ''')
+
+    temperature = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='kelvin',
+        description='''
+        Value of the temperature of the system at which the properties are calculated.
+        ''')
+
+    time_physical = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        unit='second',
+        description='''
+        The elapsed time with respect to the start of the simulation.
+        ''')
+
+    time_step = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        The number of time steps with respect to the start of the simulation.
+        ''')
+
     energy = SubSection(sub_section=Energy.m_def, categories=[FastAccess])
 
     forces = SubSection(sub_section=Forces.m_def)
@@ -1584,7 +1676,7 @@ class BaseCalculation(MSection):
 
     excited_states = SubSection(sub_section=ExcitedStates.m_def, repeats=True)
 
-    vibrational_frequencies = SubSection(sub_section=Vibrations.m_def, repeats=True)
+    vibrational_frequencies = SubSection(sub_section=VibrationalFrequencies.m_def, repeats=True)
 
     potential = SubSection(sub_section=Potential.m_def, repeats=True)
 

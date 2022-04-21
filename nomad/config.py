@@ -403,7 +403,14 @@ north = NomadConfig(
     shared_fs='.volumes/fs/north/shared',
     users_fs='.volumes/fs/north/users',
     jupyterhub_crypt_key=None,
-    windows=True  # enable windows (as in windows the OS) hacks
+    windows=True,  # enable windows (as in windows the OS) hacks
+)
+
+archive = NomadConfig(
+    block_size=256 * 1024,
+    read_buffer_size=256 * 1024,  # GPFS needs at least 256K to achieve decent performance
+    max_process_number=20,  # maximum number of processes can be assigned to process archive query
+    min_entires_per_process=20  # minimum number of entries per process
 )
 
 

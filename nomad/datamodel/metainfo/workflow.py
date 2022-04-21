@@ -1333,6 +1333,230 @@ class MolecularDynamics(MSection):
         Indicates if calculation contains thermodynamic data.
         ''')
 
+    radial_distribution_functions = SubSection(sub_section=SectionProxy('RadialDistributionFunction'), repeats=True)
+
+    mean_squared_displacements = SubSection(sub_section=SectionProxy('MeanSquaredDisplacement'), repeats=True)
+
+
+class EnsemblePropertyValues(MSection):
+    '''
+    Generic section containing information regarding the values of an ensemble property.
+    '''
+
+    m_def = Section(validate=False)
+
+    label = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the atoms or molecule types involved in determining the property.
+        ''')
+
+
+class EnsembleProperty(MSection):
+    '''
+    Generic section containing information about a calculation of any static observable
+    from a trajectory (i.e., from an ensemble average).
+    '''
+
+    m_def = Section(validate=False)
+
+    type = Quantity(
+        type=MEnum('Molecular', 'Atomic'),
+        shape=[],
+        description='''
+        Describes if the observable is calculated at the molecular or atomic level.
+        ''')
+
+    n_smooth = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of bins over which the running average was computed for
+        the observable `values'.
+        ''')
+
+    error_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the type of error reported for this observable.
+        ''')
+
+    n_variables = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of variables along which the property is determined.
+        ''')
+
+    variables_name = Quantity(
+        type=np.dtype(str),
+        shape=['n_variables'],
+        description='''
+        Name/description of the independent variables along which the observable is defined.
+        ''')
+
+
+class RadialDistributionFunctionValues(EnsemblePropertyValues):
+    '''
+    Section containing information regarding the values of
+    radial distribution functions (rdfs).
+    '''
+
+    m_def = Section(validate=False)
+
+    n_bins = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of bins.
+        ''')
+
+    bins = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_bins'],
+        unit='m',
+        description='''
+        Distances along which the rdf was calculated.
+        ''')
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_bins'],
+        description='''
+        Values of the property.
+        ''')
+
+
+class RadialDistributionFunction(EnsembleProperty):
+    '''
+    Section containing information about the calculation of
+    radial distribution functions (rdfs).
+    '''
+
+    m_def = Section(validate=False)
+
+    radial_distribution_function_values = SubSection(sub_section=RadialDistributionFunctionValues.m_def, repeats=True)
+
+
+class CorrelationFunctionValues(MSection):
+    '''
+    Generic section containing information regarding the values of a correlation function.
+    '''
+
+    m_def = Section(validate=False)
+
+    label = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the atoms or molecule types involved in determining the property.
+        ''')
+
+    n_times = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of times windows for the calculation of the correlation function.
+        ''')
+
+
+class CorrelationFunction(MSection):
+    '''
+    Generic section containing information about a calculation of any time correlation
+    function from a trajectory.
+    '''
+
+    m_def = Section(validate=False)
+
+    type = Quantity(
+        type=MEnum('Molecular', 'Atomic'),
+        shape=[],
+        description='''
+        Describes if the correlation function is calculated at the molecular or atomic level.
+        ''')
+
+    direction = Quantity(
+        type=MEnum('x', 'y', 'z', 'xy', 'yz', 'xz', 'xyz'),
+        shape=[],
+        description='''
+        Describes the direction in which the correlation function was calculated.
+        ''')
+
+    error_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the type of error reported for this correlation function.
+        ''')
+
+
+class DiffusionConstantValues(MSection):
+    '''
+    Section containing information regarding the diffusion constants.
+    '''
+
+    m_def = Section(validate=False)
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m^2/s',
+        description='''
+        Values of the diffusion constants.
+        ''')
+
+    error_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the type of error reported for this observable.
+        ''')
+
+    errors = Quantity(
+        type=np.dtype(np.float64),
+        shape=['*'],
+        description='''
+        Error associated with the determination of the diffusion constant.
+        ''')
+
+
+class MeanSquaredDisplacementValues(CorrelationFunctionValues):
+    '''
+    Section containing information regarding the values of a mean squared displacements (msds).
+    '''
+
+    m_def = Section(validate=False)
+
+    times = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_times'],
+        unit='s',
+        description='''
+        Time windows used for the calculation of the msds.
+        ''')
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_times'],
+        unit='m^2',
+        description='''
+        Msd values.
+        ''')
+
+    diffusion_constant = SubSection(sub_section=DiffusionConstantValues.m_def, repeats=False)
+
+
+class MeanSquaredDisplacement(CorrelationFunction):
+    '''
+    Section containing information about a calculation of any mean squared displacements (msds).
+    '''
+
+    m_def = Section(validate=False)
+
+    mean_squared_displacement_values = SubSection(sub_section=MeanSquaredDisplacementValues.m_def, repeats=True)
+
 
 class SinglePoint(MSection):
     '''

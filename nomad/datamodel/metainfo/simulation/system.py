@@ -27,6 +27,70 @@ from ..common import FastAccess
 m_package = Package()
 
 
+class AtomsGroup(MSection):
+    '''
+    Describes a group of atoms which may constitute a sub system as in the case of a
+    molecule.
+    '''
+
+    m_def = Section(validate=False)
+
+    label = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Label of the group.
+        ''')
+
+    type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Type of the group.
+        ''')
+
+    index = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Index of the group with respect to its parent group.
+        ''')
+
+    composition_formula = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The overall composition of the group with respect to its subgroups.
+        The syntax for a groups composed of X and Y with x and y components of each,
+        respectively, is X(x)Y(y).
+        ''')
+
+    n_atoms = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        The total number of atoms in the group.
+        ''')
+
+    atom_indices = Quantity(
+        type=np.dtype(np.int32),
+        shape=['n_atoms'],
+        description='''
+        Indices of the atoms in the group with respect to the system.
+        ''')
+
+    is_molecule = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Denotes if the atoms in this group represent a molecule. That is, all atoms
+        in the group are connected via bonds, and no other atoms contain bonds
+        with these atoms.
+        ''')
+
+    atoms_group = SubSection(sub_section=SectionProxy('AtomsGroup'), repeats=True)
+
+
 class Atoms(MSection):
     '''
     Describes the atomic structure of the physical system. This includes the atom
@@ -399,7 +463,7 @@ class Constraint(MSection):
         Number of atoms involved in this constraint.
         ''')
 
-    indices = Quantity(
+    atom_indices = Quantity(
         type=np.dtype(np.int32),
         shape=['n_constraints', 'n_atoms'],
         description='''
@@ -483,6 +547,8 @@ class System(MSection):
         categories=[FastAccess])
 
     atoms = SubSection(sub_section=Atoms.m_def, categories=[FastAccess])
+
+    atoms_group = SubSection(sub_section=AtomsGroup.m_def, repeats=True)
 
     chemical_composition = Quantity(
         type=str,

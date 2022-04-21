@@ -19,24 +19,57 @@
 from typing import Iterable, Any, Tuple, Dict, BinaryIO, Union, List, cast
 from io import BytesIO, BufferedReader
 from collections.abc import Mapping, Sequence
+
+from memoization import cached
 import msgpack
 from msgpack.fallback import Packer, StringIO
 import struct
 import json
-import math
 
 from nomad import utils
-
+from nomad.config import archive
 
 __packer = msgpack.Packer(autoreset=True, use_bin_type=True)
 
+_toc_uuid_size = utils.default_hash_len + 1
+_toc_item_size = _toc_uuid_size + 25  # packed(uuid + [10-byte-pos, 10-byte-pos])
+_entries_per_block = archive.block_size // _toc_item_size
+_bytes_per_block = _entries_per_block * _toc_item_size
 
-def packb(o, **kwargs):
+
+def packb(o):
     return __packer.pack(o)
 
 
-def unpackb(o, **kwargs):
+def unpackb(o):
     return msgpack.unpackb(o, raw=False)
+
+
+def _encode(start: int, end: int) -> bytes:
+    return start.to_bytes(5, byteorder='little', signed=False) + end.to_bytes(
+        5, byteorder='little', signed=False)
+
+
+def _decode(position: bytes) -> Tuple[int, int]:
+    return int.from_bytes(position[:5], byteorder='little', signed=False), int.from_bytes(
+        position[5:], byteorder='little', signed=False)
+
+
+def _unpack_entry(data: bytes) -> Tuple[Any, Tuple[Any, Any]]:
+    entry_uuid = unpackb(data[: _toc_uuid_size])
+    positions_encoded = unpackb(data[_toc_uuid_size:])
+    return entry_uuid, (_decode(positions_encoded[0]), _decode(positions_encoded[1]))
+
+
+def _to_son(data):
+    if isinstance(data, ArchiveList):
+        data = data.to_list()
+
+    elif isinstance(data, ArchiveDict):
+        data = data.to_dict()
+
+    # no need to convert build-in types
+    return data
 
 
 class ArchiveError(Exception):
@@ -51,77 +84,78 @@ class TOCPacker(Packer):
     Uses a combination of the pure python msgpack fallback packer and the "real"
     c-based packing.
     '''
+
     def __init__(self, toc_depth: int, *args, **kwargs):
         self.toc_depth = toc_depth
+        # noinspection PyTypeChecker
         self.toc: Dict[str, Any] = None
         self._depth = 0
 
         # Because we cannot change msgpacks interface of _pack, this _stack is used to
-        # tranfer the result of _pack calls in terms of the TOC.
+        # transfer the result of _pack calls in terms of the TOC.
         self._stack: List[Any] = []
 
         super().__init__(*args, **kwargs)
 
-    def pack(self, obj, *args, **kwargs):
-        assert isinstance(obj, dict), 'TOC packer can only pack dicts, %s' % obj.__class__
-        self._depth = 0
-        self._buffer = StringIO()
-        result = super().pack(obj, *args, **kwargs)
-        self.toc = self._stack.pop()
-        assert len(self._stack) == 0
-        return result
-
     def _pos(self):
         return self._buffer.getbuffer().nbytes
 
-    def _pack(self, obj, *args, **kwargs):
-        if isinstance(obj, dict):
-            toc_result = {}
-            start = self._pos()
-            if self._depth >= self.toc_depth:
-                pack_result = self._buffer.write(packb(obj))
-            else:
-                self._depth += 1
-                pack_result = super()._pack(obj, *args, **kwargs)
-                self._depth -= 1
+    def _pack_list(self, obj, *args, **kwargs):
+        pack_result = super()._pack(obj, *args, **kwargs)
 
-                toc = {}
-                for key, value in reversed(list(obj.items())):
-                    if isinstance(value, (list, tuple)):
-                        # this makes some assumptions about the non emptyness and uniformness
-                        # of array items
-                        if len(value) > 0 and isinstance(value[0], dict):
-                            toc[key] = self._stack.pop()
+        toc_result = []
+        # same assumption and condition as above
+        if len(obj) > 0 and isinstance(obj[0], dict):
+            for _ in obj:
+                toc_result.append(self._stack.pop())
 
-                    elif isinstance(value, (dict, list, tuple)):
-                        toc[key] = self._stack.pop()
-
-                toc_result['toc'] = {key: value for key, value in reversed(list(toc.items()))}
-
-            end = self._pos()
-            toc_result['pos'] = [start, end]
-
-            self._stack.append(toc_result)
-
-        elif isinstance(obj, list):
-            toc_result = []
-            pack_result = super()._pack(obj, *args, **kwargs)
-
-            # same assumption and condition as above
-            if len(obj) > 0 and isinstance(obj[0], dict):
-                for _ in obj:
-                    toc_result.append(self._stack.pop())
-
-                self._stack.append(list(reversed(toc_result)))
-
-        else:
-            pack_result = self._buffer.write(packb(obj))
+            self._stack.append(list(reversed(toc_result)))
 
         return pack_result
 
+    def _pack_dict(self, obj, *args, **kwargs):
+        toc_result = {}
+        start = self._pos()
+        if self._depth >= self.toc_depth:
+            pack_result = self._buffer.write(packb(obj))
+        else:
+            self._depth += 1
+            pack_result = super()._pack(obj, *args, **kwargs)
+            self._depth -= 1
 
-_toc_uuid_size = utils.default_hash_len + 1
-_toc_item_size = _toc_uuid_size + 25  # packed(uuid + [10-byte-pos, 10-byte-pos])
+            toc = {}
+            for key, value in reversed(list(obj.items())):
+                if isinstance(value, dict) or (isinstance(value, (list, tuple)) and len(
+                        value) > 0 and isinstance(value[0], dict)):
+                    # assumes non emptiness and uniformity of array items
+                    toc[key] = self._stack.pop()
+
+            toc_result['toc'] = {key: value for key, value in reversed(list(toc.items()))}
+
+        end = self._pos()
+        toc_result['pos'] = [start, end]
+
+        self._stack.append(toc_result)
+
+        return pack_result
+
+    def _pack(self, obj, *args, **kwargs):
+        if isinstance(obj, dict):
+            return self._pack_dict(obj, *args, **kwargs)
+
+        if isinstance(obj, list):
+            return self._pack_list(obj, *args, **kwargs)
+
+        return self._buffer.write(packb(obj))
+
+    def pack(self, obj):
+        assert isinstance(obj, dict), f'TOC packer can only pack dicts, {obj.__class__}'
+        self._depth = 0
+        self._buffer = StringIO()
+        result = super().pack(obj)
+        self.toc = self._stack.pop()
+        assert len(self._stack) == 0
+        return result
 
 
 class ArchiveWriter:
@@ -130,8 +164,10 @@ class ArchiveWriter:
         self.n_entries = n_entries
 
         self._pos = 0
+        # noinspection PyTypeChecker
         self._toc_position: Tuple[int, int] = None
         self._toc: Dict[str, Tuple[Tuple[int, int], Tuple[int, int]]] = {}
+        # noinspection PyTypeChecker
         self._f: BinaryIO = None
         self._toc_packer = TOCPacker(toc_depth=entry_toc_depth)
 
@@ -146,23 +182,18 @@ class ArchiveWriter:
 
         # write empty placeholder header
         self._write_map_header(3)
-        self.write(packb('toc_pos'))
-        self.write(packb(ArchiveWriter._encode_position(0, 0)))
+        self._writeb('toc_pos')
+        self._writeb(_encode(0, 0))
 
-        self.write(packb('toc'))
+        self._writeb('toc')
         toc_start, _ = self._write_map_header(self.n_entries)
-        _, toc_end = self.write(b'0' * _toc_item_size * self.n_entries)
+        _, toc_end = self._write(b'0' * _toc_item_size * self.n_entries)
         self._toc_position = toc_start, toc_end
 
-        self.write(packb('data'))
+        self._writeb('data')
         self._write_map_header(self.n_entries)
 
         return self
-
-    def write(self, b: bytes) -> Tuple[int, int]:
-        start = self._pos
-        self._pos += self._f.write(b)
-        return start, self._pos
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_val is not None:
@@ -174,28 +205,36 @@ class ArchiveWriter:
 
         assert len(self._toc) == self.n_entries
         toc_items = sorted(self._toc.items(), key=lambda item: item[0])
-        toc = {
-            uuid: [
-                ArchiveWriter._encode_position(*positions[0]),
-                ArchiveWriter._encode_position(*positions[1])]
-            for uuid, positions in toc_items}
+        toc = {uuid: [_encode(*positions[0]), _encode(
+            *positions[1])] for uuid, positions in toc_items}
 
         self._write_map_header(3)
-        self.write(packb('toc_pos'))
-        self.write(
-            packb(ArchiveWriter._encode_position(*self._toc_position), use_bin_type=True))
+        self._writeb('toc_pos')
+        self._writeb(_encode(*self._toc_position))
 
-        self.write(packb('toc'))
-        toc_position = self.write(packb(toc, use_bin_type=True))
-        assert toc_position == self._toc_position, '%s - %s' % (toc_position, self._toc_position)
+        self._writeb('toc')
+        toc_position = self._writeb(toc)
+        assert toc_position == self._toc_position, f'{toc_position} - {self._toc_position}'
 
         if isinstance(self.file_or_path, str):
             self._f.close()
 
-    @staticmethod
-    def _encode_position(start: int, end: int) -> bytes:
-        return start.to_bytes(5, byteorder='little', signed=False) + \
-            end.to_bytes(5, byteorder='little', signed=False)
+    def _write_map_header(self, n):
+        if n <= 0x0f:
+            return self._write(struct.pack('B', 0x80 + n))
+        if n <= 0xffff:
+            return self._write(struct.pack(">BH", 0xde, n))
+        if n <= 0xffffffff:
+            return self._write(struct.pack(">BI", 0xdf, n))
+        raise ValueError("Dict is too large")
+
+    def _write(self, b: bytes) -> Tuple[int, int]:
+        start = self._pos
+        self._pos += self._f.write(b)
+        return start, self._pos
+
+    def _writeb(self, obj):
+        return self._write(packb(obj))
 
     def add(self, uuid: str, data: Any) -> None:
         uuid = utils.adjust_uuid_size(uuid)
@@ -204,198 +243,196 @@ class ArchiveWriter:
         packed = self._toc_packer.pack(data)
         toc = self._toc_packer.toc
 
-        self.write(packb(uuid))
+        self._writeb(uuid)
         self._write_map_header(2)
-        self.write(packb('toc'))
-        toc_pos = self.write(packb(toc, use_bin_type=True))
-        self.write(packb('data'))
-        data_pos = self.write(packed)
+        self._writeb('toc')
+        toc_pos = self._writeb(toc)
+        self._writeb('data')
+        data_pos = self._write(packed)
 
         self._toc[uuid] = (toc_pos, data_pos)
 
-    def _write_map_header(self, n):
-        if n <= 0x0f:
-            return self.write(struct.pack('B', 0x80 + n))
-        if n <= 0xffff:
-            return self.write(struct.pack(">BH", 0xde, n))
-        if n <= 0xffffffff:
-            return self.write(struct.pack(">BI", 0xdf, n))
-        raise ValueError("Dict is too large")
-
 
 class ArchiveItem:
-    def __init__(self, toc_entry: list, f: BytesIO, offset: int = 0):
-        self.toc_entry = toc_entry
+    def __init__(self, f: BytesIO, offset: int = 0):
         self._f = f
         self._offset = offset
 
+    def _direct_read(self, size: int, offset: int):
+        self._f.seek(offset)
+        return self._f.read(size)
+
     def _read(self, position: Tuple[int, int]):
         start, end = position
-        self._f.seek(start + self._offset)
-        return unpackb(self._f.read(end - start))
+        raw_data = self._direct_read(end - start, start + self._offset)
+        return unpackb(raw_data)
 
-    def _getchild(self, child_toc_entry):
+    @cached(thread_safe=False, max_size=512)
+    def _child(self, child_toc_entry):
         if isinstance(child_toc_entry, dict):
             if 'toc' in child_toc_entry:
-                return ArchiveObject(child_toc_entry, self._f, self._offset)
-            else:
-                return self._read(child_toc_entry['pos'])
+                return ArchiveDict(child_toc_entry, self._f, self._offset)
 
-        elif isinstance(child_toc_entry, list):
+            return self._read(child_toc_entry['pos'])
+
+        if isinstance(child_toc_entry, list):
             return ArchiveList(child_toc_entry, self._f, self._offset)
 
-        else:
-            assert False, 'unreachable'
+        assert False, 'unreachable'
 
 
 class ArchiveList(ArchiveItem, Sequence):
+    def __init__(self, toc_entry: list, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._toc_entry = toc_entry
+        self._full_list = None
 
     def __getitem__(self, index):
-        child_toc_entry = self.toc_entry[index]
-        return self._getchild(child_toc_entry)
+        if self._full_list is None:
+            child_entry = self._toc_entry[index]
+            return self._child(child_entry)
+
+        return self._full_list[index]
 
     def __len__(self):
-        return self.toc_entry.__len__()
+        return self._toc_entry.__len__()
+
+    def to_list(self):
+        if self._full_list is None:
+            self._full_list = [_to_son(self._child(child_entry)) for child_entry in self._toc_entry]
+
+        return self._full_list
 
 
-class ArchiveObject(ArchiveItem, Mapping):
-
-    def __init__(self, *args, **kwargs):
+class ArchiveDict(ArchiveItem, Mapping):
+    def __init__(self, toc_entry: dict, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._data = None
+        self._toc_entry = toc_entry
 
     def __getitem__(self, key):
-        if self._data is None:
-            try:
-                child_toc_entry = self.toc_entry['toc'][key]
-            except KeyError:
-                return self.to_dict().__getitem__(key)
-            return self._getchild(child_toc_entry)
-        else:
-            return self._data.__getitem__(key)
+        try:
+            child_toc_entry = self._toc_entry['toc'][key]
+            return self._child(child_toc_entry)
+        except KeyError:
+            return self.to_dict().__getitem__(key)
 
     def __iter__(self):
-        if self._data is None:
-            return self.toc_entry['toc'].__iter__()
-        else:
-            return self._data.__iter__()
+        return self._toc_entry['toc'].__iter__()
 
     def __len__(self):
-        if self._data is None:
-            return self.toc_entry['toc'].__len__()
-        else:
-            return self._data.__len__()
+        return self._toc_entry['toc'].__len__()
 
+    @cached(thread_safe=False)
     def to_dict(self):
-        return self._read(self.toc_entry['pos'])
+        # todo: potential bug here, what if children are ArchiveList or ArchiveDict?
+        return self._read(self._toc_entry['pos'])
 
 
-class ArchiveReader(ArchiveObject):
+class ArchiveReader(ArchiveDict):
     def __init__(self, file_or_path: Union[str, BytesIO], use_blocked_toc=True):
-        self.file_or_path = file_or_path
+        self._file_or_path = file_or_path
 
-        f: BytesIO = None
-        if isinstance(self.file_or_path, str):
-            f = cast(BytesIO, open(self.file_or_path, 'rb'))
-        elif isinstance(self.file_or_path, BytesIO):
-            f = self.file_or_path
-        elif isinstance(self.file_or_path, BufferedReader):
-            f = self.file_or_path
+        if isinstance(self._file_or_path, str):
+            f: BytesIO = cast(
+                BytesIO, open(self._file_or_path, 'rb', buffering=archive.read_buffer_size))
+        elif isinstance(self._file_or_path, (BytesIO, BufferedReader)):
+            f = cast(BytesIO, self._file_or_path)
         else:
             raise ValueError('not a file or path')
 
+        # noinspection PyTypeChecker
         super().__init__(None, f)
-
-        self._toc_entry = None
 
         # this number is determined by the msgpack encoding of the file beginning:
         # { 'toc_pos': <...>
         #              ^11
-        self._f.seek(11)
-        self.toc_position = ArchiveReader._decode_position(self._f.read(10))
+        self._toc_position = _decode(self._direct_read(10, 11))
 
-        self.use_blocked_toc = use_blocked_toc
-        if use_blocked_toc:
-            self._f.seek(11)
-            self._toc: Dict[str, Any] = {}
-            toc_start = self.toc_position[0]
-            self._f.seek(toc_start)
-            b = self._f.read(1)[0]
-            if b & 0b11110000 == 0b10000000:
-                self._n_toc = b & 0b00001111
-                self._toc_offset = toc_start + 1
-            elif b == 0xde:
-                self._n_toc, = struct.unpack_from(">H", self._f.read(2))
-                self._toc_offset = toc_start + 3
-            elif b == 0xdf:
-                self._n_toc, = struct.unpack_from(">I", self._f.read(4))
-                self._toc_offset = toc_start + 5
-            else:
-                raise ArchiveError('Archive top-level TOC is not a msgpack map (dictionary).')
+        self._use_blocked_toc = use_blocked_toc
 
+        if not self._use_blocked_toc:
+            self._toc_entry = self._read(self._toc_position)
+            return
+
+        toc_start = self._toc_position[0]
+        b = self._direct_read(1, toc_start)[0]
+        if b & 0b11110000 == 0b10000000:
+            self._toc_number = b & 0b00001111
+            self._toc_offset = toc_start + 1
+        elif b == 0xde:
+            self._toc_number, = struct.unpack_from(">H", self._direct_read(2, toc_start + 1))
+            self._toc_offset = toc_start + 3
+        elif b == 0xdf:
+            self._toc_number, = struct.unpack_from(">I", self._direct_read(4, toc_start + 1))
+            self._toc_offset = toc_start + 5
         else:
-            self.toc_entry = self._read(self.toc_position)
+            raise ArchiveError('Archive top-level TOC is not a msgpack map (dictionary).')
+
+        self._toc: Dict[str, Any] = {}
+        self._toc_block_info = [None] * (self._toc_number // _entries_per_block + 1)
 
     def __enter__(self):
         return self
 
-    fs_block_size = 4096
-    toc_block_size_entries = math.ceil(4096 / _toc_item_size)
-    toc_block_size_bytes = math.ceil(4096 / 54) * _toc_item_size
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def _load_toc_block(self, i_entry: int):
-        i_block = math.floor(i_entry / ArchiveReader.toc_block_size_entries)
+        i_block = i_entry // _entries_per_block
 
-        self._f.seek(i_block * ArchiveReader.toc_block_size_bytes + self._toc_offset)
-        block_data = self._f.read(ArchiveReader.toc_block_size_bytes)
+        if self._toc_block_info[i_block]:
+            return self._toc_block_info[i_block]
+
+        i_offset = i_block * _bytes_per_block + self._toc_offset
+        block_data = self._direct_read(_bytes_per_block, i_offset)
+
         first, last = None, None
-        toc_block_size_entries = min(
-            ArchiveReader.toc_block_size_entries,
-            self._n_toc - i_block * ArchiveReader.toc_block_size_entries)
 
-        for i in range(0, toc_block_size_entries):
-            offset = i * _toc_item_size
-            entry_uuid = unpackb(block_data[offset:offset + _toc_uuid_size])
-            positions_encoded = unpackb(block_data[offset + _toc_uuid_size:offset + _toc_item_size])
-            positions = (
-                ArchiveReader._decode_position(positions_encoded[0]),
-                ArchiveReader._decode_position(positions_encoded[1]))
+        entries_current_block = min(
+            _entries_per_block, self._toc_number - i_block * _entries_per_block)
+
+        offset: int = 0
+        for i in range(entries_current_block):
+            entry_uuid, positions = _unpack_entry(block_data[offset:offset + _toc_item_size])
             self._toc[entry_uuid] = positions
+            offset += _toc_item_size
 
             if i == 0:
                 first = entry_uuid
 
-            if i + 1 == toc_block_size_entries:
+            if i + 1 == entries_current_block:
                 last = entry_uuid
 
-        return first, last
+        self._toc_block_info[i_block] = (first, last)
+
+        return self._toc_block_info[i_block]
 
     def __getitem__(self, key):
         key = utils.adjust_uuid_size(key)
 
-        if self.use_blocked_toc and self.toc_entry is None:
-            if self._n_toc == 0:
+        if self._use_blocked_toc and self._toc_entry is None:
+            if self._toc_number == 0:
                 raise KeyError(key)
 
             positions = self._toc.get(key)
             # TODO use hash algorithm instead of binary search
             if positions is None:
                 r_start = 0
-                r_end = self._n_toc
-                i_block = None
+                r_end = self._toc_number
+                i_entry = None
                 while r_start <= r_end:
-                    new_i_block = r_start + math.floor((r_end - r_start) / 2)
-                    if i_block == new_i_block:
+                    m_entry = r_start + (r_end - r_start) // 2
+                    if i_entry == m_entry:
                         break
-                    else:
-                        i_block = new_i_block
 
-                    first, last = self._load_toc_block(i_block)
+                    i_entry = m_entry
+
+                    first, last = self._load_toc_block(i_entry)
 
                     if key < first:
-                        r_end = i_block - 1
+                        r_end = i_entry - 1
                     elif key > last:
-                        r_start = i_block + 1
+                        r_start = i_entry + 1
                     else:
                         break
 
@@ -404,48 +441,38 @@ class ArchiveReader(ArchiveObject):
                     raise KeyError(key)
 
             toc_position, data_position = positions
-
         else:
-            positions_encoded = self.toc_entry[key]
-            toc_position = ArchiveReader._decode_position(positions_encoded[0])
-            data_position = ArchiveReader._decode_position(positions_encoded[1])
+            positions = self._toc_entry[key]
+            toc_position = _decode(positions[0])
+            data_position = _decode(positions[1])
 
-        toc = self._read(toc_position)
-        return ArchiveObject(toc, self._f, data_position[0])
+        return ArchiveDict(self._read(toc_position), self._f, data_position[0])
 
     def __iter__(self):
-        if self.toc_entry is None:
+        if self._toc_entry is None:
             # is not necessarily read when using blocked toc
-            self.toc_entry = self._read(self.toc_position)
+            self._toc_entry = self._read(self._toc_position)
 
-        return self.toc_entry.__iter__()
+        return self._toc_entry.__iter__()
 
     def __len__(self):
-        if self.toc_entry is None:
+        if self._toc_entry is None:
             # is not necessarily read when using blocked toc
-            self.toc_entry = self._read(self.toc_position)
+            self._toc_entry = self._read(self._toc_position)
 
-        return self.toc_entry.__len__()
+        return self._toc_entry.__len__()
 
     def close(self):
-        if isinstance(self.file_or_path, str):
+        if isinstance(self._file_or_path, str):
             self._f.close()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-    @staticmethod
-    def _decode_position(position: bytes) -> Tuple[int, int]:
-        return int.from_bytes(position[0:5], byteorder='little', signed=False), \
-            int.from_bytes(position[5:], byteorder='little', signed=False)
 
     def is_closed(self):
         return self._f.closed
 
 
 def write_archive(
-        path_or_file: Union[str, BytesIO], n_entries: int, data: Iterable[Tuple[str, Any]],
-        entry_toc_depth: int = 2) -> None:
+        path_or_file: Union[str, BytesIO], n_entries: int,
+        data: Iterable[Tuple[str, Any]], entry_toc_depth: int = 2) -> None:
     '''
     Writes a msgpack-based archive file. The file contents will be a valid msgpack-object.
     The data will contain extra table-of-contents (TOC) objects that map some keys to
@@ -495,7 +522,7 @@ def write_archive(
     TOCs are regular msgpack encoded integers.
 
     Arguments:
-        file_or_path: A file path or file-like to the archive file that should be written.
+        path_or_file: A file path or file-like to the archive file that should be written.
         n_entries: The number of entries that will be added to the file.
         data: The file contents as an iterator of entry id, data tuples.
         entry_toc_depth: The depth of the table of contents in each entry. Only objects will
@@ -506,7 +533,7 @@ def write_archive(
             writer.add(uuid, entry)
 
 
-def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
+def read_archive(file_or_path: Union[str, BytesIO], **kwargs) -> ArchiveReader:
     '''
     Allows to read a msgpack-based archive.
 
@@ -525,7 +552,6 @@ def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
 
 
 if __name__ == '__main__':
-
     def benchmark():
         from time import time
         import sys
@@ -551,7 +577,9 @@ if __name__ == '__main__':
             start = time()
             for _ in range(0, 23):
                 read_archive(buffer, use_blocked_toc=use_blocked_toc)[example_uuid]['run']['system']
-            print('archive.py: access single entry system (23), blocked %d: ' % use_blocked_toc, (time() - start) / 23)
+            print(
+                f'archive.py: access single entry system (23), blocked {use_blocked_toc:d}: ',
+                (time() - start) / 23)
 
         # read every n-ed entry from archive
         buffer = BytesIO(buffer.getbuffer())
@@ -562,7 +590,9 @@ if __name__ == '__main__':
                     for i, entry in enumerate(example_archive):
                         if i % access_every == 0:
                             data[entry[0]]['run']['system']
-            print('archive.py: access every %d-ed entry single entry system (23), blocked %d: ' % (access_every, use_blocked_toc), (time() - start) / 23)
+            print(
+                f'archive.py: access every {access_every:d}-ed entry single entry system (23), '
+                f'blocked {use_blocked_toc:d}: ', (time() - start) / 23)
 
         # just msgpack
         start = time()

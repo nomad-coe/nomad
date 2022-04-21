@@ -9,28 +9,28 @@ image:
     pullPolicy: "Always"
 
 proxy:
-  nodePort: 30015
+  nodePort: 30016
   nodeIP: '130.183.207.81'
   external:
     host: "nomad-lab.eu"
-    path: "/prod/v1"
+    path: "/prod/v1/util"
 
 gui:
   debug: true
-  matomoEnabled: true
+  matomoEnabled: false
   matomoSiteId: 2
   encyclopediaBase: 'https://nomad-lab.eu/prod/rae/encyclopedia/#'
   aitoolkitEnabled: false
 
 app:
-  replicas: 8
-  worker: 4
+  replicas: 1
+  worker: 1
   threads: 4
   workerClass: "gthread"
   nomadNodeType: "public"
 
 worker:
-  replicas: 2
+  replicas: 1
   routing: "queue"
   processes: 12
   nomadNodeType: "prod-worker"
@@ -47,12 +47,13 @@ logstash:
 
 dbname: nomad_prod_v1
 
-uploadurl: 'https://nomad-lab.eu/prod/v1/gui/uploads'
+uploadurl: 'https://nomad-lab.eu/prod/v1/util/api/uploads'
+
 client:
   passwordSecret: 'nomad-keycloak-password'
 
 keycloak:
-  serverUrl: 'https://nomad-lab.eu/fairdi/keycloak/auth/'
+  serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
   serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
   passwordSecret: 'nomad-keycloak-password'
   realmName: 'fairdi_nomad_prod'
@@ -68,11 +69,11 @@ volumes:
   archiveVersionSuffix: v1
 
 mail:
-  enabled: true
+  enabled: false
   host: 'mailrelay.mpcdf.mpg.de'
   port: 25
   from: 'support@nomad-lab.eu'
 
 datacite:
   secret: 'nomad-datacite'
-  enabled: true
+  enabled: false
