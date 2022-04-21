@@ -23,8 +23,8 @@ import { debounce } from 'lodash'
 import { Autocomplete } from '@material-ui/lab'
 import { TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
-import { resolveRef, resolveRefAsync } from '../archive/metainfo'
-import { ItemButton } from '../archive/Browser'
+import { resolveRefAsync } from '../archive/metainfo'
+import { ItemButton, useLane } from '../archive/Browser'
 import { getFieldProps } from './StringEditQuantity'
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
@@ -36,8 +36,9 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const {raiseError} = useErrors()
   const [inputValue, setInputValue] = useState('')
   const [suggestions, setSuggestions] = useState([])
+  const {adaptor: {context}} = useLane()
   const referencedSectionQualifiedName = useMemo(() => {
-    return resolveRef(quantityDef.type.type_data)._qualifiedName
+    return quantityDef.type._referencedSection._qualifiedName
   }, [quantityDef])
   const fetchSuggestions = useCallback(input => {
     const query = {
@@ -71,23 +72,11 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     if (!value || value === '') {
       return
     }
-    const fetchArchive = url => {
-      api.get(url)
-        .then(response => {
-          // TODO This is quite a hack. Instead of just loading the entry metadata and
-          // retrieving the entry_name this way, we are resolving the reference, thereby
-          // loading the whole archive, and getting the entry_name from there.
-          // In addition we are not getting the entry_name from the resolve result, but
-          // from the fetchArchive site effect. Which is also only in effect, if the
-          // referenced archive was not loaded already.
-          setEntry(response.data.archive.metadata)
-          setInputValue(response.data.archive.metadata.entry_name)
-          return response.data.archive
-        })
-        .catch(raiseError)
-    }
-    resolveRefAsync(value, archive, fetchArchive)
-  }, [value, api, raiseError, archive])
+    resolveRefAsync(value, archive, context, archive => {
+      setEntry(archive.metadata)
+      setInputValue(archive.metadata.entry_name)
+    })
+  }, [value, api, raiseError, archive, context])
 
   const fetchSuggestionsDebounced = useCallback(
     debounce(fetchSuggestions, 150),

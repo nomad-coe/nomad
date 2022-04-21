@@ -47,8 +47,8 @@ export function formatSubSectionName(name) {
  * selected in this lane).
  */
 export class Adaptor {
-  constructor(e) {
-    this.e = e
+  constructor(context) {
+    this.context = context
 
     if (new.target === Adaptor) {
       throw new TypeError('Cannot construct Abstract instances directly')
@@ -80,7 +80,7 @@ export class Adaptor {
    * next lane depending on the given key/url segment.
    * @returns An adaptor that is used to render the next lane.
    */
-  itemAdaptor(key, api) {
+  itemAdaptor(key) {
     return null
   }
 
@@ -203,10 +203,10 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
             lane.adaptor = adaptor
           } else {
             try {
-              lane.adaptor = await prev.adaptor.itemAdaptor(segment, api)
+              lane.adaptor = await prev.adaptor.itemAdaptor(segment)
             } catch (error) {
               console.log(error)
-              lane.error = `The item "${segment}" does not exist.`
+              lane.error = `The item "${segment}" could not be found.`
             }
           }
         }
@@ -222,10 +222,10 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
             lane.error = `Could not fetch data for "${segment}". Bad path provided?`
           }
         }
+        newLanes.push(lane)
         if (lane.error) {
           break // Ignore subsequent segments/lanes
         }
-        newLanes.push(lane)
       }
       lanes.current = newLanes
     }
@@ -295,13 +295,13 @@ const useLaneStyles = makeStyles(theme => ({
 function Lane({lane}) {
   const classes = useLaneStyles()
   const containerRef = createRef()
-  const { key, adaptor, next, fetchDataCounter } = lane
+  const { key, adaptor, next, fetchDataCounter, error } = lane
   lane.containerRef = containerRef
   const content = useMemo(() => {
-    if (lane.error) {
+    if (error) {
       return <div className={classes.error}>
         <Typography variant="h6" color="error">ERROR</Typography>
-        <Typography color="error">{lane.error}</Typography>
+        <Typography color="error">{error}</Typography>
       </div>
     }
     if (!adaptor) {
@@ -319,7 +319,8 @@ function Lane({lane}) {
     // We deliberetly break the React rules here. The goal is to only update if the
     // lanes contents change and not the lane object.
     // eslint-disable-next-line
-  }, [key, adaptor, fetchDataCounter, next?.key, classes])
+  }, [key, adaptor, fetchDataCounter, next?.key, classes, error])
+
   return content
 }
 Lane.propTypes = ({
@@ -523,10 +524,10 @@ export function Title({title, label, tooltip, actions, ...moreProps}) {
       <Grid item className={classes.titleGridItem}>
         {tooltip ? (
           <Tooltip title={tooltip}>
-            <Typography variant="h6" noWrap {...moreProps}>{title}</Typography>
+            <Typography variant="h6" noWrap {...moreProps}>{title || <i>unnamed</i>}</Typography>
           </Tooltip>
         ) : (
-          <Typography variant="h6" noWrap {...moreProps}>{title}</Typography>
+          <Typography variant="h6" noWrap {...moreProps}>{title || <i>unnamed</i>}</Typography>
         )}
         {label && (
           <Typography variant="caption" color={moreProps.color}>

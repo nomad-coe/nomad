@@ -18,10 +18,10 @@
 import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
-import { configState } from './ArchiveBrowser'
+import { configState, useBrowserAdaptorContext } from './ArchiveBrowser'
 import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName, Title } from './Browser'
 import { Typography, Box, makeStyles, FormGroup, TextField, Button, Link } from '@material-ui/core'
-import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName, SubSectionMDef, SectionMDef, QuantityMDef, CategoryMDef } from './metainfo'
+import { resolveRef, vicinityGraph, SubSectionMDef, SectionMDef, QuantityMDef, CategoryMDef, useGlobalMetainfo, PackageMDef } from './metainfo'
 import * as d3 from 'd3'
 import blue from '@material-ui/core/colors/blue'
 import teal from '@material-ui/core/colors/teal'
@@ -88,7 +88,11 @@ export function MetainfoPage() {
 }
 
 export default function MetainfoBrowser() {
-  const adaptor = useMemo(() => new MetainfoRootAdaptor(), [])
+  const context = useBrowserAdaptorContext()
+  const adaptor = useMemo(() => new MetainfoRootAdaptor(context), [context])
+  if (!context.metainfo) {
+    return ''
+  }
   return <Browser
     adaptor={adaptor}
     form={<MetainfoConfigForm />}
@@ -97,12 +101,13 @@ export default function MetainfoBrowser() {
 
 const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
   const [config, setConfig] = useRecoilState(metainfoConfigState)
-
+  const globalMetainfo = useGlobalMetainfo()
   const history = useHistory()
   const { url } = useRouteMatch()
 
   const searchOptions = useMemo(() => {
-    return Object.keys(defsByName).reduce((results, name) => {
+    const defsByName = globalMetainfo.getDefsByName()
+    return globalMetainfo && Object.keys(defsByName).reduce((results, name) => {
       const defsForName = defsByName[name].filter(def => (
         !def.extends_base_section && def.m_def !== SubSectionMDef && (
           def._package.name.startsWith(config.packagePrefix) || def._package.name.startsWith('nomad'))
@@ -117,13 +122,13 @@ const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
           }
         }
         return {
-          path: url + '/' + metainfoPath(def),
+          path: url + '/' + globalMetainfo.path(def),
           label: `${label} [${def.m_def.toLowerCase()}]`
         }
       }))
       return results
     }, []).sort((a, b) => a.label.localeCompare(b.label))
-  }, [config.packagePrefix, url])
+  }, [config.packagePrefix, url, globalMetainfo])
 
   return (
     <Box marginTop={-2}>
@@ -142,7 +147,7 @@ const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
         <Box margin={1} />
         <Autocomplete
           value={config.packagePrefix}
-          options={Object.keys(packagePrefixes)}
+          options={globalMetainfo ? Object.keys(globalMetainfo.getPackagePrefixes()) : []}
           getOptionLabel={option => option.replace(/parser/g, '')}
           style={{ width: 350 }}
           onChange={(_, value) => setConfig({...config, packagePrefix: value})}
@@ -153,31 +158,39 @@ const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
   )
 })
 
-export function metainfoAdaptorFactory(obj) {
+export async function metainfoAdaptorFactory(context, obj) {
   if (obj.m_def === SectionMDef) {
-    return new SectionDefAdaptor(obj)
+    return new SectionDefAdaptor(context, obj)
   } else if (obj.m_def === SubSectionMDef) {
-    return new SubSectionDefAdaptor(obj)
+    return new SubSectionDefAdaptor(context, obj)
   } else if (obj.m_def === QuantityMDef) {
-    return new QuantityDefAdaptor(obj)
+    return new QuantityDefAdaptor(context, obj)
   } else if (obj.m_def === CategoryMDef) {
-    return new CategoryDefAdaptor(obj)
+    return new CategoryDefAdaptor(context, obj)
+  } else if (obj.m_def === PackageMDef) {
+    return new PackageDefAdaptor(context, obj)
   } else {
     throw new Error('Unknown metainfo definition type')
   }
 }
 
 class MetainfoAdaptor extends Adaptor {
-  itemAdaptor(key) {
+  constructor(context, def) {
+    super(context)
+    this.def = def
+  }
+
+  async itemAdaptor(key) {
     if (key === '_reference') {
-      return metainfoAdaptorFactory(resolveRef(this.e.type.type_data))
+      return metainfoAdaptorFactory(this.context, this.def.type._referencedSection)
     } else if (key.startsWith('_category:')) {
       const categoryName = key.split(':')[1]
-      return metainfoAdaptorFactory(this.e.categories.map(ref => resolveRef(ref)).find(categoryDef => categoryDef.name === categoryName))
+      return metainfoAdaptorFactory(this.context, this.def.categories.find(categoryDef => categoryDef.name === categoryName))
     } else if (key === '_metainfo') {
-      return metainfoAdaptorFactory(metainfoDef(this.e.m_def))
-    } else if (this.e[key]) {
-      return metainfoAdaptorFactory(resolveRef(this.e[key]))
+      return metainfoAdaptorFactory(this.context, await this.context.metainfo.resolveDefinition(this.def.m_def, this.context))
+    } else if (this.def[key]) {
+      console.error('deprecated adaptor implementation for key', key, this.def[key])
+      return metainfoAdaptorFactory(this.context, resolveRef(this.def[key]))
     } else {
       throw new Error('Unknown item key')
     }
@@ -185,38 +198,64 @@ class MetainfoAdaptor extends Adaptor {
 }
 
 export class MetainfoRootAdaptor extends MetainfoAdaptor {
-  itemAdaptor(key) {
-    const rootSection = rootSections.find(def => def.name === key)
+  async itemAdaptor(key) {
+    const rootSection = this.context.metainfo.getRootSectionDefinitions().find(def => def.name === key)
     if (rootSection) {
-      return metainfoAdaptorFactory(rootSection)
-    } else if (packagePrefixes[key]) {
-      return new PackagePrefixAdaptor(packagePrefixes[key])
+      return metainfoAdaptorFactory(this.context, rootSection)
     } else {
-      super.itemAdaptor(key)
+      const packagePrefixes = this.context.metainfo.getPackagePrefixes()
+      if (packagePrefixes[key]) {
+        return new PackagePrefixAdaptor(this.context, packagePrefixes[key])
+      }
     }
+
+    return super.itemAdaptor(key)
   }
   render() {
     return <Metainfo />
   }
 }
 
-export class PackagePrefixAdaptor extends MetainfoAdaptor {
-  itemAdaptor(key) {
-    const [type, name] = key.split('@')
-    const def = Object.keys(this.e)
-      .map(key => this.e[key])
-      .reduce((value, pkg) => value || pkg[type].find(def => def._qualifiedName === name), null)
-    return metainfoAdaptorFactory(def)
+export class PackageDefAdaptor extends MetainfoAdaptor {
+  async itemAdaptor(key) {
+    const sectionDef = this.def.section_definitions.find(sectionDef => sectionDef.name === key)
+    if (sectionDef) {
+      return metainfoAdaptorFactory(this.context, sectionDef)
+    }
+    return super.itemAdaptor(key)
   }
   render() {
-    const sectionDefs = Object.keys(this.e)
-      .map(key => this.e[key])
+    return <Content>
+      <ArchiveTitle def={this.def} />
+      <DefinitionDocs def={this.def} />
+      <Compartment>
+        {this.def.section_definitions.map(sectionDef => (
+          <Item key={sectionDef.name} itemKey={sectionDef.name}>
+            <Typography>{sectionDef.name}</Typography>
+          </Item>
+        ))}
+      </Compartment>
+    </Content>
+  }
+}
+
+export class PackagePrefixAdaptor extends MetainfoAdaptor {
+  async itemAdaptor(key) {
+    const [type, name] = key.split('@')
+    const def = Object.keys(this.def)
+      .map(key => this.def[key])
+      .reduce((value, pkg) => value || pkg[type].find(def => def._qualifiedName === name), null)
+    return metainfoAdaptorFactory(this.context, def)
+  }
+  render() {
+    const sectionDefs = Object.keys(this.def)
+      .map(key => this.def[key])
       .reduce((defs, pkg) => {
         pkg.section_definitions.forEach(def => defs.push(def))
         return defs
       }, [])
-    const categoryDefs = Object.keys(this.e)
-      .map(key => this.e[key])
+    const categoryDefs = Object.keys(this.def)
+      .map(key => this.def[key])
       .reduce((defs, pkg) => {
         pkg.category_definitions.forEach(def => defs.push(def))
         return defs
@@ -251,7 +290,8 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
   }
 }
 
-function Metainfo(props) {
+const Metainfo = React.memo(function Metainfo(props) {
+  const globalMetainfo = useGlobalMetainfo()
   return <Content>
     <Compartment title="archive root section">
       <Item itemKey="EntryArchive">
@@ -259,7 +299,7 @@ function Metainfo(props) {
       </Item>
     </Compartment>
     <Compartment title="other root sections">
-      {rootSections.filter(def => def.name !== 'EntryArchive').map((def, i) => (
+      {globalMetainfo.getRootSectionDefinitions().filter(def => def.name !== 'EntryArchive').map((def, i) => (
         <Item key={i} itemKey={def.name}>
           <Typography>
             {def.more?.label || def.name}
@@ -268,65 +308,65 @@ function Metainfo(props) {
       ))}
     </Compartment>
     <Compartment title="sources">
-      {Object.keys(packagePrefixes).map(key => <Item key={key} itemKey={key}>
+      {Object.keys(globalMetainfo.getPackagePrefixes()).map(key => <Item key={key} itemKey={key}>
         <Typography>{key.replace(/parser$/, '')}</Typography>
       </Item>)}
     </Compartment>
   </Content>
-}
+})
 
 export class SectionDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {
     if (key === '_baseSection') {
-      return metainfoAdaptorFactory(resolveRef(this.e.base_sections[0]))
+      return metainfoAdaptorFactory(this.context, this.def.base_sections[0])
     }
 
     if (key.includes('@')) {
       const [type, name] = key.split('@')
       if (type === 'innerSectionDef') {
-        const innerSectionDef = this.e.inner_section_definitions.find(def => def.name === name)
+        const innerSectionDef = this.def.inner_section_definitions.find(def => def.name === name)
         if (innerSectionDef) {
-          return metainfoAdaptorFactory(innerSectionDef)
+          return metainfoAdaptorFactory(this.context, innerSectionDef)
         }
       }
     }
 
-    const property = this.e._properties[key]
+    const property = this.def._properties[key]
     if (property) {
-      return metainfoAdaptorFactory(property)
+      return metainfoAdaptorFactory(this.context, property)
     }
 
     return super.itemAdaptor(key)
   }
   render() {
-    return <SectionDef def={this.e} />
+    return <SectionDef def={this.def} />
   }
 }
 
 class SubSectionDefAdaptor extends MetainfoAdaptor {
-  constructor(e) {
-    super(e)
-    this.sectionDefAdaptor = new SectionDefAdaptor(resolveRef(e.sub_section))
+  constructor(context, def) {
+    super(context, def)
+    this.sectionDefAdaptor = new SectionDefAdaptor(this.context, this.def.sub_section)
   }
-  itemAdaptor(key) {
+  async itemAdaptor(key) {
     return this.sectionDefAdaptor.itemAdaptor(key)
   }
   render() {
-    return <SubSectionDef def={this.e} />
+    return <SubSectionDef def={this.def} />
   }
 }
 
 class QuantityDefAdaptor extends MetainfoAdaptor {
   render() {
-    return <QuantityDef def={this.e} />
+    return <QuantityDef def={this.def} />
   }
 }
 
 class CategoryDefAdaptor extends MetainfoAdaptor {
   render() {
     return <Content>
-      <Definition def={this.e} />
-      <DefinitionDetails def={this.e} />
+      <Definition def={this.def} />
+      <DefinitionDetails def={this.def} />
     </Content>
   }
 }
@@ -335,6 +375,10 @@ function SectionDefContent({def}) {
   const config = useRecoilValue(configState)
   const metainfoConfig = useRecoilValue(metainfoConfigState)
   const filter = def.extends_base_section ? () => true : def => {
+    if (!def?._package?.name) {
+      // dynamically loaded custom schema
+      return true
+    }
     if (def._package.name.startsWith('nomad')) {
       return true
     }
@@ -354,19 +398,18 @@ function SectionDefContent({def}) {
     <DefinitionProperties def={def} />
     {def.base_sections.length > 0 &&
       <Compartment title="base section">
-        {def.base_sections.map(baseSectionRef => {
-          const baseSection = resolveRef(baseSectionRef)
-          return <Item key={baseSectionRef} itemKey="_baseSection">
+        {def.base_sections.map((baseSection, index) => (
+          <Item key={index} itemKey="_baseSection">
             <Typography>{baseSection.name}</Typography>
           </Item>
-        })}
+        ))}
       </Compartment>
     }
     <Compartment title="sub section definitions">
       {def.sub_sections.filter(filter)
         .map(subSectionDef => {
           const key = subSectionDef.name
-          const categories = subSectionDef.categories?.map(c => resolveRef(c))
+          const categories = subSectionDef.categories
           const unused = categories?.find(c => c.name === 'Unused')
           return <Item key={key} itemKey={key}>
             <Typography component="span" color={unused && 'error'}>
@@ -382,7 +425,7 @@ function SectionDefContent({def}) {
       {def.quantities.filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
-          const categories = quantityDef.categories?.map(c => resolveRef(c))
+          const categories = quantityDef.categories
           const unused = categories?.find(c => c.name === 'Unused')
           return <Item key={key} itemKey={key}>
             <Box component="span" whiteSpace="nowrap">
@@ -400,7 +443,7 @@ function SectionDefContent({def}) {
       {def.inner_section_definitions.filter(filter)
         .map(innerSectionDef => {
           const key = `innerSectionDef@${innerSectionDef.name}`
-          const categories = innerSectionDef.categories?.map(c => resolveRef(c))
+          const categories = innerSectionDef.categories
           const unused = categories?.find(c => c.name === 'Unused')
           return <Item key={key} itemKey={key}>
             <Box component="span" whiteSpace="nowrap">
@@ -432,7 +475,7 @@ SectionDef.propTypes = ({
 })
 
 function SubSectionDef({def}) {
-  const sectionDef = resolveRef(def.sub_section)
+  const sectionDef = def.sub_section
   return <React.Fragment>
     <Content>
       <ArchiveTitle def={def} useName isDefinition kindLabel="sub section definition" />
@@ -580,12 +623,11 @@ function DefinitionDetails({def, ...props}) {
 
   return <React.Fragment>
     {def.categories && def.categories.length > 0 && <Compartment title="Categories">
-      {def.categories.map(categoryRef => {
-        const categoryDef = resolveRef(categoryRef)
-        return <Item key={categoryRef} itemKey={'_category:' + categoryDef.name}>
+      {def.categories.map((categoryDef, index) => (
+        <Item key={index} itemKey={'_category:' + categoryDef.name}>
           <Typography>{categoryDef.more?.label || categoryDef.name}</Typography>
         </Item>
-      })}
+      ))}
     </Compartment>}
     {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
       <Compartment title="graph">
@@ -619,6 +661,7 @@ DefinitionDetails.propTypes = {
 }
 
 const definitionLabels = {
+  [PackageMDef]: 'package',
   [SectionMDef]: 'section',
   [QuantityMDef]: 'quantity',
   [SubSectionMDef]: 'sub section',
@@ -689,6 +732,7 @@ const useVicinityGraphStyles = makeStyles(theme => ({
 }))
 
 export function VicinityGraph({def}) {
+  const globalMetainfo = useGlobalMetainfo()
   const linkColors = {
     [QuantityMDef]: purple[500],
     '_none': grey[700]
@@ -728,7 +772,7 @@ export function VicinityGraph({def}) {
       .attr('stroke', d => linkColors[d.def.m_def || '_none'])
       .on('click', d => {
         if (d.def.m_def === QuantityMDef) {
-          const path = metainfoPath(d.def)
+          const path = globalMetainfo.path(d.def)
           if (path) {
             history.push(`/metainfo/${path}`)
           }
@@ -744,7 +788,7 @@ export function VicinityGraph({def}) {
       .attr('r', 10)
       .attr('fill', d => nodeColors[d.def.m_def] || '#000')
       .on('click', d => {
-        const path = metainfoPath(d.def)
+        const path = globalMetainfo.path(d.def)
         if (path) {
           history.push(`/metainfo/${path}`)
         }
@@ -772,7 +816,7 @@ export function VicinityGraph({def}) {
         .attr('transform', d => 'translate(' + d.x + ',' + d.y + ')')
     }
     ticked()
-  }, [graph, history, linkColors, nodeColors, svgRef])
+  }, [graph, history, linkColors, nodeColors, svgRef, globalMetainfo])
 
   useLayoutEffect(() => {
     svgRef.current.style.height = svgRef.current.clientWidth / graph.aspectRatio

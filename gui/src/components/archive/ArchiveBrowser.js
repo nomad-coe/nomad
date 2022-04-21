@@ -23,7 +23,7 @@ import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane } from './Browser'
 import { RawFileAdaptor } from './FileBrowser'
-import { isEditable, metainfoDef, QuantityMDef, removeSubSection, resolveRef, rootSections, SectionMDef, SubSectionMDef } from './metainfo'
+import { isEditable, PackageMDef, QuantityMDef, removeSubSection, resolveRefAsync, SectionMDef, SubSectionMDef, useMetainfo } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
@@ -46,6 +46,32 @@ import CodeIcon from '@material-ui/icons/Code'
 import DeleteIcon from '@material-ui/icons/Delete'
 import { getLineStyles } from '../../utils'
 import Plot from '../visualization/Plot'
+import { useUploadContext } from '../uploads/UploadContext'
+
+export function useBrowserAdaptorContext(data) {
+  const entryContext = useEntryContext()
+  const uploadContext = useUploadContext()
+  const metainfo = useMetainfo(data)
+  const {api} = useApi()
+
+  const context = useMemo(() => {
+    const context = {
+      api: api,
+      metainfo: metainfo,
+      archive: data,
+      resources: {}
+    }
+    if (entryContext) {
+      context.entryId = entryContext.entryId
+      context.uploadId = entryContext.uploadId
+    } else if (uploadContext) {
+      context.uploadId = uploadContext.entryId
+    }
+    return context
+  }, [entryContext, uploadContext, metainfo, api, data])
+
+  return context
+}
 
 export const configState = atom({
   key: 'config',
@@ -57,16 +83,25 @@ export const configState = atom({
 })
 
 const ArchiveBrowser = React.memo(({data}) => {
-  const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
+  const context = useBrowserAdaptorContext(data)
+  const {metainfo} = context
+  const searchOptions = useMemo(() => {
+    return metainfo ? archiveSearchOptions(data, metainfo) : []
+  }, [data, metainfo])
+
+  if (!metainfo) {
+    return ''
+  }
 
   // For some reason, this hook does not work in all of the components used in
   // the Browser (notably: Quantity, QuantityItemPreview). In order to pass the
   // up-to-date unit information, we pass the hook value down the component
   // hierarchy.
-  data.resources = data.resources || {}
+  context.resources = context.resources || {}
+  context.archive = data
   return (
     <Browser
-      adaptor={archiveAdaptorFactory(data, undefined)}
+      adaptor={archiveAdaptorFactory(context, data, undefined)}
       form={<ArchiveConfigForm searchOptions={searchOptions} data={data}/>}
     />
   )
@@ -183,11 +218,15 @@ ArchiveConfigForm.propTypes = ({
   searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired
 })
 
-export function archiveAdaptorFactory(data, sectionDef) {
-  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), undefined, {archive: data})
+export function archiveAdaptorFactory(context, data, sectionDef) {
+  return new SectionAdaptor(
+    {archive: data, ...context},
+    data,
+    sectionDef || context.metainfo?.getEntryArchiveDefinition(),
+    undefined)
 }
 
-function archiveSearchOptions(data) {
+function archiveSearchOptions(data, metainfo) {
   const options = []
   const optionDefs = {}
   function traverse(data, def, parentName, parentPath) {
@@ -217,7 +256,7 @@ function archiveSearchOptions(data) {
       options.push(option)
 
       if (childDef.m_def === SubSectionMDef) {
-        const sectionDef = resolveRef(childDef.sub_section)
+        const sectionDef = childDef.sub_section
         if (Array.isArray(child) && child.length > 0 && child[0]) {
           if (child.length > 1) {
             child.forEach((value, index) => traverse(value, sectionDef, name, `${path}:${index}`))
@@ -230,39 +269,51 @@ function archiveSearchOptions(data) {
       }
     }
   }
-  traverse(data, rootSections.find(def => def.name === 'EntryArchive'), null, null)
+  traverse(data, metainfo.getEntryArchiveDefinition(), null, null)
   return options
 }
 
 class ArchiveAdaptor extends Adaptor {
-  constructor(obj, def, parent, context) {
-    super(obj)
+  constructor(context, obj, def, parent) {
+    super(context)
+    this.obj = obj
     this.def = def
     this.parent = parent
-    this.context = context
+
+    if (!this.def) {
+      throw new Error('Definitions must be given.')
+    }
   }
 
-  adaptorFactory(obj, def, parent, context) {
-    context = context || this.context
+  async adaptorFactory(obj, def, parent, childContext) {
+    const context = childContext || this.context
+    if (def === await this.context.metainfo.resolveDefinition(PackageMDef)) {
+      return metainfoAdaptorFactory(this.context, obj)
+    }
+
     if (def.m_def === SectionMDef) {
       if (obj.m_def) {
         // Override the def given by the schema with the potentially more specific
         // def given by the data
-        def = metainfoDef(obj.m_def)
+        def = await context.metainfo.resolveDefinition(obj.m_def, context)
       }
-      return new SectionAdaptor(obj, def, parent, context || this.context)
-    } else if (def.m_def === QuantityMDef) {
-      if (def.type.type_kind === 'reference') {
-        return new ReferenceAdaptor(obj, def, parent, context || this.context)
-      } else {
-        return new QuantityAdaptor(obj, def, parent, context || this.context)
-      }
+      return new SectionAdaptor(context, obj, def, parent)
     }
+
+    if (def.m_def === QuantityMDef) {
+      if (def.type.type_kind === 'reference') {
+        return new ReferenceAdaptor(context, obj, def, parent)
+      }
+
+      return new QuantityAdaptor(context, obj, def, parent)
+    }
+
+    throw new Error('not implemented')
   }
 
-  itemAdaptor(key) {
+  async itemAdaptor(key) {
     if (key === '_metainfo') {
-      return metainfoAdaptorFactory(this.def)
+      return metainfoAdaptorFactory(this.context, this.def)
     } else {
       throw new Error('Unknown item key')
     }
@@ -270,24 +321,24 @@ class ArchiveAdaptor extends Adaptor {
 }
 
 class SectionAdaptor extends ArchiveAdaptor {
-  async itemAdaptor(key, api) {
+  async itemAdaptor(key) {
     const [name, index] = key.split(':')
     const property = this.def._properties[name]
-    const value = this.e[name]
+    const value = this.obj[name]
     if (!property) {
       return super.itemAdaptor(key)
     } else if (property.m_def === SubSectionMDef) {
-      const sectionDef = resolveRef(property.sub_section)
+      const sectionDef = property.sub_section
       let subSectionAdaptor
       let subSectionIndex = -1
       if (property.repeats) {
         subSectionIndex = parseInt(index || 0)
-        subSectionAdaptor = this.adaptorFactory(value[subSectionIndex], sectionDef, this.e)
+        subSectionAdaptor = await this.adaptorFactory(value[subSectionIndex], sectionDef, this.obj)
       } else {
-        subSectionAdaptor = this.adaptorFactory(value, sectionDef, this.e)
+        subSectionAdaptor = await this.adaptorFactory(value, sectionDef, this.obj)
       }
       subSectionAdaptor.parentRelation = {
-        parent: this.e,
+        parent: this.obj,
         subSectionDef: property,
         subSectionIndex: subSectionIndex
       }
@@ -304,44 +355,40 @@ class SectionAdaptor extends ArchiveAdaptor {
           reference = value[index]
         }
         if (!reference) {
-          return this.adaptorFactory(value, property, this.e)
+          return this.adaptorFactory(value, property, this.obj)
         }
-        const resolved = resolveRef(reference, this.context.archive)
-        // some sections cannot be resolved, because they are not part of the archive
-        // user_id->user is one example
-        if (!resolved) {
-          return this.adaptorFactory(reference, property, this.e)
-        }
-        const resolvedDef = resolveRef(property.type.type_data)
-        const context = {
+        const childContext = {
           ...this.context,
           isReferenced: true
         }
-        if (reference.includes('#')) {
-          const [url] = reference.split('#')
-          if (url !== '') {
-            context.archive = this.context.archive.resources[url]
-          }
+        const resolved = await resolveRefAsync(reference, this.context.archive, this.context, archive => {
+          childContext.archive = archive
+        })
+        // some sections cannot be resolved, because they are not part of the archive
+        // user_id->user is one example
+        if (!resolved) {
+          return this.adaptorFactory(reference, property, this.obj)
         }
-        return this.adaptorFactory(resolved, resolvedDef, this.e, context)
+        const resolvedDef = property.type._referencedSection
+        return this.adaptorFactory(resolved, resolvedDef, this.obj, childContext)
       }
       // Regular quantities
       if (property.m_annotations?.browser) {
         if (property.m_annotations.browser[0].adaptor === 'RawFileAdaptor') {
           const uploadId = this.context.archive.metadata.upload_id
-          const path = this.e[property.name]
-          const response = await api.get(`uploads/${uploadId}/rawdir/${path}`)
+          const path = this.obj[property.name]
+          const response = await this.context.api.get(`uploads/${uploadId}/rawdir/${path}`)
           return new RawFileAdaptor(uploadId, path, response.file_metadata, false)
         }
       }
-      return this.adaptorFactory(value, property, this.e)
+      return this.adaptorFactory(value, property, this.obj)
     } else {
       throw new Error('Unknown metainfo meta definition')
     }
   }
   render() {
     return <Section
-      section={this.e}
+      section={this.obj}
       def={this.def}
       parent={this.parent} parentRelation={this.parentRelation} />
   }
@@ -349,13 +396,13 @@ class SectionAdaptor extends ArchiveAdaptor {
 
 class ReferenceAdaptor extends ArchiveAdaptor {
   render() {
-    return <Reference value={this.e} def={this.def} />
+    return <Reference value={this.obj} def={this.def} />
   }
 }
 
 class QuantityAdaptor extends ArchiveAdaptor {
   render() {
-    return <Quantity value={this.e} def={this.def} />
+    return <Quantity value={this.obj} def={this.def} />
   }
 }
 
@@ -629,7 +676,7 @@ function SubSection({subSectionDef, section, editable}) {
   const lane = useLane()
   const history = useHistory()
   const { label, getItemLabel } = useMemo(() => {
-    const sectionDef = resolveRef(subSectionDef.sub_section)
+    const sectionDef = subSectionDef.sub_section
     let itemLabelKey = sectionDef.more?.label_quantity
     if (!itemLabelKey) {
       itemLabelKey = ['name', 'type', 'id'].find(key => (
@@ -711,7 +758,7 @@ SubSection.propTypes = ({
 
 function ReferenceValuesList({quantityDef}) {
   const lane = useContext(laneContext)
-  const values = useMemo(() => lane.adaptor.e[quantityDef.name].map(() => null), [lane.adaptor.e, quantityDef.name])
+  const values = useMemo(() => lane.adaptor.obj[quantityDef.name].map(() => null), [lane.adaptor.obj, quantityDef.name])
   return <PropertyValuesList
     values={values}
     label={quantityDef.name} />
@@ -865,7 +912,7 @@ function Quantity({value, def}) {
     {def.m_annotations?.plot && (
       <Compartment title="plot">
         <XYPlot
-          section={prev.adaptor.e}
+          section={prev.adaptor.obj}
           sectionDef={prev.adaptor.def}
           plot={def.m_annotations?.plot[0]}
           title={def.name}
@@ -890,12 +937,12 @@ function Reference({value, def}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [loading, setLoading] = useState(true)
-  const {adaptor, update} = useContext(laneContext)
-  const archive = adaptor.context.archive
+  const {update, adaptor: {context}} = useContext(laneContext)
+
   useEffect(() => {
     const url = value.split('#')[0]
-    const upload_id = archive.metadata.upload_id
-    if (archive.resources[url]) {
+    const upload_id = context.upload_id
+    if (context.resources?.[url]) {
       setLoading(false)
       return
     }
@@ -907,11 +954,14 @@ function Reference({value, def}) {
 
     api.get(`uploads/${upload_id}/${url.slice('../upload/'.length)}`)
       .then(response => {
-        archive.resources[url] = response.data.archive
+        if (!context.resources) {
+          context.resources = {}
+        }
+        context.resources[url] = response.data.archive
         update()
       })
       .catch(raiseError)
-  }, [api, archive.metadata.upload_id, archive.resources, raiseError, setLoading, update, value])
+  }, [api, context.upload_id, context.resources, raiseError, setLoading, update, value])
 
   if (loading) {
     return <Content>

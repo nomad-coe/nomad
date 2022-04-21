@@ -1,0 +1,10 @@
+{
+  "data": {
+    "m_def": "../upload/raw/schema.archive.json#/definitions/section_definitions/0",
+    "my_quantity": "test_value",
+    "datetime_list": [
+      "2022-04-01",
+      "2022-04-02"
+    ]
+  }
+}

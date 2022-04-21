@@ -21,7 +21,7 @@ import clsx from 'clsx'
 import { FilterSubMenu } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import { Box, Collapse, makeStyles } from '@material-ui/core'
-import { rootSections, resolveRef, SectionMDef, SubSectionMDef } from '../../archive/metainfo'
+import { SectionMDef, SubSectionMDef, useGlobalMetainfo } from '../../archive/metainfo'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { useSearchContext } from '../SearchContext'
@@ -129,7 +129,7 @@ const Definition = React.memo(function Definition({def, name, path, className}) 
         <Definition
           key={def.name}
           name={def.name}
-          def={def.m_def === SubSectionMDef ? resolveRef(def.sub_section) : def}
+          def={def.m_def === SubSectionMDef ? def.sub_section : def}
           path={childPathPrefix + def.name} />
       ))}
     </Collapse>
@@ -146,8 +146,13 @@ const FilterSubMenuArchive = React.memo(({
   value,
   ...rest
 }) => {
-  const root = useMemo(() => rootSections.find(def => def.name === 'EntryArchive'), [])
+  const globalMetainfo = useGlobalMetainfo()
+  const root = useMemo(() => globalMetainfo?.getEntryArchiveDefinition(), [globalMetainfo])
+  const subSections = root?.sub_sections
   const options = useMemo(() => {
+    if (!subSections) {
+      return []
+    }
     const options = []
     const defsSet = new Set()
     function addDef(def, prefix) {
@@ -158,15 +163,15 @@ const FilterSubMenuArchive = React.memo(({
       defsSet.add(def)
       options.push({value: fullName})
       if (def.m_def === SubSectionMDef && def.sub_section) {
-        def = resolveRef(def.sub_section)
+        def = def.sub_section
       }
       if (def.m_def === SectionMDef) {
         def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName))
       }
     }
-    root.sub_sections.forEach(def => addDef(def))
+    subSections.forEach(def => addDef(def))
     return options
-  }, [root.sub_sections])
+  }, [subSections])
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
@@ -177,11 +182,11 @@ const FilterSubMenuArchive = React.memo(({
             suggestions={options}
           />
         </Box>
-        {root.sub_sections.map(def => (
+        {root?.sub_sections.map(def => (
           <Definition
             key={def.name}
             name={def.name}
-            def={resolveRef(def.sub_section)}
+            def={def.sub_section}
             path={def.name}
           />
         ))}

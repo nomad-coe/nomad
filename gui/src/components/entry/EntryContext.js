@@ -98,7 +98,6 @@ const EntryContext = React.memo(function EntryContext({entryId, children}) {
       delete newArchive.metadata
       delete newArchive.results
       delete newArchive.processing_logs
-      delete newArchive.resources
       api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}&wait_for_processing=true`, newArchive)
         .then(response => {
           // TODO handle processing errors

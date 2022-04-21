@@ -3,8 +3,17 @@
         "m_def": "nomad.datamodel.metainfo.eln.material_library.Sample",
         "processes": {
             "pvd_evaporation": {
-                "data_file": "pvd_process.csv",
-                "creates_layer": true
+                "chemicals": [
+                    "../upload/raw/chemical.archive.json#data"
+                ],
+                "creates_layer": true,
+                "data_file": "pvd_process.csv"
+            },
+            "hotplate_annealing": {
+                "instrument_atmosphere": "humidity chamber",
+                "hotplate_temperature": 280,
+                "annealing_time": 10,
+                "relative_humidity": 0.95
             }
         },
         "measurements": {
@@ -13,6 +22,11 @@
                     "data_file": "xrd_measurement.xrdml"
                 }
             ]
-        }
+        },
+        "sample_id": "example sample id",
+        "sample_name": "example sample name",
+        "creation_datetime": "2022-04-21T16:46:00.000Z",
+        "institute": "HU Berlin",
+        "description": "<p>Some <em>text</em> with <strong>markup</strong>.</p>"
     }
 }

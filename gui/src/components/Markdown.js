@@ -24,7 +24,7 @@ import extend from '@babel/runtime/helpers/extends'
 import ReactMarkdown from 'react-markdown'
 import MathJax from 'react-mathjax'
 import RemarkMathPlugin from 'remark-math'
-import { path as metainfoPath } from './archive/metainfo'
+import { useGlobalMetainfo } from './archive/metainfo'
 import { appBase } from '../config'
 
 /**
@@ -246,6 +246,7 @@ MarkdownLink.propTypes = {
 
 function Markdown(props) {
   const { classes, text, children, ...moreProps } = props
+  const globalMetainfo = useGlobalMetainfo()
 
   let content = text
   if (children) {
@@ -276,9 +277,9 @@ function Markdown(props) {
         word += c
       } else {
         if (state.length === 0 && (word.match(/_/g) || word.match(/[a-z]+[A-Z]/g)) && word.match(/^[a-zA-Z0-9_]+$/g) && c !== ']') {
-          const path = metainfoPath(word)
+          const path = globalMetainfo?.path(word)
           if (path) {
-            word = `[\`${word}\`](/metainfo/${metainfoPath(word)})`
+            word = `[\`${word}\`](/metainfo/${path})`
           } else {
             word = `\`${word}\``
           }

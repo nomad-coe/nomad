@@ -16,11 +16,28 @@
 # limitations under the License.
 #
 
+from nomad.datamodel.data import EntryData
 from . import Normalizer
 
 
 class MetainfoNormalizer(Normalizer):
     domain = None
+
+    def normalize_section(self, section, logger):
+        normalize = None
+        try:
+            normalize = getattr(section, 'normalize')
+        except Exception as e:
+            pass
+
+        if normalize:
+            try:
+                normalize(self.entry_archive, logger)
+            except Exception as e:
+                logger.error(
+                    'could not normalize section',
+                    section=section.m_def.name,
+                    exc_info=e)
 
     def normalize(self, logger=None) -> None:
         if logger is None:
@@ -30,21 +47,12 @@ class MetainfoNormalizer(Normalizer):
         logger = logger.bind(normalizer=self.__class__.__name__)
         self.logger = logger
 
-        if not self.entry_archive.data:
-            return
+        if self.entry_archive.data:
+            for section, _, _ in list(self.entry_archive.data.m_traverse()):
+                self.normalize_section(section, logger)
 
-        for section, _, _ in list(self.entry_archive.data.m_traverse()):
-            normalize = None
-            try:
-                normalize = getattr(section, 'normalize')
-            except Exception as e:
-                pass
+        for sub_section in self.entry_archive.m_contents():
+            if not isinstance(sub_section, EntryData):
+                self.normalize_section(sub_section, logger)
 
-            if normalize:
-                try:
-                    normalize(self.entry_archive, logger)
-                except Exception as e:
-                    logger.error(
-                        'could not normalize section',
-                        section=section.m_def.name,
-                        exc_info=e)
+        self.normalize_section(self.entry_archive, logger)

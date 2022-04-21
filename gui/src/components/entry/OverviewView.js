@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles, Box, Grid, Divider } from '@material-ui/core'
 import Quantity from '../Quantity'
@@ -31,8 +31,9 @@ import Page from '../Page'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
 import { useEntryContext } from './EntryContext'
 import SectionCard from './properties/SectionCard'
-import { metainfoDef } from '../archive/metainfo'
-import { ArchiveSaveButton } from '../archive/ArchiveBrowser'
+import { createMetainfo } from '../archive/metainfo'
+import { ArchiveSaveButton, useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
+import { useErrors } from '../errors'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -84,6 +85,9 @@ const OverviewView = React.memo((props) => {
   const {metadata, metadataApiData, exists, editable, requireArchive, archiveApiData} = useEntryContext()
   const archive = useMemo(() => archiveApiData?.response?.data?.archive, [archiveApiData])
   const index = metadata
+  const [sections, setSections] = useState([])
+  const {raiseError} = useErrors()
+  const context = useBrowserAdaptorContext()
 
   const properties = useMemo(() => {
     return new Set(index?.results
@@ -119,19 +123,23 @@ const OverviewView = React.memo((props) => {
     }
   }, [requireArchive, editable])
 
-  const sections = useMemo(() => {
-    if (!archive?.data) {
-      return []
+  useEffect(() => {
+    if (!context.metainfo || !archive?.data) {
+      return
     }
-
-    return [
-      {
+    const getSections = async () => {
+      // TODO the metainfo should be provided by entry context. Currently it will be
+      // created twice. Once here, and then also in the ArchiveBrowser.
+      const metainfo = await createMetainfo(archive, context.metainfo, context)
+      const mDef = await metainfo.resolveDefinition(archive.data.m_def, context)
+      setSections([{
         archivePath: 'data',
-        sectionDef: metainfoDef(archive.data.m_def),
+        sectionDef: mDef,
         getSection: archive => archive.data
-      }
-    ]
-  }, [archive])
+      }])
+    }
+    getSections().catch(raiseError)
+  }, [archive, setSections, raiseError, context])
 
   const classes = useStyles()
 
