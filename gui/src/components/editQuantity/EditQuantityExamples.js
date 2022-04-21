@@ -91,7 +91,7 @@ export function EditQuantityExamples() {
                   <NumberEditQuantity {...createDefaultProps('float', {type: float})} />
                 </Grid>
                 <Grid item>
-                  <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'meter'})} />
+                  <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'meter'})} defaultDisplayUnit={'bohr'}/>
                 </Grid>
                 <Grid item>
                   <NumberEditQuantity

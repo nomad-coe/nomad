@@ -22,6 +22,7 @@ import {convertUnit, Unit, useUnits} from '../../units'
 import {conversionMap, unitMap} from '../../unitsData'
 import {debounce} from 'lodash'
 import {TextFieldWithHelp, getFieldProps} from './StringEditQuantity'
+import {useErrors} from '../errors'
 
 export const NumberField = React.memo((props) => {
   const {onChange, value, dataType, minValue, maxValue, displayUnit, unit, ...otherProps} = props
@@ -130,11 +131,23 @@ NumberField.propTypes = {
 }
 
 export const NumberEditQuantity = React.memo((props) => {
-  const {quantityDef, value, onChange, ...otherProps} = props
+  const {quantityDef, value, onChange, defaultDisplayUnit, ...otherProps} = props
   const systemUnits = useUnits()
+  const {raiseError} = useErrors()
   const hasUnit = quantityDef.unit
   const dimension = hasUnit && unitMap[quantityDef.unit].dimension
-  const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
+  let defaultUnit
+  if (defaultDisplayUnit) {
+    try {
+      defaultUnit = new Unit(defaultDisplayUnit)
+      if (!conversionMap[dimension].units.find(value => value === defaultUnit.unitDef.name)) {
+        raiseError(`The provided defaultDisplayUnit for ${quantityDef.name} is not related to this field.`)
+      }
+    } catch (e) {
+      raiseError(`The provided defaultDisplayUnit for ${quantityDef.name} field is not valid.`)
+    }
+  }
+  const [unit, setUnit] = useState((defaultUnit && defaultUnit.unitDef.name) || systemUnits[dimension] || quantityDef.unit)
 
   return <Box display='flex'>
     <NumberField
@@ -153,7 +166,8 @@ export const NumberEditQuantity = React.memo((props) => {
 NumberEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   value: PropTypes.number,
-  onChange: PropTypes.func
+  onChange: PropTypes.func,
+  defaultDisplayUnit: PropTypes.string
 }
 
 export const useUnitSelectStyles = makeStyles(theme => ({
