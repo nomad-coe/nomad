@@ -186,7 +186,6 @@ export default function ArchiveLogView(props) {
 
   const [numberOfLogs, setNumberOflogs] = useState(logsDefaultValues.defaultLogsToShowOnFirstMount)
   const [keyNames, setkeyNames] = useState(['parser'])
-  // const [numOfRenderedLogs, setNumOfRenderedLogs] = useState(0)
 
   const handlekeyNamesChanged = (e) => {
     setkeyNames(e.target.value)
