@@ -38,6 +38,13 @@ import { ErrorSnacks, ErrorBoundary } from './errors'
 import searchQuantities from '../searchQuantities'
 import '@testing-library/jest-dom/extend-expect' // Adds convenient expect-methods
 import { keycloakBase } from '../config'
+import { GlobalMetainfo, createGlobalMetainfo } from './archive/metainfo'
+import metainfoData from '../metainfo'
+
+beforeEach(async () => {
+  metainfoData._metaInfo = await createGlobalMetainfo()
+})
+
 const fs = require('fs')
 const crypto = require('crypto')
 const { execSync } = require('child_process')
@@ -76,15 +83,17 @@ useKeycloak.mockImplementation(() => {
 export const WrapperDefault = ({children}) => {
   return <RecoilRoot>
     <APIProvider>
-      <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
-        <MemoryRouter>
-          <ErrorSnacks>
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
-          </ErrorSnacks>
-        </MemoryRouter>
-      </Router>
+      <GlobalMetainfo>
+        <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
+          <MemoryRouter>
+            <ErrorSnacks>
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
+            </ErrorSnacks>
+          </MemoryRouter>
+        </Router>
+      </GlobalMetainfo>
     </APIProvider>
   </RecoilRoot>
 }

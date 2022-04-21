@@ -52,6 +52,11 @@ const SectionCard = React.memo(({archivePath, sectionDef, getSection, ...props})
     </ArchiveButton>
   </React.Fragment>
 
+  if (!sectionDef) {
+    console.error('SectionCard: section definition is not available')
+    return ''
+  }
+
   return <PropertyCard title={sectionDef.name} action={actions}>
     <Box margin={2}>
       <SectionEditor

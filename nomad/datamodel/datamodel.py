@@ -738,5 +738,10 @@ class EntryArchive(metainfo.MSection):
     tabular_tree = metainfo.SubSection(sub_section=TabularTree, repeats=False)
     definitions = metainfo.SubSection(sub_section=metainfo.Package)
 
+    def normalize(self, archive, logger):
+        if not archive.metadata.entry_type:
+            if archive.definitions is not None:
+                archive.metadata.entry_type = 'Schema'
+
 
 m_package.__init_metainfo__()

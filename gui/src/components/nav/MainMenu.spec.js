@@ -24,22 +24,22 @@ import MainMenu from './MainMenu'
 import { routes } from './Routes'
 
 describe('<MainMenu />', () => {
-  it('renders menu items for all nav paths', () => {
+  it('renders menu items for all nav paths', async () => {
     render(<MainMenu/>)
-    Object.keys(routes).forEach(key => {
+    for (const key of Object.keys(routes)) {
       const route = routes[key]
       if (route.menu) {
-        const menu = screen.getByTestId(route.menu)
+        const menu = await screen.findByTestId(route.menu)
         expect(menu).toBeInTheDocument()
         if (route.routes) {
-          route.routes.forEach(route => {
-            if (route.menu) {
-              const item = within(menu).getByTestId(route.menu)
+          for (const subRoute of route.routes) {
+            if (subRoute.menu) {
+              const item = await within(menu).findByTestId(subRoute.menu)
               expect(item).toBeInTheDocument()
             }
-          })
+          }
         }
       }
-    })
+    }
   })
 })

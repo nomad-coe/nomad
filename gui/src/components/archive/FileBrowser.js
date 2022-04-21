@@ -36,7 +36,8 @@ import Dropzone from 'react-dropzone'
 import Download from '../entry/Download'
 import Quantity from '../Quantity'
 import FilePreview from './FilePreview'
-import { archiveAdaptorFactory } from './ArchiveBrowser'
+import { archiveAdaptorFactory, useBrowserAdaptorContext } from './ArchiveBrowser'
+import { createMetainfo } from './metainfo'
 import H5Web from '../visualization/H5Web'
 import NorthLaunchButton from '../north/NorthLaunchButton'
 import { useTools } from '../north/NorthPage'
@@ -44,7 +45,16 @@ import { EntryButton } from '../nav/Routes'
 import { useErrors } from '../errors'
 
 const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem = null, editable = false}) => {
-  const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle, highlightedItem, editable)
+  const context = useBrowserAdaptorContext()
+  const adaptor = useMemo(() => {
+    return new RawDirectoryAdaptor(
+      context, uploadId, path, rootTitle, highlightedItem, editable)
+  }, [context, uploadId, path, rootTitle, highlightedItem, editable])
+
+  if (!context.metainfo) {
+    return ''
+  }
+
   return <Browser adaptor={adaptor} />
 })
 FileBrowser.propTypes = {
@@ -57,8 +67,8 @@ FileBrowser.propTypes = {
 export default FileBrowser
 
 class RawDirectoryAdaptor extends Adaptor {
-  constructor(uploadId, path, title, highlightedItem, editable = false) {
-    super()
+  constructor(context, uploadId, path, title, highlightedItem, editable = false) {
+    super(context)
     this.uploadId = uploadId
     this.path = path
     this.title = title
@@ -88,9 +98,9 @@ class RawDirectoryAdaptor extends Adaptor {
     const element = this.data.elementsByName[key]
     if (element) {
       if (element.is_file) {
-        return new RawFileAdaptor(this.uploadId, ext_path, element, this.editable)
+        return new RawFileAdaptor(this.context, this.uploadId, ext_path, element, this.editable)
       } else {
-        return new RawDirectoryAdaptor(this.uploadId, ext_path, key, null, this.editable)
+        return new RawDirectoryAdaptor(this.context, this.uploadId, ext_path, key, null, this.editable)
       }
     }
     throw new Error('Bad path: ' + key)
@@ -315,22 +325,28 @@ RawDirectoryContent.propTypes = {
 }
 
 export class RawFileAdaptor extends Adaptor {
-  constructor(uploadId, path, data, editable) {
-    super()
+  constructor(context, uploadId, path, data, editable) {
+    super(context)
     this.uploadId = uploadId
     this.path = path
     this.data = data
     this.editable = editable
   }
-  async itemAdaptor(key, api) {
+  async itemAdaptor(key) {
     if (key === 'archive') {
       if (!this.data.archive) {
-        const response = await api.get(`entries/${this.data.entry_id}/archive`)
+        const response = await this.context.api.get(`entries/${this.data.entry_id}/archive`)
         this.data.archive = response.data.archive
+        this.data.archive._metainfo = await createMetainfo(this.data.archive, this.context.metainfo, this.context)
       }
-      return archiveAdaptorFactory(this.data.archive)
+      const childContext = {
+        ...this.context,
+        metainfo: this.data.archive._metainfo || this.context.metainfo,
+        archive: this.data.archive
+      }
+      return archiveAdaptorFactory(childContext, this.data.archive)
     } else if (key === 'h5web') {
-      return new H5WebAdaptor(this.uploadId, this.path)
+      return new H5WebAdaptor(this.context, this.uploadId, this.path)
     }
   }
   render() {
@@ -341,8 +357,8 @@ export class RawFileAdaptor extends Adaptor {
 }
 
 class H5WebAdaptor extends Adaptor {
-  constructor(uploadId, path) {
-    super()
+  constructor(context, uploadId, path) {
+    super(context)
     this.uploadId = uploadId
     this.path = path
   }

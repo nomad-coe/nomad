@@ -30,6 +30,7 @@ import { ErrorSnacks, ErrorBoundary } from './errors'
 import Navigation from './nav/Navigation'
 import GUIMenu from './GUIMenu'
 import { APIProvider, GlobalLoginRequired, onKeycloakEvent } from './api'
+import { GlobalMetainfo } from './archive/metainfo'
 
 const keycloak = Keycloak({
   url: keycloakBase,
@@ -43,20 +44,22 @@ export default function App() {
       <RecoilRoot>
         <APIProvider>
           <MuiPickersUtilsProvider utils={DateFnsUtils}>
-            <Router history={history}>
-              <QueryParamProvider ReactRouterRoute={Route}>
-                <MuiThemeProvider theme={nomadTheme}>
-                  <ErrorSnacks>
-                    <ErrorBoundary>
-                      <GlobalLoginRequired>
-                        <Navigation />
-                        <GUIMenu/>
-                      </GlobalLoginRequired>
-                    </ErrorBoundary>
-                  </ErrorSnacks>
-                </MuiThemeProvider>
-              </QueryParamProvider>
-            </Router>
+            <GlobalMetainfo>
+              <Router history={history}>
+                <QueryParamProvider ReactRouterRoute={Route}>
+                  <MuiThemeProvider theme={nomadTheme}>
+                    <ErrorSnacks>
+                      <ErrorBoundary>
+                        <GlobalLoginRequired>
+                          <Navigation />
+                          <GUIMenu/>
+                        </GlobalLoginRequired>
+                      </ErrorBoundary>
+                    </ErrorSnacks>
+                  </MuiThemeProvider>
+                </QueryParamProvider>
+              </Router>
+            </GlobalMetainfo>
           </MuiPickersUtilsProvider>
         </APIProvider>
       </RecoilRoot>

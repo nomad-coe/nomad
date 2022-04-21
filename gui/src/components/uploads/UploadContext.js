@@ -20,7 +20,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import PropTypes from 'prop-types'
 import { DoesNotExist, useApi } from '../api'
 import { useErrors } from '../errors'
-import { useHistory, useLocation } from 'react-router-dom'
+import { useHistory } from 'react-router-dom'
 import { getUrl } from '../nav/Routes'
 
 export const uploadContext = React.createContext()
@@ -33,7 +33,6 @@ const UploadContext = React.memo(function UploadContext({uploadId, children}) {
   const {api, user} = useApi()
   const {raiseError} = useErrors()
   const history = useHistory()
-  const location = useLocation()
 
   const [pagination, setPagination] = useState({
     page_size: 5, page: 1, order: 'asc', order_by: 'process_status'
@@ -57,7 +56,7 @@ const UploadContext = React.memo(function UploadContext({uploadId, children}) {
       })
       .catch((error) => {
         if (error instanceof DoesNotExist && deleteClicked) {
-          history.push(getUrl('uploads', location))
+          history.push(getUrl('uploads', new URL(window.location.href).pathname))
           return
         }
         if (!hasUpload && error.apiMessage) {
@@ -66,7 +65,7 @@ const UploadContext = React.memo(function UploadContext({uploadId, children}) {
           raiseError(error)
         }
       })
-  }, [api, hasUpload, uploadId, pagination, deleteClicked, raiseError, setData, setApiData, history, location])
+  }, [api, hasUpload, uploadId, pagination, deleteClicked, raiseError, setData, setApiData, history])
 
   // constant fetching of upload data when necessary
   useEffect(() => {
@@ -84,7 +83,7 @@ const UploadContext = React.memo(function UploadContext({uploadId, children}) {
   const isViewer = user && viewers?.includes(user.sub)
   const isWriter = user && writers?.includes(user.sub)
 
-  const contextValue = {
+  const contextValue = useMemo(() => ({
     uploadId: uploadId,
     upload: upload,
     hasUpload: hasUpload,
@@ -100,7 +99,10 @@ const UploadContext = React.memo(function UploadContext({uploadId, children}) {
     deleteClicked: deleteClicked,
     setDeleteClicked: setDeleteClicked,
     isProcessing: isProcessing
-  }
+  }), [
+    uploadId, upload, hasUpload, setUpload, setPagination, pagination, data, apiData,
+    isViewer, isWriter, fetchData, error, deleteClicked, setDeleteClicked, isProcessing
+  ])
 
   return <uploadContext.Provider value={contextValue}>
     {children}

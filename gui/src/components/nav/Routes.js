@@ -449,7 +449,7 @@ export const Routes = React.memo(function Routes() {
  */
 export function getUrl(path, location) {
   const commonPathPrefix = path.split('/')[0]
-  const pathname = location?.pathname
+  const pathname = typeof location === 'string' ? location : location?.pathname
   const match = pathname && allRoutes
     .filter(route => route.routes?.some(route => route.path === commonPathPrefix))
     .map(route => matchPath(pathname, route.path)).find(match => match)

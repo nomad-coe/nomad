@@ -131,5 +131,9 @@
       "d3": "<rootDir>/node_modules/d3/dist/d3.min.js",
       "three": "<rootDir>/node_modules/three/build/three.min.js"
     }
+  },
+  "resolutions": {
+    "//": "See https://github.com/facebook/create-react-app/issues/11773",
+    "react-error-overlay": "6.0.9"
   }
 }
