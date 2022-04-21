@@ -199,9 +199,15 @@ export async function browseRecursively(lane, laneIndex, path, consoleLogSpy, co
   // Click on all discovered item-lists to open them
   for (const itemList of within(lane).queryAllByRole('item-list')) {
     const label = itemList.textContent
-    process.stdout.write(`Expanding item list: ${path}/${label}\n`)
-    userEvent.click(itemList)
-    await within(lane).findByTestId(`item-list:${label}`)
+    try {
+      userEvent.click(itemList)
+      await within(lane).findByTestId(`item-list:${label}`)
+      expect(consoleLogSpy).not.toBeCalled()
+      expect(consoleErrorSpy).not.toBeCalled()
+    } catch (error) {
+      process.stdout.write(`ERROR expanding item list: ${path}/${label}\n`)
+      throw error
+    }
   }
   const items = {}
   for (const item of within(lane).queryAllByTestId(/^item:/)) {
@@ -217,10 +223,15 @@ export async function browseRecursively(lane, laneIndex, path, consoleLogSpy, co
       filterMemory[filterKey] = true
       const item = items[itemKey]
       const nextPath = `${path}/${itemKey}`
-      process.stdout.write(`Rendering path: ${nextPath}\n`)
-      const nextLane = await selectItemAndWaitForRender(lane, laneIndex, itemKey, item)
-      expect(consoleLogSpy).not.toBeCalled()
-      expect(consoleErrorSpy).not.toBeCalled()
+      let nextLane
+      try {
+        nextLane = await selectItemAndWaitForRender(lane, laneIndex, itemKey, item)
+        expect(consoleLogSpy).not.toBeCalled()
+        expect(consoleErrorSpy).not.toBeCalled()
+      } catch (error) {
+        process.stdout.write(`ERROR encountered when browsing to: ${nextPath}\n`)
+        throw error
+      }
       // new lane rendered successfully
       await browseRecursively(nextLane, laneIndex + 1, nextPath, consoleLogSpy, consoleErrorSpy, itemFilter, filterKeyLength, filterMemory)
     }
