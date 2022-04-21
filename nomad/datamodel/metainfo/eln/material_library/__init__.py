@@ -389,7 +389,7 @@ class Processes(MSection):
     For example, in the context of thin films, cleaning the substrate or
     the deposition of a new layer by evaporation are `processes`.
     '''
-    m_def = Section(a_eln=dict(lane_width='700px'))
+    m_def = Section(a_eln=dict())
 
     pvd_evaporation = SubSection(section_def=PVDEvaporation)
     pld_deposition = SubSection(section_def=PLDDeposition)
