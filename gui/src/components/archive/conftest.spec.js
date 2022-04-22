@@ -17,7 +17,7 @@
  */
 import { join, basename } from 'path'
 import { waitFor } from '@testing-library/dom'
-import { screen, within } from '../conftest.spec'
+import { screen, within, expectNoConsoleOutput } from '../conftest.spec'
 import userEvent from '@testing-library/user-event'
 import { laneErrorBoundryMessage } from './Browser'
 
@@ -192,7 +192,7 @@ export async function navigateTo(path, browserConfig) {
  * itemFilter is provided, all items will be visited. This method provides an easy way to
  * verify that the browser renders all (or at least a lot of) paths correctly.
  */
-export async function browseRecursively(lane, laneIndex, path, consoleLogSpy, consoleErrorSpy, itemFilter, filterKeyLength = 2, filterMemory = null) {
+export async function browseRecursively(lane, laneIndex, path, itemFilter, filterKeyLength = 2, filterMemory = null) {
   if (filterMemory === null) {
     filterMemory = {}
   }
@@ -202,8 +202,7 @@ export async function browseRecursively(lane, laneIndex, path, consoleLogSpy, co
     try {
       userEvent.click(itemList)
       await within(lane).findByTestId(`item-list:${label}`)
-      expect(consoleLogSpy).not.toBeCalled()
-      expect(consoleErrorSpy).not.toBeCalled()
+      expectNoConsoleOutput()
     } catch (error) {
       process.stdout.write(`ERROR expanding item list: ${path}/${label}\n`)
       throw error
@@ -226,14 +225,13 @@ export async function browseRecursively(lane, laneIndex, path, consoleLogSpy, co
       let nextLane
       try {
         nextLane = await selectItemAndWaitForRender(lane, laneIndex, itemKey, item)
-        expect(consoleLogSpy).not.toBeCalled()
-        expect(consoleErrorSpy).not.toBeCalled()
+        expectNoConsoleOutput()
       } catch (error) {
         process.stdout.write(`ERROR encountered when browsing to: ${nextPath}\n`)
         throw error
       }
       // new lane rendered successfully
-      await browseRecursively(nextLane, laneIndex + 1, nextPath, consoleLogSpy, consoleErrorSpy, itemFilter, filterKeyLength, filterMemory)
+      await browseRecursively(nextLane, laneIndex + 1, nextPath, itemFilter, filterKeyLength, filterMemory)
     }
   }
 }

@@ -631,3 +631,44 @@ export async function readArchive(path) {
   const archive = await import(path)
   return [archive, {...archive, ...archive.metadata}]
 }
+
+const consoleSpies = {}
+
+/**
+ * Utility for spying on the console, and yielding errors if something is printed to it
+ * (since most of the time, we don't want anything to be printed to the console).
+ * Typical usage: call blockConsoleOutput before the test, and unblockConsoleOutput after,
+ * for example using beforeEach and afterEach.
+ */
+export function blockConsoleOutput() {
+  if (consoleSpies.logSpy) {
+    throw Error('Already spying on the console output')
+  }
+  consoleSpies.logSpy = jest.spyOn(console, 'log')
+  consoleSpies.errorSpy = jest.spyOn(console, 'error')
+}
+
+/**
+ * Expects that nothing has been written to the console (so far)
+ */
+export function expectNoConsoleOutput() {
+  if (!consoleSpies.logSpy) {
+    throw Error('Need to call blockConsoleOutput before using this method!')
+  }
+  expect(consoleSpies.logSpy).not.toBeCalled()
+  expect(consoleSpies.errorSpy).not.toBeCalled()
+}
+
+/**
+ * Checks that nothing has been written to the console, and removes the log spies
+ * (see blockConsoleOutput)
+ */
+export function unblockConsoleOutput() {
+  try {
+    expectNoConsoleOutput()
+  } finally {
+    consoleSpies.logSpy.mockRestore()
+    consoleSpies.errorSpy.mockRestore()
+    consoleSpies.logSpy = consoleSpies.errorSpy = null
+  }
+}

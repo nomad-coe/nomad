@@ -18,13 +18,19 @@
 import React from 'react'
 import { join } from 'path'
 import userEvent from '@testing-library/user-event'
-import { render, screen, within, startAPI, closeAPI } from '../conftest.spec'
+import { render, screen, within, startAPI, closeAPI, blockConsoleOutput, unblockConsoleOutput } from '../conftest.spec'
 import { getLane, navigateTo, browseRecursively } from '../archive/conftest.spec'
 import EntryContext from './EntryContext'
 import ArchiveEntryView from './ArchiveEntryView'
 import { minutes } from '../../setupTests'
 
-afterEach(() => closeAPI())
+beforeEach(() => {
+  blockConsoleOutput()
+})
+afterEach(() => {
+  unblockConsoleOutput()
+  closeAPI()
+})
 
 function archiveItemFilter(parentPath, items) {
   // The archive tree is very big and contains referential cycles, so we need to limit the crawling.
@@ -67,27 +73,20 @@ test.each([
   ['with all', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, true, 1]
 ])('Browse archive recursively: %s', async (name, entryId, path, withDefinition, withAll, filterKeyLength) => {
   await startAPI('tests.states.uploads.archive_browser_test', 'tests/data/uploads/archive_browser_test', 'test', 'password')
-  const consoleLogSpy = jest.spyOn(console, 'log')
-  const consoleErrorSpy = jest.spyOn(console, 'error')
-  try {
-    render(<EntryContext entryId={entryId}><ArchiveEntryView /></EntryContext>)
-    expect(await screen.findByText('Entry')).toBeVisible()
+  render(<EntryContext entryId={entryId}><ArchiveEntryView /></EntryContext>)
+  expect(await screen.findByText('Entry')).toBeVisible()
 
-    if (withDefinition) {
-      // Click the definitions checkbox
-      userEvent.click(screen.getByRoleAndText('checkbox', 'definitions'))
-      expect(await within(getLane(0)).findByText('meta')).toBeVisible()
-    }
-    if (withAll) {
-      // Click the metainfo definition
-      userEvent.click(screen.getByRoleAndText('checkbox', 'all defined'))
-      expect(await within(getLane(0)).findByText('processing_logs')).toBeVisible()
-    }
-    const lane = await navigateTo(path)
-    const laneIndex = path ? path.split('/').length : 0
-    await browseRecursively(lane, laneIndex, join(`*ArchiveBrowser ${name}*`, path), consoleLogSpy, consoleErrorSpy, archiveItemFilter, filterKeyLength)
-  } finally {
-    consoleLogSpy.mockRestore()
-    consoleErrorSpy.mockRestore()
+  if (withDefinition) {
+    // Click the definitions checkbox
+    userEvent.click(screen.getByRoleAndText('checkbox', 'definitions'))
+    expect(await within(getLane(0)).findByText('meta')).toBeVisible()
   }
+  if (withAll) {
+    // Click the metainfo definition
+    userEvent.click(screen.getByRoleAndText('checkbox', 'all defined'))
+    expect(await within(getLane(0)).findByText('processing_logs')).toBeVisible()
+  }
+  const lane = await navigateTo(path)
+  const laneIndex = path ? path.split('/').length : 0
+  await browseRecursively(lane, laneIndex, join(`*ArchiveBrowser ${name}*`, path), archiveItemFilter, filterKeyLength)
 }, 12 * minutes)

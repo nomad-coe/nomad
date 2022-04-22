@@ -18,7 +18,7 @@
 import React from 'react'
 import { join } from 'path'
 import { waitFor } from '@testing-library/dom'
-import { render, screen } from '../conftest.spec'
+import { render, screen, blockConsoleOutput, unblockConsoleOutput } from '../conftest.spec'
 import { navigateTo, browseRecursively } from './conftest.spec'
 import MetainfoBrowser from './MetainfoBrowser'
 import { minutes } from '../../setupTests'
@@ -56,21 +56,17 @@ function metainfoItemFilter(parentPath, items) {
   return rv
 }
 
-test('Browse metainfo reursively', async () => {
-  const consoleLogSpy = jest.spyOn(console, 'log')
-  const consoleErrorSpy = jest.spyOn(console, 'error')
-  try {
-    render(<MetainfoBrowser />)
-    await waitFor(() => {
-      expect(screen.getByText(/archive root section/i)).toBeVisible()
-    })
+beforeEach(() => blockConsoleOutput())
+afterEach(() => unblockConsoleOutput())
 
-    const path = ''
-    const lane = await navigateTo(path)
-    const laneIndex = path ? path.split('/').length : 0
-    await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), consoleLogSpy, consoleErrorSpy, metainfoItemFilter, 2)
-  } finally {
-    consoleLogSpy.mockRestore()
-    consoleErrorSpy.mockRestore()
-  }
+test('Browse metainfo reursively', async () => {
+  render(<MetainfoBrowser />)
+  await waitFor(() => {
+    expect(screen.getByText(/archive root section/i)).toBeVisible()
+  })
+
+  const path = ''
+  const lane = await navigateTo(path)
+  const laneIndex = path ? path.split('/').length : 0
+  await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), metainfoItemFilter, 2)
 }, 12 * minutes)
