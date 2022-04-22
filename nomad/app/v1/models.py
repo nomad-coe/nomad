@@ -871,12 +871,69 @@ class TermsAggregation(BucketAggregation):
         '''))
 
 
+class Bounds(BaseModel):
+    min: float = Field(
+        description=strip('''
+        Start value for the histogram.
+        '''))
+    max: float = Field(
+        description=strip('''
+        Ending value for the histogram.
+        '''))
+
+    @root_validator
+    def check_order(cls, values):  # pylint: disable=no-self-argument
+        min = values.get('min')
+        max = values.get('max')
+        if min > max:
+            raise ValueError('The maximum value should be greater than the minimum value.')
+        return values
+
+
 class HistogramAggregation(BucketAggregation):
-    interval: pydantic.confloat(gt=0)  # type: ignore
+    interval: float = Field(
+        None,
+        gt=0,
+        description=strip('''
+            The histogram bucketing interval. Provide either this or the number
+            of buckets.
+        '''))
+    buckets: int = Field(
+        None,
+        gt=0,
+        description=strip('''
+            The number of buckets to use. Provide either this or the interval.
+            The interval for the bucketing is automatically chosen to achieve
+            the target number of buckets. Notice that for integer data types
+            (int, long, date), the returned number of buckets may be smaller
+            than the requested amount if the histogram range is smaller than
+            the number of buckets. This setting will override the interval.
+        '''))
+    offset: float = Field(
+        None,
+        gte=0)
+    extended_bounds: Optional[Bounds]
+
+    @root_validator
+    def check_bucketing(cls, values):  # pylint: disable=no-self-argument
+        interval = values.get('interval')
+        buckets = values.get('buckets')
+        if interval is None and buckets is None:
+            raise ValueError('Provide either interval or the number of buckets.')
+        return values
 
 
 class DateHistogramAggregation(BucketAggregation):
     interval: str = Field('1M')  # type: ignore
+
+
+class AutoDateHistogramAggregation(BucketAggregation):
+    buckets: int = Field(
+        10, description=strip('''
+        The target number of buckets. The interval of the buckets is
+        automatically chosen to best achieve that target. The number of buckets
+        returned will always be less than or equal to this target number.
+        '''))
 
 
 class MinMaxAggregation(QuantityAggregation):
@@ -965,7 +1022,7 @@ class Aggregation(BaseModel):
             {
                 "aggregations": {
                     "upload_create_times": {
-                        "histogram": {
+                        "date_histogram": {
                             "quantity": "upload_create_time",
                             "interval": "1M"
                         }
@@ -976,6 +1033,32 @@ class Aggregation(BaseModel):
 
             The used quantity must be a datetime typed quantity. Intervals are strings
             that determine a time period. The default is one month, `1M`.
+        '''))
+
+    auto_date_histogram: Optional[AutoDateHistogramAggregation] = Body(
+        None,
+        description=strip('''
+            A `auto_date_histogram` aggregation is like a normal
+            `date_histogram` but instead of providing an explicit time step,
+            you can provide a target number of buckets.:
+
+            ```json
+            {
+                "aggregations": {
+                    "upload_create_times": {
+                        "auto_date_histogram": {
+                            "quantity": "upload_create_time",
+                            "buckets": "10"
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a datetime typed quantity. Buckets are
+            integer numbers that determine the targeted amount of buckets.
+            Notice that number of buckets returned will always be less than or
+            equal to this target number. The default is to target 10 buckets.
         '''))
 
     min_max: Optional[MinMaxAggregation] = Body(
@@ -1223,6 +1306,11 @@ class DateHistogramAggregationResponse(BucketAggregationResponse, DateHistogramA
     pass
 
 
+class AutoDateHistogramAggregationResponse(BucketAggregationResponse, AutoDateHistogramAggregation):
+    interval: str = Field(
+        None, description=strip('''The interval that was used for the bucketing.'''))
+
+
 class MinMaxAggregationResponse(MinMaxAggregation):
     data: List[Union[float, None]]
 
@@ -1235,6 +1323,7 @@ class AggregationResponse(Aggregation):
     terms: Optional[TermsAggregationResponse]
     histogram: Optional[HistogramAggregationResponse]
     date_histogram: Optional[DateHistogramAggregationResponse]
+    auto_date_histogram: Optional[AutoDateHistogramAggregationResponse]
     min_max: Optional[MinMaxAggregationResponse]
     statistics: Optional[StatisticsAggregationResponse]
 

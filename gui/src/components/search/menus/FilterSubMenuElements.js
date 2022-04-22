@@ -22,8 +22,7 @@ import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputPeriodicTable from '../input/InputPeriodicTable'
 import InputField from '../input/InputField'
-import InputSlider from '../input/InputSlider'
-import { useUnits } from '../../../units'
+import InputRange from '../input/InputRange'
 
 const useStyles = makeStyles(theme => ({
   grid: {
@@ -35,10 +34,9 @@ const FilterSubMenuElements = React.memo(({
   value,
   ...rest
 }) => {
-  const {selected} = useContext(filterMenuContext)
-  const visible = value === selected
+  const {selected, open} = useContext(filterMenuContext)
+  const visible = open && value === selected
   const styles = useStyles()
-  const units = useUnits()
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid className={styles.grid}>
@@ -63,11 +61,10 @@ const FilterSubMenuElements = React.memo(({
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputSlider
+        <InputRange
           quantity="results.material.n_elements"
           visible={visible}
           step={1}
-          units={units}
         />
       </InputGridItem>
     </InputGrid>

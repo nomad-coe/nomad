@@ -111,16 +111,18 @@ def search_quantities():
     from nomad.metainfo.elasticsearch_extension import entry_type, Elasticsearch
     from nomad.datamodel import EntryArchive
 
-    def to_dict(search_quantity, section=False):
+    def to_dict(search_quantity, section=False, repeats=False):
         if section:
-            keys = ["name", "description", "nested"]
+            keys = ['name', 'description', 'nested', 'repeats']
             metadict = search_quantity.sub_section.m_to_dict(with_meta=True)
-            metadict["name"] = search_quantity.m_to_dict(with_meta=True)["name"]
+            instanceMeta = search_quantity.m_to_dict(with_meta=True)
+            metadict['name'] = instanceMeta['name']
+            metadict['repeats'] = repeats or instanceMeta.get('repeats')
             es_annotations = search_quantity.m_get_annotations(Elasticsearch, as_list=True)
             nested = any([x.nested for x in es_annotations])
-            metadict["nested"] = nested
+            metadict['nested'] = nested
         else:
-            keys = ["name", "description", "type", "unit"]
+            keys = ['name', 'description', 'type', 'unit']
             metadict = search_quantity.definition.m_to_dict(with_meta=True)
         result = {}
         for key in keys:
@@ -139,16 +141,18 @@ def search_quantities():
 
     # Add suggestion flag
     for suggestion in entry_type.suggestions.keys():
-        export[suggestion]["suggestion"] = True
+        export[suggestion]['suggestion'] = True
 
     # Add section definitions
-    def get_sections(m_def, prefix=None):
+    def get_sections(m_def, prefix=None, repeats=False):
         for sub_section_def in m_def.all_sub_sections.values():
             name = sub_section_def.name
-            full_name = f"{prefix}.{name}" if prefix else name
-            export[full_name] = to_dict(sub_section_def, True)
-            get_sections(sub_section_def.sub_section, full_name)
-    get_sections(EntryArchive.results.sub_section, "results")
+            full_name = f'{prefix}.{name}' if prefix else name
+            info = to_dict(sub_section_def, True, repeats)
+            repeats_child = info.get('repeats', repeats)
+            export[full_name] = info
+            get_sections(sub_section_def.sub_section, full_name, repeats_child)
+    get_sections(EntryArchive.results.sub_section, 'results')
 
     print(json.dumps(export, indent=2))
 

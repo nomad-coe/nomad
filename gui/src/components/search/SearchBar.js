@@ -50,6 +50,8 @@ const opMapReverse = {
   '<': 'gt'
 }
 
+const numericTypes = new Set([DType.Timestamp, DType.Int, DType.Float])
+
 // Customized paper component for the autocompletion options
 const CustomPaper = (props) => {
   return <Paper elevation={3} {...props} />
@@ -194,7 +196,7 @@ const SearchBar = React.memo(({
         quantityFullname = aError ? bFullname : aFullname
         const value = aError ? a : b
         const dtype = getDatatype(quantityFullname)
-        if (dtype !== DType.Number && dtype !== DType.Timestamp) {
+        if (!numericTypes.has(dtype)) {
           setError(`Cannot perform range query for a non-numeric quantity`)
           return
         }
@@ -228,7 +230,7 @@ const SearchBar = React.memo(({
         }
         quantityFullname = fullName
         const dtype = getDatatype(quantityFullname)
-        if (dtype !== DType.Number && dtype !== DType.Timestamp) {
+        if (numericTypes.has(dtype)) {
           setError(`Cannot perform range query for a non-numeric quantity.`)
           return
         }

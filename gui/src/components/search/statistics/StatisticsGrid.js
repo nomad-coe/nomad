@@ -31,19 +31,22 @@ import { useSearchContext } from '../SearchContext'
  */
 const widthMapping = {
   large: {
+    'xs': 12,
     'sm': 12,
     'md': 9,
     'lg': 8,
     'xl': 6
   },
   medium: {
-    'sm': 6,
+    'xs': 12,
+    'sm': 8,
     'md': 6,
     'lg': 4,
-    'xl': 3
+    'xl': 4
   },
   small: {
-    'sm': 6,
+    'xs': 6,
+    'sm': 4,
     'md': 3,
     'lg': 4,
     'xl': 3
@@ -54,6 +57,9 @@ const useStyles = makeStyles(theme => {
     root: {},
     container: {
       margin: -theme.spacing(1)
+    },
+    component: {
+      height: '100%'
     },
     muuriInnerItem: {
       backgroundColor: theme.palette.background.paper,
@@ -83,10 +89,12 @@ const StatisticsGrid = React.memo(({
     size = 'xl'
   } else if (width > 1250) {
     size = 'lg'
-  } else if (width > 950) {
+  } else if (width > 1050) {
     size = 'md'
-  } else {
+  } else if (width > 750) {
     size = 'sm'
+  } else {
+    size = 'xs'
   }
 
   // Store the order when items have been rearranged.
@@ -135,8 +143,9 @@ const StatisticsGrid = React.memo(({
                 <Paper className={styles.muuriInnerItem}>
                   <config.component
                     quantity={filter}
+                    className={styles.component}
                     visible
-                    draggable
+                    anchored
                     aggId="statistics"
                   />
                 </Paper>

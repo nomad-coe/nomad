@@ -25,8 +25,8 @@ const FilterSubMenuIDs = React.memo(({
   value,
   ...rest
 }) => {
-  const {selected} = useContext(filterMenuContext)
-  const visible = value === selected
+  const {selected, open} = useContext(filterMenuContext)
+  const visible = open && value === selected
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid spacing={2}>

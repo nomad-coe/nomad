@@ -40,7 +40,7 @@ import CancelIcon from '@material-ui/icons/Cancel'
 import InputTitle from './InputTitle'
 import { useSearchContext } from '../SearchContext'
 import { Actions, ActionHeader, Action } from '../../Actions'
-import { scales } from '../../../utils'
+import { scales } from '../../plotting/common'
 import { guiState } from '../../GUIMenu'
 import { useBoolState } from '../../../hooks'
 
@@ -75,13 +75,14 @@ const InputHeader = React.memo(({
   quantity,
   label,
   description,
+  disableAnchoring,
   disableStatistics,
-  disableScale,
   scale,
   onChangeScale,
-  draggable,
   actions,
+  actionsAlign,
   className,
+  anchored,
   classes
 }) => {
   const { useStatisticState } = useSearchContext()
@@ -129,8 +130,8 @@ const InputHeader = React.memo(({
   }
 
   const control = <Action
-    tooltip={statistic ? 'Remove the filter statistics from the results panel.' : 'Show filter statistics in the results panel.'}
-    disabled={disableStatistics}
+    tooltip={statistic ? 'Remove statistics from the results panel.' : 'Display statistics for this filter in the results panel.'}
+    disabled={disableAnchoring}
     onClick={() => setStatistic(old => !old)}
   >
     {statistic ? <RemoveIcon fontSize={iconSize}/> : <AddIcon fontSize={iconSize}/>}
@@ -186,11 +187,11 @@ const InputHeader = React.memo(({
     </Action>
 
   return <Actions className={clsx(styles.root, className)}>
-    {align === 'left' && !disableStatistics && control}
+    {align === 'left' && !disableAnchoring && control}
     <ActionHeader disableSpacer>
       <div
-        className={clsx(styles.row, draggable ? 'dragHandle' : undefined)}
-        style={{cursor: draggable ? (isDragging ? 'grabbing' : 'grab') : undefined}}
+        className={clsx(styles.row, anchored ? 'dragHandle' : undefined)}
+        style={{cursor: anchored ? (isDragging ? 'grabbing' : 'grab') : undefined}}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >
@@ -199,13 +200,15 @@ const InputHeader = React.memo(({
           label={label}
           description={description}
           TooltipProps={tooltipProps}
+          anchored={anchored}
         />
         <div className={styles.spacer}/>
       </div>
     </ActionHeader>
-    {!disableScale && menuComp}
-    {align === 'right' && !disableStatistics && control}
-    {actions}
+    {actionsAlign === 'left' && actions}
+    {!disableStatistics && menuComp}
+    {align === 'right' && !disableAnchoring && control}
+    {actionsAlign === 'right' && actions}
   </Actions>
 })
 
@@ -213,20 +216,23 @@ InputHeader.propTypes = {
   quantity: PropTypes.string.isRequired,
   label: PropTypes.string,
   description: PropTypes.string,
+  disableAnchoring: PropTypes.bool,
   disableStatistics: PropTypes.bool,
-  disableScale: PropTypes.bool,
   scale: PropTypes.string,
   onChangeScale: PropTypes.func,
-  draggable: PropTypes.bool,
+  anchored: PropTypes.bool,
+  variant: PropTypes.string,
   actions: PropTypes.node,
+  actionsAlign: PropTypes.oneOf(['left', 'right']),
   className: PropTypes.string,
   classes: PropTypes.object
 }
 
 InputHeader.defaultProps = {
   underscores: false,
+  disableAnchoring: false,
   disableStatistics: false,
-  disableScale: false,
+  actionsAlign: 'left',
   scale: 'linear'
 }
 

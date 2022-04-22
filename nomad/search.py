@@ -32,7 +32,8 @@ update the v1 materials index according to the performed changes. TODO this is o
 partially implemented.
 '''
 
-from typing import Union, List, Iterable, Any, cast, Dict, Iterator, Generator, Callable
+from typing import Union, List, Tuple, Iterable, Any, cast, Dict, Iterator, Generator, Callable
+import math
 import json
 import elasticsearch.helpers
 from elasticsearch.exceptions import TransportError, RequestError
@@ -50,9 +51,9 @@ from nomad.app.v1.models import (
     QuantityAggregation, Query, MetadataRequired,
     MetadataResponse, Aggregation, StatisticsAggregation, StatisticsAggregationResponse,
     Value, AggregationBase, TermsAggregation, BucketAggregation, HistogramAggregation,
-    DateHistogramAggregation, MinMaxAggregation, Bucket,
+    DateHistogramAggregation, AutoDateHistogramAggregation, MinMaxAggregation, Bucket,
     MinMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
-    DateHistogramAggregationResponse, AggregationResponse)
+    DateHistogramAggregationResponse, AutoDateHistogramAggregationResponse, AggregationResponse)
 from nomad.metainfo.elasticsearch_extension import (
     index_entries, entry_type, entry_index, DocumentType,
     material_type, entry_type, material_entry_type,
@@ -789,6 +790,16 @@ def _api_to_es_aggregation(
         if is_nested:
             es_agg.bucket(f'agg:parents:{name}', A('reverse_nested'))
 
+    elif isinstance(agg, AutoDateHistogramAggregation):
+        if not quantity.annotation.mapping['type'] in ['date']:
+            raise QueryValidationError(
+                f'The quantity {quantity} cannot be used in a auto date histogram aggregation',
+                loc=['aggregations', name, 'histogram', 'quantity'])
+
+        es_agg = es_aggs.bucket(agg_name, A(
+            'auto_date_histogram', field=quantity.search_field, buckets=agg.buckets,
+            format='yyyy-MM-dd'))
+
     elif isinstance(agg, DateHistogramAggregation):
         if not quantity.annotation.mapping['type'] in ['date']:
             raise QueryValidationError(
@@ -800,13 +811,17 @@ def _api_to_es_aggregation(
             format='yyyy-MM-dd'))
 
     elif isinstance(agg, HistogramAggregation):
-        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long']:
+        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long', 'date']:
             raise QueryValidationError(
                 f'The quantity {quantity} cannot be used in a histogram aggregation',
                 loc=['aggregations', name, 'histogram', 'quantity'])
-
+        params: Dict[str, Any] = {}
+        if agg.offset is not None:
+            params['offset'] = agg.offset
+        if agg.extended_bounds is not None:
+            params['extended_bounds'] = agg.extended_bounds.dict()
         es_agg = es_aggs.bucket(agg_name, A(
-            'histogram', field=quantity.search_field, interval=agg.interval))
+            'histogram', field=quantity.search_field, interval=agg.interval, **params))
 
     elif isinstance(agg, MinMaxAggregation):
         if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long', 'date']:
@@ -836,7 +851,9 @@ def _api_to_es_aggregation(
 
 
 def _es_to_api_aggregation(
-        es_response, name: str, agg: AggregationBase, doc_type: DocumentType):
+        es_response, name: str, agg: AggregationBase,
+        histogram_responses: Dict[str, HistogramAggregation], bucket_values: Dict[str, float],
+        doc_type: DocumentType):
     '''
     Creates a AggregationResponse from elasticsearch response on a request executed with
     the given aggregation.
@@ -848,6 +865,13 @@ def _es_to_api_aggregation(
         es_aggs = es_aggs[f'agg:{name}:filtered']
 
     aggregation_dict = agg.dict(by_alias=True)
+
+    # The histogram config is written from the original request.
+    histogram_response = histogram_responses.get(name)
+    bucket_value = bucket_values.get(name)
+    if histogram_response is not None:
+        aggregation_dict['buckets'] = histogram_response.buckets
+        aggregation_dict['interval'] = histogram_response.interval
 
     if isinstance(agg, StatisticsAggregation):
         metrics = {}
@@ -873,7 +897,7 @@ def _es_to_api_aggregation(
 
         def get_bucket(es_bucket) -> Bucket:
             if has_no_pagination:
-                if isinstance(agg, DateHistogramAggregation):
+                if isinstance(agg, (DateHistogramAggregation)):
                     value = es_bucket['key_as_string']
                 else:
                     value = es_bucket['key']
@@ -906,6 +930,12 @@ def _es_to_api_aggregation(
                     value = False
                 elif value == 1:
                     value = True
+
+            # Histograms for fields that contain only a single value have a
+            # special response format where the single bucket contains the only
+            # available value.
+            if bucket_value is not None:
+                value = bucket_value
 
             values.add(value)
             if len(metrics) == 0:
@@ -953,6 +983,12 @@ def _es_to_api_aggregation(
         elif isinstance(agg, DateHistogramAggregation):
             return AggregationResponse(
                 date_histogram=DateHistogramAggregationResponse(data=data, **aggregation_dict))
+        elif isinstance(agg, AutoDateHistogramAggregation):
+            return AggregationResponse(
+                auto_date_histogram=AutoDateHistogramAggregationResponse(
+                    data=data,
+                    interval=es_agg['interval'],
+                    **aggregation_dict))
         else:
             raise NotImplementedError()
 
@@ -966,7 +1002,7 @@ def _es_to_api_aggregation(
     raise NotImplementedError()
 
 
-def _specific_agg(agg: Aggregation) -> Union[TermsAggregation, DateHistogramAggregation, HistogramAggregation, MinMaxAggregation, StatisticsAggregation]:
+def _specific_agg(agg: Aggregation) -> Union[TermsAggregation, AutoDateHistogramAggregation, DateHistogramAggregation, HistogramAggregation, MinMaxAggregation, StatisticsAggregation]:
     if agg.terms is not None:
         return agg.terms
 
@@ -975,6 +1011,9 @@ def _specific_agg(agg: Aggregation) -> Union[TermsAggregation, DateHistogramAggr
 
     if agg.date_histogram is not None:
         return agg.date_histogram
+
+    if agg.auto_date_histogram is not None:
+        return agg.auto_date_histogram
 
     if agg.min_max is not None:
         return agg.min_max
@@ -994,6 +1033,92 @@ def _and_clauses(query: Query) -> Generator[Query, None, None]:
     yield query
 
 
+def _buckets_to_interval(
+        owner: str = 'public',
+        query: Union[Query, EsQuery] = None,
+        pagination: MetadataPagination = None,
+        required: MetadataRequired = None,
+        aggregations: Dict[str, Aggregation] = {},
+        user_id: str = None,
+        index: Index = entry_index) -> Tuple[
+            Dict[str, Aggregation],
+            Dict[str, HistogramAggregation],
+            Dict[str, float]]:
+    '''Converts any histogram aggregations with the number of buckets into a
+    query with an interval. This is required because elasticsearch does not yet
+    support providing only the number of buckets.
+
+    Buckets that have only one available value require a special treatment. An
+    interval cannot be defined in such cases, so we use a dummy value of 1.
+    '''
+    # Get the histograms which are determined by the number of buckets
+    histogram_requests: Dict[str, HistogramAggregation] = {}
+    histogram_responses: Dict[str, HistogramAggregation] = {}
+    bucket_values: Dict[str, float] = {}
+    aggs = {name: _specific_agg(agg) for name, agg in aggregations.items()}
+    for agg_name, agg in aggs.items():
+        if isinstance(agg, HistogramAggregation):
+            buckets = agg.buckets
+            # When buckets have been defined, but no explicit limits are given,
+            # a min-max aggregation has to be performed.
+            if buckets is not None is None:
+                histogram_requests[agg_name] = agg
+
+    # If no buckets determined, continue normally
+    if len(histogram_requests) == 0:
+        return aggregations, histogram_responses, bucket_values
+
+    # Create min/max aggregations for each histogram aggregation with buckets
+    # only.
+    min_max_aggregations = {
+        agg_name: Aggregation(
+            min_max=MinMaxAggregation(quantity=agg.quantity, exclude_from_search=agg.exclude_from_search)
+        ) for agg_name, agg in histogram_requests.items()
+    }
+    response = search(owner, query, pagination, required, min_max_aggregations, user_id, index)
+
+    # Calculate interval and return the modified aggregations
+    for agg_name, agg in histogram_requests.items():
+        data = response.aggregations[agg_name].min_max.data  # pylint: disable=no-member
+        min_value = data[0]
+        max_value = data[1]
+        interval = None
+        extended_bounds = agg.extended_bounds
+        if agg.extended_bounds:
+            min_value = extended_bounds.min if min_value is None else min(min_value, extended_bounds.min)
+            max_value = extended_bounds.max if max_value is None else max(max_value, extended_bounds.max)
+        if min_value is not None and max_value is not None:
+            interval = 0 if max_value == min_value else ((1 + 1e-8) * max_value - min_value) / agg.buckets
+            quantity = index.doc_type.quantities.get(agg.quantity)
+            # Discretized fields require a 'ceiled' interval in order to not
+            # return bins with floating point values and in order to prevent
+            # binning inaccuracies
+            if quantity.annotation.mapping['type'] in ['integer', 'long', 'date']:
+                interval = math.ceil((max_value - min_value) / agg.buckets)
+            # The interval for floating point fields is made artificially a bit
+            # bigger. This prevents binning issues arising from floating point
+            # inaccuracy.
+            else:
+                interval = 0 if max_value == min_value else ((1 + 1e-12) * max_value - min_value) / agg.buckets
+
+        # If no interval can be defined, the query interval is set to a dummy
+        # value of 1. ES requires a non-empty value.
+        response_interval = interval
+        if not interval:
+            interval = 1
+            response_interval = None
+            bucket_values[agg_name] = min_value
+        histogram_responses[agg_name] = HistogramAggregation(
+            quantity=agg.quantity, interval=response_interval, buckets=agg.buckets, offset=min_value)
+        aggregations[agg_name].histogram = agg.copy(update={
+            'interval': interval,
+            'offset': min_value,
+            'buckets': None
+        })
+
+    return aggregations, histogram_responses, bucket_values
+
+
 def search(
         owner: str = 'public',
         query: Union[Query, EsQuery] = None,
@@ -1002,6 +1127,19 @@ def search(
         aggregations: Dict[str, Aggregation] = {},
         user_id: str = None,
         index: Index = entry_index) -> MetadataResponse:
+
+    # If histogram aggregations only provide the number of buckets, we need to
+    # separately query the min/max values before forming the histogram
+    # aggregation
+    aggregations, histogram_responses, bucket_values = _buckets_to_interval(
+        owner,
+        query,
+        pagination,
+        required,
+        aggregations,
+        user_id,
+        index
+    )
 
     # The first half of this method creates the ES query. Then the query is run on ES.
     # The second half is about transforming the ES response to a MetadataResponse.
@@ -1142,7 +1280,9 @@ def search(
     # aggregations
     if len(aggregations) > 0:
         more_response_data['aggregations'] = cast(Dict[str, Any], {
-            name: _es_to_api_aggregation(es_response, name, _specific_agg(agg), doc_type=doc_type)
+            name: _es_to_api_aggregation(
+                es_response, name, _specific_agg(agg), histogram_responses,
+                bucket_values, doc_type=doc_type)
             for name, agg in aggregations.items()})
 
     more_response_data['es_query'] = es_query.to_dict()

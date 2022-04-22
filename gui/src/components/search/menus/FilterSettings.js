@@ -65,7 +65,7 @@ const FilterSettings = React.memo(({
           checked={isStatisticsEnabled}
           onChange={handleStatsChange}
         />}
-        label="Show statistics"
+        label="Show advanced statistics"
       />
     </MenuItem>
   </div>

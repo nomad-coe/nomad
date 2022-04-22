@@ -20,18 +20,16 @@ import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
-import InputSlider from '../input/InputSlider'
+import InputRange from '../input/InputRange'
 import InputSection from '../input/InputSection'
-import { useUnits } from '../../../units'
 import { InputCheckboxValue } from '../input/InputCheckbox'
 
 const FilterSubMenuEELS = React.memo(({
   value,
   ...rest
 }) => {
-  const units = useUnits()
-  const {selected} = useContext(filterMenuContext)
-  const visible = value === selected
+  const {selected, open} = useContext(filterMenuContext)
+  const visible = open && value === selected
 
   return <FilterSubMenu
     value={value}
@@ -47,14 +45,16 @@ const FilterSubMenuEELS = React.memo(({
           section="results.properties.spectroscopy.eels"
           visible={visible}
         >
-          <InputSlider
+          <InputRange
             quantity="results.properties.spectroscopy.eels.resolution"
-            units={units}
             visible={visible}
           />
-          <InputSlider
-            quantity="results.properties.spectroscopy.eels.energy_window"
-            units={units}
+          <InputRange
+            quantity="results.properties.spectroscopy.eels.min_energy"
+            visible={visible}
+          />
+          <InputRange
+            quantity="results.properties.spectroscopy.eels.max_energy"
             visible={visible}
           />
           <InputField

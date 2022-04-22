@@ -16,9 +16,8 @@
  * limitations under the License.
  */
 import { cloneDeep, merge, isSet, isNil, isString, isNumber, startCase } from 'lodash'
-import { scalePow } from 'd3-scale'
 import { Quantity } from './units'
-import { fromUnixTime, format } from 'date-fns'
+import { format } from 'date-fns'
 import { dateFormat } from './config'
 import { scale as chromaScale } from 'chroma-js'
 import searchQuantities from './searchQuantities.json'
@@ -62,7 +61,7 @@ export const capitalize = (s) => {
  * an issue, it might be worthwhile to look at vectorization with WebAssembly.
  *
  * @param {*} value The original values.
- * @param {number} addition Number to add.
+ * @param {number} factor Number used for scaling.
  *
  * @return {*} A copy of the original data with numbers scaled.
  */
@@ -350,40 +349,49 @@ export function diffTotal(values) {
  * Formats the given number.
  *
  * @param {number} value Number to format
- * @param {decimals} decimals Number of decimals to use
- * @param {bool} scientific Whether to convert large or small values to scientific
- * form.
+ * @param {string} type Number data type.
+ * @param {number} decimals Number of decimals to use. Note
+ * @param {string} mode The formatting mode to use. One of: 'scientific', 'separators', 'standard'
+ * available for scientific formatting.
  *
- * @return {number} The number with new formatting
+ * @return {string} The number as a string with new formatting
  */
-export function formatNumber(value, type = 'float64', decimals = 3, scientific = true, separators = false) {
+export function formatNumber(value, type = DType.Float, mode = 'scientific', decimals = 3) {
+  // Nill values
   if (isNil(value)) {
     return value
   }
-  let formatted = value
-  if (type?.startsWith('int')) {
-    decimals = 0
-  }
+  // Zero
   if (value === 0) {
-    return formatted
+    return value.toString()
   }
-  if (scientific) {
-    if (separators) {
-      throw Error('Scientific form with separators not available.')
-    }
+
+  // Scientific format. parseFloat is used to get rid of trailig insignificant
+  // zeros.
+  if (mode === 'scientific') {
     const absValue = Math.abs(value)
-    if (absValue > 1e3 || absValue < 1e-3) {
-      // Notice how we have to do this kind of chain to get a format that uses
-      // exponential notation but does not have trailing zeroes.
-      formatted = parseFloat(value.toExponential(decimals)).toExponential()
-      return formatted
+    return (absValue > 1e3 || absValue < 1e-2)
+      ? parseFloat(value.toExponential(decimals)).toExponential()
+      : parseFloat(Number(value.toFixed(decimals))).toString()
+  } else {
+    // Integers in-non-scientific formats are always shown without decimals
+    if (type?.startsWith('int')) {
+      decimals = 0
+    }
+    const formatted = Number(value.toFixed(decimals))
+    // Format with separators
+    if (mode === 'separators') {
+      return formatted.toLocaleString()
+    // Standard formatting
+    } else if (mode === 'standard') {
+      return formatted.toString()
+    // SI formatting
+    } else if (mode === 'SI') {
+      return approxInteger(formatted)
+    } else {
+      throw Error('Unknown formatting mode')
     }
   }
-  formatted = Number(formatted.toFixed(decimals))
-  if (separators) {
-    formatted = formatted.toLocaleString()
-  }
-  return formatted
 }
 
 /**
@@ -394,7 +402,7 @@ export function formatNumber(value, type = 'float64', decimals = 3, scientific =
  * @return {number} The number with new formatting
  */
 export function formatInteger(value) {
-  return formatNumber(value, 'int', 0, false, true)
+  return formatNumber(value, DType.Int, 'separators', 0)
 }
 
 /**
@@ -420,22 +428,30 @@ export function formatTimestamp(value) {
  *   - unknown
  */
 export const DType = {
-  Number: 'number',
+  Int: 'int',
+  Float: 'float',
   Timestamp: 'timestamp',
   String: 'string',
+  Enum: 'enum',
   Boolean: 'boolean',
   Unknown: 'unknown'
 }
+const numericTypes = new Set([DType.Int, DType.Float])
 export function getDatatype(quantity) {
-  const type = searchQuantities[quantity]?.type?.type_data
+  const type_data = searchQuantities[quantity]?.type?.type_data
+  const type_kind = searchQuantities[quantity]?.type?.type_kind
 
-  if (isString(type) && (type.startsWith('int') || type.startsWith('float'))) {
-    return DType.Number
-  } else if (type === 'nomad.metainfo.metainfo._Datetime') {
+  if (isString(type_data) && type_data.startsWith('int')) {
+    return DType.Int
+  } else if (isString(type_data) && type_data.startsWith('float')) {
+    return DType.Float
+  } else if (type_data === 'nomad.metainfo.metainfo._Datetime') {
     return DType.Timestamp
-  } else if (type === 'str') {
+  } else if (type_data === 'str') {
     return DType.String
-  } else if (type === 'bool') {
+  } else if (type_kind === 'Enum') {
+    return DType.Enum
+  } else if (type_data === 'bool') {
     return DType.Boolean
   } else {
     return DType.Unknown
@@ -464,7 +480,7 @@ export function getUnit(quantity) {
  * @return {func} Function for serializing values with the given datatype.
  */
 export function getSerializer(dtype, pretty = true) {
-  if (dtype === 'number') {
+  if (numericTypes.has(dtype)) {
     return (value, units) => {
       if (isNil(value)) {
         return value
@@ -487,12 +503,12 @@ export function getSerializer(dtype, pretty = true) {
       }
       return pretty ? formatNumber(value) : value
     }
-  } else if (dtype === 'timestamp') {
+  } else if (dtype === DType.Timestamp) {
     return (value) => {
       if (isNil(value)) {
         return value
       }
-      return pretty ? format(fromUnixTime(value / 1000), dateFormat) : value
+      return pretty ? format(new Date(value), dateFormat) : value
     }
   } else {
     return (value) => value
@@ -504,7 +520,7 @@ export function getSerializer(dtype, pretty = true) {
  */
 export function serializeMetainfo(quantity, value, units) {
   const dtype = getDatatype(quantity)
-  if (dtype === DType.Number) {
+  if (dtype === DType.Int || dtype === DType.Float) {
     if (!(value instanceof Quantity) && !isNil(value)) {
       const unit = getUnit(quantity) || 'dimensionless'
       value = new Quantity(value, unit)
@@ -523,7 +539,7 @@ export function serializeMetainfo(quantity, value, units) {
  * @return {func} Function for deserializing values with the given datatype.
  */
 export function getDeserializer(dtype, dimension) {
-  if (dtype === 'number') {
+  if (numericTypes.has(dtype)) {
     return (value, units) => {
       if (isNil(value)) {
         return value
@@ -542,7 +558,7 @@ export function getDeserializer(dtype, dimension) {
       }
       return value
     }
-  } else if (dtype === 'timestamp') {
+  } else if (dtype === DType.Timestamp) {
     return (value) => {
       if (isNil(value)) {
         return value
@@ -675,6 +691,7 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
     'result': 'results',
     'search result': 'search results',
     'entry': 'entries',
+    'value': 'values',
     'material': 'materials',
     'dataset': 'datasets',
     'item': 'items'
@@ -688,7 +705,7 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
     : plural
 
   const number = inclusive
-    ? format ? formatNumber(count, 'int', 0, false, true) : count
+    ? format ? formatNumber(count, DType.Int, 'separators', 0) : count
     : ''
   return `${isNil(number)
     ? ''
@@ -707,31 +724,4 @@ export function getLabel(name) {
   label = label.replace(/_/g, ' ')
   label = startCase(label)
   return label
-}
-
-/**
- * Used to create a label from the metainfo name.
- * @param {str} type Type of scaling.
- * @returns A function that when given a number between [0, 1] will trasnsform
- * it to the given output range with the given type of scaling.
- */
-export function getScaler(type, range = [0, 1]) {
-  const scale = scales[type]
-  if (isNil(scale)) {
-    throw Error('Invalid scaling type.')
-  }
-  const scaler = scalePow()
-    .exponent(scale)
-    .domain([0, 1])
-    .range(range)
-
-  return scaler
-}
-
-// The available scaling options
-export const scales = {
-  'linear': 1,
-  '1/2': 0.5,
-  '1/4': 0.25,
-  '1/8': 0.125
 }

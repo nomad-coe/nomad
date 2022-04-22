@@ -20,14 +20,14 @@ import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
-import InputDateRange from '../input/InputDateRange'
+import InputRange from '../input/InputRange'
 
 const FilterSubMenuAuthor = React.memo(({
   value,
   ...rest
 }) => {
-  const {selected} = useContext(filterMenuContext)
-  const visible = value === selected
+  const {selected, open} = useContext(filterMenuContext)
+  const visible = open && value === selected
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
@@ -46,7 +46,7 @@ const FilterSubMenuAuthor = React.memo(({
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputDateRange
+        <InputRange
           quantity="upload_create_time"
           visible={visible}
         />

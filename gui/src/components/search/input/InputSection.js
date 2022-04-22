@@ -29,6 +29,7 @@ export const inputSectionContext = createContext()
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
+    height: '100%',
     display: 'flex',
     justifyContent: 'center',
     flexDirection: 'column',
@@ -43,6 +44,7 @@ const InputSection = React.memo(({
   section,
   description,
   className,
+  disableHeader,
   classes,
   children,
   'data-testid': testID
@@ -54,22 +56,24 @@ const InputSection = React.memo(({
   // Determine the description and units
   const def = filterData[section]
   const nested = def?.nested
+  const repeats = def?.repeats
   const descFinal = description || def?.description || ''
   const labelFinal = label || def?.label
 
   return <InputTooltip>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputHeader
+      {!disableHeader && <InputHeader
         quantity={section}
         label={labelFinal}
         description={descFinal}
         className={styles.label}
+        disableAnchoring
         disableStatistics
-        disableScale
-      />
+      />}
       <inputSectionContext.Provider value={{
         section: section,
-        nested: nested
+        nested: nested,
+        repeats: repeats
       }}>
         {children}
       </inputSectionContext.Provider>
@@ -81,6 +85,7 @@ InputSection.propTypes = {
   label: PropTypes.string,
   section: PropTypes.string.isRequired,
   description: PropTypes.string,
+  disableHeader: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   children: PropTypes.node,

@@ -18,20 +18,17 @@
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
-import InputSlider from '../input/InputSlider'
+import InputRange from '../input/InputRange'
 import InputField from '../input/InputField'
 import InputSection from '../input/InputSection'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import { Quantity, useUnits } from '../../../units'
 
-const step = new Quantity(10, 'gigapascal')
 const FilterSubMenuMechanical = React.memo(({
   value,
   ...rest
 }) => {
-  const {selected} = useContext(filterMenuContext)
-  const visible = value === selected
-  const units = useUnits()
+  const {selected, open} = useContext(filterMenuContext)
+  const visible = open && value === selected
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
@@ -52,10 +49,8 @@ const FilterSubMenuMechanical = React.memo(({
             visible={visible}
             initialSize={5}
           />
-          <InputSlider
+          <InputRange
             quantity="results.properties.mechanical.bulk_modulus.value"
-            units={units}
-            step={step}
             visible={visible}
           />
         </InputSection>
@@ -70,10 +65,8 @@ const FilterSubMenuMechanical = React.memo(({
             visible={visible}
             disableSearch
           />
-          <InputSlider
+          <InputRange
             quantity="results.properties.mechanical.shear_modulus.value"
-            units={units}
-            step={step}
             visible={visible}
           />
         </InputSection>

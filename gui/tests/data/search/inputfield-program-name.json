@@ -18,11 +18,14 @@
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.method.simulation.program_name": {
+            "results.method.simulation.program_name:scroll": {
               "terms": {
                 "quantity": "results.method.simulation.program_name",
                 "exclude_from_search": true,
-                "size": 5
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true
               }
             }
           },
@@ -56,7 +59,7 @@
             ]
           },
           "aggregations": {
-            "results.method.simulation.program_name": {
+            "results.method.simulation.program_name:scroll": {
               "terms": {
                 "quantity": "results.method.simulation.program_name",
                 "exclude_from_search": true,
@@ -293,7 +296,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "4924",
+          "content-length": "4931",
           "content-type": "application/json",
           "server": "uvicorn"
         }

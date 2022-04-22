@@ -1,0 +1,236 @@
+{
+  "afa783d98e040c74b68e5cfd3d82f3f0": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.properties.electronic.band_structure_electronic.band_gap.value:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 15
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.properties.electronic.band_structure_electronic.band_gap.value:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                "exclude_from_search": true,
+                "metrics": [],
+                "interval": 1.0681177560010681e-20,
+                "buckets": 30,
+                "offset": 0,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 0
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1.0681177560010681e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.1362355120021363e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 3.2043532680032044e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 4.2724710240042726e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 5.3405887800053407e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 6.408706536006409e-20
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 7.476824292007478e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 8.544942048008545e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 9.613059804009613e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.0681177560010681e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.174929531601175e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.2817413072012818e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.3885530828013885e-19
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1.4953648584014955e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.6021766340016023e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.708988409601709e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.8158001852018158e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.9226119608019225e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.0294237364020295e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.1362355120021363e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.243047287602243e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.34985906320235e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.4566708388024565e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.5634826144025635e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.6702943900026705e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.777106165602777e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.883917941202884e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.990729716802991e-19
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 3.0975414924030975e-19
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "4339",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

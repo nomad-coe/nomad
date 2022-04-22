@@ -20,6 +20,7 @@ import {
   atom,
   atomFamily,
   selector,
+  selectorFamily,
   useSetRecoilState,
   useRecoilValue,
   useRecoilState,
@@ -29,11 +30,13 @@ import {
   debounce,
   isEmpty,
   isArray,
+  isBoolean,
   isPlainObject,
   isNil,
   isSet,
   isFunction,
-  size
+  size,
+  isEqual
 } from 'lodash'
 import qs from 'qs'
 import PropTypes from 'prop-types'
@@ -376,9 +379,25 @@ export const SearchContext = React.memo(({
       default: null
     })
 
-    const aggsFamily = atomFamily({
-      key: `aggsFamily_${indexContext}`,
+    const aggsFamilyRaw = atomFamily({
+      key: `aggsFamilyRaw_${indexContext}`,
       default: (name) => initialAggs[name]
+    })
+
+    const aggKeys = atom({
+      key: `aggKeys_${indexContext}`,
+      default: []
+    })
+
+    const aggsFamily = selectorFamily({
+      key: `aggsFamily_${indexContext}`,
+      get: (id) => ({ get }) => {
+        return get(aggsFamilyRaw(id))
+      },
+      set: (id) => ({set}, meal) => {
+        set(aggsFamilyRaw(id), meal)
+        set(aggKeys, prev => [...prev, id])
+      }
     })
 
     /**
@@ -388,14 +407,14 @@ export const SearchContext = React.memo(({
     const aggsState = selector({
       key: `aggs_${indexContext}`,
       get: ({get}) => {
-        let query = {}
-        for (let key of filters) {
-          const filter = get(aggsFamily(key))
-          if (filter !== undefined) {
-            query[key] = filter
+        let aggs = {}
+        for (let key of get(aggKeys)) {
+          const agg = get(aggsFamily(key))
+          if (agg !== undefined) {
+            aggs[key] = agg
           }
         }
-        return query
+        return aggs
       }
     })
 
@@ -627,6 +646,7 @@ export const SearchContext = React.memo(({
       useEffect(() => {
         setResultsUsed(true)
       }, [setResultsUsed])
+
       return useRecoilValue(resultsState)
     }
 
@@ -645,22 +665,32 @@ export const SearchContext = React.memo(({
      * @param {bool} update Whether the hook needs to react to changes in the
      * current query context. E.g. if the component showing the data is not visible,
      * this can be set to false.
+     * @param {string} id The aggregation identifier
+     * @param {object} config The aggregation configuration. Remember that the
+     * value should be a constant or be memoized to avoid a new object being
+     * created for each call.
      *
      * @returns {object} An object containing the aggregation results: the layout is
      * specific for each aggregation type.
      */
-    const useAgg = (name, update = true, size = undefined, id = 'default') => {
-      const setAgg = useSetRecoilState(aggsFamily(name))
-      const aggResponse = useRecoilValue(aggsResponseFamily(name))
-      const aggSize = size || filterData[name]?.aggDefaultSize
+    const useAgg = (name, update, id = 'default', config = undefined) => {
+      const key = useMemo(() => `${name}:${id}`, [name, id])
+      const setAgg = useSetRecoilState(aggsFamily(key))
+      const aggResponse = useRecoilValue(aggsResponseFamily(key))
 
+      // Whenever the aggregation requirements change, create the final
+      // aggregation config and set it in the search context: this will then
+      // trigger any required API calls that also return the aggregation
+      // response that is returned by this hook.
       useEffect(() => {
-        setAgg(old => {
-          const config = {update, size: aggSize}
-          const newAgg = old ? {...old, [id]: config} : {[id]: config}
-          return newAgg
-        })
-      }, [name, update, aggSize, id, setAgg])
+        const defaults = filterData[name]?.aggs?.[config?.type]
+        const finalConfig = {
+          update: update,
+          ...defaults || {},
+          ...config
+        }
+        setAgg(finalConfig)
+      }, [name, update, setAgg, config])
 
       return aggResponse
     }
@@ -774,9 +804,18 @@ export const SearchContext = React.memo(({
    * interval.
    */
   const apiCall = useCallback((query, aggs, pagination, resultsUsed, queryChanged, paginationChanged, updateAggs, callback = undefined) => {
-    // Create the final search object.
-    const aggsToUpdate = Object.keys(aggs).filter(key => aggs[key].update)
-    const aggsChanged = Object.keys(aggs).filter(key => aggs[key].changed)
+    // Gather aggregations that need to be updated (=require and API call), and
+    // the ones that have changed (have changed but do not require an API call).
+    const aggsToUpdate = []
+    const aggsChanged = []
+    for (const [key, agg] of Object.entries(aggs)) {
+      if (agg.update) {
+        aggsToUpdate.push(key)
+      }
+      if (agg.changed) {
+        aggsChanged.push(key)
+      }
+    }
     let apiQuery = {...query}
     if (filterDefaults) {
       for (const [key, value] of Object.entries(filterDefaults)) {
@@ -816,9 +855,9 @@ export const SearchContext = React.memo(({
     // not changed, the last agg that caused an actual API call is added to the
     // existing list. This way previous aggregation data can be re-used.
     if (queryChanged) {
-      updatedAggsMap.current = Object.fromEntries(aggsChanged.map(agg => [agg, aggs[agg]]))
+      updatedAggsMap.current = Object.fromEntries(aggsChanged.map((key) => [key, aggs[key]]))
     } else {
-      aggsToUpdate.forEach((agg) => { updatedAggsMap.current[agg] = aggs[agg] })
+      aggsToUpdate.forEach((key) => { updatedAggsMap.current[key] = aggs[key] })
     }
 
     // The list of updated filters are always reset.
@@ -913,11 +952,12 @@ export const SearchContext = React.memo(({
 
   // Hook for imperatively requesting aggregation data. By using this hook you
   // can track the state of individual calls and perform callbacks.
-  const useAggCall = useCallback((name) => {
+  const useAggCall = useCallback((name, id) => {
+    const key = useMemo(() => `${name}:${id}`, [name, id])
     const query = useRecoilValue(queryState)
     const pagination = useRecoilValue(paginationState)
     const resultsUsed = useRecoilValue(resultsUsedState)
-    const setAgg = useSetRecoilState(aggsFamily(name))
+    const setAgg = useSetRecoilState(aggsFamily(key))
 
     /**
      * @param {number} size The new aggregation size
@@ -926,22 +966,21 @@ export const SearchContext = React.memo(({
      * new aggregation response and an error if one was encountered. Returns the
      * special value 'undefined' for the response if no update was necessary.
      */
-    const aggCall = useCallback((size, id, callback) => {
-      const aggMap = {[id]: {size, update: true}}
-      const aggs = {[name]: aggMap}
-      apiCallInterMediate(query, aggs, pagination, resultsUsed, (response) => callback(response && response[name]))
+    const aggCall = useCallback((config, callback) => {
+      const aggs = {[key]: {...config, update: true}}
+      apiCallInterMediate(
+        query, aggs, pagination, resultsUsed,
+        (response) => callback(response && response[key])
+      )
 
       // We also need to update aggregation request state, otherwise the
       // subsequent calls will not be able to know what was done by this call.
       // To do this without triggering another API call, we disable API updates
       // for one cycle.
       disableUpdate.current = true
-      setAgg(old => {
-        aggMap[id].update = false
-        const newAgg = old ? {...old, ...aggMap} : aggMap
-        return newAgg
-      })
-    }, [pagination, query, resultsUsed, name, setAgg])
+      aggs[key].update = false
+      setAgg(aggs[key])
+    }, [key, query, pagination, resultsUsed, setAgg])
 
     return aggCall
   }, [queryState, paginationState, resultsUsedState, aggsFamily, apiCallInterMediate])
@@ -1185,7 +1224,7 @@ export function toAPIFilter(query, resource) {
     // Regular values are set directly to the parent. A custom setter may be
     // used.
     } else {
-      const setter = data?.valueSet
+      const setter = data?.value?.set
       if (setter) {
         setter(queryCustomized, query, value)
       } else {
@@ -1393,28 +1432,23 @@ export function toGUIFilterSingle(key, value, units = undefined, path = undefine
  */
 function toAPIAgg(aggs, resource) {
   const apiAggs = {}
-  for (const [key, value] of Object.entries(aggs)) {
-    if (value.update) {
-      const agg = aggs[key]
-      const aggSet = filterDataGlobal[key].aggSet
-      const exclusive = filterDataGlobal[key].exclusive
-      if (aggSet) {
-        for (const [quantity, data] of Object.entries(aggSet)) {
-          for (const [type, options] of Object.entries(data)) {
-            const name = resource === 'materials' ? materialNames[quantity.split(':')[0]] : quantity
-            const apiAgg = apiAggs[name] || {}
-            apiAgg[type] = {
-              quantity: name,
-              // Exclusive quantities (quantities that have one value per entry) are
-              // always fetched with exclude_from_search
-              exclude_from_search: exclusive,
-              ...options,
-              size: agg.size
-            }
-            apiAggs[name] = apiAgg
-          }
-        }
+  for (const [key, agg] of Object.entries(aggs)) {
+    const filter_name = key.split(':')[0]
+    if (agg.update) {
+      const exclusive = filterDataGlobal[filter_name].exclusive
+      const type = agg.type
+      const name = resource === 'materials' ? materialNames[filter_name] : filter_name
+      const apiAgg = apiAggs[name] || {}
+      const aggSet = agg.set
+      const finalAgg = aggSet ? aggSet(agg) : agg
+      apiAgg[type] = {
+        quantity: name,
+        // Exclusive quantities (quantities that have one value per entry) are
+        // always fetched with exclude_from_search
+        exclude_from_search: exclusive,
+        ...finalAgg
       }
+      apiAggs[key] = apiAgg
     }
   }
   return apiAggs
@@ -1425,13 +1459,13 @@ function toAPIAgg(aggs, resource) {
  * GUI.
  *
  * @param {object} aggs The aggregation data as returned by the API.
- * @param {array} filters The set of targeted filters. Needed because the keys
+ * @param {array} aggsToUpdate The set of targeted filters. Needed because the keys
  * in the aggs dictionary may be different due to custom aggregation set/get.
  * @param {string} resource The resource we are looking at: entries or materials.
  *
  * @returns {object} Aggregation result that is usable by the GUI.
  */
-function toGUIAgg(aggs, filters, resource) {
+function toGUIAgg(aggs, aggsToUpdate, resource) {
   if (isEmpty(aggs)) {
     return {}
   }
@@ -1440,9 +1474,10 @@ function toGUIAgg(aggs, filters, resource) {
   if (resource === 'materials') {
     aggsNormalized = {}
     for (const key of Object.keys(aggs)) {
-      const name = resource === 'materials' ? entryNames[key] : key
+      const filter_name = key.split(':')[0]
+      const name = resource === 'materials' ? entryNames[filter_name] : filter_name
       aggs[key].quantity = name
-      aggsNormalized[name] = aggs[key]
+      aggsNormalized[key] = aggs[key]
     }
   } else {
     aggsNormalized = aggs
@@ -1450,18 +1485,20 @@ function toGUIAgg(aggs, filters, resource) {
 
   // Perform custom transformations
   const aggsCustomized = {}
-  for (const name of filters) {
-    const aggGet = filterDataGlobal[name]?.aggGet
-    if (aggGet) {
-      const agg = aggGet(aggsNormalized)
-      aggsCustomized[name] = {
-        data: agg,
-        // TODO: Could this total be given by the API directly?
-        total: agg[0]?.count && agg.reduce((a, b) => a + b.count, 0)
-      }
-      const terms = aggsNormalized?.[name]?.terms
-      if (terms) {
-        aggsCustomized[name].exhausted = terms.size > agg.length
+  for (const key of aggsToUpdate) {
+    const filter_name = key.split(':')[0]
+    aggs = aggsNormalized[key]
+    if (!isNil(aggs)) {
+      for (const [type, agg] of Object.entries(aggs)) {
+        const aggGet = filterDataGlobal[filter_name]?.aggs?.[type].get
+        const aggFinal = aggGet ? aggGet(agg) : agg
+        // Add flag for if all terms have been returned, and the total number of
+        // items. TODO: Could this total be given by the API directly?
+        if (type === 'terms') {
+          aggFinal.exhausted = aggFinal.size > aggFinal.data.length
+          aggFinal.total = aggFinal.data.reduce((a, b) => a + b.count, 0)
+        }
+        aggsCustomized[key] = aggFinal
       }
     }
   }
@@ -1469,9 +1506,9 @@ function toGUIAgg(aggs, filters, resource) {
 }
 
 /**
- * Reduces the current agggregation setup into simpler form that contains only
- * two variables: whether to update the aggregation and with what size if one
- * has been specified.
+ * Goes through the given aggregations and compares then against the old results
+ * and the current query to identify and return the aggregations that need to be
+ * called.
  *
  * @param {object} aggs The current aggregation configuration.
  * @param {object} oldAggs Reduced aggregation config from latest finished query.
@@ -1480,54 +1517,56 @@ function toGUIAgg(aggs, filters, resource) {
  * @returns {object} Reduced aggregation config.
  */
 function reduceAggs(aggs, oldAggs, queryChanged, updatedFilters) {
+  // Loop through the different aggregations for each quantity and see if any
+  // of them need to be updated.
   const reducedAggs = {}
   let updateAggs = false
   for (let [key, agg] of Object.entries(aggs)) {
-    let update = false
-    let changed = false
-    let size = 0
-
-    // Loop through the different configs and see if any of them need to be
-    // updated and what is the maximum requested agg size.
-    for (let config of Object.values(agg)) {
-      if (config.update) {
-        update = true
-        changed = true
-      }
-      if (!isNil(config.size) && config.size > size) {
-        size = config.size
-      }
+    const filter_name = key.split(':')[0]
+    if (!isBoolean(agg.update)) {
+      throw Error(`It was not specified whether the aggregation ${key} should update or not.`)
     }
+    let update = agg.update
+    let changed = agg.update
 
-    // If the query has not changed, see if there is an old aggregation which
-    // has a size that is at least as big as the currently requested size.
-    if (!queryChanged) {
-      const oldAgg = oldAggs[key]
-      if (oldAgg) {
-        let oldMaxSize = oldAgg.size
-        if (size > oldMaxSize) {
-          update = true
-        } else {
+    // If the old aggregation data is a superset of the newly queried
+    // aggregation data, and the query has not changed, there is no need to
+    // update.
+    const oldAgg = oldAggs?.[key]
+    if (update && !queryChanged && oldAgg) {
+      const aggParams = {...agg}
+      const aggParamsOld = {...oldAgg}
+      delete aggParams.changed
+      delete aggParams.update
+      delete aggParamsOld.changed
+      delete aggParamsOld.update
+      if (isEqual(aggParams, aggParamsOld)) {
+        update = false
+        changed = false
+      } else if (!isNil(agg.size)) {
+        delete aggParams.size
+        delete aggParamsOld.size
+        if (isEqual(aggParams, aggParamsOld) && oldAgg.size >= agg.size) {
           update = false
         }
       }
     }
 
-    // If the filter is exclusive, and ONLY it has been modified in this query,
-    // we do not update it's aggregation.
-    if (filterDataGlobal[key].exclusive && updatedFilters.has(key) && updatedFilters.size === 1) {
+    // If the filter is exclusive, and ONLY it has been modified in this
+    // query, we do not update it's aggregation.
+    const exclude = isNil(agg.exclude_from_search)
+      ? filterDataGlobal[filter_name].exclusive
+      : agg.exclude_from_search
+    if (exclude && updatedFilters.has(filter_name) && updatedFilters.size === 1) {
       update = false
     }
 
-    const newAgg = {update, changed}
+    // Create the new reduced version
+    const newAgg = {...agg, update, changed}
     if (update) {
       updateAggs = true
     }
-    if (size) {
-      newAgg.size = size
-    }
     reducedAggs[key] = newAgg
   }
-
   return [reducedAggs, updateAggs]
 }

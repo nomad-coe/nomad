@@ -15,11 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import React from 'react'
 import { isNil, isArray } from 'lodash'
-import { setToArray, getDatatype, getSerializer, getDeserializer, getLabel } from '../../utils'
+import { setToArray, getDatatype, getSerializer, getDeserializer, getLabel, DType } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { getDimension, Quantity } from '../../units'
 import InputList from './input/InputList'
+import InputRange from './input/InputRange'
+import InputSection from './input/InputSection'
 import InputPeriodicTable from './input/InputPeriodicTable'
 import elementData from '../../elementData'
 
@@ -92,14 +95,14 @@ function getEnumOptions(quantity) {
  * are used to e.g. in showing FilterSummaries about a group of filters.
  * @param {obj} config Data object containing options for the filter. Can
  * include the following data:
-  *  - agg: Object containing a custom setter/getter for the aggregation value.
-  *      As a shortcut you can provide an ES aggregation config as a string,
-  *      e.g.  "terms".
-  *  - aggDefaultSize: The default aggregation size, may be overridden.
-  *  - minOverride: Used to override the minimum value from a min_max
-  *      aggregation for this field. Use SI units.
-  *  - maxOverride: Used to override the maximum value from a min_max
-  *      aggregation for this field. Use SI units.
+  *  - aggs: Object containing default values for specific aggregation types
+  *      that may be requested for this filter.
+  *      Also completely customized setter/getter methods are supported. E.g.
+  *        aggs = {
+  *          terms: {size: 5},
+  *          histogram: {buckets: 20},
+  *          min_max: {set: (config) => ({}), get: (agg) => ({})}
+  *        }
   *  - value: Object containing a custom setter/getter for the filter value.
   *  - multiple: Whether the user can simultaneously provide multiple values for
   *      this filter.
@@ -130,7 +133,7 @@ function getEnumOptions(quantity) {
   *      is enabled. Default is that a filter is available both for entries and
   *      materials.
   */
-function saveFilter(name, group, config) {
+function saveFilter(name, group, config, parent) {
   if (group) {
     filterGroups[group]
       ? filterGroups[group].add(name)
@@ -139,49 +142,11 @@ function saveFilter(name, group, config) {
 
   const data = filterData[name] || {}
   data.options = config.options || getEnumOptions(name)
-  const agg = config.agg
-  if (agg) {
-    // Notice how here we have to introduce another inner function in order to
-    // get the value of "name" and "type" at the time this function is created.
-    data.aggGet = agg.get || ((name, type) => (aggs) => aggs[name][type].data)(name, agg)
-    data.aggSet = agg.set || {[name]: {[agg]: {}}}
-
-    // If a list of explicit options is given we will only include them in the
-    // aggregations. This ensures that the GUI is not messed up due to
-    // unexpected aggregation values.
-    if (agg.set) {
-      data.aggSet = agg.set
-    } else {
-      if (data.options && agg === 'terms') {
-        data.aggSet = {[name]: {[agg]: {include: Object.keys(data.options)}}}
-      } else {
-        data.aggSet = {[name]: {[agg]: {}}}
-      }
-    }
-  }
-  if (config.value) {
-    data.valueSet = config.value.set
-  }
-  data.aggDefaultSize = config.aggDefaultSize || (config.options && Object.keys(config.options).length)
+  data.aggs = config.aggs
+  data.value = config.value
   data.multiple = config.multiple === undefined ? true : config.multiple
   data.exclusive = config.exclusive === undefined ? true : config.exclusive
-  data.stats = config.stats
   data.unit = config.unit || searchQuantities[name]?.unit
-  data.minOverride = config.minOverride
-  data.maxOverride = config.maxOverride
-  if (data.unit) {
-    const unitDimension = getDimension(data.unit)
-    if (data.minOverride && unitDimension !== getDimension(data.minOverride.unit)) {
-      console.log(unitDimension)
-      console.log(getDimension(data.minOverride.unit))
-      throw Error('The dimension for minOverride and the filter unit do not match.')
-    }
-    if (data.maxOverride && unitDimension !== getDimension(data.maxOverride.unit)) {
-      console.log(unitDimension)
-      console.log(getDimension(data.maxOverride.unit))
-      throw Error('The dimension for maxOverride and the filter unit do not match.')
-    }
-  }
   data.dtype = config.dtype || getDatatype(name)
   data.serializerExact = getSerializer(data.dtype, false)
   data.serializerPretty = getSerializer(data.dtype, true)
@@ -190,6 +155,8 @@ function saveFilter(name, group, config) {
   data.label = config.label || getLabel(name)
   data.nested = searchQuantities[name]?.nested
   data.section = !isNil(data.nested)
+  data.repeats = searchQuantities[name]?.repeats
+  data.stats = config.stats || getStatsComponent(parent, data.dtype)
   data.description = config.description || searchQuantities[name]?.description
   data.scale = config.scale || 'linear'
   if (data.queryMode && !data.multiple) {
@@ -206,7 +173,7 @@ function saveFilter(name, group, config) {
 }
 
 /**
- * Used to register a filter value for an individual metaifo quantity or
+ * Used to register a filter value for an individual metainfo quantity or
  * section.
  */
 function registerFilter(name, group, config, subQuantities) {
@@ -214,7 +181,7 @@ function registerFilter(name, group, config, subQuantities) {
   if (subQuantities) {
     for (let subConfig of subQuantities) {
       let subname = `${name}.${subConfig.name}`
-      saveFilter(subname, group, subConfig)
+      saveFilter(subname, group, subConfig, name)
     }
   }
 }
@@ -228,14 +195,12 @@ function registerFilterOptions(name, group, target, label, description, options)
     name,
     group,
     {
-      stats: listStatConfig,
-      agg: {
-        // Notice how here we have to introduce another inner function in order
-        // to get the value of "target" at the time this function is created.
-        get: ((target) => (aggs) => aggs[target].terms.data)(target),
-        set: {[target]: {terms: {include: keys}}}
+      aggs: {
+        terms: {
+          set: ((target) => (config) => ({quantity: target, include: keys, ...config}))(target),
+          get: ((target) => (agg) => agg)(target)
+        }
       },
-      aggDefaultSize: keys.length,
       value: {
         set: (newQuery, oldQuery, value) => {
           const data = newQuery[target] || new Set()
@@ -243,6 +208,7 @@ function registerFilterOptions(name, group, target, label, description, options)
           newQuery[`${target}:all`] = data
         }
       },
+      dtype: DType.Enum,
       multiple: true,
       exclusive: false,
       queryMode: 'all',
@@ -253,14 +219,48 @@ function registerFilterOptions(name, group, target, label, description, options)
   )
 }
 
-// Presets for the docked statistics
-const listStatConfig = {
-  component: InputList,
-  layout: {
-    width: 'small',
-    ratio: 3 / 4
+/**
+ * Tries to automatically create a suitable statistics component for the given
+ * quantity.
+ * @param {string} quantity
+ * @param {bool} nested
+ * @param {DType} dtype
+ * @returns A statistics setup.
+ */
+const getStatsComponent = (parent, dtype) => {
+  const section = filterData?.[parent]?.section
+  const wrap = (InputComp) => {
+    return section
+      ? (props) => {
+        return <InputSection
+          section={parent}
+          visible
+          disableHeader
+        >
+          <InputComp {...props}/>
+        </InputSection>
+      }
+      : InputComp
+  }
+  if (dtype === DType.Float || dtype === DType.Int || dtype === DType.Timestamp) {
+    return {
+      component: wrap(InputRange),
+      layout: {
+        width: 'medium',
+        ratio: 3 / 1
+      }
+    }
+  } else {
+    return {
+      component: wrap(InputList),
+      layout: {
+        width: 'small',
+        ratio: 3 / 4
+      }
+    }
   }
 }
+
 const ptStatConfig = {
   component: InputPeriodicTable,
   layout: {
@@ -270,21 +270,20 @@ const ptStatConfig = {
 }
 
 // Presets for different kind of quantities
-const termQuantity = {agg: 'terms', aggDefaultSize: 5, stats: listStatConfig}
+const termQuantity = {aggs: {terms: {size: 5}}}
+const termQuantityLarge = {aggs: {terms: {size: 10}}}
 const termQuantityBool = {
-  agg: 'terms',
-  aggDefaultSize: 2,
-  stats: listStatConfig,
+  aggs: {terms: {size: 2, include: ['false', 'true']}},
   options: {
     false: {label: 'false'},
     true: {label: 'true'}
   }
 }
-const termQuantityNonExclusive = {agg: 'terms', aggDefaultSize: 5, stats: listStatConfig, exclusive: false}
+const termQuantityNonExclusive = {aggs: {terms: {size: 5}}, exclusive: false}
 const noAggQuantity = {}
 const nestedQuantity = {}
 const noQueryQuantity = {guiOnly: true, multiple: false}
-const rangeQuantity = {agg: 'min_max', multiple: false}
+const numberHistogramQuantity = {multiple: false, exclusive: false}
 
 // Filters that directly correspond to a metainfo value
 registerFilter('results.material.structural_type', labelMaterial, {...termQuantity, scale: '1/4'})
@@ -293,7 +292,7 @@ registerFilter('results.material.compound_type', labelMaterial, termQuantityNonE
 registerFilter('results.material.material_name', labelMaterial, termQuantity)
 registerFilter('results.material.chemical_formula_hill', labelElements, termQuantity)
 registerFilter('results.material.chemical_formula_anonymous', labelElements, termQuantity)
-registerFilter('results.material.n_elements', labelElements, {...rangeQuantity, label: 'Number of Elements'})
+registerFilter('results.material.n_elements', labelElements, {...numberHistogramQuantity, label: 'Number of Elements'})
 registerFilter('results.material.symmetry.bravais_lattice', labelSymmetry, termQuantity)
 registerFilter('results.material.symmetry.crystal_system', labelSymmetry, termQuantity)
 registerFilter('results.material.symmetry.structure_name', labelSymmetry, termQuantity)
@@ -314,8 +313,8 @@ registerFilter('results.method.simulation.dft.relativity_method', labelDFT, term
 registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, label: 'GW Type'})
 registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database', scale: '1/4'})
 registerFilter('authors.name', labelAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
-registerFilter('upload_create_time', labelAuthor, rangeQuantity)
-registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name', aggDefaultSize: 10})
+registerFilter('upload_create_time', labelAuthor, {...numberHistogramQuantity, scale: '1/2'})
+registerFilter('datasets.dataset_name', labelDataset, {...termQuantityLarge, label: 'Dataset Name'})
 registerFilter('datasets.doi', labelDataset, {...termQuantity, label: 'Dataset DOI'})
 registerFilter('entry_id', labelIDs, termQuantity)
 registerFilter('upload_id', labelIDs, termQuantity)
@@ -328,40 +327,9 @@ registerFilter(
   {...nestedQuantity, label: 'Electron Energy Loss Spectrum (EELS)'},
   [
     {name: 'detector_type', ...termQuantity},
-    {name: 'resolution', ...rangeQuantity},
-    {
-      name: 'energy_window',
-      stats: listStatConfig,
-      agg: {
-        set: {
-          'results.properties.spectroscopy.eels.min_energy': {min_max: {}},
-          'results.properties.spectroscopy.eels.max_energy': {min_max: {}}
-        },
-        get: (aggs) => {
-          const min = aggs['results.properties.spectroscopy.eels.min_energy']
-          const max = aggs['results.properties.spectroscopy.eels.max_energy']
-          return [min.min_max.data[0], max.min_max.data[1]]
-        }
-      },
-      value: {
-        set: (newQuery, oldQuery, value) => {
-          newQuery['results.properties.spectroscopy.eels'] = {
-            min_energy: {
-              gte: value.gte
-            },
-            max_energy: {
-              lte: value.lte
-            }
-          }
-        }
-      },
-      multiple: false,
-      exlusive: true,
-      dtype: 'number',
-      unit: 'joule',
-      label: 'Energy Window',
-      description: 'Defines bounds for the minimum and maximum energies in the spectrum.'
-    }
+    {name: 'resolution', ...numberHistogramQuantity},
+    {name: 'min_energy', ...numberHistogramQuantity},
+    {name: 'max_energy', ...numberHistogramQuantity}
   ]
 )
 registerFilter(
@@ -386,7 +354,7 @@ registerFilter(
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
-    {name: 'value', minOverride: new Quantity(0, 'electron_volt'), ...rangeQuantity}
+    {name: 'value', ...numberHistogramQuantity, scale: '1/4'}
   ]
 )
 registerFilter(
@@ -395,7 +363,7 @@ registerFilter(
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
-    {name: 'value', ...rangeQuantity}
+    {name: 'value', ...numberHistogramQuantity}
   ]
 )
 registerFilter(
@@ -404,7 +372,7 @@ registerFilter(
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
-    {name: 'value', ...rangeQuantity}
+    {name: 'value', ...numberHistogramQuantity}
   ]
 )
 registerFilter(
@@ -425,9 +393,9 @@ registerFilter(
   labelGeometryOptimization,
   nestedQuantity,
   [
-    {name: 'final_energy_difference', maxOverride: new Quantity(0.1, 'electron_volt'), ...rangeQuantity},
-    {name: 'final_displacement_maximum', maxOverride: new Quantity(1, 'angstrom'), ...rangeQuantity},
-    {name: 'final_force_maximum', maxOverride: new Quantity(1E-6, 'newton'), ...rangeQuantity}
+    {name: 'final_energy_difference', maxOverride: new Quantity(0.1, 'electron_volt'), ...numberHistogramQuantity, scale: '1/8'},
+    {name: 'final_displacement_maximum', maxOverride: new Quantity(1, 'angstrom'), ...numberHistogramQuantity, scale: '1/8'},
+    {name: 'final_force_maximum', maxOverride: new Quantity(1E-6, 'newton'), ...numberHistogramQuantity, scale: '1/8'}
   ]
 )
 
@@ -453,8 +421,7 @@ registerFilter(
   labelElements,
   {
     stats: ptStatConfig,
-    agg: 'terms',
-    aggDefaultSize: elementData.elements.length,
+    aggs: {terms: {size: elementData.elements.length}},
     value: {
       set: (newQuery, oldQuery, value) => {
         if (oldQuery.exclusive) {

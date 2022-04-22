@@ -18,10 +18,14 @@
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.material.n_elements": {
-              "min_max": {
-                "quantity": "results.material.n_elements",
-                "exclude_from_search": true
+            "results.material.structural_type:scroll": {
+              "terms": {
+                "quantity": "results.material.structural_type",
+                "exclude_from_search": true,
+                "update": true,
+                "size": 7,
+                "type": "terms",
+                "changed": true
               }
             }
           },
@@ -55,13 +59,28 @@
             ]
           },
           "aggregations": {
-            "results.material.n_elements": {
-              "min_max": {
-                "quantity": "results.material.n_elements",
+            "results.material.structural_type:scroll": {
+              "terms": {
+                "quantity": "results.material.structural_type",
                 "exclude_from_search": true,
+                "metrics": [],
+                "size": 7,
                 "data": [
-                  1,
-                  5
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "2D"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "bulk"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "molecule / cluster"
+                  }
                 ]
               }
             }
@@ -70,7 +89,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "460",
+          "content-length": "823",
           "content-type": "application/json",
           "server": "uvicorn"
         }

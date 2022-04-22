@@ -17,10 +17,12 @@
  */
 
 import React from 'react'
-import { get, isPlainObject } from 'lodash'
+import { get, isNil, isPlainObject } from 'lodash'
 import { rest } from 'msw'
 import PropTypes from 'prop-types'
 import { RecoilRoot } from 'recoil'
+import DateFnsUtils from '@date-io/date-fns'
+import { MuiPickersUtilsProvider } from '@material-ui/pickers'
 import {
   render,
   screen,
@@ -83,17 +85,19 @@ useKeycloak.mockImplementation(() => {
 export const WrapperDefault = ({children}) => {
   return <RecoilRoot>
     <APIProvider>
-      <GlobalMetainfo>
-        <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
-          <MemoryRouter>
-            <ErrorSnacks>
-              <ErrorBoundary>
-                {children}
-              </ErrorBoundary>
-            </ErrorSnacks>
-          </MemoryRouter>
-        </Router>
-      </GlobalMetainfo>
+      <MuiPickersUtilsProvider utils={DateFnsUtils}>
+        <GlobalMetainfo>
+          <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
+            <MemoryRouter>
+              <ErrorSnacks>
+                <ErrorBoundary>
+                  {children}
+                </ErrorBoundary>
+              </ErrorSnacks>
+            </MemoryRouter>
+          </Router>
+        </GlobalMetainfo>
+      </MuiPickersUtilsProvider>
     </APIProvider>
   </RecoilRoot>
 }
@@ -113,15 +117,17 @@ export { renderDefault as render }
  */
 export const WrapperNoAPI = ({children}) => {
   return <RecoilRoot>
-    <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
-      <MemoryRouter>
-        <ErrorSnacks>
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
-        </ErrorSnacks>
-      </MemoryRouter>
-    </Router>
+    <MuiPickersUtilsProvider utils={DateFnsUtils}>
+      <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
+        <MemoryRouter>
+          <ErrorSnacks>
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </ErrorSnacks>
+        </MemoryRouter>
+      </Router>
+    </MuiPickersUtilsProvider>
   </RecoilRoot>
 }
 
@@ -583,7 +589,13 @@ infrastructure.setup_elastic()
 infrastructure.reset(True)"`)
   }
   // Write snapshot file
-  if (writeMode === 'snapshot' && filepath) {
+  if (writeMode === 'snapshot') {
+    if (isNil(filepath)) {
+      throw Error(
+        'The snapshot filepath was not specified. Did you remember to use "await' +
+        ' startAPI" to wait for the startup to finish correctly?'
+      )
+    }
     fs.writeFile(filepath, JSON.stringify(responseCapture[filepath], null, 2), 'utf8', function(err) {
       if (err) {
         console.log('An error occured while writing JSON API response to file.')

@@ -318,7 +318,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
         ),
         pytest.param(
             {'histogram': {'quantity': n_calculations}},
-            -1, -1, 422, None, id='histogram-no-interval'
+            -1, -1, 422, None, id='histogram-no-interval-or-buckets'
         ),
         pytest.param(
             {'histogram': {'quantity': 'upload_id'}},

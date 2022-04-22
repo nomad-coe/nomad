@@ -18,11 +18,14 @@
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.method.simulation.dft.xc_functional_names": {
+            "results.method.simulation.dft.xc_functional_names:scroll": {
               "terms": {
                 "quantity": "results.method.simulation.dft.xc_functional_names",
                 "exclude_from_search": false,
-                "size": 5
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true
               }
             }
           },
@@ -56,7 +59,7 @@
             ]
           },
           "aggregations": {
-            "results.method.simulation.dft.xc_functional_names": {
+            "results.method.simulation.dft.xc_functional_names:scroll": {
               "terms": {
                 "quantity": "results.method.simulation.dft.xc_functional_names",
                 "exclude_from_search": false,
@@ -91,7 +94,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "973",
+          "content-length": "980",
           "content-type": "application/json",
           "server": "uvicorn"
         }
