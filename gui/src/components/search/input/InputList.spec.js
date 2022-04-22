@@ -33,9 +33,9 @@ const quantity = 'results.material.structural_type'
 const stateName = 'tests.states.search.search'
 
 describe('', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     // API state with single terms aggregation result
-    startAPI(stateName, 'tests/data/search/terms_aggregation_structural_type')
+    await startAPI(stateName, 'tests/data/search/inputlist')
 
     // Render InputList within an entry search context. The component is wrapped
     // inside a div that controls the final size.

@@ -30,7 +30,8 @@ import InputCheckbox from './InputCheckbox'
 import AspectRatio from '../../visualization/AspectRatio'
 import { makeStyles } from '@material-ui/core/styles'
 import { useSearchContext } from '../SearchContext'
-import { approxInteger, getScaler } from '../../../utils'
+import { approxInteger } from '../../../utils'
+import { getScaler } from '../../plotting/common'
 
 // A fixed 2D, 10x18 array for the element data.
 const elements = []
@@ -134,17 +135,16 @@ const Element = React.memo(({
   selected,
   disabled,
   onClick,
+  disableStatistics,
   max,
   count,
   scale,
   localFilter
 }) => {
   const styles = useElementStyles()
-  const { useIsStatisticsEnabled } = useSearchContext()
-  const isStatisticsEnabled = useIsStatisticsEnabled()
 
   // Calculate the approximated count and the final scaled value
-  const scaler = useMemo(() => getScaler(scale, [0.2, 1]), [scale])
+  const scaler = useMemo(() => getScaler(scale, undefined, [0.2, 1]), [scale])
   const finalCount = useMemo(() => approxInteger(count || 0), [count])
   const finalScale = useMemo(() => scaler(count / max) || 0, [count, max, scaler])
 
@@ -153,11 +153,12 @@ const Element = React.memo(({
   // animating the color property.
   const useDynamicStyles = makeStyles((theme) => {
     return {
-      bg: { opacity: isStatisticsEnabled
-        ? (isNil(count) || isNil(max))
+      bg: { opacity: disableStatistics
+        ? 0.4
+        : (isNil(count) || isNil(max))
           ? 0
           : finalScale
-        : 0.4 },
+      },
       disabled: { opacity: disabled ? 1 : 0 }
     }
   })
@@ -213,7 +214,7 @@ const Element = React.memo(({
     >
       {element.number}
     </Typography>
-    {(isStatisticsEnabled) && <Typography
+    {(!disableStatistics) && <Typography
       className={clsx(
         styles.count,
         selectedInternal && styles.textSelected,
@@ -231,6 +232,7 @@ Element.propTypes = {
   onClick: PropTypes.func,
   selected: PropTypes.bool,
   disabled: PropTypes.bool,
+  disableStatistics: PropTypes.bool,
   max: PropTypes.number,
   count: PropTypes.number,
   scale: PropTypes.string,
@@ -276,21 +278,27 @@ const InputPeriodicTable = React.memo(({
   description,
   visible,
   initialScale,
-  draggable,
+  anchored,
+  disableStatistics,
   aggId
 }) => {
   const styles = useTableStyles()
-  const {filterData, useFilterState, useAgg} = useSearchContext()
+  const {filterData, useFilterState, useAgg, useIsStatisticsEnabled} = useSearchContext()
+  const isStatisticsEnabled = useIsStatisticsEnabled()
   const [filter, setFilter] = useFilterState(quantity)
   const localFilter = useRef(new Set())
   const [update, setUpdate] = useState(0)
   const [scale, setScale] = useState(initialScale)
-  const agg = useAgg(quantity, visible, undefined, aggId)
+  const aggConfig = useMemo(() => ({type: 'terms'}), [])
+  const agg = useAgg(quantity, visible, aggId, aggConfig)
   const availableValues = useMemo(() => {
     const elementCountMap = {}
     agg?.data && agg.data.forEach((value) => { elementCountMap[value.value] = value.count })
     return elementCountMap
   }, [agg])
+  disableStatistics = anchored
+    ? false
+    : isNil(disableStatistics) ? !isStatisticsEnabled : disableStatistics
 
   // Determine the description and title
   const def = filterData[quantity]
@@ -330,8 +338,9 @@ const InputPeriodicTable = React.memo(({
       description={descFinal}
       scale={scale}
       onChangeScale={setScale}
+      disableStatistics={disableStatistics}
       disableAggSize
-      draggable={draggable}
+      draggable={anchored}
     />
     <div className={styles.container}>
       <AspectRatio
@@ -360,6 +369,7 @@ const InputPeriodicTable = React.memo(({
                         count={availableValues[element.symbol]}
                         localFilter={localFilter.current}
                         scale={scale}
+                        disableStatistics={disableStatistics}
                       />
                       : ''}
                   </td>
@@ -379,7 +389,7 @@ const InputPeriodicTable = React.memo(({
     </div>
   </div>
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [agg, availableValues, onElementClicked, styles, update, scale])
+  ), [agg, availableValues, onElementClicked, styles, update, scale, disableStatistics])
 
   return table
 })
@@ -390,7 +400,8 @@ InputPeriodicTable.propTypes = {
   description: PropTypes.string,
   visible: PropTypes.bool,
   initialScale: PropTypes.string,
-  draggable: PropTypes.bool,
+  anchored: PropTypes.bool,
+  disableStatistics: PropTypes.bool,
   aggId: PropTypes.string
 }
 

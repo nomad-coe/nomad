@@ -38,7 +38,6 @@ import Placeholder from '../../visualization/Placeholder'
 /*
  * Representational component for all text fields used in the search.
  */
-
 const useInputTextFieldStyles = makeStyles(theme => ({
   root: {
     height: '3rem'

@@ -31,7 +31,7 @@ import { DType } from '../../utils'
  * Displays a summary for the given subset of filters. Each filter value is
  * displayed as a chip.
  */
-const typesWithLabel = new Set([DType.Boolean, DType.Number])
+const typesWithLabel = new Set([DType.Boolean, DType.Int, DType.Float])
 const useStyles = makeStyles(theme => {
   const paddingVertical = theme.spacing(1)
   const paddingHorizontal = theme.spacing(1.5)

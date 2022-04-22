@@ -25,8 +25,8 @@ const FilterSubMenuDataset = React.memo(({
   value,
   ...rest
 }) => {
-  const {selected} = useContext(filterMenuContext)
-  const visible = value === selected
+  const {selected, open} = useContext(filterMenuContext)
+  const visible = open && value === selected
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
@@ -34,7 +34,6 @@ const FilterSubMenuDataset = React.memo(({
         <InputField
           quantity="datasets.dataset_name"
           visible={visible}
-          disableStatistics
         />
       </InputGridItem>
       <InputGridItem xs={12}>

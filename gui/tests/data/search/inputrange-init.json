@@ -1,0 +1,815 @@
+{
+  "afa783d98e040c74b68e5cfd3d82f3f0": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.properties.electronic.band_structure_electronic.band_gap.value:default_slider": {
+              "min_max": {
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                "exclude_from_search": true,
+                "update": true,
+                "type": "min_max",
+                "changed": true
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 15
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.properties.electronic.band_structure_electronic.band_gap.value:default_slider": {
+              "min_max": {
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                "exclude_from_search": true,
+                "data": [
+                  0,
+                  3.204353268e-19
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "574",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.properties.electronic.band_structure_electronic.band_gap.value:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 15
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.properties.electronic.band_structure_electronic.band_gap.value:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                "exclude_from_search": true,
+                "metrics": [],
+                "interval": 1.0681177560010681e-20,
+                "buckets": 30,
+                "offset": 0,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 0
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1.0681177560010681e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.1362355120021363e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 3.2043532680032044e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 4.2724710240042726e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 5.3405887800053407e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 6.408706536006409e-20
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 7.476824292007478e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 8.544942048008545e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 9.613059804009613e-20
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.0681177560010681e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.174929531601175e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.2817413072012818e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.3885530828013885e-19
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1.4953648584014955e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.6021766340016023e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.708988409601709e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.8158001852018158e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1.9226119608019225e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.0294237364020295e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.1362355120021363e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.243047287602243e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.34985906320235e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.4566708388024565e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.5634826144025635e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.6702943900026705e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.777106165602777e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.883917941202884e-19
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 2.990729716802991e-19
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 3.0975414924030975e-19
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "4339",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.material.n_elements:default_slider": {
+              "min_max": {
+                "quantity": "results.material.n_elements",
+                "exclude_from_search": true,
+                "update": true,
+                "type": "min_max",
+                "changed": true
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 15
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.material.n_elements:default_slider": {
+              "min_max": {
+                "quantity": "results.material.n_elements",
+                "exclude_from_search": true,
+                "data": [
+                  1,
+                  5
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "476",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.material.n_elements:default_histogram": {
+              "histogram": {
+                "quantity": "results.material.n_elements",
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "interval": 1,
+                "changed": true
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 15
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.material.n_elements:default_histogram": {
+              "histogram": {
+                "quantity": "results.material.n_elements",
+                "exclude_from_search": true,
+                "metrics": [],
+                "interval": 1,
+                "data": [
+                  {
+                    "count": 5,
+                    "nested_count": 5,
+                    "value": 1
+                  },
+                  {
+                    "count": 7,
+                    "nested_count": 7,
+                    "value": 2
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 3
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 4
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 5
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1024",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "upload_create_time:default_slider": {
+              "min_max": {
+                "quantity": "upload_create_time",
+                "exclude_from_search": true,
+                "update": true,
+                "type": "min_max",
+                "changed": true
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 15
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "upload_create_time:default_slider": {
+              "min_max": {
+                "quantity": "upload_create_time",
+                "exclude_from_search": true,
+                "data": [
+                  1585872000000,
+                  1585872240000
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "482",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "upload_create_time:default_histogram": {
+              "histogram": {
+                "quantity": "upload_create_time",
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 15
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "upload_create_time:default_histogram": {
+              "histogram": {
+                "quantity": "upload_create_time",
+                "exclude_from_search": true,
+                "metrics": [],
+                "interval": 8000,
+                "buckets": 30,
+                "offset": 1585872000000,
+                "data": [
+                  {
+                    "count": 11,
+                    "nested_count": 11,
+                    "value": 1585872000000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872008000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872016000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872024000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872032000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872040000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872048000
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1585872056000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872064000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872072000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872080000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872088000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872096000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872104000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872112000
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1585872120000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872128000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872136000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872144000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872152000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872160000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872168000
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1585872176000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872184000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872192000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872200000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872208000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872216000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872224000
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 1585872232000
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1585872240000
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "4171",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

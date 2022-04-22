@@ -19,21 +19,16 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputSlider from '../input/InputSlider'
+import InputRange from '../input/InputRange'
 import InputSection from '../input/InputSection'
 import InputField from '../input/InputField'
-import { Quantity, useUnits } from '../../../units'
-
-const stepResolution = new Quantity(0.1, 'electron_volt')
-const stepEnergyWindow = new Quantity(10, 'electron_volt')
 
 const FilterSubMenuSpectroscopy = React.memo(({
   value,
   ...rest
 }) => {
-  const units = useUnits()
-  const {selected} = useContext(filterMenuContext)
-  const visible = value === selected
+  const {selected, open} = useContext(filterMenuContext)
+  const visible = open && value === selected
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
@@ -49,16 +44,16 @@ const FilterSubMenuSpectroscopy = React.memo(({
           section="results.properties.spectroscopy.eels"
           visible={visible}
         >
-          <InputSlider
+          <InputRange
             quantity="results.properties.spectroscopy.eels.resolution"
-            units={units}
-            step={stepResolution}
             visible={visible}
           />
-          <InputSlider
-            quantity="results.properties.spectroscopy.eels.energy_window"
-            units={units}
-            step={stepEnergyWindow}
+          <InputRange
+            quantity="results.properties.spectroscopy.eels.min_energy"
+            visible={visible}
+          />
+          <InputRange
+            quantity="results.properties.spectroscopy.eels.max_energy"
             visible={visible}
           />
           <InputField

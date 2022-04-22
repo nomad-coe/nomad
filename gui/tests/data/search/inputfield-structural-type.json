@@ -1,0 +1,99 @@
+{
+  "afa783d98e040c74b68e5cfd3d82f3f0": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.material.structural_type:scroll": {
+              "terms": {
+                "quantity": "results.material.structural_type",
+                "exclude_from_search": true,
+                "update": true,
+                "size": 7,
+                "type": "terms",
+                "changed": true
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 3
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.material.structural_type:scroll": {
+              "terms": {
+                "quantity": "results.material.structural_type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 7,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "2D"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "bulk"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "molecule / cluster"
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "823",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

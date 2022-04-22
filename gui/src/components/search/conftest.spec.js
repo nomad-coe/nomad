@@ -74,7 +74,7 @@ export function expectInputHeader(quantity, disableScale, root = screen) {
   const data = filterData[quantity]
   const label = data.label
   const description = data.description
-  expect(root.getByText(label)).toBeInTheDocument()
+  expect(root.getByText(label, {exact: false})).toBeInTheDocument()
   expect(root.getByTitle(description)).toBeInTheDocument()
   if (!disableScale) {
     const scale = data.scale

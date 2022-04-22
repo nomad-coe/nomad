@@ -18,19 +18,17 @@
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
-import InputSlider from '../input/InputSlider'
+import InputRange from '../input/InputRange'
 import InputSection from '../input/InputSection'
 import { InputCheckboxValue } from '../input/InputCheckbox'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import { useUnits } from '../../../units'
 
 const FilterSubMenuGeometryOptimization = React.memo(({
   value,
   ...rest
 }) => {
-  const {selected} = useContext(filterMenuContext)
-  const visible = value === selected
-  const units = useUnits()
+  const {selected, open} = useContext(filterMenuContext)
+  const visible = open && value === selected
 
   return <FilterSubMenu
     value={value}
@@ -46,19 +44,16 @@ const FilterSubMenuGeometryOptimization = React.memo(({
           section="results.properties.geometry_optimization"
           visible={visible}
         >
-          <InputSlider
+          <InputRange
             quantity="results.properties.geometry_optimization.final_energy_difference"
-            units={units}
             visible={visible}
           />
-          <InputSlider
+          <InputRange
             quantity="results.properties.geometry_optimization.final_force_maximum"
-            units={units}
             visible={visible}
           />
-          <InputSlider
+          <InputRange
             quantity="results.properties.geometry_optimization.final_displacement_maximum"
-            units={units}
             visible={visible}
           />
         </InputSection>

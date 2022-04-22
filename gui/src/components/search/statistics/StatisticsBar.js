@@ -17,10 +17,11 @@
  */
 import React, { useMemo } from 'react'
 import clsx from 'clsx'
-import { Typography } from '@material-ui/core/'
+import { Typography, Tooltip } from '@material-ui/core/'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
-import { approxInteger, getScaler } from '../../../utils'
+import { approxInteger } from '../../../utils'
+import { getScaler } from '../../plotting/common'
 
 /**
  * A rectangular bar displaying the relative occurence of a specific value. Uses
@@ -42,7 +43,7 @@ const useStyles = makeStyles(theme => ({
     '-webkit-transform': 'none',
     transform: 'none',
     transition: 'transform 250ms',
-    transformOrigin: 'center left',
+    transformOrigin: 'bottom left',
     willChange: 'transform'
   },
   value: {
@@ -57,7 +58,11 @@ const StatisticsBar = React.memo(({
   value,
   scale,
   selected,
+  vertical,
   disabled,
+  disableValue,
+  tooltip,
+  onClick,
   className,
   classes,
   'data-testid': testID
@@ -66,18 +71,20 @@ const StatisticsBar = React.memo(({
   const theme = useTheme()
 
   // Calculate the approximated count and the final scaled value
-  const scaler = useMemo(() => getScaler(scale), [scale])
+  const scaler = useMemo(() => scale ? getScaler(scale) : (value) => value, [scale])
   const finalCount = useMemo(() => approxInteger(value || 0), [value])
   const finalScale = useMemo(() => scaler(value / max) || 0, [value, max, scaler])
 
-  return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <div className={styles.container}>
-      <div className={styles.rectangle} style={{
-        transform: `scaleX(${finalScale})`,
-        backgroundColor: selected ? theme.palette.primary.veryLight : theme.palette.secondary.veryLight
-      }}></div>
-      <Typography className={styles.value} style={{color: disabled ? theme.palette.text.disabled : undefined}}>{finalCount}</Typography>
-    </div>
+  return <div onClick={onClick} className={clsx(className, styles.root)} data-testid={testID}>
+    <Tooltip placement="bottom" enterDelay={0} title={tooltip || ''}>
+      <div className={styles.container}>
+        <div className={styles.rectangle} style={{
+          transform: vertical ? `scaleY(${finalScale})` : `scaleX(${finalScale})`,
+          backgroundColor: selected ? theme.palette.primary.veryLight : theme.palette.secondary.veryLight
+        }}></div>
+        {!disableValue && <Typography className={styles.value} style={{color: disabled ? theme.palette.text.disabled : undefined}}>{finalCount}</Typography>}
+      </div>
+    </Tooltip>
   </div>
 })
 
@@ -87,6 +94,10 @@ StatisticsBar.propTypes = {
   scale: PropTypes.string,
   selected: PropTypes.bool,
   disabled: PropTypes.bool,
+  disableValue: PropTypes.bool,
+  tooltip: PropTypes.string,
+  vertical: PropTypes.bool,
+  onClick: PropTypes.func,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string

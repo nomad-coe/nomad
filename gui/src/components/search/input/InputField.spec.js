@@ -36,7 +36,7 @@ const optionsXC = [
 describe('', () => {
   const quantity = 'results.material.structural_type'
   beforeEach(async () => {
-    await startAPI(stateName, 'tests/data/search/terms_aggregation_structural_type')
+    await startAPI(stateName, 'tests/data/search/inputfield-structural-type')
     renderSearchEntry(<InputField
       quantity={quantity}
       disableSearch
@@ -61,7 +61,7 @@ describe('', () => {
 describe('', () => {
   const quantity = 'results.method.simulation.program_name'
   beforeEach(async () => {
-    await startAPI(stateName, 'tests/data/search/terms_aggregation_program_name')
+    await startAPI(stateName, 'tests/data/search/inputfield-program-name')
     renderSearchEntry(<InputField
       quantity={quantity}
       visible
@@ -93,7 +93,7 @@ describe('', () => {
 describe('', () => {
   const quantity = 'results.material.structural_type'
   beforeEach(async () => {
-    await startAPI(stateName, 'tests/data/search/terms_aggregation_structural_type')
+    await startAPI(stateName, 'tests/data/search/inputfield-structural-type-edit')
     renderSearchEntry(<InputField
       quantity={quantity}
       visible
@@ -116,7 +116,7 @@ describe('', () => {
 describe('', () => {
   const quantity = 'results.method.simulation.dft.xc_functional_names'
   beforeEach(async () => {
-    await startAPI(stateName, 'tests/data/search/terms_aggregation_xc_functional_names_sequence')
+    await startAPI(stateName, 'tests/data/search/inputfield-xc-functional-names')
     renderSearchEntry(<InputField
       quantity={quantity}
       visible
@@ -140,7 +140,7 @@ describe('', () => {
 describe('', () => {
   const quantity = 'results.method.simulation.dft.xc_functional_names'
   beforeEach(async () => {
-    await startAPI(stateName, 'tests/data/search/terms_aggregation_xc_functional_names_suggestion')
+    await startAPI(stateName, 'tests/data/search/inputfield-xc-functional-names-suggestion')
     renderSearchEntry(<InputField
       quantity={quantity}
       visible

@@ -43,6 +43,7 @@ const InputTitle = React.memo(({
   TooltipProps,
   onMouseDown,
   onMouseUp,
+  anchored,
   className,
   classes,
   style
@@ -51,24 +52,26 @@ const InputTitle = React.memo(({
   const { filterData } = useSearchContext()
   const sectionContext = useContext(inputSectionContext)
   const units = useUnits()
+  const section = sectionContext?.section
 
   // Remove underscores from name
   const finalLabel = useMemo(() => {
-    let label = filterData[quantity]?.label
+    const prefix = section && anchored ? `${filterData[section]?.label} ` : ''
+    let label = `${prefix}${filterData[quantity]?.label}`
     const unit = filterData[quantity]?.unit
     if (unit) {
       const unitDef = new Unit(unit)
       label = `${label} (${unitDef.toSystem(units).label})`
     }
     return label
-  }, [filterData, quantity, units])
+  }, [filterData, quantity, units, section, anchored])
 
   const finalDescription = description || filterData[quantity].description
 
   return <Tooltip title={finalDescription || ''} placement="bottom" {...(TooltipProps || {})}>
     <Typography
       noWrap
-      className={clsx(className, styles.root, !sectionContext?.section && styles.title)}
+      className={clsx(className, styles.root, (!section || anchored) && styles.title)}
       variant={variant}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
@@ -83,6 +86,7 @@ InputTitle.propTypes = {
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
   variant: PropTypes.string,
+  anchored: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   style: PropTypes.object,

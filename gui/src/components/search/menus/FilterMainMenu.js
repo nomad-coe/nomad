@@ -149,7 +149,7 @@ const FilterMainMenu = React.memo(({
         <FilterSubMenuMechanical value={labelMechanical}/>
         <FilterSubMenuSpectroscopy value={labelSpectroscopy}/>
         <FilterSubMenuGeometryOptimization value={labelGeometryOptimization}/>
-        <FilterSubMenuAuthor value={labelAuthor}/>
+        <FilterSubMenuAuthor value={labelAuthor} size="medium"/>
         <FilterSubMenuDataset value={labelDataset}/>
         <FilterSubMenuAccess value={labelAccess}/>
         <FilterSubMenuIDs value={labelIDs}/>

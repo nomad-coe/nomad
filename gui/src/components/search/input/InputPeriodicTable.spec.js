@@ -47,7 +47,7 @@ async function expectPeriodicTable(elements, root = screen) {
 
 describe('', () => {
   beforeEach(async () => {
-    await startAPI(stateName, 'tests/data/search/terms_aggregation_elements')
+    await startAPI(stateName, 'tests/data/search/inputperiodictable')
     renderSearchEntry(<InputPeriodicTable
       quantity={quantity}
       visible
@@ -75,7 +75,7 @@ describe('', () => {
 
 describe('', () => {
   beforeEach(async () => {
-    await startAPI(stateName, 'tests/data/search/terms_aggregation_elements_sequence')
+    await startAPI(stateName, 'tests/data/search/inputperiodictable-edit')
     renderSearchEntry(<InputPeriodicTable
       quantity={quantity}
       visible

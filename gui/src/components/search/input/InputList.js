@@ -85,7 +85,7 @@ const InputList = React.memo(({
   description,
   visible,
   initialScale,
-  draggable,
+  anchored,
   aggId,
   className,
   classes,
@@ -100,7 +100,8 @@ const InputList = React.memo(({
   const locked = useFilterLocked(quantity)
   const { height, ref } = useResizeDetector()
   const aggSize = useMemo(() => Math.floor(height / inputItemHeight), [height])
-  const agg = useAgg(quantity, !isNil(height) && visible, aggSize, aggId)
+  const aggConfig = useMemo(() => ({type: 'terms', size: aggSize}), [aggSize])
+  const agg = useAgg(quantity, !isNil(height) && visible, aggId, aggConfig)
   const max = agg ? Math.max(...agg.data.map(option => option.count)) : 0
 
   // Determine the description and units
@@ -130,7 +131,7 @@ const InputList = React.memo(({
     } else {
       if (agg?.data && agg.data.length > 0) {
         aggComp = []
-        const maxSize = Math.min(aggSize, agg.data.length)
+        const maxSize = Math.min(aggConfig.size, agg.data.length)
         for (let i = 0; i < maxSize; ++i) {
           const option = agg.data[i]
           if (option.count > 0 && nShown < maxSize) {
@@ -154,7 +155,7 @@ const InputList = React.memo(({
       }
     }
     return [aggComp, nShown]
-  }, [agg, aggIndicator, aggSize, filter, handleChange, locked, max, scale, styles, testID])
+  }, [agg, aggIndicator, aggConfig, filter, handleChange, locked, max, scale, styles, testID])
 
   return <InputTooltip locked={locked}>
     <div className={clsx(className, styles.root)}>
@@ -164,7 +165,7 @@ const InputList = React.memo(({
         description={descFinal}
         scale={scale}
         onChangeScale={setScale}
-        draggable={draggable}
+        anchored={anchored}
         locked={locked}
       />
       <div ref={ref} className={styles.spacer}>
@@ -174,7 +175,7 @@ const InputList = React.memo(({
         <Typography variant="overline">
           {nShown === 1
             ? 'Showing the only item'
-            : agg.data.length <= aggSize
+            : agg.data.length <= aggConfig.size
               ? `Showing all ${pluralize('item', nShown, true)}`
               : `Showing top ${pluralize('item', nShown, true)}`
           }
@@ -190,7 +191,7 @@ InputList.propTypes = {
   description: PropTypes.string,
   visible: PropTypes.bool.isRequired,
   initialScale: PropTypes.string,
-  draggable: PropTypes.bool,
+  anchored: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   aggId: PropTypes.string,

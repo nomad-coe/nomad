@@ -20,19 +20,15 @@ import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputSection from '../input/InputSection'
-import InputSlider from '../input/InputSlider'
+import InputRange from '../input/InputRange'
 import InputField from '../input/InputField'
-import { Quantity, useUnits } from '../../../units'
-
-const step = new Quantity(0.1, 'electron_volt')
 
 const FilterSubMenuElectronic = React.memo(({
   value,
   ...rest
 }) => {
-  const units = useUnits()
-  const {selected} = useContext(filterMenuContext)
-  const visible = value === selected
+  const {selected, open} = useContext(filterMenuContext)
+  const visible = open && value === selected
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
@@ -53,10 +49,8 @@ const FilterSubMenuElectronic = React.memo(({
             visible={visible}
             disableSearch
           />
-          <InputSlider
+          <InputRange
             quantity="results.properties.electronic.band_structure_electronic.band_gap.value"
-            units={units}
-            step={step}
             visible={visible}
           />
         </InputSection>

@@ -26,7 +26,6 @@ import {
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { useSearchContext } from '../SearchContext'
 import StatisticsBar from '../statistics/StatisticsBar'
 
 /**
@@ -96,9 +95,8 @@ const InputItem = React.memo(({
   ...moreProps
 }) => {
   const styles = useStyles(classes)
-  const { useIsStatisticsEnabled } = useSearchContext()
-  const isStatisticsEnabled = useIsStatisticsEnabled()
 
+  const finalLabel = label || `${value}`
   const handleChange = useCallback((event) => {
     if (!disabled && onChange) onChange(event, value, !selected)
   }, [value, disabled, onChange, selected])
@@ -112,7 +110,7 @@ const InputItem = React.memo(({
 
   // Component that contains the label and the statistics
   const labelComponent = <div className={styles.container}>
-    {(isStatisticsEnabled && !disableStatistics) && <StatisticsBar
+    {!disableStatistics && <StatisticsBar
       className={styles.bar}
       max={max}
       value={count}
@@ -126,7 +124,7 @@ const InputItem = React.memo(({
         enterDelay={200}
         title={tooltip || ''}
       >
-        <Typography noWrap>{label || value}</Typography>
+        <Typography noWrap>{finalLabel}</Typography>
       </Tooltip>
     </div>
   </div>
@@ -148,7 +146,7 @@ const InputItem = React.memo(({
           size="medium"
           color="primary"
           onClick={handleChange}
-          name={value}
+          name={finalLabel}
           style={{
             padding: 6,
             pointerEvents: (disableLabelClick ? 'auto' : undefined),
@@ -164,7 +162,7 @@ const InputItem = React.memo(({
 })
 
 InputItem.propTypes = {
-  value: PropTypes.string, // The actual value
+  value: PropTypes.any, // The actual value
   label: PropTypes.string, // The name to show
   selected: PropTypes.bool, // Whether the option is selected or not
   onChange: PropTypes.func, // Callback when selecting

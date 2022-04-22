@@ -84,6 +84,8 @@ const InputField = React.memo(({
   initialScale,
   initialSize,
   increment,
+  anchored,
+  disableStatistics,
   disableSearch,
   disableOptions,
   disableSuggestions,
@@ -92,12 +94,23 @@ const InputField = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
-  const {filterData, useAgg, useAggCall, useFilterState, useFilterLocked} = useSearchContext()
+  const {
+    filterData,
+    useAgg,
+    useAggCall,
+    useFilterState,
+    useFilterLocked,
+    useIsStatisticsEnabled
+  } = useSearchContext()
+  const isStatisticsEnabled = useIsStatisticsEnabled()
   const styles = useStyles({classes: classes, theme: theme})
   const [visibleOptions, setVisibleOptions] = useState()
   const aggIndicator = useRecoilValue(guiState('aggIndicator'))
   const aggCollapse = useRecoilValue(guiState('aggCollapse'))
   const [scale, setScale] = useState(initialScale || filterData[quantity].scale)
+  disableStatistics = anchored
+    ? false
+    : isNil(disableStatistics) ? !isStatisticsEnabled : disableStatistics
 
   // See if the filter has a fixed amount of options. These may have been
   // explicitly provided or defined in the metainfo. If you explicitly specify
@@ -111,13 +124,14 @@ const InputField = React.memo(({
   }, [initialSize, filterData, quantity])
   const nFixedOptions = fixedOptions && Object.keys(fixedOptions).length
 
-  const minSize = disableOptions ? 0 : initialSize || nFixedOptions || filterData[quantity]?.aggDefaultSize
+  const minSize = disableOptions ? 0 : initialSize || nFixedOptions || filterData[quantity]?.aggs?.terms?.size
   const [requestedAggSize, setRequestedAggSize] = useState(minSize)
   const nMaxOptions = fixedOptions && Object.keys(fixedOptions).length
   const incr = useState(increment || minSize)[0]
   const [loading, setLoading] = useState(false)
-  const agg = useAgg(quantity, visible && !disableOptions, minSize)
-  const aggCall = useAggCall(quantity)
+  const aggConfig = useMemo(() => ({type: 'terms', size: minSize}), [minSize])
+  const agg = useAgg(quantity, visible && !disableOptions && !(disableStatistics && fixedOptions), 'scroll', aggConfig)
+  const aggCall = useAggCall(quantity, 'scroll')
   const receivedAggSize = agg?.data?.length
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
@@ -150,7 +164,7 @@ const InputField = React.memo(({
       opt[key] = {
         checked: filter ? filter.has(key) : false,
         label: value.label,
-        disabled: true
+        disabled: !disableStatistics
       }
     }
     if (agg?.data) {
@@ -166,13 +180,13 @@ const InputField = React.memo(({
       }
     }
     setVisibleOptions(opt)
-  }, [agg, filter, finalOptions, locked])
+  }, [agg, filter, finalOptions, locked, disableStatistics])
 
   // Show more values
   const handleShowMore = useCallback(() => {
     setLoading(true)
     let newSize = requestedAggSize + incr
-    aggCall(newSize, 'scroll', (response, error) => {
+    aggCall({type: 'terms', size: newSize}, (response, error) => {
       if (response?.data?.length === requestedAggSize) {
         newSize = requestedAggSize
       }
@@ -185,7 +199,7 @@ const InputField = React.memo(({
   const handleShowLess = useCallback(() => {
     setRequestedAggSize(old => {
       const newSize = Math.max(old - incr, minSize)
-      aggCall(newSize, 'scroll', () => {})
+      aggCall({type: 'terms', size: newSize}, () => {})
       return newSize
     })
   }, [aggCall, incr, minSize])
@@ -260,6 +274,7 @@ const InputField = React.memo(({
           label={value.label}
           selected={value.checked}
           disabled={value.disabled}
+          disableStatistics={disableStatistics}
           onChange={handleChange}
           variant="checkbox"
           max={max}
@@ -308,6 +323,7 @@ const InputField = React.memo(({
     </div>
   }, [
     disableOptions,
+    disableStatistics,
     agg,
     finalOptions,
     minSize,
@@ -338,6 +354,8 @@ const InputField = React.memo(({
       description={description}
       scale={scale}
       onChangeScale={setScale}
+      disableStatistics={disableStatistics}
+      anchored={anchored}
     />
     {searchComponent}
     {optionsComponent}
@@ -353,6 +371,8 @@ InputField.propTypes = {
   initialScale: PropTypes.number, // The initial statistics scaling
   initialSize: PropTypes.number, // The initial maximum number of items to load
   increment: PropTypes.number, // The amount of new items to load on 'show more'
+  anchored: PropTypes.bool,
+  disableStatistics: PropTypes.bool, // Whether to disable statistics
   disableSearch: PropTypes.bool, // Whether to show the search field
   disableOptions: PropTypes.bool, // Whether to show the options gathered through aggregations
   disableSuggestions: PropTypes.bool, // Whether to disable the text field suggestions
