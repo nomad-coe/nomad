@@ -572,7 +572,7 @@ class Proc(Document):
                     ]
                 }, mongo_update)
             try_counter += 1
-            if old_record and old_record['sync_counter'] == self.sync_counter:
+            if old_record and old_record.get('sync_counter', 0) == self.sync_counter:
                 # We have successfully scheduled the process!
                 self.reload()
                 return not prev_process_running
