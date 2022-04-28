@@ -27,13 +27,8 @@ const ListEditQuantity = React.memo(function ListEditQuantity({value, onChange, 
   if (hasFixedLength) {
     renderValue = (value && [...value]) || Array(fixedLength).fill(undefined)
   } else {
-    renderValue = (value && [...value]) || [undefined]
-    if (renderValue[renderValue.length - 1] !== undefined) {
-      renderValue.push(undefined)
-    }
-    if (renderValue.length === 0) {
-      renderValue.push(undefined)
-    }
+    renderValue = (value && [...value]) || []
+    renderValue.push(undefined)
   }
 
   const handleChange = useCallback((item, index) => {
@@ -45,16 +40,7 @@ const ListEditQuantity = React.memo(function ListEditQuantity({value, onChange, 
       ]
 
       if (!hasFixedLength) {
-        for (let i = newValue.length - 1; i >= 0; i--) {
-          if (newValue[i] === undefined) {
-            newValue = newValue.slice(0, i)
-          } else {
-            break
-          }
-        }
-        if (newValue.length === 0) {
-          newValue = undefined
-        }
+        newValue = newValue.filter(value => value !== undefined && value !== null && value !== '')
       } else {
         for (let i = newValue.length - 1; i >= fixedLength; i--) {
           newValue = newValue.slice(0, i)
