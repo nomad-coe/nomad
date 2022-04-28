@@ -16,13 +16,10 @@
 # limitations under the License.
 #
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 from collections import defaultdict
-from enum import Enum
 from pydantic import BaseModel, Field
-from fastapi import (
-    APIRouter, Depends, Request
-)
+from fastapi import APIRouter, Depends, Request, HTTPException, status
 from elasticsearch_dsl import Search
 from elasticsearch_dsl.utils import AttrList
 from elasticsearch.exceptions import RequestError
@@ -35,17 +32,9 @@ from ..models import User
 
 router = APIRouter()
 
-
 # This is a dynamically create enum class for enumerating all allowed
 # quantities. FastAPI uses python enums to validate and document options.
-class SuggestableQuantityEnum(str, Enum):
-    pass
-
-
-SuggestableQuantity = SuggestableQuantityEnum(  # type: ignore
-    'SuggestableQuantity',
-    {name: name for name in entry_type.suggestions.keys()}
-)
+suggestable_quantities: Set[str] = None
 
 
 class SuggestionError(Exception): pass
@@ -57,7 +46,7 @@ class Suggestion(BaseModel):
 
 
 class SuggestionsRequest(BaseModel):
-    quantities: List[SuggestableQuantity] = Field(  # type: ignore
+    quantities: List[str] = Field(  # type: ignore
         None,
         description='List of quantities for which the suggestions are retrieved.'
     )
@@ -79,10 +68,25 @@ async def get_suggestions(
         data: SuggestionsRequest,
         user: User = Depends(create_user_dependency())):
 
+    global suggestable_quantities
+    if suggestable_quantities is None:
+        suggestable_quantities = set(entry_type.suggestions.keys())
+
     search = Search(index=entry_index.index_name)
     quantities: List[str] = data.quantities
     quantities_es = [x.replace(".", "-") for x in quantities]
-    for quantity, quantity_es in zip(quantities, quantities_es):
+    for index, (quantity, quantity_es) in enumerate(zip(quantities, quantities_es)):
+        if quantity not in suggestable_quantities:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=[dict(
+                    msg=(
+                        f'The string "{quantity}" does not represent a suggestable quantity. '
+                        f'Possible values are {", ".join(suggestable_quantities)}.'),
+                    loc=['quantities', index])
+                ]
+            )
+
         annotation = entry_type.suggestions[quantity]
         postfix = ".suggestion" if annotation.field else "__suggestion"
         search = search.suggest(quantity_es, data.input, completion={
