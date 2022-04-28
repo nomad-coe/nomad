@@ -307,7 +307,7 @@ function Lane({lane}) {
     if (!adaptor) {
       return ''
     }
-    return <div className={classes.root} data-testid={`lane${lane.index}:${lane.key}`}>
+    return <div className={classes.root} key={`lane:${lane.path}`} data-testid={`lane${lane.index}:${lane.key}`}>
       <div className={classes.container} ref={containerRef}>
         <laneContext.Provider value={lane}>
           <ErrorHandler message={laneErrorBoundryMessage} className={classes.error}>

@@ -20,6 +20,7 @@ import { waitFor } from '@testing-library/dom'
 import { screen, within, expectNoConsoleOutput } from '../conftest.spec'
 import userEvent from '@testing-library/user-event'
 import { laneErrorBoundryMessage } from './Browser'
+import { isWaitingForUpdateTestId } from '../../utils'
 
 /*****************************************************************************************
  * Utilities for testing browser functionality.
@@ -146,8 +147,10 @@ export async function selectItemAndWaitForRender(lane, laneIndex, itemKey, item 
   }
   userEvent.click(item)
   await waitFor(() => {
-    expect(getLane(laneIndex + 1, itemKey)).not.toBeNull()
+    const nextLane = getLane(laneIndex + 1)
+    expect(nextLane).not.toBeNull()
     expect(getLane(laneIndex + 2)).toBeNull()
+    expect(within(nextLane).queryAllByTestId(isWaitingForUpdateTestId).length).toBe(0)
   })
   const nextLane = getLane(laneIndex + 1)
   expect(within(nextLane).queryByText(laneErrorBoundryMessage)).toBeNull()
@@ -264,8 +267,7 @@ export async function checkDirectoryLane({lane, laneIndex, lanePath, lastSegment
 /**
  * Lane check function for file preview lanes
  */
-export async function checkFileLane(
-  {lane, lastSegment, entryId, parserName, editable}) {
+export async function checkFileLane({lane, lastSegment, entryId, parserName, editable}) {
   expect(within(lane).getByText(lastSegment)).toBeVisible() // Lane title
   if (entryId) {
     expect(within(lane).getByText(entryId)).toBeVisible()

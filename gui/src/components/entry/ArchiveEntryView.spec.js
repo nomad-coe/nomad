@@ -68,11 +68,16 @@ function archiveItemFilter(parentPath, items) {
 }
 
 test.each([
-  ['normal', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, false, 1],
-  ['with definitions', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', true, false, 2],
-  ['with all', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, true, 1]
+  ['vasp', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, false, 1],
+  ['vasp with definitions', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', true, false, 2],
+  ['vasp with all', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, true, 1],
+  ['Sample', '6x6VbK15sTesOX3wHPHp2zTiEo8Y', '', false, false, 2]
 ])('Browse archive recursively: %s', async (name, entryId, path, withDefinition, withAll, filterKeyLength) => {
-  await startAPI('tests.states.uploads.archive_browser_test', 'tests/data/uploads/archive_browser_test', 'test', 'password')
+  await startAPI(
+    'tests.states.uploads.archive_browser_test',
+    'tests/data/uploads/archive_browser_test_' + name.replace(/ /g, '_'),
+    'test', 'password')
+
   render(<EntryContext entryId={entryId}><ArchiveEntryView /></EntryContext>)
   expect(await screen.findByText('Entry')).toBeVisible()
 

@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from nomad import infrastructure
+from nomad import infrastructure, files
 from nomad.processing import Upload
 from nomad.utils.exampledata import ExampleData
 from .archives.create_archives import archive_dft_bulk
@@ -207,5 +207,8 @@ def archive_browser_test():
         coauthors=coauthors,
         reviewers=reviewers)
     upload.save()
-    upload.process_upload(
-        file_operation=dict(op='ADD', path='tests/data/proc/examples_vasp.zip', target_dir='', temporary=False))
+    files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
+    upload.staging_upload_files.add_rawfiles('tests/data/proc/examples_vasp.zip')
+    upload.staging_upload_files.add_rawfiles('examples/data/custom-schema')
+    upload.staging_upload_files.add_rawfiles('tests/data/datamodel/metainfo/eln/material_library')
+    upload.process_upload()
