@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
-import {TextField, makeStyles, Box, MenuItem} from '@material-ui/core'
+import {TextField, makeStyles, Box, MenuItem, Checkbox, Tooltip} from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {convertUnit, Unit, useUnits} from '../../units'
 import {conversionMap, unitMap} from '../../unitsData'
@@ -25,32 +25,60 @@ import {TextFieldWithHelp, getFieldProps} from './StringEditQuantity'
 import {useErrors} from '../errors'
 
 export const NumberField = React.memo((props) => {
-  const {onChange, value, dataType, minValue, maxValue, displayUnit, unit, ...otherProps} = props
+  const {onChange, value, dataType, minValue, maxValue, displayUnit, unit, convertInPlace, ...otherProps} = props
   const inputRef = useRef()
+  const dimension = unit && unitMap[unit].dimension
+  const units = dimension && conversionMap[dimension]?.units
+  const requestedUnit = useRef(displayUnit) // Changing variables from inside useCallback will be lost after each render.
+
+  const getValue = useCallback((value) => {
+    if (units === undefined) {
+      requestedUnit.current = displayUnit
+      return value
+    }
+    const flattenValue = value.replaceAll(' ', '')
+    const numberPart = flattenValue.match(/^[+-]?((\d+\.\d+|\d+\.|\.\d?|\d+)(e|e\+|e-)\d+|(\d+\.\d+|\d+\.|\.\d?|\d+))?/)
+    if (numberPart !== undefined) {
+      const unitPart = flattenValue.substring(numberPart[0].length)
+      let unitObject
+      try {
+        unitObject = new Unit(unitPart)
+      } catch {}
+      if (unitObject !== undefined && units.find(value => unitObject.unitDef.name === value)) {
+        requestedUnit.current = unitObject.unitDef.name
+        return numberPart[0]
+      }
+    }
+    requestedUnit.current = displayUnit
+    return value
+  }, [displayUnit, units])
 
   const createInputValue = useCallback(value => {
-    if (isNaN(value)) {
-      return ''
-    }
-    if (unit && displayUnit) {
-      value = convertUnit(value, unit, displayUnit)
+    if (value === undefined) return ''
+    if (isNaN(value)) return ''
+
+    if (unit && requestedUnit.current) {
+      value = convertUnit(value, unit, requestedUnit.current)
     }
     // Make sure that the formatting is not overwriting the format used to enter the value
     const inputValue = inputRef.current?.value || ''
-    if (value === Number(inputValue)) {
-      return inputValue
+    if (value === Number(getValue(inputValue))) {
+      return value
     }
     return String(value) // TODO when to use toLocaleString, when to use exp. format?
-  }, [unit, displayUnit])
+  }, [unit, requestedUnit, getValue])
 
   const [inputValue, setInputValue] = useState(createInputValue(value))
   const [error, setError] = useState('')
 
   useEffect(() => {
-    setInputValue(createInputValue(value))
-  }, [createInputValue, value])
+    if (convertInPlace) {
+      setInputValue(createInputValue(value))
+    }
+  }, [createInputValue, convertInPlace, value])
 
   const checkAndGetNumberValue = useCallback((value) => {
+    value = getValue(value)
     if (['int64', 'int32', 'int'].includes(dataType)) {
       const num = Number(value)
       return [Number.isInteger(num), num]
@@ -61,13 +89,14 @@ export const NumberField = React.memo((props) => {
       const num = Number(value)
       return [!isNaN(num), num]
     }
-  }, [dataType])
+  }, [dataType, getValue])
 
   const handleChange = useCallback(() => {
+    if (!inputRef.current) return
     const value = inputRef.current.value.trim().replace(/,/g, '.')
     if (value === '') {
       if (onChange) {
-        onChange(undefined)
+        onChange(undefined, requestedUnit.current)
       }
       setError('')
       return
@@ -89,14 +118,14 @@ export const NumberField = React.memo((props) => {
       return
     }
 
-    if (displayUnit && unit) {
-      number = convertUnit(number, displayUnit, unit)
+    if (requestedUnit.current && unit) {
+      number = convertUnit(number, requestedUnit.current, unit)
     }
     if (onChange) {
-      onChange(number)
+      onChange(number, requestedUnit.current)
     }
     setError('')
-  }, [maxValue, minValue, onChange, checkAndGetNumberValue, displayUnit, unit, inputRef])
+  }, [checkAndGetNumberValue, maxValue, minValue, requestedUnit, unit, onChange])
 
   const debouncedHandleChange = useMemo(() => {
     return debounce(handleChange, 500)
@@ -114,9 +143,10 @@ export const NumberField = React.memo((props) => {
   return <TextFieldWithHelp
     ref={inputRef}
     fullWidth variant='filled' size='small'
-    value={inputValue}
+    value={String(inputValue)}
     onBlur={handleBlur} error={!!error} helperText={error}
     onChange={handleInputChange}
+    data-testid='number-edit-quantity-value'
     {...otherProps}
   />
 })
@@ -127,7 +157,8 @@ NumberField.propTypes = {
   dataType: PropTypes.string,
   value: PropTypes.number,
   displayUnit: PropTypes.string,
-  unit: PropTypes.string
+  unit: PropTypes.string,
+  convertInPlace: PropTypes.bool
 }
 
 export const NumberEditQuantity = React.memo((props) => {
@@ -136,6 +167,7 @@ export const NumberEditQuantity = React.memo((props) => {
   const {raiseError} = useErrors()
   const hasUnit = quantityDef.unit
   const dimension = hasUnit && unitMap[quantityDef.unit].dimension
+  const [checked, setChecked] = useState(true)
   let defaultUnit
   if (defaultDisplayUnit) {
     try {
@@ -149,17 +181,41 @@ export const NumberEditQuantity = React.memo((props) => {
   }
   const [unit, setUnit] = useState((defaultUnit && defaultUnit.unitDef.name) || systemUnits[dimension] || quantityDef.unit)
 
+  const handleChange = useCallback((value, unit) => {
+    onChange(value)
+    setUnit(unit)
+  }, [onChange])
+
+  const handleUnitChange = useCallback((newUnit) => {
+    if (!checked && quantityDef.unit && newUnit) {
+      let displayedValue = convertUnit(value, quantityDef.unit, unit)
+      let storedValue = convertUnit(displayedValue, newUnit, quantityDef.unit)
+      onChange(storedValue)
+    }
+    setUnit(newUnit)
+  }, [checked, onChange, quantityDef.unit, unit, value])
+
   return <Box display='flex'>
     <NumberField
-      value={value} onChange={onChange}
+      value={value} onChange={handleChange}
       unit={quantityDef.unit}
+      convertInPlace={checked}
       displayUnit={unit}
       dataType={quantityDef.type?.type_data}
       {...getFieldProps(quantityDef)}
       {...otherProps}
     />
     {hasUnit && (
-      <UnitSelect defaultUnit={quantityDef.unit} unit={unit} onChange={setUnit}/>
+      <Box display='flex'>
+        <Tooltip title={'If checked, numeric value is converted when the unit is changed.'}>
+          <Checkbox
+            onChange={event => setChecked(event.target.checked)}
+            color="primary"
+            checked={checked}
+          />
+        </Tooltip>
+        <UnitSelect defaultUnit={quantityDef.unit} unit={unit} onChange={handleUnitChange}/>
+      </Box>
     )}
   </Box>
 })
@@ -172,7 +228,6 @@ NumberEditQuantity.propTypes = {
 
 export const useUnitSelectStyles = makeStyles(theme => ({
   root: {
-    marginLeft: theme.spacing(1),
     width: '150px'
   }
 }))
@@ -191,6 +246,7 @@ export const UnitSelect = React.memo(({defaultUnit, unit, onChange}) => {
       className={classes.root} variant='filled' size='small' select
       label="unit" value={unit}
       onChange={handleUnitChange}
+      data-testid = 'number-edit-quantity-unit'
     >
       {units.map(unit => (
         <MenuItem key={unit} value={unit}>

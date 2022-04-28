@@ -129,7 +129,7 @@ export function getFieldProps(quantityDef) {
 }
 
 export const TextFieldWithHelp = React.memo(React.forwardRef((props, ref) => {
-  const {withOtherAdornment, label, helpDescription, ...otherProps} = props
+  const {withOtherAdornment, label, helpDescription, 'data-testid': TestId, ...otherProps} = props
   const classes = useWithHelpStyles()
   return <TextField
     inputRef={ref}
@@ -140,6 +140,7 @@ export const TextFieldWithHelp = React.memo(React.forwardRef((props, ref) => {
       </div>
     )})}
     label={label}
+    data-testid={TestId}
     {...otherProps}
   />
 }))
@@ -147,7 +148,8 @@ TextFieldWithHelp.propTypes = {
   withOtherAdornment: PropTypes.bool,
   label: PropTypes.string,
   value: PropTypes.string,
-  helpDescription: PropTypes.string
+  helpDescription: PropTypes.string,
+  'data-testid': PropTypes.string
 }
 
 export const StringEditQuantity = React.memo((props) => {
