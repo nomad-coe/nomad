@@ -771,7 +771,8 @@ class StagingUploadFiles(UploadFiles):
             raise KeyError(entry_id)
 
     def archive_file_object(self, entry_id: str) -> PathObject:
-        return self._archive_dir.join_file(f'{entry_id}.msg')
+        version_suffix = '-' + config.fs.archive_version_suffix if config.fs.archive_version_suffix else ''
+        return self._archive_dir.join_file(f'{entry_id}{version_suffix}.msg')
 
     def add_rawfiles(
             self, path: str, target_dir: str = '', cleanup_source_file_and_dir: bool = False) -> None:
