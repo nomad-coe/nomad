@@ -48,8 +48,12 @@ class MetainfoNormalizer(Normalizer):
         self.logger = logger
 
         if self.entry_archive.data:
-            for section, _, _ in list(self.entry_archive.data.m_traverse()):
-                self.normalize_section(section, logger)
+            sections = list(self.entry_archive.data.m_traverse())
+            if sections:
+                for section, _, _ in sections:
+                    self.normalize_section(section, logger)
+            else:
+                self.normalize_section(self.entry_archive.data, logger)
 
         for sub_section in self.entry_archive.m_contents():
             if not isinstance(sub_section, EntryData):

@@ -70,6 +70,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
 
   useEffect(() => {
     if (!value || value === '') {
+      setInputValue('')
       return
     }
     resolveRefAsync(value, archive, context, archive => {
