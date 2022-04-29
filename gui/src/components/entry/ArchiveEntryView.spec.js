@@ -71,7 +71,12 @@ test.each([
   ['vasp', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, false, 1],
   ['vasp with definitions', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', true, false, 2],
   ['vasp with all', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, true, 1],
-  ['Sample', '6x6VbK15sTesOX3wHPHp2zTiEo8Y', '', false, false, 2]
+  ['Sample', '6x6VbK15sTesOX3wHPHp2zTiEo8Y', '', false, false, 2],
+  ['Sample with definitions', '6x6VbK15sTesOX3wHPHp2zTiEo8Y', '', true, false, 2],
+  ['Chemical', '8mYi1m21s3k2LdjIUt0EnLyQ-_-c', '', false, false, 2],
+  ['Schema', 'EdNTmfG89xq927d5Zcq-hMlLWaa2', '', false, false, 2],
+  ['MySection-inter-entry', 'QoV6GTCH0lT4ArliEfO6ytXa9ihg', '', false, false, 2],
+  ['MySection-intra-entry', 'oqOTEw8ZzGt4Z763KE2IUv9iY1M5', '', false, false, 2]
 ])('Browse archive recursively: %s', async (name, entryId, path, withDefinition, withAll, filterKeyLength) => {
   await startAPI(
     'tests.states.uploads.archive_browser_test',

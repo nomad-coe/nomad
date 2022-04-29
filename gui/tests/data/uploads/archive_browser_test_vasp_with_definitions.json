@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkNWM3Y2JhYi01YmNiLTQ3MmQtOWZlYS04OTQ2MTU2ZDBhN2IiLCJleHAiOjE2NTExOTI0MjgsIm5iZiI6MCwiaWF0IjoxNjUxMTU2NDM1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImNiYzIyMGY3LWRkMGYtNGU2Mi1iYjkyLTU3MmNiNTFkM2Q5MyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.iWBcNRGAH25eDOHzc9ekTMyGIaQoWA_5-vf5-fgZ6PVnURFFY-4Q2WYiFtoYBTFSbZd138U73m3GjAaHWsI9Wjq1i7komeQbUfDPwCgMyESyIuYUWdIr56rOrC40lvQ4cubej9RFmsUJawQdaYuF4iLAXwSRhOpF59zc3xLLTYVGxPuTNy8zb4Ch5VUFpnyz-TBq3dA5uQc71iDHqd58n6qgAhTyc-rH3X0QCM-TXT7poHNpDv9QVaAbCpuudNDuAUyrYMJVgXLyCOmZbK0k70_zIxr3kCItmpOGQfgt3XKlpMF2BnE6_n4l-gSEkzXFs7WY9_r-MItB0rqV6Hw8Ww",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJmMmM5Njg4OC03OTYxLTRmYWItYjE3ZC05MGQzMzk0MzRmZGQiLCJleHAiOjE2NTEyNjcxOTYsIm5iZiI6MCwiaWF0IjoxNjUxMjMxMjAzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImI1MzlkNDBhLTE4MmItNGQ0My05NzM0LTQ3OWE5YTViYjBjOCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.VfC8tO_ss1wUfwe0plAlvJd9KSzvXc-VmjaqUpu13eRWKU4vuwGBgrudj9q2puzjats1-c4gSyoWLYHCtX29nDBxwSNto1mHWsOAvYYKpLZa2atjDhr5Desq5XoLitaUsHBUR-AK3af0feUvhCiHlD2v5IYpcdLpIz6VOs7prJIE2-6MFHdJvZpA-cwTSe-eEEGTILszGKg8kR2GwnXxmkQRpi2vQr1CZPHvl8ondG3aqZRUIKLCeMfADc1nQCeMurBOltjjoAfhsUu6cFO6b1Os2yYRGJJLUxyCx73T0Gu2ZO9ZdI8XrlryKnZpqd0Wa4j7kyAyUBwmn2HD5FphFw",
           "cookie": null
         }
       },
@@ -307,7 +307,7 @@
             "datasets": [],
             "n_quantities": 954,
             "nomad_version": "1.1.0",
-            "upload_create_time": "2022-04-28T14:33:52.389000",
+            "upload_create_time": "2022-04-29T11:20:00.517000",
             "nomad_commit": "e7d8d8f9",
             "processing_errors": [],
             "results": {
@@ -415,7 +415,7 @@
                 }
               }
             },
-            "last_processing_time": "2022-04-28T14:33:52.589000",
+            "last_processing_time": "2022-04-29T11:20:00.719000",
             "optimade": {
               "nperiodic_dimensions": 3,
               "species_at_sites": [
@@ -535,7 +535,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2022-04-28T14:33:52.517000",
+            "entry_create_time": "2022-04-29T11:20:00.642000",
             "with_embargo": false,
             "domain": "dft",
             "files": [
@@ -576,7 +576,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1ZDhhODYyYy1jZTUzLTRjMjItOWJkMC04NzA5NGU5NjExZjgiLCJleHAiOjE2NTExOTI0MjgsIm5iZiI6MCwiaWF0IjoxNjUxMTU2NDM1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImNiYzIyMGY3LWRkMGYtNGU2Mi1iYjkyLTU3MmNiNTFkM2Q5MyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.JesVt80VJaVkFXUfjrvcT1q-Z9CNGIPAJG1jrM3T4Q6boL5kjvGsAUAp9QXW9Q-nRR1iXzSEepD-ClWfgjgRRYsKpE36UL2XJnnMj_-aY5BIv8bh24uikAy-qixA432Xdcf3mFWuOUHrDg04XuKRAFZvqaM78NThhhiuT_UrJMzDqoe3F8y_8ktunNFfVm1lrKJpoVilaGo6d7Tyhxr7Zq1zuoy6nE8EyBwra_zn9RIjVM6UKA2tSZVYfB2qju0pSo2WSHt4a5VndC9sOzkLfuPLBW96zGuu633Kqa6QXDpj-RZpBH6TBDq-ha1oKFWFqyB351wp6jZMxzeM7FXztw",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkNGJlZDM4NS05N2U0LTRlZTMtOTc2My0wNGU3NWJiZTQ2NmUiLCJleHAiOjE2NTEyNjcxOTYsIm5iZiI6MCwiaWF0IjoxNjUxMjMxMjAzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImI1MzlkNDBhLTE4MmItNGQ0My05NzM0LTQ3OWE5YTViYjBjOCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.GlBrMk-RpVi-z5_vFl92skT87bKtratHIGpF_LnyXRxgj8k_gPxsyGVJz1PMHGKH484QADM1Yy7r8XMg9oAPXF5vpuMIjC33xmCnE_fXqZhuTy68p5aNDDjXpu-SRTcaNYjhKJ5FtH6eE5u7j_JD41ptS4gv6KAZzCXkLyBnEDv69RbrUlFmDclrvyHz8TRRD_8LSd9qUm1KM1xvf8sS2GOAL9OKq9DywlmUtx8SWUb2CEdH6ny_ZFKMtDofs2qqXE19NKqfWo_sgig7xkGKnP_h25r_XMcHFNfGt9hBmVRGFZocO3oV6zcVZABl3vQ9Kj3QpWEBfQenYDWkYPwD7A",
           "cookie": null
         }
       },
@@ -598,11 +598,11 @@
                   "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.04279184341430664",
+                  "exec_time": "0.04413247108459473",
                   "input_size": "61197",
                   "event": "parser executed",
                   "proc": "Entry",
@@ -611,7 +611,7 @@
                   "parser": "parsers/vasp",
                   "step": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -623,12 +623,12 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.14586162567138672",
+                  "exec_time": "0.05614137649536133",
                   "system_size": "16",
                   "event": "system classification executed",
                   "proc": "Entry",
@@ -637,7 +637,7 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -649,7 +649,7 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -661,7 +661,7 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -673,7 +673,7 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -685,7 +685,7 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -697,7 +697,7 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -709,7 +709,7 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -721,7 +721,7 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -733,12 +733,12 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.16150736808776855",
+                  "exec_time": "0.05392026901245117",
                   "system_size": "16",
                   "event": "symmetry analysis executed",
                   "proc": "Entry",
@@ -747,7 +747,7 @@
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -759,11 +759,11 @@
                   "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.30955934524536133",
+                  "exec_time": "0.11171078681945801",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
@@ -773,7 +773,7 @@
                   "normalizer": "SystemNormalizer",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -785,7 +785,7 @@
                   "parser": "parsers/vasp",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -797,11 +797,11 @@
                   "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.013341426849365234",
+                  "exec_time": "0.0019218921661376953",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
@@ -811,7 +811,7 @@
                   "normalizer": "OptimadeNormalizer",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -823,11 +823,11 @@
                   "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.00033736228942871094",
+                  "exec_time": "0.0003724098205566406",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
@@ -837,7 +837,7 @@
                   "normalizer": "DosNormalizer",
                   "step": "DosNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -849,11 +849,11 @@
                   "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0003082752227783203",
+                  "exec_time": "0.00047016143798828125",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
@@ -863,7 +863,7 @@
                   "normalizer": "BandStructureNormalizer",
                   "step": "BandStructureNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -875,11 +875,11 @@
                   "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0035474300384521484",
+                  "exec_time": "0.004956483840942383",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
@@ -889,7 +889,7 @@
                   "normalizer": "WorkflowNormalizer",
                   "step": "WorkflowNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.52",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -901,11 +901,11 @@
                   "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.53",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.04346418380737305",
+                  "exec_time": "0.009535074234008789",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
@@ -915,7 +915,7 @@
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.53",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
@@ -927,11 +927,11 @@
                   "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.53",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0002052783966064453",
+                  "exec_time": "0.00022554397583007812",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
@@ -941,29 +941,29 @@
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.53",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.001135110855102539",
+                  "exec_time": "0.0010008811950683594",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
                   "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.53",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.02967977523803711",
+                  "exec_time": "0.019983768463134766",
                   "event": "entry metadata indexed",
                   "proc": "Entry",
                   "process": "process_entry",
                   "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-28 16:33.53",
+                  "timestamp": "2022-04-29 13:20.00",
                   "level": "INFO"
                 }
               ],
@@ -5343,10 +5343,10 @@
               ],
               "metadata": {
                 "upload_id": "archive_browser_test",
-                "upload_create_time": "2022-04-28T14:33:52.389000",
+                "upload_create_time": "2022-04-29T11:20:00.517000",
                 "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
                 "entry_hash": "PGjkHV-ALEhA8eiWps243e9kxhmF",
-                "entry_create_time": "2022-04-28T14:33:52.517000",
+                "entry_create_time": "2022-04-29T11:20:00.642000",
                 "parser_name": "parsers/vasp",
                 "mainfile": "examples_vasp/xml/Si.xml",
                 "files": [
@@ -5358,7 +5358,7 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-04-28T14:33:52.589808",
+                "last_processing_time": "2022-04-29T11:20:00.719148",
                 "processing_errors": [],
                 "nomad_version": "1.1.0",
                 "nomad_commit": "e7d8d8f9",
@@ -6246,7 +6246,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "205640",
+          "content-length": "205644",
           "content-type": "application/json",
           "server": "uvicorn"
         }

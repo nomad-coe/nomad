@@ -97,7 +97,9 @@ const FileEditQuantity = React.memo(props => {
                   </Tooltip>
                 </IconButton>
               </Dropzone>
-              <ItemButton size="small" itemKey={quantityDef.name} />
+              {value && (
+                <ItemButton size="small" itemKey={quantityDef.name} />
+              )}
             </React.Fragment>
           )
         }}

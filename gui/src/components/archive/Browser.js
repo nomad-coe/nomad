@@ -544,7 +544,7 @@ export function Title({title, label, tooltip, actions, ...moreProps}) {
   </Compartment>
 }
 Title.propTypes = ({
-  title: PropTypes.string.isRequired,
+  title: PropTypes.string,
   label: PropTypes.string,
   tooltip: PropTypes.string,
   actions: PropTypes.oneOfType([
