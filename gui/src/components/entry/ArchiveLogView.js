@@ -54,7 +54,7 @@ const LogEntry = React.memo(function LogEntry(props) {
     summaryProps.classes = {root: classes.warning}
   }
   return (
-    <Accordion>
+    <Accordion data-testid='Accordions'>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography {...summaryProps}>{data.level}: {keyNames.map((key) => `${data[key]} | `)}</Typography>
       </AccordionSummary>
@@ -134,11 +134,12 @@ FilterLogsByLevel.propTypes = {
 const FilterLogTagsByKeys = React.memo(function FilterLogTagsByKeys(props) {
   const {className, keyNames, onKeyNamesChanged, uniquekeys} = props
   return (
-    <FormControl className={className.formControl}>
-      <InputLabel id="mutiple-chip-label">Filter keys by:</InputLabel>
+    <FormControl data-testid='dropdown-menu' className={className.formControl}>
+      <InputLabel data-testid='multipleSelect' id="mutiple-chip-label">Filter keys by:</InputLabel>
       <Select
         labelId="mutiple-chip-label"
         id="mutiple-chip"
+        data-testid={'selectOption'}
         multiple
         value={keyNames}
         onChange={onKeyNamesChanged}
@@ -152,7 +153,7 @@ const FilterLogTagsByKeys = React.memo(function FilterLogTagsByKeys(props) {
         )}
       >
         {uniquekeys.map((name) => (
-          <MenuItem key={name} value={name}>
+          <MenuItem data-testid={`${name}`} key={name} value={name}>
             {name}
           </MenuItem>
         ))}
