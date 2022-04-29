@@ -134,20 +134,12 @@ FilterLogsByLevel.propTypes = {
 const FilterLogTagsByKeys = React.memo(function FilterLogTagsByKeys(props) {
   const {className, keyNames, onKeyNamesChanged, uniquekeys} = props
   return (
-<<<<<<< HEAD
     <FormControl data-testid='dropdown-menu' className={className.formControl}>
       <InputLabel data-testid='multipleSelect' id="mutiple-chip-label">Filter keys by:</InputLabel>
       <Select
         labelId="mutiple-chip-label"
         id="mutiple-chip"
         data-testid={'selectOption'}
-=======
-    <FormControl className={className.formControl}>
-      <InputLabel id="mutiple-chip-label">Filter keys by:</InputLabel>
-      <Select
-        labelId="mutiple-chip-label"
-        id="mutiple-chip"
->>>>>>> 4d8794ebe3f63229ddbde80a7397e4d03b95c51c
         multiple
         value={keyNames}
         onChange={onKeyNamesChanged}
@@ -161,11 +153,7 @@ const FilterLogTagsByKeys = React.memo(function FilterLogTagsByKeys(props) {
         )}
       >
         {uniquekeys.map((name) => (
-<<<<<<< HEAD
           <MenuItem data-testid={`${name}`} key={name} value={name}>
-=======
-          <MenuItem key={name} value={name}>
->>>>>>> 4d8794ebe3f63229ddbde80a7397e4d03b95c51c
             {name}
           </MenuItem>
         ))}
