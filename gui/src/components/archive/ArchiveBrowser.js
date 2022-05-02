@@ -378,7 +378,7 @@ class SectionAdaptor extends ArchiveAdaptor {
           const uploadId = this.context.archive.metadata.upload_id
           const path = this.obj[property.name]
           const response = await this.context.api.get(`uploads/${uploadId}/rawdir/${path}`)
-          return new RawFileAdaptor(uploadId, path, response.file_metadata, false)
+          return new RawFileAdaptor(this.context, uploadId, path, response.file_metadata, false)
         }
       }
       return this.adaptorFactory(value, property, this.obj)

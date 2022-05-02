@@ -1,0 +1,438 @@
+{
+  "7afcc80b0756ad3b0cfe1dd82db7dce1": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/oqOTEw8ZzGt4Z763KE2IUv9iY1M5",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5MDgwZWViYS05ZWQ2LTRjN2QtYTU0Zi03ZDAxMjRlZmE2ZjgiLCJleHAiOjE2NTEyNjc0MTEsIm5iZiI6MCwiaWF0IjoxNjUxMjMxNDE4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6Ijg0ODFlOTVjLTllNDctNDc5Ny04MzZhLWM3NTY5M2MzNzVkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.FAEF5JsQgGZpuTRgE4ZjzI6p7f01o6fmWsSr08vAec3-9xkA4fisIv6yW9eTWSLwJ1zNR0VdORTy6FnWjrmVnpBL-C-hymv2EADcI2ls0FTL5YVPEum0uGrVjPrOynr8-T_16jN0lmxxyjIHixgvTDb1q_lcnhi3qW7vvVzGHeMvno3Fz3q017i8-cypYMDd6R7uOeMV7vT7Yc44AkoJRPA7j4ZwHIoCrVAXCPRMdjKbV7dexNoy_L7XDuN_0frnES2c6e7v4jMMpJmla-WdjT5LFWnX09kFzQD7pa6adpcJ-Hqh_J5XLbHn1etKrS6wF9LRkopvU-luHMz_zB-MPA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "entry_id": "oqOTEw8ZzGt4Z763KE2IUv9iY1M5",
+          "required": {},
+          "data": {
+            "upload_id": "archive_browser_test",
+            "references": [],
+            "origin": "Markus Scheidgen",
+            "quantities": [
+              "",
+              ".data",
+              ".definitions",
+              ".metadata",
+              ".results",
+              "data",
+              "data.datetime_list",
+              "data.my_quantity",
+              "definitions",
+              "definitions.more",
+              "definitions.section_definitions",
+              "definitions.section_definitions.base_sections",
+              "definitions.section_definitions.more",
+              "definitions.section_definitions.name",
+              "definitions.section_definitions.quantities",
+              "definitions.section_definitions.quantities.more",
+              "definitions.section_definitions.quantities.name",
+              "definitions.section_definitions.quantities.shape",
+              "definitions.section_definitions.quantities.type",
+              "metadata",
+              "metadata.coauthors",
+              "metadata.datasets",
+              "metadata.embargo_length",
+              "metadata.entry_coauthors",
+              "metadata.entry_create_time",
+              "metadata.entry_hash",
+              "metadata.entry_id",
+              "metadata.entry_type",
+              "metadata.files",
+              "metadata.last_processing_time",
+              "metadata.license",
+              "metadata.main_author",
+              "metadata.mainfile",
+              "metadata.nomad_commit",
+              "metadata.nomad_version",
+              "metadata.parser_name",
+              "metadata.processed",
+              "metadata.processing_errors",
+              "metadata.published",
+              "metadata.references",
+              "metadata.reviewers",
+              "metadata.upload_create_time",
+              "metadata.upload_id",
+              "metadata.with_embargo",
+              "results",
+              "results.properties",
+              "results.properties.available_properties"
+            ],
+            "datasets": [],
+            "n_quantities": 46,
+            "nomad_version": "1.1.0",
+            "upload_create_time": "2022-04-29T11:23:35.587000",
+            "nomad_commit": "e7d8d8f9",
+            "processing_errors": [],
+            "results": {
+              "properties": {
+                "available_properties": []
+              }
+            },
+            "last_processing_time": "2022-04-29T11:23:35.810000",
+            "parser_name": "parsers/archive",
+            "calc_id": "oqOTEw8ZzGt4Z763KE2IUv9iY1M5",
+            "published": false,
+            "writers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              {
+                "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                "name": "Sheldon Cooper"
+              }
+            ],
+            "sections": [
+              "*.MySection",
+              "nomad.datamodel.datamodel.EntryArchive",
+              "nomad.datamodel.datamodel.EntryMetadata",
+              "nomad.datamodel.results.Properties",
+              "nomad.datamodel.results.Results",
+              "nomad.metainfo.metainfo.Package",
+              "nomad.metainfo.metainfo.Quantity",
+              "nomad.metainfo.metainfo.Section"
+            ],
+            "processed": true,
+            "mainfile": "intra-entry.archive.json",
+            "main_author": {
+              "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "name": "Markus Scheidgen"
+            },
+            "viewers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              {
+                "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                "name": "Sheldon Cooper"
+              },
+              {
+                "user_id": "54cb1f64-f84e-4815-9ade-440ce0b5430f",
+                "name": "Test Tester"
+              }
+            ],
+            "entry_create_time": "2022-04-29T11:23:35.735000",
+            "with_embargo": false,
+            "files": [
+              "intra-entry.archive.json",
+              "chemical.archive.json",
+              "example.archive.json",
+              "inter-entry.archive.json",
+              "pvd_process.csv",
+              "schema.archive.json",
+              "xrd_measurement.xrdml"
+            ],
+            "entry_type": "MySection",
+            "entry_id": "oqOTEw8ZzGt4Z763KE2IUv9iY1M5",
+            "authors": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              {
+                "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                "name": "Sheldon Cooper"
+              }
+            ],
+            "license": "CC BY 4.0"
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "3954",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "0d781311de7e8f7cc7476ebd808f3ad9": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/oqOTEw8ZzGt4Z763KE2IUv9iY1M5/archive/query",
+        "method": "POST",
+        "body": {
+          "required": "*"
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwMDkyYWQyMC1lMmU2LTQ3NTItOGVjYy04ZjkzNzNjYzM1ZDQiLCJleHAiOjE2NTEyNjc0MTEsIm5iZiI6MCwiaWF0IjoxNjUxMjMxNDE4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6Ijg0ODFlOTVjLTllNDctNDc5Ny04MzZhLWM3NTY5M2MzNzVkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.Aw4id-Rr-lkHEdEo6yb74zDCxDQmNjbV5_itFWItMxtfE557HjQ1R5ox7ST8RPQC4PLa4n82E4AfEXBNp_fhH22MHtHp5xYZFI1tS7pSs6NQ-5zGZx_JIwtGkvetLbrVATTDX_Zk0fIzIz96H2dgCPL9IZsLDVDL-k0DPIrlTzkrI_T4NTpYo1T4mzSKVD55S9aLstPhP8MB2OpoO8bwT3KzRdgIfgQnHHRJJm-LNfBKRf6SPQtI2DJ3buXE2-h5_quevIUGIzNJOrNZ5MEmXX6XzOoVRu96m8WdneSiuq6_wTBRY0guHr-zV4gQvYP2HGNkuInEjTzCCKqCNBFlyg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": "*",
+          "entry_id": "oqOTEw8ZzGt4Z763KE2IUv9iY1M5",
+          "data": {
+            "entry_id": "oqOTEw8ZzGt4Z763KE2IUv9iY1M5",
+            "upload_id": "archive_browser_test",
+            "parser_name": "parsers/archive",
+            "archive": {
+              "processing_logs": [
+                {
+                  "event": "Executing celery task",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "_KdeXFVvR2SEZjvNUgp2Zw",
+                  "parser": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-04-29 13:23.35",
+                  "level": "DEBUG"
+                },
+                {
+                  "exec_time": "0.0016226768493652344",
+                  "input_size": "781",
+                  "event": "parser executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "_KdeXFVvR2SEZjvNUgp2Zw",
+                  "parser": "parsers/archive",
+                  "step": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-04-29 13:23.35",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "ResultsNormalizer",
+                  "step": "ResultsNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "_KdeXFVvR2SEZjvNUgp2Zw",
+                  "parser": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-04-29 13:23.35",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0006802082061767578",
+                  "input_size": "781",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "_KdeXFVvR2SEZjvNUgp2Zw",
+                  "parser": "parsers/archive",
+                  "normalizer": "ResultsNormalizer",
+                  "step": "ResultsNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-04-29 13:23.35",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "MetainfoNormalizer",
+                  "step": "MetainfoNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "_KdeXFVvR2SEZjvNUgp2Zw",
+                  "parser": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-04-29 13:23.35",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0004432201385498047",
+                  "input_size": "781",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "_KdeXFVvR2SEZjvNUgp2Zw",
+                  "parser": "parsers/archive",
+                  "normalizer": "MetainfoNormalizer",
+                  "step": "MetainfoNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-04-29 13:23.35",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0005810260772705078",
+                  "event": "entry metadata saved",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "_KdeXFVvR2SEZjvNUgp2Zw",
+                  "parser": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-04-29 13:23.35",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0165557861328125",
+                  "event": "entry metadata indexed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "_KdeXFVvR2SEZjvNUgp2Zw",
+                  "parser": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-04-29 13:23.35",
+                  "level": "INFO"
+                }
+              ],
+              "data": {
+                "m_def": "#/definitions/section_definitions/0",
+                "my_quantity": "test_value",
+                "datetime_list": [
+                  "2022-04-01T00:00:00",
+                  "2022-04-02T00:00:00"
+                ]
+              },
+              "metadata": {
+                "upload_id": "archive_browser_test",
+                "upload_create_time": "2022-04-29T11:23:35.587000",
+                "entry_id": "oqOTEw8ZzGt4Z763KE2IUv9iY1M5",
+                "entry_type": "MySection",
+                "entry_hash": "g_m-hhlywMiYetSqdvq8i_Xcpa49",
+                "entry_create_time": "2022-04-29T11:23:35.735000",
+                "parser_name": "parsers/archive",
+                "mainfile": "intra-entry.archive.json",
+                "files": [
+                  "intra-entry.archive.json",
+                  "chemical.archive.json",
+                  "example.archive.json",
+                  "inter-entry.archive.json",
+                  "pvd_process.csv",
+                  "schema.archive.json",
+                  "xrd_measurement.xrdml"
+                ],
+                "published": false,
+                "with_embargo": false,
+                "embargo_length": 0,
+                "license": "CC BY 4.0",
+                "processed": true,
+                "last_processing_time": "2022-04-29T11:23:35.810594",
+                "processing_errors": [],
+                "nomad_version": "1.1.0",
+                "nomad_commit": "e7d8d8f9",
+                "references": [],
+                "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "coauthors": [
+                  "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
+                ],
+                "entry_coauthors": [],
+                "reviewers": [
+                  "54cb1f64-f84e-4815-9ade-440ce0b5430f"
+                ],
+                "datasets": [],
+                "n_quantities": 46,
+                "quantities": [
+                  "",
+                  ".data",
+                  ".definitions",
+                  ".metadata",
+                  ".results",
+                  "data",
+                  "data.datetime_list",
+                  "data.my_quantity",
+                  "definitions",
+                  "definitions.more",
+                  "definitions.section_definitions",
+                  "definitions.section_definitions.base_sections",
+                  "definitions.section_definitions.more",
+                  "definitions.section_definitions.name",
+                  "definitions.section_definitions.quantities",
+                  "definitions.section_definitions.quantities.more",
+                  "definitions.section_definitions.quantities.name",
+                  "definitions.section_definitions.quantities.shape",
+                  "definitions.section_definitions.quantities.type",
+                  "metadata",
+                  "metadata.coauthors",
+                  "metadata.datasets",
+                  "metadata.embargo_length",
+                  "metadata.entry_coauthors",
+                  "metadata.entry_create_time",
+                  "metadata.entry_hash",
+                  "metadata.entry_id",
+                  "metadata.entry_type",
+                  "metadata.files",
+                  "metadata.last_processing_time",
+                  "metadata.license",
+                  "metadata.main_author",
+                  "metadata.mainfile",
+                  "metadata.nomad_commit",
+                  "metadata.nomad_version",
+                  "metadata.parser_name",
+                  "metadata.processed",
+                  "metadata.processing_errors",
+                  "metadata.published",
+                  "metadata.references",
+                  "metadata.reviewers",
+                  "metadata.upload_create_time",
+                  "metadata.upload_id",
+                  "metadata.with_embargo",
+                  "results",
+                  "results.properties",
+                  "results.properties.available_properties"
+                ],
+                "sections": [
+                  "*.MySection",
+                  "nomad.datamodel.datamodel.EntryArchive",
+                  "nomad.datamodel.datamodel.EntryMetadata",
+                  "nomad.datamodel.results.Properties",
+                  "nomad.datamodel.results.Results",
+                  "nomad.metainfo.metainfo.Package",
+                  "nomad.metainfo.metainfo.Quantity",
+                  "nomad.metainfo.metainfo.Section"
+                ]
+              },
+              "results": {
+                "properties": {
+                  "available_properties": []
+                }
+              },
+              "definitions": {
+                "section_definitions": [
+                  {
+                    "name": "MySection",
+                    "base_sections": [
+                      "nomad.datamodel.data.EntryData"
+                    ],
+                    "quantities": [
+                      {
+                        "name": "my_quantity",
+                        "type": {
+                          "type_kind": "python",
+                          "type_data": "str"
+                        }
+                      },
+                      {
+                        "name": "datetime_list",
+                        "type": {
+                          "type_kind": "custom",
+                          "type_data": "nomad.metainfo.metainfo._Datetime"
+                        },
+                        "shape": [
+                          "*"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "8231",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

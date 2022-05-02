@@ -27,6 +27,7 @@ import { apiBase } from '../../config'
 import { Item } from './Browser'
 import { parseCifStructures } from 'crystcif-parse'
 import Structure from '../visualization/Structure'
+import { isWaitingForUpdateTestId } from '../../utils'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
 
@@ -280,9 +281,6 @@ function FilePreviewText({uploadId, path}) {
     }
   }, [contents, loading, loadMore])
 
-  if (loading.current && !contents) {
-    return <Typography>Loading ...</Typography>
-  }
   return (
     <div ref={containerRef} className={classes.containerDiv}>
       <InfiniteScroll
@@ -291,9 +289,10 @@ function FilePreviewText({uploadId, path}) {
         hasMore={hasMore}
         useWindow={false}
         getScrollParent={() => containerRef.current}
+        {...(contents === null ? {'data-testid': isWaitingForUpdateTestId} : {})}
       >
         <pre className={classes.fileContents}>
-          {contents}
+          {contents || ''}
           &nbsp;
         </pre>
       </InfiniteScroll>

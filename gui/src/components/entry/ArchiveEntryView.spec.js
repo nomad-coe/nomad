@@ -18,13 +18,19 @@
 import React from 'react'
 import { join } from 'path'
 import userEvent from '@testing-library/user-event'
-import { render, screen, within, startAPI, closeAPI } from '../conftest.spec'
+import { render, screen, within, startAPI, closeAPI, blockConsoleOutput, unblockConsoleOutput } from '../conftest.spec'
 import { getLane, navigateTo, browseRecursively } from '../archive/conftest.spec'
 import EntryContext from './EntryContext'
 import ArchiveEntryView from './ArchiveEntryView'
 import { minutes } from '../../setupTests'
 
-afterEach(() => closeAPI())
+beforeEach(() => {
+  blockConsoleOutput()
+})
+afterEach(() => {
+  unblockConsoleOutput()
+  closeAPI()
+})
 
 function archiveItemFilter(parentPath, items) {
   // The archive tree is very big and contains referential cycles, so we need to limit the crawling.
@@ -62,32 +68,35 @@ function archiveItemFilter(parentPath, items) {
 }
 
 test.each([
-  ['normal', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, false, 1],
-  ['with definitions', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', true, false, 2],
-  ['with all', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, true, 1]
+  ['vasp', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, false, 1],
+  ['vasp with definitions', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', true, false, 2],
+  ['vasp with all', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', '', false, true, 1],
+  ['Sample', '6x6VbK15sTesOX3wHPHp2zTiEo8Y', '', false, false, 2],
+  ['Sample with definitions', '6x6VbK15sTesOX3wHPHp2zTiEo8Y', '', true, false, 2],
+  ['Chemical', '8mYi1m21s3k2LdjIUt0EnLyQ-_-c', '', false, false, 2],
+  ['Schema', 'EdNTmfG89xq927d5Zcq-hMlLWaa2', '', false, false, 2],
+  ['MySection-inter-entry', 'QoV6GTCH0lT4ArliEfO6ytXa9ihg', '', false, false, 2],
+  ['MySection-intra-entry', 'oqOTEw8ZzGt4Z763KE2IUv9iY1M5', '', false, false, 2]
 ])('Browse archive recursively: %s', async (name, entryId, path, withDefinition, withAll, filterKeyLength) => {
-  await startAPI('tests.states.uploads.archive_browser_test', 'tests/data/uploads/archive_browser_test', 'test', 'password')
-  const consoleLogSpy = jest.spyOn(console, 'log')
-  const consoleErrorSpy = jest.spyOn(console, 'error')
-  try {
-    render(<EntryContext entryId={entryId}><ArchiveEntryView /></EntryContext>)
-    expect(await screen.findByText('Entry')).toBeVisible()
+  await startAPI(
+    'tests.states.uploads.archive_browser_test',
+    'tests/data/uploads/archive_browser_test_' + name.replace(/ /g, '_'),
+    'test', 'password')
 
-    if (withDefinition) {
-      // Click the definitions checkbox
-      userEvent.click(screen.getByRoleAndText('checkbox', 'definitions'))
-      expect(await within(getLane(0)).findByText('meta')).toBeVisible()
-    }
-    if (withAll) {
-      // Click the metainfo definition
-      userEvent.click(screen.getByRoleAndText('checkbox', 'all defined'))
-      expect(await within(getLane(0)).findByText('processing_logs')).toBeVisible()
-    }
-    const lane = await navigateTo(path)
-    const laneIndex = path ? path.split('/').length : 0
-    await browseRecursively(lane, laneIndex, join(`*ArchiveBrowser ${name}*`, path), consoleLogSpy, consoleErrorSpy, archiveItemFilter, filterKeyLength)
-  } finally {
-    consoleLogSpy.mockRestore()
-    consoleErrorSpy.mockRestore()
+  render(<EntryContext entryId={entryId}><ArchiveEntryView /></EntryContext>)
+  expect(await screen.findByText('Entry')).toBeVisible()
+
+  if (withDefinition) {
+    // Click the definitions checkbox
+    userEvent.click(screen.getByRoleAndText('checkbox', 'definitions'))
+    expect(await within(getLane(0)).findByText('meta')).toBeVisible()
   }
+  if (withAll) {
+    // Click the metainfo definition
+    userEvent.click(screen.getByRoleAndText('checkbox', 'all defined'))
+    expect(await within(getLane(0)).findByText('processing_logs')).toBeVisible()
+  }
+  const lane = await navigateTo(path)
+  const laneIndex = path ? path.split('/').length : 0
+  await browseRecursively(lane, laneIndex, join(`*ArchiveBrowser ${name}*`, path), archiveItemFilter, filterKeyLength)
 }, 12 * minutes)

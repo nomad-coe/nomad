@@ -307,7 +307,7 @@ function Lane({lane}) {
     if (!adaptor) {
       return ''
     }
-    return <div className={classes.root} data-testid={`lane${lane.index}:${lane.key}`}>
+    return <div className={classes.root} key={`lane:${lane.path}`} data-testid={`lane${lane.index}:${lane.key}`}>
       <div className={classes.container} ref={containerRef}>
         <laneContext.Provider value={lane}>
           <ErrorHandler message={laneErrorBoundryMessage} className={classes.error}>
@@ -544,7 +544,7 @@ export function Title({title, label, tooltip, actions, ...moreProps}) {
   </Compartment>
 }
 Title.propTypes = ({
-  title: PropTypes.string.isRequired,
+  title: PropTypes.string,
   label: PropTypes.string,
   tooltip: PropTypes.string,
   actions: PropTypes.oneOfType([

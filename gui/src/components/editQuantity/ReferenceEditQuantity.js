@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
@@ -26,21 +26,27 @@ import { useEntryContext } from '../entry/EntryContext'
 import { resolveRefAsync } from '../archive/metainfo'
 import { ItemButton, useLane } from '../archive/Browser'
 import { getFieldProps } from './StringEditQuantity'
+import { isWaitingForUpdateTestId } from '../../utils'
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
-  const {uploadId} = useEntryContext()
-  const {archive} = useEntryContext()
+  const {uploadId, archive} = useEntryContext()
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [inputValue, setInputValue] = useState('')
   const [suggestions, setSuggestions] = useState([])
+  const fetchedSuggestionsFor = useRef()
   const {adaptor: {context}} = useLane()
   const referencedSectionQualifiedName = useMemo(() => {
     return quantityDef.type._referencedSection._qualifiedName
   }, [quantityDef])
   const fetchSuggestions = useCallback(input => {
+    if (fetchedSuggestionsFor.current === input) {
+      return // We've already fetched suggestions for this search string
+    }
+    // Fetch suggestions
+    fetchedSuggestionsFor.current = input
     const query = {
       'upload_id': uploadId
     }
@@ -63,10 +69,13 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     }, {
       noLoading: true
     }).then(response => {
-      const suggestions = response.data
-      setSuggestions(suggestions)
+      setSuggestions(response.data)
     }).catch(raiseError)
-  }, [api, raiseError, setSuggestions, referencedSectionQualifiedName, uploadId])
+  }, [api, raiseError, fetchedSuggestionsFor, setSuggestions, referencedSectionQualifiedName, uploadId])
+  const fetchSuggestionsDebounced = useCallback(
+    debounce(fetchSuggestions, 500),
+    [fetchSuggestions]
+  )
 
   useEffect(() => {
     if (!value || value === '') {
@@ -79,14 +88,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     })
   }, [value, api, raiseError, archive, context])
 
-  const fetchSuggestionsDebounced = useCallback(
-    debounce(fetchSuggestions, 150),
-    [fetchSuggestions]
-  )
-
-  useEffect(() => {
-    fetchSuggestionsDebounced(inputValue)
-  }, [fetchSuggestionsDebounced, inputValue])
+  const getOptionLabel = useCallback(option => option.entry_name, [])
+  const getOptionSelected = useCallback((option, value) => option.entry_name === value.entry_name, [])
 
   const handleValueChange = useCallback((event, value) => {
     if (value?.entry_id) {
@@ -99,19 +102,18 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     }
   }, [onChange])
 
-  const getOptionLabel = useCallback(option => option.entry_name, [])
-
   const handleInputValueChange = useCallback((event, value) => {
     value = value || event.target.value
     setInputValue(value)
+    fetchSuggestionsDebounced(value)
     if (value === '' && onChange) {
       onChange(undefined)
     }
-  }, [setInputValue, onChange])
+  }, [setInputValue, fetchSuggestionsDebounced, onChange])
 
-  const handleFocus = useCallback(() => {
-    if (inputValue === '') {
-      fetchSuggestionsDebounced('')
+  const handleFocus = useCallback((e) => {
+    if (!inputValue) {
+      fetchSuggestionsDebounced(inputValue)
     }
   }, [fetchSuggestionsDebounced, inputValue])
 
@@ -122,7 +124,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       return quantityDef.name
     }
   }, [quantityDef, index])
-
+  const {helpDescription, ...otherProps} = getFieldProps(quantityDef)
   return <Autocomplete
     disabled={value && !entry}
     options={suggestions}
@@ -131,12 +133,14 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     onFocus={handleFocus}
     inputValue={inputValue}
     getOptionLabel={getOptionLabel}
+    getOptionSelected={getOptionSelected}
     renderInput={params => {
       return (
         <TextField
           {...params}
           fullWidth variant='filled' size='small'
-          {...getFieldProps(quantityDef)}
+          {...otherProps}
+          {...(value && !entry ? {'data-testid': isWaitingForUpdateTestId} : {})}
           InputProps={{
             ...params.InputProps,
             endAdornment: inputValue !== '' && (

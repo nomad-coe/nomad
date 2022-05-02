@@ -725,3 +725,12 @@ export function getLabel(name) {
   label = startCase(label)
   return label
 }
+
+/**
+ * Used for testing purposes: setting a data-testid to this value signals that the
+ * component waits for further updates of some kind. This is used by some automated tests
+ * to determine if a component is *really* done rendering (when we don't really care what
+ * we are waiting for, and just want a way to determine when we're done). When done,
+ * the data-testid should be removed or updated to something else.
+ */
+export const isWaitingForUpdateTestId = 'waiting-for-update'
