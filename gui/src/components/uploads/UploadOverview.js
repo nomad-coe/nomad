@@ -15,13 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
   TextField, Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
-  Input, DialogTitle, DialogContent, Dialog, LinearProgress, IconButton} from '@material-ui/core'
+  Input, DialogTitle, DialogContent, Dialog, LinearProgress, IconButton, Accordion, AccordionSummary, AccordionDetails} from '@material-ui/core'
 import Dropzone from 'react-dropzone'
 import UploadIcon from '@material-ui/icons/CloudUpload'
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import { appBase } from '../../config'
 import { CodeList } from '../About'
 import FilesBrower from './FilesBrowser'
@@ -320,6 +321,20 @@ function UploadOverview(props) {
   const [uploading, setUploading] = useState(null)
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
+  const [readme, setReadme] = useState(null)
+
+  useEffect(() => {
+    if (uploading) return
+
+    api.get(`/uploads/${uploadId}/raw/README.md`)
+      .then(setReadme)
+      .catch(error => {
+        setReadme(null)
+        if (error.name !== 'DoesNotExist') {
+          raiseError(error)
+        }
+      })
+  }, [api, raiseError, uploadId, uploading, setReadme])
 
   const handleDrop = (files) => {
     const formData = new FormData() // eslint-disable-line no-undef
@@ -447,6 +462,18 @@ function UploadOverview(props) {
           </Dialog>
         </Grid>
       </Grid>
+      {readme && (
+        <Box marginLeft={4} marginTop={2} marginBottom={0} marginRight={1}>
+          <Accordion defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              README.md
+            </AccordionSummary>
+            <AccordionDetails>
+              <Markdown>{readme}</Markdown>
+            </AccordionDetails>
+          </Accordion>
+        </Box>
+      )}
       <Stepper classes={{root: classes.stepper}} orientation="vertical" >
         <Step expanded active={false}>
           <StepLabel>Prepare and upload your files</StepLabel>
