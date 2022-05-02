@@ -47,6 +47,11 @@ from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=un
 from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parse_file
+from nomad.datamodel.context import ServerContext
+from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
+from nomad.parsing.parser import ArchiveParser
+from nomad.processing.data import Upload
+from tests.test_files import create_test_upload_files
 
 
 def run_normalize(entry_archive: EntryArchive) -> EntryArchive:
@@ -54,6 +59,22 @@ def run_normalize(entry_archive: EntryArchive) -> EntryArchive:
         normalizer = normalizer_class(entry_archive)
         normalizer.normalize()
     return entry_archive
+
+
+def run_processing(directory, mainfile):
+    # create upload with example files
+    upload_files = create_test_upload_files('test_upload_id', published=False, raw_files=directory)
+    upload = Upload(upload_id='test_upload_id')
+
+    # parse
+    parser = ArchiveParser()
+    context = ServerContext(upload=upload)
+    test_archive = EntryArchive(m_context=context, metadata=EntryMetadata())
+    parser.parse(
+        upload_files.raw_file_object(mainfile).os_path,
+        test_archive)
+    run_normalize(test_archive)
+    return test_archive
 
 
 @pytest.fixture

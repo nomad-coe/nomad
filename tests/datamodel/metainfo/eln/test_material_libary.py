@@ -16,33 +16,25 @@
 # limitations under the License.
 #
 
-from nomad.datamodel.context import ServerContext
-from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
-from nomad.parsing.parser import ArchiveParser
-from nomad.processing.data import Upload
-
-from tests.normalizing.conftest import run_normalize
-from tests.test_files import create_test_upload_files
+from tests.normalizing.conftest import run_processing
 
 
 def test_processing(raw_files, no_warn):
     directory = 'tests/data/datamodel/metainfo/eln/material_library'
     mainfile = 'example.archive.json'
-
-    # create upload with example files
-    upload_files = create_test_upload_files('test_upload_id', published=False, raw_files=directory)
-    upload = Upload(upload_id='test_upload_id')
-
-    # parse
-    parser = ArchiveParser()
-    context = ServerContext(upload=upload)
-    test_archive = EntryArchive(m_context=context, metadata=EntryMetadata())
-    parser.parse(
-        upload_files.raw_file_object(mainfile).os_path,
-        test_archive)
-    run_normalize(test_archive)
+    test_archive = run_processing(directory, mainfile)
 
     # assert archive
+    assert test_archive.metadata.entry_type == 'Sample'
     assert len(test_archive.data.processes.pvd_evaporation.substrate_temperature) > 0
     assert len(test_archive.data.measurements.xray_diffraction[0].two_theta) > 0
     assert len(test_archive.data.layers) == 1
+
+
+def test_processing_empty_chemical(raw_files, no_warn):
+    directory = 'tests/data/datamodel/metainfo/eln/material_library'
+    mainfile = 'chemical-empty.archive.json'
+    test_archive = run_processing(directory, mainfile)
+
+    # assert archive
+    assert test_archive.metadata.entry_type == 'Chemical'
