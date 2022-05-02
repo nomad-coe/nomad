@@ -56,7 +56,8 @@ const LogEntry = React.memo(function LogEntry(props) {
   return (
     <Accordion data-testid='Accordions'>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography {...summaryProps}>{data.level}: {keyNames.map((key) => `${data[key]} | `)}</Typography>
+        {/* <Typography {...summaryProps}>{data.level}: {keyNames.map((key) => `${data[key]} | `)}</Typography> */}
+        <Typography {...summaryProps}>{data.level}: {(keyNames.map((key) => `${data[key]}`).join(' | '))}</Typography>
       </AccordionSummary>
       <AccordionDetails>
         <ReactJson
@@ -108,7 +109,7 @@ const useStyles = makeStyles(theme => ({
 const FilterLogsByLevel = React.memo(function FilterLogsByLevel(props) {
   const {logLevels, onCheckListChanged} = props
   return (
-    <FormGroup row>
+    <FormGroup row >
       <Typography style={{padding: '8px', textAlign: 'bottom'}}>
           Filter Logs by Level:
       </Typography>
@@ -229,31 +230,33 @@ export default function ArchiveLogView(props) {
     const uniquekeys = [...new Set(
       data.reduce((aggregatedKeys, item) => [...aggregatedKeys, ...Object.keys(item)], []))]
     content =
-    <Grid container alignItems='center'>
-      <Grid item xs={8}>
-        <FilterLogsByLevel logLevels={logLevels} onCheckListChanged={handleCheckListChanged}/>
-      </Grid>
-      <Grid item xs={4} >
-        <FilterLogTagsByKeys
-          className={classes}
-          keyNames={keyNames}
-          onKeyNamesChanged={handlekeyNamesChanged}
-          uniquekeys={uniquekeys}
-        />
-      </Grid>
-      <Grid container spacing={1}>
-        {data
-          .map((entry, i) => (logLevels[entry.level] ? <Grid item xs={12} key={i}><LogEntry key={i} entry={entry} keyNames={keyNames}/></Grid> : null))
-          .slice(0, numberOfLogs)
-          .filter(el => el !== null)}
-      </Grid>
-      <Grid container alignItems='center' justifyContent='center'>
-        {(numberOfLogs > data.length ||
-          data
-            .map((entry, i) => (logLevels[entry.level] ? 1 : null))
-            .filter(el => el !== null).length <= numberOfLogs) ? '' : (<Button className={classes.seeMore} variant='contained' color='primary' onClick={() => setNumberOflogs(numberOfLogs + numberOfLogs)}>
-          See More
-          </Button>)}
+    <Grid container alignItems='flex-end'>
+      <Grid container alignItems='flex-end'>
+        <Grid item xs={8}>
+          <FilterLogsByLevel logLevels={logLevels} onCheckListChanged={handleCheckListChanged}/>
+        </Grid>
+        <Grid item xs={4} >
+          <FilterLogTagsByKeys
+            className={classes}
+            keyNames={keyNames}
+            onKeyNamesChanged={handlekeyNamesChanged}
+            uniquekeys={uniquekeys}
+          />
+        </Grid>
+        <Grid container spacing={1}>
+          {data
+            .map((entry, i) => (logLevels[entry.level] ? <Grid item xs={12} key={i}><LogEntry key={i} entry={entry} keyNames={keyNames}/></Grid> : null))
+            .slice(0, numberOfLogs)
+            .filter(el => el !== null)}
+        </Grid>
+        <Grid container alignItems='center' justifyContent='center'>
+          {(numberOfLogs > data.length ||
+            data
+              .map((entry, i) => (logLevels[entry.level] ? 1 : null))
+              .filter(el => el !== null).length <= numberOfLogs) ? '' : (<Button className={classes.seeMore} variant='contained' color='primary' onClick={() => setNumberOflogs(numberOfLogs + numberOfLogs)}>
+            See More
+            </Button>)}
+        </Grid>
       </Grid>
     </Grid>
   }

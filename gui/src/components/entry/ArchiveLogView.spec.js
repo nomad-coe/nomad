@@ -7,8 +7,7 @@ import userEvent from '@testing-library/user-event'
 import { waitFor } from '@testing-library/react'
 
 test('Correctly renders the page', async () => {
-  closeAPI()
-  await startAPI('tests.states.uploads.archive_browser_test', 'tests/data/uploads/archive_browser_test', 'test', 'password')
+  await startAPI('tests.states.uploads.archive_browser_test', 'tests/data/uploads/archive_logs_test', 'test', 'password')
   render(<EntryContext entryId={'1WGSYo1RrGFEIcM17Re4kjHC7k6p'}>
     <ArchiveLogView />
   </EntryContext>)
@@ -23,7 +22,7 @@ test('Correctly renders the page', async () => {
   const logs = screen.queryAllByTestId('Accordions')
   expect(logs).toHaveLength(10)
 
-  // Checking for the checkboxes to be checked on the first mount
+  // // Checking for the checkboxes to be checked on the first mount
   const debugBox = screen.getByRole('checkbox', {
     name: /debug/i
   })
@@ -56,17 +55,14 @@ test('Correctly renders the page', async () => {
   expect(await screen.findByText(/see more/i)).toBeInTheDocument()
   expect(await screen.queryAllByTestId('Accordions')).toHaveLength(10)
 
-  // Selecting the first Accordion
-  // userEvent.click(screen.getByText(/debug: parsers\/vasp \|/i))
-
   // Selecting new key from the dropdown menu would add that key to the description of all logs that exist
   await waitFor(async () => expect(await screen.queryByTestId('system_size')).not.toBeInTheDocument())
   const view = await screen.getByTestId('selectOption')
-  const butt = within(view).getByRole('button')
+  const butt = await within(view).getByRole('button')
   await userEvent.click(butt)
   await waitFor(async () => expect(await screen.queryByTestId('system_size')).toBeInTheDocument())
   userEvent.click(await screen.queryByTestId('system_size'))
-  expect(await screen.getByText(/debug: parsers\/vasp \| undefined \|/i))
+  expect(await screen.getByText(/debug: parsers\/vasp \| undefined/i))
 
   closeAPI()
 })
