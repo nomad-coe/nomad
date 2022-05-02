@@ -56,7 +56,6 @@ const LogEntry = React.memo(function LogEntry(props) {
   return (
     <Accordion data-testid='Accordions'>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        {/* <Typography {...summaryProps}>{data.level}: {keyNames.map((key) => `${data[key]} | `)}</Typography> */}
         <Typography {...summaryProps}>{data.level}: {(keyNames.map((key) => `${data[key]}`).join(' | '))}</Typography>
       </AccordionSummary>
       <AccordionDetails>
