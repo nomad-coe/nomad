@@ -254,7 +254,7 @@ window.nomadEnv = {{
     'debug': false,
     'encyclopediaBase': '{config.encyclopedia_base if config.encyclopedia_base else 'undefined'}',
     'aitoolkitEnabled': {'true' if config.aitoolkit_enabled else 'false'},
-    'oasis': {'true' if config.keycloak.oasis else 'false'},
+    'oasis': {'true' if config.oasis.is_oasis else 'false'},
     'version': {json.dumps(config.meta.beta) if config.meta.beta else dict()},
     'globalLoginRequired': {'false' if config.oasis.allowed_users is None else 'true'}
 }};''')

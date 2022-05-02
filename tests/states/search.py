@@ -71,7 +71,7 @@ def search():
     variety of data.
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
+    main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
     upload_id = create_uuid()
     data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
@@ -115,7 +115,7 @@ def histograms():
     Used to construct an API state that is suitable for testing histograms.
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
+    main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
     upload_id = create_uuid()
     upload_create_time = datetime.utcfromtimestamp(1585872000)  # 3/4/2020 00:00 GMT
@@ -180,7 +180,7 @@ def histograms_one_value():
     Creates a state with one value for each type of histogram.
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
+    main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
     upload_id = create_uuid()
     upload_create_time = datetime.utcfromtimestamp(1585872000)  # 3/4/2020 00:00 GMT

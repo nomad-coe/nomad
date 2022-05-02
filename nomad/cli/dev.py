@@ -314,7 +314,7 @@ def example_data(username: str):
 
     infrastructure.setup()
 
-    main_author = infrastructure.keycloak.get_user(username=username)
+    main_author = infrastructure.user_management.get_user(username=username)
     if main_author is None:
         print(f'The user {username} does not exist.')
         sys.exit(1)

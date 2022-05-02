@@ -1386,7 +1386,7 @@ async def post_upload_action_publish(
 
     if to_central_nomad:
         # Publish from an OASIS to the central repository
-        if not config.keycloak.oasis:
+        if not config.oasis.is_oasis:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Must be on an OASIS to publish to the central NOMAD repository.')

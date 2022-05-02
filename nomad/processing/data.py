@@ -1914,7 +1914,7 @@ class Upload(Proc):
                     refresh=True)
 
         # send email about process finish
-        if not self.publish_directly:
+        if not self.publish_directly and self.main_author_user.email:
             user = self.main_author_user
             name = '%s %s' % (user.first_name, user.last_name)
             message = '\n'.join([

@@ -141,5 +141,5 @@ async def get_info():
             'commit': gitinfo.commit,
             'log': gitinfo.log
         },
-        'oasis': config.keycloak.oasis
+        'oasis': config.oasis.is_oasis
     }

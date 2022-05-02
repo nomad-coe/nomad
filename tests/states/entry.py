@@ -28,7 +28,7 @@ def dft():
     entry tabs.
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
+    main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
     upload_id = 'dft_upload'
     entry_id = 'dft_bulk'
