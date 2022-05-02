@@ -32,14 +32,15 @@ export const NumberField = React.memo((props) => {
   const requestedUnit = useRef(displayUnit) // Changing variables from inside useCallback will be lost after each render.
 
   const getValue = useCallback((value) => {
+    if (value === undefined) return ''
     if (units === undefined) {
       requestedUnit.current = displayUnit
       return value
     }
-    const flattenValue = value.replaceAll(' ', '')
-    const numberPart = flattenValue.match(/^[+-]?((\d+\.\d+|\d+\.|\.\d?|\d+)(e|e\+|e-)\d+|(\d+\.\d+|\d+\.|\.\d?|\d+))?/)
+    console.log('value: ' + value)
+    const numberPart = value.match(/^[+-]?((\d+\.\d+|\d+\.|\.\d?|\d+)(e|e\+|e-)\d+|(\d+\.\d+|\d+\.|\.\d?|\d+))?/)
     if (numberPart !== undefined) {
-      const unitPart = flattenValue.substring(numberPart[0].length)
+      const unitPart = value.substring(numberPart[0].length).trim().toLowerCase()
       let unitObject
       try {
         unitObject = new Unit(unitPart)
@@ -75,7 +76,7 @@ export const NumberField = React.memo((props) => {
     if (convertInPlace) {
       setInputValue(createInputValue(value))
     }
-  }, [createInputValue, convertInPlace, value])
+  }, [createInputValue, convertInPlace, value, getValue])
 
   const checkAndGetNumberValue = useCallback((value) => {
     value = getValue(value)
@@ -121,11 +122,16 @@ export const NumberField = React.memo((props) => {
     if (requestedUnit.current && unit) {
       number = convertUnit(number, requestedUnit.current, unit)
     }
+
+    if (!convertInPlace) {
+      setInputValue(getValue(value))
+    }
+
     if (onChange) {
       onChange(number, requestedUnit.current)
     }
     setError('')
-  }, [checkAndGetNumberValue, maxValue, minValue, requestedUnit, unit, onChange])
+  }, [checkAndGetNumberValue, maxValue, minValue, unit, convertInPlace, onChange, getValue])
 
   const debouncedHandleChange = useMemo(() => {
     return debounce(handleChange, 500)
