@@ -1,0 +1,1513 @@
+{
+  "bc880037303fd39289c45cebe3ae7ee2": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1YmM0N2ZhOC05YjZhLTQ3YWUtOWE4OC03MTVmZmUzYTQ1ZmMiLCJleHAiOjE2NTE1Mjk2ODUsIm5iZiI6MCwiaWF0IjoxNjUxNDkzNjkzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjdjZGFlMWQ2LWU4ZDYtNGE3YS05YTAwLTYyYzQ4ZTkyOGMzMSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.kQpjvjeKPOo0syOmrYUtuee3f9dReVE8fhYON71Dua-8NS08mAjV399zqhm-iI1d5WD6c15kWqQ8OSwbCNRQdYLlJHD3HhFZGynhAcG1NHXlJGsH5d--e9Zf_7N15Hj1ORc-2nM4sAPSQcso4IUt7OfS8otJUTnvyGyRtOjMUHJ6bDWGzX9tIWICnTeQhQdfq5ApuecgN3dTpOGz6vMe0Ntv8bog45yo0zVk8koPxiSikNwBNNHb5sci8EJl11cUcJJahKlxlb5oeoar7X8Shrqk8gJdrHK3Qta8PePx6nXtTg-VCoYxoD3pQ8NVh0vWJvnujAxsS6-rY5en9Rfudw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+          "required": {},
+          "data": {
+            "upload_id": "archive_browser_test",
+            "references": [],
+            "origin": "Markus Scheidgen",
+            "quantities": [
+              "",
+              ".metadata",
+              ".results",
+              ".run",
+              ".workflow",
+              "metadata",
+              "metadata.coauthors",
+              "metadata.datasets",
+              "metadata.domain",
+              "metadata.embargo_length",
+              "metadata.entry_coauthors",
+              "metadata.entry_create_time",
+              "metadata.entry_hash",
+              "metadata.entry_id",
+              "metadata.files",
+              "metadata.last_processing_time",
+              "metadata.license",
+              "metadata.main_author",
+              "metadata.mainfile",
+              "metadata.nomad_commit",
+              "metadata.nomad_version",
+              "metadata.optimade",
+              "metadata.optimade.cartesian_site_positions",
+              "metadata.optimade.chemical_formula_anonymous",
+              "metadata.optimade.chemical_formula_descriptive",
+              "metadata.optimade.chemical_formula_hill",
+              "metadata.optimade.chemical_formula_reduced",
+              "metadata.optimade.dimension_types",
+              "metadata.optimade.elements",
+              "metadata.optimade.elements_ratios",
+              "metadata.optimade.lattice_vectors",
+              "metadata.optimade.nelements",
+              "metadata.optimade.nsites",
+              "metadata.optimade.species",
+              "metadata.optimade.species.chemical_symbols",
+              "metadata.optimade.species.concentration",
+              "metadata.optimade.species.name",
+              "metadata.optimade.species_at_sites",
+              "metadata.optimade.structure_features",
+              "metadata.parser_name",
+              "metadata.processed",
+              "metadata.processing_errors",
+              "metadata.published",
+              "metadata.references",
+              "metadata.reviewers",
+              "metadata.upload_create_time",
+              "metadata.upload_id",
+              "metadata.with_embargo",
+              "results",
+              "results.material",
+              "results.material.chemical_formula_anonymous",
+              "results.material.chemical_formula_descriptive",
+              "results.material.chemical_formula_hill",
+              "results.material.chemical_formula_reduced",
+              "results.material.chemical_formula_reduced_fragments",
+              "results.material.elements",
+              "results.material.material_id",
+              "results.material.material_name",
+              "results.material.structural_type",
+              "results.material.symmetry",
+              "results.material.symmetry.bravais_lattice",
+              "results.material.symmetry.crystal_system",
+              "results.material.symmetry.hall_number",
+              "results.material.symmetry.hall_symbol",
+              "results.material.symmetry.point_group",
+              "results.material.symmetry.prototype_aflow_id",
+              "results.material.symmetry.prototype_formula",
+              "results.material.symmetry.space_group_number",
+              "results.material.symmetry.space_group_symbol",
+              "results.material.symmetry.structure_name",
+              "results.material.symmetry.strukturbericht_designation",
+              "results.method",
+              "results.method.method_name",
+              "results.method.parameter_variation_id",
+              "results.method.simulation",
+              "results.method.simulation.dft",
+              "results.method.simulation.dft.basis_set_type",
+              "results.method.simulation.dft.core_electron_treatment",
+              "results.method.simulation.dft.scf_threshold_energy_change",
+              "results.method.simulation.dft.xc_functional_names",
+              "results.method.simulation.dft.xc_functional_type",
+              "results.method.simulation.program_name",
+              "results.method.simulation.program_version",
+              "results.method.workflow_name",
+              "results.properties",
+              "results.properties.available_properties",
+              "results.properties.n_calculations",
+              "results.properties.structures",
+              "results.properties.structures.structure_conventional",
+              "results.properties.structures.structure_conventional.atomic_density",
+              "results.properties.structures.structure_conventional.cartesian_site_positions",
+              "results.properties.structures.structure_conventional.cell_volume",
+              "results.properties.structures.structure_conventional.dimension_types",
+              "results.properties.structures.structure_conventional.lattice_parameters",
+              "results.properties.structures.structure_conventional.lattice_parameters.a",
+              "results.properties.structures.structure_conventional.lattice_parameters.alpha",
+              "results.properties.structures.structure_conventional.lattice_parameters.b",
+              "results.properties.structures.structure_conventional.lattice_parameters.beta",
+              "results.properties.structures.structure_conventional.lattice_parameters.c",
+              "results.properties.structures.structure_conventional.lattice_parameters.gamma",
+              "results.properties.structures.structure_conventional.lattice_vectors",
+              "results.properties.structures.structure_conventional.mass_density",
+              "results.properties.structures.structure_conventional.species",
+              "results.properties.structures.structure_conventional.species.chemical_symbols",
+              "results.properties.structures.structure_conventional.species.concentration",
+              "results.properties.structures.structure_conventional.species.name",
+              "results.properties.structures.structure_conventional.species_at_sites",
+              "results.properties.structures.structure_conventional.wyckoff_sets",
+              "results.properties.structures.structure_conventional.wyckoff_sets.element",
+              "results.properties.structures.structure_conventional.wyckoff_sets.indices",
+              "results.properties.structures.structure_conventional.wyckoff_sets.wyckoff_letter",
+              "results.properties.structures.structure_original",
+              "results.properties.structures.structure_original.atomic_density",
+              "results.properties.structures.structure_original.cartesian_site_positions",
+              "results.properties.structures.structure_original.cell_volume",
+              "results.properties.structures.structure_original.dimension_types",
+              "results.properties.structures.structure_original.lattice_parameters",
+              "results.properties.structures.structure_original.lattice_parameters.a",
+              "results.properties.structures.structure_original.lattice_parameters.alpha",
+              "results.properties.structures.structure_original.lattice_parameters.b",
+              "results.properties.structures.structure_original.lattice_parameters.beta",
+              "results.properties.structures.structure_original.lattice_parameters.c",
+              "results.properties.structures.structure_original.lattice_parameters.gamma",
+              "results.properties.structures.structure_original.lattice_vectors",
+              "results.properties.structures.structure_original.mass_density",
+              "results.properties.structures.structure_original.species",
+              "results.properties.structures.structure_original.species.chemical_symbols",
+              "results.properties.structures.structure_original.species.concentration",
+              "results.properties.structures.structure_original.species.name",
+              "results.properties.structures.structure_original.species_at_sites",
+              "results.properties.structures.structure_primitive",
+              "results.properties.structures.structure_primitive.atomic_density",
+              "results.properties.structures.structure_primitive.cartesian_site_positions",
+              "results.properties.structures.structure_primitive.cell_volume",
+              "results.properties.structures.structure_primitive.dimension_types",
+              "results.properties.structures.structure_primitive.lattice_parameters",
+              "results.properties.structures.structure_primitive.lattice_parameters.a",
+              "results.properties.structures.structure_primitive.lattice_parameters.alpha",
+              "results.properties.structures.structure_primitive.lattice_parameters.b",
+              "results.properties.structures.structure_primitive.lattice_parameters.beta",
+              "results.properties.structures.structure_primitive.lattice_parameters.c",
+              "results.properties.structures.structure_primitive.lattice_parameters.gamma",
+              "results.properties.structures.structure_primitive.lattice_vectors",
+              "results.properties.structures.structure_primitive.mass_density",
+              "results.properties.structures.structure_primitive.species",
+              "results.properties.structures.structure_primitive.species.chemical_symbols",
+              "results.properties.structures.structure_primitive.species.concentration",
+              "results.properties.structures.structure_primitive.species.name",
+              "results.properties.structures.structure_primitive.species_at_sites",
+              "run",
+              "run.calculation",
+              "run.calculation.eigenvalues",
+              "run.calculation.eigenvalues.energies",
+              "run.calculation.eigenvalues.kpoints",
+              "run.calculation.eigenvalues.occupations",
+              "run.calculation.energy",
+              "run.calculation.energy.free",
+              "run.calculation.energy.free.value",
+              "run.calculation.energy.highest_occupied",
+              "run.calculation.energy.lowest_unoccupied",
+              "run.calculation.energy.total",
+              "run.calculation.energy.total.value",
+              "run.calculation.energy.total_t0",
+              "run.calculation.energy.total_t0.value",
+              "run.calculation.forces",
+              "run.calculation.forces.total",
+              "run.calculation.forces.total.value",
+              "run.calculation.method_ref",
+              "run.calculation.scf_iteration",
+              "run.calculation.scf_iteration.energy",
+              "run.calculation.scf_iteration.energy.correction_hartree",
+              "run.calculation.scf_iteration.energy.correction_hartree.value",
+              "run.calculation.scf_iteration.energy.free",
+              "run.calculation.scf_iteration.energy.free.value",
+              "run.calculation.scf_iteration.energy.total",
+              "run.calculation.scf_iteration.energy.total.value",
+              "run.calculation.scf_iteration.energy.total_t0",
+              "run.calculation.scf_iteration.energy.total_t0.value",
+              "run.calculation.scf_iteration.energy.xc",
+              "run.calculation.scf_iteration.energy.xc.value",
+              "run.calculation.stress",
+              "run.calculation.stress.total",
+              "run.calculation.stress.total.value",
+              "run.calculation.system_ref",
+              "run.method",
+              "run.method.atom_parameters",
+              "run.method.atom_parameters.atom_number",
+              "run.method.atom_parameters.label",
+              "run.method.atom_parameters.mass",
+              "run.method.atom_parameters.n_valence_electrons",
+              "run.method.atom_parameters.pseudopotential_name",
+              "run.method.basis_set",
+              "run.method.basis_set.cell_dependent",
+              "run.method.basis_set.cell_dependent.kind",
+              "run.method.basis_set.cell_dependent.planewave_cutoff",
+              "run.method.basis_set.type",
+              "run.method.dft",
+              "run.method.dft.xc_functional",
+              "run.method.dft.xc_functional.correlation",
+              "run.method.dft.xc_functional.correlation.name",
+              "run.method.dft.xc_functional.exchange",
+              "run.method.dft.xc_functional.exchange.name",
+              "run.method.dft.xc_functional.name",
+              "run.method.electronic",
+              "run.method.electronic.method",
+              "run.method.scf",
+              "run.method.scf.threshold_energy_change",
+              "run.program",
+              "run.program.compilation_datetime",
+              "run.program.name",
+              "run.program.version",
+              "run.system",
+              "run.system.atoms",
+              "run.system.atoms.labels",
+              "run.system.atoms.lattice_vectors",
+              "run.system.atoms.periodic",
+              "run.system.atoms.positions",
+              "run.system.atoms.species",
+              "run.system.chemical_composition",
+              "run.system.chemical_composition_hill",
+              "run.system.chemical_composition_reduced",
+              "run.system.configuration_raw_gid",
+              "run.system.is_representative",
+              "run.system.prototype",
+              "run.system.prototype.aflow_id",
+              "run.system.prototype.aflow_url",
+              "run.system.prototype.assignment_method",
+              "run.system.prototype.label",
+              "run.system.symmetry",
+              "run.system.symmetry.bravais_lattice",
+              "run.system.symmetry.crystal_system",
+              "run.system.symmetry.hall_number",
+              "run.system.symmetry.hall_symbol",
+              "run.system.symmetry.international_short_symbol",
+              "run.system.symmetry.origin_shift",
+              "run.system.symmetry.point_group",
+              "run.system.symmetry.space_group_number",
+              "run.system.symmetry.symmetry_method",
+              "run.system.symmetry.system_original",
+              "run.system.symmetry.system_original.equivalent_atoms",
+              "run.system.symmetry.system_original.wyckoff_letters",
+              "run.system.symmetry.system_primitive",
+              "run.system.symmetry.system_primitive.atomic_numbers",
+              "run.system.symmetry.system_primitive.equivalent_atoms",
+              "run.system.symmetry.system_primitive.lattice_vectors",
+              "run.system.symmetry.system_primitive.positions",
+              "run.system.symmetry.system_primitive.wyckoff_letters",
+              "run.system.symmetry.system_std",
+              "run.system.symmetry.system_std.atomic_numbers",
+              "run.system.symmetry.system_std.equivalent_atoms",
+              "run.system.symmetry.system_std.lattice_vectors",
+              "run.system.symmetry.system_std.positions",
+              "run.system.symmetry.system_std.wyckoff_letters",
+              "run.system.symmetry.transformation_matrix",
+              "run.system.type",
+              "workflow",
+              "workflow.calculation_result_ref",
+              "workflow.calculations_ref",
+              "workflow.single_point",
+              "workflow.single_point.final_scf_energy_difference",
+              "workflow.single_point.is_converged",
+              "workflow.single_point.method",
+              "workflow.single_point.n_scf_steps",
+              "workflow.single_point.with_bandstructure",
+              "workflow.single_point.with_density_of_states",
+              "workflow.single_point.with_eigenvalues",
+              "workflow.single_point.with_excited_states",
+              "workflow.single_point.with_volumetric_data",
+              "workflow.task",
+              "workflow.task.input_calculation",
+              "workflow.task.input_workflow",
+              "workflow.task.output_calculation",
+              "workflow.task.output_workflow",
+              "workflow.type"
+            ],
+            "datasets": [],
+            "n_quantities": 406,
+            "nomad_version": "1.1.0",
+            "upload_create_time": "2022-05-02T12:14:50.684000",
+            "nomad_commit": "04f193b6",
+            "processing_errors": [],
+            "results": {
+              "material": {
+                "symmetry": {
+                  "bravais_lattice": "cF",
+                  "space_group_symbol": "Fd-3m",
+                  "prototype_aflow_id": "A_cF8_227_a",
+                  "structure_name": "diamond",
+                  "strukturbericht_designation": "A4",
+                  "prototype_formula": "C",
+                  "space_group_number": 227,
+                  "point_group": "m-3m",
+                  "crystal_system": "cubic",
+                  "hall_number": 525,
+                  "hall_symbol": "F 4d 2 3 -1d"
+                },
+                "elements": [
+                  "Si"
+                ],
+                "elements_exclusive": "Si",
+                "chemical_formula_anonymous": "A16",
+                "material_id": "fh3UBjhUVm4nxzeRd2JJuqw5oXYa",
+                "structural_type": "bulk",
+                "chemical_formula_reduced": "Si16",
+                "n_elements": 1,
+                "chemical_formula_descriptive": "Si16",
+                "material_name": "Silicon",
+                "chemical_formula_reduced_fragments": [
+                  "Si"
+                ],
+                "chemical_formula_hill": "Si16"
+              },
+              "method": {
+                "method_name": "DFT",
+                "workflow_name": [
+                  "single_point"
+                ],
+                "simulation": {
+                  "program_version": "4.6.35 3Apr08 complex parallel LinuxIFC",
+                  "dft": {
+                    "basis_set_type": "plane waves",
+                    "core_electron_treatment": "pseudopotential",
+                    "xc_functional_type": "GGA",
+                    "xc_functional_names": [
+                      "GGA_C_PBE",
+                      "GGA_X_PBE"
+                    ],
+                    "scf_threshold_energy_change": 1.6021766339999998e-27
+                  },
+                  "program_name": "VASP"
+                }
+              },
+              "properties": {
+                "available_properties": [],
+                "n_calculations": 1,
+                "structures": {
+                  "structure_primitive": {
+                    "nperiodic_dimensions": 3,
+                    "n_sites": 2,
+                    "cell_volume": 4.0831589416359397e-29,
+                    "lattice_parameters": {
+                      "a": 3.8651862670780397e-10,
+                      "b": 3.8651862670780397e-10,
+                      "c": 3.8651862670780397e-10,
+                      "alpha": 1.0471975511965979,
+                      "beta": 1.0471975511965979,
+                      "gamma": 1.0471975511965979
+                    }
+                  },
+                  "structure_conventional": {
+                    "nperiodic_dimensions": 3,
+                    "n_sites": 8,
+                    "cell_volume": 1.633263576654382e-28,
+                    "lattice_parameters": {
+                      "a": 5.46619884e-10,
+                      "b": 5.46619884e-10,
+                      "c": 5.46619884e-10,
+                      "alpha": 1.5707963267948966,
+                      "beta": 1.5707963267948966,
+                      "gamma": 1.5707963267948966
+                    }
+                  },
+                  "structure_original": {
+                    "nperiodic_dimensions": 3,
+                    "n_sites": 16,
+                    "cell_volume": 3.26652715330877e-28,
+                    "lattice_parameters": {
+                      "a": 7.730372534156079e-10,
+                      "b": 7.730372534156079e-10,
+                      "c": 7.730372534156079e-10,
+                      "alpha": 1.0471975511965979,
+                      "beta": 1.0471975511965979,
+                      "gamma": 1.0471975511965979
+                    }
+                  }
+                }
+              }
+            },
+            "last_processing_time": "2022-05-02T12:14:51.274000",
+            "optimade": {
+              "nperiodic_dimensions": 3,
+              "species_at_sites": [
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si",
+                "Si"
+              ],
+              "nsites": 16,
+              "elements": [
+                "Si"
+              ],
+              "chemical_formula_anonymous": "A16",
+              "chemical_formula_reduced": "Si16",
+              "structure_features": [],
+              "nelements": 1,
+              "chemical_formula_descriptive": "Si16",
+              "chemical_formula_hill": "Si16",
+              "elements_ratios": [
+                [
+                  {
+                    "elements": "Si",
+                    "elements_ratios": 1
+                  }
+                ]
+              ]
+            },
+            "parser_name": "parsers/vasp",
+            "calc_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+            "published": false,
+            "writers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              {
+                "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                "name": "Sheldon Cooper"
+              }
+            ],
+            "sections": [
+              "nomad.datamodel.datamodel.EntryArchive",
+              "nomad.datamodel.datamodel.EntryMetadata",
+              "nomad.datamodel.metainfo.simulation.calculation.BandEnergies",
+              "nomad.datamodel.metainfo.simulation.calculation.Calculation",
+              "nomad.datamodel.metainfo.simulation.calculation.Energy",
+              "nomad.datamodel.metainfo.simulation.calculation.EnergyEntry",
+              "nomad.datamodel.metainfo.simulation.calculation.Forces",
+              "nomad.datamodel.metainfo.simulation.calculation.ForcesEntry",
+              "nomad.datamodel.metainfo.simulation.calculation.ScfIteration",
+              "nomad.datamodel.metainfo.simulation.calculation.Stress",
+              "nomad.datamodel.metainfo.simulation.calculation.StressEntry",
+              "nomad.datamodel.metainfo.simulation.method.AtomParameters",
+              "nomad.datamodel.metainfo.simulation.method.BasisSet",
+              "nomad.datamodel.metainfo.simulation.method.BasisSetCellDependent",
+              "nomad.datamodel.metainfo.simulation.method.DFT",
+              "nomad.datamodel.metainfo.simulation.method.Electronic",
+              "nomad.datamodel.metainfo.simulation.method.Functional",
+              "nomad.datamodel.metainfo.simulation.method.Method",
+              "nomad.datamodel.metainfo.simulation.method.Scf",
+              "nomad.datamodel.metainfo.simulation.method.XCFunctional",
+              "nomad.datamodel.metainfo.simulation.run.Program",
+              "nomad.datamodel.metainfo.simulation.run.Run",
+              "nomad.datamodel.metainfo.simulation.system.Atoms",
+              "nomad.datamodel.metainfo.simulation.system.Prototype",
+              "nomad.datamodel.metainfo.simulation.system.Symmetry",
+              "nomad.datamodel.metainfo.simulation.system.System",
+              "nomad.datamodel.metainfo.workflow.SinglePoint",
+              "nomad.datamodel.metainfo.workflow.Task",
+              "nomad.datamodel.metainfo.workflow.Workflow",
+              "nomad.datamodel.optimade.OptimadeEntry",
+              "nomad.datamodel.optimade.Species",
+              "nomad.datamodel.results.DFT",
+              "nomad.datamodel.results.LatticeParameters",
+              "nomad.datamodel.results.Material",
+              "nomad.datamodel.results.Method",
+              "nomad.datamodel.results.Properties",
+              "nomad.datamodel.results.Results",
+              "nomad.datamodel.results.Simulation",
+              "nomad.datamodel.results.StructureConventional",
+              "nomad.datamodel.results.StructureOriginal",
+              "nomad.datamodel.results.StructurePrimitive",
+              "nomad.datamodel.results.Structures",
+              "nomad.datamodel.results.Symmetry",
+              "nomad.datamodel.results.WyckoffSet"
+            ],
+            "processed": true,
+            "mainfile": "examples_vasp/xml/Si.xml",
+            "main_author": {
+              "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "name": "Markus Scheidgen"
+            },
+            "viewers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              {
+                "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                "name": "Sheldon Cooper"
+              },
+              {
+                "user_id": "54cb1f64-f84e-4815-9ade-440ce0b5430f",
+                "name": "Test Tester"
+              }
+            ],
+            "entry_create_time": "2022-05-02T12:14:51.209000",
+            "with_embargo": false,
+            "domain": "dft",
+            "files": [
+              "examples_vasp/xml/Si.xml",
+              "examples_vasp/xml/perovskite.xml"
+            ],
+            "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+            "authors": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              {
+                "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                "name": "Sheldon Cooper"
+              }
+            ],
+            "license": "CC BY 4.0"
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21789",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "a32da79444ae28394c57035b66154f10": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/1WGSYo1RrGFEIcM17Re4kjHC7k6p/archive/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "processing_logs": "*"
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1YmM0N2ZhOC05YjZhLTQ3YWUtOWE4OC03MTVmZmUzYTQ1ZmMiLCJleHAiOjE2NTE1Mjk2ODUsIm5iZiI6MCwiaWF0IjoxNjUxNDkzNjkzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjdjZGFlMWQ2LWU4ZDYtNGE3YS05YTAwLTYyYzQ4ZTkyOGMzMSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.kQpjvjeKPOo0syOmrYUtuee3f9dReVE8fhYON71Dua-8NS08mAjV399zqhm-iI1d5WD6c15kWqQ8OSwbCNRQdYLlJHD3HhFZGynhAcG1NHXlJGsH5d--e9Zf_7N15Hj1ORc-2nM4sAPSQcso4IUt7OfS8otJUTnvyGyRtOjMUHJ6bDWGzX9tIWICnTeQhQdfq5ApuecgN3dTpOGz6vMe0Ntv8bog45yo0zVk8koPxiSikNwBNNHb5sci8EJl11cUcJJahKlxlb5oeoar7X8Shrqk8gJdrHK3Qta8PePx6nXtTg-VCoYxoD3pQ8NVh0vWJvnujAxsS6-rY5en9Rfudw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": {
+            "processing_logs": "*"
+          },
+          "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+          "data": {
+            "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+            "upload_id": "archive_browser_test",
+            "parser_name": "parsers/vasp",
+            "archive": {
+              "processing_logs": [
+                {
+                  "event": "Executing celery task",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "DEBUG"
+                },
+                {
+                  "exec_time": "0.03791666030883789",
+                  "input_size": "61197",
+                  "event": "parser executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "chose \"representative\" section system",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "exec_time": "0.27120304107666016",
+                  "system_size": "16",
+                  "event": "system classification executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "exec_time": "0.02126932144165039",
+                  "system_size": "16",
+                  "event": "symmetry analysis executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "step": "SystemNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.29447436332702637",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "SystemNormalizer",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "OptimadeNormalizer",
+                  "event": "chose \"representative\" section system",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "OptimadeNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "OptimadeNormalizer",
+                  "step": "OptimadeNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0014922618865966797",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "OptimadeNormalizer",
+                  "step": "OptimadeNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "DosNormalizer",
+                  "step": "DosNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.00034236907958984375",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "DosNormalizer",
+                  "step": "DosNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "BandStructureNormalizer",
+                  "step": "BandStructureNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0003216266632080078",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "BandStructureNormalizer",
+                  "step": "BandStructureNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "WorkflowNormalizer",
+                  "step": "WorkflowNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.020714759826660156",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "WorkflowNormalizer",
+                  "step": "WorkflowNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "ResultsNormalizer",
+                  "step": "ResultsNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.011459827423095703",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "ResultsNormalizer",
+                  "step": "ResultsNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "MetainfoNormalizer",
+                  "step": "MetainfoNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.00022602081298828125",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "MetainfoNormalizer",
+                  "step": "MetainfoNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.000720977783203125",
+                  "event": "entry metadata saved",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.771050214767456",
+                  "event": "entry metadata indexed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.52",
+                  "level": "INFO"
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "10226",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/1WGSYo1RrGFEIcM17Re4kjHC7k6p/archive/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "processing_logs": "*"
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI4NGRjNTI4ZS01YmZhLTQ0ZDItYWY1YS1hODZjZGVlN2ZiMzEiLCJleHAiOjE2NTE1Mjk2ODUsIm5iZiI6MCwiaWF0IjoxNjUxNDkzNjk4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjdjZGFlMWQ2LWU4ZDYtNGE3YS05YTAwLTYyYzQ4ZTkyOGMzMSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.MqgsEhyyggeGDAHAAla1415rYorhmlEMwtrUKDWgqAUDplAmQY9kP249dhtfnTJrYdfrTqtNWfTZfCw1PldDxKQHQiLmaKgac4c0SFNcggxxirvFcTwv846v_1Mx73iSnpncE4d4pcDtPDZVVO7yfrKZKVixCez8djTfnKa10YjATB0uRlzAWn-xnAzVKol2OtV1SkTip46ze_X9t3tEZMrnGmu0kgFJrZCp2w-9gz3szb9osW2HV7GiVKZqJqDcGmQfDtyzf0Gbgxl16ihhXiY7s91VjvB5AqG3pP3ATzPoqEFbc1xeYWN77yJdatoLBy-M5PF6otQpUQVigvOjYw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": {
+            "processing_logs": "*"
+          },
+          "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+          "data": {
+            "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+            "upload_id": "archive_browser_test",
+            "parser_name": "parsers/vasp",
+            "archive": {
+              "processing_logs": [
+                {
+                  "event": "Executing celery task",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "DEBUG"
+                },
+                {
+                  "exec_time": "0.03791666030883789",
+                  "input_size": "61197",
+                  "event": "parser executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "chose \"representative\" section system",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "exec_time": "0.27120304107666016",
+                  "system_size": "16",
+                  "event": "system classification executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "exec_time": "0.02126932144165039",
+                  "system_size": "16",
+                  "event": "symmetry analysis executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "step": "SystemNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.29447436332702637",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "SystemNormalizer",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "OptimadeNormalizer",
+                  "event": "chose \"representative\" section system",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "OptimadeNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "OptimadeNormalizer",
+                  "step": "OptimadeNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0014922618865966797",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "OptimadeNormalizer",
+                  "step": "OptimadeNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "DosNormalizer",
+                  "step": "DosNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.00034236907958984375",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "DosNormalizer",
+                  "step": "DosNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "BandStructureNormalizer",
+                  "step": "BandStructureNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0003216266632080078",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "BandStructureNormalizer",
+                  "step": "BandStructureNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "WorkflowNormalizer",
+                  "step": "WorkflowNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.020714759826660156",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "WorkflowNormalizer",
+                  "step": "WorkflowNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "ResultsNormalizer",
+                  "step": "ResultsNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.011459827423095703",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "ResultsNormalizer",
+                  "step": "ResultsNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "MetainfoNormalizer",
+                  "step": "MetainfoNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.00022602081298828125",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "MetainfoNormalizer",
+                  "step": "MetainfoNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.000720977783203125",
+                  "event": "entry metadata saved",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.771050214767456",
+                  "event": "entry metadata indexed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.52",
+                  "level": "INFO"
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "10226",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/1WGSYo1RrGFEIcM17Re4kjHC7k6p/archive/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "processing_logs": "*"
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkNmE2YjhlNS01MWJiLTQ2MWYtYjNjNi03YWRhZWVhMmEzOGQiLCJleHAiOjE2NTE1Mjk2ODUsIm5iZiI6MCwiaWF0IjoxNjUxNDkzNjk4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjdjZGFlMWQ2LWU4ZDYtNGE3YS05YTAwLTYyYzQ4ZTkyOGMzMSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.fBIlIZ5gG7CGyeiLCXU-4j3huuIVR_9SIE6dd1WJHpSDzFOu7jskYeZybbe4BfhGYoLE9YOemqDzS7XFjSlSQjfx2NUQ-wWqCRJFcKuERjpRzQOCPcRjMEgm0YIE3LK9mAZpMUop7k95ibN0E_e2PbW__dEyEpIR3lXdau83V6lg3qOFaPsbezCIwuH8P0-Q62uwdihkudTs0VkDQ5TOwVHKIEh6L5YpizTnO7hg6QrbJdg69qs21ChoKZAG9WvP_ekKH7VHe2-o8v5E0l8kGu56OhK5RpQTMoGTcq973wGT-y-A_-k2-10hw9ZBxsyY7uNI59sE0XC-TydgpL3cLA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": {
+            "processing_logs": "*"
+          },
+          "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+          "data": {
+            "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+            "upload_id": "archive_browser_test",
+            "parser_name": "parsers/vasp",
+            "archive": {
+              "processing_logs": [
+                {
+                  "event": "Executing celery task",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "DEBUG"
+                },
+                {
+                  "exec_time": "0.03791666030883789",
+                  "input_size": "61197",
+                  "event": "parser executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "chose \"representative\" section system",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "exec_time": "0.27120304107666016",
+                  "system_size": "16",
+                  "event": "system classification executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "exec_time": "0.02126932144165039",
+                  "system_size": "16",
+                  "event": "symmetry analysis executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "step": "SystemNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.29447436332702637",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "SystemNormalizer",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "OptimadeNormalizer",
+                  "event": "chose \"representative\" section system",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "step": "OptimadeNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "OptimadeNormalizer",
+                  "step": "OptimadeNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0014922618865966797",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "OptimadeNormalizer",
+                  "step": "OptimadeNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "DosNormalizer",
+                  "step": "DosNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.00034236907958984375",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "DosNormalizer",
+                  "step": "DosNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "BandStructureNormalizer",
+                  "step": "BandStructureNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0003216266632080078",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "BandStructureNormalizer",
+                  "step": "BandStructureNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "WorkflowNormalizer",
+                  "step": "WorkflowNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.020714759826660156",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "WorkflowNormalizer",
+                  "step": "WorkflowNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "ResultsNormalizer",
+                  "step": "ResultsNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.011459827423095703",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "ResultsNormalizer",
+                  "step": "ResultsNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "MetainfoNormalizer",
+                  "step": "MetainfoNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.00022602081298828125",
+                  "input_size": "61197",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "normalizer": "MetainfoNormalizer",
+                  "step": "MetainfoNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.000720977783203125",
+                  "event": "entry metadata saved",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.51",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.771050214767456",
+                  "event": "entry metadata indexed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "-0qaZf7GSX2_ZqO1ZgjtMg",
+                  "parser": "parsers/vasp",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-05-02 14:14.52",
+                  "level": "INFO"
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "10226",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}
