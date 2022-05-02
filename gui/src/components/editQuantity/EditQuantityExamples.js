@@ -126,6 +126,9 @@ export function EditQuantityExamples() {
                   })} />
                 </Grid>
                 <Grid item>
+                  <EnumEditQuantity {...createDefaultProps('string with suggestions')} suggestions={['one', 'two', 'three']}/>
+                </Grid>
+                <Grid item>
                   <AutocompleteEditQuantity {...createDefaultProps('autocomplete_enum', {
                     type: {
                       type_data: enumValues

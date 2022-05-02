@@ -19,21 +19,40 @@ import React, {useCallback} from 'react'
 import {MenuItem} from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {getFieldProps, TextFieldWithHelp} from './StringEditQuantity'
+import AutoComplete from '@material-ui/lab/Autocomplete'
 
 export const EnumEditQuantity = React.memo((props) => {
-  const {quantityDef, value, onChange, ...otherProps} = props
+  const {quantityDef, value, onChange, suggestions, ...otherProps} = props
 
-  const handleChange = useCallback(event => {
-    const value = event.target.value
+  const handleChange = useCallback(value => {
     if (onChange) {
       onChange(value === '' ? undefined : value)
     }
   }, [onChange])
 
+  if (quantityDef.type === 'str' || quantityDef.type === undefined) {
+    return <AutoComplete
+      freeSolo
+      options={suggestions}
+      onChange={(event, value) => handleChange(value)}
+      onBlur={(event) => handleChange(event.target.value)}
+      ListboxProps={{style: {maxHeight: '150px'}}}
+      value={value || null}
+      renderInput={params => (
+        <TextFieldWithHelp
+          {...params}
+          variant='filled' size='small' fullWidth
+          {...getFieldProps(quantityDef)}
+          {...otherProps}
+        />
+      )}
+    />
+  }
+
   return <TextFieldWithHelp
     select variant='filled' size='small' withOtherAdornment fullWidth
     value={value || ''}
-    onChange={handleChange}
+    onChange={event => handleChange(event.target.value)}
     {...getFieldProps(quantityDef)}
     {...otherProps}
   >
@@ -47,5 +66,6 @@ export const EnumEditQuantity = React.memo((props) => {
 EnumEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   value: PropTypes.string,
-  onChange: PropTypes.func
+  onChange: PropTypes.func,
+  suggestions: PropTypes.arrayOf(PropTypes.string)
 }
