@@ -247,6 +247,8 @@ class GeometryOptimizationNormalizer(TaskNormalizer):
                 except (IndexError, AttributeError):
                     invalid = True
                     break
+                if energy is None:
+                    continue
                 energies.append(energy.magnitude)
             if invalid:
                 self.logger.warning("energy not reported for an scc that is part of a geometry optimization")
