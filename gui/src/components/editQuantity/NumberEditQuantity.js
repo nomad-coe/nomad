@@ -37,7 +37,6 @@ export const NumberField = React.memo((props) => {
       requestedUnit.current = displayUnit
       return value
     }
-    console.log('value: ' + value)
     const numberPart = value.match(/^[+-]?((\d+\.\d+|\d+\.|\.\d?|\d+)(e|e\+|e-)\d+|(\d+\.\d+|\d+\.|\.\d?|\d+))?/)
     if (numberPart !== undefined) {
       const unitPart = value.substring(numberPart[0].length).trim().toLowerCase()
