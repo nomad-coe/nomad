@@ -6,41 +6,81 @@ uses NOMAD software independently is called a *NOMAD OASIS*. A *NOMAD OASIS* doe
 need to be fully isolated. For example, you can publish uploads from your OASIS to the
 central NOMAD installation.
 
-While different use cases require different setups, this documentation
-describes the simplest setup of a NOMAD OASIS. It would allow a group to use NOMAD for
-local research data management, while using NOMAD's central user-management and the
-already registered users.
-There are several environment in which you can run a NOMAD OASIS: base-metal linux,
-docker with docker-compose, and in a kubernetes cluster. We recommend using docker/docker-compose.
+## Quick-start
+
+- Find a linux computer.
+- Make sure you have [docker](https://docs.docker.com/engine/install/) and [docker-compose](https://docs.docker.com/compose/install/) installed. You have the necessary rights to run docker.
+- Download our basic configuration files [nomad-oasis.zip](assets/nomad-oasis.zip)
+- Run the following commands
+```sh
+unzip nomad-oasis.zip
+cd nomad-oasis
+docker-compose pull
+docker-compose up -d
+curl localhost/nomad-oasis/alive
+```
+- Open [http://localhost/nomad-oasis](http://localhost/nomad-oasis) in your browser.
+
+This is good as a quick test. We strongly recommend to read the following instructions
+carefully and adapt the configuration files accordingly. The following might also
+include meaningful help, if you run into problems.
 
 ## Before you start
 
-### Choosing hardware and installation type
+### Hardware considerations
 
-Comming soon ...
+Of course this depends on how much data you need to manage and process. Data storage is
+the obvious aspect here. NOMAD keeps all files that it manages as they are. The files
+that NOMAD processes in addition (e.g. through parsing) are typically smaller than
+the original raw files. Therefore, you can base your storage requirements based on the
+size of the data files that you expect to manage. The additional mongo database and
+elasticsearch index is comparatively small.
+
+Storage speed is another consideration. You can work with NAS systems. All that NOMAD
+needs is a "regular" POSIX filesystem as an interface. So everything you can (e.g. docker host)
+mount should be fine. For processing data obviously relies on read/write speed, but
+this is just a matter of convenience. The processing is designed to run as managed asynchronous
+tasks. Local storage might be favorable for mongodb and elasticsearch operation, but it
+is not a must.
+
+The amount of compute resource (e.g. processor cores) is also a matter of convenience
+(and amount of expected users). Four cpu-cores are typically enough to support a
+research group and run application, processing, and databases in parallel. Smaller systems
+still work, e.g. for testing.
+
+There should be enough RAM to run databases, application, and processing at the same
+time. The minimum requirements here can be quite low, but for processing the metadata
+for individual files is kept in memory. For large DFT geometry-optimizations this can
+add up quickly, especially if many CPU cores are available for processing entries in
+parallel. We recommend at least 2GB per core and a minimum of 8GB. You also need to consider
+RAM and CPU for running tools like jupyter, if you opt to use NOMAD NORTH.
 
 ### Using the central user management
 
-We need to register some information about your OASIS in the central user management:
+Our recommendation is to use the central user management provided by nomad-lab.eu. We
+simplified its use and you can use it out-of-the-box. You can even run your system
+from `localhost` (e.g. for initial testing). The central user management system is not
+communicating with your OASIS directly. Therefore, you can run your OASIS without
+exposing it to the public internet.
 
-- The hostname for the machine you run NOMAD on. This is important for forwarding between
-your OASIS and the central NOMAD user management and to allow your users to upload files (via GUI or API).
-Your machine needs to be accessible under this hostname from the public internet. The host
-name needs to be registered in the central NOMAD in order to configure the central user-
-management correctly.
-- You need to have a NOMAD account that acts as an *admin account* for your OASIS. This account must be declared
-to the central NOMAD as an OASIS admin in order to give it the necessary rights in the central user management.
-- You must know your NOMAD user-id. This information has to be provided by us.
+There are two requirements. First, your users must be able to reach the OASIS. If a use is
+logging in, she/he is redirected to the central user management server and after login,
+she/he is redirected back to the OASIS. These redirects are executed by your users browser
+and do not require a direct communication.
 
-Please [write us](mailto:support@nomad-lab.eu) to register your NOMAD account as an OASIS
-admin and to register your hostname. Please replace the indicated configuration items with
-the right information.
+Second, your OASIS must be able to request (via HTTP) the central user management and central NOMAD
+installation. This is necessary for non JWT-based authentication methods and to
+retrieve existing users for data-sharing features.
 
-The central user management will make synchronizing data between NOMAD installations easer and generally recommend to use the central system.
+The central user management will make future synchronizing data between NOMAD installations easer
+and generally recommend to use the central system.
 But in principle, you can also run your own user management. See the section on
 [your own user management](#provide-and-connect-your-own-user-management).
 
 ## Docker and docker compose
+
+We recommend the installation via docker and docker-compose. It is the most documented, simplest,
+easiest to update, and generally most frequently chosen option.
 
 ### Pre-requisites
 
@@ -56,7 +96,7 @@ database, an **elasticsearch**, a **rabbitmq** distributed task queue, the NOMAD
 NOMAD **worker**, and NOMAD **gui**. In this [introduction](index.md#architecture),
 you will learn what each service does and why it is necessary.
 
-### Configuration overview
+### Configuration
 
 All docker container are configured via docker-compose and the respective `docker-compose.yaml` file.
 Further, we will need to mount some configuration files to configure the NOMAD services within their respective containers.
@@ -68,138 +108,14 @@ There are three files to configure:
 - `nginx.conf`
 
 In this example, we have all files in the same directory (the directory we are also working in).
-You can download example files from
-[here](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/tree/master/ops/docker-compose/nomad-oasis/).
+You can download minimal example files [here](assets/nomad-oasis.zip).
 
-### docker-compose.yaml
+#### docker-compose.yaml
 
 The most basic `docker-compose.yaml` to run an OASIS looks like this:
 
 ```yaml
-version: '3.4'
-
-x-common-variables: &nomad_backend_env
-    NOMAD_RABBITMQ_HOST: rabbitmq
-    NOMAD_ELASTIC_HOST: elastic
-    NOMAD_MONGO_HOST: mongo
-
-services:
-    # broker for celery
-    rabbitmq:
-        restart: always
-        image: rabbitmq:3.7.17
-        container_name: nomad_oasis_rabbitmq
-        environment:
-            - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
-            - RABBITMQ_DEFAULT_USER=rabbitmq
-            - RABBITMQ_DEFAULT_PASS=rabbitmq
-            - RABBITMQ_DEFAULT_VHOST=/
-        volumes:
-            - nomad_oasis_rabbitmq:/var/lib/rabbitmq
-
-    # the search engine
-    elastic:
-        restart: always
-        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
-        container_name: nomad_oasis_elastic
-        environment:
-            - ES_JAVA_OPTS=-Xms512m -Xmx512m
-            - discovery.type=single-node
-        volumes:
-            - nomad_oasis_elastic:/usr/share/elasticsearch/data
-
-    # the user data db
-    mongo:
-        restart: always
-        image: mongo:4
-        container_name: nomad_oasis_mongo
-        environment:
-            - MONGO_DATA_DIR=/data/db
-            - MONGO_LOG_DIR=/dev/null
-        volumes:
-            - nomad_oasis_mongo:/data/db
-        command: mongod --logpath=/dev/null # --quiet
-
-    # nomad worker (processing)
-    worker:
-        restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north
-        container_name: nomad_oasis_worker
-        environment:
-            <<: *nomad_backend_env
-            NOMAD_SERVICE: nomad_oasis_worker
-        links:
-            - rabbitmq
-            - elastic
-            - mongo
-        volumes:
-            - ./nomad.yaml:/app/nomad.yaml
-            - ./.volumes/fs:/app/.volumes/fs
-        command: python -m celery worker -l info -A nomad.processing -Q celery
-
-    # nomad app (api + gui)
-    app:
-        restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north
-        container_name: nomad_oasis_app
-        environment:
-            <<: *nomad_backend_env
-            NOMAD_SERVICE: nomad_oasis_app
-            NOMAD_SERVICES_API_PORT: 80
-        links:
-            - rabbitmq
-            - elastic
-            - mongo
-        volumes:
-            - ./nomad.yaml:/app/nomad.yaml
-            - ./.volumes/fs:/app/.volumes/fs
-        command: ./run.sh
-
-    # nomad remote tools hub (JupyterHUB, e.g. for AI Toolkit)
-    hub:
-        restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north
-        container_name: nomad_oasis_hub
-        environment:
-            <<: *nomad_backend_env
-            NOMAD_SERVICE: nomad_oasis_hub
-            NOMAD_NORTH_DOCKER_NETWORK: nomad_oasis_network
-            NOMAD_NORTH_HUB_IP_CONNECT: hub
-            NOMAD_NORTH_HUB_IP: '0.0.0.0'
-            NOMAD_NORTH_HUB_HOST: 'hub'
-            NOMAD_SERVICES_API_HOST: app
-        links:
-            - app
-        volumes:
-            - ./nomad.yaml:/app/nomad.yaml
-            - /var/run/docker.sock:/var/run/docker.sock
-            - ./.volumes/fs:/app/.volumes/fs
-        command: python -m nomad.cli admin run hub
-        user: "1000:991"
-
-    # nomad gui (a reverse proxy for nomad)
-    gui:
-        restart: always
-        image: nginx:1.13.9-alpine
-        container_name: nomad_oasis_gui
-        command: nginx -g 'daemon off;'
-        volumes:
-            - ./nginx.conf:/etc/nginx/conf.d/default.conf
-        links:
-            - app
-            - hub
-        ports:
-            - 8001:80
-
-volumes:
-    nomad_oasis_mongo:
-    nomad_oasis_elastic:
-    nomad_oasis_rabbitmq:
-    nomad_oasis_files:
-
-networks:
-    default:
-        name: nomad_oasis_network
+--8<-- "ops/docker-compose/nomad-oasis/docker-compose.yaml"
 ```
 
 Changes necessary:
@@ -209,153 +125,49 @@ on the host. This should ensure that the user which runs the hub, has the rights
 A few things to notice:
 
 - All services use docker volumes for storage. This could be changed to host mounts.
-- It mounts three configuration files that need to be provided (see below): `nomad.yaml`, `nginx.conf`, `env.js`.
-- The only exposed port is `80`. This could be changed to a desired port if necessary.
-- The NOMAD images are pulled from our gitlab in Garching, the other services use images from a public registry (*dockerhub*).
-- The NOMAD images we use are tagged `north`. This is the branch where we currently develop the nomad remote tools.
+- It mounts two configuration files that need to be provided (see below): `nomad.yaml`, `nginx.conf`.
+- The only exposed port is `80` (proxy service). This could be changed to a desired port if necessary.
+- The NOMAD images are pulled from our gitlab at MPCDF, the other services use images from a public registry (*dockerhub*).
+- The NOMAD images tag determines the image version or `stable`, `latest`, or specific development branches of NOMAD.
 - All container will be named `nomad_oasis_*`. These names can be used later to reference the container with the `docker` cmd.
-- The NOMAD images we use are tagged `stable`. This could be replaced with concrete version tags.
 - The services are setup to restart `always`, you might want to change this to `no` while debugging errors to prevent
 indefinite restarts.
-- When the elasticsearch version gets upgraded between different NOMAD version (e.g. NOMAD v1.0.6 introduced elasticsearch 7.x), you should be able to simply restart the elasticsearch containers. Docker will pull the new image. At least elasticsearch 7.x should be compatible with indices created in version 6.0 or later.
 
-### nomad.yaml
+#### nomad.yaml
 
 NOMAD app and worker read a `nomad.yaml` for configuration.
 
 ```yaml
-services:
-  api_host: '<your-host>'
-  api_base_path: '/nomad-oasis'
-  admin_user_id: '<your admin user id>'
-
-fs:
-  staging_external: <abs path to nomad>/.volumes/fs/staging
-
-hub:
-  jupyterhub_crypt_key: '<generated crypt key>'
-  users_fs: <abs path to nomad>/.volumes/fs/hub/users
-  shared_fs: <abs path to nomad>/.volumes/fs/hub/shared
-  hub_ip_connect: '172.17.0.1'
-
-keycloak:
-  realm_name: fairdi_nomad_prod
-  username: '<your admin username>'
-  password: '<your admin user password>'
-  oasis: true
-
-meta:
-  deployment: 'oasis'
-  deployment_id: '<your-host>'
-  maintainer_email: '<oasis admin email>'
-
-mongo:
-    db_name: nomad_v1
-
-elastic:
-    entries_index: nomad_v1_entries
-    materials_index: nomad_v1_materials
+--8<-- "ops/docker-compose/nomad-oasis/nomad.yaml"
 ```
 
-You need to change the following:
+You should change the following:
 
-- Replace `your-host`.
-- `api_base_path` defines the path under which the app is run. It needs to be changed if you use a different base path.
-- The admin user credentials (id, username, password, email).
-- Replace `abs path to nomad` with the absolute path to the directory where you are
-running the NOMAD Oasis docker-compose, i.e. the current directory. You should also create
-a `.volumes` directory. This is where NOMAD will keep all files.
-- Replace `your-host` and admin credentials respectively.
-- `generated crypt key` needs to be replaced with an actual key. You can generate one
+- Replace `localhost` with the hostname of your server. I user-management will redirect your uses back to this host. Make sure this is the hostname, your users can use.
+- Replace `deployment`, `deployment_id`, and `maintainer_email` with representative values. The `deployment_id` should be the public hostname if you have any of your oasis.
+- You can change `api_base_path` to run NOMAD under a different path prefix.
+- You should generate you own `north.jupyterhub_crypt_key`. You can generate one
 with `openssl rand -hex 32`.
 - On Windows or MacOS, you have to change `172.17.0.1` with `host.docker.internal`.
 
 A few things to notice:
 
-- We will use your hostname as `deployment_id`. When you publish uploads from your Oasis to the
-central NOMAD, this will be added as upload metadata and allows to see where the upload came
-from.
+- Under `mongo` and `elastic` you can configure database and index names. This might
+be useful, if you need to run multiple NOMADs with the same databases.
+- All managed files are stored under `.volumes` of the current directory.
 
-### nginx.conf
+#### nginx.conf
 
 The GUI container serves as a proxy that forwards request to the app container. The
 proxy is an nginx server and needs a configuration similar to this:
 
 ```none
-map $http_upgrade $connection_upgrade {
-    default upgrade;
-    ''      close;
-}
-
-server {
-    listen        80;
-    server_name   www.example.com;
-    proxy_set_header Host $host;
-
-    location / {
-        proxy_pass http://app:8000;
-    }
-
-    location ~ /nomad-oasis\/?(gui)?$ {
-        rewrite ^ /nomad-oasis/gui/ permanent;
-    }
-
-    location /nomad-oasis/gui/ {
-        proxy_intercept_errors on;
-        error_page 404 = @redirect_to_index;
-        proxy_pass http://app:8000;
-    }
-
-    location @redirect_to_index {
-        rewrite ^ /nomad-oasis/gui/index.html break;
-        proxy_pass http://app:8000;
-    }
-
-    location ~ \/gui\/(service-worker\.js|meta\.json)$ {
-        add_header Last-Modified $date_gmt;
-        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
-        if_modified_since off;
-        expires off;
-        etag off;
-        proxy_pass http://app:8000;
-    }
-
-    location ~ /api/v1/uploads(/?$|.*/raw|.*/bundle?$)  {
-        client_max_body_size 35g;
-        proxy_request_buffering off;
-        proxy_pass http://app:8000;
-    }
-
-    location ~ /api/v1/.*/download {
-        proxy_buffering off;
-        proxy_pass http://app:8000;
-    }
-
-    location ~ /hub/ {
-        proxy_pass http://hub:9000;
-
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
-        # websocket headers
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $connection_upgrade;
-        proxy_set_header X-Scheme $scheme;
-
-        proxy_buffering off;
-    }
-}
+--8<-- "ops/docker-compose/nomad-oasis/nginx.conf"
 ```
-
-You need to change:
-
-- Replace `<your-host>`
 
 A few things to notice:
 
-- It configures the base path (`nomad-oasis`) at multiple places. It needs to be changed, if you use a different base path.
+- It configures the base path (`nomad-oasis`). It needs to be changed, if you use a different base path.
 - You can use the server for additional content if you like.
 - `client_max_body_size` sets a limit to the possible upload size.
 
@@ -402,6 +214,11 @@ docker stop nomad_oasis_app
 docker rm nomad_oasis_app
 ```
 
+You can wait for the start-up with curl using the apps `alive` "endpoint":
+```sh
+curl http://<your host>/nomad-oasis/alive
+```
+
 If everything works, the gui should be available under:
 ```none
 http://<your host>/nomad-oasis/gui/
@@ -434,6 +251,8 @@ If you want to report problems with your OASIS. Please provide the logs for
 - nomad_oasis_gui
 
 ### Provide and connect your own user management
+
+You can download a basic configuration [here](assets/nomad-oasis-with-keycloak.zip).
 
 NOMAD uses [keycloak](https://www.keycloak.org/) for its user management. NOMAD uses
 keycloak in two way. First, the user authentication uses the OpenID Connect/OAuth interfaces provided by keycloak.
@@ -475,6 +294,7 @@ services:
 ```
 
 A few notes:
+- You have to replace `<your-host>` with a hostname usable by your users.
 - The environment variables on the keycloak service allow to use keycloak behind the nginx proxy with a path prefix `keycloak`.
 - By default, keycloak will use a simple H2 file database stored in the given volume. Keycloak offers many other options to connect SQL databases.
 - We will use keycloak with our nginx proxy here, but you can also host-bind the port `8080` to access keycloak directly.
@@ -527,7 +347,7 @@ docker exec nomad_oasis_gui nginx -s reload
 If you open `http://<yourhost>/keycloak/auth` in a browser, you will see that there is no
 admin users. Second, we need to create a keycloak admin account:
 ```sh
-docker exec nomad_oasis_keycloak /opt/jboss/keycloak/bin/add-user-keycloak.sh -u admin -p <PASSWORD>
+docker exec nomad_oasis_keycloak /opt/jboss/keycloak/bin/add-user-keycloak.sh -u admin -p password
 docker restart nomad_oasis_keycloak
 ```
 
@@ -535,7 +355,8 @@ Give it a second to restart. After, you can login to the admin console at `http:
 
 Keycloak uses `realms` to manage users and clients. We need to create a realm that NOMAD
 can use. We prepared an example realm with the necessary NOMAD client, an Oasis admin,
-and a test user. You can create a new realm through the admin console. Select this file
+and a test user. You can create a new realm through the admin console. Click "add" realm and
+select the realm file that you can find [in this .zip](assets/nomad-oasis-with-keycloak.zip).
 to import our example configuration.
 
 A few notes on the realm configuration:
@@ -547,6 +368,56 @@ users for managing co-authors and reviewers on NOMAD uploads.
 - The realm has one client `nomad_public`. This has a basic configuration. You might
 want to adapt this to your own policies. In particular you can alter the valid redirect URIs to
 your own host.
+
+### Backups
+
+To backup your Oasis at least the file data and mongodb data needs to be saved. You determined the path to your file data (your uploads) during the installation. By
+default all data is stored in a directory called `.volumes` that is created in the
+current working directory of your installation/docker-compose. This directory can be backed up like any other file backup (e.g. rsync).
+
+To backup the mongodb, please refer to the official [mongodb documentation](https://docs.mongodb.com/manual/core/backups/). We suggest a simple mongodump export that is backed up alongside your files. The default configuration mounts `.volumes/mongo` into the mongodb container (as `/backup`) for this purpose. You can use this to export the NOMAD mongo database. Combine this with rsync on the `.volumes` directory and everything should be set. To create a new mongodump run:
+
+```sh
+docker exec nomad_oasis_mongo mongodump -d nomad_v1 -o /backup
+```
+
+The elasticsearch contents can be reproduced with the information in the files and the mongodb.
+
+To create a new oasis with the backup data, create the `.volumes` directory from your backup. Start the new oasis. Use mongorestore:
+
+```sh
+docker exec nomad_oasis_mongo mongorestore /backup
+```
+
+Now you still have to recreate the elasticsearch index:
+```sh
+docker exec nomad_oasis_app python -m nomad.cli admin uploads index
+```
+
+### A few useful NOMAD commands
+
+The NOMAD command line interface (CLI) provides a few useful administrative functions. To use the NOMAD CLI, open a shell into the app container and run it from there:
+
+```sh
+docker exec -ti nomad_oasis_app bash
+```
+
+For example you can ls or remove uploads:
+```sh
+nomad admin uploads ls
+nomad admin uploads rm -- <upload_id> <upload_id>
+```
+
+You can also reset the processing (of "stuck") uploads and reprocess:
+```sh
+nomad admin uploads reset -- <upload_id>
+nomad admin uploads process -- <upload_id>
+```
+
+You can also use the CLI to wipe the whole installation:
+```sh
+nomad admin reset --i-am-really-sure
+```
 
 ## Base Linux (without docker)
 
@@ -849,6 +720,3 @@ Going from NOMAD 0.7.x to 0.8.x will require data migration. This means the layo
 
 ##### How to move data between installations?
 With the release of 0.8.x, we will clarify how to move data between installations. (See last question)
-
-##### How to backup my Oasis?
-To backup your Oasis at least the file data and mongodb data needs to be backed up. You determined the path to your file data (your uploads) during the installation. This directory can be backed up like any other file backup (e.g. rsync). To backup the mongodb, please refer to the official [mongodb documentation](https://docs.mongodb.com/manual/core/backups/). We suggest a simple mongodump export that is backed up alongside your files. The elasticsearch contents can be reproduced with the information in the files and the mongodb.

@@ -1,0 +1,23 @@
+services:
+  api_host: 'localhost'
+  api_base_path: '/nomad-oasis'
+
+oasis:
+  is_oasis: true
+  uses_central_user_management: true
+
+north:
+  jupyterhub_crypt_key: '978bfb2e13a8448a253c629d8dd84ff89587f30e635b753153960930cad9d36d'
+  hub_ip_connect: '172.17.0.1'
+
+meta:
+  deployment: 'oasis'
+  deployment_id: 'my_oasis'
+  maintainer_email: 'me@my-oasis.org'
+
+mongo:
+    db_name: nomad_v1
+
+elastic:
+    entries_index: nomad_v1_entries
+    materials_index: nomad_v1_materials

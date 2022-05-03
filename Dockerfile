@@ -70,6 +70,7 @@ COPY . /install
 RUN python setup.py compile
 RUN pip install .[all]
 RUN ./generate_gui_artifacts.sh
+RUN ./generate_docs_artifacts.sh
 RUN mkdocs build && mv site docs/build
 RUN \
     find /usr/local/lib/python3.7/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
