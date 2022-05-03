@@ -26,6 +26,7 @@ import HelpDialog from '../Help'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { guiBase, servicesUploadLimit } from '../../config'
 import NewUploadButton from './NewUploadButton'
+import ExampleUploadButton from './ExampleUploadButton'
 import { useApi, withLoginRequired } from '../api'
 import Page from '../Page'
 import { useErrors } from '../errors'
@@ -295,8 +296,10 @@ export function UploadsPage() {
           You can create an upload and upload files through this browser-based interface:
         </Typography>
       </Box>
-      <Box>
+      <Box alignItems='center' style={{display: 'flex'}}>
         <NewUploadButton color="primary" disabled={isDisabled}/>
+        <Typography color='initial' style={{padding: '10px'}} >or</Typography>
+        <ExampleUploadButton color="inherit" disabled={isDisabled}/>
         <Box display="inline-block" marginLeft={2}>
           {isDisabled && <Typography color="error" role='error-maximum-number-of-unpublished'>
             You have reached maximum number of unpublished uploads!
