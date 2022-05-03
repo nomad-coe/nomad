@@ -2,7 +2,7 @@ version:
   label: "1.1.0"
   isBeta: true
   usesBetaData: false
-  officialUrl: "https://nomad-lab.eu/prod/rae/gui"
+  officialUrl: "https://nomad-lab.eu/prod/v1/gui"
 
 image:
     tag: "latest"
@@ -31,7 +31,7 @@ app:
 
 worker:
   replicas: 1
-  routing: "queue"
+  routing: "worker"
   processes: 12
   nomadNodeType: "prod-worker"
 
@@ -63,7 +63,7 @@ keycloak:
 volumes:
   prefixSize: 1
   public: /nomad/fairdi/prod/fs/public
-  staging: /nomad/fairdi/prod/fs/staging
+  staging: /scratch/fairdi/prod/fs/staging
   tmp: /nomad/fairdi/prod/fs/tmp
   nomad: /nomad
   archiveVersionSuffix: v1
