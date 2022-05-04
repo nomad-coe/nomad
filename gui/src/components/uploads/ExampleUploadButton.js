@@ -24,29 +24,28 @@ import ListItem from '@material-ui/core/ListItem'
 import ListItemText from '@material-ui/core/ListItemText'
 import { blue } from '@material-ui/core/colors'
 import CloudUploadIcon from '@material-ui/icons/CloudUpload'
-// import { useHistory, useLocation } from 'react-router-dom'
-// import { useApi } from '../api'
-// import { useErrors } from '../errors'
-// import { getUrl } from '../nav/Routes'
+import { useHistory, useLocation } from 'react-router-dom'
+import { useApi } from '../api'
+import { useErrors } from '../errors'
 
 const exampleUploads = {
   Theory: [
     {
       title: 'VASP Sample Uploads',
       description: 'Here goes the VASP description Here goes the VASP description Here goes the VASP description Here goes the VASP description Here goes the VASP description ',
-      filePath: 'amir1'
+      filePath: 'tests/data/proc/examples_vasp.zip'
     },
     {
       title: 'Smaller VASP Sample Uploads',
       description: 'Here goes the Smaller VASP description',
-      filePath: 'amir2'
+      filePath: 'tests/data/proc/examples_vasp.zip'
     }
   ],
   Tabular: [
     {
       title: 'ELN Sample Uploads',
       description: 'Here goes the ELN description',
-      filePath: 'amir3'
+      filePath: 'tests/data/proc/examples_vasp.zip'
     }
   ]
 }
@@ -58,10 +57,9 @@ const useStyles = makeStyles({
   }
 })
 
-const SimpleDialog = React.memo(function SimpleDialog(props) {
-  const { exampleUploadData } = props
+const ExampleUploadDialog = React.memo(function ExampleUploadDialog(props) {
+  const { exampleUploadData, onClose, selectedUpload, open } = props
   const classes = useStyles()
-  const { onClose, selectedUpload, open } = props
 
   const handleClose = () => {
     onClose(selectedUpload)
@@ -100,7 +98,7 @@ const SimpleDialog = React.memo(function SimpleDialog(props) {
   )
 })
 
-SimpleDialog.propTypes = {
+ExampleUploadDialog.propTypes = {
   onClose: PropTypes.func.isRequired,
   open: PropTypes.bool.isRequired,
   exampleUploadData: PropTypes.object.isRequired,
@@ -108,12 +106,12 @@ SimpleDialog.propTypes = {
 }
 
 export default function ExampleUploadButton({...props}) {
-  // const {api} = useApi()
-  // const errors = useErrors()
-  // const history = useHistory()
-  // const location = useLocation()
+  const {api} = useApi()
+  const errors = useErrors()
+  const history = useHistory()
+  const location = useLocation()
 
-  const [selectedUpload, setSelectedUpload] = useState()
+  const [selectedUpload, setSelectedUpload] = useState(null)
   const [open, setOpen] = useState(false)
 
   const handleClickOpen = () => {
@@ -121,33 +119,34 @@ export default function ExampleUploadButton({...props}) {
   }
 
   const handleClose = (value) => {
-    console.log(value)
-    setSelectedUpload(value)
+    api.post(`/uploads?local_path=${value}`)
+      .then(setSelectedUpload(value)
+        // (upload) => {
+        //   history.push(getUrl(`upload/id/${upload.upload_id}`, location))
+        // }
+      )
+      .catch((error) => {
+        errors.raiseError(error)
+      })
+    // setSelectedUpload(value)
     setOpen(false)
+    console.log(selectedUpload)
   }
-
-  // const handleClick = () => {
-  //   setClicked(true)
-  //   api.post('/uploads')
-  //     .then((upload) => {
-  //       history.push(getUrl(`upload/id/${upload.upload_id}`, location))
-  //     })
-  //     .catch((error) => {
-  //       setClicked(false)
-  //       errors.raiseError(error)
-  //     })
-  // }
 
   return (
     <div>
       <Button variant="contained" onClick={handleClickOpen} {...props}>
         Select from Example Uploads
       </Button>
-      <SimpleDialog
+      <ExampleUploadDialog
         exampleUploadData={exampleUploads}
         selectedUpload={selectedUpload}
         open={open}
         onClose={handleClose}
+        api={api}
+        location={location}
+        history={history}
+        errors={errors}
       />
     </div>
   )
