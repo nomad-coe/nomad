@@ -22,6 +22,7 @@ from datetime import datetime
 from typing import Tuple, List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
 from mongoengine.queryset.visitor import Q
+from urllib.parse import unquote
 from fastapi import (
     APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
     HTTPException)
@@ -1682,7 +1683,9 @@ async def _get_files_if_provided(
     elif file:
         # Method 1: Data provided as formdata
         method = 1
-        sources = [(_asyncronous_file_reader(multipart_file), multipart_file.filename) for multipart_file in file]
+        sources = [
+            (_asyncronous_file_reader(multipart_file), unquote(multipart_file.filename))
+            for multipart_file in file]
     else:
         # Method 2: Data has to be sent streamed in the body
         method = 2
