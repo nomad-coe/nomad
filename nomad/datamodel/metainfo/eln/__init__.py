@@ -16,28 +16,71 @@
 # limitations under the License.
 #
 
-from nomad.metainfo import MSection, Package, Section, Quantity
+from nomad.datamodel.data import EntryData
+from nomad.metainfo import MSection, Package, Quantity, Datetime
 
 m_package = Package(name='material_library')
 
 
-class Chemical(MSection):
+class ElnBaseSection(MSection):
+    name = Quantity(
+        type=str,
+        description='A short human readable and descriptive name.',
+        a_eln=dict(component='StringEditQuantity'))
+
+    lab_id = Quantity(
+        type=str,
+        description='A id string that is unique at least for the lab that produced this data.',
+        a_eln=dict(component='StringEditQuantity'))
+
+    description = Quantity(
+        type=str,
+        description=(
+            'A humand description. This provides room for human readable information '
+            'that could not be captured in the ELN.'),
+        a_eln=dict(component='RichTextEditQuantity'))
+
+    def normalize(self, archive, logger):
+        if isinstance(self, EntryData):
+            if archive.data == self and self.name:
+                archive.metadata.entry_name = self.name
+            EntryData.normalize(self, archive, logger)
+
+
+class ElnActivityBaseSecton(MSection):
+    datetime = Quantity(
+        type=Datetime,
+        description='The date and time when this activity was done.',
+        a_eln=dict(component='DateTimeEditQuantity'))
+
+    method = Quantity(
+        type=str,
+        description='A short consistent handle for the applied method.')
+
+
+class Chemical(ElnBaseSection):
+    chemical_formula = Quantity(
+        type=str,
+        description=(
+            'The chemical formula of the chemical. This will be used directly and '
+            'indirectly in the search. The formula will be used itself as well as '
+            'the extracted chemical elements.'),
+        a_eln=dict(component='StringEditQuantity'))
+
+
+class Sample(ElnBaseSection):
     pass
 
 
-class Sample(MSection):
+class Instrument(ElnBaseSection):
     pass
 
 
-class Instrument(MSection):
+class Process(ElnActivityBaseSecton):
     pass
 
 
-class Process(MSection):
-    pass
-
-
-class Measurement(MSection):
+class Measurement(ElnActivityBaseSecton):
     pass
 
 

@@ -62,7 +62,7 @@ const UploadPage = React.memo((props) => {
       <Tab label="Files" value="files" />
     </Tabs>
     <CacheSwitch>
-      <CacheRoute path={`${path}`} exact render={() => <UploadOverview />} />
+      <CacheRoute when="back" path={`${path}`} exact render={() => <UploadOverview />} />
       <CacheRoute when="always" path={`${path}/files`} render={() => <UploadFilesView />} />
       <Redirect strict from={`${path}/overview`} to={`${path}`} />
     </CacheSwitch>

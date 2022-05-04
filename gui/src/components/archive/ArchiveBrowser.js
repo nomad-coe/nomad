@@ -664,11 +664,12 @@ function Section({section, def, parentRelation}) {
   }
   const quantities = def._allProperties.filter(prop => prop.m_def === QuantityMDef)
 
+  const subSectionsToRender = sub_sections
+    .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined || sectionIsEditable)
+    .filter(filter)
   const subSectionCompartment = (
     <Compartment title="sub sections">
-      {sub_sections
-        .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined || sectionIsEditable)
-        .filter(filter)
+      {subSectionsToRender
         .map(subSectionDef => {
           return <SubSection
             key={subSectionDef.name}

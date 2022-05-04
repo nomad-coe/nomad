@@ -1,5 +1,5 @@
 definitions:
-  m_def: 'nomad.metainfo.Package'
+  # name: 'NOMAD Example Lab'
   sections:
     Chemical:
       base_sections:
@@ -22,8 +22,8 @@ definitions:
               component: EnumEditQuantity
     Sample:
       base_sections:
-        - 'nomad.datamodel.data.EntryData'
         - 'nomad.datamodel.metainfo.eln.Sample'
+        - 'nomad.datamodel.data.EntryData'
       quantities:
         chemicals:
           type: '#/Chemical'
@@ -33,7 +33,13 @@ definitions:
               component: ReferenceEditQuantity
       sub_sections:
         processes:
-          sub_section: 'nomad.datamodel.metainfo.eln.Process'
+          sub_section: '#/Processes'
+    Processes:
+      m_annotations:
+        eln:
+      sub_sections:
+        pvd_evaporation:
+          sub_section: '#/PVDEvaporationProcess'
     PVDEvaporationProcess:
       base_section: 'nomad.datamodel.metainfo.eln.Process'
       m_annotations:

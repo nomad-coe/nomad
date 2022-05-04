@@ -131,7 +131,7 @@ class Context(MetainfoContext):
         installation_url = self.installation_url
         upload_id = self.upload_id
 
-        url_match = re.match(r'^../uploads?/(\w*)/?(archive|raw)/([^?]+)$', url)
+        url_match = re.match(r'^../uploads?/([\w\-]*)/?(archive|raw)/([^?]+)$', url)
         if url_match:
             if url_match.group(1) is not '':
                 upload_id = url_match.group(1)
@@ -139,7 +139,7 @@ class Context(MetainfoContext):
             path = url_match.group(3)
             return installation_url, upload_id, kind, path
 
-        url_match = re.search(r'(?<!\.)/uploads/(\w+)/(archive|raw)/([^?]+)$', url)
+        url_match = re.search(r'(?<!\.)/uploads/([\w\-]+)/(archive|raw)/([^?]+)$', url)
         if url_match:
             installation_url = url.replace(url_match.group(0), '')
             upload_id = url_match.group(1)

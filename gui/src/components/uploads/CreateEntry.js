@@ -28,21 +28,35 @@ const CreateEntry = React.memo(function CreateEntry(props) {
       return
     }
 
-    const getTemplatesFromDefinitions = (definitions, prefix, getReference) => {
+    const getTemplatesFromDefinitions = (definitions, prefix, archive, getReference) => {
       return definitions.filter(definition => {
         if (definition.m_def !== SectionMDef) {
           return false
         }
         return definition.base_sections?.find(baseSection => baseSection.name === 'EntryData')
-      }).map(dataSection => ({
-        id: `${prefix}:${dataSection._qualifiedName}`,
-        label: dataSection.name,
-        archive: {
-          data: {
-            m_def: getReference(dataSection)
+      }).map(dataSection => {
+        let label = dataSection.name
+        const entry_name = archive?.metadata?.entry_name
+        const mainfile = archive?.metadata?.mainfile
+
+        if (entry_name) {
+          label = `${label} (${entry_name})`
+        } else if (mainfile) {
+          const file_name = mainfile.substring(mainfile.lastIndexOf('/') + 1)
+          label = `${label} (${file_name})`
+        } else if (prefix === '__global__') {
+          label = `${label} (OASIS)`
+        }
+        return {
+          id: `${prefix}:${dataSection._qualifiedName}`,
+          label: label,
+          archive: {
+            data: {
+              m_def: getReference(dataSection)
+            }
           }
         }
-      }))
+      })
     }
 
     const getTemplates = async () => {
@@ -50,12 +64,14 @@ const CreateEntry = React.memo(function CreateEntry(props) {
       const response = await api.post(`entries/archive/query`, {
         owner: 'visible',
         query: {
-          quantities: 'definitions.section_definitions'
+          quantities: 'definitions.section_definitions',
+          processed: true
         },
         required: {
           definitions: '*',
           metadata: {
-            mainfile: '*'
+            mainfile: '*',
+            entry_name: '*'
           }
         }
       })
@@ -68,7 +84,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
       const customTemplates = response.data.reduce((templates, data) => {
         const archive = data.archive
         const newTemplates = getTemplatesFromDefinitions(
-          archive.definitions.section_definitions, data.entry_id,
+          archive.definitions.section_definitions, data.entry_id, archive,
           section => {
             const fragment = getSectionReference(section)
             return `../uploads/${data.upload_id}/raw/${archive.metadata.mainfile}#/definitions${fragment}`
@@ -80,7 +96,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
       }, [])
       const globalDefinitions = await globalMetainfo.getDefs()
       const globalTemplates = getTemplatesFromDefinitions(
-        globalDefinitions, '__global__', section => section._qualifiedName)
+        globalDefinitions, '__global__', null, section => section._qualifiedName)
       return customTemplates.concat(globalTemplates)
     }
 
@@ -110,7 +126,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
         onChange={(event, value) => setTemplate(value)}
         options={templates || []}
         getOptionLabel={(option) => option.label}
-        style={{ width: 300 }}
+        style={{ width: 400 }}
         renderInput={(params) => <TextField {...params} label="type" variant="filled" />}
       />
     </Box>

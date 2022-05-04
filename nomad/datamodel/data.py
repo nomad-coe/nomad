@@ -28,5 +28,5 @@ class EntryData(metainfo.MSection):
 
     def normalize(self, archive, logger):
         archive.metadata.entry_type = self.m_def.name
-        if archive.metadata.mainfile:
+        if archive.metadata.entry_name is None and archive.metadata.mainfile:
             archive.metadata.entry_name = os.path.basename(archive.metadata.mainfile)

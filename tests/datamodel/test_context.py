@@ -183,6 +183,7 @@ def test_resolve_archive(context, url):
         pytest.param(
             {
                 'schema.json': {
+                    'name': 'test schema package',
                     'definitions': {
                         'section_definitions': [
                             {
@@ -255,8 +256,8 @@ def test_server_custom_schema(upload_contents, raw_files):
                 upload_id='test_upload', entry_id=entry_id, mainfile=file_name))
 
         parser.parse(mainfile=upload_files.raw_file_object(file_name).os_path, archive=archive)
-        upload_files.write_archive(entry_id, archive.m_to_dict())
-        results = archive.m_to_dict(with_out_meta=True)
+        upload_files.write_archive(entry_id, archive.m_to_dict(with_out_meta=True))
+        results = archive.m_to_dict()
         del results['metadata']
         assert results == content
 

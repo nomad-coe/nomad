@@ -85,7 +85,7 @@ export async function createMetainfo(data, parentMetainfo, context) {
     await metainfo._addPackages(data.packages)
   }
   if (data.definitions) {
-    await metainfo._addPackages([data.definitions])
+    await metainfo._addPackages([data.definitions], data?.metadata?.entry_id)
   }
   data._metainfo = metainfo
   return metainfo
@@ -257,7 +257,7 @@ class Metainfo {
     sectionDef._parentIndex = parentIndex
     pkg._sections[sectionDef.name] = sectionDef
     await this._initSection(sectionDef)
-    sectionDef._qualifiedName = parentDef ? `${parentDef._qualifiedName || parentDef.name}.${sectionDef.name}` : sectionDef.name
+    sectionDef._qualifiedName = parentDef ? `${parentDef._qualifiedName || parentDef._unique_id || parentDef.name}.${sectionDef.name}` : sectionDef.name
     sectionDef._package = pkg
 
     sectionDef.inner_section_definitions.forEach((innerSectionDef, index) => (
@@ -313,9 +313,12 @@ class Metainfo {
     }
   }
 
-  async _addPackage(pkg) {
+  async _addPackage(pkg, unique_id) {
     this._packagePrefixCache = null
     pkg.m_def = PackageMDef
+    if (unique_id) {
+      pkg._unique_id = unique_id
+    }
     const packageName = pkg.name || '*'
     this._packageDefs[packageName] = pkg
     await this._addDef(pkg)
@@ -325,7 +328,7 @@ class Metainfo {
     pkg.section_definitions = pkg.section_definitions || []
     for (const categoryDef of pkg.category_definitions) {
       categoryDef.m_def = CategoryMDef
-      categoryDef._qualifiedName = `${pkg.name}.${categoryDef.name}`
+      categoryDef._qualifiedName = `${pkg._unique_id || pkg.name}.${categoryDef.name}`
       categoryDef._package = pkg
       await this._addDef(categoryDef)
     }
@@ -336,9 +339,9 @@ class Metainfo {
     }
   }
 
-  async _addPackages(packages) {
+  async _addPackages(packages, unique_id) {
     for (const pkg of packages) {
-      await this._addPackage(pkg)
+      await this._addPackage(pkg, unique_id)
     }
   }
 
@@ -451,7 +454,7 @@ export async function resolveRefAsync(reference, data, context, adaptArchive) {
       let apiUrl
       let uploadId = context.uploadId
 
-      const uploadIdMatch = resourceUrl.match(/\.\.\/uploads\/([a-zA-Z0-9_]+)\//)
+      const uploadIdMatch = resourceUrl.match(/\.\.\/uploads\/([a-zA-Z0-9_-]+)\//)
       if (uploadIdMatch) {
         uploadId = uploadIdMatch[1]
         resourceUrl = '../upload/' + resourceUrl.slice(uploadIdMatch[0].length)

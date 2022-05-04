@@ -2818,7 +2818,7 @@ class Quantity(Property):
                         'Dimensions (%s) must be shapeless (%s) and int (%s) typed.' % (
                             dimension, dim_quantity.shape, dim_quantity.type)
 
-    @constraint
+    @constraint(warning=True)
     def higher_shapes_require_dtype(self):
         if len(self.shape) > 1:
             assert isinstance(self.type, np.dtype), \
