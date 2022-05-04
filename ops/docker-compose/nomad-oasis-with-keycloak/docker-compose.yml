@@ -15,7 +15,7 @@ services:
             - PROXY_ADDRESS_FORWARDING=true
             - KEYCLOAK_FRONTEND_URL=http://localhost/keycloak/auth
         volumes:
-            - keycloak:/opt/jboss/keycloak/standalone/data
+            - nomad_oasis_keycloak:/opt/jboss/keycloak/standalone/data
         # Uncomment to get access to the admin console.
         # ports:
         #   - 8080:8080
@@ -31,7 +31,7 @@ services:
             - RABBITMQ_DEFAULT_PASS=rabbitmq
             - RABBITMQ_DEFAULT_VHOST=/
         volumes:
-            - rabbitmq:/var/lib/rabbitmq
+            - nomad_oasis_rabbitmq:/var/lib/rabbitmq
 
     # the search engine
     elastic:
@@ -39,9 +39,10 @@ services:
         image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
         container_name: nomad_oasis_elastic
         environment:
+            - ES_JAVA_OPTS=-Xms512m -Xmx512m
             - discovery.type=single-node
         volumes:
-            - elastic:/usr/share/elasticsearch/data
+            - nomad_oasis_elastic:/usr/share/elasticsearch/data
 
     # the user data db
     mongo:
@@ -52,13 +53,14 @@ services:
             - MONGO_DATA_DIR=/data/db
             - MONGO_LOG_DIR=/dev/null
         volumes:
-            - mongo:/data/db
+            - nomad_oasis_mongo:/data/db
+            - ./.volumes/mongo:/backup
         command: mongod --logpath=/dev/null # --quiet
 
     # nomad worker (processing)
     worker:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -70,13 +72,13 @@ services:
             - keycloak
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
-            - files:/app/.volumes/fs
+            - ./.volumes/fs:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing -Q celery
 
     # nomad app (api + gui)
     app:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
@@ -89,13 +91,13 @@ services:
             - keycloak
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
-            - files:/app/.volumes/fs
+            - ./.volumes/fs:/app/.volumes/fs
         command: ./run.sh
 
     # nomad remote tools hub (JupyterHUB, e.g. for AI Toolkit)
     hub:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_hub
         environment:
             <<: *nomad_backend_env
@@ -112,7 +114,7 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock
             - ./.volumes/fs:/app/.volumes/fs
         command: python -m nomad.cli admin run hub
-        user: root
+        user: "1000:991"
 
     # nomad gui (a reverse proxy for nomad)
     gui:
@@ -129,14 +131,13 @@ services:
         ports:
             - 80:80
 
+volumes:
+    nomad_oasis_mongo:
+    nomad_oasis_elastic:
+    nomad_oasis_rabbitmq:
+    nomad_oasis_files:
+    nomad_oasis_keycloak:
 
 networks:
     default:
         name: nomad_oasis_network
-
-valumes:
-    mongo:
-    elastic:
-    rabbitmq:
-    files:
-    keycloak:

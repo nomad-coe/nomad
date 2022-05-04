@@ -44,7 +44,7 @@ def import_command(path_to_users_file):
             password = user_dict.pop('password')
             user_dict['created'] = datetime.datetime.fromtimestamp(user_dict['created'] / 1000)
             user = datamodel.User(**user_dict)
-            infrastructure.keycloak.add_user(user, bcrypt_password=password, invite=False)
+            infrastructure.user_management.add_user(user, bcrypt_password=password, invite=False)
             print('Imported %s' % user.name)
         except Exception as e:
             logger.error('could not import user', exc_info=e)

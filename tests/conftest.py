@@ -342,6 +342,7 @@ config.keycloak.realm_name = 'fairdi_nomad_test'
 config.keycloak.password = 'password'
 
 _keycloak = infrastructure.keycloak
+_user_management = infrastructure.user_management
 
 
 # use a session fixture in addition to the function fixture, to ensure mocked keycloak
@@ -349,22 +350,33 @@ _keycloak = infrastructure.keycloak
 @pytest.fixture(scope='session', autouse=True)
 def mocked_keycloak_session(monkeysession):
     monkeysession.setattr('nomad.infrastructure.keycloak', KeycloakMock())
+    monkeysession.setattr('nomad.infrastructure.user_management', KeycloakMock())
 
 
 @pytest.fixture(scope='function', autouse=True)
 def mocked_keycloak(monkeypatch):
     monkeypatch.setattr('nomad.infrastructure.keycloak', KeycloakMock())
+    monkeypatch.setattr('nomad.infrastructure.user_management', KeycloakMock())
 
 
 @pytest.fixture(scope='function')
 def keycloak(monkeypatch):
     monkeypatch.setattr('nomad.infrastructure.keycloak', _keycloak)
+    monkeypatch.setattr('nomad.infrastructure.user_management', _user_management)
 
 
 @pytest.fixture(scope='function')
 def proc_infra(worker, elastic, mongo, raw_files):
     ''' Combines all fixtures necessary for processing (elastic, worker, files, mongo) '''
     return dict(elastic=elastic)
+
+
+@pytest.fixture(scope='function')
+def with_oasis_user_management(monkeypatch):
+    from nomad.infrastructure import OasisUserManagement
+    monkeypatch.setattr('nomad.infrastructure.user_management', OasisUserManagement())
+    yield
+    monkeypatch.setattr('nomad.infrastructure.user_management', _user_management)
 
 
 @pytest.fixture(scope='module')
@@ -680,7 +692,7 @@ def oasis_publishable_upload(
             data=data.read(), **kwargs)
 
     monkeypatch.setattr('requests.post', new_post)
-    monkeypatch.setattr('nomad.config.keycloak.oasis', True)
+    monkeypatch.setattr('nomad.config.oasis.is_oasis', True)
     monkeypatch.setattr('nomad.config.keycloak.username', test_user.username)
 
     monkeypatch.setattr('nomad.config.oasis.central_nomad_api_url', '/api')

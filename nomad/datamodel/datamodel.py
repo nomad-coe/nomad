@@ -144,13 +144,13 @@ class User(Author):
     @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
     def get(*args, **kwargs) -> 'User':
         from nomad import infrastructure
-        return infrastructure.keycloak.get_user(*args, **kwargs)  # type: ignore
+        return infrastructure.user_management.get_user(*args, **kwargs)  # type: ignore
 
     def full_user(self) -> 'User':
         ''' Returns a User object with all attributes loaded from the user management system. '''
         from nomad import infrastructure
         assert self.user_id is not None
-        return infrastructure.keycloak.get_user(user_id=self.user_id)  # type: ignore
+        return infrastructure.user_management.get_user(user_id=self.user_id)  # type: ignore
 
 
 class UserReference(metainfo.Reference):

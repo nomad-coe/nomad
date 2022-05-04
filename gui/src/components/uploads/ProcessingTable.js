@@ -100,7 +100,7 @@ const defaultSelectedColumns = [
   'entry_name',
   'entry_type',
   'mainfile',
-  'complete_time'
+  'process_status'
 ]
 
 export default function ProcessingTable(props) {

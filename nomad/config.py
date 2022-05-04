@@ -158,8 +158,7 @@ keycloak = NomadConfig(
     username='admin',
     password='password',
     client_id='nomad_public',
-    client_secret=None,
-    oasis=False)
+    client_secret=None)
 
 mongo = NomadConfig(
     host='localhost',
@@ -194,7 +193,9 @@ services = NomadConfig(
 oasis = NomadConfig(
     central_nomad_api_url='https://nomad-lab.eu/prod/v1/api',
     central_nomad_deployment_id='nomad-lab.eu/prod/v1',
-    allowed_users=None  # a list of usernames or user account emails
+    allowed_users=None,  # a list of usernames or user account emails
+    uses_central_user_management=False,
+    is_oasis=False
 )
 
 tests = NomadConfig(
@@ -254,6 +255,18 @@ def _check_config():
 
     if keycloak.public_server_url is None:
         keycloak.public_server_url = keycloak.server_url
+
+    if fs.staging_external is None:
+        fs.staging_external = fs.staging
+
+    if fs.staging_external is not None and not os.path.isabs(fs.staging_external):
+        fs.staging_external = os.path.abspath(fs.staging_external)
+
+    if north.users_fs is not None and not os.path.isabs(north.users_fs):
+        north.users_fs = os.path.abspath(north.users_fs)
+
+    if north.shared_fs is not None and not os.path.isabs(north.shared_fs):
+        north.shared_fs = os.path.abspath(north.shared_fs)
 
 
 mail = NomadConfig(

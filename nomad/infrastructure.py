@@ -112,7 +112,6 @@ class Keycloak():
     '''
     def __init__(self):
         self.__oidc_client = None
-        self.__admin_client = None
         self.__public_keys = None
 
     @property
@@ -209,6 +208,82 @@ class Keycloak():
             logger.error('cannot perform tokenauth', exc_info=e)
             raise e
 
+
+keycloak = Keycloak()
+
+
+class UserManagement():
+    def add_user(self, user, bcrypt_password=None, invite=False):
+        '''
+        Adds the given :class:`nomad.datamodel.User` instance to the configured keycloak
+        realm using the keycloak admin API.
+        '''
+        raise NotImplementedError()
+
+    def search_user(self, query: str):
+        raise NotImplementedError()
+
+    def get_user(self, user_id: str = None, username: str = None, email: str = None):
+        '''
+        Retrives all available information about a user from the local keycloak admin
+        interface or the central NOMAD installation. This can be used to retrieve
+        complete user information, because the info solely gathered from tokens is generally
+        incomplete.
+        '''
+        raise NotImplementedError()
+
+
+class OasisUserManagement(UserManagement):
+    def __init__(self, users_api_url: str = None):
+        if users_api_url:
+            self._users_api_url = users_api_url
+        else:
+            self._users_api_url = f'{config.oasis.central_nomad_api_url}/v1/users'
+
+    def add_user(self, user, bcrypt_password=None, invite=False):
+        raise NotImplementedError(
+            'Adding a user is not possible for an Oasis using the central user management.')
+
+    def __user_from_api_user(self, api_user):
+        from nomad import datamodel
+        return datamodel.User.m_from_dict(api_user)
+
+    def search_user(self, query: str):
+        import requests
+        response = requests.get(self._users_api_url, params=dict(prefix=query))
+        if response.status_code != 200:
+            raise KeycloakError('Could not request central nomad\'s user management.')
+
+        return list(self.__user_from_api_user(user) for user in response.json()['data'])
+
+    def get_user(self, user_id: str = None, username: str = None, email: str = None):
+        import requests
+
+        kwargs = {}
+        if user_id:
+            kwargs['user_id'] = user_id
+        elif username:
+            kwargs['username'] = username
+        elif email:
+            kwargs['email'] = email
+        else:
+            return None
+
+        response = requests.get(self._users_api_url, params=kwargs)
+        if response.status_code != 200:
+            raise KeycloakError('Could not request central nomad\'s user management.')
+
+        data = response.json()
+        if len(data['data']) == 0:
+            return None
+
+        return self.__user_from_api_user(data['data'][0])
+
+
+class KeycloakUserManagement(UserManagement):
+    def __init__(self):
+        self.__admin_client = None
+
     def __create_username(self, user):
         if user.first_name is not None and user.last_name is not None:
             user.username = '%s%s' % (user.first_name[:1], user.last_name)
@@ -229,10 +304,6 @@ class Keycloak():
             pass
 
     def add_user(self, user, bcrypt_password=None, invite=False):
-        '''
-        Adds the given :class:`nomad.datamodel.User` instance to the configured keycloak
-        realm using the keycloak admin API.
-        '''
         from nomad import datamodel
         if not isinstance(user, datamodel.User):
             if 'user_id' not in user:
@@ -323,11 +394,12 @@ class Keycloak():
             created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
             **kwargs)
 
-    def search_user(self, query: str = None, max=1000, **kwargs):
+    def search_user(self, query: str):
+        kwargs = {}
         if query is not None:
-            kwargs['query'] = dict(search=query, max=max)
+            kwargs['query'] = dict(search=query, max=1000)
         else:
-            kwargs['query'] = dict(max=max)
+            kwargs['query'] = dict(max=1000)
         try:
             keycloak_results = self._admin_client.get_users(**kwargs)
         except Exception as e:
@@ -338,16 +410,7 @@ class Keycloak():
             self.__user_from_keycloak_user(keycloak_user)
             for keycloak_user in keycloak_results]
 
-    def get_user(self, user_id: str = None, username: str = None, email: str = None, user=None):
-        '''
-        Retrives all available information about a user from the keycloak admin
-        interface. This must be used to retrieve complete user information, because
-        the info solely gathered from tokens is generally incomplete.
-        '''
-
-        if user is not None and user_id is None:
-            user_id = user.user_id
-
+    def get_user(self, user_id: str = None, username: str = None, email: str = None):
         if username is not None and user_id is None:
             with utils.lnr(logger, 'Could not use keycloak admin client'):
                 user_id = self._admin_client.get_user_id(username)
@@ -393,7 +456,11 @@ class Keycloak():
         return self.__admin_client
 
 
-keycloak = Keycloak()
+user_management: UserManagement
+if config.oasis.uses_central_user_management:
+    user_management = OasisUserManagement()
+else:
+    user_management = KeycloakUserManagement()
 
 
 def reset(remove: bool):

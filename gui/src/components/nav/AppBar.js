@@ -29,7 +29,7 @@ import LoginLogout from '../LoginLogout'
 import UnitSelector from '../UnitSelector'
 import MainMenu from './MainMenu'
 import { useLoading } from '../api'
-import { guiBase } from '../../config'
+import { guiBase, oasis } from '../../config'
 import Breadcrumbs from './Breadcrumbs'
 
 export const appBarHeight = 10
@@ -111,7 +111,7 @@ export default function AppBar() {
     <Toolbar className={styles.toolbar} disableGutters>
       <div className={styles.logo}>
         <Link href="https://nomad-lab.eu">
-          <img alt="The NOMAD logo" className={styles.logoImg} src={`${guiBase}/nomad.png`}></img>
+          <img alt="The NOMAD logo" className={styles.logoImg} src={`${guiBase}/${oasis ? 'nomad-oasis.png' : 'nomad.png'}`}></img>
         </Link>
       </div>
       <div className={styles.navigation}>

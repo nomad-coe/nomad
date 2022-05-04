@@ -155,7 +155,7 @@ def _get_user_basic_auth(form_data: OAuth2PasswordRequestForm) -> User:
     if form_data and form_data.username and form_data.password:
         try:
             infrastructure.keycloak.basicauth(form_data.username, form_data.password)
-            user = cast(datamodel.User, infrastructure.keycloak.get_user(form_data.username))
+            user = cast(datamodel.User, infrastructure.user_management.get_user(form_data.username))
             return user
         except infrastructure.KeycloakError:
             raise HTTPException(
@@ -199,7 +199,7 @@ def _get_user_upload_token_auth(upload_token: str) -> User:
 
             if signature_bytes == compare.digest():
                 user_id = str(uuid.UUID(bytes=payload_bytes))
-                user = cast(datamodel.User, infrastructure.keycloak.get_user(user_id))
+                user = cast(datamodel.User, infrastructure.user_management.get_user(user_id))
                 return user
         except Exception:
             # Decode error, format error, user not found, etc.

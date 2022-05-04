@@ -27,7 +27,7 @@ def empty():
     State published upload containing one entry
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
+    main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
 
     data.save()
@@ -38,9 +38,9 @@ def published():
     State published upload containing one entry
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
-    coauthors = [infrastructure.keycloak.get_user(username='scooper').user_id]
-    reviewers = [infrastructure.keycloak.get_user(username='ttester').user_id]
+    main_author = infrastructure.user_management.get_user(username='test')
+    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
     data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
 
     upload_id = 'dft_upload'
@@ -61,9 +61,9 @@ def published_with_embargo():
     State published upload but under 3 months embargo
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
-    coauthors = [infrastructure.keycloak.get_user(username='scooper').user_id]
-    reviewers = [infrastructure.keycloak.get_user(username='ttester').user_id]
+    main_author = infrastructure.user_management.get_user(username='test')
+    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
     data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
 
     upload_id = 'dft_upload'
@@ -84,9 +84,9 @@ def unpublished():
     State unpublished upload containing one entry
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
-    coauthors = [infrastructure.keycloak.get_user(username='scooper').user_id]
-    reviewers = [infrastructure.keycloak.get_user(username='ttester').user_id]
+    main_author = infrastructure.user_management.get_user(username='test')
+    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
     data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
 
     upload_id = 'dft_upload'
@@ -107,7 +107,7 @@ def multiple_entries():
     State published upload containing multiple entries
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
+    main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
 
     upload_id = 'dft_upload_1'
@@ -130,7 +130,7 @@ def multiple_uploads():
     State published upload containing multiple entries
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
+    main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
 
     for i in range(1, 12):
@@ -152,7 +152,7 @@ def maximum_unpublished():
     State published upload containing multiple entries
     '''
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
+    main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
 
     for i in range(1, 11):
@@ -171,9 +171,9 @@ def maximum_unpublished():
 
 def _browser_test(published: bool):
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test')
-    coauthors = [infrastructure.keycloak.get_user(username='scooper').user_id]
-    reviewers = [infrastructure.keycloak.get_user(username='ttester').user_id]
+    main_author = infrastructure.user_management.get_user(username='test')
+    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
     data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
 
     upload_id = 'browser_test'
@@ -198,9 +198,9 @@ def browser_test_unpublished():
 
 def archive_browser_test():
     infrastructure.setup()
-    main_author = infrastructure.keycloak.get_user(username='test').user_id
-    coauthors = [infrastructure.keycloak.get_user(username='scooper').user_id]
-    reviewers = [infrastructure.keycloak.get_user(username='ttester').user_id]
+    main_author = infrastructure.user_management.get_user(username='test').user_id
+    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
     upload = Upload(
         upload_id='archive_browser_test',
         main_author=main_author,

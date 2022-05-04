@@ -67,29 +67,37 @@ async def read_users_me(current_user: User = Depends(create_user_dependency(requ
     response_model_exclude_none=True,
     response_model=Users)
 async def get_users(
-        prefix: Optional[str] = Query(None, description=strip('''
-                Search the user with the given prefix.
-            ''')),
-        user_id: Union[List[str], None] = Query(None, description=strip('''
-                To get the user(s) by their user_id(s).
-            '''))):
-
+    prefix: Optional[str] = Query(None, description=strip('''
+            Search the user with the given prefix.
+        ''')),
+    user_id: Union[List[str], None] = Query(None, description=strip('''
+            To get the user(s) by their user_id(s).
+        ''')),
+    username: Union[List[str], None] = Query(None, description=strip('''
+            To get the user(s) by their username(s).
+        ''')),
+    email: Union[List[str], None] = Query(None, description=strip('''
+            To get the user(s) by their email(s).
+        '''))
+):
     users: List[User] = []
-    if user_id:
-        if type(user_id) == list:
-            for _user_id in user_id:
-                try:
-                    user = datamodel.User.get(user_id=str(_user_id)).m_copy()
-                    user.email = None
-                    users = users + [user]
-                except KeyError:
-                    pass
-        else:
-            user = datamodel.User.get(user_id=str(user_id)).m_copy()
-            user.email = None
-            users = [user]
-    elif prefix:
-        for user in infrastructure.keycloak.search_user(prefix):
+    for key, values in dict(user_id=user_id, username=username, email=email).items():
+        if not values:
+            continue
+
+        if isinstance(values, str):
+            values = [values]
+
+        for value in values:
+            try:
+                user = datamodel.User.get(**{key: str(value)}).m_copy()
+                user.email = None
+                users.append(user)
+            except KeyError:
+                pass
+
+    if prefix:
+        for user in infrastructure.user_management.search_user(prefix):
             user_dict = user.m_to_dict(include_derived=True)
             user_dict['email'] = None
             users.append(user_dict)
@@ -118,7 +126,7 @@ async def get_user(user_id: str):
     responses=create_responses(_authentication_required_response, _bad_invite_response),
     response_model=User)
 async def invite_user(user: User, current_user: User = Depends(create_user_dependency(required=True))):
-    if config.keycloak.oasis:
+    if config.oasis.is_oasis:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='User invite does not work this NOMAD OASIS.')
@@ -137,7 +145,7 @@ async def invite_user(user: User, current_user: User = Depends(create_user_depen
             detail='Invalid user data: email is required')
 
     try:
-        error = infrastructure.keycloak.add_user(user, invite=True)
+        error = infrastructure.user_management.add_user(user, invite=True)
     except KeyError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

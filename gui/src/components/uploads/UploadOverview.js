@@ -23,7 +23,7 @@ import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Bu
 import Dropzone from 'react-dropzone'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
-import { appBase } from '../../config'
+import { appBase, oasis } from '../../config'
 import { CodeList } from '../About'
 import FilesBrower from './FilesBrowser'
 import { useErrors } from '../errors'
@@ -539,7 +539,7 @@ function UploadOverview(props) {
             {!isEmpty && <EditMetaDataDialog selectedEntries={{'upload_id': upload.upload_id}}/>}
           </StepContent>
         </Step>}
-        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
+        {(!oasis && isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
           <StepLabel>Publish</StepLabel>
           <StepContent>
             {isPublished && <Typography className={classes.stepContent}>
@@ -565,6 +565,16 @@ function UploadOverview(props) {
                 <Button onClick={handleLiftEmbargo}>Lift Embargo</Button>
               </DialogActions>
             </Dialog>
+          </StepContent>
+        </Step>}
+        {oasis && <Step expanded={!isEmpty} active={false}>
+          <StepLabel>Publish</StepLabel>
+          <StepContent>
+            <Typography>
+              In future versions of NOMAD, you will be able to create a readonly archived
+              version of your upload, make it available throughout this Oasis, and publish
+              the data or metadata to the <Link href="https://nomad-lab.eu">central NOMAD services</Link>.
+            </Typography>
           </StepContent>
         </Step>}
       </Stepper>
