@@ -202,7 +202,7 @@ def test_resolve_archive(context, url):
                                         "shape": ["*"],
                                         "type": {
                                             "type_kind": "reference",
-                                            "type_data": "#/section_definitions/0"
+                                            "type_data": "#/definitions/section_definitions/0"
                                         }
                                     }
                                 ]

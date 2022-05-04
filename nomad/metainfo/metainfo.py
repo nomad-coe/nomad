@@ -24,7 +24,6 @@ import sys
 import inspect
 import re
 import json
-import itertools
 import numpy as np
 import pint
 import pint.unit
@@ -627,7 +626,7 @@ class Reference(DataType):
             raise TypeError(
                 'The value %s is not a section and can not be used as a reference.' % value)
 
-        if not value.m_follows(self.target_section_def):  # type: ignore
+        if not value.m_follows(self.target_section_def.m_resolved()):  # type: ignore
             raise TypeError(
                 '%s is not a %s and therefore an invalid value of %s.' %
                 (value, self.target_section_def, quantity_def))
@@ -2274,7 +2273,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         ''' Evaluates all constraints in the whole section hierarchy, incl. this section. '''
         errors: List[str] = []
         warnings: List[str] = []
-        for section in itertools.chain([self], self.m_all_contents()):
+        for section in self.m_all_contents(include_self=True):
             more_errors, more_warnings = section.m_validate()
             errors.extend(more_errors)
             warnings.extend(more_warnings)
@@ -2794,6 +2793,15 @@ class Quantity(Property):
         # object (instance) case
         raise NotImplementedError('Deleting quantity values is not supported.')
 
+    @constraint(warning=False)
+    def has_type(self):
+        assert self.type is not None, f'The quantity {self.qualified_name()} must define a type'
+        if isinstance(self.type, Reference):
+            try:
+                self.type.target_section_def.m_resolved()
+            except MetainfoReferenceError as e:
+                assert False, f'Cannot resolve "type" of {self.qualified_name()}: {str(e)}'
+
     @constraint(warning=True)
     def dimensions(self):
         for dimension in self.shape:
@@ -2964,6 +2972,14 @@ class SubSection(Property):
 
     def __delete__(self, obj):
         raise NotImplementedError('Deleting sub sections is not supported.')
+
+    @constraint(warning=False)
+    def has_sub_section(self):
+        assert self.sub_section is not None, 'Each sub section must define the section that is used as sub section via the "sub_section" quantity'
+        try:
+            assert not isinstance(self.sub_section.m_resolved(), MProxy), 'Cannot resolve "sub_section"'
+        except MetainfoReferenceError as e:
+            assert False, f'Cannot resolve "sub_section": {str(e)}'
 
 
 class Section(Definition):
@@ -3163,8 +3179,12 @@ class Section(Definition):
 
         super().__init__(*args, **kwargs)
         self.validate = validate
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
+
+    def m_validate(self) -> Tuple[List[str], List[str]]:
+        if not self.validate:
+            return [], []
+
+        return super().m_validate()
 
     @property
     def section_cls(self) -> Type[MSection]:
@@ -3226,25 +3246,6 @@ class Section(Definition):
                 if not property.m_is_set(m_quantity) and inherited_property.m_is_set(m_quantity):
                     property.m_set(m_quantity, inherited_property.m_get(m_quantity))
 
-        # validate
-        def validate(definition):
-            errors, warnings = definition.m_all_validate()
-            self.errors.extend(errors)
-            self.warnings.extend(warnings)
-
-        if not self.validate:
-            return
-
-        if self.extends_base_section:
-            validate(self.m_get(Section.base_sections)[0])
-        else:
-            validate(self)
-
-        if len(self.errors) > 0:
-            raise MetainfoError(
-                '%s. The section definition %s violates %d more constraints' %
-                (str(self.errors[0]).strip('.'), self, len(self.errors) - 1))
-
     @constraint
     def unique_names(self):
         names: Set[str] = set()
@@ -3264,6 +3265,14 @@ class Section(Definition):
                         'Alias %s of %s in %s already exists in %s.' % (alias, definition, definition.m_parent, self)
                     names.add(alias)
 
+    @constraint
+    def resolved_base_sections(self):
+        for base_section in self.base_sections:
+            try:
+                base_section.m_resolved()
+            except MetainfoReferenceError as e:
+                assert False, f'Cannot resolve base_section: {str(e)}'
+
     @classmethod
     def m_from_dict(cls, data: Dict[str, Any], **kwargs):
         if 'quantities' in data and isinstance(data['quantities'], dict):
@@ -3276,6 +3285,8 @@ class Section(Definition):
         if 'sub_sections' in data and isinstance(data['sub_sections'], dict):
             sub_sections = []
             for key, value in data['sub_sections'].items():
+                if value is None:
+                    value = {}
                 value.update(dict(name=key))
                 sub_sections.append(value)
             data['sub_sections'] = sub_sections
@@ -3323,6 +3334,7 @@ class Package(Definition):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.errors, self.warnings = [], []
 
     def __init_metainfo__(self):
         super().__init_metainfo__()
@@ -3343,6 +3355,16 @@ class Package(Definition):
                 for base_section in content.base_sections:
                     if isinstance(base_section, MProxy):
                         base_section.m_proxy_resolve()
+
+        # validate
+        if is_bootstrapping:
+            return
+
+        self.errors, self.warnings = self.m_all_validate()
+        if len(self.errors) > 0:
+            raise MetainfoError(
+                'One constraint was violated: %s (there are %d more violations)' %
+                (str(self.errors[0]).strip('.'), len(self.errors) - 1))
 
     @staticmethod
     def from_module(module_name: str):

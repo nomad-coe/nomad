@@ -584,7 +584,6 @@ function DefinitionDetails({def, ...props}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const lane = useContext(laneContext)
-  const isLast = !lane.next
   const [usage, setUsage] = useState(null)
   const [showUsage, setShowUsage] = useState(false)
 
@@ -629,7 +628,7 @@ function DefinitionDetails({def, ...props}) {
         </Item>
       ))}
     </Compartment>}
-    {/* {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
+    {/* {!lane.next && !def.extends_base_section && def.name !== 'EntryArchive' &&
       <Compartment title="graph">
         <VicinityGraph def={def} key={def.name}/>
       </Compartment>

@@ -65,7 +65,8 @@ def get_file_parameter():
     example_files = [
         'example-schema.archive.yaml',
         'intra-entry.archive.json',
-        'schema.archive.json'
+        'schema.archive.json',
+        # 'with-problems.archive.yaml'
     ]
     path = os.walk(os.path.join(os.path.dirname(__file__), '../../examples/data'))
     for root, _, files in path:

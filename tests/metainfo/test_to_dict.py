@@ -169,7 +169,7 @@ section_definitions:
       - name: notes
         type: str
         description: |
-          Additinoal notes about this section in Markdown
+          Additional notes about this section in Markdown
         links:
           - http://markdown.org
         format: Markdown
@@ -188,7 +188,7 @@ section_definitions:
 
     sub_sections:
       - name: authors
-        section_def: User
+        sub_section: User
         description: The user that authored this section
         repeats: true
 
@@ -201,12 +201,13 @@ section_definitions:
           - name: user_id
             type: int
           - name: email
-            deprecated: 'Use user_id as repacement'
+            type: str
+            deprecated: 'Use user_id as replacement'
     sub_sections:
       - name: authors
         sub_section: User
       - name: data
-        section_def: ApplicationData
+        sub_section: ApplicationData
         repeats: true
 
   - name: ApplicationData

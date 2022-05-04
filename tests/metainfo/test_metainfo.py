@@ -195,15 +195,22 @@ class TestM2:
         class TestSection(TestBase):  # pylint: disable=unused-variable
             name = Quantity(type=int)
 
+        pkg = Package(section_definitions=[TestBase.m_def, TestSection.m_def])
+        pkg.init_metainfo()
+
     def test_unique_names_extends(self):
         class TestBase(MSection):
             name = Quantity(type=str)
 
+        class TestSection(TestBase):  # pylint: disable=unused-variable
+            m_def = Section(extends_base_section=True)
+            name = Quantity(type=int)
+
+        pkg = Package(section_definitions=[TestBase.m_def, TestSection.m_def])
+
         # this is not possible, cant replace existing quantity
         with pytest.raises(MetainfoError):
-            class TestSection(TestBase):  # pylint: disable=unused-variable
-                m_def = Section(extends_base_section=True)
-                name = Quantity(type=int)
+            pkg.init_metainfo()
 
     def test_alias(self):
         class SubTest(MSection):
@@ -239,26 +246,35 @@ class TestM2:
         class TestSection(MSection):  # pylint: disable=unused-variable
             test = Quantity(type=str, shape=['does_not_exist'])
 
-        assert len(TestSection.m_def.warnings) > 0
+        pkg = Package(section_definitions=[TestSection.m_def])
+        pkg.init_metainfo()
+        assert len(pkg.warnings) > 0
 
     def test_dimension_is_int(self):
         class TestSection(MSection):  # pylint: disable=unused-variable
             dim = Quantity(type=str)
             test = Quantity(type=str, shape=['dim'])
 
-        assert len(TestSection.m_def.warnings) > 0
+        pkg = Package(section_definitions=[TestSection.m_def])
+        pkg.init_metainfo()
+        assert len(pkg.warnings) > 0
 
     def test_dimension_is_shapeless(self):
         class TestSection(MSection):  # pylint: disable=unused-variable
             dim = Quantity(type=int, shape=[1])
             test = Quantity(type=str, shape=['dim'])
 
-        assert len(TestSection.m_def.warnings) > 0
+        pkg = Package(section_definitions=[TestSection.m_def])
+        pkg.init_metainfo()
+        assert len(pkg.warnings) > 0
 
     def test_higher_shapes_require_dtype(self):
+        class TestSection(MSection):  # pylint: disable=unused-variable
+            test = Quantity(type=int, shape=[3, 3])
+
         with pytest.raises(MetainfoError):
-            class TestSection(MSection):  # pylint: disable=unused-variable
-                test = Quantity(type=int, shape=[3, 3])
+            pkg = Package(section_definitions=[TestSection.m_def])
+            pkg.init_metainfo()
 
     def test_only_extends_one_base(self):
         with pytest.raises(MetainfoError):
