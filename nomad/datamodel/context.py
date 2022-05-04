@@ -19,7 +19,6 @@
 from typing import Dict
 from urllib.parse import urlsplit, urlunsplit
 import re
-import json
 import os.path
 
 import requests
@@ -218,15 +217,13 @@ class ServerContext(Context):
         upload_files = self._get_upload_files(upload_id, installation_url)
 
         try:
+            archive = EntryArchive(m_context=self)
+            from nomad.parsing.parser import ArchiveParser
             with upload_files.raw_file(path, 'rt') as f:
-                archive_data = json.load(f)
+                ArchiveParser().parse_file(path, f, archive)
+            return archive
         except Exception:
             raise MetainfoReferenceError(f'Could not load {path}.')
-
-        if 'm_def' not in archive_data:
-            return EntryArchive.m_from_dict(archive_data, m_context=self)
-        else:
-            return MSection.from_dict(archive_data, m_context=self)
 
     def raw_file(self, *args, **kwargs):
         return self.upload_files.raw_file(*args, **kwargs)

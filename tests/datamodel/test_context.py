@@ -183,38 +183,39 @@ def test_resolve_archive(context, url):
         pytest.param(
             {
                 'schema.json': {
-                    'm_def': 'nomad.metainfo.metainfo.Package',
-                    'section_definitions': [
-                        {
-                            "base_sections": [
-                                "nomad.datamodel.data.EntryData"
-                            ],
-                            "name": "Chemical"
-                        },
-                        {
-                            "base_sections": [
-                                "nomad.datamodel.data.EntryData"
-                            ],
-                            "name": "Sample",
-                            "quantities": [
-                                {
-                                    "name": "chemicals",
-                                    "shape": ["*"],
-                                    "type": {
-                                        "type_kind": "reference",
-                                        "type_data": "#/section_definitions/0"
+                    'definitions': {
+                        'section_definitions': [
+                            {
+                                "base_sections": [
+                                    "nomad.datamodel.data.EntryData"
+                                ],
+                                "name": "Chemical"
+                            },
+                            {
+                                "base_sections": [
+                                    "nomad.datamodel.data.EntryData"
+                                ],
+                                "name": "Sample",
+                                "quantities": [
+                                    {
+                                        "name": "chemicals",
+                                        "shape": ["*"],
+                                        "type": {
+                                            "type_kind": "reference",
+                                            "type_data": "#/section_definitions/0"
+                                        }
                                     }
-                                }
-                            ]
-                        }
-                    ]
+                                ]
+                            }
+                        ]
+                    }
                 },
                 'chemical.archive.json': {
                     'definitions': {
                         'section_definitions': [
                             {
                                 "base_sections": [
-                                    "../upload/raw/schema.json#/section_definitions/0"
+                                    "../upload/raw/schema.json#/definitions/section_definitions/0"
                                 ],
                                 "name": "MyChemical"
                             }
@@ -226,7 +227,7 @@ def test_resolve_archive(context, url):
                 },
                 'sample.archive.json': {
                     'data': {
-                        'm_def': '../upload/raw/schema.json#/section_definitions/1',
+                        'm_def': '../upload/raw/schema.json#/definitions/section_definitions/1',
                         'chemicals': [
                             '../upload/archive/mainfile/chemical.archive.json#/data'
                         ]
@@ -255,7 +256,7 @@ def test_server_custom_schema(upload_contents, raw_files):
 
         parser.parse(mainfile=upload_files.raw_file_object(file_name).os_path, archive=archive)
         upload_files.write_archive(entry_id, archive.m_to_dict())
-        results = archive.m_to_dict()
+        results = archive.m_to_dict(with_out_meta=True)
         del results['metadata']
         assert results == content
 

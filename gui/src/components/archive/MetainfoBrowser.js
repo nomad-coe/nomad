@@ -629,11 +629,11 @@ function DefinitionDetails({def, ...props}) {
         </Item>
       ))}
     </Compartment>}
-    {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
+    {/* {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
       <Compartment title="graph">
         <VicinityGraph def={def} key={def.name}/>
       </Compartment>
-    }
+    } */}
     {quantityPath &&
       <Compartment title="usage">
         {!showUsage && <Button fullWidth variant="outlined" onClick={() => setShowUsage(true)}>Show usage</Button>}

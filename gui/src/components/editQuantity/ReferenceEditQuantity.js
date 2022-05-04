@@ -25,6 +25,7 @@ import { TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import { resolveRefAsync } from '../archive/metainfo'
 import { ItemButton, useLane } from '../archive/Browser'
+import { useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
 import { getFieldProps } from './StringEditQuantity'
 import { isWaitingForUpdateTestId } from '../../utils'
 
@@ -37,7 +38,9 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const [inputValue, setInputValue] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const fetchedSuggestionsFor = useRef()
-  const {adaptor: {context}} = useLane()
+  const lane = useLane()
+  const browserAdaptorContext = useBrowserAdaptorContext(archive)
+  const context = lane?.adaptor?.context || browserAdaptorContext
   const referencedSectionQualifiedName = useMemo(() => {
     return quantityDef.type._referencedSection._qualifiedName
   }, [quantityDef])

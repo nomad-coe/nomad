@@ -19,6 +19,6 @@ window.nomadEnv = {
     'officialUrl': 'https://nomad-lab.eu/prod/rae/gui'
   },
   'aitoolkitEnabled': false,
-  'oasis': false,
+  'oasis': true,
   'servicesUploadLimit': 10
 }

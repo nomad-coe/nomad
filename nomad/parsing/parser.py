@@ -302,15 +302,13 @@ class ArchiveParser(MatchingParser):
             mainfile_mime_re='.*',
             mainfile_name_re=r'.*(archive|metainfo)\.(json|yaml|yml)$')
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
+    def parse_file(self, mainfile, f, archive):
         if mainfile.endswith('.json'):
             import json
-            with open(mainfile, 'rt') as f:
-                archive_data = json.load(f)
+            archive_data = json.load(f)
         else:
             import yaml
-            with open(mainfile, 'rt') as f:
-                archive_data = yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
+            archive_data = yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
 
         metadata_data = archive_data.get(EntryArchive.metadata.name, None)
 
@@ -326,6 +324,10 @@ class ArchiveParser(MatchingParser):
             del archive_data['definitions']
 
         archive.m_update_from_dict(archive_data)
+
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
+        with open(mainfile, 'rt') as f:
+            self.parse_file(mainfile, f, archive)
 
 
 class MissingParser(MatchingParser):

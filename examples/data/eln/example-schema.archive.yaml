@@ -1,0 +1,68 @@
+definitions:
+  m_def: 'nomad.metainfo.Package'
+  sections:
+    Chemical:
+      base_sections:
+        - 'nomad.datamodel.data.EntryData'
+        - 'nomad.datamodel.metainfo.eln.Chemical'
+      quantities:
+        storage_hold:
+          description: |
+            The group has various sample storage cabinets to keep chemicals. You'll find
+            the stocked chemicals there.
+          type:
+            type_kind: Enum
+            type_data:
+              - cabinet 1.101
+              - cabinet 1.102
+              - cabinet 1.103
+              - hazard room, cabinet 0.001
+          m_annotations:
+            eln:
+              component: EnumEditQuantity
+    Sample:
+      base_sections:
+        - 'nomad.datamodel.data.EntryData'
+        - 'nomad.datamodel.metainfo.eln.Sample'
+      quantities:
+        chemicals:
+          type: '#/Chemical'
+          shape: ['*']
+          m_annotations:
+            eln:
+              component: ReferenceEditQuantity
+      sub_sections:
+        processes:
+          sub_section: 'nomad.datamodel.metainfo.eln.Process'
+    PVDEvaporationProcess:
+      base_section: 'nomad.datamodel.metainfo.eln.Process'
+      m_annotations:
+        plot:
+          title: Pressure and Temperature over Time
+          x_axis: time
+          y_axis:
+            - chamber_pressure
+            - chamber_temperature
+      quantities:
+        data_file:
+          type: str
+          description: |
+            A reference to an uploaded .csv produced by the PVD evaporation instruments
+            control software.
+          m_annotations:
+            parser: 'nomad.parsing.CSVArchiveParser'
+            eln:
+              component: FileEditQuantity
+        time:
+          type: np.float64
+          shape: ['*']
+          unit: s
+        chamber_pressure:
+          type: np.float64
+          shape: ['*']
+          unit: mbar
+        chamber_temperature:
+          type: np.float64
+          shape: ['*']
+          unit: C
+

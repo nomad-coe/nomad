@@ -117,6 +117,8 @@ def test_yaml_deserialization():
     assert_referenced_section(des_base_section)
     assert base_section.name == des_base_section.name == 'Process'
 
+    des_m_package.m_to_dict()
+
 
 @pytest.mark.parametrize('yaml_schema, expected_error', [
     pytest.param(strip('''

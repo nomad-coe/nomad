@@ -1,0 +1,10 @@
+definitions:
+  sections:
+    MySection:
+      base_section: 'nomad.datamodel.data.EntryData'
+      quantities:
+        my_quantity:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity

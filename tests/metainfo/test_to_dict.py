@@ -97,7 +97,7 @@ def test_m_from_dict(example):
     }, id='python')
 ])
 def test_from_dict(metainfo_data):
-    assert MSection.from_dict(metainfo_data).m_to_dict(with_root_def=True) == metainfo_data
+    assert MSection.from_dict(metainfo_data).m_to_dict(with_root_def=True, with_out_meta=True) == metainfo_data
 
 
 def test_with_meta(example):

@@ -402,7 +402,7 @@ class Metainfo {
       // already resolved
       return reference
     }
-    if (reference.match(/.+#.*/) || reference === '../upload/raw/schema.archive.json#/definitions/section_definitions/0') {
+    if (reference.match(/.+#.*/)) {
       if (!context) {
         console.error('cannot resolve definition without context', reference)
         return null
@@ -444,19 +444,27 @@ export async function resolveRefAsync(reference, data, context, adaptArchive) {
     return resolveRef(reference, data)
   }
 
-  const resourceUrl = reference.slice(0, reference.indexOf('#'))
+  let resourceUrl = reference.slice(0, reference.indexOf('#'))
   reference = reference.slice(reference.indexOf('#'))
   if (!context.resources[resourceUrl]) {
     try {
       let apiUrl
+      let uploadId = context.uploadId
+
+      const uploadIdMatch = resourceUrl.match(/\.\.\/uploads\/([a-zA-Z0-9_]+)\//)
+      if (uploadIdMatch) {
+        uploadId = uploadIdMatch[1]
+        resourceUrl = '../upload/' + resourceUrl.slice(uploadIdMatch[0].length)
+      }
+
       if (resourceUrl.startsWith('../upload/archive')) {
-        apiUrl = `uploads/${context.uploadId}/${resourceUrl.slice('../upload/'.length)}`
+        apiUrl = `uploads/${uploadId}/${resourceUrl.slice('../upload/'.length)}`
       } else if (resourceUrl.startsWith('../upload/raw')) {
         const mainfile = resourceUrl.slice('../upload/raw/'.length)
         const queryBody = ({
           owner: 'visible',
           query: {
-            upload_id: context.uploadId,
+            upload_id: uploadId,
             'mainfile': mainfile
           },
           required: {
@@ -468,7 +476,7 @@ export async function resolveRefAsync(reference, data, context, adaptArchive) {
           return null
         }
         const entryId = queryResponse.data[0].entry_id
-        apiUrl = `uploads/${context.uploadId}/archive/${entryId}`
+        apiUrl = `uploads/${uploadId}/archive/${entryId}`
       } else {
         console.error(`Reference solutions for urls like ${resourceUrl} is not yet implemented.`)
         return null

@@ -510,7 +510,7 @@ class _QuantityType(DataType):
         if isinstance(value, str):
             if value.startswith('np.') or value.startswith('numpy.'):
                 try:
-                    resolved = getattr(np, value.split('.', 1)[1])
+                    resolved = np.dtype(getattr(np, value.split('.', 1)[1]))
                 except Exception:
                     raise MetainfoError(f'{value.split(".", 1)[1]} is not a valid numpy type.')
                 if resolved:
@@ -664,7 +664,14 @@ class _SectionReference(Reference):
 
     def resolve_fragment(self, context_section: 'MSection', fragment: str) -> 'MSection':
         # First, we try to resolve based on definition names
+        definitions = None
+        if isinstance(getattr(context_section, 'definitions', None), Definition):
+            definitions = getattr(context_section, 'definitions')
+
         if isinstance(context_section, Definition):
+            definitions = context_section
+
+        if definitions:
             splitted_fragment = fragment.lstrip('/').split('/', 1)
             if len(splitted_fragment) == 2:
                 first_segment, remaining_fragment = splitted_fragment
@@ -672,7 +679,7 @@ class _SectionReference(Reference):
                 first_segment, remaining_fragment = splitted_fragment[0], None
 
             resolved: MSection = None
-            for content in context_section.m_contents():
+            for content in definitions.m_contents():
                 if isinstance(content, Definition) and content.name == first_segment:
                     if remaining_fragment:
                         resolved = self.resolve_fragment(content, remaining_fragment)
@@ -1076,7 +1083,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 MetainfoError('Section has not m_def.')
 
         # get annotations from kwargs
-        self.m_annotations: Dict[str, Any] = {}
+        self.m_annotations: Dict[str, Any] = kwargs.get('m_annotations', {})
         other_kwargs = {}
         for key, value in kwargs.items():
             if key.startswith('a_'):
@@ -1504,6 +1511,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     def m_update(self, m_ignore_additional_keys: bool = False, **kwargs):
         ''' Updates all quantities and sub-sections with the given arguments. '''
         self.m_mod_count += 1
+
         for name, value in kwargs.items():
             prop = self.m_def.all_aliases.get(name, None)
             if prop is None:
@@ -1536,6 +1544,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
     def m_to_dict(
             self, with_meta: bool = False, with_root_def: bool = False,
+            with_out_meta: bool = False,
             include_defaults: bool = False,
             include_derived: bool = False,
             resolve_references: bool = False,
@@ -1552,10 +1561,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         databases, searchengines, etc.
 
         Arguments:
-            with_meta: Include information about the section definition and the sections
-                position in its parent. The section definition will always be included
-                if the sub section definition references a base section and the concrete
-                sub section is derived from this base section.
+            with_meta: Include information about the section definition, the sections
+                position in its parent, and annotations. For Definition instances this
+                information will be included regardless; the section definition will
+                always be included if the sub section definition references a base section
+                and the concrete sub section is derived from this base section.
+            with_out_meta: Exclude information `with_meta` information, even from
+                Definition instances.
             with_root_def: Include the m_def for the top-level section. This allows to
                 identify the used "schema" based on the root section definition.
             include_defaults: Include default values of unset quantities.
@@ -1585,8 +1597,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 default values are serialized to JSON according to the quantity
                 type.
         '''
+        if isinstance(self, Definition) and not with_out_meta:
+            with_meta = True
+
         kwargs: Dict[str, Any] = dict(
-            with_meta=with_meta,
+            with_meta=with_meta, with_out_meta=with_out_meta,
             include_defaults=include_defaults,
             include_derived=include_derived,
             resolve_references=resolve_references,
