@@ -30,7 +30,7 @@ export const EnumEditQuantity = React.memo((props) => {
     }
   }, [onChange])
 
-  if (quantityDef.type === 'str' || quantityDef.type === undefined) {
+  if ((quantityDef.type?.type_kind === 'python' && quantityDef.type?.type_data === 'str') || quantityDef.type === undefined) {
     return <AutoComplete
       freeSolo
       options={suggestions}
