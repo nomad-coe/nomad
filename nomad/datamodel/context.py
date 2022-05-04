@@ -16,10 +16,12 @@
 # limitations under the License.
 #
 
-from typing import Tuple, Dict
-from urllib.parse import urljoin, urlsplit, urlunsplit
+from typing import Dict
+from urllib.parse import urlsplit, urlunsplit
 import re
 import json
+
+import requests
 
 from nomad import utils, config
 from nomad.metainfo import Context as MetainfoContext, MSection, Quantity, MetainfoReferenceError
@@ -32,9 +34,17 @@ class Context(MetainfoContext):
     '''
 
     def __init__(self, installation_url: str = None):
-        self.installation_url = installation_url
-        if self.installation_url is None:
+        # take installation_url and ensure it has no trailing slash
+        if installation_url is None:
             self.installation_url = config.api_url(api='api/v1')
+        elif installation_url.endswith('/'):
+            self.installation_url = installation_url[:-1]
+        else:
+            self.installation_url = installation_url
+
+        # now check if the installation_url points to 'api/v1'
+        if not self.installation_url.endswith('/api/v1'):
+            self.installation_url += '/v1' if self.installation_url.endswith('/api') else '/api/v1'
 
         self.archives: Dict[str, MSection] = {}
         self.urls: Dict[MSection, str] = {}
@@ -43,14 +53,18 @@ class Context(MetainfoContext):
     def upload_id(self):
         return None
 
-    def _get_ids(self, root: MSection) -> Tuple[str, str]:
-        if not isinstance(root, EntryArchive):
-            return None, None
-
-        if root.metadata:
+    @staticmethod
+    def _get_ids(root: MSection) -> tuple:
+        if isinstance(root, EntryArchive) and root.metadata:
             return root.metadata.upload_id, root.metadata.entry_id
 
         return None, None
+
+    @staticmethod
+    def _normalize_fragment(fragment: str) -> str:
+        if fragment and fragment != '' and not fragment.startswith('/'):
+            fragment = f'/{fragment}'
+        return fragment
 
     def create_reference(self, section: MSection, quantity_def: Quantity, value: MSection) -> str:
         fragment = value.m_path()
@@ -71,7 +85,7 @@ class Context(MetainfoContext):
         installation_url = getattr(target_root.m_context, 'installation_url', self.installation_url)
 
         if installation_url != self.installation_url:
-            return urljoin(installation_url, f'/api/v1/uploads/{upload_id}/archive/{entry_id}#{fragment}')
+            return f'{installation_url}/uploads/{upload_id}/archive/{entry_id}#{fragment}'
 
         source_upload_id, source_entry_id = self._get_ids(source_root)
 
@@ -83,18 +97,16 @@ class Context(MetainfoContext):
 
         return f'../uploads/{upload_id}/archive/{entry_id}#{fragment}'
 
-    def _normalize_fragment(self, fragment):
-        if fragment and fragment != '' and not fragment.startswith('/'):
-            fragment = f'/{fragment}'
-        return fragment
-
     def normalize_reference(self, source: MSection, url: str) -> str:
-        ''' Replace mainfile references with entry-based references. '''
+        '''
+        Replace mainfile references with entry-based references.
+        '''
         url_parts = urlsplit(url)
+        fragment = self._normalize_fragment(url_parts.fragment)
         path = url_parts.path
         match = re.search(r'/archive/mainfile/(.*)$', path)
         if not match:
-            return urlunsplit(url_parts[0:4] + (self._normalize_fragment(url_parts.fragment),))
+            return urlunsplit(url_parts[0:4] + (fragment,))
 
         mainfile = match.group(1)
         upload_id = self.upload_id
@@ -104,39 +116,29 @@ class Context(MetainfoContext):
         assert upload_id is not None, 'Only archives with upload_id can be referenced'
         entry_id = utils.generate_entry_id(upload_id, mainfile)
         path = path.replace(f'/archive/mainfile/{mainfile}', f'/archive/{entry_id}')
-        return urlunsplit((
-            url_parts.scheme,
-            url_parts.netloc,
-            path,
-            url_parts.query,
-            self._normalize_fragment(url_parts.fragment),))
+        return urlunsplit((url_parts.scheme, url_parts.netloc, path, url_parts.query, fragment,))
 
     def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
         ''' Loads the archive for the given identification. '''
         raise NotImplementedError()
 
     def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
-        ''' Loads a raw file based on the given upload and path. Interprets is as metainfo data. '''
+        ''' Loads a raw file based on the given upload and path. Interpret as metainfo data. '''
         raise NotImplementedError()
 
-    def _parse_url(self, url: str) -> Tuple[str, str, str, str]:
+    def _parse_url(self, url: str) -> tuple:
         installation_url = self.installation_url
         upload_id = self.upload_id
 
-        url_match = re.match(r'^../upload/(archive|raw)/([^\?]+)$', url)
+        url_match = re.match(r'^../uploads?/(\w*)/?(archive|raw)/([^?]+)$', url)
         if url_match:
-            kind = url_match.group(1)
-            path = url_match.group(2)
-            return installation_url, upload_id, kind, path
-
-        url_match = re.match(r'^../uploads/([A-Za-z0-9_]+)/(archive|raw)/([^\?]+)$', url)
-        if url_match:
-            upload_id = url_match.group(1)
+            if url_match.group(1) is not '':
+                upload_id = url_match.group(1)
             kind = url_match.group(2)
             path = url_match.group(3)
             return installation_url, upload_id, kind, path
 
-        url_match = re.search(r'/api/v1/uploads/([A-Za-z0-9_]+)/(archive|raw)/([^\?]+)$', url)
+        url_match = re.search(r'(?<!\.)/uploads/(\w+)/(archive|raw)/([^?]+)$', url)
         if url_match:
             installation_url = url.replace(url_match.group(0), '')
             upload_id = url_match.group(1)
@@ -193,12 +195,12 @@ class ServerContext(Context):
 
         if self.upload_files and self.upload_files.upload_id == upload_id:
             return self.upload_files
-        else:
-            # delayed import, context is part of datamodel which should be available in
-            # base install, files however requires [insfrastructure].
-            # TODO move server context to some infrastructure package!
-            from nomad import files
-            return files.UploadFiles.get(upload_id)
+
+        # delayed import, context is part of datamodel which should be available in
+        # base install, files however requires [infrastructure].
+        # TODO move server context to some infrastructure package!
+        from nomad import files
+        return files.UploadFiles.get(upload_id)
 
     def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
         upload_files = self._get_upload_files(upload_id, installation_url)
@@ -229,8 +231,36 @@ class ServerContext(Context):
 
 
 class ClientContext(Context):
+    '''
+    Since it is a client side context, use config.client.url by default.
+    Otherwise, if invoked from ArchiveQuery, use the url provided by user.
+    '''
+    def __init__(self, installation_url: str = None):
+        super().__init__(config.client.url + '/v1' if installation_url is None else installation_url)
+
     def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
-        raise NotImplementedError()
+        if installation_url is None:
+            installation_url = config.api_url(api='api/v1')
+
+        response = requests.get(f'{installation_url}/uploads/{upload_id}/archive/{entry_id}')
+
+        if response.status_code != 200:
+            raise MetainfoReferenceError(f'cannot retrieve archive {entry_id} from {installation_url}')
+
+        return EntryArchive.m_from_dict(response.json()['data']['archive'], m_context=self)
 
     def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
-        raise NotImplementedError()
+        if installation_url is None:
+            installation_url = config.api_url(api='api/v1')
+
+        response = requests.get(f'{installation_url}/uploads/{upload_id}/raw/{path}')
+
+        if response.status_code != 200:
+            raise MetainfoReferenceError(f'cannot retrieve raw file {path} from {installation_url}')
+
+        archive_data = response.json()
+
+        if 'm_def' not in archive_data:
+            return EntryArchive.m_from_dict(archive_data, m_context=self)
+        else:
+            return MSection.from_dict(archive_data, m_context=self)
