@@ -337,8 +337,13 @@ function UploadOverview(props) {
   }, [api, raiseError, uploadId, uploading, setReadme])
 
   const handleDrop = (files) => {
+    if (!files[0]?.name) {
+      return // Not dropping a file, but something else. Ignore.
+    }
     const formData = new FormData() // eslint-disable-line no-undef
-    formData.append('file', files[0])
+    for (const file of files) {
+      formData.append('file', file)
+    }
     setUploading(0)
     api.put(`/uploads/${uploadId}/raw/`, formData, {
       onUploadProgress: (progressEvent) => {

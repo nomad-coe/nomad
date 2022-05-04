@@ -828,7 +828,7 @@ async def put_upload_raw_path(
         path: str = Path(
             ...,
             description='The path within the upload raw files.'),
-        file: UploadFile = File(None),
+        file: List[UploadFile] = File(None),
         local_path: str = FastApiQuery(
             None,
             description=strip('''
@@ -849,7 +849,7 @@ async def put_upload_raw_path(
             `wait_for_processing` (**USE WITH CARE**).''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
-    Upload a file to the directory specified by `path` in the the upload specified by `upload_id`.
+    Upload one or more files to the directory specified by `path` in the the upload specified by `upload_id`.
 
     When uploading a zip or tar archive, it will first be extracted, and the content will be
     *merged* with the existing content, i.e. new files are added, and if there is a collision
@@ -860,7 +860,7 @@ async def put_upload_raw_path(
 
     The `path` should denote a directory. The empty string gives the "root" directory.
 
-    If a single file is uploaded (i.e. not a zip or tar archive), it is possible to specify
+    If a single file is uploaded (and it is not a zip or tar archive), it is possible to specify
     `wait_for_processing`. This means that the file (and only this file) will be matched and
     processed, and information about the outcome will be returned with the response. **NOTE**:
     this should be used with caution! When this option is set, the call will block until
@@ -869,13 +869,13 @@ async def put_upload_raw_path(
     in the directory structure may affect other entries). Also note that
     processing.entry.entry_metadata will not be populated in the response.
 
-    There are two basic ways to upload a file: in the multipart-formdata or streaming the
+    There are two basic ways to upload files: in the multipart-formdata or streaming the
     file data in the http body. Both are supported. Note, however, that the second method
-    does not transfer a filename. If a transfer is made using method 2, you can specify
-    the query argument `file_name` to name it. This *needs* to be specified when using
-    method 2, unless you are uploading a zip/tar file (for zip/tar files the names don't
-    matter since they are extracted). See the POST `uploads` endpoint for examples of curl
-    commands for uploading files.
+    only allows the upload of a single file, and that it does not transfer a filename. If a
+    transfer is made using method 2, you can specify the query argument `file_name` to name it.
+    This *needs* to be specified when using method 2, unless you are uploading a zip/tar file
+    (for zip/tar files the names don't matter since they are extracted). See the POST `uploads`
+    endpoint for examples of curl commands for uploading files.
     '''
     if include_archive and not wait_for_processing:
         raise HTTPException(
@@ -889,33 +889,29 @@ async def put_upload_raw_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Bad path provided.')
 
-    upload_path, method = await _get_file_if_provided(
+    upload_paths, method = await _get_files_if_provided(
         upload_id, request, file, local_path, file_name, user)
 
-    if not upload_path:
+    if not upload_paths:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='No upload file provided.')
 
-    decompress = files.auto_decompress(upload_path)
-    if decompress == 'error':
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Cannot extract file. Bad file format or file extension?')
+    for upload_path in upload_paths:
+        decompress = files.auto_decompress(upload_path)
+        if decompress == 'error':
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Cannot extract file. Bad file format or file extension?')
 
     if not wait_for_processing:
         # Process on worker (normal case)
-        if decompress:
-            # Uploading an compressed file -> reprocess the entire target directory
-            path_filter = path
-        else:
-            # Uploading a single file -> reprocess only the file
-            path_filter = os.path.join(path, os.path.basename(upload_path))
-
         try:
             upload.process_upload(
-                file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)),
-                path_filter=path_filter)
+                file_operations=[
+                    dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0))
+                    for upload_path in upload_paths],
+                only_updated_files=True)
         except ProcessAlreadyRunning:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -932,11 +928,12 @@ async def put_upload_raw_path(
             media_type = 'text/plain'
     else:
         # Process locally
-        if decompress:
+        if len(upload_paths) != 1 or decompress:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='`wait_for_processing` can only be used with single files, not with compressed files.')
+                detail='`wait_for_processing` can only be used with single files, and not with compressed files.')
 
+        upload_path = upload_paths[0]
         full_path = os.path.join(path, os.path.basename(upload_path))
         try:
             reprocess_settings = dict(
@@ -1034,7 +1031,7 @@ async def delete_upload_raw_path(
             detail='No file or folder with that path found.')
 
     try:
-        upload.process_upload(file_operation=dict(op='DELETE', path=path), path_filter=path)
+        upload.process_upload(file_operations=[dict(op='DELETE', path=path)], only_updated_files=True)
     except ProcessAlreadyRunning:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1147,7 +1144,7 @@ async def get_upload_entry_archive(
     response_model_exclude_none=True)
 async def post_upload(
         request: Request,
-        file: UploadFile = File(None),
+        file: List[UploadFile] = File(None),
         local_path: str = FastApiQuery(
             None,
             description=strip('''
@@ -1170,19 +1167,19 @@ async def post_upload(
             If the upload should be published directly. False by default.''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
-    Creates a new, empty upload and, optionally, uploads a first file to it. If a file is
-    provided, and it is a zip or tar file, it will first be extracted, then added.
+    Creates a new, empty upload and, optionally, uploads one or more files to it. If zip or
+    tar files are uploaded, they will first be extracted, then added.
 
     It is recommended to give the upload itself a descriptive `upload_name`. If not specified,
-    it will be set to the file name (if provided). The `upload_name` can be edited afterwards (as
-    long as the upload is not published).
+    and a single file is provided, `upload_name` will be set to the name of this file. The
+    `upload_name` can also be edited afterwards (as long as the upload is not published).
 
-    There are two basic ways to upload a file: in the multipart-formdata or streaming the
+    There are two basic ways to upload files: in the multipart-formdata or streaming the
     file data in the http body. Both are supported. Note, however, that the second method
-    does not transfer a filename. You can always specify the query argument `file_name` to
-    name the destination file. This argument *needs* to be specified when using method 2,
-    unless you are uploading a zip/tar file (for zip/tar files the names don't matter since
-    they are extracted).
+    only allows the upload of a single file, and that it does not transfer a filename. If a
+    transfer is made using method 2, you can specify the query argument `file_name` to name it.
+    This *needs* to be specified when using method 2, unless you are uploading a zip/tar file
+    (for zip/tar files the names don't matter since they are extracted).
 
     Example curl commands for creating an upload and uploading a file:
 
@@ -1216,15 +1213,15 @@ async def post_upload(
 
     upload_id = utils.create_uuid()
 
-    upload_path, method = await _get_file_if_provided(
+    upload_paths, method = await _get_files_if_provided(
         upload_id, request, file, local_path, file_name, user)
 
     if not upload_name:
         # Try to default upload_name
         if method == 2:
             upload_name = file_name or None
-        elif upload_path:
-            upload_name = os.path.basename(upload_path)
+        elif len(upload_paths) == 1:
+            upload_name = os.path.basename(upload_paths[0])
 
     upload = Upload.create(
         upload_id=upload_id,
@@ -1239,9 +1236,11 @@ async def post_upload(
 
     logger.info('upload created', upload_id=upload_id)
 
-    if upload_path:
+    if upload_paths:
         upload.process_upload(
-            file_operation=dict(op='ADD', path=upload_path, target_dir='', temporary=(method != 0)))
+            file_operations=[
+                dict(op='ADD', path=upload_path, target_dir='', temporary=(method != 0))
+                for upload_path in upload_paths])
 
     if request.headers.get('Accept') == 'application/json':
         upload_proc_data_response = UploadProcDataResponse(
@@ -1530,7 +1529,7 @@ async def get_upload_bundle(
     response_model_exclude_none=True)
 async def post_upload_bundle(
         request: Request,
-        file: UploadFile = File(None),
+        file: List[UploadFile] = File(None),
         local_path: str = FastApiQuery(
             None,
             description=strip('''
@@ -1587,7 +1586,7 @@ async def post_upload_bundle(
     settings except `embargo_length` requires an admin user to change (these settings
     have default values specified by the system configuration).
 
-    There are two basic ways to upload a file: in the multipart-formdata or streaming the
+    There are two basic ways to upload files: in the multipart-formdata or streaming the
     file data in the http body. Both are supported. See the POST `uploads` endpoint for
     examples of curl commands for uploading files.
     '''
@@ -1598,12 +1597,16 @@ async def post_upload_bundle(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail='User not authorized to upload bundles')
 
-    bundle_path, method = await _get_file_if_provided(
+    bundle_paths, method = await _get_files_if_provided(
         tmp_dir_prefix='bundle', request=request, file=file, local_path=local_path, file_name=None, user=user)
 
-    if not bundle_path:
+    if not bundle_paths:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail='No bundle file provided')
+    if len(bundle_paths) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail='Can only provide one bundle file at a time')
+    bundle_path = bundle_paths[0]
 
     try:
         bundle: UploadBundle = None
@@ -1654,19 +1657,19 @@ async def post_upload_bundle(
             status_code=status.HTTP_400_BAD_REQUEST, detail='Failed to import bundle: ' + str(e))
 
 
-async def _get_file_if_provided(
-        tmp_dir_prefix: str, request: Request, file: UploadFile, local_path: str, file_name: str,
-        user: User) -> Tuple[str, int]:
+async def _get_files_if_provided(
+        tmp_dir_prefix: str, request: Request, file: List[UploadFile], local_path: str, file_name: str,
+        user: User) -> Tuple[List[str], int]:
     '''
-    If the user provides a file with the api call, load it and save it to a temporary
-    folder (or, if method 0 is used, forward the file). The method thus needs to identify
-    which file transfer method was used (0 - 2), and save the data (if method is 1 or 2).
+    If the user provides one or more files with the api call, load and save them to a temporary
+    folder (or, if method 0 is used, just "forward" the file path). The method thus needs to identify
+    which file transfer method was used (0 - 2), and save the data to disk (if method is 1 or 2).
 
-    Returns the os path to the resulting file and method (0-2), or (None, None) if no file
+    Returns a list of os paths to the resulting files and method (0-2), or ([], None) if no file
     data was provided with the api call.
     '''
     # Determine the source data stream
-    src_stream = None
+    sources: List[Tuple[Any, str]] = []  # List of tuples (source, filename)
     if local_path:
         # Method 0: Local file - only for admins
         if not user.is_admin:
@@ -1676,64 +1679,66 @@ async def _get_file_if_provided(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 The specified local_path cannot be found or is not a file.'''))
         method = 0
-        file_name = file_name or os.path.basename(local_path)
     elif file:
         # Method 1: Data provided as formdata
         method = 1
-        file_name = file_name or file.filename
-        src_stream = _asyncronous_file_reader(file)
+        sources = [(_asyncronous_file_reader(multipart_file), multipart_file.filename) for multipart_file in file]
     else:
         # Method 2: Data has to be sent streamed in the body
         method = 2
-        src_stream = request.stream()
+        sources = [(request.stream(), file_name or 'NO NAME')]
 
     no_file_name_info_provided = not file_name
-    file_name = file_name or 'NO NAME'
 
-    if not files.is_safe_basename(file_name):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-            Bad file name provided.'''))
+    for _, file_name in sources:
+        if not files.is_safe_basename(file_name):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                Bad file name provided.'''))
 
-    # Read the stream and save to file
+    # Forward the file path (if method == 0) or save the file(s)
     if method == 0:
-        upload_path = local_path  # Use the provided path
+        upload_paths = [local_path]  # Use the provided path
         uploaded_bytes = os.path.getsize(local_path)
     else:
         tmp_dir = files.create_tmp_dir(tmp_dir_prefix)
-        upload_path = os.path.join(tmp_dir, file_name)
-        try:
-            with open(upload_path, 'wb') as f:
-                uploaded_bytes = 0
-                log_interval = 1e9
-                log_unit = 'GB'
-                next_log_at = log_interval
-                async for chunk in src_stream:
-                    if not chunk:
-                        # End of data stream
-                        break
-                    uploaded_bytes += len(chunk)
-                    f.write(chunk)
-                    if uploaded_bytes > next_log_at:
-                        logger.info('Large upload in progress - uploaded: '
-                                    f'{uploaded_bytes // log_interval} {log_unit}')
-                        next_log_at += log_interval
-                logger.info(f'Uploaded {uploaded_bytes} bytes')
-        except Exception as e:
-            if not (isinstance(e, RuntimeError) and 'Stream consumed' in str(e)):
-                if os.path.exists(tmp_dir):
-                    shutil.rmtree(tmp_dir)
-                logger.warn('IO error receiving upload data', exc_info=e)
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='Some IO went wrong, upload probably aborted/disrupted.')
+        upload_paths = []
+        uploaded_bytes = 0
+        for source_stream, file_name in sources:
+            upload_path = os.path.join(tmp_dir, file_name)
+            try:
+                with open(upload_path, 'wb') as f:
+                    uploaded_bytes = 0
+                    log_interval = 1e9
+                    log_unit = 'GB'
+                    next_log_at = log_interval
+                    async for chunk in source_stream:
+                        if not chunk:
+                            # End of data stream
+                            break
+                        uploaded_bytes += len(chunk)
+                        f.write(chunk)
+                        if uploaded_bytes > next_log_at:
+                            logger.info('Large upload in progress - uploaded: '
+                                        f'{uploaded_bytes // log_interval} {log_unit}')
+                            next_log_at += log_interval
+                    logger.info(f'Uploaded {uploaded_bytes} bytes')
+            except Exception as e:
+                if not (isinstance(e, RuntimeError) and 'Stream consumed' in str(e)):
+                    if os.path.exists(tmp_dir):
+                        shutil.rmtree(tmp_dir)
+                    logger.warn('IO error receiving upload data', exc_info=e)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail='Some IO went wrong, upload probably aborted/disrupted.')
+            upload_paths.append(upload_path)
 
-    if not uploaded_bytes and method == 2:
-        # No data was provided
-        shutil.rmtree(tmp_dir)
-        return None, None
+        if not uploaded_bytes and method == 2:
+            # No data was provided
+            shutil.rmtree(tmp_dir)
+            return [], None
 
-    logger.info('received uploaded file')
-    if no_file_name_info_provided:
+    logger.info(f'received {len(upload_paths)} uploaded file(s)')
+    if method == 2 and no_file_name_info_provided:
         # Only ok if uploaded file is a zip or a tar archive.
         ext = '.zip' if files.zipfile.is_zipfile(upload_path) else '.tar' if files.tarfile.is_tarfile(upload_path) else None
         if not ext:
@@ -1741,9 +1746,9 @@ async def _get_file_if_provided(
                 No file name provided, and the file does not look like a zip or tar file.'''))
         # Add the correct extension
         shutil.move(upload_path, upload_path + ext)
-        upload_path = upload_path + ext
+        upload_paths = [upload_path + ext]
 
-    return upload_path, method
+    return upload_paths, method
 
 
 async def _asyncronous_file_reader(f):

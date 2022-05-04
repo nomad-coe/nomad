@@ -37,7 +37,7 @@ from nomad.search import search, refresh as search_refresh
 from nomad.utils.exampledata import ExampleData
 
 from tests.test_search import assert_search_upload
-from tests.test_files import assert_upload_files
+from tests.test_files import assert_upload_files, example_file_mainfile, example_file_aux
 from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
@@ -73,7 +73,7 @@ def run_processing(uploaded: Tuple[str, str], main_author, **kwargs) -> Upload:
     assert upload.process_status == ProcessStatus.READY
     assert upload.last_status_message is None
     upload.process_upload(
-        file_operation=dict(op='ADD', path=uploaded_path, target_dir='', temporary=kwargs.get('temporary', False)))
+        file_operations=[dict(op='ADD', path=uploaded_path, target_dir='', temporary=kwargs.get('temporary', False))])
     upload.block_until_complete(interval=.01)
 
     return upload
@@ -508,17 +508,17 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
             add=['examples_template/new_sub_folder'],
             path_filter='examples_template/new_sub_folder',
             expected_result={
-                'examples_template/template.json': True,
+                'examples_template/template.json': False,
                 'examples_template/new_sub_folder/template.json': True}),
         id='add-to-existing-entry-folder'),
     pytest.param(
         dict(
             add=['examples_template/new_sub_folder'],
-            remove=['examples_template/template.json'],
+            delete=['examples_template/template.json'],
             path_filter='examples_template',
             expected_result={
                 'examples_template/new_sub_folder/template.json': True}),
-        id='add-and-remove'),
+        id='add-and-delete'),
     pytest.param(
         dict(
             add=['new_folder/new_sub_folder'],
@@ -528,22 +528,67 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
         id='add-one-filter-other'),
     pytest.param(
         dict(
-            remove=['examples_template/template.json'],
+            delete=['examples_template/template.json'],
             path_filter='examples_template',
             expected_result={}),
-        id='remove-everything')])
+        id='delete-everything'),
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder', (example_file_aux, 'examples_template')],
+            only_updated_files=True,
+            expected_result={
+                'examples_template/template.json': False,
+                'new_folder/new_sub_folder/template.json': True}),
+        id='flag-add-two-files'),
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder', 'examples_template'],
+            only_updated_files=True,
+            expected_result={
+                'examples_template/template.json': True,
+                'new_folder/new_sub_folder/template.json': True}),
+        id='flag-add-new-and-overwrite-old'),
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder'],
+            delete=['examples_template/template.json'],
+            only_updated_files=True,
+            expected_result={
+                'new_folder/new_sub_folder/template.json': True}),
+        id='flag-add-new-and-delete-old'),
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder'],
+            delete=['examples_template'],
+            only_updated_files=True,
+            expected_result={
+                'new_folder/new_sub_folder/template.json': True}),
+        id='flag-add-new-and-delete-old-folder'),
+    pytest.param(
+        dict(
+            delete=['examples_template'],
+            only_updated_files=True,
+            expected_result={}),
+        id='flag-delete-everything')])
 def test_process_partial(proc_infra, non_empty_processed: Upload, args):
     add = args.get('add', [])
-    remove = args.get('remove', [])
-    path_filter = args['path_filter']
+    delete = args.get('delete', [])
+    path_filter = args.get('path_filter')
+    only_updated_files = args.get('only_updated_files', False)
     expected_result = args['expected_result']
     old_timestamps = {e.mainfile: e.complete_time for e in non_empty_processed.successful_entries}
-    upload_files: StagingUploadFiles = non_empty_processed.upload_files  # type: ignore
-    for path in add:
-        upload_files.add_rawfiles('tests/data/proc/templates/template.json', path)
-    for path in remove:
-        upload_files.delete_rawfiles(path)
-    non_empty_processed.process_upload(path_filter=path_filter)
+    file_operations = []
+    for op in add:
+        if type(op) == tuple:
+            path, target_dir = op
+        else:
+            path, target_dir = example_file_mainfile, op
+        file_operations.append(dict(
+            op='ADD', path=path, target_dir=target_dir, temporary=False))
+    for path in delete:
+        file_operations.append(dict(op='DELETE', path=path))
+
+    non_empty_processed.process_upload(file_operations, path_filter=path_filter, only_updated_files=only_updated_files)
     non_empty_processed.block_until_complete()
     search_refresh()  # Process does not wait for search index to be refreshed when deleting
     assert_processing(non_empty_processed)
@@ -695,7 +740,7 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
             metadata = entry.full_entry_metadata(upload)
             assert metadata.comment == (entry.mainfile_key or 'parent')
 
-    upload.process_upload(file_operation=dict(op='DELETE', path=example_filename))
+    upload.process_upload(file_operations=[dict(op='DELETE', path=example_filename)])
     upload.block_until_complete()
     assert upload.process_status == ProcessStatus.SUCCESS
     assert upload.total_entries_count == 0

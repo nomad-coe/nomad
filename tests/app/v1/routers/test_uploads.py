@@ -61,14 +61,17 @@ def perform_get(client, base_url, user_auth=None, accept='application/json', **q
 
 
 def perform_post_put_file(
-        client, action, url, mode, file, user_auth=None, token=None, accept='application/json',
+        client, action, url, mode, file_paths, user_auth=None, token=None, accept='application/json',
         **query_args):
     ''' Posts or puts a file. '''
+    if type(file_paths) == str:
+        file_paths = [file_paths]
     headers = {'Accept': accept}
     if user_auth:
         headers.update(user_auth)
     if mode == 'local_path':
-        query_args.update(local_path=file)
+        assert len(file_paths) == 1
+        query_args.update(local_path=file_paths[0])
     if token:
         query_args.update(token=token)
     url = build_url(url, query_args)
@@ -80,15 +83,29 @@ def perform_post_put_file(
     else:
         assert False, f'Invalid action provided: {action}'
 
-    if not file:
+    if not file_paths:
         response = func(url, data='', headers=headers)
     else:
         if mode == 'multipart':
-            with open(file, 'rb') as f:
-                response = func(
-                    url, files={'file': f}, headers=headers)
+            if len(file_paths) == 1:
+                with open(file_paths[0], 'rb') as f:
+                    response = func(url, files={'file': f}, headers=headers)
+            else:
+                files_list = []
+                open_files = []
+                try:
+                    for file_path in file_paths:
+                        filename = os.path.basename(file_path)
+                        f = open(file_path, 'rb')
+                        open_files.append(f)
+                        files_list.append(('file', (filename, f)))
+                    response = func(url, files=files_list, headers=headers)
+                finally:
+                    for f in open_files:
+                        f.close()
         elif mode == 'stream':
-            with open(file, 'rb') as f:
+            assert len(file_paths) == 1
+            with open(file_paths[0], 'rb') as f:
                 response = func(url, data=f.read(), headers=headers)
         elif mode == 'local_path':
             response = func(url, headers=headers)
@@ -105,13 +122,15 @@ def perform_post_upload_action(client, user_auth, upload_id, action, **query_arg
 
 def assert_file_upload_and_processing(
         client, action, url, mode, user, test_auth_dict, upload_id,
-        source_path, target_path, query_args, accept_json, use_upload_token,
+        source_paths, target_path, query_args, accept_json, use_upload_token,
         expected_status_code, expected_process_status, expected_mainfiles, published,
         all_entries_should_succeed):
     '''
     Uploads a file, using the given action (POST or PUT), url, query arguments, and checks
     the results.
     '''
+    if type(source_paths) == str:
+        source_paths = [source_paths]
     user_auth, token = test_auth_dict[user]
     # Use either token or bearer token for the post operation (never both)
     user_auth_action = user_auth
@@ -122,7 +141,7 @@ def assert_file_upload_and_processing(
     accept = 'application/json' if accept_json else '*'
     processed_response_data = None
     response = perform_post_put_file(
-        client, action, url, mode, source_path, user_auth_action, token, accept, **query_args)
+        client, action, url, mode, source_paths, user_auth_action, token, accept, **query_args)
 
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -137,7 +156,7 @@ def assert_file_upload_and_processing(
             if not upload_id:
                 return None, None
 
-        if source_path == example_file_corrupt_zip:
+        if example_file_corrupt_zip in source_paths:
             processed_response_data = assert_processing_fails(client, upload_id, user_auth)
         else:
             processed_response_data = assert_processing(
@@ -145,7 +164,7 @@ def assert_file_upload_and_processing(
                 all_entries_should_succeed=all_entries_should_succeed)
 
             # Check that files got copied as expected
-            if source_path:
+            for source_path in source_paths:
                 upload_files = files.UploadFiles.get(upload_id)
                 file_name = os.path.basename(source_path)
                 if zipfile.is_zipfile(source_path):
@@ -979,7 +998,7 @@ def test_get_upload_entry_archive(
         assert_archive_response(response.json())
 
 
-@pytest.mark.parametrize('mode, user, upload_id, source_path, target_path, query_args, accept_json, use_upload_token, expected_status_code, expected_mainfiles', [
+@pytest.mark.parametrize('mode, user, upload_id, source_paths, target_path, query_args, accept_json, use_upload_token, expected_status_code, expected_mainfiles', [
     pytest.param(
         'stream', None, 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
         True, False, 401, None, id='no-credentials'),
@@ -1070,10 +1089,19 @@ def test_get_upload_entry_archive(
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_vasp_with_binary, 'examples_template',
         {'wait_for_processing': True},
-        True, False, 400, None, id='wait_for_processing-zipfile')])
+        True, False, 400, None, id='wait_for_processing-zipfile'),
+    pytest.param(
+        'multipart', 'test_user', 'examples_template', [example_file_vasp_with_binary, example_file_aux], 'dir1', {'file_name': 'tmp.zip'},
+        True, False, 200, [
+            'examples_template/template.json',
+            'dir1/examples_vasp/xml/Si.xml',
+            'dir1/examples_vasp/xml/perovskite.xml.gz'], id='uplod-multiple-vasp-and-aux'),
+    pytest.param(
+        'multipart', 'test_user', 'examples_template', [example_file_aux, example_file_corrupt_zip], 'dir1', {'file_name': 'tmp.zip'},
+        True, False, 400, ['examples_template/template.json'], id='uplod-multiple-one-corrupted-zip')])
 def test_put_upload_raw_path(
         client, proc_infra, non_empty_processed, example_data_writeable, test_auth_dict,
-        mode, user, upload_id, source_path, target_path, query_args, accept_json, use_upload_token,
+        mode, user, upload_id, source_paths, target_path, query_args, accept_json, use_upload_token,
         expected_status_code, expected_mainfiles):
     action = 'PUT'
     url = f'uploads/{upload_id}/raw/{target_path}'
@@ -1083,7 +1111,7 @@ def test_put_upload_raw_path(
 
     response, _ = assert_file_upload_and_processing(
         client, action, url, mode, user, test_auth_dict, upload_id,
-        source_path, target_path, query_args, accept_json, use_upload_token,
+        source_paths, target_path, query_args, accept_json, use_upload_token,
         expected_status_code, expected_process_status, expected_mainfiles, published,
         all_entries_should_succeed)
 
@@ -1093,14 +1121,14 @@ def test_put_upload_raw_path(
         if 'wait_for_processing' in query_args:
             assert processing
             assert processing['upload_id'] == upload_id
-            assert processing['path'] == os.path.join(target_path, os.path.basename(source_path))
-            if source_path == example_file_aux:
+            assert processing['path'] == os.path.join(target_path, os.path.basename(source_paths))
+            if source_paths == example_file_aux:
                 # Not a mainfile
                 for k in ('entry_id', 'parser_name', 'entry', 'archive'):
                     assert processing[k] is None
             else:
                 # Mainfile was added
-                if source_path == example_file_unparsable:
+                if source_paths == example_file_unparsable:
                     expected_entry_process_status = ProcessStatus.FAILURE
                 else:
                     expected_entry_process_status = ProcessStatus.SUCCESS
@@ -1328,7 +1356,7 @@ def test_post_upload_edit(
             expected_metadata, affected_upload_ids, edit_start)
 
 
-@pytest.mark.parametrize('mode, source_path, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [
+@pytest.mark.parametrize('mode, source_paths, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [
     pytest.param('multipart', example_file_vasp_with_binary, dict(upload_name='test_name'), 'test_user', False, False, True, 200, id='multipart'),
     pytest.param('multipart', example_file_vasp_with_binary, dict(), 'test_user', False, False, True, 200, id='multipart-no-name'),
     pytest.param('multipart', example_file_vasp_with_binary, dict(upload_name='test_name'), 'test_user', True, False, True, 200, id='multipart-token'),
@@ -1342,27 +1370,31 @@ def test_post_upload_edit(
     pytest.param('multipart', example_file_vasp_with_binary, dict(), None, False, False, True, 401, id='no-credentials'),
     pytest.param('multipart', example_file_vasp_with_binary, dict(), 'invalid', False, False, True, 401, id='invalid-credentials'),
     pytest.param('multipart', example_file_vasp_with_binary, dict(), 'invalid', True, False, True, 401, id='invalid-credentials-token'),
-    pytest.param('stream', None, dict(upload_name='test_name'), 'test_user', False, False, True, 200, id='no-file'),
+    pytest.param('stream', [], dict(upload_name='test_name'), 'test_user', False, False, True, 200, id='no-file'),
     pytest.param('stream', example_file_aux, dict(file_name='1.aux'), 'test_user', False, False, True, 200, id='stream-non-zip-file'),
     pytest.param('stream', example_file_aux, dict(), 'test_user', False, False, True, 400, id='stream-non-zip-file-no-file_name'),
     pytest.param('stream', example_file_vasp_with_binary, dict(upload_name='test_name', publish_directly=True), 'test_user', False, False, True, 200, id='publish_directly'),
     pytest.param('stream', empty_file, dict(upload_name='test_name', publish_directly=True), 'test_user', False, False, True, 200, id='publish_directly-empty'),
     pytest.param('stream', example_file_vasp_with_binary, dict(upload_name='test_name'), 'test_user', False, True, True, 400, id='upload-limit-exceeded'),
-    pytest.param('multipart', example_file_corrupt_zip, dict(), 'test_user', False, False, True, 200, id='bad-zip')])
+    pytest.param('multipart', example_file_corrupt_zip, dict(), 'test_user', False, False, True, 200, id='bad-zip'),
+    pytest.param('multipart', [example_file_aux, example_file_mainfile_different_atoms], dict(), 'test_user', False, False, True, 200, id='upload-multiple-files'),
+    pytest.param('multipart', [example_file_aux, example_file_corrupt_zip], dict(), 'test_user', False, False, True, 200, id='upload-multiple-files-one-corrupt')])
 def test_post_upload(
         client, mongo, proc_infra, monkeypatch, test_auth_dict,
         empty_upload, non_empty_example_upload,
-        mode, source_path, query_args, user, use_upload_token, test_limit, accept_json,
+        mode, source_paths, query_args, user, use_upload_token, test_limit, accept_json,
         expected_status_code):
     '''
     Posts an upload, with different arguments.
     '''
+    if type(source_paths) == str:
+        source_paths = [source_paths]
     if test_limit:
         monkeypatch.setattr('nomad.config.services.upload_limit', 0)
 
     action = 'POST'
     url = 'uploads'
-    published = (query_args.get('publish_directly') and not source_path == empty_file)
+    published = (query_args.get('publish_directly') and not source_paths == [empty_file])
     all_entries_should_succeed = True
     target_path = ''
     expected_mainfiles = None
@@ -1371,15 +1403,15 @@ def test_post_upload(
 
     _, processed_response_data = assert_file_upload_and_processing(
         client, action, url, mode, user, test_auth_dict, upload_id,
-        source_path, target_path, query_args, accept_json, use_upload_token,
+        source_paths, target_path, query_args, accept_json, use_upload_token,
         expected_status_code, expected_process_status, expected_mainfiles, published,
         all_entries_should_succeed)
 
     if expected_status_code == 200 and processed_response_data:
         expected_upload_name = query_args.get('upload_name')
         if not expected_upload_name:
-            if mode in ('multipart', 'local_path'):
-                expected_upload_name = os.path.basename(source_path)
+            if mode in ('multipart', 'local_path') and len(source_paths) == 1:
+                expected_upload_name = os.path.basename(source_paths[0])
             elif mode == 'stream':
                 expected_upload_name = query_args.get('file_name')
 
@@ -1388,7 +1420,7 @@ def test_post_upload(
     if query_args.get('publish_directly'):
         upload_id = processed_response_data['upload_id']
         upload_proc = Upload.objects(upload_id=upload_id).first()
-        if source_path == empty_file:
+        if source_paths == [empty_file]:
             assert not upload_proc.published
         else:
             assert_gets_published(client, upload_id, test_auth_dict['test_user'][0], **query_args)
