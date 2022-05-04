@@ -26,7 +26,7 @@ from httpx import Timeout
 from keycloak import KeycloakOpenID
 
 from nomad import config, metainfo as mi
-from nomad.datamodel import EntryArchive
+from nomad.datamodel import EntryArchive, ClientContext
 
 
 def _collect(required, parent_section: mi.Section, parent_path: str = None) -> set:
@@ -99,7 +99,7 @@ class ArchiveQuery:
         if query:
             self._query_list.append(query)
         self._query_list.append({'quantities': list(_collect(self._required, EntryArchive.m_def))})
-        self._url: str = url if url else config.client.url
+        self._url: str = url if url else config.client.url + '/v1'
         self._after: str = after
         self._results_max: int = results_max if results_max > 0 else 1000
         self._page_size: int = page_size if page_size > 0 else 10
@@ -122,21 +122,31 @@ class ArchiveQuery:
         self._current_after: str = self._after
         self._current_results: int = 0
 
+        # check if url has the form of http(s)://<hostname>/api/v1
+        # http://nomad-lab.eu/prod/v1/api/v1
+        if self._url.endswith('/'):
+            self._url = self._url[:-1]
+        if not self._url.endswith('/api/v1'):
+            self._url += '/v1' if self._url.endswith('/api') else '/api/v1'
+
+        # context used for resolving references
+        self._context = ClientContext(self._url)
+
     @property
     def _query(self) -> dict:
         return {'and': self._query_list}
 
     @property
     def _fetch_url(self) -> str:
-        return f'{self._url}/v1/entries/query'
+        return f'{self._url}/entries/query'
 
     @property
     def _download_url(self) -> str:
-        return f'{self._url}/v1/entries/archive/query'
+        return f'{self._url}/entries/archive/query'
 
     @property
     def _auth_url(self) -> str:
-        return f'{self._url}/v1/auth/token'
+        return f'{self._url}/auth/token'
 
     def _update_token_from_api(self):
         if self._token:
@@ -383,7 +393,7 @@ class ArchiveQuery:
             self._uploads.remove(upload)
 
             result = [EntryArchive.m_from_dict(
-                result['archive']) for result in response_json['data']]
+                result['archive'], m_context=self._context) for result in response_json['data']]
 
             if not result:
                 print(f'No result returned for id {upload[0]}, is the query proper?')

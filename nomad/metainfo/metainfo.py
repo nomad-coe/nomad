@@ -2107,7 +2107,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     except Exception:
                         raise MetainfoReferenceError(
                             f'Could not resolve {path}, there is no sub section for '
-                            '{prop_name} at {index}')
+                            f'{prop_name} at {index}')
 
                 else:
                     section = section.m_get_sub_section(prop_def, -1)

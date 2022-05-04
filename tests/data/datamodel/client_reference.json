@@ -1,0 +1,32 @@
+{
+    "run": [
+        {
+            "calculation": [
+                {
+                    "system_ref": "/run/0/system/0",
+                    "method_ref": "/run/0/method/0",
+                    "energy": {
+                        "total": {
+                            "value": -1.5935696296699573e-18
+                        },
+                        "free": {
+                            "value": -1.5936767191492225e-18
+                        },
+                        "total_t0": {
+                            "value": -3.2126683561907e-22
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "workflow": [
+        {
+            "type": "geometry_optimization",
+            "calculation_result_ref": "/run/0/calculation/0",
+            "geometry_optimization": {
+                "final_energy_difference": 4.13754846285984e-25
+            }
+        }
+    ]
+}

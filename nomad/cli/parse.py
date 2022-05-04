@@ -28,13 +28,14 @@ from .cli import cli
 @click.option('--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.')
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
 @click.option('--parser', help='Skip matching and use the provided parser')
-def _parse(mainfile, show_archive, show_metadata, skip_normalizers, not_strict, parser):
+@click.option('--server-context', is_flag=False, default=False, help='Whether to use server context.')
+def _parse(mainfile, show_archive, show_metadata, skip_normalizers, not_strict, parser, server_context):
     import sys
     import json
 
     from nomad.client import parse, normalize_all
 
-    kwargs = dict(strict=not not_strict, parser_name=parser)
+    kwargs = dict(strict=not not_strict, parser_name=parser, server_context=server_context)
 
     entry_archives = parse(mainfile, **kwargs)
 
