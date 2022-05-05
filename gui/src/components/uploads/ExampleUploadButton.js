@@ -15,84 +15,78 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Button, Dialog, DialogTitle } from '@material-ui/core'
+import { Button, Dialog, DialogTitle, makeStyles } from '@material-ui/core'
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles } from '@material-ui/core/styles'
 import List from '@material-ui/core/List'
 import ListItem from '@material-ui/core/ListItem'
-import ListItemText from '@material-ui/core/ListItemText'
-import { blue } from '@material-ui/core/colors'
 import CloudUploadIcon from '@material-ui/icons/CloudUpload'
-import { useHistory, useLocation } from 'react-router-dom'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
+import exampleUploads from '../../ExampleUploads.json'
+import Markdown from '../Markdown'
 
-const exampleUploads = {
-  Theory: [
-    {
-      title: 'VASP Sample Uploads',
-      description: 'Here goes the VASP description Here goes the VASP description Here goes the VASP description Here goes the VASP description Here goes the VASP description ',
-      filePath: 'tests/data/proc/examples_vasp.zip'
-    },
-    {
-      title: 'Smaller VASP Sample Uploads',
-      description: 'Here goes the Smaller VASP description',
-      filePath: 'tests/data/proc/examples_vasp.zip'
-    }
-  ],
-  Tabular: [
-    {
-      title: 'ELN Sample Uploads',
-      description: 'Here goes the ELN description',
-      filePath: 'tests/data/proc/examples_vasp.zip'
-    }
-  ]
-}
-
-const useStyles = makeStyles({
-  buttons: {
-    backgroundColor: blue[100],
-    color: blue[600]
+const useStyles = makeStyles(theme => ({
+  markDownHeader: {
+    color: '#000000',
+    fontSize: '18px'
+  },
+  markDownDescription: {
+    color: '#808080',
+    fontSize: '15px'
+  },
+  listItem: {
+    flexDirection: 'column',
+    maxWidth: '500px',
+    alignItems: 'start'
+  },
+  mainDiv: {
+    display: 'flex',
+    alignItems: 'center'
+  },
+  selectButton: {
+    marginRight: '5px',
+    height: '30px'
   }
-})
+}))
 
 const ExampleUploadDialog = React.memo(function ExampleUploadDialog(props) {
-  const { exampleUploadData, onClose, selectedUpload, open } = props
+  const { exampleUploadData, onClose, openDialog } = props
   const classes = useStyles()
-
-  const handleClose = () => {
-    onClose(selectedUpload)
-  }
 
   return (
     <Dialog
-      onClose={handleClose}
+      onClose={() => onClose()}
       aria-labelledby="Uploads-dialogBox"
-      open={open}
-      fullWidth
+      open={openDialog}
     >
       <DialogTitle id="Uploads-dialogBox">Select a sample Upload</DialogTitle>
       <List>
         {Object.keys(exampleUploadData).map((exampleType) => exampleUploadData[exampleType].map((uploadEntry, i) =>
-          <ListItem key={i}>
-            <ListItemText
-              primary={`${uploadEntry.title}  (${exampleType})`}
-              secondary={uploadEntry.description}
-              style={{maxWidth: '450px'}}
-            />
+          <div key={i} className={classes.mainDiv}>
+            <ListItem className={classes.listItem}>
+              <Markdown className={classes.markDownHeader}>
+                {`
+                  ${uploadEntry.title}  (${exampleType})
+                `}
+              </Markdown>
+              <Markdown className={classes.markDownDescription}>
+                {`
+                  ${uploadEntry.description}
+                `}
+              </Markdown>
+            </ListItem>
             <Button
               variant="contained"
               color="primary"
-              className={classes.button}
               startIcon={<CloudUploadIcon />}
               onClick={() => onClose(uploadEntry.filePath)}
-              style={{marginLeft: '20px'}}
+              className={classes.selectButton}
             >
               Select
             </Button>
-          </ListItem>)
-        )}
+          </div>
+        ))}
       </List>
     </Dialog>
   )
@@ -100,37 +94,28 @@ const ExampleUploadDialog = React.memo(function ExampleUploadDialog(props) {
 
 ExampleUploadDialog.propTypes = {
   onClose: PropTypes.func.isRequired,
-  open: PropTypes.bool.isRequired,
-  exampleUploadData: PropTypes.object.isRequired,
-  selectedUpload: PropTypes.string
+  openDialog: PropTypes.bool.isRequired,
+  exampleUploadData: PropTypes.object.isRequired
 }
 
 export default function ExampleUploadButton({...props}) {
   const {api} = useApi()
   const errors = useErrors()
-  const history = useHistory()
-  const location = useLocation()
 
-  const [selectedUpload, setSelectedUpload] = useState(null)
-  const [open, setOpen] = useState(false)
+  const [openDialog, setOpenDialog] = useState(false)
 
   const handleClickOpen = () => {
-    setOpen(true)
+    setOpenDialog(true)
   }
 
   const handleClose = (value) => {
-    api.post(`/uploads?local_path=${value}`)
-      .then(setSelectedUpload(value)
-        // (upload) => {
-        //   history.push(getUrl(`upload/id/${upload.upload_id}`, location))
-        // }
-      )
+    (value && api.post(`/uploads?local_path=${value}`)
+      .then(window.location.reload())
       .catch((error) => {
         errors.raiseError(error)
       })
-    // setSelectedUpload(value)
-    setOpen(false)
-    console.log(selectedUpload)
+    )
+    setOpenDialog(false)
   }
 
   return (
@@ -140,13 +125,8 @@ export default function ExampleUploadButton({...props}) {
       </Button>
       <ExampleUploadDialog
         exampleUploadData={exampleUploads}
-        selectedUpload={selectedUpload}
-        open={open}
+        openDialog={openDialog}
         onClose={handleClose}
-        api={api}
-        location={location}
-        history={history}
-        errors={errors}
       />
     </div>
   )

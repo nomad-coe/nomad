@@ -1,0 +1,21 @@
+{
+    "Theory": [
+      {
+        "title": "VASP Sample Uploads",
+        "description": "Here goes the VASP description Here goes the VASP description Here goes the VASP description Here goes the VASP description Here goes the VASP description ",
+        "filePath": "tests/data/proc/examples_vasp.zip"
+      },
+      {
+        "title": "Smaller VASP Sample Uploads",
+        "description": "Here goes the Smaller VASP description",
+        "filePath": "tests/data/proc/examples_vasp.zip"
+      }
+    ],
+    "Tabular": [
+      {
+        "title": "ELN Sample Uploads",
+        "description": "Here goes the ELN description",
+        "filePath": "tests/data/proc/examples_vasp.zip"
+      }
+    ]
+  }
