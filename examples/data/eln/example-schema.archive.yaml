@@ -56,7 +56,15 @@ definitions:
             A reference to an uploaded .csv produced by the PVD evaporation instruments
             control software.
           m_annotations:
-            parser: 'nomad.parsing.CSVArchiveParser'
+            tabular_parser:
+              sep: '\t'
+              comment: '#'
+              columns:
+                time: Process Time in seconds
+                substrate_temperature:
+                  name: Substrate PV
+                  unit: degC
+                chamber_pressure: Vacuum Pressure1
             eln:
               component: FileEditQuantity
         time:
@@ -67,8 +75,16 @@ definitions:
           type: np.float64
           shape: ['*']
           unit: mbar
-        chamber_temperature:
+          m_annotations:
+            plot:
+              x: time
+              y: chamber_pressure
+        substrate_temperature:
           type: np.float64
           shape: ['*']
-          unit: C
+          unit: kelvin
+          m_annotations:
+            plot:
+              x: time
+              y: substrate_temperature
 

@@ -49,8 +49,7 @@ class MetainfoNormalizer(Normalizer):
 
         for sub_section in self.entry_archive.m_contents():
             if isinstance(sub_section, EntryData):
-                sections = list(sub_section.m_traverse())
-                for section, _, _ in sections:
+                for section in sub_section.m_all_contents():
                     self.normalize_section(section, logger)
             self.normalize_section(sub_section, logger)
 

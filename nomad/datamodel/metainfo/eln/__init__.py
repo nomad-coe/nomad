@@ -18,6 +18,7 @@
 
 from nomad.datamodel.data import EntryData
 from nomad.metainfo import MSection, Package, Quantity, Datetime
+from nomad.units import ureg
 
 m_package = Package(name='material_library')
 
@@ -46,8 +47,39 @@ class ElnBaseSection(MSection):
                 archive.metadata.entry_name = self.name
             EntryData.normalize(self, archive, logger)
 
+        for quantity in self.m_def.all_quantities.values():
+            tabular_parser_annotation = quantity.m_annotations.get('tabular_parser', None)
+            if tabular_parser_annotation:
+                self.tabular_parser(quantity, archive, logger, **tabular_parser_annotation)
 
-class ElnActivityBaseSecton(MSection):
+    def tabular_parser(self, quantity_def: Quantity, archive, logger, columns, **kwargs):
+        if not quantity_def.is_scalar:
+            raise NotImplementedError('CSV parser is only implemented for single files.')
+
+        value = self.m_get(quantity_def)
+        if not value:
+            return
+
+        import pandas as pd
+        with archive.m_context.raw_file(self.data_file) as f:
+            data = pd.read_csv(f, engine='python', **kwargs)
+
+        for quantity_name, column_value in columns.items():
+            quantity = self.m_def.all_quantities[quantity_name]
+            if isinstance(column_value, str):
+                column_name = column_value
+                column_unit = quantity.unit
+            elif isinstance(column_value, dict):
+                column_name = column_value['name']
+                column_unit = ureg(column_value['unit'])
+
+            np_values = data.loc[:, column_name].to_numpy()
+            if column_unit is not None:
+                np_values *= column_unit
+            self.m_set(quantity, np_values)
+
+
+class ElnActivityBaseSecton(ElnBaseSection):
     datetime = Quantity(
         type=Datetime,
         description='The date and time when this activity was done.',

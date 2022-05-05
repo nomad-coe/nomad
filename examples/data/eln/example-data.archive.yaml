@@ -1,0 +1,7 @@
+data:
+  m_def: '../upload/raw/example-schema.archive.yaml#/Sample'
+  processes:
+    pvd_evaporation:
+      name: 'Test'
+      data_file: '../../../local/eln_demo_files/Process.csv'
+  name: Example

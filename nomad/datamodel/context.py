@@ -293,3 +293,7 @@ class ClientContext(Context):
             return EntryArchive.m_from_dict(archive_data, m_context=self)
         else:
             return MSection.from_dict(archive_data, m_context=self)
+
+    def raw_file(self, path, *args, **kwargs):
+        file_path = os.path.join(self.local_dir, path)
+        return open(file_path, *args, **kwargs)
