@@ -72,7 +72,7 @@ parser_examples = [
     ('parsers/eels', 'tests/data/parsers/eels.json'),
     ('parsers/lobster', 'tests/data/parsers/lobster/NaCl/lobsterout'),
     ('parsers/aflow', 'tests/data/parsers/aflow/Ag1Co1O2_ICSD_246157/aflowlib.json'),
-    ('parsers/mp', 'tests/data/parsers/mp/mp-1/materials.json'),
+    ('parsers/atomate', 'tests/data/parsers/atomate/mp-1/materials.json'),
     ('parsers/asr', 'tests/data/parsers/asr/archive_ccdc26c4f32546c5a00ad03a093b73dc.json'),
     ('parsers/psi4', 'tests/data/parsers/psi4/adc1/output.ref'),
     ('parsers/yambo', 'tests/data/parsers/yambo/hBN/r-10b_1Ry_HF_and_locXC_gw0_em1d_ppa'),
