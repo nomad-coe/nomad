@@ -26,7 +26,6 @@ import requests
 from nomad import utils, config
 from nomad.metainfo import Context as MetainfoContext, MSection, Quantity, MetainfoReferenceError
 from nomad.datamodel import EntryArchive
-from nomad.parsing.parser import ArchiveParser
 
 
 class Context(MetainfoContext):
@@ -256,11 +255,13 @@ class ClientContext(Context):
         return EntryArchive.m_from_dict(response.json()['data']['archive'], m_context=self)
 
     def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
+
         # TODO currently upload_id might be None
         if upload_id is None:
             # try to find a local file, useful when the context is used for local parsing
             file_path = os.path.join(self.local_dir, path)
             if os.path.exists(file_path):
+                from nomad.parsing.parser import ArchiveParser
                 with open(file_path, 'rt') as f:
                     archive = EntryArchive(m_context=self)
                     ArchiveParser().parse_file(file_path, f, archive)

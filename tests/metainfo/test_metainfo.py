@@ -268,6 +268,10 @@ class TestM2:
         pkg.init_metainfo()
         assert len(pkg.warnings) > 0
 
+    # TODO
+    @pytest.mark.skip(reason=(
+        'We disabled the constraint that is tested here, because some Nexus definitions '
+        'are violating it.'))
     def test_higher_shapes_require_dtype(self):
         class TestSection(MSection):  # pylint: disable=unused-variable
             test = Quantity(type=int, shape=[3, 3])

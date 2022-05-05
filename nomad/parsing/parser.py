@@ -335,6 +335,8 @@ class ArchiveParser(MatchingParser):
                 for warning in warnings:
                     logger.warn('Validation warning', details=warning)
 
+            archive.definitions.archive = archive
+
             del archive_data['definitions']
 
         archive.m_update_from_dict(archive_data)

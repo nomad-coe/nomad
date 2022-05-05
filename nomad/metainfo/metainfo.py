@@ -1779,7 +1779,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         def m_def_reference():
             qualified_name = self.m_def.qualified_name()
-            if qualified_name.startswith('*.'):
+            if qualified_name.startswith('entry_id:'):
                 # This is not from a python module, use archive reference instead
                 return self.m_def.m_root().m_context.create_reference(self, None, self.m_def)
 
@@ -2554,14 +2554,11 @@ class Definition(MSection):
         return super().m_is_set(quantity_def)
 
     def qualified_name(self):
-        names = []
-        current = self
-        while current is not None and current.m_follows(Definition.m_def):
-            name = current.name
-            names.append(name if name else '*')
-            current = current.m_parent
+        name = self.name if self.name else '*'
+        if self.m_parent and self.m_parent.m_follows(Definition.m_def):
+            return f'{self.m_parent.qualified_name()}.{name}'
 
-        return '.'.join(reversed(names))
+        return name
 
     def on_set(self, quantity_def, value):
         if quantity_def == Definition.categories:
@@ -3335,6 +3332,7 @@ class Package(Definition):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.errors, self.warnings = [], []
+        self.archive = None
 
     def __init_metainfo__(self):
         super().__init_metainfo__()
@@ -3395,6 +3393,17 @@ class Package(Definition):
                 data['section_definitions'] = sections
 
         return super(Package, cls).m_from_dict(data, **kwargs)
+
+    def qualified_name(self):
+        if self.archive:
+            # If the package was defined within a regular uploaded archive file, we
+            # use its id, which is a globally unique identifier for the package.
+            if self.archive.metadata and self.archive.metadata.entry_id:
+                return f'entry_id:{self.archive.metadata.entry_id}'
+            else:
+                return f'entry_id:*'
+
+        return super().qualified_name()
 
 
 class Category(Definition):
