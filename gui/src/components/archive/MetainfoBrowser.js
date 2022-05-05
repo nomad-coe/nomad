@@ -375,7 +375,7 @@ function SectionDefContent({def}) {
   const config = useRecoilValue(configState)
   const metainfoConfig = useRecoilValue(metainfoConfigState)
   const filter = def.extends_base_section ? () => true : def => {
-    if (!def?._package?.name) {
+    if (def?._package?._unique_id?.startsWith('entry_id:')) {
       // dynamically loaded custom schema
       return true
     }
@@ -422,7 +422,7 @@ function SectionDefContent({def}) {
       }
     </Compartment>
     <Compartment title="quantity definitions">
-      {def.quantities.filter(filter)
+      {def._allProperties.filter(prop => prop.m_def === QuantityMDef).filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
           const categories = quantityDef.categories
@@ -494,8 +494,9 @@ function DefinitionProperties({def, children}) {
     .map(key => def.m_annotations[key].filter(
       value => !(value.endsWith('.suggestion') || value.endsWith('__suggestion')))
     )
+  const hasSearchAnnotations = searchAnnotations && searchAnnotations.length > 0
 
-  if (!(children || def.aliases?.length || def.deprecated || (def.more && Object.keys(def.more).length) || searchAnnotations)) {
+  if (!(children || def.aliases?.length || def.deprecated || (def.more && Object.keys(def.more).length) || hasSearchAnnotations)) {
     return ''
   }
 
@@ -506,7 +507,7 @@ function DefinitionProperties({def, children}) {
     {Object.keys(def.more).map((moreKey, i) => (
       <Typography key={i}><b>{moreKey}</b>:&nbsp;{String(def.more[moreKey])}</Typography>
     ))}
-    {searchAnnotations && <Typography><b>search&nbsp;keys</b>:&nbsp;{
+    {hasSearchAnnotations > 0 && <Typography><b>search&nbsp;keys</b>:&nbsp;{
       searchAnnotations.join(', ')}</Typography>}
   </Compartment>
 }
