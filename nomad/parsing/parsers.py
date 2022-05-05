@@ -151,10 +151,11 @@ def run_parser(
     for parsers that create children the list will consist of the main entry followed by the
     child entries. The returned archive objects will have minimal metadata.
     '''
+    directory = os.path.dirname(mainfile_path)
     if server_context:
-        entry_archive = EntryArchive(m_context=ParserContext(os.path.dirname(mainfile_path)))
+        entry_archive = EntryArchive(m_context=ParserContext(directory))
     else:
-        entry_archive = EntryArchive(m_context=ClientContext())
+        entry_archive = EntryArchive(m_context=ClientContext(local_dir=directory))
     metadata = entry_archive.m_create(EntryMetadata)
     metadata.mainfile = mainfile_path
     entry_archives = [entry_archive]

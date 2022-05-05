@@ -1,5 +1,6 @@
 {
     "definitions": {
+      "name": "A name for the package",
       "section_definitions": [
         {
           "name": "MySection",

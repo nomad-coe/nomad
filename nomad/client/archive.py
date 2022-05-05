@@ -392,6 +392,9 @@ class ArchiveQuery:
 
             self._uploads.remove(upload)
 
+            # TODO a generic ClientContext might not be good enough. For intra upload
+            # references (that do not contain an upload_id), the ClientContext needs
+            # to use the upload id the entry that we try to produce here!
             result = [EntryArchive.m_from_dict(
                 result['archive'], m_context=self._context) for result in response_json['data']]
 
