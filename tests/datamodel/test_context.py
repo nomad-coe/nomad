@@ -23,15 +23,12 @@ import json
 import re
 
 import nomad
-from nomad import utils, files, processing, config
+from nomad import utils, files, processing
 from nomad.metainfo.metainfo import MSection
 from nomad.parsing.parser import ArchiveParser
 from nomad.datamodel import Context
 from nomad.datamodel.context import ServerContext, ClientContext
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
-
-from tests.processing import test_data as test_processing
-from tests.utils import create_template_upload_file
 
 
 @pytest.fixture(scope='module')
@@ -256,8 +253,8 @@ def test_server_custom_schema(upload_contents, raw_files):
                 upload_id='test_upload', entry_id=entry_id, mainfile=file_name))
 
         parser.parse(mainfile=upload_files.raw_file_object(file_name).os_path, archive=archive)
-        upload_files.write_archive(entry_id, archive.m_to_dict(with_out_meta=True))
-        results = archive.m_to_dict()
+        upload_files.write_archive(entry_id, archive.m_to_dict())
+        results = archive.m_to_dict(with_out_meta=True)
         del results['metadata']
         assert results == content
 

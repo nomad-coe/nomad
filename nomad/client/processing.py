@@ -32,7 +32,7 @@ def parse(
         backend_factory: typing.Callable = None,
         strict: bool = True,
         logger=None,
-        **kwargs) -> typing.List[datamodel.EntryArchive]:
+        server_context: bool = False) -> typing.List[datamodel.EntryArchive]:
     '''
     Run the given parser on the provided mainfile. If parser_name is given, we only try
     to match this parser, otherwise we try to match all parsers.
@@ -57,7 +57,7 @@ def parse(
     if hasattr(parser, 'backend_factory'):
         setattr(parser, 'backend_factory', backend_factory)
 
-    entry_archives = parsers.run_parser(mainfile_path, parser, mainfile_keys, logger, **kwargs)
+    entry_archives = parsers.run_parser(mainfile_path, parser, mainfile_keys, logger, server_context)
 
     logger.info('ran parser')
     return entry_archives

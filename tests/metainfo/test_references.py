@@ -332,8 +332,7 @@ def test_def_reference():
 def test_parse_with_references(mainfile):
     from nomad.client import parse, normalize_all
     entry_archive = parse(
-        os.path.join(os.path.dirname(__file__), f'../data/metainfo/{mainfile}.archive.json'),
-        metadata=dict(entry_id='test_entry_id'))[0]
+        os.path.join(os.path.dirname(__file__), f'../data/metainfo/{mainfile}.archive.json'))[0]
     normalize_all(entry_archive)
 
     m_def = entry_archive.m_to_dict()['data']['m_def']

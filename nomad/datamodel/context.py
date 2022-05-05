@@ -24,6 +24,7 @@ import os.path
 import requests
 
 from nomad import utils, config
+from nomad.datamodel.datamodel import EntryMetadata
 from nomad.metainfo import Context as MetainfoContext, MSection, Quantity, MetainfoReferenceError
 from nomad.datamodel import EntryArchive
 
@@ -216,7 +217,15 @@ class ServerContext(Context):
         upload_files = self._get_upload_files(upload_id, installation_url)
 
         try:
-            archive = EntryArchive(m_context=self)
+            # Make sure the archive has proper entry_id, even though we are just
+            # loading a raw file. This is important to serialize references into this
+            # archive!
+            archive = EntryArchive(
+                m_context=self,
+                metadata=EntryMetadata(
+                    upload_id=upload_id,
+                    mainfile=path,
+                    entry_id=utils.generate_entry_id(upload_id, path)))
             from nomad.parsing.parser import ArchiveParser
             with upload_files.raw_file(path, 'rt') as f:
                 ArchiveParser().parse_file(path, f, archive)

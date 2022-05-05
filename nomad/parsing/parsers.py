@@ -17,7 +17,7 @@
 #
 
 import os.path
-from typing import Tuple, List, Dict, Any
+from typing import Tuple, List, Dict
 
 from nomad import config
 from nomad.datamodel import EntryArchive, EntryMetadata, results
@@ -143,7 +143,7 @@ class ParserContext(Context):
 
 def run_parser(
         mainfile_path: str, parser: Parser, mainfile_keys: List[str] = None,
-        logger=None, server_context: bool = False, metadata: Dict[str, Any] = None) -> List[EntryArchive]:
+        logger=None, server_context: bool = False) -> List[EntryArchive]:
     '''
     Parses a file, given the path, the parser, and mainfile_keys, as returned by
     :func:`match_parser`, and returns the resulting EntryArchive objects. Parsers that have
@@ -157,10 +157,7 @@ def run_parser(
     else:
         entry_archive = EntryArchive(m_context=ClientContext(local_dir=directory))
 
-    if metadata is not None:
-        entry_archive.metadata = EntryMetadata(**metadata)
-    else:
-        entry_archive.metadata = EntryMetadata()
+    entry_archive.metadata = EntryMetadata()
     entry_archive.metadata.mainfile = mainfile_path
 
     entry_archives = [entry_archive]
