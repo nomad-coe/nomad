@@ -85,7 +85,8 @@ export async function createMetainfo(data, parentMetainfo, context) {
     await metainfo._addPackages(data.packages)
   }
   if (data.definitions) {
-    await metainfo._addPackages([data.definitions], data?.metadata?.entry_id)
+    const entryId = data?.metadata?.entry_id
+    await metainfo._addPackages([data.definitions], entryId ? `entry_id:${entryId}` : null)
   }
   data._metainfo = metainfo
   return metainfo

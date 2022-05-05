@@ -57,21 +57,17 @@ export function useBrowserAdaptorContext(data) {
   const metainfo = useMetainfo(data)
   const {api} = useApi()
 
-  const context = useMemo(() => {
-    const context = {
-      api: api,
-      metainfo: metainfo,
-      archive: data,
-      resources: {}
-    }
-    if (entryContext) {
-      context.entryId = entryContext.entryId
-      context.uploadId = entryContext.uploadId
-    } else if (uploadContext) {
-      context.uploadId = uploadContext.entryId
-    }
-    return context
-  }, [entryContext, uploadContext, metainfo, api, data])
+  const entryId = entryContext?.entryId
+  const uploadId = entryContext?.uploadId || uploadContext?.uploadId
+
+  const context = useMemo(() => ({
+    api: api,
+    metainfo: metainfo,
+    archive: data,
+    resources: {},
+    entryId: entryId,
+    uploadId: uploadId
+  }), [entryId, uploadId, metainfo, api, data])
 
   return context
 }
@@ -92,7 +88,14 @@ const ArchiveBrowser = React.memo(({data}) => {
     return metainfo ? archiveSearchOptions(data, metainfo) : []
   }, [data, metainfo])
 
-  if (!metainfo) {
+  const adaptor = useMemo(() => {
+    if (!context.metainfo) {
+      return null
+    }
+    return archiveAdaptorFactory(context, data, undefined)
+  }, [context, data])
+
+  if (!adaptor) {
     return ''
   }
 
@@ -104,7 +107,7 @@ const ArchiveBrowser = React.memo(({data}) => {
   context.archive = data
   return (
     <Browser
-      adaptor={archiveAdaptorFactory(context, data, undefined)}
+      adaptor={adaptor}
       form={<ArchiveConfigForm searchOptions={searchOptions} data={data}/>}
     />
   )
@@ -181,7 +184,7 @@ export const ArchiveDeleteButton = React.memo(function ArchiveDeleteButton(props
     </React.Fragment>) : ''
 })
 
-function ArchiveConfigForm({searchOptions, data}) {
+const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, data}) {
   const [config, setConfig] = useRecoilState(configState)
 
   const handleConfigChange = event => {
@@ -268,7 +271,7 @@ function ArchiveConfigForm({searchOptions, data}) {
       </FormGroup>
     </Box>
   )
-}
+})
 ArchiveConfigForm.propTypes = ({
   data: PropTypes.object.isRequired,
   searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired

@@ -1,10 +1,10 @@
 definitions:
-  # name: 'NOMAD Example Lab'
+  name: 'NOMAD Example Lab'
   sections:
     Chemical:
       base_sections:
-        - 'nomad.datamodel.data.EntryData'
         - 'nomad.datamodel.metainfo.eln.Chemical'
+        - 'nomad.datamodel.data.EntryData'
       quantities:
         storage_hold:
           description: |
