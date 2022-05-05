@@ -143,7 +143,9 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
       return // Not dropping a file, but something else. Ignore.
     }
     const formData = new FormData() // eslint-disable-line no-undef
-    formData.append('file', files[0])
+    for (const file of files) {
+      formData.append('file', file)
+    }
     browser.blockUntilProcessed({
       uploadId: uploadId,
       apiCall: api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData, {

@@ -45,7 +45,7 @@ original mainfile, and vice versa.
 
 from abc import ABCMeta
 import sys
-from typing import IO, Dict, Iterable, Iterator, List, Tuple, Any, NamedTuple
+from typing import IO, Set, Dict, Iterable, Iterator, List, Tuple, Any, NamedTuple
 from functools import lru_cache
 from pydantic import BaseModel
 from datetime import datetime
@@ -823,7 +823,8 @@ class StagingUploadFiles(UploadFiles):
         return self._archive_dir.join_file(f'{entry_id}.msg')
 
     def add_rawfiles(
-            self, path: str, target_dir: str = '', cleanup_source_file_and_dir: bool = False) -> None:
+            self, path: str, target_dir: str = '', cleanup_source_file_and_dir: bool = False,
+            updated_files: Set[str] = None) -> None:
         '''
         Adds the file or folder specified by `path` to this upload, in the raw directory
         specified by `target_dir`. If `path` denotes a zip or tar archive file, it will
@@ -843,9 +844,12 @@ class StagingUploadFiles(UploadFiles):
             target_dir: A raw path (i.e. path relative to the raw directory) defining
                 where the resource defined by `path` should be put. If `target_dir` is not
                 specified, it defaults to the empty string, i.e. the upload's raw dir.
-            cleanup_source_file_and_dir: If true, the source file (defined by `path`) and
-                its parent folder are included in the cleanup step - i.e. they are always
-                deleted. Use when the file is stored temporarily.
+            cleanup_source_file_and_dir: If true, the source file/folder (defined by `path`) is
+                deleted when done (regardless of success or failure). Additionally, the parent
+                folder is deleted if it's empty or if the operation failed. Use when the file/folder
+                to add is stored in a temporary directory.
+            updated_files: An optional set of paths. If provided with the call, the raw
+                path of all files added or updated by the operation will be added to this set.
         '''
         tmp_dir = None
         try:
@@ -870,43 +874,35 @@ class StagingUploadFiles(UploadFiles):
 
             # Determine what to merge
             elements_to_merge: Iterable[Tuple[str, List[str], List[str]]] = []
-            if is_dir or decompress:
+            if is_dir:
                 # Directory
-                source_dir = path if is_dir else tmp_dir
+                source_dir = path
+                elements_to_merge = os.walk(source_dir)
+            elif decompress:
+                # Zipped archive
+                source_dir = tmp_dir
                 elements_to_merge = os.walk(source_dir)
             else:
-                # Single file
+                # Single, non-compressed file
                 source_dir = os.path.dirname(path)
                 elements_to_merge = [(source_dir, [], [os.path.basename(path)])]
 
-            # Ensure target_dir exists and is a directory. If one of the elements in the
-            # directory chain is a file, it needs to be deleted (the regular os.makedirs
-            # doesn't do that).
-            target_dir_subpath = self._raw_dir.os_path
-            for dir_name in target_dir.split(os.path.sep):
-                target_dir_subpath = os.path.join(target_dir_subpath, dir_name)
-                if os.path.isfile(target_dir_subpath):
-                    os.remove(target_dir_subpath)
-                if not os.path.isdir(target_dir_subpath):
-                    os.makedirs(target_dir_subpath)
-
             # Do the merge
-            for root, dirs, files in elements_to_merge:
+            os_target_dir = os.path.join(self._raw_dir.os_path, target_dir)
+            if not os.path.isdir(os_target_dir):
+                os.makedirs(os_target_dir)
+            for source_root, dirs, files in elements_to_merge:
                 elements = dirs + files
-                os_target_dir = os.path.join(self._raw_dir.os_path, target_dir)
                 for element in elements:
-                    element_source_path = os.path.join(root, element)
+                    element_source_path = os.path.join(source_root, element)
                     element_relative_path = os.path.relpath(element_source_path, source_dir)
                     element_target_path = os.path.join(os_target_dir, element_relative_path)
                     if os.path.islink(element_source_path):
                         continue  # Skip links, could pose security risk
                     if os.path.exists(element_target_path):
-                        if not (os.path.isdir(element_source_path) and os.path.isdir(element_target_path)):
-                            # Target already exists and needs to be deleted
-                            if os.path.isdir(element_target_path):
-                                shutil.rmtree(element_target_path)
-                            else:
-                                os.remove(element_target_path)
+                        if os.path.isfile(element_target_path) != os.path.isfile(element_source_path):
+                            assert False, f'Cannot merge a file with a directory or vice versa: {element_relative_path}'
+
                     # Copy or move the element
                     if os.path.isdir(element_source_path):
                         # Directory - just create corresponding directory in the target if needed.
@@ -920,6 +916,14 @@ class StagingUploadFiles(UploadFiles):
                         else:
                             # Copy the file
                             shutil.copyfile(element_source_path, element_target_path)
+                        if updated_files is not None:
+                            updated_files.add(os.path.join(target_dir, element_relative_path))
+        except Exception:
+            if cleanup_source_file_and_dir:
+                parent_dir = os.path.dirname(path)
+                if os.path.exists(parent_dir):
+                    shutil.rmtree(parent_dir)
+            raise
         finally:
             # Cleanup
             if tmp_dir and os.path.exists(tmp_dir):
@@ -931,16 +935,27 @@ class StagingUploadFiles(UploadFiles):
                     else:
                         os.remove(path)
                 parent_dir = os.path.dirname(path)
-                if os.path.exists(parent_dir):
+                if os.path.exists(parent_dir) and not os.listdir(parent_dir):
                     shutil.rmtree(parent_dir)
 
-    def delete_rawfiles(self, path):
+    def delete_rawfiles(self, path, updated_files: Set[str] = None):
         assert is_safe_relative_path(path)
-        os_path = os.path.join(self.os_path, 'raw', path)
+        raw_os_path = os.path.join(self.os_path, 'raw')
+        os_path = os.path.join(raw_os_path, path)
         assert os.path.exists(os_path)
         if os.path.isfile(os_path):
+            # Deleting a file
+            if updated_files is not None:
+                updated_files.add(path)
             os.remove(os_path)
         else:
+            # Deleting a directory
+            if updated_files is not None:
+                for dirname, _, filenames in os.walk(os_path):
+                    for filename in filenames:
+                        file_os_path = os.path.join(dirname, filename)
+                        file_raw_path = os.path.relpath(file_os_path, raw_os_path)
+                        updated_files.add(file_raw_path)
             shutil.rmtree(os_path)
         if path == '':
             # Special case - deleting everything, i.e. the entire raw folder. Need to recreate.

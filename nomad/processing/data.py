@@ -46,7 +46,7 @@ import validators
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
 from nomad.files import (
-    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle,
+    RawPathInfo, PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle,
     create_tmp_dir, is_safe_relative_path)
 from nomad.processing.base import (
     Proc, process, process_local, ProcessStatus, ProcessFailure, ProcessAlreadyRunning, worker_hostname)
@@ -1449,8 +1449,8 @@ class Upload(Proc):
 
     @process()
     def process_upload(
-            self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None,
-            path_filter: str = None):
+            self, file_operations: List[Dict[str, Any]] = None, reprocess_settings: Dict[str, Any] = None,
+            path_filter: str = None, only_updated_files: bool = False):
         '''
         A @process that executes a file operation (if provided), and matches, parses and normalizes
         the upload. Can be used for initial parsing or to re-parse, and can also be used
@@ -1460,8 +1460,8 @@ class Upload(Proc):
         upload in the staging area, or no longer match because of modified parsers, etc).
 
         Arguments:
-            file_operation: A dictionary specifying a file operation to perform before
-                the actual processing. The dictionary should contain a key `op` which defines
+            file_operations: A list of dictionaries specifying file operation(s) to perform before
+                the actual processing, if any. The dictionaries should contain a key `op` which defines
                 the operation, either "ADD" or "DELETE". The "ADD" operation further expects
                 keys named `path` (the path to the source file), `target_dir` (the destination
                 path relative to the raw folder), and `temporary` (if the source file and parent
@@ -1471,17 +1471,15 @@ class Upload(Proc):
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
             path_filter: An optional path used to filter out what should be processed.
-                Use to speed up processing if we know that only certain files/folders have
-                been modified. If provided, only entries located either in the same directory as
-                `path_filter` or *under* `path_filter` (recursively) are scanned in the
-                search for new entries, disappearing entries and old entries that need to
-                be reprocessed. If `path_filter` is None (default), no filtering is done.
+                If path denotes a file, only this file will be processed; if it denotes a
+                folder, everything under this folder will be processed.
+            only_updated_files: If only files updated by the file operations should be processed.
         '''
-        return self._process_upload_local(file_operation, reprocess_settings, path_filter)
+        return self._process_upload_local(file_operations, reprocess_settings, path_filter, only_updated_files)
 
     def _process_upload_local(
-            self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None,
-            path_filter: str = None):
+            self, file_operations: List[Dict[str, Any]] = None, reprocess_settings: Dict[str, Any] = None,
+            path_filter: str = None, only_updated_files: bool = False):
         '''
         The function doing the actual processing, but locally, not as a @process.
         See :func:`process_upload`
@@ -1494,8 +1492,9 @@ class Upload(Proc):
         # Sanity checks
         if path_filter:
             assert is_safe_relative_path(path_filter), 'Invalid `path_filter`'
+        assert not (path_filter and only_updated_files), 'Cannot specify both `path_filter` and `only_updated_files`'
         if self.published:
-            assert not file_operation, 'Upload is published, cannot update files'
+            assert not file_operations, 'Upload is published, cannot update files'
             assert reprocess_settings.rematch_published or reprocess_settings.reprocess_existing_entries, (
                 'Settings do no allow reprocessing of a published upload')
 
@@ -1508,10 +1507,10 @@ class Upload(Proc):
                 {'$set': {'worker_hostname': self.worker_hostname}})
 
         # All looks ok, process
-        self.update_files(file_operation)
-        self.match_all(reprocess_settings, path_filter)
+        updated_files = self.update_files(file_operations, only_updated_files)
+        self.match_all(reprocess_settings, path_filter, updated_files)
         self.parser_level = None
-        if self.parse_next_level(0, path_filter):
+        if self.parse_next_level(0, path_filter, updated_files):
             self.set_last_status_message(f'Waiting for results (level {self.parser_level})')
             return ProcessStatus.WAITING_FOR_RESULT
         else:
@@ -1605,21 +1604,24 @@ class Upload(Proc):
         return self.upload_files.to_staging_upload_files()
 
     @classmethod
-    def _passes_path_filter(cls, mainfile: str, path_filter: str) -> bool:
-        if not path_filter:
-            return True
-        if mainfile == path_filter or mainfile.startswith(path_filter + os.path.sep):
-            return True
-        if os.path.dirname(mainfile) == os.path.dirname(path_filter):
-            return True
-        return False
+    def _passes_process_filter(cls, mainfile: str, path_filter: str, updated_files: Set[str]) -> bool:
+        if path_filter:
+            # Filter by path_filter
+            if mainfile == path_filter or mainfile.startswith(path_filter + os.path.sep):
+                return True
+            return False
+        elif updated_files is not None:
+            # Filter by updated_files
+            return mainfile in updated_files
+        # No filetring
+        return True
 
-    def update_files(self, file_operation: Dict[str, Any]):
+    def update_files(self, file_operations: List[Dict[str, Any]], only_updated_files: bool) -> Set[str]:
         '''
         Performed before the actual parsing/normalizing. It first ensures that there is a
         folder for the upload in the staging area (if the upload is published, the files
         will be temporarily extracted to the staging area for processing). It will then
-        execute the file operation specified (if `file_operation` is set).
+        execute the file operation specified (if `file_operations` is set).
         '''
         logger = self.get_logger()
 
@@ -1636,22 +1638,27 @@ class Upload(Proc):
             StagingUploadFiles(self.upload_id, create=True)
 
         staging_upload_files = self.staging_upload_files
-        # Execute the requested file_operation, if any
-        if file_operation:
-            op = file_operation['op']
-            if op == 'ADD':
-                self.set_last_status_message('Adding files')
-                with utils.timer(logger, 'Adding file(s) to upload', upload_size=staging_upload_files.size):
-                    staging_upload_files.add_rawfiles(
-                        file_operation['path'],
-                        file_operation['target_dir'],
-                        cleanup_source_file_and_dir=file_operation['temporary'])
-            elif op == 'DELETE':
-                self.set_last_status_message('Deleting files')
-                with utils.timer(logger, 'Deleting files or folders from upload'):
-                    staging_upload_files.delete_rawfiles(file_operation['path'])
-            else:
-                raise ValueError(f'Unknown operation {op}')
+        updated_files: Set[str] = set() if only_updated_files else None
+
+        # Execute the requested file_operations, if any
+        if file_operations:
+            for file_operation in file_operations:
+                op = file_operation['op']
+                if op == 'ADD':
+                    self.set_last_status_message('Adding files')
+                    with utils.timer(logger, 'Adding file(s) to upload', upload_size=staging_upload_files.size):
+                        staging_upload_files.add_rawfiles(
+                            file_operation['path'],
+                            file_operation['target_dir'],
+                            cleanup_source_file_and_dir=file_operation['temporary'],
+                            updated_files=updated_files)
+                elif op == 'DELETE':
+                    self.set_last_status_message('Deleting files')
+                    with utils.timer(logger, 'Deleting files or folders from upload'):
+                        staging_upload_files.delete_rawfiles(file_operation['path'], updated_files)
+                else:
+                    raise ValueError(f'Unknown operation {op}')
+        return updated_files
 
     def _preprocess_files(self, path):
         '''
@@ -1682,7 +1689,7 @@ class Upload(Proc):
                     self.staging_upload_files.raw_file_object(path).os_path,
                     self.staging_upload_files.raw_file_object(stripped_path).os_path))
 
-    def match_mainfiles(self, path_filter: str) -> Iterator[Tuple[str, str, Parser]]:
+    def match_mainfiles(self, path_filter: str, updated_files: Set[str]) -> Iterator[Tuple[str, str, Parser]]:
         '''
         Generator function that matches all files in the upload to all parsers to
         determine the upload's mainfiles.
@@ -1696,13 +1703,22 @@ class Upload(Proc):
         skip_matching = metadata.get('skip_matching', False)
         entries_metadata = metadata.get('entries', {})
 
-        if not path_filter:
-            scan: List[Tuple[str, bool]] = [('', True)]
+        if path_filter:
+            # path_filter provided, just scan this path
+            scan: List[Tuple[str, bool]] = [(path_filter, True)]
+        elif updated_files is not None:
+            # Set with updated_files provided, only scan these
+            scan = [(path, False) for path in updated_files]
         else:
-            scan = [(path_filter, True), (os.path.dirname(path_filter), False)]
+            # Scan everything
+            scan = [('', True)]
 
         for path, recursive in scan:
-            for path_info in staging_upload_files.raw_directory_list(path, recursive, files_only=True):
+            path_infos: Iterable[RawPathInfo] = (
+                [RawPathInfo(path=path, is_file=True, size=None, access=None)] if staging_upload_files.raw_path_is_file(path)
+                else staging_upload_files.raw_directory_list(path, recursive, files_only=True))
+
+            for path_info in path_infos:
                 self._preprocess_files(path_info.path)
 
                 if skip_matching and path_info.path not in entries_metadata:
@@ -1720,7 +1736,7 @@ class Upload(Proc):
                         'exception while matching pot. mainfile',
                         mainfile=path_info.path, exc_info=e)
 
-    def match_all(self, reprocess_settings, path_filter: str = None):
+    def match_all(self, reprocess_settings, path_filter: str = None, updated_files: Set[str] = None):
         '''
         The process step used to identify mainfile/parser combinations among the upload's files,
         and create or delete respective :class:`Entry` instances (if needed).
@@ -1747,11 +1763,11 @@ class Upload(Proc):
                     for entry in Entry.objects(upload_id=self.upload_id):
                         if entry.process_running:
                             processing_entries.append(entry.entry_id)
-                        if self._passes_path_filter(entry.mainfile, path_filter):
+                        if self._passes_process_filter(entry.mainfile, path_filter, updated_files):
                             old_entries.add(entry.entry_id)
 
                 with utils.timer(logger, 'matching completed'):
-                    for mainfile, mainfile_key, parser in self.match_mainfiles(path_filter):
+                    for mainfile, mainfile_key, parser in self.match_mainfiles(path_filter, updated_files):
                         entry_id = utils.generate_entry_id(self.upload_id, mainfile, mainfile_key)
 
                         try:
@@ -1813,7 +1829,7 @@ class Upload(Proc):
                 self._cleanup_staging_files()
             raise
 
-    def parse_next_level(self, min_level: int, path_filter: str = None) -> bool:
+    def parse_next_level(self, min_level: int, path_filter: str = None, updated_files: Set[str] = None) -> bool:
         '''
         Triggers processing on the next level of parsers (parsers with level >= min_level).
         Returns True if there is a next level of parsers that require processing.
@@ -1828,7 +1844,7 @@ class Upload(Proc):
                     parser = parser_dict.get(entry.parser_name)
                     if parser:
                         level = parser.level
-                        if level == 0 and not self._passes_path_filter(entry.mainfile, path_filter):
+                        if level == 0 and not self._passes_process_filter(entry.mainfile, path_filter, updated_files):
                             continue  # Ignore level 0 parsers if not matching path filter
                         if level >= min_level:
                             if next_level is None or level < next_level:
