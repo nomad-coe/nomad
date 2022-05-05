@@ -25,7 +25,7 @@ target/
 .vscode/launch.json
 .vscode/settings.local.json
 .vscode/extensions.json
-./nomad.yaml
+nomad.yaml
 !tests/nomad.yaml
 gunicorn.log.conf
 gunicorn.conf
