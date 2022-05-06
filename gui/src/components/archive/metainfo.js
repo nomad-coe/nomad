@@ -16,9 +16,10 @@
  * limitations under the License.
  */
 
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import metainfoData from '../../metainfo'
+import { useApi } from '../api'
 
 const metainfoContext = React.createContext()
 
@@ -32,6 +33,45 @@ export const GlobalMetainfo = React.memo(function GlobalMetainfo({children}) {
     }
   }, [setGlobalMetainfo, globalMetainfo])
 
+  const {api} = useApi()
+  const [allCustomMetainfos, setAllCustomMetainfos] = useState()
+
+  const fetchAllCustomMetainfos = useCallback(async (refresh, query) => {
+    if (allCustomMetainfos && !refresh) {
+      return allCustomMetainfos
+    }
+
+    // TODO paginate?
+    // TODO Only grab new ones?
+    query = query || {}
+    const response = await api.post(`entries/archive/query`, {
+      owner: 'visible',
+      query: {
+        ...query,
+        quantities: 'definitions.section_definitions',
+        processed: true
+      },
+      required: {
+        definitions: '*',
+        metadata: {
+          mainfile: '*',
+          entry_name: '*'
+        }
+      }
+    })
+    for (const data of response.data) {
+      const archive = data.archive
+      // TODO we should not createMetainfo all the time? There needs to be a
+      // register/cache based on hashes or something
+      archive._metainfo = await createMetainfo(archive, globalMetainfo, {api: api, archive: archive})
+    }
+    setAllCustomMetainfos(response.data)
+    return response.data
+  }, [globalMetainfo, api, allCustomMetainfos, setAllCustomMetainfos])
+
+  if (globalMetainfo) {
+    globalMetainfo.fetchAllCustomMetainfos = fetchAllCustomMetainfos
+  }
   return <metainfoContext.Provider value={globalMetainfo}>
     {children}
   </metainfoContext.Provider>
@@ -213,6 +253,7 @@ class Metainfo {
     sectionDef.sub_sections = sectionDef.sub_sections || []
     sectionDef.inner_section_definitions = sectionDef.inner_section_definitions || []
     sectionDef._allBaseSections = []
+    sectionDef._allInheritingSections = []
     sectionDef._incomingRefs = []
     sectionDef._parentSections = []
     sectionDef._parentSubSections = []
@@ -222,6 +263,14 @@ class Metainfo {
         await this._initSection(baseSection)
         sectionDef._allBaseSections.push(baseSection)
         baseSection._allBaseSections.forEach(baseBaseSection => sectionDef._allBaseSections.push(baseBaseSection))
+        if (!baseSection._allInheritingSections.includes(sectionDef)) {
+          baseSection._allInheritingSections.push(sectionDef)
+          sectionDef._allInheritingSections.forEach(inheritingInheritingSection => {
+            if (!baseSection._allInheritingSections.includes(inheritingInheritingSection)) {
+              baseSection._allInheritingSections.push(inheritingInheritingSection)
+            }
+          })
+        }
       }
     }
 

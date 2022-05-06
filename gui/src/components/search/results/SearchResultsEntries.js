@@ -28,7 +28,9 @@ import {
 import { useSearchContext } from '../SearchContext'
 
 const columns = [
+  {key: 'entry_name', label: 'Name', align: 'left'},
   {key: 'results.material.chemical_formula_hill', label: 'Formula', align: 'left'},
+  {key: 'entry_type', label: 'Entry type', align: 'left'},
   {key: 'results.method.method_name'},
   {key: 'results.method.simulation.program_name'},
   {key: 'results.method.simulation.dft.basis_set_name'},
@@ -90,7 +92,9 @@ const columns = [
 addColumnDefaults(columns)
 
 const defaultSelectedColumns = [
+  'entry_name',
   'results.material.chemical_formula_hill',
+  'entry_type',
   'results.method.method_name',
   'upload_create_time',
   'authors'

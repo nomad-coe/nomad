@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { FilterSubMenu } from './FilterMenu'
@@ -27,6 +27,7 @@ import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { useSearchContext } from '../SearchContext'
 import InputItem from '../input/InputItem'
 import { InputTextQuantity } from '../input/InputText'
+import { useErrors } from '../../errors'
 
 const filterProperties = def => !(def.name.startsWith('x_') || def.virtual)
 
@@ -58,14 +59,12 @@ const useDefinitionStyles = makeStyles(theme => ({
   }
 }))
 
-const Definition = React.memo(function Definition({def, name, path, className}) {
+const Definition = React.memo(function Definition({node, name, path, className}) {
   const classes = useDefinitionStyles()
   const [open, setOpen] = useState(!path)
   const { useFilterState, useFilterLocked } = useSearchContext()
   const [filter, setFilter] = useFilterState('quantities')
   const locked = useFilterLocked('quantities')
-
-  name = name || def.name
 
   const handleSelect = useCallback((event) => {
     event.stopPropagation()
@@ -87,7 +86,8 @@ const Definition = React.memo(function Definition({def, name, path, className}) 
     setOpen(open => !open)
   }, [setOpen])
 
-  const hasChildren = def.m_def === SectionMDef && def._allProperties.length
+  const children = Object.keys(node)
+  const hasChildren = children.length > 0
 
   const icon = useMemo(() => {
     const iconProps = {
@@ -124,19 +124,21 @@ const Definition = React.memo(function Definition({def, name, path, className}) 
         indeterminate={indeterminate}
       />
     </div>
-    <Collapse in={open} className={classes.children}>
-      {open && def._allProperties.filter(filterProperties).map(def => (
-        <Definition
-          key={def.name}
-          name={def.name}
-          def={def.m_def === SubSectionMDef ? def.sub_section : def}
-          path={childPathPrefix + def.name} />
-      ))}
-    </Collapse>
+    {hasChildren && (
+      <Collapse in={open} className={classes.children}>
+        {open && children.map((name, index) => (
+          <Definition
+            key={index}
+            name={name}
+            node={node[name]}
+            path={childPathPrefix + name} />
+        ))}
+      </Collapse>
+    )}
   </div>
 })
 Definition.propTypes = {
-  def: PropTypes.object.isRequired,
+  node: PropTypes.object.isRequired,
   name: PropTypes.string,
   path: PropTypes.string,
   className: PropTypes.string
@@ -147,31 +149,47 @@ const FilterSubMenuArchive = React.memo(({
   ...rest
 }) => {
   const globalMetainfo = useGlobalMetainfo()
-  const root = useMemo(() => globalMetainfo?.getEntryArchiveDefinition(), [globalMetainfo])
-  const subSections = root?.sub_sections
-  const options = useMemo(() => {
-    if (!subSections) {
-      return []
+  const [[options, tree], setOptions] = useState([[], {}])
+  const {raiseError} = useErrors()
+  useEffect(() => {
+    if (!globalMetainfo) {
+      return
     }
-    const options = []
-    const defsSet = new Set()
-    function addDef(def, prefix) {
-      const fullName = prefix ? `${prefix}.${def.name}` : def.name
-      if (defsSet.has(def)) {
-        return
-      }
-      defsSet.add(def)
-      options.push({value: fullName})
-      if (def.m_def === SubSectionMDef && def.sub_section) {
-        def = def.sub_section
-      }
-      if (def.m_def === SectionMDef) {
-        def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName))
-      }
-    }
-    subSections.forEach(def => addDef(def))
-    return options
-  }, [subSections])
+    globalMetainfo.fetchAllCustomMetainfos()
+      .then(() => {
+        const root = globalMetainfo.getEntryArchiveDefinition()
+        const subSections = root?.sub_sections
+
+        const tree = {}
+        if (!subSections) {
+          return []
+        }
+        const options = []
+        const defsSet = new Set()
+        function addDef(def, prefix, node) {
+          const fullName = prefix ? `${prefix}.${def.name}` : def.name
+          node[def.name] = node[def.name] || {}
+          node = node[def.name]
+          if (defsSet.has(def)) {
+            return
+          }
+          defsSet.add(def)
+          options.push({value: fullName})
+          if (def.m_def === SubSectionMDef && def.sub_section) {
+            def = def.sub_section
+          }
+          if (def.m_def === SectionMDef) {
+            def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName, node))
+            def._allInheritingSections.forEach(def => {
+              def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName, node))
+            })
+          }
+        }
+        subSections.forEach(def => addDef(def, null, tree))
+        setOptions([options, tree])
+      })
+      .catch(raiseError)
+  }, [raiseError, globalMetainfo, setOptions])
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
@@ -182,13 +200,8 @@ const FilterSubMenuArchive = React.memo(({
             suggestions={options}
           />
         </Box>
-        {root?.sub_sections.map(def => (
-          <Definition
-            key={def.name}
-            name={def.name}
-            def={def.sub_section}
-            path={def.name}
-          />
+        {Object.keys(tree).map((name, index) => (
+          <Definition node={tree[name]} name={name} path={name} key={index} />
         ))}
       </InputGridItem>
     </InputGrid>

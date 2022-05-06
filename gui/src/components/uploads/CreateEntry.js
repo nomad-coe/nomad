@@ -5,7 +5,7 @@ import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { getUrl } from '../nav/Routes'
 import { useHistory, useLocation } from 'react-router-dom'
-import { createMetainfo, getSectionReference, SectionMDef, useGlobalMetainfo } from '../archive/metainfo'
+import { getSectionReference, SectionMDef, useGlobalMetainfo } from '../archive/metainfo'
 import { useUploadContext } from './UploadContext'
 
 const CreateEntry = React.memo(function CreateEntry(props) {
@@ -60,28 +60,8 @@ const CreateEntry = React.memo(function CreateEntry(props) {
     }
 
     const getTemplates = async () => {
-      // TODO paginate?
-      const response = await api.post(`entries/archive/query`, {
-        owner: 'visible',
-        query: {
-          quantities: 'definitions.section_definitions',
-          processed: true
-        },
-        required: {
-          definitions: '*',
-          metadata: {
-            mainfile: '*',
-            entry_name: '*'
-          }
-        }
-      })
-      for (const data of response.data) {
-        const archive = data.archive
-        // TODO we should not createMetainfo all the time? There needs to be a
-        // register/cache based on hashes or something
-        archive._metainfo = await createMetainfo(archive, globalMetainfo, {api: api, archive: archive})
-      }
-      const customTemplates = response.data.reduce((templates, data) => {
+      const data = await globalMetainfo.fetchAllCustomMetainfos()
+      const customTemplates = data.reduce((templates, data) => {
         const archive = data.archive
         const newTemplates = getTemplatesFromDefinitions(
           archive.definitions.section_definitions, data.entry_id, archive,
