@@ -497,9 +497,9 @@ parsers = [
         mainfile_contents_re=(r'^LOBSTER\s*v[\d\.]+.*'),
     ),
     MatchingParserInterface(
-        'workflowparsers.MPParser',
-        name='parsers/mp', code_name='MaterialsProject',
-        code_homepage='https://materialsproject.org',
+        'workflowparsers.AtomateParser',
+        name='parsers/atomate', code_name='Atomate',
+        code_homepage='https://atomate.org',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=r'.*mp.+materials\.json',
         mainfile_contents_re=(r'"pymatgen_version":')
