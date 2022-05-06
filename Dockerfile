@@ -92,6 +92,7 @@ COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
 COPY --from=build /install/gui/src/searchQuantities.json /app/src/searchQuantities.json
 COPY --from=build /install/gui/src/parserMetadata.json /app/src/parserMetadata.json
 COPY --from=build /install/gui/src/toolkitMetadata.json /app/src/toolkitMetadata.json
+COPY --from=build /install/gui/src/exampleUploads.json /app/src/exampleUploads.json
 COPY --from=build /install/gui/src/unitsData.js /app/src/unitsData.js
 COPY --from=build /install/gui/src/northTools.json /app/src/northTools.json
 RUN yarn run build
