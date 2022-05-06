@@ -299,7 +299,7 @@ export function UploadsPage() {
       <Box alignItems='center' style={{display: 'flex'}}>
         <NewUploadButton color="primary" disabled={isDisabled}/>
         <Typography color='initial' style={{padding: '10px'}} >or</Typography>
-        <ExampleUploadButton color="inherit" disabled={isDisabled} />
+        <ExampleUploadButton color="inherit" disabled={isDisabled} onHandleReload={handleReload}/>
         <Box display="inline-block" marginLeft={2}>
           {isDisabled && <Typography color="error" role='error-maximum-number-of-unpublished'>
             You have reached maximum number of unpublished uploads!

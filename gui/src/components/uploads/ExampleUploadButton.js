@@ -79,6 +79,7 @@ const ExampleUploadDialog = React.memo(function ExampleUploadDialog(props) {
             <Button
               variant="contained"
               color="primary"
+              value={uploadEntry.filePath}
               startIcon={<CloudUploadIcon />}
               onClick={() => onClose(uploadEntry.filePath)}
               className={classes.selectButton}
@@ -98,9 +99,10 @@ ExampleUploadDialog.propTypes = {
   exampleUploadData: PropTypes.object.isRequired
 }
 
-export default function ExampleUploadButton({...props}) {
+export default function ExampleUploadButton(props) {
   const {api} = useApi()
   const errors = useErrors()
+  const {onHandleReload} = props
 
   const [openDialog, setOpenDialog] = useState(false)
 
@@ -110,7 +112,7 @@ export default function ExampleUploadButton({...props}) {
 
   const handleClose = (value) => {
     (value && api.post(`/uploads?local_path=${value}`)
-      .then(window.location.reload())
+      .then(onHandleReload)
       .catch((error) => {
         errors.raiseError(error)
       })
@@ -120,7 +122,7 @@ export default function ExampleUploadButton({...props}) {
 
   return (
     <div>
-      <Button variant="contained" onClick={handleClickOpen} {...props}>
+      <Button variant="contained" onClick={handleClickOpen}>
         Select from Example Uploads
       </Button>
       <ExampleUploadDialog
@@ -132,5 +134,6 @@ export default function ExampleUploadButton({...props}) {
   )
 }
 ExampleUploadButton.propTypes = {
+  onHandleReload: PropTypes.func.isRequired,
   isDisable: PropTypes.bool
 }

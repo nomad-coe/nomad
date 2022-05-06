@@ -1,0 +1,20 @@
+Theory:
+  - filePath: tests/data/proc/examples_vasp.zip
+    title: VASP Sample Uploads
+    description: |
+      The description goes here
+      The description goes here
+      The description goes here
+  - filePath: tests/data/proc/examples_vasp.zip
+    title: VASP Second Sample Uploads
+    description: |
+      The description goes here
+      The description goes here
+      The description goes here
+Tabular:
+  - filePath: tests/data/proc/examples_vasp.zip
+    title: Tabular Sample Uploads
+    description: |
+      The description goes here
+      The description goes here
+      The description goes here
