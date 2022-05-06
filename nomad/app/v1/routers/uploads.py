@@ -38,7 +38,8 @@ from nomad.search import search, search_iterator, refresh as search_refresh, Que
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (
     MetadataPagination, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
-    Files, files_parameters, Owner, WithQuery, MetadataRequired, MetadataEditRequest, And)
+    Files, files_parameters, Owner, WithQuery, MetadataRequired, MetadataEditRequest,
+    restrict_query_to_upload)
 from .entries import EntryArchiveResponse, answer_entry_archive_request
 from ..utils import (
     parameter_dependency_from_model, create_responses, DownloadItem, browser_download_headers,
@@ -1472,7 +1473,7 @@ async def post_upload_action_delete_entry_files(
     if not data.query:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
             A query must be specified.'''))
-    restricted_query = And(**{'and': [{'upload_id': upload_id}, data.query]})
+    restricted_query = restrict_query_to_upload(data.query, upload_id)
     es_entries = search_iterator(
         user_id=user.user_id,
         owner=data.owner,

@@ -1609,7 +1609,7 @@ def test_post_upload_action_process(
         'id_unpublished_w', 'test_user', None, None, False,
         400, [], [], id='no-query'),
     pytest.param(
-        'id_unpublished_w', 'test_user', None, {'entry_id': 'id_unpublished_w_entry'}, False,
+        'id_unpublished_w', 'test_user', None, {'entry_id': ['id_unpublished_w_entry', 'silly']}, False,
         200, ['test_content/test_embargo_entry/1.aux'], ['test_content/test_embargo_entry/mainfile.json'], id='ok'),
     pytest.param(
         'id_unpublished_w', 'test_user', None, {'entry_id': 'id_unpublished_w_entry'}, True,

@@ -25,6 +25,7 @@ import {
   Datatable, DatatablePagePagination, DatatableTable,
   DatatableToolbar, DatatableToolbarActions } from '../datatable/Datatable'
 import EntryDownloadButton from '../entry/EntryDownloadButton'
+import DeleteEntriesButton from './DeleteEntriesButton'
 import Quantity from '../Quantity'
 import EditMetaDataDialog from './EditMetaDataDialog'
 import {pluralize} from '../../utils'
@@ -124,7 +125,18 @@ export default function ProcessingTable(props) {
       <DatatableToolbar title={pluralize((customTitle || 'search result'), pagination.total, true)}>
         <DatatableToolbarActions selection>
           <EntryDownloadButton tooltip="Download files" query={selectedQuery} />
-          {isWriter && <EditMetaDataDialog isIcon selectedEntries={selectedQuery}/>}
+          {isWriter &&
+            <EditMetaDataDialog
+              isIcon
+              selectedEntries={selectedQuery}
+            />}
+          {isWriter &&
+            <DeleteEntriesButton
+              isIcon
+              selectedEntries={selectedQuery}
+              selectedCount={selected === 'all' ? pagination.total : selected.length}
+              setSelected={setSelected}
+            />}
         </DatatableToolbarActions>
       </DatatableToolbar>
       <DatatableTable actions={EntryRowActions} details={EntryDetails}>

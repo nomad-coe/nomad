@@ -349,10 +349,9 @@ function EditMetaDataDialog({...props}) {
   const edit = useCallback((metadata, verify_only) => {
     return new Promise(async (resolve, reject) => {
       try {
-        let requestBody = {metadata: metadata, verify_only: verify_only, owner: 'user'}
-        if (selectedEntries.entry_id) requestBody.query = {entry_id: {any: selectedEntries.entry_id}}
-        let response = await api.post(`uploads/${data.upload.upload_id}/edit`, requestBody)
-        if (response) {}
+        const requestBody = {metadata: metadata, verify_only: verify_only, owner: 'user'}
+        if (selectedEntries.entry_id) requestBody.query = selectedEntries
+        await api.post(`uploads/${data.upload.upload_id}/edit`, requestBody)
         resolve('')
       } catch (error) {
         reject(error.apiMessage)
