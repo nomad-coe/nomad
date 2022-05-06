@@ -30,7 +30,7 @@ conventional_von_klitzing_constant = 2.5812807e4 ohm = R_K90  # since Jan 1990
 # Floating-point conversion may introduce inaccuracies
 
 zeta = c / (cm/s) = ζ
-dirac_constant = h / (2 * π) = ħ = hbar = atomic_unit_of_action = a_u_action
+dirac_constant = h / (2 * π) = ħ = h_bar = atomic_unit_of_action = a_u_action
 avogadro_constant = avogadro_number * mol^-1 = N_A
 molar_gas_constant = k * N_A = R
 faraday_constant = e * N_A
@@ -57,7 +57,6 @@ atomic_mass_constant = 1.66053906660e-27 kg = m_u                               
 electron_mass = 9.1093837015e-31 kg = m_e = atomic_unit_of_mass = a_u_mass                 # (28)
 proton_mass = 1.67262192369e-27 kg = m_p                                                   # (51)
 neutron_mass = 1.67492749804e-27 kg = m_n                                                  # (95)
-lattice_spacing_of_Si = 1.920155716e-10 m = d_220                                          # (32)
 K_alpha_Cu_d_220 = 0.80232719                                                              # (22)
 K_alpha_Mo_d_220 = 0.36940604                                                              # (19)
 K_alpha_W_d_220 = 0.108852175                                                              # (98)
@@ -68,6 +67,6 @@ fine_structure_constant = (2 * h * R_inf / (m_e * c)) ** 0.5 = α = alpha
 vacuum_permeability = 2 * α * h / (e ** 2 * c) = µ_0 = mu_0 = mu0 = magnetic_constant
 vacuum_permittivity = e ** 2 / (2 * α * h * c) = ε_0 = epsilon_0 = eps_0 = eps0 = electric_constant
 impedance_of_free_space = 2 * α * h / e ** 2 = Z_0 = characteristic_impedance_of_vacuum
-coulomb_constant = α * hbar * c / e ** 2 = k_C
-classical_electron_radius = α * hbar / (m_e * c) = r_e
+coulomb_constant = α * h_bar * c / e ** 2 = k_C
+classical_electron_radius = α * h_bar / (m_e * c) = r_e
 thomson_cross_section = 8 / 3 * π * r_e ** 2 = σ_e = sigma_e

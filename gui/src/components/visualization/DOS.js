@@ -43,7 +43,7 @@ const DOS = React.memo(({
     let defaultLayout = {
       yaxis: {
         title: {
-          text: `Energy (${energyUnit.toSystem(units).label})`
+          text: `Energy (${energyUnit.toSystem(units).label()})`
         },
         zeroline: type === 'vibrational'
       },
@@ -88,7 +88,7 @@ const DOS = React.memo(({
         energyHighestOccupied = 0
         normalized = false
       } else {
-        energyHighestOccupied = new Quantity(data.energy_highest_occupied, energyUnit).toSystem(units).value
+        energyHighestOccupied = new Quantity(data.energy_highest_occupied, energyUnit).toSystem(units).value()
         normalized = true
       }
     }
@@ -97,13 +97,13 @@ const DOS = React.memo(({
     let mins = []
     let maxes = []
     let nChannels = data.densities.length
-    let energies = new Quantity(data.energies, energyUnit).toSystem(units).value
-    const values1 = new Quantity(data.densities[0], valueUnit).toSystem(units).value
+    let energies = new Quantity(data.energies, energyUnit).toSystem(units).value()
+    const values1 = new Quantity(data.densities[0], valueUnit).toSystem(units).value()
     let values2
     mins.push(Math.min(...values1))
     maxes.push(Math.max(...values1))
     if (nChannels === 2) {
-      values2 = new Quantity(data.densities[1], valueUnit).toSystem(units).value
+      values2 = new Quantity(data.densities[1], valueUnit).toSystem(units).value()
       mins.push(Math.min(...values2))
       maxes.push(Math.max(...values2))
     }
@@ -164,7 +164,7 @@ const DOS = React.memo(({
       {
         xaxis: {
           title: {
-            text: valueUnit.toSystem(units).label.replace('1', 'states')
+            text: `states ${valueUnit.toSystem(units).label()}`
           },
           range: range
         },

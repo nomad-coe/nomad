@@ -237,7 +237,7 @@ export function getTicks(min, max, n, dtype, mode = 'scientific', decimals = 3) 
 
     // Format the results and return both the formatted tick and the final
     // value.
-    return ticks.map(x => ({value: x, tick: format(x, setup.format)}))
+    return ticks.map(x => ({value: getTime(x), tick: format(x, setup.format)}))
   } else {
     // Calculate minimum number of ticks for each option
     const tickRange = max - min

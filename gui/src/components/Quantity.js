@@ -541,7 +541,7 @@ export const SectionTable = React.memo(({
               const def = filterData[`${section}.${key}`]
               const unitName = defCustom.unit || def?.unit
               const unit = unitName && new Unit(unitName)
-              const unitLabel = unit && unit.toSystem(units).label
+              const unitLabel = unit && unit.toSystem(units).label()
               const label = defCustom.label || def?.label
               const description = defCustom.description || def?.description || ''
               const content = unit ? `${label} (${unitLabel})` : defCustom.label
@@ -573,7 +573,7 @@ export const SectionTable = React.memo(({
                 if (value !== undefined) {
                   if (!isNaN(value)) {
                     value = formatNumber(
-                      unit ? new Q(value, unit).toSystem(units).value : value,
+                      unit ? new Q(value, unit).toSystem(units).value() : value,
                       dtype
                     )
                   }
@@ -591,7 +591,7 @@ export const SectionTable = React.memo(({
                 const def = filterData[`${section}.${key}`]
                 const unitName = defCustom.unit || def?.unit
                 const unit = unitName && new Unit(unitName)
-                const unitLabel = unit ? ` ${unit.toSystem(units).label}` : ''
+                const unitLabel = unit ? ` ${unit.toSystem(units).label()}` : ''
                 const description = defCustom.description || def?.description || ''
                 const dtype = defCustom?.type?.type_data || def?.type?.type_data
                 const align = defCustom.align || 'right'
@@ -600,7 +600,7 @@ export const SectionTable = React.memo(({
                 if (value !== undefined) {
                   if (!isNaN(value)) {
                     value = `${formatNumber(
-                      unit ? new Q(value, unit).toSystem(units).value : value,
+                      unit ? new Q(value, unit).toSystem(units).value() : value,
                       dtype
                     )}${unitLabel}`
                   }

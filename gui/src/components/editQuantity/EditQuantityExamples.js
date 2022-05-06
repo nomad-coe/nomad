@@ -91,7 +91,13 @@ export function EditQuantityExamples() {
                   <NumberEditQuantity {...createDefaultProps('float', {type: float})} />
                 </Grid>
                 <Grid item>
-                  <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'meter'})} defaultDisplayUnit={'bohr'}/>
+                  <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'meter'})} defaultDisplayUnit="bohr"/>
+                </Grid>
+                <Grid item>
+                  <NumberEditQuantity {...createDefaultProps('float_derived_unit', {type: float, unit: 'joule'})} defaultDisplayUnit="eV"/>
+                </Grid>
+                <Grid item>
+                  <NumberEditQuantity {...createDefaultProps('float_complex_unit', {type: float, unit: 'ampere / second^2 * meter'})} defaultDisplayUnit="milliampere / ms^2 * cm"/>
                 </Grid>
                 <Grid item>
                   <NumberEditQuantity

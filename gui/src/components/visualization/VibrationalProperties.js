@@ -38,7 +38,7 @@ const VibrationalProperties = React.memo(({
     if (dos?.energies) {
       const min = Math.min(...dos.energies)
       const max = Math.max(...dos.energies)
-      range = new Quantity([min, max], 'joule').toSystem(units).value
+      range = new Quantity([min, max], 'joule').toSystem(units).value()
     }
     return range
   }, [dos, units])
@@ -92,7 +92,7 @@ const VibrationalProperties = React.memo(({
       <HeatCapacity
         data={heatCapacity}
         aspectRatio={1}
-        units={{...units, 'energy': 'joule'}}
+        units={units}
         data-testid="heat-capacity"
       />
     </PropertyItem>
@@ -100,7 +100,7 @@ const VibrationalProperties = React.memo(({
       <HelmholtzFreeEnergy
         data={freeEnergy}
         aspectRatio={1}
-        units={{...units, 'energy': 'joule'}}
+        units={units}
         data-testid="energy-free"
       />
     </PropertyItem>

@@ -49,7 +49,7 @@ const BandStructure = React.memo(({
       if (!data.energy_highest_occupied === undefined) {
         return [0, false]
       } else {
-        return [new Quantity(data.energy_highest_occupied, energyUnit).toSystem(units).value, true]
+        return [new Quantity(data.energy_highest_occupied, energyUnit).toSystem(units).value(), true]
       }
     }
   }, [data, energyUnit, units, type])
@@ -119,7 +119,7 @@ const BandStructure = React.memo(({
 
       // Create plot data entry for each band
       for (let band of bands) {
-        band = new Quantity(band, energyUnit).toSystem(units).value
+        band = new Quantity(band, energyUnit).toSystem(units).value()
         if (energyHighestOccupied !== 0) {
           band = add(band, -energyHighestOccupied)
         }
@@ -156,7 +156,7 @@ const BandStructure = React.memo(({
 
     // Create plot data entry for each band
     for (let band of bands) {
-      band = new Quantity(band, energyUnit).toSystem(units).value
+      band = new Quantity(band, energyUnit).toSystem(units).value()
       if (energyHighestOccupied !== 0) {
         band = add(band, -energyHighestOccupied)
       }
@@ -206,7 +206,7 @@ const BandStructure = React.memo(({
       },
       yaxis: {
         title: {
-          text: `Energy (${energyUnit.toSystem(units).label})`
+          text: `Energy (${energyUnit.toSystem(units).label()})`
         },
         zeroline: type === 'vibrational'
       },

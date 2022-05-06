@@ -22,8 +22,7 @@ import {
   FormLabel, Slider
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
-import {convertUnit, useUnits} from '../../units'
-import {unitMap} from '../../unitsData'
+import {Quantity, Unit, useUnits} from '../../units'
 import {UnitSelect} from './NumberEditQuantity'
 import {getFieldProps} from './StringEditQuantity'
 
@@ -32,37 +31,45 @@ export const SliderEditQuantity = React.memo((props) => {
   const {label} = getFieldProps(quantityDef)
 
   const systemUnits = useUnits()
-  const hasUnit = quantityDef.unit
-  const dimension = hasUnit && unitMap[quantityDef.unit].dimension
+  const defaultUnit = useMemo(() => quantityDef.unit && new Unit(quantityDef.unit), [quantityDef])
+  const dimension = defaultUnit && defaultUnit.dimension()
   const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
-
+  const minValueConverted = useMemo(() => {
+    return unit
+      ? new Quantity(minValue, quantityDef.unit).to(unit).value()
+      : minValue
+  }, [minValue, quantityDef, unit])
+  const maxValueConverted = useMemo(() => {
+    return unit
+      ? new Quantity(maxValue, quantityDef.unit).to(unit).value()
+      : maxValue
+  }, [maxValue, quantityDef, unit])
   const sliderValue = useMemo(() => {
-    if (!hasUnit) {
-      return value || 0
-    }
-    return convertUnit(value || 0, quantityDef.unit, unit)
-  }, [hasUnit, unit, quantityDef, value])
+    return unit
+      ? new Quantity(value || 0, quantityDef.unit).to(unit).value()
+      : value || 0
+  }, [unit, quantityDef, value])
 
   const handleChangeValue = useCallback((event, value) => {
-    const convertedValue = hasUnit ? convertUnit(value, unit, quantityDef.unit) : value
+    const convertedValue = unit ? new Quantity(value, unit).to(quantityDef.unit).value() : value
     if (onChange) {
       onChange(convertedValue)
     }
-  }, [hasUnit, unit, onChange, quantityDef])
+  }, [unit, onChange, quantityDef])
 
   return <FormControl fullWidth>
     <FormLabel>{label}</FormLabel>
     <Box display="flex" alignItems="center">
       <Slider
         value={sliderValue}
-        min={convertUnit(minValue, quantityDef.unit, unit)}
-        max={convertUnit(maxValue, quantityDef.unit, unit)}
+        min={minValueConverted}
+        max={maxValueConverted}
         onChange={handleChangeValue}
-        valueLabelDisplay={(!hasUnit ? 'on' : 'off')}
+        valueLabelDisplay={(!unit ? 'on' : 'off')}
         {...sliderProps}
       />
-      {hasUnit && (
-        <UnitSelect defaultUnit={quantityDef.unit} unit={unit} onChange={setUnit}/>
+      {unit && (
+        <UnitSelect dimension={dimension} unit={unit} onChange={setUnit}/>
       )}
     </Box>
   </FormControl>

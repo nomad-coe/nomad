@@ -54,7 +54,7 @@ function EELS({data, layout, aspectRatio, className, units, ...other}) {
       xaxis: {
         showexponent: 'first',
         title: {
-          text: `Electron energy loss (${energyUnit.toSystem(units).label})`
+          text: `Electron energy loss (${energyUnit.toSystem(units).label()})`
         }
       }
     }
@@ -71,7 +71,7 @@ function EELS({data, layout, aspectRatio, className, units, ...other}) {
     const lineStyles = getLineStyles(data.length, theme)
     for (let i = 0; i < data.length; ++i) {
       const trace = data[i]
-      const energies = new Quantity(trace.energy, energyUnit).toSystem(units).value
+      const energies = new Quantity(trace.energy, energyUnit).toSystem(units).value()
       plotData.push(
         {
           x: energies,

@@ -28,9 +28,9 @@ export const OverviewAtoms = React.memo(({def, section}) => {
   const system = useMemo(() => ({
     'species': section.species,
     'cell': section.lattice_vectors
-      ? new Quantity(section.lattice_vectors, 'meter').to('angstrom').value
+      ? new Quantity(section.lattice_vectors, 'meter').to('angstrom').value()
       : undefined,
-    'positions': new Quantity(section.positions, 'meter').to('angstrom').value,
+    'positions': new Quantity(section.positions, 'meter').to('angstrom').value(),
     'pbc': section.periodic
   }), [section])
 
@@ -150,7 +150,7 @@ export const OverviewBandstructureElectronic = React.memo(({def, section, units}
   const layout = useMemo(() => ({
     yaxis: {
       autorange: false,
-      range: new Quantity(electronicRange, 'electron_volt').toSystem(units).value
+      range: new Quantity(electronicRange, 'electron_volt').toSystem(units).value()
     }
   }), [units])
 

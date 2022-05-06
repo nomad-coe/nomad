@@ -451,8 +451,8 @@ function QuantityItemPreview({value, def}) {
     let finalUnit
     if (def.unit) {
       const a = new Q(finalValue, def.unit).toSystem(units)
-      finalValue = a.value
-      finalUnit = a.unit.label
+      finalValue = a.value()
+      finalUnit = a.label()
     }
     return <Box component="span" whiteSpace="nowarp">
       <Number component="span" variant="body1" value={finalValue} exp={8} />
@@ -473,8 +473,8 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
     let finalUnit
     if (def.unit) {
       const a = new Q(finalValue, def.unit).toSystem(units)
-      finalValue = a.value
-      finalUnit = a.unit.label
+      finalValue = a.value()
+      finalUnit = a.label()
     }
     return [finalValue, finalUnit]
   }, [def, units])
@@ -855,7 +855,7 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
       const unit = quantityDef.unit
       if (unit) {
         const quantity = new Q(value, quantityDef.unit).toSystem(units)
-        return [quantity.value, quantity.unit.label]
+        return [quantity.value(), quantity.label()]
       } else {
         return [value, unit]
       }

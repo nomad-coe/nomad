@@ -22,7 +22,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import { isArray, isNil } from 'lodash'
 import { useResizeDetector } from 'react-resize-detector'
 import { getScaler, getTicks } from './common'
-import { useUnits, Quantity, getDimension, Unit } from '../../units'
+import { useUnits, Quantity, Unit } from '../../units'
 import { formatNumber, DType } from '../../utils'
 import PlotLabel from './PlotLabel'
 import PlotTick from './PlotTick'
@@ -94,6 +94,7 @@ const PlotAxis = React.memo(({
   'data-testid': testID}) => {
   const styles = usePlotAxisStyles(classes)
   const units = useUnits()
+  const unitObj = useMemo(() => new Unit(unit), [unit])
   const {height, width, ref} = useResizeDetector()
   const orientation = {
     left: 'vertical',
@@ -154,7 +155,7 @@ const PlotAxis = React.memo(({
     const formatTick = (value) => {
       return dtype === DType.Timestamp
         ? format(value, 'MMM d')
-        : formatNumber(new Quantity(value, unit).toSystem(units).value, dtype, mode, decimals)
+        : formatNumber(new Quantity(value, unitObj).toSystem(units).value(), dtype, mode, decimals)
     }
 
     // Manual ticks
@@ -169,9 +170,8 @@ const PlotAxis = React.memo(({
     const nItems = Math.min(labels, Math.max(2, nItemsFit))
 
     // If the scale length is zero, show only one tick
-    const minConverted = new Quantity(min, unit).toSystem(units).value
-    const maxConverted = new Quantity(max, unit).toSystem(units).value
-    const dimension = getDimension(unit)
+    const minConverted = new Quantity(min, unitObj).toSystem(units).value()
+    const maxConverted = new Quantity(max, unitObj).toSystem(units).value()
     if (minConverted === maxConverted) {
       return [{
         label: formatTick(minConverted),
@@ -182,12 +182,15 @@ const PlotAxis = React.memo(({
     // Get reasonable, human-readable ticks. the .ticks function from d3-scale
     // does not guarantee an upper limit to the number of ticks, so it cannot be
     // directly used.
+    const unitConverted = unitObj.toSystem(units)
     return getTicks(minConverted, maxConverted, nItems, dtype, mode, decimals)
-      .map(({tick, value}) => ({
-        label: tick,
-        pos: scaler(new Quantity(value, units[dimension]).toSI().value) / axisSize
-      }))
-  }, [axisSize, dtype, labelSize, labels, max, min, scaler, unit, units, mode, decimals])
+      .map(({tick, value}) => {
+        return {
+          label: tick,
+          pos: scaler(new Quantity(value, unitConverted).toSI().value()) / axisSize
+        }
+      })
+  }, [axisSize, dtype, labelSize, labels, max, min, scaler, unitObj, units, mode, decimals])
 
   // Here we estimate the maximum label width. This is a relatively simple
   // approximattion calculated using the font size. A more reliable way would to
@@ -272,7 +275,7 @@ PlotAxis.defaultProps = {
   scientific: true, // Whether to use scientific notation, e.g. 1e+3
   siPostfix: false, // Whether to use SI postfixes, e.g. K, M, B
   decimals: 3, // How many decimals to show for custom labels
-  unit: new Unit('dimensionless')
+  unit: 'dimensionless'
 }
 
 export default PlotAxis

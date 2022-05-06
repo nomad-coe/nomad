@@ -41,13 +41,13 @@ const HelmholtzFreeEnergy = React.memo(({
     let defaultLayout = {
       xaxis: {
         title: {
-          text: `Temperature (${tempUnit.toSystem(units).label})`
+          text: `Temperature (${tempUnit.toSystem(units).label()})`
         },
         zeroline: false
       },
       yaxis: {
         title: {
-          text: `Helmholtz free energy (${energyUnit.toSystem(units).label})`
+          text: `Helmholtz free energy (${energyUnit.toSystem(units).label()})`
         },
         zeroline: false
       }
@@ -68,8 +68,8 @@ const HelmholtzFreeEnergy = React.memo(({
     }
 
     // Convert units
-    const temperatures = new Quantity(data.temperatures, tempUnit).toSystem(units).value
-    const energies = new Quantity(data.energies, energyUnit).toSystem(units).value
+    const temperatures = new Quantity(data.temperatures, tempUnit).toSystem(units).value()
+    const energies = new Quantity(data.energies, energyUnit).toSystem(units).value()
 
     // Create the final data that will be plotted.
     const plotData = [{

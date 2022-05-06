@@ -147,7 +147,7 @@ def test_material_1d(one_d):
     assert conv.lattice_parameters.b.to(ureg.angstrom).magnitude == 0
     assert conv.lattice_parameters.c.to(ureg.angstrom).magnitude == pytest.approx(2.890, abs=1e-3)
     assert conv.lattice_parameters.alpha is None
-    assert conv.lattice_parameters.beta == pytest.approx(np.pi / 2)
+    assert conv.lattice_parameters.beta.magnitude == pytest.approx(np.pi / 2)
     assert conv.lattice_parameters.gamma is None
 
     # Original structure
@@ -185,7 +185,7 @@ def test_material_2d(two_d):
     assert conv.lattice_parameters.c.to(ureg.angstrom).magnitude == 0
     assert conv.lattice_parameters.alpha is None
     assert conv.lattice_parameters.beta is None
-    assert conv.lattice_parameters.gamma == pytest.approx(120 / 180 * np.pi)
+    assert conv.lattice_parameters.gamma.magnitude == pytest.approx(120 / 180 * np.pi)
 
     # Original structure
     assert_structure(two_d.results.properties.structures.structure_original)
@@ -235,9 +235,9 @@ def test_material_bulk(bulk):
     assert conv.lattice_parameters.a.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
     assert conv.lattice_parameters.b.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
     assert conv.lattice_parameters.c.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
-    assert conv.lattice_parameters.alpha == pytest.approx(np.pi / 2)
-    assert conv.lattice_parameters.beta == pytest.approx(np.pi / 2)
-    assert conv.lattice_parameters.gamma == pytest.approx(np.pi / 2)
+    assert conv.lattice_parameters.alpha.magnitude == pytest.approx(np.pi / 2)
+    assert conv.lattice_parameters.beta.magnitude == pytest.approx(np.pi / 2)
+    assert conv.lattice_parameters.gamma.magnitude == pytest.approx(np.pi / 2)
 
     # Original structure
     assert_structure(bulk.results.properties.structures.structure_original)

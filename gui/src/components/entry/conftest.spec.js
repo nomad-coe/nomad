@@ -53,7 +53,7 @@ export function expectLatticeParameters(index) {
   expectQuantity('results.properties.structures.structure_original.lattice_parameters.alpha', '90 °', 'α')
   expectQuantity('results.properties.structures.structure_original.lattice_parameters.beta', '90 °', 'β')
   expectQuantity('results.properties.structures.structure_original.lattice_parameters.gamma', '90 °', 'γ')
-  expectQuantity('results.properties.structures.structure_original.cell_volume', '125 Å ^ 3')
+  expectQuantity('results.properties.structures.structure_original.cell_volume', '125 Å^3')
 }
 
 export function expectNoLatticeParameters(index, root = screen) {

@@ -70,8 +70,8 @@ const EnergyVolumeCurve = React.memo(({
     const lineStyles = getLineStyles(data.data.length, theme)
     for (let curve of data.data) {
       const trace = {
-        x: new Quantity(indices.map(i => curve.volumes[i]), volumeUnit).toSystem(units).value,
-        y: new Quantity(indices.map(i => curve.energies[i]), energyUnit).toSystem(units).value,
+        x: new Quantity(indices.map(i => curve.volumes[i]), volumeUnit).toSystem(units).value(),
+        y: new Quantity(indices.map(i => curve.energies[i]), energyUnit).toSystem(units).value(),
         name: curve.name,
         visible: i === 0 || 'legendonly',
         type: 'scatter',
@@ -97,13 +97,13 @@ const EnergyVolumeCurve = React.memo(({
       },
       xaxis: {
         title: {
-          text: `Volume/atom (${volumeUnit.toSystem(units).label})`
+          text: `Volume/atom (${volumeUnit.toSystem(units).label()})`
         },
         zeroline: false
       },
       yaxis: {
         title: {
-          text: `Energy (${energyUnit.toSystem(units).label})`
+          text: `Energy (${energyUnit.toSystem(units).label()})`
         },
         zeroline: false
       }

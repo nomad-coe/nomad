@@ -19,7 +19,7 @@ import React from 'react'
 import { isNil, isArray } from 'lodash'
 import { setToArray, getDatatype, getSerializer, getDeserializer, getLabel, DType } from '../../utils'
 import searchQuantities from '../../searchQuantities'
-import { getDimension, Quantity } from '../../units'
+import { Unit } from '../../units'
 import InputList from './input/InputList'
 import InputRange from './input/InputRange'
 import InputSection from './input/InputSection'
@@ -150,7 +150,7 @@ function saveFilter(name, group, config, parent) {
   data.dtype = config.dtype || getDatatype(name)
   data.serializerExact = getSerializer(data.dtype, false)
   data.serializerPretty = getSerializer(data.dtype, true)
-  data.dimension = getDimension(data.unit)
+  data.dimension = data.unit && new Unit(data.unit).dimension()
   data.deserializer = getDeserializer(data.dtype, data.dimension)
   data.label = config.label || getLabel(name)
   data.nested = searchQuantities[name]?.nested
@@ -393,9 +393,9 @@ registerFilter(
   labelGeometryOptimization,
   nestedQuantity,
   [
-    {name: 'final_energy_difference', maxOverride: new Quantity(0.1, 'electron_volt'), ...numberHistogramQuantity, scale: '1/8'},
-    {name: 'final_displacement_maximum', maxOverride: new Quantity(1, 'angstrom'), ...numberHistogramQuantity, scale: '1/8'},
-    {name: 'final_force_maximum', maxOverride: new Quantity(1E-6, 'newton'), ...numberHistogramQuantity, scale: '1/8'}
+    {name: 'final_energy_difference', ...numberHistogramQuantity, scale: '1/8'},
+    {name: 'final_displacement_maximum', ...numberHistogramQuantity, scale: '1/8'},
+    {name: 'final_force_maximum', ...numberHistogramQuantity, scale: '1/8'}
   ]
 )
 
