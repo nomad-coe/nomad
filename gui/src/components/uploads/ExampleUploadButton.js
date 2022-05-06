@@ -23,7 +23,7 @@ import ListItem from '@material-ui/core/ListItem'
 import CloudUploadIcon from '@material-ui/icons/CloudUpload'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import exampleUploads from '../../ExampleUploads.json'
+import exampleUploads from '../../exampleUploads.json'
 import Markdown from '../Markdown'
 
 const useStyles = makeStyles(theme => ({
