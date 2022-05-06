@@ -61,7 +61,7 @@ const InputTitle = React.memo(({
     const unit = filterData[quantity]?.unit
     if (unit) {
       const unitDef = new Unit(unit)
-      label = `${label} (${unitDef.toSystem(units).label})`
+      label = `${label} (${unitDef.toSystem(units).label()})`
     }
     return label
   }, [filterData, quantity, units, section, anchored])

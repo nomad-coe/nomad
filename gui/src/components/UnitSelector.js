@@ -15,8 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useState } from 'react'
+import React, { useCallback } from 'react'
 import { useRecoilState } from 'recoil'
+import { isNil } from 'lodash'
 import { makeStyles } from '@material-ui/core/styles'
 import {
   Button,
@@ -34,20 +35,18 @@ import {
 import SettingsIcon from '@material-ui/icons/Settings'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { unitsState } from '../units'
-import { conversionMap, unitMap, unitSystems } from '../unitsData'
+import { unitMap, unitSystems, unitsState, dimensionMap } from '../units'
 
 /**
- * Component that wraps it's children in a container that can be 'floated',
- * i.e. displayed on an html element that is positioned relative to the
- * viewport and is above all other elements.
+ * Unit selection menu with dropdowns for each dimension and presets for
+ * different unit systems.
  */
 const useStyles = makeStyles((theme) => {
   return {
     root: {
     },
     menuItem: {
-      width: '10rem'
+      width: '15rem'
     },
     systems: {
       margin: theme.spacing(2),
@@ -63,7 +62,6 @@ const UnitSelector = React.memo(({
   onSystemChange
 }) => {
   // States
-  const [canSelect, setCanSelect] = useState(true)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const open = Boolean(anchorEl)
   const [units, setUnits] = useRecoilState(unitsState)
@@ -76,35 +74,36 @@ const UnitSelector = React.memo(({
   const closeMenu = useCallback(() => {
     setAnchorEl(null)
   }, [])
-  const handleSystemChange = useCallback((event) => {
-    const systemName = event.target.value
-    let changes = {system: systemName}
-    if (systemName === 'custom') {
-      setCanSelect(true)
-    } else {
-      setCanSelect(false)
-      const system = unitSystems[systemName]
-      changes = {...changes, ...system.units}
-    }
-    setUnits({...units, ...changes})
-    if (onSystemChange) {
-      onSystemChange(event)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  const handleUnitChange = useCallback(event => {
-    const changes = {[event.target.name]: event.target.value}
-    if (onUnitChange) {
-      onUnitChange(event)
-    }
-    setUnits({...units, ...changes})
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
-  // Ordered list of controllable units. It may be smaller than the full list of
-  // units.
-  const unitNames = ['energy', 'length', 'force', 'mass', 'time', 'temperature', 'pressure', 'angle']
-  const systemNames = ['SI', 'AU']
+  // Used to handle unit system change.
+  const handleSystemChange = useCallback((event) => {
+    setUnits(unitSystems[event.target.value])
+    onSystemChange && onSystemChange(event)
+  }, [onSystemChange, setUnits])
+
+  // Used to handle unit change for a specific dimensionality. The changes are
+  // stored for each system separately.
+  const handleUnitChange = useCallback(event => {
+    const dimension = event.target.name
+    const unit = event.target.value
+    setUnits(old => {
+      const newSystem = {
+        ...old,
+        units: {
+          ...old.units,
+          ...{[dimension]: {...old.units[dimension], name: unit}}
+        }
+      }
+      unitSystems[old.label] = newSystem
+      return unitSystems[old.label]
+    })
+    onUnitChange && onUnitChange(event)
+  }, [onUnitChange, setUnits])
+
+  // Ordered list of controllable units. The 'dimensionless' unit cannot be
+  // changed.
+  const dimensions = Object.entries(dimensionMap)
+    .filter(([dimension, info]) => dimension !== 'dimensionless')
 
   return <>
     <Button
@@ -133,36 +132,38 @@ const UnitSelector = React.memo(({
         classes={{root: styles.systems}}
       >
         <FormLabel component="legend">Unit system</FormLabel>
-        <RadioGroup aria-label="gender" name="gender1" value={units.system} onChange={handleSystemChange}>
-          <Tooltip title="Custom units">
-            <FormControlLabel value="custom" control={<Radio />} label="Custom" />
-          </Tooltip>
-          {systemNames.map((systemName) => {
-            const system = unitSystems[systemName]
-            return <Tooltip key={systemName} title={system.description}>
-              <FormControlLabel value={systemName} control={<Radio />} label={system.label} />
+        <RadioGroup aria-label="gender" name="gender1" value={units.label} onChange={handleSystemChange}>
+          {Object.values(unitSystems).map(system => {
+            return <Tooltip key={system.label} title={system.description}>
+              <FormControlLabel value={system.label} control={<Radio />} label={system.label} />
             </Tooltip>
           })}
         </RadioGroup>
       </FormControl>
-      {unitNames.map((dimension) => {
-        const unitList = conversionMap[dimension].units
+      {dimensions.map(([dimension, unitInfo]) => {
+        const unitDef = units.units[dimension]
+        if (isNil(unitDef)) {
+          return
+        }
+        const selectedUnit = unitDef.name
+        const disabled = unitDef.fixed
         return <MenuItem
           key={dimension}
         >
-          <FormControl disabled={!canSelect}>
-            <InputLabel id="demo-simple-select-label">{dimension}</InputLabel>
+          <FormControl disabled={disabled}>
+            <InputLabel id="demo-simple-select-label">{unitInfo.label}</InputLabel>
             <Select
               classes={{root: styles.menuItem}}
               labelId="demo-simple-select-label"
               id="demo-simple-select"
               name={dimension}
-              value={units[dimension]}
+              value={selectedUnit}
               onChange={handleUnitChange}
             >
-              {unitList.map((unit) => {
+              {unitInfo.units.map((unit) => {
                 const unitLabel = unitMap[unit].label
-                return <MenuItem key={unit} value={unit}>{unitLabel}</MenuItem>
+                const unitAbbreviation = unitMap[unit].abbreviation
+                return <MenuItem key={unit} value={unit}>{`${unitLabel} (${unitAbbreviation})`}</MenuItem>
               })}
             </Select>
           </FormControl>
@@ -183,9 +184,6 @@ UnitSelector.propTypes = {
   onSystemChange: PropTypes.func,
   className: PropTypes.string,
   classes: PropTypes.object
-}
-UnitSelector.defaultProps = {
-  float: false
 }
 
 export default UnitSelector

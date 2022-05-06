@@ -34,7 +34,7 @@ const HeatCapacity = React.memo(({
   ...other
 }) => {
   const tempUnit = useMemo(() => new Unit('kelvin'), [])
-  const capacityUnit = useMemo(() => new Unit('joule/kelvin'), [])
+  const capacityUnit = useMemo(() => new Unit('joule / kelvin'), [])
   const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const theme = useTheme()
 
@@ -43,13 +43,13 @@ const HeatCapacity = React.memo(({
     let defaultLayout = {
       xaxis: {
         title: {
-          text: `Temperature (${tempUnit.toSystem(units).label})`
+          text: `Temperature (${tempUnit.toSystem(units).label()})`
         },
         zeroline: false
       },
       yaxis: {
         title: {
-          text: `Heat capacity (${capacityUnit.toSystem(units).label})`
+          text: `Heat capacity (${capacityUnit.toSystem(units).label()})`
         },
         zeroline: false
       }
@@ -67,8 +67,8 @@ const HeatCapacity = React.memo(({
     }
 
     // Convert units and determine range
-    const temperatures = new Quantity(data.temperatures, tempUnit).toSystem(units).value
-    const heatCapacities = new Quantity(data.heat_capacities, capacityUnit).toSystem(units).value
+    const temperatures = new Quantity(data.temperatures, tempUnit).toSystem(units).value()
+    const heatCapacities = new Quantity(data.heat_capacities, capacityUnit).toSystem(units).value()
 
     // Create the final data that will be plotted.
     const plotData = [{

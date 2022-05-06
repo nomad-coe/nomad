@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { cloneDeep, merge, isSet, isNil, isString, isNumber, startCase } from 'lodash'
+import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, startCase } from 'lodash'
 import { Quantity } from './units'
 import { format } from 'date-fns'
 import { dateFormat } from './config'
@@ -56,80 +56,64 @@ export const capitalize = (s) => {
 }
 
 /**
- * Used to scale numeric values. Works on n-dimensional arrays and implemented
- * as a relatively simple for loop for performance. If conversion times become
- * an issue, it might be worthwhile to look at vectorization with WebAssembly.
+ * Map that works on n-dimensional arrays. Implemented with simple for loops for
+ * performance.
  *
  * @param {*} value The original values.
  * @param {number} factor Number used for scaling.
  *
  * @return {*} A copy of the original data with numbers scaled.
  */
-export function scale(value, factor) {
-  // Function for recursively scaling the values
-  function scaleRecursive(list, newList) {
+export function deepMap(value, func) {
+  // Function for recursively applying the function
+  function mapRecursive(list, newList) {
     const isScalarArray = !Array.isArray(list[0])
     if (isScalarArray) {
       for (let i = 0, size = list.length; i < size; ++i) {
-        newList.push(list[i] * factor)
+        newList.push(func(list[i]))
       }
     } else {
       for (let i = 0, size = list.length; i < size; ++i) {
         const iList = []
         newList.push(iList)
-        scaleRecursive(list[i], iList)
+        mapRecursive(list[i], iList)
       }
     }
   }
-  // If given a scalar variable, simply try to scale it. If a list is given,
-  // perform the scaling recursively.
-  const isArray = Array.isArray(value)
+  // If given a scalar variable, simply apply the function. If a list is given,
+  // perform the mapping recursively.
   let newValue
-  if (!isArray) {
-    newValue = value * factor
+  if (!isArray(value)) {
+    newValue = func(value)
   } else {
     newValue = []
-    scaleRecursive(value, newValue)
+    mapRecursive(value, newValue)
   }
   return newValue
 }
 
 /**
- * Used to add a single scalar value to an n-dimensional array.
+ * Scales values of an n-dimensional array.
  *
- * @param {*} value The original values.
- * @param {number} addition Number to add.
+ * @param {n-dimensional array} value The original values.
+ * @param {number} factor Scaling factor.
  *
- * @return {*} A copy of the original data with the addition made for each
- * number.
+ * @return {n-dimensional array} A copy of the original data with numbers scaled.
+ */
+export function scale(value, factor) {
+  return deepMap(value, x => x * factor)
+}
+
+/**
+ * Adds the given value to all elements of an n-dimensional array.
+ *
+ * @param {n-dimensional array} value The original values.
+ * @param {number} addition Value to add.
+ *
+ * @return {n-dimensional array} A copy of the original data with the addition.
  */
 export function add(value, addition) {
-  // Function for recursively adding the value
-  function addRecursive(list, newList) {
-    const isScalarArray = !Array.isArray(list[0])
-    if (isScalarArray) {
-      for (let i = 0, size = list.length; i < size; ++i) {
-        newList.push(list[i] + addition)
-      }
-    } else {
-      for (let i = 0, size = list.length; i < size; ++i) {
-        const iList = []
-        newList.push(iList)
-        addRecursive(list[i], iList)
-      }
-    }
-  }
-  // If given a scalar variable, simply try to make the addition. If a list is
-  // given, perform the addition recursively.
-  const isArray = Array.isArray(value)
-  let newValue
-  if (!isArray) {
-    newValue = value + addition
-  } else {
-    newValue = []
-    addRecursive(value, newValue)
-  }
-  return newValue
+  return deepMap(value, x => x + addition)
 }
 
 /**
@@ -316,9 +300,9 @@ export function toMateriaStructure(structure) {
     const structMateria = {
       species: structure.species_at_sites.map(x => speciesMap.get(x)),
       cell: structure.lattice_vectors
-        ? new Quantity(structure.lattice_vectors, 'meter').to('angstrom').value
+        ? new Quantity(structure.lattice_vectors, 'meter').to('angstrom').value()
         : undefined,
-      positions: new Quantity(structure.cartesian_site_positions, 'meter').to('angstrom').value,
+      positions: new Quantity(structure.cartesian_site_positions, 'meter').to('angstrom').value(),
       fractional: false,
       pbc: structure.dimension_types ? structure.dimension_types.map((x) => !!x) : undefined
     }
@@ -486,19 +470,9 @@ export function getSerializer(dtype, pretty = true) {
         return value
       }
       if (value instanceof Quantity) {
-        if (isNil(value.value)) {
-          return value.value
-        }
-        let label
-        let valueConv
-        if (units) {
-          const a = value.toSystem(units)
-          valueConv = a.value
-          label = a.unit.label
-        } else {
-          label = value.unit.label
-          valueConv = value.value
-        }
+        const newVal = units ? value.toSystem(units) : value
+        const label = newVal.label()
+        const valueConv = newVal.value()
         return `${pretty ? formatNumber(valueConv) : valueConv}${label ? ` ${label}` : ''}`
       }
       return pretty ? formatNumber(value) : value

@@ -58,7 +58,7 @@ const ElectronicProperties = React.memo(({
   classes,
   units
 }) => {
-  const range = useMemo(() => new Quantity(electronicRange, 'electron_volt').toSystem(units).value, [units])
+  const range = useMemo(() => new Quantity(electronicRange, 'electron_volt').toSystem(units).value(), [units])
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
   const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 

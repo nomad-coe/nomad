@@ -68,7 +68,7 @@ const useHelpAdornmentStyles = makeStyles(theme => ({
   }
 }))
 
-const HelpAdornment = React.memo(({title, description, withOtherAdornment}) => {
+export const HelpAdornment = React.memo(({title, description, withOtherAdornment}) => {
   const classes = useHelpAdornmentStyles()
   return <InputAdornment
     position="end"

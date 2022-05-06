@@ -172,7 +172,7 @@ const InputRange = React.memo(({
   // Function for converting filter values into SI values used by the API.
   const fromFilter = useCallback(filter => {
     return filter instanceof Quantity
-      ? filter.toSI().value
+      ? filter.toSI().value()
       : filter
   }, [])
 
@@ -291,9 +291,9 @@ const InputRange = React.memo(({
       return undefined
     }
     const rangeSI = maxLocal - minLocal
-    const range = new Quantity(rangeSI, unitSI).toSystem(units).value
+    const range = new Quantity(rangeSI, unitSI).toSystem(units).value()
     const intervalCustom = getInterval(range, nSteps, dtype)
-    return new Quantity(intervalCustom, unitCurrent).toSI().value
+    return new Quantity(intervalCustom, unitCurrent).toSI().value()
   }, [maxLocal, minLocal, discretization, nSteps, unitSI, unitCurrent, units, dtype])
 
   // When filter changes, the plot data should not be updated.
@@ -322,7 +322,7 @@ const InputRange = React.memo(({
   // system.
   const toInternal = useCallback(filter => {
     return (!isTime && unitSI)
-      ? formatNumber(new Quantity(filter, unitSI).toSystem(units).value)
+      ? formatNumber(new Quantity(filter, unitSI).toSystem(units).value())
       : filter
   }, [unitSI, isTime, units])
 
@@ -356,14 +356,14 @@ const InputRange = React.memo(({
         max = maxGlobalSI
       // A single specific value is given
       } else if (filter instanceof Quantity) {
-        gte = filter.toSI().value
-        lte = filter.toSI().value
+        gte = filter.toSI().value()
+        lte = filter.toSI().value()
         min = limitMin(minGlobalSI, gte)
         max = limitMax(maxGlobalSI, lte)
       // A range is given
       } else {
-        gte = filter.gte instanceof Quantity ? filter.gte.toSI().value : filter.gte
-        lte = filter.lte instanceof Quantity ? filter.lte.toSI().value : filter.lte
+        gte = filter.gte instanceof Quantity ? filter.gte.toSI().value() : filter.gte
+        lte = filter.lte instanceof Quantity ? filter.lte.toSI().value() : filter.lte
         if (isNil(gte)) {
           min = limitMin(minGlobalSI, lte)
           gte = min
