@@ -25,6 +25,17 @@ definitions:
         - 'nomad.datamodel.metainfo.eln.Sample'
         - 'nomad.datamodel.data.EntryData'
       quantities:
+        tags:
+          type:
+            type_kind: Enum
+            type_data:
+              - important
+              - project
+              - base
+          shape: ['*']
+          m_annotations:
+            eln:
+              component: AutocompleteEditQuantity
         chemicals:
           type: '#/Chemical'
           shape: ['*']
@@ -65,6 +76,8 @@ definitions:
                   name: Substrate PV
                   unit: degC
                 chamber_pressure: Vacuum Pressure1
+            browser:
+              adaptor: RawFileAdaptor
             eln:
               component: FileEditQuantity
         time:

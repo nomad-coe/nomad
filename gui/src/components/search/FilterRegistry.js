@@ -48,6 +48,7 @@ export const labelVibrational = 'Vibrational'
 export const labelMechanical = 'Mechanical'
 export const labelSpectroscopy = 'Spectroscopy'
 export const labelGeometryOptimization = 'Geometry optimization'
+export const labelELN = 'Electronic Lab Notebook'
 export const labelAuthor = 'Author / Origin'
 export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
@@ -311,6 +312,13 @@ registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {..
 registerFilter('results.method.simulation.dft.xc_functional_names', labelDFT, {...termQuantityNonExclusive, scale: '1/2', label: 'XC Functional Names'})
 registerFilter('results.method.simulation.dft.relativity_method', labelDFT, termQuantity)
 registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, label: 'GW Type'})
+registerFilter('results.eln.sections', labelELN, termQuantity)
+registerFilter('results.eln.tags', labelELN, termQuantity)
+registerFilter('results.eln.method', labelELN, termQuantity)
+registerFilter('results.eln.instrument', labelELN, termQuantity)
+registerFilter('results.eln.lab_id', labelELN, termQuantity)
+registerFilter('results.eln.names', labelELN, termQuantity)
+registerFilter('results.eln.descriptions', labelELN, termQuantity)
 registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database', scale: '1/4'})
 registerFilter('authors.name', labelAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
 registerFilter('upload_create_time', labelAuthor, {...numberHistogramQuantity, scale: '1/2'})

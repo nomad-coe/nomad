@@ -17,6 +17,7 @@
 #
 
 from nomad.datamodel.data import EntryData
+from nomad.datamodel.results import ELN, Results
 from nomad.metainfo import MSection, Package, Quantity, Datetime
 from nomad.units import ureg
 
@@ -47,10 +48,43 @@ class ElnBaseSection(MSection):
                 archive.metadata.entry_name = self.name
             EntryData.normalize(self, archive, logger)
 
+        if not archive.results:
+            archive.results = Results(eln=ELN())
+        if not archive.results.eln:
+            archive.results.eln = ELN()
+
         for quantity in self.m_def.all_quantities.values():
             tabular_parser_annotation = quantity.m_annotations.get('tabular_parser', None)
             if tabular_parser_annotation:
                 self.tabular_parser(quantity, archive, logger, **tabular_parser_annotation)
+
+        if self.lab_id:
+            if archive.results.eln.lab_id is None:
+                archive.results.eln.lab_id = []
+            archive.results.eln.lab_id.append(self.lab_id)
+
+        if getattr(self, 'name'):
+            if archive.results.eln.names is None:
+                archive.results.eln.names = ''
+            archive.results.eln.names = f'|{self.name}'
+
+        if getattr(self, 'description'):
+            if archive.results.eln.descriptions is None:
+                archive.results.eln.descriptions = ''
+            archive.results.eln.descriptions = f'|{self.description}'
+
+        if getattr(self, 'tags'):
+            if archive.results.eln.tags is None:
+                archive.results.eln.tags = []
+            tags = self.tags
+            if isinstance(tags, list):
+                archive.results.eln.tags.extend(tags)
+            else:
+                archive.results.eln.tags.append(tags)
+
+        if not archive.results.eln.sections:
+            archive.results.eln.sections = []
+        archive.results.eln.sections.append(self.m_def.name)
 
     def tabular_parser(self, quantity_def: Quantity, archive, logger, columns, **kwargs):
         if not quantity_def.is_scalar:
@@ -89,6 +123,16 @@ class ElnActivityBaseSecton(ElnBaseSection):
         type=str,
         description='A short consistent handle for the applied method.')
 
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+
+        if archive.results.eln.method is None:
+            archive.results.eln.method = []
+        if self.method:
+            archive.results.eln.method.append(self.method)
+        else:
+            archive.results.eln.method.append(self.m_def.name)
+
 
 class Chemical(ElnBaseSection):
     chemical_formula = Quantity(
@@ -105,7 +149,13 @@ class Sample(ElnBaseSection):
 
 
 class Instrument(ElnBaseSection):
-    pass
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+
+        if self.name:
+            if archive.results.eln.instrument is None:
+                archive.results.eln.instrument = []
+            archive.results.eln.instrument.append(self.name)
 
 
 class Process(ElnActivityBaseSecton):

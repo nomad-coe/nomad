@@ -107,7 +107,7 @@ const InputField = React.memo(({
   const [visibleOptions, setVisibleOptions] = useState()
   const aggIndicator = useRecoilValue(guiState('aggIndicator'))
   const aggCollapse = useRecoilValue(guiState('aggCollapse'))
-  const [scale, setScale] = useState(initialScale || filterData[quantity].scale)
+  const [scale, setScale] = useState(initialScale || filterData[quantity]?.scale || 'linear')
   disableStatistics = anchored
     ? false
     : isNil(disableStatistics) ? !isStatisticsEnabled : disableStatistics

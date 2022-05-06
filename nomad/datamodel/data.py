@@ -18,6 +18,7 @@
 
 import os.path
 from nomad import metainfo
+from nomad.datamodel.results import Results
 
 
 class EntryData(metainfo.MSection):
@@ -30,3 +31,6 @@ class EntryData(metainfo.MSection):
         archive.metadata.entry_type = self.m_def.name
         if archive.metadata.entry_name is None and archive.metadata.mainfile:
             archive.metadata.entry_name = os.path.basename(archive.metadata.mainfile)
+
+        if not archive.results:
+            archive.results = Results()

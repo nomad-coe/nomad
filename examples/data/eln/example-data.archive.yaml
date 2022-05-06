@@ -1,5 +1,7 @@
 data:
   m_def: '../upload/raw/example-schema.archive.yaml#/Sample'
+  tags:
+    - important
   processes:
     pvd_evaporation:
       name: 'Test'
