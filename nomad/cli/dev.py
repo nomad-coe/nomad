@@ -182,7 +182,7 @@ def parser_metadata():
 
 
 @dev.command(help='Generates a JSON file from example-uploads metadata in the YAML file.')
-def exampleUpload_metadata():
+def exampleupload_metadata():
     import json
     import yaml
 
