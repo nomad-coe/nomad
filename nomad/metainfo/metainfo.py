@@ -3057,6 +3057,10 @@ class Section(Definition):
             that add their properties to this section via :attr:`extends_base_section`.
             This quantity will be set automatically.
 
+        inheriting_sections:
+            A list of `section definitions` (:class:`Section`). These are those sections
+            that inherit (i.e. are sub classes) of this section.
+
 
     Besides defining quantities and sub-sections, a section definition can also provide
     constraints that are used to validate a section and its quantities and sub-sections.
@@ -3101,6 +3105,9 @@ class Section(Definition):
 
         all_base_sections:
             A helper attribute that gives direct and indirect base sections.
+
+        all_inheriting_section:
+            A helper attribute that gives direct and indirect inheriting sections.
 
         all_properties:
             A helper attribute that gives all properties (sub section and quantity) definitions
@@ -3158,11 +3165,13 @@ class Section(Definition):
     base_sections: 'Quantity' = _placeholder_quantity
     extending_sections: 'Quantity' = _placeholder_quantity
     extends_base_section: 'Quantity' = _placeholder_quantity
+    inheriting_sections: 'Quantity' = _placeholder_quantity
     constraints: 'Quantity' = _placeholder_quantity
     event_handlers: 'Quantity' = _placeholder_quantity
 
     inherited_sections: 'Quantity' = _placeholder_quantity
     all_base_sections: 'Quantity' = _placeholder_quantity
+    all_inheriting_sections: 'Quantity' = _placeholder_quantity
     all_properties: 'Quantity' = _placeholder_quantity
     all_quantities: 'Quantity' = _placeholder_quantity
     all_sub_sections: 'Quantity' = _placeholder_quantity
@@ -3227,6 +3236,11 @@ class Section(Definition):
                     setattr(base_section.section_cls, name, attr)
 
             base_section.extending_sections = base_section.extending_sections + [self]
+
+        # Init inheriting_sections
+        if not self.extends_base_section:
+            for base_section in self.base_sections:
+                base_section.inheriting_sections = base_section.inheriting_sections + [self]
 
         # Transfer properties of inherited and overwriten property definitions that
         # have not been overwritten
@@ -3508,6 +3522,8 @@ Section.base_sections = Quantity(
 Section.extending_sections = Quantity(
     type=SectionReference, shape=['0..*'], default=[], name='extending_sections')
 Section.extends_base_section = Quantity(type=bool, default=False, name='extends_base_section')
+Section.inheriting_sections = Quantity(
+    type=SectionReference, shape=['0..*'], default=[], name='inheriting_sections', virtual=True)
 Section.constraints = Quantity(type=str, shape=['0..*'], default=[], name='constraints')
 Section.event_handlers = Quantity(
     type=Callable, shape=['0..*'], name='event_handlers', virtual=True, default=[])
@@ -3536,6 +3552,20 @@ def all_base_sections(self) -> List[Section]:
             result.append(base_base_section)
         result.append(base_section)
     return result
+
+
+@derived(cached=True)
+def all_inheriting_sections(self) -> List[Section]:
+    result: Set[Section] = set()
+    for inheriting_section in self.inheriting_sections:
+        if isinstance(inheriting_section, SectionProxy):
+            continue
+        for inheriting_inheriting_section in inheriting_section.all_inheriting_sections:
+            if isinstance(inheriting_inheriting_section, SectionProxy):
+                continue
+            result.add(inheriting_inheriting_section)
+        result.add(inheriting_section)
+    return list(result)
 
 
 @derived(cached=True)
@@ -3626,6 +3656,7 @@ def section_path(self) -> str:
 
 Section.inherited_sections = inherited_sections
 Section.all_base_sections = all_base_sections
+Section.all_inheriting_sections = all_inheriting_sections
 Section.all_properties = all_properties
 Section.all_quantities = all_quantities
 Section.all_sub_sections = all_sub_sections

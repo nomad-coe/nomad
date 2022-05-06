@@ -70,12 +70,6 @@ definitions:
             tabular_parser:
               sep: '\t'
               comment: '#'
-              columns:
-                time: Process Time in seconds
-                substrate_temperature:
-                  name: Substrate PV
-                  unit: degC
-                chamber_pressure: Vacuum Pressure1
             browser:
               adaptor: RawFileAdaptor
             eln:
@@ -84,11 +78,16 @@ definitions:
           type: np.float64
           shape: ['*']
           unit: s
+          m_annotations:
+            tabular:
+              name: Process Time in seconds
         chamber_pressure:
           type: np.float64
           shape: ['*']
           unit: mbar
           m_annotations:
+            tabular:
+              name: Vacuum Pressure1
             plot:
               x: time
               y: chamber_pressure
@@ -97,6 +96,9 @@ definitions:
           shape: ['*']
           unit: kelvin
           m_annotations:
+            tabular:
+              name: Substrate PV
+              unit: degC
             plot:
               x: time
               y: substrate_temperature

@@ -19,7 +19,6 @@
 from nomad.datamodel.data import EntryData
 from nomad.datamodel.results import ELN, Results
 from nomad.metainfo import MSection, Package, Quantity, Datetime
-from nomad.units import ureg
 
 m_package = Package(name='material_library')
 
@@ -73,7 +72,7 @@ class ElnBaseSection(MSection):
                 archive.results.eln.descriptions = ''
             archive.results.eln.descriptions = f'|{self.description}'
 
-        if getattr(self, 'tags'):
+        if getattr(self, 'tags', None):
             if archive.results.eln.tags is None:
                 archive.results.eln.tags = []
             tags = self.tags
@@ -86,7 +85,9 @@ class ElnBaseSection(MSection):
             archive.results.eln.sections = []
         archive.results.eln.sections.append(self.m_def.name)
 
-    def tabular_parser(self, quantity_def: Quantity, archive, logger, columns, **kwargs):
+    def tabular_parser(self, quantity_def: Quantity, archive, logger, **kwargs):
+        from nomad.parsing.tabular import parse_columns, read_table_data
+
         if not quantity_def.is_scalar:
             raise NotImplementedError('CSV parser is only implemented for single files.')
 
@@ -94,23 +95,10 @@ class ElnBaseSection(MSection):
         if not value:
             return
 
-        import pandas as pd
         with archive.m_context.raw_file(self.data_file) as f:
-            data = pd.read_csv(f, engine='python', **kwargs)
+            data = read_table_data(self.data_file, f, **kwargs)
 
-        for quantity_name, column_value in columns.items():
-            quantity = self.m_def.all_quantities[quantity_name]
-            if isinstance(column_value, str):
-                column_name = column_value
-                column_unit = quantity.unit
-            elif isinstance(column_value, dict):
-                column_name = column_value['name']
-                column_unit = ureg(column_value['unit'])
-
-            np_values = data.loc[:, column_name].to_numpy()
-            if column_unit is not None:
-                np_values *= column_unit
-            self.m_set(quantity, np_values)
+        parse_columns(data, self)
 
 
 class ElnActivityBaseSecton(ElnBaseSection):

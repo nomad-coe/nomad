@@ -297,3 +297,9 @@ class ClientContext(Context):
     def raw_file(self, path, *args, **kwargs):
         file_path = os.path.join(self.local_dir, path)
         return open(file_path, *args, **kwargs)
+
+    def create_reference(self, section: MSection, quantity_def: Quantity, value: MSection) -> str:
+        try:
+            return super().create_reference(section, quantity_def, value)
+        except AssertionError:
+            return f'<unavailable url>/#{value.m_path()}'

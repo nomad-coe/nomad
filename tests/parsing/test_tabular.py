@@ -17,41 +17,110 @@
 #
 
 import pytest
-import json
+import os.path
+import pandas as pd
 
-from nomad.files import StagingUploadFiles
+from nomad import config
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
-from nomad.datamodel.context import ServerContext
+from nomad.datamodel.context import ClientContext
 from nomad.utils import generate_entry_id, strip
 from nomad.parsing.tabular import TabularDataParser
-from nomad.processing import Upload
 
 
-@pytest.mark.parametrize('content', [
-    pytest.param(strip('''
-        header_0,header_1
-        0_0,0_1
-        1_0,1_1
-    '''), id='simple')
+@pytest.mark.parametrize('schema,content', [
+    pytest.param(
+        strip('''
+            definitions:
+                sections:
+                    MyTable:
+                        base_section: nomad.parsing.tabular.TableRow
+                        quantities:
+                            header_0:
+                                type: str
+                            header_1:
+                                type: str
+        '''),
+        strip('''
+            header_0,header_1
+            0_0,0_1
+            1_0,1_1
+        '''), id='simple'),
+    pytest.param(
+        strip('''
+            definitions:
+                sections:
+                    MyTable:
+                        base_section: nomad.parsing.tabular.TableRow
+                        quantities:
+                            header_0:
+                                type: str
+                            quantity:
+                                type: str
+                                m_annotations:
+                                    tabular:
+                                        name: header_1
+                        sub_sections:
+                            my_sub_section:
+                                sub_section: MySubSection
+                    MySubSection:
+                        quantities:
+                            quantity:
+                                type: str
+        '''),
+        strip('''
+            header_0,header_1,my_sub_section.quantity
+            0_0,0_1,0_2
+            1_0,1_1,1_2
+        '''), id='nested'),
+    pytest.param(
+        strip('''
+            definitions:
+                sections:
+                    MyTable:
+                        base_section: nomad.parsing.tabular.TableRow
+                        quantities:
+                            header_0:
+                                type: np.float64
+                            header_1:
+                                type: np.float64
+                                unit: s
+                                m_annotations:
+                                    tabular:
+                                        unit: ms
+        '''),
+        strip('''
+            header_0,header_1
+            0.0,0.1
+            1.0,1.1
+        '''), id='units')
 ])
-def test_tabular(raw_files, content):
-    upload_files = StagingUploadFiles(upload_id='test_upload', create=True)
-    upload = Upload(upload_id='test_upload')
-    mainfile = 'test.csv'
-    with upload_files.raw_file(mainfile, 'wt') as f:
+def test_tabular(raw_files, monkeypatch, schema, content):
+    mainfile = os.path.join(config.fs.tmp, 'test.my_schema.archive.csv')
+    schema_file = os.path.join(config.fs.tmp, 'my_schema.archive.yaml')
+    with open(mainfile, 'wt') as f:
         f.write(content)
+    with open(schema_file, 'wt') as f:
+        f.write(schema)
+
+    data = pd.read_csv(mainfile)
 
     parser = TabularDataParser()
-    keys = parser.is_mainfile(
-        upload_files.raw_file_object(mainfile).os_path,
-        'text/application', bytes(), '')
+    keys = parser.is_mainfile(mainfile, 'text/application', bytes(), '')
 
     assert isinstance(keys, list)
-    assert len(keys) == 2
+    assert len(keys) == data.shape[0]
 
-    context = ServerContext(upload=upload)
+    class MyContext(ClientContext):
+        def load_raw_file(self, path, upload_id, installation_url):
+            archive = super().load_raw_file(path, upload_id, installation_url)
+            archive.metadata = EntryMetadata(
+                upload_id='test_upload',
+                entry_id=generate_entry_id('test_upload', schema_file))
+            return archive
+
+    context = MyContext(local_dir='')
     main_archive = EntryArchive(m_context=context, metadata=EntryMetadata(
-        upload_id='test_upload',
+        upload_id=None,
         mainfile=mainfile,
         entry_id=generate_entry_id('test_upload', mainfile)))
     child_archives = {
@@ -62,10 +131,13 @@ def test_tabular(raw_files, content):
             entry_id=generate_entry_id('test_upload', mainfile, key)))
         for key in keys}
 
-    parser.parse(
-        upload_files.raw_file_object(mainfile).os_path,
-        main_archive, None, child_archives)
+    parser.parse(mainfile, main_archive, None, child_archives)
+    main_archive.metadata.upload_id = 'test_upload'
 
-    print('# main: ', json.dumps(main_archive.m_to_dict(), indent=2))
-    for key in keys:
-        print(f'# {key}: ', json.dumps(child_archives[key].m_to_dict(), indent=2))
+    assert main_archive.data is not None
+    for child_archive in child_archives.values():
+        child_archive.data is not None
+
+    # print('# main: ', json.dumps(main_archive.m_to_dict(), indent=2))
+    # for key in keys:
+    #     print(f'# {key}: ', json.dumps(child_archives[key].m_to_dict(), indent=2))

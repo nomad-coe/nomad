@@ -176,6 +176,7 @@ class TestM2:
         assert Definition.m_def in iter(Section.m_def.base_sections)
         assert 'name' in Section.m_def.all_quantities
         assert 'name' in Quantity.m_def.all_quantities
+        assert Quantity.m_def in Definition.m_def.all_inheriting_sections
 
     def test_unit(self):
         assert System.lattice_vectors.unit is not None

@@ -18,6 +18,7 @@
 
 import os.path
 from typing import Tuple, List, Dict
+from collections.abc import Iterable
 
 from nomad import config
 from nomad.datamodel import EntryArchive, EntryMetadata, results
@@ -25,6 +26,7 @@ from nomad.datamodel.context import Context, ClientContext
 
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
+from .tabular import TabularDataParser
 
 
 try:
@@ -107,7 +109,7 @@ def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tu
 
         match_result = parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression)
         if match_result:
-            if type(match_result) == set:
+            if isinstance(match_result, Iterable):
                 assert parser.creates_children, 'Illegal return value - parser does not specify `creates_children`'
                 for mainfile_key in match_result:  # type: ignore
                     assert mainfile_key and type(mainfile_key) == str, (
@@ -584,6 +586,7 @@ parsers = [
         mainfile_name_re=(r'.*\.nxs'),
         supported_compressions=['gz', 'bz2', 'xz']
     ),
+    TabularDataParser(),
     ArchiveParser()
 ]
 
