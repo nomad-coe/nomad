@@ -3419,6 +3419,11 @@ class Package(Definition):
 
         return super().qualified_name()
 
+    def normalize(self, archive, logger=None):
+        if archive.definitions == self and archive.metadata:
+            if archive.metadata.entry_name is None and self.name and self.name != '*':
+                archive.metadata.entry_name = self.name
+
 
 class Category(Definition):
     ''' Categories allow to organize metainfo definitions (not metainfo data like sections do)
