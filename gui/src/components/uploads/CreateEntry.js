@@ -13,7 +13,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const globalMetainfo = useGlobalMetainfo()
-  const [templates, setTemplates] = useState()
+  const [templates, setTemplates] = useState([])
   const [template, setTemplate] = useState()
   const uploadId = data.upload.upload_id
   const [name, setName] = useState('')
@@ -25,6 +25,11 @@ const CreateEntry = React.memo(function CreateEntry(props) {
     // TODO this whole thing is quite expensive to repeat on each upload page?
     // There needs to be a register/cache based on hashes or something
     if (!globalMetainfo) {
+      return
+    }
+
+    // Do not reload all possible entries while still processing.
+    if (data.upload.process_running) {
       return
     }
 
@@ -60,8 +65,8 @@ const CreateEntry = React.memo(function CreateEntry(props) {
     }
 
     const getTemplates = async () => {
-      const data = await globalMetainfo.fetchAllCustomMetainfos()
-      const customTemplates = data.reduce((templates, data) => {
+      const customMetainfos = await globalMetainfo.fetchAllCustomMetainfos(true)
+      const customTemplates = customMetainfos.reduce((templates, data) => {
         const archive = data.archive
         const newTemplates = getTemplatesFromDefinitions(
           archive.definitions.section_definitions, data.entry_id, archive,
@@ -81,7 +86,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
     }
 
     getTemplates().then(setTemplates).catch(raiseError)
-  }, [api, raiseError, setTemplates, globalMetainfo])
+  }, [api, raiseError, setTemplates, globalMetainfo, data])
 
   const handleAdd = useCallback(() => {
     api.put(`uploads/${uploadId}/raw/?file_name=${name}.archive.json&wait_for_processing=true`, selectedTemplate.archive)
