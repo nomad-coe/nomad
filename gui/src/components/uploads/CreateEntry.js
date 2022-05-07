@@ -52,12 +52,14 @@ const CreateEntry = React.memo(function CreateEntry(props) {
         } else if (prefix === '__global__') {
           label = `${label} (OASIS)`
         }
+        const template = dataSection.m_annotations?.template?.[0] || {}
         return {
           id: `${prefix}:${dataSection._qualifiedName}`,
           label: label,
           archive: {
             data: {
-              m_def: getReference(dataSection)
+              m_def: getReference(dataSection),
+              ...template
             }
           }
         }

@@ -21,10 +21,20 @@ definitions:
             eln:
               component: EnumEditQuantity
     Sample:
+      m_annotations:
+        template:
+          processes:
+            pvd_evaporation: {}
       base_sections:
         - 'nomad.datamodel.metainfo.eln.Sample'
         - 'nomad.datamodel.data.EntryData'
       quantities:
+        name:
+          type: str
+          default: Default Sample Name
+          m_annotations:
+            eln:
+              component: StringEditQuantity
         tags:
           type:
             type_kind: Enum
@@ -54,6 +64,9 @@ definitions:
     PVDEvaporationProcess:
       base_section: 'nomad.datamodel.metainfo.eln.Process'
       m_annotations:
+        eln:
+          overview: true
+          hide: ['name', 'lab_id', 'description']
         plot:
           title: Pressure and Temperature over Time
           x_axis: time
@@ -61,6 +74,18 @@ definitions:
             - chamber_pressure
             - chamber_temperature
       quantities:
+        set_temperature:
+          type: np.float64
+          unit: K
+          m_annotations:
+            eln:
+              component: NumberEditQuantity
+        duration:
+          type: np.float64
+          unit: s
+          m_annotations:
+            eln:
+              component: NumberEditQuantity
         data_file:
           type: str
           description: |

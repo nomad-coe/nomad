@@ -72,7 +72,7 @@ const PropertyEditor = React.memo(function PropertyEditor({quantityDef, value, o
   }
   const props = {
     quantityDef: quantityDef,
-    value: value,
+    value: value === undefined ? quantityDef.default : value,
     onChange: onChange,
     ...(editAnnotation?.props || {})
   }
@@ -125,6 +125,11 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
     handleArchiveChanged()
   }, [handleArchiveChanged, onChange, section])
 
+  const filterHiddenProperties = useCallback((property) => {
+    const hiddenPropertyNames = sectionDef?.m_annotations?.eln?.[0]?.hide || []
+    return !hiddenPropertyNames.includes(property.name)
+  }, [sectionDef])
+
   const jsonData = useMemo(() => {
     if (!showJson) {
       return null
@@ -132,7 +137,11 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
     const jsonData = {}
     sectionDef._allProperties
       .filter(property => property.m_def === QuantityMDef && property.m_annotations?.eln)
-      .filter(property => section[property.name]?.length <= 1e3) // TODO this is just a hack to avoid large values, e.g. rich text with images
+      .filter(property => {
+        // TODO this is just a hack to avoid large values, e.g. rich text with images
+        const value = section[property.name]
+        return !value || typeof value !== 'string' || value.length <= 1e3
+      })
       .forEach(property => {
         jsonData[property.name] = section[property.name]
       })
@@ -147,7 +156,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
             <JsonEditor data={jsonData} onChange={handleJsonChange} />
           </Box>
         ) : (
-          sectionDef._allProperties.map(property => (
+          sectionDef._allProperties.filter(filterHiddenProperties).map(property => (
             <Box marginBottom={1} key={property.name}>
               <PropertyEditor
                 quantityDef={property}

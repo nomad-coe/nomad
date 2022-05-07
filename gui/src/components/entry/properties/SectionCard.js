@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import {PropertyCard} from './PropertyCard'
 import SectionEditor from '../../archive/SectionEditor'
@@ -25,19 +25,13 @@ import CodeIcon from '@material-ui/icons/Code'
 import MoreIcon from '@material-ui/icons/MoreVert'
 import { ArchiveButton } from '../../nav/Routes'
 
-const SectionCard = React.memo(({archivePath, sectionDef, getSection, ...props}) => {
-  const {entryId, uploadId, archive, requireArchive} = useEntryContext()
+const SectionCard = React.memo(({archivePath, sectionDef, section, ...props}) => {
+  const {entryId, uploadId, requireArchive} = useEntryContext()
   const [showJson, setShowJson] = useState(false)
 
   useEffect(() => {
     requireArchive()
   }, [requireArchive])
-
-  const section = useMemo(() => {
-    if (archive) {
-      return getSection(archive)
-    }
-  }, [archive, getSection])
 
   const actions = <React.Fragment>
     <IconButton onClick={() => setShowJson(value => !value)}>
@@ -72,7 +66,7 @@ const SectionCard = React.memo(({archivePath, sectionDef, getSection, ...props})
 SectionCard.propTypes = {
   archivePath: PropTypes.string.isRequired,
   sectionDef: PropTypes.object.isRequired,
-  getSection: PropTypes.func.isRequired
+  section: PropTypes.object.isRequired
 }
 
 export default SectionCard

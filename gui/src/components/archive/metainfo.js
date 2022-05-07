@@ -654,6 +654,36 @@ export function getSectionReference(definition) {
 }
 
 /**
+ * Allows to traverse a given section through all its sub-sections.
+ * @param {Object} section The section to traverse
+ * @param {Object} definition The definition of the section
+ * @param {str} path The archive path to the section
+ * @param {function} callback The callback that is called on each section
+ */
+export function traverse(section, definition, path, callback, depthFirst) {
+  callback(section, definition, path)
+  for (const subSectionDef of definition._allProperties.filter(prop => prop.m_def === SubSectionMDef)) {
+    let subSections = []
+    if (!subSectionDef.repeats) {
+      const subSection = section[subSectionDef.name]
+      if (subSection) {
+        subSections = [subSection]
+      }
+    } else {
+      subSections = section[subSectionDef.name] || []
+    }
+
+    subSections.forEach((subSection, index) => {
+      let childPath = `${path}/${subSectionDef.name}`
+      if (subSectionDef.repeats) {
+        childPath = `${childPath}/${index}`
+      }
+      traverse(subSection, subSectionDef.sub_section, childPath, callback)
+    })
+  }
+}
+
+/**
  * Constructs a graph from and with the definition. The graph will contain the given nodes,
  * all its outgoing and incomming references, the parents up to root (for sections and categories)
  *
