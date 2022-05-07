@@ -15,125 +15,89 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Button, Dialog, DialogTitle, makeStyles } from '@material-ui/core'
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@material-ui/core'
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import List from '@material-ui/core/List'
-import ListItem from '@material-ui/core/ListItem'
-import CloudUploadIcon from '@material-ui/icons/CloudUpload'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import exampleUploads from '../../exampleUploads.json'
 import Markdown from '../Markdown'
-
-const useStyles = makeStyles(theme => ({
-  markDownHeader: {
-    color: '#000000',
-    fontSize: '18px'
-  },
-  markDownDescription: {
-    color: '#808080',
-    fontSize: '15px'
-  },
-  listItem: {
-    flexDirection: 'column',
-    maxWidth: '500px',
-    alignItems: 'start'
-  },
-  mainDiv: {
-    display: 'flex',
-    alignItems: 'center'
-  },
-  selectButton: {
-    marginRight: '5px',
-    height: '30px'
-  }
-}))
+import { useHistory } from 'react-router-dom'
 
 const ExampleUploadDialog = React.memo(function ExampleUploadDialog(props) {
-  const { exampleUploadData, onClose, openDialog } = props
-  const classes = useStyles()
-
+  const { onSelect, ...dialogProps } = props
   return (
-    <Dialog
-      onClose={() => onClose()}
-      aria-labelledby="Uploads-dialogBox"
-      open={openDialog}
-    >
+    <Dialog {...dialogProps}>
       <DialogTitle id="Uploads-dialogBox">Select a sample Upload</DialogTitle>
-      <List>
-        {Object.keys(exampleUploadData).map((exampleType) => exampleUploadData[exampleType].map((uploadEntry, i) =>
-          <div key={i} className={classes.mainDiv}>
-            <ListItem className={classes.listItem}>
-              <Markdown className={classes.markDownHeader}>
-                {`
-                  ${uploadEntry.title}  (${exampleType})
-                `}
-              </Markdown>
-              <Markdown className={classes.markDownDescription}>
-                {`
-                  ${uploadEntry.description}
-                `}
-              </Markdown>
-            </ListItem>
-            <Button
-              variant="contained"
-              color="primary"
-              value={uploadEntry.filePath}
-              startIcon={<CloudUploadIcon />}
-              onClick={() => onClose(uploadEntry.filePath)}
-              className={classes.selectButton}
-            >
-              Select
-            </Button>
-          </div>
-        ))}
-      </List>
+      <DialogContent>
+        {Object.keys(exampleUploads).map(key => {
+          const exampleUpload = exampleUploads[key]
+          return (
+            <Box key={key} display="flex" flexDirection="row" marginBottom={2} alignItems="baseline">
+              <Box marginRight={2} flexGrow={1}>
+                <Typography variant="h6">{exampleUpload.title}</Typography>
+                <Markdown>{`${exampleUpload.description}`}</Markdown>
+              </Box>
+              <Button
+                variant="contained" color="primary" size="small"
+                onClick={() => onSelect(key)}
+              >
+                add
+              </Button>
+            </Box>
+          )
+        })}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={dialogProps.onClose}>cancel</Button>
+      </DialogActions>
     </Dialog>
   )
 })
 
 ExampleUploadDialog.propTypes = {
   onClose: PropTypes.func.isRequired,
-  openDialog: PropTypes.bool.isRequired,
-  exampleUploadData: PropTypes.object.isRequired
+  onSelect: PropTypes.func.isRequired
 }
 
 export default function ExampleUploadButton(props) {
   const {api} = useApi()
-  const errors = useErrors()
-  const {onHandleReload} = props
+  const {raiseError} = useErrors()
+  const history = useHistory()
 
-  const [openDialog, setOpenDialog] = useState(false)
+  const [isOpen, setOpen] = useState(false)
 
   const handleClickOpen = () => {
-    setOpenDialog(true)
+    setOpen(true)
   }
 
-  const handleClose = (value) => {
-    (value && api.post(`/uploads?local_path=${value}`)
-      .then(onHandleReload)
-      .catch((error) => {
-        errors.raiseError(error)
+  const handleClose = () => setOpen(false)
+
+  const handleSelect = (value) => {
+    const exampleUpload = exampleUploads[value]
+    api.post(`/uploads?local_path=${exampleUpload.path}&upload_name=${exampleUpload.title}`)
+      .then((data) => {
+        history.push(`/user/uploads/upload/id/${data.upload_id}`)
       })
-    )
-    setOpenDialog(false)
+      .catch(raiseError)
+      .finally(() => {
+        setOpen(false)
+      })
   }
 
   return (
     <div>
       <Button variant="contained" onClick={handleClickOpen}>
-        Select from Example Uploads
+        Add Example Uploads
       </Button>
       <ExampleUploadDialog
-        exampleUploadData={exampleUploads}
-        openDialog={openDialog}
+        open={isOpen}
         onClose={handleClose}
+        onSelect={handleSelect}
       />
     </div>
   )
 }
 ExampleUploadButton.propTypes = {
-  onHandleReload: PropTypes.func.isRequired,
   isDisable: PropTypes.bool
 }

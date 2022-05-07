@@ -182,19 +182,19 @@ def parser_metadata():
 
 
 @dev.command(help='Generates a JSON file from example-uploads metadata in the YAML file.')
-def exampleupload_metadata():
+def example_upload_metadata():
     import json
     import yaml
 
     os_list = {}
 
-    with open("examples/data/ExampleUploads.yml") as infile:
+    with open('examples/data/uploads/example_uploads.yml') as infile:
         os_list = yaml.load(infile, Loader=yaml.FullLoader)
 
     print(json.dumps(os_list, indent=2))
 
 
-@dev.command(help='Generate toolkit tutorial metadata from anaytics submodules.')
+@dev.command(help='Generate toolkit tutorial metadata from analytics submodules.')
 def toolkit_metadata():
     import requests
     import re

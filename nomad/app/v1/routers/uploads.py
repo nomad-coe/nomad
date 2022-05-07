@@ -1738,7 +1738,7 @@ async def _get_files_if_provided(
     sources: List[Tuple[Any, str]] = []  # List of tuples (source, filename)
     if local_path:
         # Method 0: Local file - only for local path under /tests/data/proc/
-        if not local_path.startswith('tests/data/proc'):
+        if not local_path.startswith('examples') and not user.is_admin:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You are not authorized to access this path.'''))
         if not os.path.exists(local_path) or not os.path.isfile(local_path):

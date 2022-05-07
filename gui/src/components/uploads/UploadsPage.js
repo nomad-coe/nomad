@@ -121,7 +121,6 @@ metadata when you click on an upload to open its details, and press the edit but
 The metadata fields cannot be changed after the upload has been published (except for dataset members).
 The documentation on the [user data page](${guiBase}/userdata) contains more information.
 `
-const uploadsPageContext = React.createContext()
 
 const columns = [
   {
@@ -289,7 +288,7 @@ export function UploadsPage() {
       .catch(errors.raiseError)
   }, [api, errors, setUploadCommands])
 
-  return <uploadsPageContext.Provider value={{reload: handleReload}}>
+  return (
     <Page loading={!(data && uploadCommands)}>
       <Box marginBottom={2}>
         <Typography>
@@ -299,7 +298,7 @@ export function UploadsPage() {
       <Box alignItems='center' style={{display: 'flex'}}>
         <NewUploadButton color="primary" disabled={isDisabled}/>
         <Typography color='initial' style={{padding: '10px'}} >or</Typography>
-        <ExampleUploadButton color="inherit" disabled={isDisabled} onHandleReload={handleReload}/>
+        <ExampleUploadButton color="inherit" disabled={isDisabled} />
         <Box display="inline-block" marginLeft={2}>
           {isDisabled && <Typography color="error" role='error-maximum-number-of-unpublished'>
             You have reached maximum number of unpublished uploads!
@@ -345,7 +344,7 @@ export function UploadsPage() {
         </Paper>
       </React.Fragment>}
     </Page>
-  </uploadsPageContext.Provider>
+  )
 }
 
 export default withLoginRequired(UploadsPage)
