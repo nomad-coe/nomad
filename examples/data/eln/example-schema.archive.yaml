@@ -47,84 +47,82 @@ definitions:
             eln:
               component: AutocompleteEditQuantity
         chemicals:
-          type: '#/Chemical'
+          type: Chemical
           shape: ['*']
           m_annotations:
             eln:
               component: ReferenceEditQuantity
       sub_sections:
         processes:
-          sub_section: '#/Processes'
-    Processes:
-      m_annotations:
-        eln:
-      sub_sections:
-        pvd_evaporation:
-          sub_section: '#/PVDEvaporationProcess'
-    PVDEvaporationProcess:
-      base_section: 'nomad.datamodel.metainfo.eln.Process'
-      m_annotations:
-        eln:
-          overview: true
-          hide: ['name', 'lab_id', 'description']
-        plot:
-          title: Pressure and Temperature over Time
-          x_axis: time
-          y_axis:
-            - chamber_pressure
-            - chamber_temperature
-      quantities:
-        set_temperature:
-          type: np.float64
-          unit: K
-          m_annotations:
-            eln:
-              component: NumberEditQuantity
-        duration:
-          type: np.float64
-          unit: s
-          m_annotations:
-            eln:
-              component: NumberEditQuantity
-        data_file:
-          type: str
-          description: |
-            A reference to an uploaded .csv produced by the PVD evaporation instruments
-            control software.
-          m_annotations:
-            tabular_parser:
-              sep: '\t'
-              comment: '#'
-            browser:
-              adaptor: RawFileAdaptor
-            eln:
-              component: FileEditQuantity
-        time:
-          type: np.float64
-          shape: ['*']
-          unit: s
-          m_annotations:
-            tabular:
-              name: Process Time in seconds
-        chamber_pressure:
-          type: np.float64
-          shape: ['*']
-          unit: mbar
-          m_annotations:
-            tabular:
-              name: Vacuum Pressure1
-            plot:
-              x: time
-              y: chamber_pressure
-        substrate_temperature:
-          type: np.float64
-          shape: ['*']
-          unit: kelvin
-          m_annotations:
-            tabular:
-              name: Substrate PV
-              unit: degC
-            plot:
-              x: time
-              y: substrate_temperature
+          section:
+            m_annotations:
+              eln:
+            sub_sections:
+              pvd_evaporation:
+                section:
+                  base_section: 'nomad.datamodel.metainfo.eln.Process'
+                  m_annotations:
+                    eln:
+                      overview: true
+                      hide: ['name', 'lab_id', 'description']
+                    plot:
+                      title: Pressure and Temperature over Time
+                      x_axis: time
+                      y_axis:
+                        - chamber_pressure
+                        - chamber_temperature
+                  quantities:
+                    set_temperature:
+                      type: np.float64
+                      unit: K
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity
+                    duration:
+                      type: np.float64
+                      unit: s
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity
+                    data_file:
+                      type: str
+                      description: |
+                        A reference to an uploaded .csv produced by the PVD evaporation instruments
+                        control software.
+                      m_annotations:
+                        tabular_parser:
+                          sep: '\t'
+                          comment: '#'
+                        browser:
+                          adaptor: RawFileAdaptor
+                        eln:
+                          component: FileEditQuantity
+                    time:
+                      type: np.float64
+                      shape: ['*']
+                      unit: s
+                      m_annotations:
+                        tabular:
+                          name: Process Time in seconds
+                    chamber_pressure:
+                      type: np.float64
+                      shape: ['*']
+                      unit: mbar
+                      m_annotations:
+                        tabular:
+                          name: Vacuum Pressure1
+                        plot:
+                          x: time
+                          y: chamber_pressure
+                    substrate_temperature:
+                      type: np.float64
+                      shape: ['*']
+                      unit: kelvin
+                      m_annotations:
+                        tabular:
+                          name: Substrate PV
+                          unit: degC
+                        plot:
+                          x: time
+                          y: substrate_temperature
 

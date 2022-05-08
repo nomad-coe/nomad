@@ -29,6 +29,13 @@ class SpecialProcess(Process):
 
 m_package.__init_metainfo__()
 
+
+def yaml_to_package(yaml_str):
+    yaml_obj = yaml.safe_load(yaml_str)
+    package = Package.m_from_dict(yaml_obj)
+    return package
+
+
 yaml_schema_example = strip('''
 m_def: 'nomad.metainfo.metainfo.Package'
 sections:
@@ -62,8 +69,7 @@ sections:
 
 
 def test_yaml_deserialization():
-    yaml_obj = yaml.safe_load(yaml_schema_example)
-    des_m_package = Package.m_from_dict(yaml_obj)
+    des_m_package = yaml_to_package(yaml_schema_example)
 
     sample = m_package['section_definitions'][0]
     process = m_package['section_definitions'][1]
@@ -148,9 +154,35 @@ def test_yaml_deserialization():
     '''), 'The provided m_annotations is of a wrong type. str was provided.', id='wrong m_annotations')
 ])
 def test_errors(yaml_schema, expected_error):
-    yaml_obj = yaml.safe_load(yaml_schema)
     with pytest.raises(Exception) as exception:
-        Package.m_from_dict(yaml_obj)
+        yaml_to_package(yaml_schema)
 
     assert isinstance(exception.value, MetainfoError)
     assert exception.value.args[0] == expected_error
+
+
+def test_sub_section_tree():
+    yaml = yaml_to_package('''
+      sections:
+        Parent:
+          sub_sections:
+            the_child:
+              sub_section:
+                quantities:
+                  quantity:
+                    type: str
+    ''')
+    reference = yaml_to_package('''
+      sections:
+        Parent:
+          sub_sections:
+            the_child:
+              section: TheChild
+          sections:
+            TheChild:
+              quantities:
+                quantity:
+                  type: str
+    ''')
+
+    assert yaml.m_to_dict() == reference.m_to_dict()

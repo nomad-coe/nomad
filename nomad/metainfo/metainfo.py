@@ -1900,7 +1900,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         raise MetainfoError(
                             'Only numpy quantities can have more than 1 dimension.')
 
-                section.__dict__[name] = quantity_value  # type: ignore
+                section.__dict__[property_def.name] = quantity_value  # type: ignore
 
     @classmethod
     def m_from_dict(cls: Type[MSectionBound], data: Dict[str, Any], **kwargs) -> MSectionBound:
@@ -2587,6 +2587,16 @@ class Property(Definition):
     '''
 
     template: 'Quantity' = _placeholder_quantity
+
+    def get_from_dict(self, data: Dict[str, Any], default_value: Any = None) -> Tuple[str, Any]:
+        '''
+        Attempts to read the property from a dict. Returns the used alias and value as
+        tuple.
+        '''
+        for name in self.aliases + [self.name]:
+            if name in data:
+                return name, data[name]
+        return None, default_value
 
 
 class Quantity(Property):
@@ -3286,26 +3296,46 @@ class Section(Definition):
 
     @classmethod
     def m_from_dict(cls, data: Dict[str, Any], **kwargs):
-        if 'quantities' in data and isinstance(data['quantities'], dict):
-            quantities = []
-            for key, value in data['quantities'].items():
-                value.update(dict(name=key))
-                quantities.append(value)
-            data['quantities'] = quantities
+        for list_quantity in [Section.quantities, Section.sub_sections, Section.inner_section_definitions]:
+            alias, potential_dict_value = list_quantity.get_from_dict(data)
+            if alias:
+                data[alias] = dict_to_named_list(potential_dict_value)
 
-        if 'sub_sections' in data and isinstance(data['sub_sections'], dict):
-            sub_sections = []
-            for key, value in data['sub_sections'].items():
-                if value is None:
-                    value = {}
-                value.update(dict(name=key))
-                sub_sections.append(value)
-            data['sub_sections'] = sub_sections
+        _, sub_sections = Section.sub_sections.get_from_dict(data, [])
+        for sub_section in sub_sections:
+            alias, section_def = SubSection.sub_section.get_from_dict(sub_section)
+            if not section_def or isinstance(section_def, str):
+                continue
+
+            inner_sections_alias, inner_sections = Section.inner_section_definitions.get_from_dict(data)
+            if not inner_sections_alias:
+                inner_sections = []
+                data['inner_section_definitions'] = inner_sections
+
+            inner_sections.append(section_def)
+            name = sub_section.get('name')
+            if name:
+                name = name.title().replace('_', '')
+            section_def['name'] = name
+            sub_section[alias] = name
 
         if 'base_section' in data:
             data['base_sections'] = [data.pop('base_section')]
 
         return super(Section, cls).m_from_dict(data, **kwargs)
+
+
+def dict_to_named_list(data):
+    if not isinstance(data, dict):
+        return data
+
+    results = []
+    for key, value in data.items():
+        if value is None:
+            value = {}
+        value.update(dict(name=key))
+        results.append(value)
+    return results
 
 
 class Package(Definition):
@@ -3395,16 +3425,10 @@ class Package(Definition):
 
     @classmethod
     def m_from_dict(cls, data: Dict[str, Any], **kwargs):
-        if 'sections' in data:
-            data['section_definitions'] = data.pop('sections')
-
-        if 'section_definitions' in data and isinstance(data['section_definitions'], dict):
-            sections = []
-            for key, value in data['section_definitions'].items():
-                if isinstance(value, dict):
-                    value['name'] = key
-                    sections.append(value)
-                data['section_definitions'] = sections
+        for list_quantity in [Package.section_definitions, Package.category_definitions]:
+            alias, potential_dict_value = list_quantity.get_from_dict(data)
+            if alias:
+                data[alias] = dict_to_named_list(potential_dict_value)
 
         return super(Package, cls).m_from_dict(data, **kwargs)
 
@@ -3520,7 +3544,7 @@ Section.sub_sections = SubSection(
     sub_section=SubSection.m_def, name='sub_sections', repeats=True)
 Section.inner_section_definitions = SubSection(
     sub_section=Section.m_def, name='inner_section_definitions', repeats=True,
-    aliases=['inner_section_defs', 'section_defs'])
+    aliases=['inner_section_defs', 'section_defs', 'inner_sections', 'sections'])
 
 Section.base_sections = Quantity(
     type=SectionReference, shape=['0..*'], default=[], name='base_sections')
@@ -3677,7 +3701,7 @@ SubSection.repeats = Quantity(type=bool, name='repeats', default=False)
 
 SubSection.sub_section = Quantity(
     type=SectionReference, name='sub_section',
-    aliases=['section_definition', 'section_def'])
+    aliases=['section_definition', 'section_def', 'section'])
 
 Quantity.m_def._section_cls = Quantity
 Quantity.type = DirectQuantity(type=QuantityType, name='type')
