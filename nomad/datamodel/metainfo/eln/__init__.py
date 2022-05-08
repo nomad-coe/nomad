@@ -16,8 +16,9 @@
 # limitations under the License.
 #
 
+from nomad import utils
 from nomad.datamodel.data import EntryData
-from nomad.datamodel.results import ELN, Results
+from nomad.datamodel.results import ELN, Results, Material
 from nomad.metainfo import MSection, Package, Quantity, Datetime
 
 m_package = Package(name='material_library')
@@ -122,17 +123,42 @@ class ElnActivityBaseSecton(ElnBaseSection):
             archive.results.eln.methods.append(self.m_def.name)
 
 
-class Chemical(ElnBaseSection):
+class ElnWithFormulaBaseSection(ElnBaseSection):
     chemical_formula = Quantity(
         type=str,
         description=(
-            'The chemical formula of the chemical. This will be used directly and '
+            'The chemical formula. This will be used directly and '
             'indirectly in the search. The formula will be used itself as well as '
             'the extracted chemical elements.'),
         a_eln=dict(component='StringEditQuantity'))
 
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+        if logger is None:
+            logger = utils.get_logger(__name__)
+        from ase import Atoms
+        if self.chemical_formula:
+            if not archive.results:
+                archive.results = Results()
+            if not archive.results.material:
+                archive.results.material = Material()
+            material = archive.results.material
 
-class Sample(ElnBaseSection):
+            try:
+                atoms = Atoms(self.chemical_formula)
+                material.elements = list(set(atoms.get_chemical_symbols()))
+                material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
+                material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
+                material.chemical_formula_descriptive = self.chemical_formula
+            except Exception as e:
+                logger.warn('could not analyse chemical formula', exc_info=e)
+
+
+class Chemical(ElnWithFormulaBaseSection):
+    pass
+
+
+class Sample(ElnWithFormulaBaseSection):
     pass
 
 

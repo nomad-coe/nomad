@@ -39,6 +39,11 @@ const columns = [
   {key: 'results.material.symmetry.crystal_system'},
   {key: 'results.material.symmetry.space_group_symbol'},
   {key: 'results.material.symmetry.space_group_number'},
+  {key: 'results.eln.lab_ids'},
+  {key: 'results.eln.sections'},
+  {key: 'results.eln.methods'},
+  {key: 'results.eln.tags'},
+  {key: 'results.eln.instruments'},
   {key: 'mainfile', align: 'left'},
   {
     key: 'upload_create_time',
@@ -95,7 +100,6 @@ const defaultSelectedColumns = [
   'entry_name',
   'results.material.chemical_formula_hill',
   'entry_type',
-  'results.method.method_name',
   'upload_create_time',
   'authors'
 ]
