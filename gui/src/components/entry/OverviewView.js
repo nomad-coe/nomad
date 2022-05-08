@@ -166,11 +166,11 @@ const OverviewView = React.memo((props) => {
   return <Page limitedWidth>
     <Grid container spacing={0} className={classes.root}>
       <Grid item xs={4} className={classes.leftColumn}>
-        <MetadataSection title='Method'>
+        <MetadataSection title="Metadata">
           <MethodMetadata data={index} />
         </MetadataSection>
         <Divider className={classes.divider} />
-        <MetadataSection title='Author metadata'>
+        <MetadataSection>
           <Quantity flex>
             <Quantity quantity='comment' data={index} />
             <Quantity quantity='references' data={index}/>

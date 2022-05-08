@@ -58,19 +58,19 @@ class ElnBaseSection(MSection):
                 self.tabular_parser(quantity, archive, logger, **tabular_parser_annotation)
 
         if self.lab_id:
-            if archive.results.eln.lab_id is None:
-                archive.results.eln.lab_id = []
-            archive.results.eln.lab_id.append(self.lab_id)
+            if archive.results.eln.lab_ids is None:
+                archive.results.eln.lab_ids = []
+            archive.results.eln.lab_ids.append(self.lab_id)
 
         if getattr(self, 'name'):
             if archive.results.eln.names is None:
-                archive.results.eln.names = ''
-            archive.results.eln.names = f'|{self.name}'
+                archive.results.eln.names = []
+            archive.results.eln.names.append(self.name)
 
         if getattr(self, 'description'):
             if archive.results.eln.descriptions is None:
-                archive.results.eln.descriptions = ''
-            archive.results.eln.descriptions = f'|{self.description}'
+                archive.results.eln.descriptions = []
+            archive.results.eln.descriptions.append(self.description)
 
         if getattr(self, 'tags', None):
             if archive.results.eln.tags is None:
@@ -114,12 +114,12 @@ class ElnActivityBaseSecton(ElnBaseSection):
     def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
-        if archive.results.eln.method is None:
-            archive.results.eln.method = []
+        if archive.results.eln.methods is None:
+            archive.results.eln.methods = []
         if self.method:
-            archive.results.eln.method.append(self.method)
+            archive.results.eln.methods.append(self.method)
         else:
-            archive.results.eln.method.append(self.m_def.name)
+            archive.results.eln.methods.append(self.m_def.name)
 
 
 class Chemical(ElnBaseSection):
@@ -141,9 +141,9 @@ class Instrument(ElnBaseSection):
         super().normalize(archive, logger)
 
         if self.name:
-            if archive.results.eln.instrument is None:
-                archive.results.eln.instrument = []
-            archive.results.eln.instrument.append(self.name)
+            if archive.results.eln.instruments is None:
+                archive.results.eln.instruments = []
+            archive.results.eln.instruments.append(self.name)
 
 
 class Process(ElnActivityBaseSecton):

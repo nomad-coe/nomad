@@ -1312,21 +1312,21 @@ class ELN(MSection):
         a_elasticsearch=Elasticsearch(search_entry_type))
 
     names = Quantity(
-        type=str,
+        type=str, shape=['*'],
         description='''
-            The short human readable and descriptive name that appear in
+            Short human readable and descriptive names that appear in
             ELN entries.
         ''',
         a_elasticsearch=Elasticsearch(search_entry_type, mapping='text'))
 
     descriptions = Quantity(
-        type=str,
+        type=str, shape=['*'],
         description='''
             'Human descriptions that appear in ELN entries.
         ''',
         a_elasticsearch=Elasticsearch(search_entry_type, mapping='text'))
 
-    instrument = Quantity(
+    instruments = Quantity(
         type=str, shape=['*'],
         description='''
             The name or type of instrument used in an activity, e.g. process or
@@ -1334,14 +1334,14 @@ class ELN(MSection):
         ''',
         a_elasticsearch=Elasticsearch(search_entry_type))
 
-    method = Quantity(
+    methods = Quantity(
         type=str, shape=['*'],
         description='''
             The name or the applied method in an activity, e.g. process or measurement
         ''',
         a_elasticsearch=Elasticsearch(search_entry_type))
 
-    lab_id = Quantity(
+    lab_ids = Quantity(
         type=str, shape=['*'],
         description='''
             The laboratory specific id for any item, e.g. sample, chemical, instrument.

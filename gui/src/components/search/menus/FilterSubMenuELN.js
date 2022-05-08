@@ -57,7 +57,7 @@ const FilterSubMenuELN = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputField
-          quantity="results.eln.method"
+          quantity="results.eln.methods"
           visible={visible}
           xs={12}
           disableSearch
@@ -65,7 +65,7 @@ const FilterSubMenuELN = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputField
-          quantity="results.eln.instrument"
+          quantity="results.eln.instruments"
           visible={visible}
           xs={12}
           disableSearch
@@ -89,7 +89,7 @@ const FilterSubMenuELN = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputField
-          quantity="results.eln.lab_id"
+          quantity="results.eln.lab_ids"
           visible={visible}
           disableStatistics
           disableOptions
