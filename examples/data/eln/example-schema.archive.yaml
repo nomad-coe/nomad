@@ -21,6 +21,8 @@ definitions:
             eln:
               component: EnumEditQuantity
     Sample:
+      description: |
+        A description can contain **markdown** markup and TeX formulas, like $\sum\limits_{i=0}^{n}$.
       m_annotations:
         template:
           processes:

@@ -25,6 +25,16 @@ m_package = Package(name='material_library')
 
 
 class ElnBaseSection(MSection):
+    '''
+    A generic abstract base section for ELNs that provides a few commonly used properties.
+
+    If you inherit from this section, but do not need some quantities, list those
+    quantities in the `eln.hide` annotation of your inheriting section definition.
+
+    Besides predefining some quantities, these base sections will add some metadata
+    to NOMAD's search. A particular example are `tags`, if you define a string
+    or enum quantity in your sections named `tags`, its values will be searchable.
+    '''
     name = Quantity(
         type=str,
         description='A short human readable and descriptive name.',
@@ -103,6 +113,10 @@ class ElnBaseSection(MSection):
 
 
 class ElnActivityBaseSecton(ElnBaseSection):
+    '''
+    A generic abstract base section for ELNs that provides a few commonly used for
+    laboratory activities, e.g. processes, characterizations, measurements, etc.
+    '''
     datetime = Quantity(
         type=Datetime,
         description='The date and time when this activity was done.',
@@ -124,6 +138,10 @@ class ElnActivityBaseSecton(ElnBaseSection):
 
 
 class ElnWithFormulaBaseSection(ElnBaseSection):
+    '''
+    A generic abstract base section for ELNs that provides a few commonly used for
+    items with a chemical formula, e.g. chemicals or samples.
+    '''
     chemical_formula = Quantity(
         type=str,
         description=(
@@ -155,14 +173,17 @@ class ElnWithFormulaBaseSection(ElnBaseSection):
 
 
 class Chemical(ElnWithFormulaBaseSection):
+    ''' A ELN base section that can be used for chemicals.'''
     pass
 
 
 class Sample(ElnWithFormulaBaseSection):
+    ''' A ELN base section that can be used for samples.'''
     pass
 
 
 class Instrument(ElnBaseSection):
+    ''' A ELN base section that can be used for instruments.'''
     def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
@@ -173,10 +194,12 @@ class Instrument(ElnBaseSection):
 
 
 class Process(ElnActivityBaseSecton):
+    ''' A ELN base section that can be used for processes.'''
     pass
 
 
 class Measurement(ElnActivityBaseSecton):
+    ''' A ELN base section that can be used for measurements.'''
     pass
 
 

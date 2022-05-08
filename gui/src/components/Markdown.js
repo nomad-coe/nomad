@@ -280,7 +280,7 @@ function Markdown(props) {
           const path = globalMetainfo?.path(word)
           if (path) {
             word = `[\`${word}\`](/metainfo/${path})`
-          } else {
+          } else if (word.includes('_')) {
             word = `\`${word}\``
           }
         }

@@ -317,8 +317,12 @@ const Metainfo = React.memo(function Metainfo(props) {
 
 export class SectionDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {
-    if (key === '_baseSection') {
-      return metainfoAdaptorFactory(this.context, this.def.base_sections[0])
+    if (key.startsWith('_baseSection')) {
+      let index = 0
+      if (key.includes('@')) {
+        index = parseInt(key.split('@')[1])
+      }
+      return metainfoAdaptorFactory(this.context, this.def.base_sections[index])
     }
 
     if (key.includes('@')) {
@@ -399,7 +403,7 @@ function SectionDefContent({def}) {
     {def.base_sections.length > 0 &&
       <Compartment title="base section">
         {def.base_sections.map((baseSection, index) => (
-          <Item key={index} itemKey="_baseSection">
+          <Item key={index} itemKey={`_baseSection@${index}`}>
             <Typography>{baseSection.name}</Typography>
           </Item>
         ))}
