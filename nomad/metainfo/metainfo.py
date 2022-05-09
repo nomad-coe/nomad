@@ -1291,7 +1291,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             return int(value)
 
         elif quantity_def.type in _primitive_types and type(value) != quantity_def.type:
-            return _primitive_types[quantity_def.type](value)
+            try:
+                return _primitive_types[quantity_def.type](value)  # type: ignore
+            except ValueError as e:
+                raise TypeError(e)
 
         else:
             if value is not None and type(value) != quantity_def.type:
