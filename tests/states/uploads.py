@@ -111,7 +111,7 @@ def multiple_entries():
     data = ExampleData(main_author=main_author)
 
     upload_id = 'dft_upload_1'
-    data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
+    data.create_upload(upload_id=upload_id, published=False, embargo_length=0)
 
     for i in range(1, 7):
         entry_id = f'dft_bulk_{i}'

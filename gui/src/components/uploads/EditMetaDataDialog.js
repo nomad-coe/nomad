@@ -313,6 +313,7 @@ function EditMetaDataDialog({...props}) {
   const isProcessing = upload?.process_running
   const nSelected = (selectedEntries.upload_id ? upload?.entries : selectedEntries.entry_id.length)
   const [userDatasets, setUserDatasets] = useState([])
+  const [userDatasetsFetched, setUserDatasetsFetched] = useState(false)
   const [actions, setActions] = useState([])
 
   const handleDiscardChanges = useCallback(() => {
@@ -321,15 +322,18 @@ function EditMetaDataDialog({...props}) {
   }, [])
 
   useEffect(() => {
-    api.get(`/datasets/?page_size=${1000}&page=${1}&user_id=${user.sub}`)
-      .then(datasets => {
-        setUserDatasets(datasets?.data)
-      })
-      .catch(err => {
-        setUserDatasets([])
-        raiseError(err)
-      })
-  }, [api, user, raiseError, data])
+    if (open && !userDatasetsFetched) {
+      setUserDatasetsFetched(true)
+      api.get(`/datasets/?page_size=${1000}&page=${1}&user_id=${user.sub}`)
+        .then(datasets => {
+          setUserDatasets(datasets?.data)
+        })
+        .catch(err => {
+          setUserDatasets([])
+          raiseError(err)
+        })
+    }
+  }, [api, user, raiseError, data, open, userDatasetsFetched, setUserDatasetsFetched])
 
   const defaultComment = useMemo(() => data?.data?.length > 0 ? data?.data[0]?.entry_metadata?.comment || '' : '', [data])
   const defaultReferences = useMemo(() => data?.data?.length > 0 ? data?.data[0]?.entry_metadata?.references || [] : [], [data])
