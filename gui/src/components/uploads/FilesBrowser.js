@@ -18,12 +18,14 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Box, Chip, CircularProgress, Collapse, makeStyles, Paper, Typography } from '@material-ui/core'
+import { Box, Chip, CircularProgress, Collapse, IconButton, makeStyles, Paper, Typography } from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
+import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import FilePreview from './FilePreview'
+import { EntryButton } from '../nav/Routes'
 
 const useFolderStyles = makeStyles(theme => ({
   root: {},
@@ -63,7 +65,7 @@ const useFolderStyles = makeStyles(theme => ({
   }
 }))
 
-function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info, path}) {
+function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info, entry_id, path}) {
   const classes = useFolderStyles()
   const handleToggle = event => {
     event.stopPropagation()
@@ -92,6 +94,14 @@ function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info
       <div className={classes.tags}>
         {parser && <Chip size="small" label={parser} color="default" />}
       </div>
+      {entry_id && (
+        <React.Fragment>
+          <Box flexGrow={1} />
+          <EntryButton entryId={entry_id} component={IconButton} size="small">
+            <NavigateIcon />
+          </EntryButton>
+        </React.Fragment>
+      )}
     </div>
     <Collapse in={open} className={classes.children}>
       {children || 'loading ...'}
@@ -106,7 +116,7 @@ FileOrFolder.propTypes = {
   children: PropTypes.arrayOf(PropTypes.object),
   name: PropTypes.string,
   path: PropTypes.string,
-  uploadId: PropTypes.string,
+  entry_id: PropTypes.string,
   parser: PropTypes.string,
   info: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
@@ -160,7 +170,7 @@ export default function FilesBrower({uploadId, disabled}) {
         .forEach(item => {
           resultsByPath[`${path}/${item.name}`] = item
           if (item.parser_name) {
-            item.parser = item.parser_name.replace('parsers/', '').replace('archive', 'nomad')
+            item.parser = item.parser_name.replace('parsers/', '').replace('parserss/', '')
           }
         })
       setRenderCounter(renderCounter => renderCounter + 1)

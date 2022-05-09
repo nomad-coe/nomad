@@ -120,7 +120,7 @@ def parse_columns(pd_dataframe, section: MSection):
             mapping[column](section, data.loc[:, column])
 
 
-def parse_table(pd_dataframe, section_def: Section):
+def parse_table(pd_dataframe, section_def: Section, logger):
     '''
     Parses the given pandas dataframe and creates a section based on the given
     section_def for each row. The sections are filled with the cells from
@@ -131,11 +131,19 @@ def parse_table(pd_dataframe, section_def: Section):
     sections: List[MSection] = []
 
     mapping = _create_column_to_quantity_mapping(section_def)  # type: ignore
-    for _, row in data.iterrows():
+    for row_index, row in data.iterrows():
         section = section_def.section_cls()
-        for column in data:
-            if column in mapping:
-                mapping[column](section, row[column])
+        try:
+            for column in data:
+                if column in mapping:
+                    try:
+                        mapping[column](section, row[column])
+                    except Exception as e:
+                        logger.error(
+                            f'could not parse cell',
+                            details=dict(row=row_index, column=column), exc_info=e)
+        except Exception as e:
+            logger.error(f'could not parse row', details=dict(row=row_index), exc_info=e)
         sections.append(section)
 
     return sections
@@ -225,7 +233,7 @@ class TabularDataParser(MatchingParser):
             logger.error('Schema for tabular data must inherit from TableRow.')
             return
 
-        child_sections = parse_table(data, section_def)
+        child_sections = parse_table(data, section_def, logger=logger)
         assert len(child_archives) == len(child_sections)
 
         table = Table()

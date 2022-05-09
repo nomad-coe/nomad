@@ -50,6 +50,8 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import { getLineStyles } from '../../utils'
 import Plot from '../visualization/Plot'
 import { useUploadContext } from '../uploads/UploadContext'
+import { EntryButton } from '../nav/Routes'
+import NavigateIcon from '@material-ui/icons/MoreHoriz'
 
 export function useBrowserAdaptorContext(data) {
   const entryContext = useEntryContext()
@@ -590,19 +592,39 @@ function Section({section, def, parentRelation}) {
   const lane = useLane()
   const history = useHistory()
 
+  const navEntryId = useMemo(() => {
+    return lane?.adaptor?.context?.archive?.metadata?.entry_id
+  }, [lane])
+
   const sectionIsEditable = useMemo(() => {
     return editable && isEditable(def) && !lane.adaptor.context.isReferenced
   }, [editable, def, lane])
 
   const actions = useMemo(() => {
-    if (!sectionIsEditable) {
-      return <SourceJsonDialogButton
-        buttonProps={{size: 'small'}}
-        tooltip={`Show section data as JSON`}
-        title={`Underlying section data as JSON`}
-        data={section}
-      />
-    }
+    const navButton = navEntryId && (
+      <Grid item>
+        <EntryButton entryId={navEntryId} component={IconButton} size="small">
+          <NavigateIcon />
+        </EntryButton>
+      </Grid>
+    )
+
+    const jsonButton = !sectionIsEditable ? (
+      <Grid item>
+        <SourceJsonDialogButton
+          buttonProps={{size: 'small'}}
+          tooltip={`Show section data as JSON`}
+          title={`Underlying section data as JSON`}
+          data={section}
+        />
+      </Grid>
+    ) : (
+      <Grid item>
+        <IconButton onClick={() => setShowJson(value => !value)} size="small">
+          <CodeIcon />
+        </IconButton>
+      </Grid>
+    )
 
     const handleDelete = () => {
       removeSubSection(
@@ -613,19 +635,18 @@ function Section({section, def, parentRelation}) {
       history.push(lane.prev.path)
     }
 
-    return <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
-      <Grid item>
-        <IconButton onClick={() => setShowJson(value => !value)} size="small">
-          <CodeIcon />
-        </IconButton>
-      </Grid>
+    const deleteButton = sectionIsEditable && (
       <Grid item>
         <IconButton onClick={handleDelete} size="small">
           <DeleteIcon />
         </IconButton>
       </Grid>
+    )
+
+    return <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+      {navButton}{jsonButton}{deleteButton}
     </Grid>
-  }, [setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged, section])
+  }, [navEntryId, setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged, section])
 
   const renderQuantity = useCallback(quantityDef => {
     const key = quantityDef.name
