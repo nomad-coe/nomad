@@ -52,7 +52,7 @@ export const MethodMetadata = React.memo(({data}) => {
     Object.keys(children).forEach(key => addMethodQuantities(children[key], `${parentKey}.${key}`))
   }
   if (data?.results?.method) {
-    addMethodQuantities(data.results.method, 'results.eln')
+    addMethodQuantities(data.results.method, 'results.method')
   }
   if (data?.results?.eln) {
     addMethodQuantities(data.results.eln, 'results.eln', ['names', 'sections', 'descriptions'])
