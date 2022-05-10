@@ -152,6 +152,33 @@ function BetaSnack() {
   </Snackbar>
 }
 
+function LegacySnack() {
+  const classes = useBetaSnackStyles()
+  const [understood, setUnderstood] = useState(false)
+
+  return <Snackbar className={classes.root}
+    anchorOrigin={{
+      vertical: 'bottom',
+      horizontal: 'left'
+    }}
+    open={!understood}
+  >
+    <SnackbarContent
+      className={classes.snack}
+      message={<span style={{color: 'white'}}>
+        You are using an old version of NOMAD. This version can still be used to view data.
+        To change yor data or upload new data, please use
+        <MuiLink style={{color: 'white'}} href="https://nomad-lab.eu/prod/v1/gui">the official NOMAD version</MuiLink>.
+      </span>}
+      action={[
+        <IconButton size="small" key={0} color="inherit" onClick={() => setUnderstood(true)}>
+          <UnderstoodIcon />
+        </IconButton>
+      ]}
+    />
+  </Snackbar>
+}
+
 const useStyles = makeStyles(theme => ({
   root: {
     minWidth: 1024
@@ -190,6 +217,7 @@ function Navigation() {
       <div className={classes.appFrame}>
         <ReloadSnack/>
         <ErrorBoundary>
+          <LegacySnack />
           <BetaSnack />
           <TermsSnack />
           <AppBar />
