@@ -115,9 +115,9 @@ def perform_post_put_file(
     return response
 
 
-def perform_post_upload_action(client, user_auth, upload_id, action, **query_args):
+def perform_post_upload_action(client, user_auth, upload_id, action, json=None, **query_args):
     return client.post(
-        build_url(f'uploads/{upload_id}/action/{action}', query_args), headers=user_auth)
+        build_url(f'uploads/{upload_id}/action/{action}', query_args), headers=user_auth, json=json)
 
 
 def assert_file_upload_and_processing(
@@ -1596,6 +1596,49 @@ def test_post_upload_action_process(
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         assert_processing(client, upload_id, test_auth_dict['test_user'][0], check_files=False, published=True)
+
+
+@pytest.mark.parametrize('upload_id, user, owner, query, include_parent_folders, expected_status_code, expect_exists, expect_not_exists', [
+    pytest.param(
+        'id_published_w', 'admin_user', None, {'entry_id': 'id_published_w_entry'}, False,
+        401, [], [], id='published-admin'),
+    pytest.param(
+        'id_unpublished_w', 'other_test_user', None, {'entry_id': 'id_unpublished_w_entry'}, False,
+        401, [], [], id='unpublished-no-access'),
+    pytest.param(
+        'id_unpublished_w', 'test_user', None, None, False,
+        400, [], [], id='no-query'),
+    pytest.param(
+        'id_unpublished_w', 'test_user', None, {'entry_id': ['id_unpublished_w_entry', 'silly']}, False,
+        200, ['test_content/test_embargo_entry/1.aux'], ['test_content/test_embargo_entry/mainfile.json'], id='ok'),
+    pytest.param(
+        'id_unpublished_w', 'test_user', None, {'entry_id': 'id_unpublished_w_entry'}, True,
+        200, ['test_content'], ['test_content/test_embargo_entry'], id='ok-delete-folder'),
+    pytest.param(
+        'id_unpublished_w', 'admin_user', 'admin', {'entry_id': 'id_unpublished_w_entry'}, False,
+        200, ['test_content/test_embargo_entry/1.aux'], ['test_content/test_embargo_entry/mainfile.json'], id='ok-admin-access')])
+def test_post_upload_action_delete_entry_files(
+        client, mongo, proc_infra, example_data_writeable, test_auth_dict,
+        upload_id, user, owner, query, include_parent_folders,
+        expected_status_code, expect_exists, expect_not_exists):
+    user_auth, __token = test_auth_dict[user]
+    json = {}
+    if include_parent_folders is not None:
+        json.update(include_parent_folders=include_parent_folders)
+    if owner is not None:
+        json.update(owner=owner)
+    if query is not None:
+        json.update(query=query)
+
+    response = perform_post_upload_action(client, user_auth, upload_id, 'delete-entry-files', json=json)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        upload = Upload.get(upload_id)
+        upload.block_until_complete()
+        for path in expect_exists or []:
+            assert upload.upload_files.raw_path_exists(path), f'Missing expected path: {path}'
+        for path in expect_not_exists or []:
+            assert not upload.upload_files.raw_path_exists(path), f'Expected path not to exist: {path}'
 
 
 @pytest.mark.parametrize('upload_id, user, preprocess, expected_status_code', [

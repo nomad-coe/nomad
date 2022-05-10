@@ -19,7 +19,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
   const [name, setName] = useState('')
   const history = useHistory()
   const location = useLocation()
-  const selectedTemplate = template || templates?.[0]
+  const selectedTemplate = template || templates?.[0] || null
 
   useEffect(() => {
     // TODO this whole thing is quite expensive to repeat on each upload page?
@@ -108,7 +108,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
         disabled={!templates}
         value={selectedTemplate}
         onChange={(event, value) => setTemplate(value)}
-        options={templates}
+        options={templates || []}
         getOptionLabel={(option) => option.label}
         style={{ width: 300 }}
         renderInput={(params) => <TextField {...params} label="type" variant="filled" />}

@@ -59,13 +59,17 @@ const UploadContext = React.memo(function UploadContext({uploadId, children}) {
           history.push(getUrl('uploads', new URL(window.location.href).pathname))
           return
         }
-        if (!hasUpload && error.apiMessage) {
+        if (error.apiMessage === 'Page out of range requested.') {
+          // Can happen if entries have been deleted and the page is no longer in range
+          pagination.page = 1
+          setPagination(pagination)
+        } else if (!hasUpload && error.apiMessage) {
           setError(error.apiMessage)
         } else {
           raiseError(error)
         }
       })
-  }, [api, hasUpload, uploadId, pagination, deleteClicked, raiseError, setData, setApiData, history])
+  }, [api, hasUpload, uploadId, pagination, setPagination, deleteClicked, raiseError, setData, setApiData, history])
 
   // constant fetching of upload data when necessary
   useEffect(() => {

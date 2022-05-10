@@ -32,7 +32,7 @@ import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../bu
 import { useEntryContext } from './EntryContext'
 import SectionCard from './properties/SectionCard'
 import { createMetainfo } from '../archive/metainfo'
-import { ArchiveSaveButton, useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
+import { ArchiveSaveButton, ArchiveDeleteButton, useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
 import { useErrors } from '../errors'
 
 function MetadataSection({title, children}) {
@@ -201,6 +201,7 @@ const OverviewView = React.memo((props) => {
         {editable && (
           <Box textAlign="right" className={classes.editActions}>
             <ArchiveSaveButton />
+            <ArchiveDeleteButton />
           </Box>
         )}
         {sections

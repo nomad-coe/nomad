@@ -942,7 +942,8 @@ class StagingUploadFiles(UploadFiles):
         assert is_safe_relative_path(path)
         raw_os_path = os.path.join(self.os_path, 'raw')
         os_path = os.path.join(raw_os_path, path)
-        assert os.path.exists(os_path)
+        if not os.path.exists(os_path):
+            return
         if os.path.isfile(os_path):
             # Deleting a file
             if updated_files is not None:

@@ -300,6 +300,17 @@ on the optimade filter language:
 ''')
 
 
+def restrict_query_to_upload(query: Query, upload_id: str):
+    ''' Utility for restricting an arbitrary Query to a single upload. '''
+    if isinstance(query, Mapping) and query.keys() == {'entry_id'} and isinstance(query['entry_id'], All):
+        # Special case. We want to allow this type of queries, but for some reason, ES will
+        # not find anything if we just "and" the query with an upload_id criteria as usual.
+        # Instead, for it to work, the "All" must be changed to an "Any" operation.
+        values = query['entry_id'].op
+        return And(**{'and': [{'upload_id': upload_id}, {'entry_id': Any_(any=values)}]})
+    return And(**{'and': [{'upload_id': upload_id}, query]})
+
+
 class WithQuery(BaseModel):
     owner: Optional[Owner] = Body('public')
     query: Optional[Query] = Body(

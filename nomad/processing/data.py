@@ -59,7 +59,8 @@ from nomad.datamodel import (
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.app.v1.models import (
-    MetadataEditRequest, And, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired)
+    MetadataEditRequest, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired,
+    restrict_query_to_upload)
 from nomad.search import update_metadata as es_update_metadata
 
 section_metadata = datamodel.EntryArchive.metadata.name
@@ -572,7 +573,7 @@ class MetadataEditRequestHandler:
         query = self.edit_request_obj.query
         if upload_id and query:
             # Restrict query to the specified upload
-            return And(**{'and': [{'upload_id': upload_id}, query]})
+            return restrict_query_to_upload(query, upload_id)
         return query
 
     def _find_request_uploads(self) -> List['Upload']:

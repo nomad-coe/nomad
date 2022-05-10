@@ -19,12 +19,12 @@ import os
 import io
 import shutil
 from datetime import datetime
-from typing import Tuple, List, Dict, Any, Optional
+from typing import Tuple, List, Set, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
 from mongoengine.queryset.visitor import Q
 from urllib.parse import unquote
 from fastapi import (
-    APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
+    APIRouter, Request, File, UploadFile, status, Depends, Body, Path, Query as FastApiQuery,
     HTTPException)
 from fastapi.responses import StreamingResponse
 from fastapi.exceptions import RequestValidationError
@@ -33,12 +33,13 @@ from nomad import utils, config, files
 from nomad.files import StagingUploadFiles, UploadBundle, is_safe_relative_path
 from nomad.processing import Upload, Entry, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
-from nomad.search import search, refresh as search_refresh
+from nomad.search import search, search_iterator, refresh as search_refresh, QueryValidationError
 
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (
     MetadataPagination, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
-    Files, files_parameters, WithQuery, MetadataEditRequest)
+    Files, files_parameters, Owner, WithQuery, MetadataRequired, MetadataEditRequest,
+    restrict_query_to_upload)
 from .entries import EntryArchiveResponse, answer_entry_archive_request
 from ..utils import (
     parameter_dependency_from_model, create_responses, DownloadItem, browser_download_headers,
@@ -299,6 +300,16 @@ class PutRawFileResponse(BaseModel):
     processing: Optional[ProcessingData] = Field(None, description=strip('''
         Information about the processing, including the entry (if one was generated) and
         [optionally] the archive data of this entry.'''))
+
+
+class DeleteEntryFilesRequest(WithQuery):
+    ''' Defines a request to delete entry files. '''
+    owner: Optional[Owner] = Body('all')
+    include_parent_folders: Optional[bool] = Field(
+        False,
+        description=strip('''
+            If the delete operation should include not only the mainfiles of the selected entries,
+            but also their folders.'''))
 
 
 class UploadCommandExamplesResponse(BaseModel):
@@ -1439,6 +1450,60 @@ async def post_upload_action_process(
     return UploadProcDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
+
+
+@router.post(
+    '/{upload_id}/action/delete-entry-files', tags=[action_tag],
+    summary='Deletes the files of the entries specified by a query.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_upload_action_delete_entry_files(
+        data: DeleteEntryFilesRequest,
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload within which to delete entry files.'),
+        user: User = Depends(create_user_dependency(required=True))):
+    ''' Deletes the files of the entries specified by the provided query. '''
+
+    upload = _get_upload_with_write_access(upload_id, user, include_published=False)
+
+    # Evaluate query
+    if not data.query:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            A query must be specified.'''))
+    restricted_query = restrict_query_to_upload(data.query, upload_id)
+    es_entries = search_iterator(
+        user_id=user.user_id,
+        owner=data.owner,
+        query=restricted_query,
+        required=MetadataRequired(include=['mainfile']))
+
+    # Determine paths to delete
+    try:
+        paths_to_delete: Set[str] = set()
+        for es_entry in es_entries:
+            mainfile = es_entry['mainfile']
+            path_to_delete = os.path.dirname(mainfile) if data.include_parent_folders else mainfile
+            paths_to_delete.add(path_to_delete)
+    except QueryValidationError as e:
+        raise RequestValidationError(errors=e.errors)
+
+    # Execute operation
+    if paths_to_delete:
+        try:
+            upload.process_upload(
+                file_operations=[
+                    dict(op='DELETE', path=path_to_delete)
+                    for path_to_delete in sorted(paths_to_delete)],
+                only_updated_files=True)
+        except ProcessAlreadyRunning:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='The upload is currently blocked by another process.')
+
+    return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 
 
 @router.post(

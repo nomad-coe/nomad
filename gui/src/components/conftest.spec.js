@@ -24,6 +24,7 @@ import { RecoilRoot } from 'recoil'
 import DateFnsUtils from '@date-io/date-fns'
 import { MuiPickersUtilsProvider } from '@material-ui/pickers'
 import {
+  act,
   render,
   screen,
   within as originalWithin,
@@ -619,6 +620,18 @@ infrastructure.reset(True)"`)
  */
 export function wait(value, ms = 100) {
   return new Promise(resolve => setTimeout(() => resolve(value), ms))
+}
+
+/**
+ * Utility function for waiting for the GUI within an "act" statement (so that jest does
+ * not print warnings if there are state updates while waiting). Intended to be used as
+ * a LAST RESORT when updates are expected in the GUI and there are either no good ways of
+ * determining when they are completed, or we use this as a temporary workaround until we
+ * have a proper solution.
+ * @param {number} ms delay in milliseconds
+ */
+export async function waitForGUI(ms = 1000) {
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, ms)) })
 }
 
 /**

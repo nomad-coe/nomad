@@ -20,11 +20,13 @@ import React from 'react'
 import {
   render,
   screen,
+  waitForGUI,
   startAPI,
   closeAPI
 } from '../conftest.spec'
-import { within } from '@testing-library/dom'
+import { within, waitFor } from '@testing-library/dom'
 import UploadPage from './UploadPage'
+import userEvent from '@testing-library/user-event'
 
 const testPublishedWritePermissions = async () => {
   // Wait to load the page, i.e. wait for some text to appear
@@ -194,7 +196,7 @@ test.each([
 })
 
 test('Render upload page: multiple entries', async () => {
-  await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries')
+  await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries', 'test', 'password')
   render(<UploadPage uploadId="dft_upload_1"/>)
 
   // Wait to load the page, i.e. wait for some text to appear
@@ -218,6 +220,81 @@ test('Render upload page: multiple entries', async () => {
   expect(within(rows[2]).queryByText('vasp_3.xml')).toBeInTheDocument()
   expect(within(rows[3]).queryByText('vasp_4.xml')).toBeInTheDocument()
   expect(within(rows[4]).queryByText('vasp_5.xml')).toBeInTheDocument()
+
+  closeAPI()
+})
+
+test('Delete selected entries from table', async () => {
+  await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/delete_entries_from_table', 'test', 'password')
+  render(<UploadPage uploadId="dft_upload_1"/>)
+
+  // Wait for the page to load, i.e. wait for some text to appear
+  await screen.findByText('unnamed upload')
+
+  // Test if the table header is rendered correctly
+  expect(screen.queryByText('6 entries')).toBeInTheDocument()
+  expect(screen.queryByTestId('table-pagination')).toBeInTheDocument()
+  let rows = screen.queryAllByTestId('datatable-row')
+  expect(rows.length).toBe(5)
+
+  // TODO: temporary workaround, the page updates several times for some reasons, and if we're
+  // clicking too quickly (before the initial cascade of rendering is completely done), this can
+  // result in problems.
+  await waitForGUI()
+
+  // Go to the next page in the entry table
+  const nextPage = screen.getByButtonText(/next page/i)
+  userEvent.click(nextPage)
+  await waitFor(() => {
+    const table = screen.getByTestId('datatable-body')
+    expect(within(table).getByText('vasp_6.xml')).toBeVisible()
+    expect(within(table).queryAllByText('vasp_1.xml').length).toBe(0)
+  })
+
+  expect(screen.queryAllByButtonText('Delete selected entries').length).toBe(0)
+
+  // Select the last entry
+  rows = screen.queryAllByTestId('datatable-row')
+  userEvent.click(within(rows[0]).getByRole('checkbox'))
+
+  // Wait for delete entries button to appear
+  let deleteButton = await screen.findByButtonText('Delete selected entries')
+
+  // Delete the entry
+  userEvent.click(deleteButton)
+  let deleteConfirmButton = await screen.findByButtonText('Delete mainfiles')
+  userEvent.click(deleteConfirmButton)
+  // Should delete and go back to the first page
+  await waitFor(() => {
+    expect(screen.queryByText('5 entries')).toBeInTheDocument()
+    expect(screen.queryAllByTestId('datatable-row').length).toBe(5)
+    const table = screen.getByTestId('datatable-body')
+    expect(within(table).getByText('vasp_1.xml')).toBeVisible()
+    expect(within(table).queryAllByText('vasp_6.xml').length).toBe(0)
+  })
+
+  // Select two entries (#3 and #5)
+  rows = screen.queryAllByTestId('datatable-row')
+  userEvent.click(within(rows[2]).getByRole('checkbox'))
+  userEvent.click(within(rows[4]).getByRole('checkbox'))
+
+  // Wait for delete entries button to appear
+  deleteButton = await screen.findByButtonText('Delete selected entries')
+
+  // Delete the entries
+  userEvent.click(deleteButton)
+  deleteConfirmButton = await screen.findByButtonText('Delete mainfiles')
+  userEvent.click(deleteConfirmButton)
+  await waitFor(() => {
+    expect(screen.queryByText('3 entries')).toBeInTheDocument()
+    expect(screen.queryAllByTestId('datatable-row').length).toBe(3)
+    const table = screen.getByTestId('datatable-body')
+    expect(within(table).getByText('vasp_1.xml')).toBeVisible()
+    expect(within(table).getByText('vasp_2.xml')).toBeVisible()
+    expect(within(table).getByText('vasp_4.xml')).toBeVisible()
+    expect(within(table).queryAllByText('vasp_3.xml').length).toBe(0)
+    expect(within(table).queryAllByText('vasp_5.xml').length).toBe(0)
+  })
 
   closeAPI()
 })

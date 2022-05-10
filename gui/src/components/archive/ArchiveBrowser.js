@@ -18,7 +18,10 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton, useTheme, Grid } from '@material-ui/core'
+import {
+  Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip,
+  IconButton, useTheme, Grid, Dialog, DialogContent, DialogContentText, DialogActions,
+  Button } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane } from './Browser'
@@ -119,10 +122,63 @@ export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
         disabled={!archiveHasChanges} color="primary"
         onClick={saveArchive}
       >
-        <SaveIcon/>
+        <Tooltip title="Save archive">
+          <SaveIcon/>
+        </Tooltip>
       </IconButton>
     }
   </React.Fragment>
+})
+
+export const ArchiveDeleteButton = React.memo(function ArchiveDeleteButton(props) {
+  const history = useHistory()
+  const {editable, uploadId, entryId} = useEntryContext()
+  const {api} = useApi()
+  const {raiseError} = useErrors()
+  const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
+
+  const handleClick = useCallback(() => {
+    setOpenDeleteConfirmDialog(true)
+  }, [setOpenDeleteConfirmDialog])
+
+  const handleDelete = useCallback(includeParentFolders => {
+    setOpenDeleteConfirmDialog(false)
+    const requestBody = {query: {entry_id: entryId}, include_parent_folders: includeParentFolders}
+    api.post(`uploads/${uploadId}/action/delete-entry-files`, requestBody)
+      .then(results => {
+        history.push(`/user/uploads/upload/id/${uploadId}`)
+      })
+      .catch(err =>
+        raiseError(err)
+      )
+  }, [uploadId, entryId, history, api, raiseError, setOpenDeleteConfirmDialog])
+
+  return editable ? (
+    <React.Fragment>
+      <IconButton color="primary" onClick={handleClick}>
+        <Tooltip title="Delete archive">
+          <DeleteIcon/>
+        </Tooltip>
+      </IconButton>
+      <Dialog
+        open={openDeleteConfirmDialog}
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            <b>Really delete this entry?</b>
+          </DialogContentText>
+          <DialogContentText>
+            You can choose to delete only the mainfile, or to delete the mainfile and its folder.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteConfirmDialog(false)} autoFocus>Cancel</Button>
+          <Button onClick={() => handleDelete(false)}>Delete mainfile</Button>
+          <Button onClick={() => handleDelete(true)}>Delete mainfile and folder</Button>
+        </DialogActions>
+      </Dialog>
+    </React.Fragment>) : ''
 })
 
 function ArchiveConfigForm({searchOptions, data}) {
