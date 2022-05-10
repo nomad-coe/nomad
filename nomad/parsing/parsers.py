@@ -266,6 +266,12 @@ parsers = [
         domain='dft', mainfile_contents_re=r'M O L C A S'
     ),
     MatchingParserInterface(
+        'electronicparsers.MopacParser',
+        name='parsers/mopac', code_name='MOPAC', domain='dft',
+        mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
+        mainfile_mime_re=r'text/.*',
+    ),
+    MatchingParserInterface(
         'electronicparsers.NWChemParser',
         name='parsers/nwchem', code_name='NWChem', code_homepage='http://www.nwchem-sw.org/',
         mainfile_contents_re=(
@@ -280,6 +286,13 @@ parsers = [
         'electronicparsers.OnetepParser',
         name='parsers/onetep', code_name='ONETEP', code_homepage='https://www.onetep.org/',
         domain='dft', mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
+    ),
+    MatchingParserInterface(
+        'electronicparsers.OpenmxParser',
+        name='parsers/openmx', code_name='OpenMX', code_homepage='http://www.openmx-square.org/',
+        mainfile_mime_re=r'(text/.*)',
+        mainfile_name_re=r'.*\.out$',
+        mainfile_contents_re=(r'^\*{59}\s+\*{59}\s+This calculation was performed by OpenMX'),
     ),
     MatchingParserInterface(
         'electronicparsers.OrcaParser',
@@ -365,6 +378,11 @@ parsers = [
         mainfile_name_re=r'.*.traj$', mainfile_mime_re=r'application/octet-stream'
     ),
     MatchingParserInterface(
+        'atomisticparsers.BOPfoxParser',
+        name='parsers/bopfox', code_name='BOPfox',
+        mainfile_contents_re=r'\s+\-+\s+BOPfox'
+    ),
+    MatchingParserInterface(
         'atomisticparsers.DFTBPlusParser',
         name='parsers/dftbplus', code_name='DFTB+', domain='dft',
         mainfile_contents_re=r'\|  DFTB\+',
@@ -405,12 +423,6 @@ parsers = [
         mainfile_contents_re=(r'\s*<GAP_params\s'),
     ),
     MatchingParserInterface(
-        'atomisticparsers.MopacParser',
-        name='parsers/mopac', code_name='MOPAC', domain='dft',
-        mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
-        mainfile_mime_re=r'text/.*',
-    ),
-    MatchingParserInterface(
         'atomisticparsers.NAMDParser',
         name='parsers/namd', code_name='Namd', domain='dft',
         mainfile_contents_re=r'\s*Info:\s*NAMD\s*[0-9.]+\s*for\s*',
@@ -426,6 +438,17 @@ parsers = [
         'atomisticparsers.TinkerParser',
         name='parsers/tinker', code_name='TINKER', domain='dft',
         mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design'
+    ),
+    MatchingParserInterface(
+        'atomisticparsers.XTBParser',
+        name='parsers/xtb', code_name='XTB',
+        code_homepage='https://www.chemie.uni-bonn.de/pctc/mulliken-center/software/xtb/xtb',
+        mainfile_contents_re=(
+            r'\s*-----------------------------------------------------------\s*'
+            r'\s*\|                   =====================                   \|\s*'
+            r'\s*\|                           x T B                           \|\s*'
+            r'\s*\|                   =====================                   \|\s*'
+        )
     ),
     MatchingParserInterface(
         'workflowparsers.AFLOWParser',
@@ -474,9 +497,9 @@ parsers = [
         mainfile_contents_re=(r'^LOBSTER\s*v[\d\.]+.*'),
     ),
     MatchingParserInterface(
-        'workflowparsers.MPParser',
-        name='parsers/mp', code_name='MaterialsProject',
-        code_homepage='https://materialsproject.org',
+        'workflowparsers.AtomateParser',
+        name='parsers/atomate', code_name='Atomate',
+        code_homepage='https://atomate.org',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=r'.*mp.+materials\.json',
         mainfile_contents_re=(r'"pymatgen_version":')

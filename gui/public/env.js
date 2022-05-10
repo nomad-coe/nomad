@@ -11,7 +11,7 @@ window.nomadEnv = {
   'encyclopediaBase': 'https://nomad-lab.eu/prod/rae/encyclopedia/#',
   'debug': false,
   'version': {
-    'label': '1.0.7',
+    'label': '1.0.8',
     'isBeta': false,
     'isTest': true,
     'usesBetaData': true,

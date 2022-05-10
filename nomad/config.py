@@ -311,7 +311,7 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='1.0.7',
+    version='1.0.8',
     commit=gitinfo.commit,
     deployment='devel',
     label=None,
@@ -379,6 +379,13 @@ bundle_import = NomadConfig(
         add_matched_entries_to_published=True,
         delete_unmatched_published_entries=False
     )
+)
+
+archive = NomadConfig(
+    block_size=256 * 1024,
+    read_buffer_size=256 * 1024,  # GPFS needs at least 256K to achieve decent performance
+    max_process_number=20,  # maximum number of processes can be assigned to process archive query
+    min_entires_per_process=20  # minimum number of entries per process
 )
 
 auxfile_cutoff = 100

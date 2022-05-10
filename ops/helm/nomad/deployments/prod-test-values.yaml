@@ -1,8 +1,8 @@
 version:
-  label: "1.0.7"
-  isBeta: true
+  label: "1.0.8"
+  isBeta: false
   usesBetaData: true
-  officialUrl: "https://nomad-lab.eu/prod/rae/gui"
+  officialUrl: "https://nomad-lab.eu/prod/v1/gui"
 
 image:
     tag: "latest"

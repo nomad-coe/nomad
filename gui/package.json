@@ -1,6 +1,6 @@
 {
   "name": "nomad-fair-gui",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "commit": "e98694e",
   "private": true,
   "workspaces": [
