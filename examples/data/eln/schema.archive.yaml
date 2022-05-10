@@ -1,0 +1,216 @@
+# Schemas can be defines as yaml files like this. The archive.yaml format will be
+# interpreted by nomad as a nomad archive. Therefore, all definitions have to be
+# put in a top-level section called "definitions"
+definitions:
+  # The "definitions" section is interpreted as a nomad schema package
+  # Schema packages can have a name:
+  name: 'Electronic Lab Notebook example schema'
+  # Schema packages contain section definitions. This is wear the interesting schema
+  # information begins.
+  sections:
+    # Here we define a section called "Chemical":
+    Chemical:
+      # Section definition can have base_sections. Base sections are other schema
+      # definition and all properties of these will be inherited.
+      base_sections:
+        - 'nomad.datamodel.metainfo.eln.Chemical'  # Provides typical quantities like name, descriptions, chemical_formula and makes those available for search
+        - 'nomad.datamodel.data.EntryData'  # Declares this as a top-level entry section. This determines the types of entries you can create. With this we will be able to create a "Chemical" entry.
+      # All definitions, sections, sub_sections, quantities, can provide a description.
+      description: |
+        This is an example description for Chemical.
+        A description can contain **markdown** markup and TeX formulas, like $\sum\limits_{i=0}^{n}$.
+      # Sections define quantities. Quantities allow to manage actual data. Quantities
+      # can have various types, shapes, and units.
+      quantities:
+        # Here we define a quantity called "from"
+        form:
+          # This defines a Enum type with pre-defined possible values.
+          type:
+            type_kind: Enum
+            type_data:
+              - crystalline solid
+              - powder
+          # Annotations allow to provide additional information that is beyond just defining
+          # the possible data.
+          m_annotations:
+            # The eln annotation allows add the quantity to a ELN
+            eln:
+              component: EnumEditQuantity  # A form field component for EnumQuantities that uses a pull down menu.
+        cas_number:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        ec_number:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+    Instrument:
+      base_sections:
+        - nomad.datamodel.metainfo.eln.Instrument
+        - nomad.datamodel.data.EntryData
+    Process:
+      base_section: nomad.datamodel.metainfo.eln.Process
+      quantities:
+        instrument:
+          type: Instrument
+          m_annotations:
+            eln:
+              component: ReferenceEditQuantity
+    Sample:
+      m_annotations:
+        # The template annotation allows to define what freshly created entries (instances of this schema) will look like.
+        # In this example we create a sample with an empty pvd_evaporation process.
+        template:
+          processes:
+            pvd_evaporation: {}
+      base_sections:
+        - 'nomad.datamodel.metainfo.eln.Sample'
+        - 'nomad.datamodel.data.EntryData'
+      quantities:
+        name:
+          type: str  # The simple string type
+          default: Default Sample Name
+          m_annotations:
+            eln:
+              component: StringEditQuantity  # A simple text edit form field
+        tags:
+          type:
+            type_kind: Enum
+            type_data:
+              - internal
+              - collaboration
+              - project
+              - other
+          shape: ['*']  # Shapes define non scalar values, like lists ['*'], vectors ['*', 3], etc.
+          m_annotations:
+            eln:
+              component: AutocompleteEditQuantity  # Allows to edit enums with an auto complete text form field
+        chemicals:
+          type: Chemical  # Types can also be other sections. This allows to reference a different section.
+          shape: ['*']
+          m_annotations:
+            eln:
+              component: ReferenceEditQuantity  # A editor component that allows to select from available "Chemical"s
+        substrate_type:
+          type:
+            type_kind: Enum
+            type_data:
+              - Fused quartz glass
+              - SLG
+              - other
+          m_annotations:
+            eln:
+              component: RadioEnumEditQuantity
+        substrate_thickness:
+          type: np.float64
+          unit: mm
+          m_annotation:
+            eln:
+              component: NumberEditQuantity
+        sample_is_from_collaboration:
+          type: bool
+          m_annotation:
+            eln:
+              component: BoolEditQuantity
+      # Besides quantities, a section can define sub_sections. This allows hierarchies
+      # of information.
+      sub_sections:
+        # Here we define a sub_section of "Sample" called "processes"
+        processes:
+          section:
+            # The sub-section's section, is itself a section definition
+            m_annotations:
+              eln:  # ads the sub-section to the eln and allows users to create new instances of this sub-section
+            # We can also nest sub_sections. It goes aribitrarely deep.
+            sub_sections:
+              pvd_evaporation:
+                section:
+                  base_section: Process
+                  m_annotations:
+                    # We can use the eln annotations to put the section to the overview
+                    # page, and hide unwanted inherited quantities.
+                    eln:
+                      overview: true
+                      hide: ['name', 'lab_id', 'description']
+                    # Plots are shown in the eln. Currently we only support simple x,y
+                    # line plots
+                    plot:
+                      title: Pressure and Temperature over Time
+                      x_axis: time
+                      y_axis:
+                        - chamber_pressure
+                        - chamber_temperature
+                  quantities:
+                    data_file:
+                      type: str
+                      description: |
+                        A reference to an uploaded .csv produced by the PVD evaporation instruments
+                        control software.
+                      m_annotations:
+                        # The tabular_parser annotation, will treat the values of this
+                        # quantity as files. It will try to interpret the files and fill
+                        # quantities in this section (and sub_section) with the column
+                        # data of .csv or .xlsx files.
+                        tabular_parser:
+                          sep: '\t'
+                          comment: '#'
+                        browser:
+                          adaptor: RawFileAdaptor  # Allows to navigate to files in the data browser
+                        eln:
+                          component: FileEditQuantity  # A form field that allows to drop and select files.
+                    time:
+                      type: np.float64
+                      shape: ['*']
+                      unit: s
+                      m_annotations:
+                        # The tabular annotation defines a mapping to column headers used in
+                        # tabular data files
+                        tabular:
+                          name: Process Time in seconds
+                    chamber_pressure:
+                      type: np.float64
+                      shape: ['*']
+                      unit: mbar
+                      m_annotations:
+                        tabular:
+                          name: Vacuum Pressure1
+                        plot:
+                          x: time
+                          y: chamber_pressure
+                    substrate_temperature:
+                      type: np.float64
+                      shape: ['*']
+                      unit: kelvin
+                      m_annotations:
+                        tabular:
+                          name: Substrate PV
+                          unit: degC
+                        plot:
+                          x: time
+                          y: substrate_temperature
+              hotplate_annealing:
+                section:
+                  base_section: Process
+                  m_annotations:
+                    # We can use the eln annotations to put the section to the overview
+                    # page, and hide unwanted inherited quantities.
+                    eln:
+                      overview: true
+                      hide: ['name', 'lab_id', 'description']
+                  quantities:
+                    set_temperature:
+                      type: np.float64  # For actual numbers, we use numpy datatypes
+                      unit: K  # The unit system is based on Pint and allows all kinds of abreviations, prefixes, and complex units
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity  # A component to enter numbers (with units)
+                    duration:
+                      type: np.float64
+                      unit: s
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity
+
+

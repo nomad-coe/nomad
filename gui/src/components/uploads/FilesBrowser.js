@@ -170,7 +170,7 @@ export default function FilesBrower({uploadId, disabled}) {
         .forEach(item => {
           resultsByPath[`${path}/${item.name}`] = item
           if (item.parser_name) {
-            item.parser = item.parser_name.replace('parsers/', '').replace('parserss/', '')
+            item.parser = item.parser_name.replace('parsers/', '').replace('parser/', '')
           }
         })
       setRenderCounter(renderCounter => renderCounter + 1)

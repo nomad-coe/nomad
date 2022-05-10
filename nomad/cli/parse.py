@@ -29,7 +29,7 @@ from .cli import cli
 @click.option('--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.')
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
 @click.option('--parser', help='Skip matching and use the provided parser')
-@click.option('--server-context', is_flag=False, default=False, help='Whether to use server context.')
+@click.option('--server-context', is_flag=True, default=False, help='Whether to use server context.')
 def _parse(mainfile, show_archive, archive_with_meta, show_metadata, skip_normalizers, not_strict, parser, server_context):
     import sys
     import json

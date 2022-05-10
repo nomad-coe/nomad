@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import {PropertyCard} from './PropertyCard'
 import SectionEditor from '../../archive/SectionEditor'
 import { useEntryContext } from '../EntryContext'
-import { Box, IconButton } from '@material-ui/core'
+import { Box, IconButton, Typography } from '@material-ui/core'
 import CodeIcon from '@material-ui/icons/Code'
 import MoreIcon from '@material-ui/icons/MoreVert'
 import { ArchiveButton } from '../../nav/Routes'
@@ -52,6 +52,11 @@ const SectionCard = React.memo(({archivePath, sectionDef, section, ...props}) =>
   }
 
   return <PropertyCard title={sectionDef.name} action={actions}>
+    {sectionDef._qualifiedName === 'nomad.parsing.tabular.Table' && (
+      <Box margin={2}>
+        <Typography>Data from a table with {section.row_refs?.length || '...'} rows.</Typography>
+      </Box>
+    )}
     <Box margin={2}>
       <SectionEditor
         sectionDef={sectionDef}

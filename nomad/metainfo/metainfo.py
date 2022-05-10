@@ -451,7 +451,13 @@ class _QuantityType(DataType):
             if isinstance(value, QuantityReference):
                 return dict(type_kind='quantity_reference', type_data=value.target_quantity_def.m_path())
 
-            return dict(type_kind='reference', type_data=value.target_section_def.m_path())
+            context = cast(MSection, section.m_root()).m_context
+            if context is not None:
+                type_data = context.create_reference(section, quantity_def, value.target_section_def)
+            else:
+                type_data = value.target_section_def.m_path()
+
+            return dict(type_kind='reference', type_data=type_data)
 
         if isinstance(value, DataType):
             module = value.__class__.__module__

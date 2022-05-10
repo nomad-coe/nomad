@@ -1,4 +1,4 @@
-# Using the Archive and Metainfo
+# Archive and Metainfo
 
 ## Introduction
 
@@ -43,15 +43,20 @@ has to provide certain information: *name*, *description*, *shape*, *units*, *ty
 - *Packages* are used to organize definitions.
 
 #### Interfaces
-NOMAD Metainfo is kept independent of the actual storage format and is not bound to any
-specific storage method. In our practical implementation, we use a binary form of JSON,
-called [msgpack](https://msgpack.org/) on our servers and provide Archive data as JSON via
-our API. For NOMAD end-users the internal storage format is of little relevance, since the
-archive data is provided exclusively by NOMAD's API. On top of the JSON API data, the
-[NOMAD Python package](pythonlib.md) provides a more convenient interface for Python users.
+The Archive format and Metainfo schema is abstract and not not bound to any
+specific storage format. Archive and Metainfo can be represented in various ways.
+For example, NOMAD internally stores archives in a binary format, but serves them via
+API in json. Users can upload archive files (as `.archive.json` or `.archive.yaml`) files.
+Metainfo schema can be programmed with Python classes, but can also be uploaded as
+archive files (the Metainfo itself is just a specific Archive schema). The following
+chart provides a sense of various ways that data can be entered into NOMAD:
 
+![nomad data flow](assets/data-flow.png)
 
-## Archive JSON interface
+There are various interface to provide or retrieve Archive data and Metainfo schemas.
+The following documentation sections will explain a few of them.
+
+## Archive JSON API
 
 The [API section](api.md#access-archives) demonstrates how to access an Archive. The
 API will give you JSON data likes this:
@@ -134,6 +139,49 @@ Archive data can also be serialized into JSON again:
 import json
 
 print(json.dumps(calc.m_to_dict(), indent=2))
+```
+
+## Metainfo (and Archive) .yaml interface
+
+Calling it `.yaml` interface is a bit wrong. Yaml and Json are simple formats for
+structured data. In many respects they are the same. After these files got loaded
+(e.g into Python dictionaries and array or Javascript objects) all differences disappear.
+Therefore, you can apply everything about the `archive.yaml` "format" also to `archive.json`.
+
+Above you saw how the JSON API is representing Archive data in JSON. The same can be used
+to upload data to NOMAD. NOMAD will interpret all files called `*.archive.yaml` or
+`*.archive.json` accordingly. This means the data in those wills has to match the existing
+NOMAD schemas.
+
+Here is a basic example for a `archive.yaml` file that contains data and a matching schema:
+
+```yaml
+--8<-- "examples/data/custom-schema/intra-entry.archive.yaml"
+```
+
+## Metainfo schemas for ELNs
+
+NOMAD allows to edit Archive data directly in its UI. This is called NOMAD ELN. The
+idea is to define a schema to define possible data structured and then use NOMAD to
+enter and edit data according to the schema.
+
+An ELN is simply an upload full of NOMAD archives that can be edited by users. In order,
+to enter any data, you will need to have a schema. This is what an ELN schema can look
+like:
+
+```yaml
+--8<-- "examples/data/custom-schema/simple-schema.archive.yaml"
+```
+
+### Annotations (and ELNs)
+
+Schema elements can have annotations. These annotations provide additional information
+that NOMAD can use to alter its behavior around these definitions. A reference for
+these annotations will be added here soon. The ELN (and tabular data) example
+upload contains a schema that uses and demonstrates all our current annotations:
+
+```yaml
+--8<-- "examples/data/eln/schema.archive.yaml"
 ```
 
 ## Metainfo Python interface
