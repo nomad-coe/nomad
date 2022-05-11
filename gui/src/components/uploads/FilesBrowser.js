@@ -18,7 +18,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Box, Chip, CircularProgress, Collapse, IconButton, makeStyles, Paper, Typography } from '@material-ui/core'
+import { Box, Chip, CircularProgress, Collapse, IconButton, makeStyles, Paper, Tooltip, Typography } from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
@@ -97,9 +97,11 @@ function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info
       {entry_id && (
         <React.Fragment>
           <Box flexGrow={1} />
-          <EntryButton entryId={entry_id} component={IconButton} size="small">
-            <NavigateIcon />
-          </EntryButton>
+          <Tooltip title="Go to the entry page">
+            <EntryButton entryId={entry_id} component={IconButton} size="small">
+              <NavigateIcon />
+            </EntryButton>
+          </Tooltip>
         </React.Fragment>
       )}
     </div>

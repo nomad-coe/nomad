@@ -819,7 +819,8 @@ async def get_upload_raw_path(
                 (upload.upload_id if not path else os.path.basename(path.rstrip('/'))) + '.zip',
                 media_type='application/zip'))
     except Exception as e:
-        logger.error('exception while streaming download', exc_info=e)
+        if not isinstance(e, HTTPException):
+            logger.error('exception while streaming download', exc_info=e)
         upload_files.close()
         raise
 

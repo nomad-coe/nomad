@@ -2,20 +2,20 @@
 # defines at least a definitions and a data section.
 definitions:  # The schema goes here.
   sections:  # Schemas consist of section definitions
-    Element:  # This one is called Element
+    Element:  # This is the name of the first section
       # Inheriting it from EntryData, makes this section a possible
       # EntryArchive.data sub-section
       base_section: nomad.datamodel.data.EntryData
-      quantities:
+      quantities:  # Sections have quantities
         order_number:
           type: int
         symbol:
           type: str
         name:
           type: str
-      sub_sections:
+      sub_sections:  # Sections have sub sections
         properties:
-          section:
+          section:  # The section of a sub section can be added directly
             quantities:
               density:
                 type: float
@@ -26,7 +26,7 @@ definitions:  # The schema goes here.
               boil_point:
                 type: float
                 unit: K
-              heat_capacity:
+              specific_heat:
                 type: float
                 unit: J/(g*K)
 data:  # All EntryData descendants can be put into the data sub-section

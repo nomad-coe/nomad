@@ -105,13 +105,13 @@ definitions:
               component: RadioEnumEditQuantity
         substrate_thickness:
           type: np.float64
-          unit: mm
-          m_annotation:
+          unit: m
+          m_annotations:
             eln:
               component: NumberEditQuantity
         sample_is_from_collaboration:
           type: bool
-          m_annotation:
+          m_annotations:
             eln:
               component: BoolEditQuantity
       # Besides quantities, a section can define sub_sections. This allows hierarchies
@@ -133,7 +133,7 @@ definitions:
                     # page, and hide unwanted inherited quantities.
                     eln:
                       overview: true
-                      hide: ['name', 'lab_id', 'description']
+                      hide: ['name', 'lab_id', 'description', 'method']
                     # Plots are shown in the eln. Currently we only support simple x,y
                     # line plots
                     plot:

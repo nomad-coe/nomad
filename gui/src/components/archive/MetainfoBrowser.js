@@ -36,6 +36,7 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { SourceJsonDialogButton } from '../buttons/SourceDialogButton'
+import ReactJson from 'react-json-view'
 
 export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
@@ -472,6 +473,7 @@ function SectionDef({def}) {
   return <Content>
     <Definition def={def} kindLabel="section definition" />
     <SectionDefContent def={def} />
+    <Annotations def={def}/>
   </Content>
 }
 SectionDef.propTypes = ({
@@ -485,6 +487,7 @@ function SubSectionDef({def}) {
       <ArchiveTitle def={def} useName isDefinition kindLabel="sub section definition" />
       <DefinitionDocs def={sectionDef} />
       <SectionDefContent def={sectionDef} />
+      <Annotations def={def}/>
     </Content>
   </React.Fragment>
 }
@@ -545,6 +548,7 @@ function QuantityDef({def}) {
         <Typography><b>default</b>:&nbsp;{String(def.default)}</Typography>}
       {def.derived && <Typography><b>derived</b></Typography>}
     </DefinitionProperties>
+    <Annotations def={def}/>
   </Content>
 }
 QuantityDef.propTypes = ({
@@ -718,6 +722,27 @@ DefinitionLabel.propTypes = ({
   def: PropTypes.object.isRequired,
   isDefinition: PropTypes.bool
 })
+
+const Annotations = React.memo(function Annotations({def}) {
+  if (!def.m_annotations) {
+    return ''
+  }
+
+  return (
+    <Compartment title="annotations">
+      <ReactJson
+        name="m_annotations"
+        src={def.m_annotations}
+        enableClipboard={false}
+        collapsed={2}
+        displayObjectSize={false}
+      />
+    </Compartment>
+  )
+})
+Annotations.propTypes = {
+  def: PropTypes.object.isRequired
+}
 
 const useVicinityGraphStyles = makeStyles(theme => ({
   root: {

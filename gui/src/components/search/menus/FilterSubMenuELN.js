@@ -32,9 +32,9 @@ const FilterSubMenuELN = React.memo(({
   return <FilterSubMenu
     value={value}
     actions={<InputCheckboxValue
-      quantity="results.method.method_name"
-      value="DFT"
-      description="Search DFT entries"
+      quantity="quantities"
+      value="data"
+      description="Search ELN entries"
     />}
     {...rest}
   >
