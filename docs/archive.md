@@ -177,7 +177,11 @@ like:
 
 Schema elements can have annotations. These annotations provide additional information
 that NOMAD can use to alter its behavior around these definitions. A reference for
-these annotations will be added here soon. The ELN (and tabular data) example
+these annotations will be added here soon.
+
+As part of the GUI, you'll find an overview about all ELN edit annotations and components [here]({{ nomad_url() }}/../gui/dev/editquantity).
+
+The ELN (and tabular data) example
 upload contains a schema that uses and demonstrates all our current annotations:
 
 ```yaml

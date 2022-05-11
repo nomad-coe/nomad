@@ -24,14 +24,14 @@ data into a common machine processable *archive*. The *encyclopedia* allowed to 
 and visualize data from a materials and properties perspective. The *ai toolkit* was
 established to run analysis notebooks directly on NOMAD servers.
 
-The current official installation of [NOMAD (v0.x)](https://nomad-lab.eu/prod/rae) is the
+The current official installation of [NOMAD (v1.0.x)](https://nomad-lab.eu/prod/v1) is the
 result of a consolidation process that integrated the NOMAD-CoE services *repository*,
 *archive*, *encyclopedia*, and *ai toolkit*. Here, we also introduced the NOMAD Oasis and
 allowed to the local use of NOMAD.
 
 Since then, NOMAD is developed by [nomad-lab.eu](https://nomad-lab.eu) and
 [fair-di e.V.](https://fair-di.eu) as a general platform for managing materials science data.
-Upcoming NOMAD version including [this NOMAD (v1)](https://nomad-lab.eu/prod/v1/gui) extend
+Upcoming NOMAD version including [this NOMAD (v1.1)](https://nomad-lab.eu/prod/v1/staging/gui) extend
 NOMAD towards material science synthesis, experiments, and computational material science
 at different scales.
 

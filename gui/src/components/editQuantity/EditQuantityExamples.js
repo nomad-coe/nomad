@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 import React, {useRef, useState} from 'react'
+import PropTypes from 'prop-types'
 import {Card, Box, Typography, Grid, CardContent} from '@material-ui/core'
 import {NumberEditQuantity} from './NumberEditQuantity'
 import {StringEditQuantity} from './StringEditQuantity'
@@ -27,6 +28,8 @@ import {SliderEditQuantity} from './SliderEditQuantity'
 import { DateEditQuantity, DateTimeEditQuantity, TimeEditQuantity } from './DateTimeEditQuantity'
 import RichTextEditQuantity from './RichTextEditQuantity'
 import ListEditQuantity from './ListEditQuantity'
+import { Code } from '../buttons/SourceDialogButton'
+import { stripIndent } from '../../utils'
 
 const enumValues = [
   'Vapor deposition', 'Chemical vapor deposition', 'Metalorganic vapour phase epitaxy', 'Electrostatic spray assisted vapour deposition (ESAVD)', 'Sherardizing',
@@ -39,6 +42,23 @@ const enumValues = [
   'Common roll-to-roll coating processes include:', 'Air knife coating', 'Anilox coater', 'Flexo coater', 'Gap Coating', 'Knife-over-roll coating', 'Gravure coating',
   'Immersion dip coating', 'Kiss coating', 'Metering rod (Meyer bar) coating', 'Roller coating', 'Forward roller coating', 'Reverse roll coating',
   'Silk Screen coater', 'Rotary screen', 'Lithography', 'Flexography', 'Physical coating processes', 'Langmuir-Blodgett', 'Spin coating', 'Dip coating']
+
+function Example({code, children}) {
+  return (
+    <Box display="flex" flexDirection="row" alignItems="flext-start" marginBottom={2}>
+      <Box width={500} marginRight={2}>
+        {children}
+      </Box>
+      <Code
+        code={stripIndent(code)}
+      />
+    </Box>
+  )
+}
+Example.propTypes = {
+  code: PropTypes.string,
+  children: PropTypes.any
+}
 
 export function EditQuantityExamples() {
   const [, setUpdate] = useState(0)
@@ -82,91 +102,300 @@ export function EditQuantityExamples() {
       <Grid item>
         <Card>
           <CardContent>
-            <Box width={800}>
+            <Box width={1100}>
               <Grid container direction="column" spacing={1}>
                 <Grid item>
-                  <StringEditQuantity {...createDefaultProps('string')} />
+                  <Example
+                    code={`
+                    string:
+                      type: string
+                      m_annotations:
+                        eln:
+                          component: StringEditQuantity`}
+                  >
+                    <StringEditQuantity {...createDefaultProps('string')} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <NumberEditQuantity {...createDefaultProps('float', {type: float})} />
+                  <Example
+                    code={`
+                    float:
+                      type: np.float64
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity`}
+                  >
+                    <NumberEditQuantity {...createDefaultProps('float', {type: float})} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'meter'})} defaultDisplayUnit="bohr"/>
+                  <Example
+                    code={`
+                    float_unit:
+                      type: np.float64
+                      unit: meter
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity
+                          defaultDisplayUnit="bohr"`}
+                  >
+                    <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'meter'})} defaultDisplayUnit="bohr"/>
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <NumberEditQuantity {...createDefaultProps('float_derived_unit', {type: float, unit: 'joule'})} defaultDisplayUnit="eV"/>
+                  <Example
+                    code={`
+                    float_derived_unit:
+                      type: np.float64
+                      unit: joule
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity
+                          defaultDisplayUnit="eV"`}
+                  >
+                    <NumberEditQuantity {...createDefaultProps('float_derived_unit', {type: float, unit: 'joule'})} defaultDisplayUnit="eV"/>
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <NumberEditQuantity {...createDefaultProps('float_complex_unit', {type: float, unit: 'ampere / second^2 * meter'})} defaultDisplayUnit="milliampere / ms^2 * cm"/>
+                  <Example
+                    code={`
+                    float_complex_unit:
+                      type: np.float64
+                      unit: ampere / second^2 * meter
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity
+                          defaultDisplayUnit="milliampere / ms^2 * cm"`}
+                  >
+                    <NumberEditQuantity {...createDefaultProps('float_complex_unit', {type: float, unit: 'ampere / second^2 * meter'})} defaultDisplayUnit="milliampere / ms^2 * cm"/>
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <NumberEditQuantity
-                    {...createDefaultProps('float_with_bounds', {type: float, unit: 'second'})}
-                    minValue={0} maxValue={10}
-                  />
+                  <Example
+                    code={`
+                    float_with_bounds:
+                      type: np.float64
+                      unit: second
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity
+                          minValue: 0
+                          maxValue: 10`}
+                  >
+                    <NumberEditQuantity
+                      {...createDefaultProps('float_with_bounds', {type: float, unit: 'second'})}
+                      minValue={0} maxValue={10}
+                    />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <NumberEditQuantity {...createDefaultProps('int', {type: int})} />
+                  <Example
+                    code={`
+                    int:
+                      type: int
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity`}
+                  >
+                    <NumberEditQuantity {...createDefaultProps('int', {type: int})} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <NumberEditQuantity
-                    {...createDefaultProps('int_with_bounds', {type: int})}
-                    minValue={0} maxValue={10}
-                  />
+                  <Example
+                    code={`
+                    int_with_bounds:
+                      type: int
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity
+                          minValue: 0
+                          maxValue: 10`}
+                  >
+                    <NumberEditQuantity
+                      {...createDefaultProps('int_with_bounds', {type: int})}
+                      minValue={0} maxValue={10}
+                    />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <BoolEditQuantity {...createDefaultProps('bool')} />
+                  <Example
+                    code={`
+                    bool:
+                      type: bool
+                      m_annotations:
+                        eln:
+                          component: BoolEditQuantity`}
+                  >
+                    <BoolEditQuantity {...createDefaultProps('bool')} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <RadioEnumEditQuantity {...createDefaultProps('radio_enum', {
-                    type: {
-                      type_data: ['one', 'two', 'three']
-                    }
-                  })} />
+                  <Example
+                    code={`
+                    radio_enum:
+                      type:
+                        type_kind: enum
+                        type_data:
+                          - one
+                          - two
+                          - three
+                      m_annotations:
+                        eln:
+                          component: RadioEnumEditQuantity`}
+                  >
+                    <RadioEnumEditQuantity {...createDefaultProps('radio_enum', {
+                      type: {
+                        type_data: ['one', 'two', 'three']
+                      }
+                    })} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <EnumEditQuantity {...createDefaultProps('select_enum', {
-                    type: {
-                      type_data: ['one', 'two', 'three']
-                    }
-                  })} />
+                  <Example
+                    code={`
+                    select_enum:
+                      type:
+                        type_kind: enum
+                        type_data:
+                          - one
+                          - two
+                          - three
+                      m_annotations:
+                        eln:
+                          component: EnumEditQuantity`}
+                  >
+                    <EnumEditQuantity {...createDefaultProps('select_enum', {
+                      type: {
+                        type_data: ['one', 'two', 'three']
+                      }
+                    })} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <EnumEditQuantity {...createDefaultProps('string with suggestions')} suggestions={['one', 'two', 'three']}/>
+                  <Example
+                    code={`
+                    string_with_suggestions:
+                      type: str
+                      m_annotations:
+                        eln:
+                          component: EnumEditQuantity
+                          suggestions: ['one', 'two', 'three']`}
+                  >
+                    <EnumEditQuantity {...createDefaultProps('string_with_suggestions')} suggestions={['one', 'two', 'three']}/>
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <AutocompleteEditQuantity {...createDefaultProps('autocomplete_enum', {
-                    type: {
-                      type_data: enumValues
-                    }
-                  })} />
+                  <Example
+                    code={`
+                    autocomplete_enum:
+                      type:
+                        type_kind: enum
+                        type_data:
+                          ...
+                      m_annotations:
+                        eln:
+                          component: AutocompleteEditQuantity`}
+                  >
+                    <AutocompleteEditQuantity {...createDefaultProps('autocomplete_enum', {
+                      type: {
+                        type_data: enumValues
+                      }
+                    })} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <SliderEditQuantity {...createDefaultProps('slider')} minValue={0} maxValue={10} />
+                  <Example
+                    code={`
+                    slider:
+                      type: int
+                      m_annotations:
+                        eln:
+                          component: SliderEditQuantity,
+                          minValue: 0
+                          maxValue: 10`}
+                  >
+                    <SliderEditQuantity {...createDefaultProps('slider')} minValue={0} maxValue={10} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <DateTimeEditQuantity {...createDefaultProps('date_time')} />
+                  <Example
+                    code={`
+                    date_time:
+                      type: nomad.metainfo.Datetime
+                      m_annotations:
+                        eln:
+                          component: DateTimeEditQuantity`}
+                  >
+                    <DateTimeEditQuantity {...createDefaultProps('date_time')} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <DateEditQuantity {...createDefaultProps('date')} />
+                  <Example
+                    code={`
+                    date:
+                      type: nomad.metainfo.Datetime
+                      m_annotations:
+                        eln:
+                          component: DateEditQuantity`}
+                  >
+                    <DateEditQuantity {...createDefaultProps('date')} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <TimeEditQuantity {...createDefaultProps('time')} />
+                  <Example
+                    code={`
+                    time:
+                      type: nomad.metainfo.Datetime
+                      m_annotations:
+                        eln:
+                          component: TimeEditQuantity`}
+                  >
+                    <TimeEditQuantity {...createDefaultProps('date')} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <RichTextEditQuantity {...createDefaultProps('richt_text')} />
+                  <Example
+                    code={`
+                    richt_text:
+                      type: str
+                      m_annotations:
+                        eln:
+                          component: TimeEditQuantity`}
+                  >
+                    <RichTextEditQuantity {...createDefaultProps('richt_text')} />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <ListEditQuantity
-                    component={StringEditQuantity}
-                    {...createDefaultProps('list', {shape: ['*']})}
-                  />
+                  <Example
+                    code={`
+                    list:
+                      type: str
+                      shape: ['*']
+                      m_annotations:
+                        eln:
+                          component: StringEditQuantity`}
+                  >
+                    <ListEditQuantity
+                      component={StringEditQuantity}
+                      {...createDefaultProps('list', {shape: ['*']})}
+                    />
+                  </Example>
                 </Grid>
                 <Grid item>
-                  <ListEditQuantity
-                    component={StringEditQuantity}
-                    {...createDefaultProps('list_fixed', {shape: [3]})}
-                  />
+                  <Example
+                    code={`
+                    list_fixed:
+                      type: str
+                      shape: [3]
+                      m_annotations:
+                        eln:
+                          component: StringEditQuantity`}
+                  >
+                    <ListEditQuantity
+                      component={StringEditQuantity}
+                      {...createDefaultProps('list_fixed', {shape: [3]})}
+                    />
+                  </Example>
                 </Grid>
               </Grid>
             </Box>
@@ -174,7 +403,7 @@ export function EditQuantityExamples() {
         </Card>
       </Grid>
       <Grid item>
-        <Box margin={2} width={800}>
+        <Box margin={2}>
           <Typography component="pre">
             {JSON.stringify(sectionRef.current, null, 4)}
           </Typography>

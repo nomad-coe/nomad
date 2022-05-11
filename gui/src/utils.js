@@ -708,3 +708,18 @@ export function getLabel(name) {
  * the data-testid should be removed or updated to something else.
  */
 export const isWaitingForUpdateTestId = 'waiting-for-update'
+
+/**
+ * Removes indentation from the given multiline code string
+ * @param {*} code
+ */
+export function stripIndent(code) {
+  let lines = code.split('\n')
+  const start = lines.findIndex(line => line.trim() !== '')
+  lines = lines.slice(start)
+  if (lines.length === 0) {
+    return ''
+  }
+  const indent = lines[0].length - lines[0].trimStart().length
+  return lines.map(line => line.substring(indent)).join('\n')
+}
