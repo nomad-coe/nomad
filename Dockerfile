@@ -33,7 +33,7 @@ RUN mkdir /install
 # Install linux package dependencies
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends libgomp1
-RUN apt-get install -y libmagic-dev curl make cmake swig libnetcdf-dev
+RUN apt-get install -y libmagic-dev curl make cmake swig libnetcdf-dev zip
 
 # Install some specific dependencies necessary for the build process
 RUN pip install --upgrade pip
