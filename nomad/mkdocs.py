@@ -24,7 +24,7 @@ from nomad.app.v1.models import (
     query_documentation,
     owner_documentation)
 from nomad.app.v1.routers.entries import archive_required_documentation
-from nomad import config, utils
+from nomad import utils
 
 doc_snippets = {
     'query': query_documentation,
@@ -36,7 +36,9 @@ doc_snippets = {
 def define_env(env):
     @env.macro
     def nomad_url():  # pylint: disable=unused-variable
-        return config.api_url()
+        # TODO Fix the configuration during build time.
+        return 'https://nomad-lab.eu/prod/v1/staging/api'
+        # return config.api_url()
 
     @env.macro
     def doc_snippet(key):  # pylint: disable=unused-variable
