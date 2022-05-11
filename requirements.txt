@@ -46,6 +46,7 @@ pymatgen==2022.0.17
 asr==0.4.1
 bitarray==2.3.5
 xrdtools==0.1.1
+openpyxl==3.0.9
 
 # [infrastructure]
 optimade[mongo]==0.14.0

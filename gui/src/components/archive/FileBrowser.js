@@ -94,6 +94,9 @@ class RawDirectoryAdaptor extends Adaptor {
     }
   }
   itemAdaptor(key) {
+    if (key === '_mainfile') {
+      key = this.highlightedItem
+    }
     const ext_path = this.path ? this.path + '/' + key : key
     const element = this.data.elementsByName[key]
     if (element) {

@@ -16,9 +16,10 @@
  * limitations under the License.
  */
 
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import metainfoData from '../../metainfo'
+import { useApi } from '../api'
 
 const metainfoContext = React.createContext()
 
@@ -32,6 +33,45 @@ export const GlobalMetainfo = React.memo(function GlobalMetainfo({children}) {
     }
   }, [setGlobalMetainfo, globalMetainfo])
 
+  const {api} = useApi()
+  const [allCustomMetainfos, setAllCustomMetainfos] = useState()
+
+  const fetchAllCustomMetainfos = useCallback(async (refresh, query) => {
+    if (allCustomMetainfos && !refresh) {
+      return allCustomMetainfos
+    }
+
+    // TODO paginate?
+    // TODO Only grab new ones?
+    query = query || {}
+    const response = await api.post(`entries/archive/query`, {
+      owner: 'visible',
+      query: {
+        ...query,
+        quantities: 'definitions.section_definitions',
+        processed: true
+      },
+      required: {
+        definitions: '*',
+        metadata: {
+          mainfile: '*',
+          entry_name: '*'
+        }
+      }
+    })
+    for (const data of response.data) {
+      const archive = data.archive
+      // TODO we should not createMetainfo all the time? There needs to be a
+      // register/cache based on hashes or something
+      archive._metainfo = await createMetainfo(archive, globalMetainfo, {api: api, archive: archive})
+    }
+    setAllCustomMetainfos(response.data)
+    return response.data
+  }, [globalMetainfo, api, allCustomMetainfos, setAllCustomMetainfos])
+
+  if (globalMetainfo) {
+    globalMetainfo.fetchAllCustomMetainfos = fetchAllCustomMetainfos
+  }
   return <metainfoContext.Provider value={globalMetainfo}>
     {children}
   </metainfoContext.Provider>
@@ -85,7 +125,8 @@ export async function createMetainfo(data, parentMetainfo, context) {
     await metainfo._addPackages(data.packages)
   }
   if (data.definitions) {
-    await metainfo._addPackages([data.definitions])
+    const entryId = data?.metadata?.entry_id
+    await metainfo._addPackages([data.definitions], entryId ? `entry_id:${entryId}` : null)
   }
   data._metainfo = metainfo
   return metainfo
@@ -212,6 +253,7 @@ class Metainfo {
     sectionDef.sub_sections = sectionDef.sub_sections || []
     sectionDef.inner_section_definitions = sectionDef.inner_section_definitions || []
     sectionDef._allBaseSections = []
+    sectionDef._allInheritingSections = []
     sectionDef._incomingRefs = []
     sectionDef._parentSections = []
     sectionDef._parentSubSections = []
@@ -221,6 +263,14 @@ class Metainfo {
         await this._initSection(baseSection)
         sectionDef._allBaseSections.push(baseSection)
         baseSection._allBaseSections.forEach(baseBaseSection => sectionDef._allBaseSections.push(baseBaseSection))
+        if (!baseSection._allInheritingSections.includes(sectionDef)) {
+          baseSection._allInheritingSections.push(sectionDef)
+          sectionDef._allInheritingSections.forEach(inheritingInheritingSection => {
+            if (!baseSection._allInheritingSections.includes(inheritingInheritingSection)) {
+              baseSection._allInheritingSections.push(inheritingInheritingSection)
+            }
+          })
+        }
       }
     }
 
@@ -257,7 +307,7 @@ class Metainfo {
     sectionDef._parentIndex = parentIndex
     pkg._sections[sectionDef.name] = sectionDef
     await this._initSection(sectionDef)
-    sectionDef._qualifiedName = parentDef ? `${parentDef._qualifiedName || parentDef.name}.${sectionDef.name}` : sectionDef.name
+    sectionDef._qualifiedName = parentDef ? `${parentDef._qualifiedName || parentDef._unique_id || parentDef.name}.${sectionDef.name}` : sectionDef.name
     sectionDef._package = pkg
 
     sectionDef.inner_section_definitions.forEach((innerSectionDef, index) => (
@@ -313,9 +363,12 @@ class Metainfo {
     }
   }
 
-  async _addPackage(pkg) {
+  async _addPackage(pkg, unique_id) {
     this._packagePrefixCache = null
     pkg.m_def = PackageMDef
+    if (unique_id) {
+      pkg._unique_id = unique_id
+    }
     const packageName = pkg.name || '*'
     this._packageDefs[packageName] = pkg
     await this._addDef(pkg)
@@ -325,7 +378,7 @@ class Metainfo {
     pkg.section_definitions = pkg.section_definitions || []
     for (const categoryDef of pkg.category_definitions) {
       categoryDef.m_def = CategoryMDef
-      categoryDef._qualifiedName = `${pkg.name}.${categoryDef.name}`
+      categoryDef._qualifiedName = `${pkg._unique_id || pkg.name}.${categoryDef.name}`
       categoryDef._package = pkg
       await this._addDef(categoryDef)
     }
@@ -336,9 +389,9 @@ class Metainfo {
     }
   }
 
-  async _addPackages(packages) {
+  async _addPackages(packages, unique_id) {
     for (const pkg of packages) {
-      await this._addPackage(pkg)
+      await this._addPackage(pkg, unique_id)
     }
   }
 
@@ -402,7 +455,7 @@ class Metainfo {
       // already resolved
       return reference
     }
-    if (reference.match(/.+#.*/) || reference === '../upload/raw/schema.archive.json#/definitions/section_definitions/0') {
+    if (reference.match(/.+#.*/)) {
       if (!context) {
         console.error('cannot resolve definition without context', reference)
         return null
@@ -444,19 +497,27 @@ export async function resolveRefAsync(reference, data, context, adaptArchive) {
     return resolveRef(reference, data)
   }
 
-  const resourceUrl = reference.slice(0, reference.indexOf('#'))
+  let resourceUrl = reference.slice(0, reference.indexOf('#'))
   reference = reference.slice(reference.indexOf('#'))
   if (!context.resources[resourceUrl]) {
     try {
       let apiUrl
+      let uploadId = context.uploadId
+
+      const uploadIdMatch = resourceUrl.match(/\.\.\/uploads\/([a-zA-Z0-9_-]+)\//)
+      if (uploadIdMatch) {
+        uploadId = uploadIdMatch[1]
+        resourceUrl = '../upload/' + resourceUrl.slice(uploadIdMatch[0].length)
+      }
+
       if (resourceUrl.startsWith('../upload/archive')) {
-        apiUrl = `uploads/${context.uploadId}/${resourceUrl.slice('../upload/'.length)}`
+        apiUrl = `uploads/${uploadId}/${resourceUrl.slice('../upload/'.length)}`
       } else if (resourceUrl.startsWith('../upload/raw')) {
         const mainfile = resourceUrl.slice('../upload/raw/'.length)
         const queryBody = ({
           owner: 'visible',
           query: {
-            upload_id: context.uploadId,
+            upload_id: uploadId,
             'mainfile': mainfile
           },
           required: {
@@ -468,7 +529,7 @@ export async function resolveRefAsync(reference, data, context, adaptArchive) {
           return null
         }
         const entryId = queryResponse.data[0].entry_id
-        apiUrl = `uploads/${context.uploadId}/archive/${entryId}`
+        apiUrl = `uploads/${uploadId}/archive/${entryId}`
       } else {
         console.error(`Reference solutions for urls like ${resourceUrl} is not yet implemented.`)
         return null
@@ -590,6 +651,36 @@ export function getSectionReference(definition) {
     return `${ref}/${definition._parentIndex}`
   }
   return ref
+}
+
+/**
+ * Allows to traverse a given section through all its sub-sections.
+ * @param {Object} section The section to traverse
+ * @param {Object} definition The definition of the section
+ * @param {str} path The archive path to the section
+ * @param {function} callback The callback that is called on each section
+ */
+export function traverse(section, definition, path, callback, depthFirst) {
+  callback(section, definition, path)
+  for (const subSectionDef of definition._allProperties.filter(prop => prop.m_def === SubSectionMDef)) {
+    let subSections = []
+    if (!subSectionDef.repeats) {
+      const subSection = section[subSectionDef.name]
+      if (subSection) {
+        subSections = [subSection]
+      }
+    } else {
+      subSections = section[subSectionDef.name] || []
+    }
+
+    subSections.forEach((subSection, index) => {
+      let childPath = `${path}/${subSectionDef.name}`
+      if (subSectionDef.repeats) {
+        childPath = `${childPath}/${index}`
+      }
+      traverse(subSection, subSectionDef.sub_section, childPath, callback)
+    })
+  }
 }
 
 /**

@@ -16,8 +16,10 @@
 # limitations under the License.
 #
 
+import pytest
 import json
 import os
+import os.path
 
 from nomad import config
 from nomad.parsing.parser import ArchiveParser
@@ -57,3 +59,24 @@ def test_archive_parser(raw_files):
     ArchiveParser().parse(mainfile, archive)
 
     assert archive.data.m_to_dict() == archive_data['data']
+
+
+def get_file_parameter():
+    example_files = [
+        'schema.archive.yaml',
+        'schema.archive.json',
+        'intra-entry.archive.json'
+    ]
+    path = os.walk(os.path.join(os.path.dirname(__file__), '../../examples/data'))
+    for root, _, files in path:
+        for file in files:
+            if os.path.basename(file) in example_files:
+                yield pytest.param(os.path.join(root, file), id=file)
+
+
+@pytest.mark.parametrize('mainfile', get_file_parameter())
+def test_example_data(mainfile, no_warn):
+    archive = EntryArchive()
+    archive.m_context = Context()
+    ArchiveParser().parse(mainfile, archive)
+    archive.m_to_dict()

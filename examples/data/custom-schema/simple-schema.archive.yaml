@@ -1,0 +1,48 @@
+# Like all schemas, the information goes into the definitions section of
+# the archive.
+definitions:
+  # Schema have a name:
+  name: 'NOMAD Example Lab'
+  # Schema packages contain section definitions. This is wear the interesting
+  # schema information begins.
+  sections:
+    # Here we define a section called "Chemical":
+    Chemical:
+      # Section definition can have base_sections. Base sections are other schema
+      # definition and all properties of these will be inherited.
+      base_sections:
+        # Provides typical quantities like name, descriptions, chemical_formula
+        # and makes those available for search
+        - 'nomad.datamodel.metainfo.eln.Chemical'
+        # Declares this as a top-level entry section. This determines the types
+        # of entries you can create. With this we will be able to create a
+        # "Chemical" entry.
+        - 'nomad.datamodel.data.EntryData'
+      # Sections define quantities. Quantities allow to manage actual data.
+      # Quantities can have various types, shapes, and units.
+      description: |
+         A description can contain **markdown** markup and TeX formulas,
+         like $\sum\limits_{i=0}^{n}$.
+      quantities:
+        # Here we define a quantity called "storage_hold"
+        storage_hold:
+          description: |
+            The group has various sample storage cabinets to keep chemicals. You'll find
+            the stocked chemicals there.
+          # This defines a Enum type with pre-defined possible values.
+          type:
+            type_kind: Enum
+            type_data:
+              - cabinet 1.101
+              - cabinet 1.102
+              - cabinet 1.103
+              - hazard room, cabinet 0.001
+          # Annotations allow to provide additional information that is beyond
+          # just defining the possible data.
+          m_annotations:
+            # The eln annotation allows add the quantity to a ELN and will make
+            # this quantity editable in the Archive browser.
+            eln:
+              # A form field component for EnumQuantities that uses a pull down
+              # menu.
+              component: EnumEditQuantity

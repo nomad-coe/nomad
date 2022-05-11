@@ -1,0 +1,14 @@
+definitions:
+  sections:
+    MySection:
+      base_section: 'doesnotexist'
+      quantities:
+        my_quantity:
+          type: doesnotexist
+        reference:
+          type: '#/doesnotexist'
+      sub_sections:
+        wo_sub_section:
+          # has no sub_section defined
+        unresolvable_sub_section:
+          sub_section: '#/doesnotexist'

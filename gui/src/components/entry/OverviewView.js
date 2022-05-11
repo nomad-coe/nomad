@@ -31,9 +31,10 @@ import Page from '../Page'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
 import { useEntryContext } from './EntryContext'
 import SectionCard from './properties/SectionCard'
-import { createMetainfo } from '../archive/metainfo'
+import { createMetainfo, traverse } from '../archive/metainfo'
 import { ArchiveSaveButton, ArchiveDeleteButton, useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
 import { useErrors } from '../errors'
+import DefinitionsCard from './properties/DefinitionsCard'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -103,6 +104,7 @@ const OverviewView = React.memo((props) => {
       requireArchive({
         'resolve-inplace': false,
         data: '*',
+        definitions: '*',
         results: {
           material: '*',
           method: '*',
@@ -131,14 +133,20 @@ const OverviewView = React.memo((props) => {
       // TODO the metainfo should be provided by entry context. Currently it will be
       // created twice. Once here, and then also in the ArchiveBrowser.
       const metainfo = await createMetainfo(archive, context.metainfo, context)
-      const mDef = await metainfo.resolveDefinition(archive.data.m_def, context)
-      setSections([{
-        archivePath: 'data',
-        sectionDef: mDef,
-        getSection: archive => archive.data
-      }])
+      const sectionDef = await metainfo.resolveDefinition(archive.data.m_def, context)
+      const sections = []
+      traverse(archive.data, sectionDef, 'data', (section, sectionDef, path) => {
+        if (path === 'data' || sectionDef.m_annotations?.eln?.[0]?.overview) {
+          sections.push({
+            archivePath: path,
+            sectionDef: sectionDef,
+            section: section
+          })
+        }
+      })
+      return sections
     }
-    getSections().catch(raiseError)
+    getSections().then(setSections).catch(raiseError)
   }, [archive, setSections, raiseError, context])
 
   const classes = useStyles()
@@ -158,11 +166,11 @@ const OverviewView = React.memo((props) => {
   return <Page limitedWidth>
     <Grid container spacing={0} className={classes.root}>
       <Grid item xs={4} className={classes.leftColumn}>
-        <MetadataSection title='Method'>
+        <MetadataSection title="Metadata">
           <MethodMetadata data={index} />
         </MetadataSection>
         <Divider className={classes.divider} />
-        <MetadataSection title='Author metadata'>
+        <MetadataSection>
           <Quantity flex>
             <Quantity quantity='comment' data={index} />
             <Quantity quantity='references' data={index}/>
@@ -212,6 +220,7 @@ const OverviewView = React.memo((props) => {
             />
           ))
         }
+        <DefinitionsCard index={index} archive={archive}/>
         <NexusCard index={index}/>
         <MaterialCard index={index} archive={archive} properties={properties}/>
         <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>

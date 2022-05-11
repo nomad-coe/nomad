@@ -743,5 +743,10 @@ class EntryArchive(metainfo.MSection):
             if archive.definitions is not None:
                 archive.metadata.entry_type = 'Schema'
 
+    def m_update_from_dict(self, dct) -> None:
+        super().m_update_from_dict(dct)
+        if self.definitions is not None:
+            self.definitions.archive = self
+
 
 m_package.__init_metainfo__()

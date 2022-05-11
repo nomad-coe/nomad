@@ -819,7 +819,8 @@ async def get_upload_raw_path(
                 (upload.upload_id if not path else os.path.basename(path.rstrip('/'))) + '.zip',
                 media_type='application/zip'))
     except Exception as e:
-        logger.error('exception while streaming download', exc_info=e)
+        if not isinstance(e, HTTPException):
+            logger.error('exception while streaming download', exc_info=e)
         upload_files.close()
         raise
 
@@ -1737,10 +1738,10 @@ async def _get_files_if_provided(
     # Determine the source data stream
     sources: List[Tuple[Any, str]] = []  # List of tuples (source, filename)
     if local_path:
-        # Method 0: Local file - only for admins
-        if not user.is_admin:
+        # Method 0: Local file - only for local path under /tests/data/proc/
+        if not local_path.startswith('examples') and not user.is_admin:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-                You need to be admin to use local_path as method of upload.'''))
+                You are not authorized to access this path.'''))
         if not os.path.exists(local_path) or not os.path.isfile(local_path):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 The specified local_path cannot be found or is not a file.'''))

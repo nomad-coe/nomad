@@ -97,7 +97,7 @@ def test_m_from_dict(example):
     }, id='python')
 ])
 def test_from_dict(metainfo_data):
-    assert MSection.from_dict(metainfo_data).m_to_dict(with_root_def=True) == metainfo_data
+    assert MSection.from_dict(metainfo_data).m_to_dict(with_root_def=True, with_out_meta=True) == metainfo_data
 
 
 def test_with_meta(example):
@@ -169,7 +169,7 @@ section_definitions:
       - name: notes
         type: str
         description: |
-          Additinoal notes about this section in Markdown
+          Additional notes about this section in Markdown
         links:
           - http://markdown.org
         format: Markdown
@@ -188,7 +188,7 @@ section_definitions:
 
     sub_sections:
       - name: authors
-        section_def: User
+        sub_section: User
         description: The user that authored this section
         repeats: true
 
@@ -201,12 +201,13 @@ section_definitions:
           - name: user_id
             type: int
           - name: email
-            deprecated: 'Use user_id as repacement'
+            type: str
+            deprecated: 'Use user_id as replacement'
     sub_sections:
       - name: authors
         sub_section: User
       - name: data
-        section_def: ApplicationData
+        sub_section: ApplicationData
         repeats: true
 
   - name: ApplicationData

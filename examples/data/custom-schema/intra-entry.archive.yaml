@@ -1,0 +1,45 @@
+# All NOMAD entries follow the nomad.datamodel.EntryArchive schema, which
+# defines at least a definitions and a data section.
+definitions:  # The schema goes here.
+  sections:  # Schemas consist of section definitions
+    Element:  # This is the name of the first section
+      # Inheriting it from EntryData, makes this section a possible
+      # EntryArchive.data sub-section
+      base_section: nomad.datamodel.data.EntryData
+      quantities:  # Sections have quantities
+        order_number:
+          type: int
+        symbol:
+          type: str
+        name:
+          type: str
+      sub_sections:  # Sections have sub sections
+        properties:
+          section:  # The section of a sub section can be added directly
+            quantities:
+              density:
+                type: float
+                unit: g/cm^3
+              melt_point:
+                type: float
+                unit: K
+              boil_point:
+                type: float
+                unit: K
+              specific_heat:
+                type: float
+                unit: J/(g*K)
+data:  # All EntryData descendants can be put into the data sub-section
+  # To make clear which EntryData descendants this is based on, we reference
+  # the Element section defined above
+  m_def: Element
+  # The rest simply fill the quantities and sub-sections defined in the Element
+  # section
+  order_number: 1
+  symbol: H
+  name: Hydrogen
+  properties:
+    density: 0.00008988
+    melt: 14.01
+    boil: 20.28
+    heat_capacity: 14.304

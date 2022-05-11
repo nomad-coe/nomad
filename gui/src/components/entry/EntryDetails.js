@@ -31,9 +31,12 @@ import { makeStyles } from '@material-ui/core/styles'
 
 export const MethodMetadata = React.memo(({data}) => {
   const methodQuantities = []
-  const addMethodQuantities = (obj, parentKey) => {
+  const addMethodQuantities = (obj, parentKey, hidden = []) => {
     const children = {}
     Object.keys(obj).forEach(key => {
+      if (hidden.includes(key)) {
+        return
+      }
       const value = obj[key]
       if (Array.isArray(value) || typeof value === 'string') {
         if (value.length > 0) {
@@ -51,8 +54,12 @@ export const MethodMetadata = React.memo(({data}) => {
   if (data?.results?.method) {
     addMethodQuantities(data.results.method, 'results.method')
   }
+  if (data?.results?.eln) {
+    addMethodQuantities(data.results.eln, 'results.eln', ['names', 'sections', 'descriptions'])
+  }
 
   methodQuantities.push({quantity: 'entry_type', label: 'type'})
+  methodQuantities.push({quantity: 'entry_name', label: 'name'})
 
   return <Quantity flex>
     {methodQuantities.map(({...quantityProps}) => (

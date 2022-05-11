@@ -93,6 +93,18 @@ def create_user_dependency(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail='You are not authorized to access this Oasis',
                     headers={'WWW-Authenticate': 'Bearer'})
+
+        if user:
+            try:
+                assert datamodel.User.get(user.user_id) is not None
+            except Exception as e:
+                logger = utils.get_logger(__name__)
+                logger.error('Api usage by unknown user. Possible missconfiguration', exc_info=e)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail='You are logged in with an unknown user',
+                    headers={'WWW-Authenticate': 'Bearer'})
+
         return user
 
     # Create the desired function signature (as it depends on which auth options are allowed)

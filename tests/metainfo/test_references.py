@@ -18,6 +18,7 @@
 
 from typing import cast
 import pytest
+import os.path
 
 from nomad.metainfo import (
     MSection, Quantity, Section, SubSection, MProxy, Reference, QuantityReference, File,
@@ -323,3 +324,16 @@ def test_def_reference():
     assert result.m_to_dict() == {
         'test_quantity': 'TestValue'
     }
+
+
+@pytest.mark.parametrize('mainfile', [
+    'intra-entry', 'inter-entry'
+])
+def test_parse_with_references(mainfile):
+    from nomad.client import parse, normalize_all
+    entry_archive = parse(
+        os.path.join(os.path.dirname(__file__), f'../data/metainfo/{mainfile}.archive.json'))[0]
+    normalize_all(entry_archive)
+
+    m_def = entry_archive.m_to_dict()['data']['m_def']
+    assert '#/definitions/' in m_def

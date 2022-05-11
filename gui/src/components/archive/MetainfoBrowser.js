@@ -36,6 +36,7 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { SourceJsonDialogButton } from '../buttons/SourceDialogButton'
+import ReactJson from 'react-json-view'
 
 export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
@@ -317,8 +318,12 @@ const Metainfo = React.memo(function Metainfo(props) {
 
 export class SectionDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {
-    if (key === '_baseSection') {
-      return metainfoAdaptorFactory(this.context, this.def.base_sections[0])
+    if (key.startsWith('_baseSection')) {
+      let index = 0
+      if (key.includes('@')) {
+        index = parseInt(key.split('@')[1])
+      }
+      return metainfoAdaptorFactory(this.context, this.def.base_sections[index])
     }
 
     if (key.includes('@')) {
@@ -375,7 +380,7 @@ function SectionDefContent({def}) {
   const config = useRecoilValue(configState)
   const metainfoConfig = useRecoilValue(metainfoConfigState)
   const filter = def.extends_base_section ? () => true : def => {
-    if (!def?._package?.name) {
+    if (def?._package?._unique_id?.startsWith('entry_id:')) {
       // dynamically loaded custom schema
       return true
     }
@@ -399,7 +404,7 @@ function SectionDefContent({def}) {
     {def.base_sections.length > 0 &&
       <Compartment title="base section">
         {def.base_sections.map((baseSection, index) => (
-          <Item key={index} itemKey="_baseSection">
+          <Item key={index} itemKey={`_baseSection@${index}`}>
             <Typography>{baseSection.name}</Typography>
           </Item>
         ))}
@@ -422,7 +427,7 @@ function SectionDefContent({def}) {
       }
     </Compartment>
     <Compartment title="quantity definitions">
-      {def.quantities.filter(filter)
+      {def._allProperties.filter(prop => prop.m_def === QuantityMDef).filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
           const categories = quantityDef.categories
@@ -468,6 +473,7 @@ function SectionDef({def}) {
   return <Content>
     <Definition def={def} kindLabel="section definition" />
     <SectionDefContent def={def} />
+    <Annotations def={def}/>
   </Content>
 }
 SectionDef.propTypes = ({
@@ -481,6 +487,7 @@ function SubSectionDef({def}) {
       <ArchiveTitle def={def} useName isDefinition kindLabel="sub section definition" />
       <DefinitionDocs def={sectionDef} />
       <SectionDefContent def={sectionDef} />
+      <Annotations def={def}/>
     </Content>
   </React.Fragment>
 }
@@ -494,8 +501,9 @@ function DefinitionProperties({def, children}) {
     .map(key => def.m_annotations[key].filter(
       value => !(value.endsWith('.suggestion') || value.endsWith('__suggestion')))
     )
+  const hasSearchAnnotations = searchAnnotations && searchAnnotations.length > 0
 
-  if (!(children || def.aliases?.length || def.deprecated || (def.more && Object.keys(def.more).length) || searchAnnotations)) {
+  if (!(children || def.aliases?.length || def.deprecated || (def.more && Object.keys(def.more).length) || hasSearchAnnotations)) {
     return ''
   }
 
@@ -506,7 +514,7 @@ function DefinitionProperties({def, children}) {
     {Object.keys(def.more).map((moreKey, i) => (
       <Typography key={i}><b>{moreKey}</b>:&nbsp;{String(def.more[moreKey])}</Typography>
     ))}
-    {searchAnnotations && <Typography><b>search&nbsp;keys</b>:&nbsp;{
+    {hasSearchAnnotations > 0 && <Typography><b>search&nbsp;keys</b>:&nbsp;{
       searchAnnotations.join(', ')}</Typography>}
   </Compartment>
 }
@@ -540,6 +548,7 @@ function QuantityDef({def}) {
         <Typography><b>default</b>:&nbsp;{String(def.default)}</Typography>}
       {def.derived && <Typography><b>derived</b></Typography>}
     </DefinitionProperties>
+    <Annotations def={def}/>
   </Content>
 }
 QuantityDef.propTypes = ({
@@ -584,7 +593,6 @@ function DefinitionDetails({def, ...props}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const lane = useContext(laneContext)
-  const isLast = !lane.next
   const [usage, setUsage] = useState(null)
   const [showUsage, setShowUsage] = useState(false)
 
@@ -629,11 +637,11 @@ function DefinitionDetails({def, ...props}) {
         </Item>
       ))}
     </Compartment>}
-    {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
+    {/* {!lane.next && !def.extends_base_section && def.name !== 'EntryArchive' &&
       <Compartment title="graph">
         <VicinityGraph def={def} key={def.name}/>
       </Compartment>
-    }
+    } */}
     {quantityPath &&
       <Compartment title="usage">
         {!showUsage && <Button fullWidth variant="outlined" onClick={() => setShowUsage(true)}>Show usage</Button>}
@@ -714,6 +722,27 @@ DefinitionLabel.propTypes = ({
   def: PropTypes.object.isRequired,
   isDefinition: PropTypes.bool
 })
+
+const Annotations = React.memo(function Annotations({def}) {
+  if (!def.m_annotations) {
+    return ''
+  }
+
+  return (
+    <Compartment title="annotations">
+      <ReactJson
+        name="m_annotations"
+        src={def.m_annotations}
+        enableClipboard={false}
+        collapsed={2}
+        displayObjectSize={false}
+      />
+    </Compartment>
+  )
+})
+Annotations.propTypes = {
+  def: PropTypes.object.isRequired
+}
 
 const useVicinityGraphStyles = makeStyles(theme => ({
   root: {

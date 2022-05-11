@@ -19,11 +19,12 @@
 from typing import Dict
 from urllib.parse import urlsplit, urlunsplit
 import re
-import json
+import os.path
 
 import requests
 
 from nomad import utils, config
+from nomad.datamodel.datamodel import EntryMetadata
 from nomad.metainfo import Context as MetainfoContext, MSection, Quantity, MetainfoReferenceError
 from nomad.datamodel import EntryArchive
 
@@ -130,7 +131,7 @@ class Context(MetainfoContext):
         installation_url = self.installation_url
         upload_id = self.upload_id
 
-        url_match = re.match(r'^../uploads?/(\w*)/?(archive|raw)/([^?]+)$', url)
+        url_match = re.match(r'^../uploads?/([\w\-]*)/?(archive|raw)/([^?]+)$', url)
         if url_match:
             if url_match.group(1) is not '':
                 upload_id = url_match.group(1)
@@ -138,7 +139,7 @@ class Context(MetainfoContext):
             path = url_match.group(3)
             return installation_url, upload_id, kind, path
 
-        url_match = re.search(r'(?<!\.)/uploads/(\w+)/(archive|raw)/([^?]+)$', url)
+        url_match = re.search(r'(?<!\.)/uploads/([\w\-]+)/(archive|raw)/([^?]+)$', url)
         if url_match:
             installation_url = url.replace(url_match.group(0), '')
             upload_id = url_match.group(1)
@@ -216,15 +217,21 @@ class ServerContext(Context):
         upload_files = self._get_upload_files(upload_id, installation_url)
 
         try:
+            # Make sure the archive has proper entry_id, even though we are just
+            # loading a raw file. This is important to serialize references into this
+            # archive!
+            archive = EntryArchive(
+                m_context=self,
+                metadata=EntryMetadata(
+                    upload_id=upload_id,
+                    mainfile=path,
+                    entry_id=utils.generate_entry_id(upload_id, path)))
+            from nomad.parsing.parser import ArchiveParser
             with upload_files.raw_file(path, 'rt') as f:
-                archive_data = json.load(f)
+                ArchiveParser().parse_file(path, f, archive)
+            return archive
         except Exception:
             raise MetainfoReferenceError(f'Could not load {path}.')
-
-        if 'm_def' not in archive_data:
-            return EntryArchive.m_from_dict(archive_data, m_context=self)
-        else:
-            return MSection.from_dict(archive_data, m_context=self)
 
     def raw_file(self, *args, **kwargs):
         return self.upload_files.raw_file(*args, **kwargs)
@@ -234,11 +241,18 @@ class ClientContext(Context):
     '''
     Since it is a client side context, use config.client.url by default.
     Otherwise, if invoked from ArchiveQuery, use the url provided by user.
+
+    Arguments:
+        - installation_url: The installation_url that should be used for intra installation
+            references.
+        - local_dir: For intra "upload" references, files will be looked up here.
     '''
-    def __init__(self, installation_url: str = None):
+    def __init__(self, installation_url: str = None, local_dir: str = None):
         super().__init__(config.client.url + '/v1' if installation_url is None else installation_url)
+        self.local_dir = local_dir
 
     def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
+        # TODO currently upload_id might be None
         if installation_url is None:
             installation_url = config.api_url(api='api/v1')
 
@@ -250,13 +264,28 @@ class ClientContext(Context):
         return EntryArchive.m_from_dict(response.json()['data']['archive'], m_context=self)
 
     def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
+
+        # TODO currently upload_id might be None
+        if upload_id is None:
+            # try to find a local file, useful when the context is used for local parsing
+            file_path = os.path.join(self.local_dir, path)
+            if os.path.exists(file_path):
+                from nomad.parsing.parser import ArchiveParser
+                with open(file_path, 'rt') as f:
+                    archive = EntryArchive(m_context=self)
+                    ArchiveParser().parse_file(file_path, f, archive)
+                    return archive
+
+            raise MetainfoReferenceError(f'cannot retrieve raw file without upload id')
+
         if installation_url is None:
             installation_url = config.api_url(api='api/v1')
 
-        response = requests.get(f'{installation_url}/uploads/{upload_id}/raw/{path}')
+        url = f'{installation_url}/uploads/{upload_id}/raw/{path}'
+        response = requests.get(url)
 
         if response.status_code != 200:
-            raise MetainfoReferenceError(f'cannot retrieve raw file {path} from {installation_url}')
+            raise MetainfoReferenceError(f'cannot retrieve raw file {path} from {url}')
 
         archive_data = response.json()
 
@@ -264,3 +293,13 @@ class ClientContext(Context):
             return EntryArchive.m_from_dict(archive_data, m_context=self)
         else:
             return MSection.from_dict(archive_data, m_context=self)
+
+    def raw_file(self, path, *args, **kwargs):
+        file_path = os.path.join(self.local_dir, path)
+        return open(file_path, *args, **kwargs)
+
+    def create_reference(self, section: MSection, quantity_def: Quantity, value: MSection) -> str:
+        try:
+            return super().create_reference(section, quantity_def, value)
+        except AssertionError:
+            return f'<unavailable url>/#{value.m_path()}'

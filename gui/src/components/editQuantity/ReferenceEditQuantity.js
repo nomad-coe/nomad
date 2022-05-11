@@ -25,19 +25,23 @@ import { TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import { resolveRefAsync } from '../archive/metainfo'
 import { ItemButton, useLane } from '../archive/Browser'
+import { useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
 import { getFieldProps } from './StringEditQuantity'
 import { isWaitingForUpdateTestId } from '../../utils'
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
-  const {uploadId, archive} = useEntryContext()
+  const {archive} = useEntryContext()
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [inputValue, setInputValue] = useState('')
   const [suggestions, setSuggestions] = useState([])
+  const [error, setError] = useState()
   const fetchedSuggestionsFor = useRef()
-  const {adaptor: {context}} = useLane()
+  const lane = useLane()
+  const browserAdaptorContext = useBrowserAdaptorContext(archive)
+  const context = lane?.adaptor?.context || browserAdaptorContext
   const referencedSectionQualifiedName = useMemo(() => {
     return quantityDef.type._referencedSection._qualifiedName
   }, [quantityDef])
@@ -47,9 +51,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     }
     // Fetch suggestions
     fetchedSuggestionsFor.current = input
-    const query = {
-      'upload_id': uploadId
-    }
+    const query = {}
     if (input !== '') {
       query['entry_name.prefix'] = input
     }
@@ -71,7 +73,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     }).then(response => {
       setSuggestions(response.data)
     }).catch(raiseError)
-  }, [api, raiseError, fetchedSuggestionsFor, setSuggestions, referencedSectionQualifiedName, uploadId])
+  }, [api, raiseError, fetchedSuggestionsFor, setSuggestions, referencedSectionQualifiedName])
   const fetchSuggestionsDebounced = useCallback(
     debounce(fetchSuggestions, 500),
     [fetchSuggestions]
@@ -80,19 +82,30 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   useEffect(() => {
     if (!value || value === '') {
       setInputValue('')
+      setError(null)
       return
     }
-    resolveRefAsync(value, archive, context, archive => {
+    const resolved = resolveRefAsync(value, archive, context, archive => {
       setEntry(archive.metadata)
       setInputValue(archive.metadata.entry_name)
+      setError(null)
     })
-  }, [value, api, raiseError, archive, context])
+    resolved.then(resolved => {
+      if (!resolved) {
+        setEntry(null)
+        setInputValue(value)
+        setError('the referenced value does not exist anymore')
+      }
+    })
+  }, [value, api, raiseError, archive, context, setError])
 
   const getOptionLabel = useCallback(option => option.entry_name, [])
   const getOptionSelected = useCallback((option, value) => option.entry_name === value.entry_name, [])
 
   const handleValueChange = useCallback((event, value) => {
-    if (value?.entry_id) {
+    if (value?.entry_id && value?.upload_id) {
+      value = `../uploads/${value.upload_id}/archive/${value.entry_id}#data`
+    } else if (value?.entry_id) {
       value = `../upload/archive/${value.entry_id}#data`
     } else {
       value = undefined
@@ -105,6 +118,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const handleInputValueChange = useCallback((event, value) => {
     value = value || event.target.value
     setInputValue(value)
+    setError(null)
     fetchSuggestionsDebounced(value)
     if (value === '' && onChange) {
       onChange(undefined)
@@ -126,7 +140,6 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   }, [quantityDef, index])
   const {helpDescription, ...otherProps} = getFieldProps(quantityDef)
   return <Autocomplete
-    disabled={value && !entry}
     options={suggestions}
     onInputChange={handleInputValueChange}
     onChange={handleValueChange}
@@ -141,6 +154,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
           fullWidth variant='filled' size='small'
           {...otherProps}
           {...(value && !entry ? {'data-testid': isWaitingForUpdateTestId} : {})}
+          error={!!error}
+          helperText={error}
           InputProps={{
             ...params.InputProps,
             endAdornment: inputValue !== '' && (

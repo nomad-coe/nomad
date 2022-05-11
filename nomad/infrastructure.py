@@ -47,6 +47,9 @@ from nomad.utils.structlogging import get_logger
 # the metainfo with parser specific definitions, before the metainfo might be used.
 from nomad.parsing import parsers  # pylint: disable=unused-import
 
+# TODO put somemore thought into warnings
+import warnings
+warnings.filterwarnings("ignore")
 
 logger = get_logger(__name__)
 

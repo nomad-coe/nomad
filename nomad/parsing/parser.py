@@ -302,15 +302,18 @@ class ArchiveParser(MatchingParser):
             mainfile_mime_re='.*',
             mainfile_name_re=r'.*(archive|metainfo)\.(json|yaml|yml)$')
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
-        if mainfile.endswith('.json'):
-            import json
-            with open(mainfile, 'rt') as f:
+    def parse_file(self, mainfile, f, archive, logger=None):
+        try:
+            if mainfile.endswith('.json'):
+                import json
                 archive_data = json.load(f)
-        else:
-            import yaml
-            with open(mainfile, 'rt') as f:
+            else:
+                import yaml
                 archive_data = yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
+        except Exception as e:
+            if logger:
+                logger.error('Cannot parse archive json or yaml.', exc_info=e)
+            raise e
 
         metadata_data = archive_data.get(EntryArchive.metadata.name, None)
 
@@ -320,12 +323,29 @@ class ArchiveParser(MatchingParser):
 
         # ensure that definitions are parsed first to make them available for the
         # parsing itself.
+        has_definition_errors = False
         if 'definitions' in archive_data:
             archive.definitions = Package.m_from_dict(
                 archive_data['definitions'], m_context=archive.m_context)
+            errors, warnings = archive.definitions.m_all_validate()
+            has_definition_errors = len(errors) > 0
+            if logger:
+                for error in errors:
+                    logger.error('Validation error', details=error)
+                for warning in warnings:
+                    logger.warn('Validation warning', details=warning)
+
+            archive.definitions.archive = archive
+
             del archive_data['definitions']
 
         archive.m_update_from_dict(archive_data)
+        if has_definition_errors:
+            raise Exception('Archive contains definitions that have validation errors')
+
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
+        with open(mainfile, 'rt') as f:
+            self.parse_file(mainfile, f, archive, logger)
 
 
 class MissingParser(MatchingParser):

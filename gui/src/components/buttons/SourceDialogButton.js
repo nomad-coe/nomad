@@ -47,7 +47,7 @@ const useCodeStyles = makeStyles(theme => ({
     marginTop: theme.spacing(3)
   }
 }))
-const Code = React.memo(function Code({code}) {
+export const Code = React.memo(function Code({code}) {
   const classes = useCodeStyles()
   return <React.Fragment>
     <div className={classes.codeContainer}>

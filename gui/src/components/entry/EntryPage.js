@@ -52,7 +52,7 @@ const EntryPage = React.memo(() => {
     const urlNoSlash = trimEnd(url, '/')
     return {
       'overview': `${urlNoSlash}/overview`,
-      'files': `${urlNoSlash}/files`,
+      'files': `${urlNoSlash}/files/_mainfile`,
       'data': `${urlNoSlash}/data`,
       'logs': `${urlNoSlash}/logs`
     }

@@ -47,6 +47,7 @@ import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogBut
 import CreateEntry from './CreateEntry'
 import { useUploadContext } from './UploadContext'
 import { useApi } from '../api'
+import ReloadIcon from '@material-ui/icons/Replay'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -363,6 +364,10 @@ function UploadOverview(props) {
       .catch(raiseError)
   }
 
+  const handleReload = () => {
+    update()()
+  }
+
   const handleReprocess = () => {
     api.post(`/uploads/${uploadId}/action/process`)
       .then(results => setUpload(results.data))
@@ -424,6 +429,11 @@ function UploadOverview(props) {
           >
             <DownloadIcon />
           </Download>
+          <IconButton onClick={handleReload}>
+            <Tooltip title="Reload">
+              <ReloadIcon />
+            </Tooltip>
+          </IconButton>
           <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess} data-testid='upload-reprocess-action'>
             <Tooltip title="Reprocess">
               <ReprocessIcon />
@@ -530,7 +540,7 @@ function UploadOverview(props) {
             {!isEmpty && <EditMetaDataDialog selectedEntries={{'upload_id': upload.upload_id}}/>}
           </StepContent>
         </Step>}
-        {(!oasis && isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
+        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
           <StepLabel>Publish</StepLabel>
           <StepContent>
             {isPublished && <Typography className={classes.stepContent}>
@@ -556,16 +566,15 @@ function UploadOverview(props) {
                 <Button onClick={handleLiftEmbargo}>Lift Embargo</Button>
               </DialogActions>
             </Dialog>
-          </StepContent>
-        </Step>}
-        {oasis && <Step expanded={!isEmpty} active={false}>
-          <StepLabel>Publish</StepLabel>
-          <StepContent>
-            <Typography>
-              In future versions of NOMAD, you will be able to create a readonly archived
-              version of your upload, make it available throughout this Oasis, and publish
-              the data or metadata to the <Link href="https://nomad-lab.eu">central NOMAD services</Link>.
-            </Typography>
+            {oasis && (
+              <Box marginTop={2}>
+                <Typography>
+                  In future versions of NOMAD, you will be able to create a readonly archived
+                  version of your upload, make it available throughout this Oasis, and publish
+                  the data or metadata to the <Link href="https://nomad-lab.eu">central NOMAD services</Link>.
+                </Typography>
+              </Box>
+            )}
           </StepContent>
         </Step>}
       </Stepper>

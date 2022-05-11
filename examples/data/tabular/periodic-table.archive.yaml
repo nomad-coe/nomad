@@ -1,0 +1,97 @@
+# The schema structure is the same for tabular data as for any other data. We use this
+# define the schema for a single row!
+definitions:
+  name: Periodic Table
+  sections:
+    Element:
+      base_sections:
+        # We use ElnBaseSection here. This provides a few quantities (name, description, tags)
+        # that are added to the search index. If we map table columns to these quantities,
+        # we can make those cells available for search.
+        - nomad.datamodel.metainfo.eln.ElnBaseSection
+        # Schemas that are used to directly parse table files (.csv, .xlsx), need to
+        # have the first definition to extend nomad.parsing.tabular.TableRow.
+        - nomad.parsing.tabular.TableRow
+      m_annotations:
+        # We might not want to show all ElnBaseSection quantities.
+        eln:
+          hide:
+            - lab_id
+      quantities:
+        # Tags will be picked up by ElnBaseSection and put into search. We do not really
+        # use this to edit the tags, but we define a default that is then add to
+        # all row data.
+        tags:
+          type: str
+          default: element
+        order_number:
+          type: int
+          # This allows to map the quantity to a column with name Z. If no such annotation
+          # is given, the parser will use the quantity itself.
+          m_annotations:
+            tabular:
+              name: Z
+        symbol:
+          type: str
+          m_annotations:
+            tabular:
+              name: Sym
+            eln:
+              component: StringEditQuantity
+        name:
+          type: str
+          m_annotations:
+            tabular:
+              name: Element
+            eln:
+              component: StringEditQuantity
+        description:
+          type: str
+          m_annotations:
+            tabular:
+              name: Origin of name
+            eln:
+              component: RichTextEditQuantity
+        group:
+          type: int
+          m_annotations:
+            tabular:
+              name: Group
+        period:
+          type: int
+          m_annotations:
+            tabular:
+              name: Period
+      # We can also have sub_sections for tabular data. This allows to better
+      # structure data from very wide tables. For automated column mapping the column
+      # names have to include the sub-section names in the column header. For example
+      # a quantity foo in sub_section bar would be mapped to column foo.bar. If you
+      # always use the tabular.name annotation, you can ignore this automated mapping.
+      sub_sections:
+        properties:
+          section:
+            quantities:
+              density:
+                type: float
+                unit: g/cm^3
+                m_annotations:
+                  tabular:
+                    name: Density
+              melt_point:
+                type: float
+                unit: K
+                m_annotations:
+                  tabular:
+                    name: Melt
+              boil_point:
+                type: float
+                unit: K
+                m_annotations:
+                  tabular:
+                    name: Boil
+              specific_capacity:
+                type: float
+                unit: J/(g*K)
+                m_annotations:
+                  tabular:
+                    name: Heat

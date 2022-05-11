@@ -92,6 +92,7 @@ COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
 COPY --from=build /install/gui/src/searchQuantities.json /app/src/searchQuantities.json
 COPY --from=build /install/gui/src/parserMetadata.json /app/src/parserMetadata.json
 COPY --from=build /install/gui/src/toolkitMetadata.json /app/src/toolkitMetadata.json
+COPY --from=build /install/gui/src/exampleUploads.json /app/src/exampleUploads.json
 COPY --from=build /install/gui/src/unitsData.js /app/src/unitsData.js
 COPY --from=build /install/gui/src/northTools.json /app/src/northTools.json
 RUN yarn run build
@@ -124,6 +125,11 @@ RUN rm -f /app/nomad/app/flask/static/gui/env.js
 RUN python setup.py compile
 RUN python setup.py sdist
 RUN cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
+
+# build the example upload files
+WORKDIR /app/examples/data
+RUN ./generate_example_uploads.sh
+WORKDIR /app
 
 RUN mkdir -p /app/.volumes/fs
 RUN useradd -ms /bin/bash nomad

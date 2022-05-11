@@ -452,7 +452,7 @@ pip install nomad-lab[all]
 If you need the latest version, you can also download the latest package from our
 "beta" installation.
 ```sh
-curl "https://nomad-lab.eu/prod/rae/beta/dist/nomad-lab.tar.gz" -o nomad-lab.tar.gz
+curl "https://nomad-lab.eu/prod/v1/staging/dist/nomad-lab.tar.gz" -o nomad-lab.tar.gz
 pip install nomad-lab.tar.gz[all]
 ```
 
@@ -707,7 +707,7 @@ We will probably provide functionality in the API of the central NOMAD to upload
 #### How to maintain an Oasis installation?
 
 ##### How to install a NOMAD Oasis?
-Follow our guide: https://nomad-lab.eu/prod/rae/docs/ops.html#operating-a-nomad-oasis
+Follow our guide: https://nomad-lab.eu/prod/v1/docs/ops.html#operating-a-nomad-oasis
 
 ##### How do version numbers work?
 There are still a lot of thing in NOMAD that are subject to change. Currently, changes in the minor version number (0.x.0) designate major changes that require data migration. Changes in the patch version number (0.7.x) just contain minor changes and fixes and do not require data migration. Once we reach 1.0.0, NOMAD will use the regular semantic versioning conventions.

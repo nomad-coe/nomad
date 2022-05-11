@@ -115,7 +115,7 @@ right away. This can save you some time and additional API calls. The upload end
 has a parameter `publish_directly`. You can modify the upload command you get on the upload page as follows:
 
 ```
-curl "http://nomad-lab.eu/prod/rae/api/uploads/?token=<your-token>&publish_directly=true" -T <local_file>
+curl "http://nomad-lab.eu/prod/v1/uploads/?token=<your-token>&publish_directly=true" -T <local_file>
 ```
 
 HTTP makes it easy for you to upload files via browser and curl, but it is not an
@@ -125,5 +125,5 @@ files (.zip or .tag.gz) on a predefined path on the NOMAD servers. NOMAD allows 
 files directly from its servers via an additional `local_path` parameter:
 
 ```
-curl -X PUT "http://nomad-lab.eu/prod/rae/api/uploads/?token=<your-token>&local_path=<path-to-upload-file>"
+curl -X PUT "http://nomad-lab.eu/prod/v1/api/uploads/?token=<your-token>&local_path=<path-to-upload-file>"
 ```

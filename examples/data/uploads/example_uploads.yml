@@ -1,0 +1,24 @@
+theory:
+  path: examples/data/uploads/theory.zip
+  title: Electronic structure code input and output files
+  description: |
+    This upload demonstrate the basic use of NOMAD's *parsers*. For many *electronic
+    structure codes* (VASP, etc.), NOMAD provides parsers. You simply upload
+    the *input and output files* of your simulations and NOMAD parsers are extracting
+    all necessary metadata to produce a **FAIR** dataset.
+eln:
+  path: examples/data/uploads/eln.zip
+  title: Electronic Lab Notebook
+  description: |
+    This example contains a custom NOMAD *schema* to create an **Electronic
+    Lab Notebook (ELN)** and a few example *data* entries that use this schema.
+    The schema demonstrates the basic concepts behind a NOMAD ELN and can be a good
+    **starting point** to create you own schemas that model **FAIR data** acquired in your lab.
+tables:
+  path: examples/data/uploads/tabular.zip
+  title: Tabular Data
+  description: |
+    This upload demonstrates the used of tabular data. In this example we use an *xlsx*
+    file in combination with a custom schema. The schema describes what the columns
+    in the excel file mean and NOMAD can parse everything accordingly to
+    produce a **FAIR** dataset.

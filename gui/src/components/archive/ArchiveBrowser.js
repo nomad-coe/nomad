@@ -50,6 +50,8 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import { getLineStyles } from '../../utils'
 import Plot from '../visualization/Plot'
 import { useUploadContext } from '../uploads/UploadContext'
+import { EntryButton } from '../nav/Routes'
+import NavigateIcon from '@material-ui/icons/MoreHoriz'
 
 export function useBrowserAdaptorContext(data) {
   const entryContext = useEntryContext()
@@ -57,21 +59,17 @@ export function useBrowserAdaptorContext(data) {
   const metainfo = useMetainfo(data)
   const {api} = useApi()
 
-  const context = useMemo(() => {
-    const context = {
-      api: api,
-      metainfo: metainfo,
-      archive: data,
-      resources: {}
-    }
-    if (entryContext) {
-      context.entryId = entryContext.entryId
-      context.uploadId = entryContext.uploadId
-    } else if (uploadContext) {
-      context.uploadId = uploadContext.entryId
-    }
-    return context
-  }, [entryContext, uploadContext, metainfo, api, data])
+  const entryId = entryContext?.entryId
+  const uploadId = entryContext?.uploadId || uploadContext?.uploadId
+
+  const context = useMemo(() => ({
+    api: api,
+    metainfo: metainfo,
+    archive: data,
+    resources: {},
+    entryId: entryId,
+    uploadId: uploadId
+  }), [entryId, uploadId, metainfo, api, data])
 
   return context
 }
@@ -92,7 +90,14 @@ const ArchiveBrowser = React.memo(({data}) => {
     return metainfo ? archiveSearchOptions(data, metainfo) : []
   }, [data, metainfo])
 
-  if (!metainfo) {
+  const adaptor = useMemo(() => {
+    if (!context.metainfo) {
+      return null
+    }
+    return archiveAdaptorFactory(context, data, undefined)
+  }, [context, data])
+
+  if (!adaptor) {
     return ''
   }
 
@@ -104,7 +109,7 @@ const ArchiveBrowser = React.memo(({data}) => {
   context.archive = data
   return (
     <Browser
-      adaptor={archiveAdaptorFactory(context, data, undefined)}
+      adaptor={adaptor}
       form={<ArchiveConfigForm searchOptions={searchOptions} data={data}/>}
     />
   )
@@ -181,7 +186,7 @@ export const ArchiveDeleteButton = React.memo(function ArchiveDeleteButton(props
     </React.Fragment>) : ''
 })
 
-function ArchiveConfigForm({searchOptions, data}) {
+const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, data}) {
   const [config, setConfig] = useRecoilState(configState)
 
   const handleConfigChange = event => {
@@ -268,7 +273,7 @@ function ArchiveConfigForm({searchOptions, data}) {
       </FormGroup>
     </Box>
   )
-}
+})
 ArchiveConfigForm.propTypes = ({
   data: PropTypes.object.isRequired,
   searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired
@@ -587,19 +592,39 @@ function Section({section, def, parentRelation}) {
   const lane = useLane()
   const history = useHistory()
 
+  const navEntryId = useMemo(() => {
+    return lane?.adaptor?.context?.archive?.metadata?.entry_id
+  }, [lane])
+
   const sectionIsEditable = useMemo(() => {
     return editable && isEditable(def) && !lane.adaptor.context.isReferenced
   }, [editable, def, lane])
 
   const actions = useMemo(() => {
-    if (!sectionIsEditable) {
-      return <SourceJsonDialogButton
-        buttonProps={{size: 'small'}}
-        tooltip={`Show section data as JSON`}
-        title={`Underlying section data as JSON`}
-        data={section}
-      />
-    }
+    const navButton = navEntryId && (
+      <Grid item>
+        <EntryButton entryId={navEntryId} component={IconButton} size="small">
+          <NavigateIcon />
+        </EntryButton>
+      </Grid>
+    )
+
+    const jsonButton = !sectionIsEditable ? (
+      <Grid item>
+        <SourceJsonDialogButton
+          buttonProps={{size: 'small'}}
+          tooltip={`Show section data as JSON`}
+          title={`Underlying section data as JSON`}
+          data={section}
+        />
+      </Grid>
+    ) : (
+      <Grid item>
+        <IconButton onClick={() => setShowJson(value => !value)} size="small">
+          <CodeIcon />
+        </IconButton>
+      </Grid>
+    )
 
     const handleDelete = () => {
       removeSubSection(
@@ -610,19 +635,18 @@ function Section({section, def, parentRelation}) {
       history.push(lane.prev.path)
     }
 
-    return <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
-      <Grid item>
-        <IconButton onClick={() => setShowJson(value => !value)} size="small">
-          <CodeIcon />
-        </IconButton>
-      </Grid>
+    const deleteButton = sectionIsEditable && (
       <Grid item>
         <IconButton onClick={handleDelete} size="small">
           <DeleteIcon />
         </IconButton>
       </Grid>
+    )
+
+    return <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+      {navButton}{jsonButton}{deleteButton}
     </Grid>
-  }, [setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged, section])
+  }, [navEntryId, setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged, section])
 
   const renderQuantity = useCallback(quantityDef => {
     const key = quantityDef.name
@@ -664,11 +688,12 @@ function Section({section, def, parentRelation}) {
   }
   const quantities = def._allProperties.filter(prop => prop.m_def === QuantityMDef)
 
+  const subSectionsToRender = sub_sections
+    .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined || sectionIsEditable)
+    .filter(filter)
   const subSectionCompartment = (
     <Compartment title="sub sections">
-      {sub_sections
-        .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined || sectionIsEditable)
-        .filter(filter)
+      {subSectionsToRender
         .map(subSectionDef => {
           return <SubSection
             key={subSectionDef.name}

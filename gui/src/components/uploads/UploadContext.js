@@ -56,7 +56,7 @@ const UploadContext = React.memo(function UploadContext({uploadId, children}) {
       })
       .catch((error) => {
         if (error instanceof DoesNotExist && deleteClicked) {
-          history.push(getUrl('uploads', new URL(window.location.href).pathname))
+          history.push(getUrl('user/uploads', new URL(window.location.href).pathname))
           return
         }
         if (error.apiMessage === 'Page out of range requested.') {
