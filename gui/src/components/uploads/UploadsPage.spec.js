@@ -23,10 +23,11 @@ import {
   startAPI,
   closeAPI
 } from '../conftest.spec'
+import exampleUploadsJSON from '../../exampleUploads.json'
 import {UploadsPage} from './UploadsPage'
 import {withLoginRequired} from '../api'
 import {within} from '@testing-library/dom'
-import {fireEvent, waitFor} from '@testing-library/react'
+import {fireEvent, waitFor, waitForElementToBeRemoved} from '@testing-library/react'
 
 test('Render uploads page: sort by upload create time', async () => {
   await startAPI('tests.states.uploads.multiple_uploads', 'tests/data/uploads/uploadspage', 'test', 'password')
@@ -73,6 +74,32 @@ test('Render uploads page: sort by upload create time', async () => {
     expect(within(rows[i]).queryByText(`dft_upload_${i + 1}`)).toBeInTheDocument()
     expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0 ? 'published upload' : 'this upload is not yet published'))).toBeInTheDocument()
   }
+
+  // Testing the "Add example uploads" functionality
+  let exampleButton = screen.getByRole('button', { name: /add example uploads/i })
+
+  // Testing for Example Button to be in the document
+  expect(exampleButton).toBeInTheDocument()
+
+  // Testing for the example button to show the Dialog box with a list of examples
+  fireEvent.click(exampleButton)
+  let dialogTitle = screen.getByRole('heading', { name: /select a sample upload/i })
+  expect(dialogTitle).toBeInTheDocument()
+
+  // Testing the example list to contain the exampleUploads json file
+  let exampleUploadsKeys = Object.keys(exampleUploadsJSON)
+  exampleUploadsKeys.map((category) => {
+    expect(screen
+      .getByRole('heading', { name: exampleUploadsJSON[category].title }))
+      .toBeInTheDocument()
+  })
+
+  // Testing for all add-buttons to be present for each example
+  expect(screen.queryAllByRole('button', { name: /add/i }).length).toBe(exampleUploadsKeys.length)
+
+  // Testing for the cancel button in the dialog to close it
+  fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+  waitForElementToBeRemoved(dialogTitle)
 
   closeAPI()
 })
