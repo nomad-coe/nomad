@@ -1,5 +1,5 @@
 version:
-  label: "1.0.8"
+  label: "1.0.9"
   isBeta: true
   usesBetaData: true
   officialUrl: "https://nomad-lab.eu/prod/rae/gui"
