@@ -1,4 +1,4 @@
-version: '3.4'
+version: '3.5'
 
 x-common-variables: &nomad_backend_env
     NOMAD_RABBITMQ_HOST: rabbitmq

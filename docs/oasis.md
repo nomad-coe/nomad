@@ -89,7 +89,9 @@ Further, we use docker-compose to setup all necessary container in the simplest 
 
 You will need a single computer, with **docker** and **docker-compose** installed. Refer
 to the official [docker](https://docs.docker.com/engine/install/) and [docker-compose](https://docs.docker.com/compose/install/)
-documentation for installation instructions.
+documentation for installation instructions. Newer version of docker have a re-implementation
+of docker-compose integrated as the `docker compose` sub-command. This should be fully
+compatible and you might chose to can replace `docker-compos` with `docker compose` in this tutorial.
 
 The following will run all necessary services with docker. These comprise: a **mongo**
 database, an **elasticsearch**, a **rabbitmq** distributed task queue, the NOMAD **app**,
