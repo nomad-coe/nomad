@@ -47,6 +47,14 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v1.1.0
+- example uploads
+- custom schema support
+- ELN functionality
+- nexus schema
+- north hub
+- file browser
+
 ### v1.0.6
 - upgraded to Elasticsearch 7.x
 
