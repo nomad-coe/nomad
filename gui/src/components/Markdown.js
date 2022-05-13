@@ -257,7 +257,8 @@ function Markdown(props) {
     // - put metainfo names into code quotes
     // - turn metainfo names into links into the metainfo
     let word = ''
-    content = children.replace(/^ +/gm, '').split('').map((c, i) => {
+    const letters = children.replace(/^ +/gm, '').split('')
+    content = letters.map((c, i) => {
       if (c === '`' || c === '$') {
         if (state.peek === c) {
           state.pop()
@@ -275,6 +276,9 @@ function Markdown(props) {
 
       if (c.match(/[a-zA-Z0-9_]/)) {
         word += c
+        if (letters.length - 1 === i) {
+          return word
+        }
       } else {
         if (state.length === 0 && (word.match(/_/g) || word.match(/[a-z]+[A-Z]/g)) && word.match(/^[a-zA-Z0-9_]+$/g) && c !== ']') {
           const path = globalMetainfo?.path(word)
