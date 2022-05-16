@@ -19,17 +19,16 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
 import { useUnits } from '../../../units'
+import { getLocation } from '../../../utils'
 import { refPath, resolveRef } from '../../archive/metainfo'
 import VibrationalProperties from '../../visualization/VibrationalProperties'
-import { useLocation } from 'react-router-dom'
 
 /**
  * Card displaying vibrational properties.
  */
 const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
-  const {pathname} = useLocation()
-  const archiveUrl = `${pathname}/archive`
+  const urlPrefix = `${getLocation()}/data`
 
   // Find out which properties are present
   const hasDos = properties.has('dos_phonon')
@@ -49,7 +48,7 @@ const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
     dos = {}
     dos.energies = resolveRef(dosData.energies, archive)
     dos.densities = resolveRef(dosData.total, archive).map(dos => dos.value)
-    dos.m_path = `${archiveUrl}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
+    dos.m_path = `${urlPrefix}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
   }
 
   // Resolve phonon band structure
@@ -58,7 +57,7 @@ const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
   if (bsData) {
     bs = {}
     bs.segment = resolveRef(bsData.segment, archive)
-    bs.m_path = `${archiveUrl}/${refPath(bsData.segment[0].split('/').slice(0, -2).join('/'))}`
+    bs.m_path = `${urlPrefix}/${refPath(bsData.segment[0].split('/').slice(0, -2).join('/'))}`
   }
 
   // Resolve free energy
@@ -68,7 +67,7 @@ const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
     energyFree = {}
     energyFree.energies = resolveRef(energyFreeData.energies, archive)
     energyFree.temperatures = resolveRef(energyFreeData.temperatures, archive)
-    energyFree.m_path = `${archiveUrl}/${refPath(energyFreeData.energies)}`
+    energyFree.m_path = `${urlPrefix}/${refPath(energyFreeData.energies)}`
   }
 
   // Resolve heat capacity
@@ -78,7 +77,7 @@ const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
     heatCapacity = {}
     heatCapacity.heat_capacities = resolveRef(heatCapacityData.heat_capacities, archive)
     heatCapacity.temperatures = resolveRef(heatCapacityData.temperatures, archive)
-    heatCapacity.m_path = `${archiveUrl}/${refPath(heatCapacityData.heat_capacities)}`
+    heatCapacity.m_path = `${urlPrefix}/${refPath(heatCapacityData.heat_capacities)}`
   }
 
   return <PropertyCard title="Vibrational properties">

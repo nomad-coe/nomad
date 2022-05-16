@@ -419,6 +419,13 @@ def units(ctx):
             'label': 'Millibar',
             'abbreviation': 'mbar',
         },
+        # Femtosecond
+        {
+            'name': 'femtosecond',
+            'dimension': 'time',
+            'label': 'Femtosecond',
+            'abbreviation': 'fs',
+        },
         # Kilogram as SI base unit
         {
             'name': 'kilogram',

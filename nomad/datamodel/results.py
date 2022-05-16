@@ -57,7 +57,9 @@ from nomad.datamodel.metainfo.simulation.method import (
     BasisSet, Scf, Electronic, Smearing, GW as GWMethod
 )  # noqa
 from nomad.datamodel.metainfo.workflow import (
-    GeometryOptimization as MGeometryOptimization, Thermodynamics
+    GeometryOptimization as MGeometryOptimization,
+    MolecularDynamics as MMolecularDynamics,
+    Thermodynamics
 )  # noqa
 
 
@@ -914,6 +916,38 @@ class Method(MSection):
     simulation = SubSection(sub_section=Simulation.m_def, repeats=False)
 
 
+class MolecularDynamics(MSection):
+    m_def = Section(
+        description="""
+        Methodology for molecular dynamics.
+        """,
+    )
+    time_step = MMolecularDynamics.time_step.m_copy()
+    time_step.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
+    ensemble_type = MMolecularDynamics.ensemble_type.m_copy()
+    ensemble_type.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
+
+
+class Methodology(MSection):
+    m_def = Section(
+        description="""
+        Contains methodological information and can be attached to any physical
+        property.
+        """,
+    )
+    molecular_dynamics = SubSection(sub_section=MolecularDynamics.m_def, repeats=False)
+
+
+class PropertySection(MSection):
+    m_def = Section(
+        description="""
+        Base class for that can be used to attach a specific methodology to a
+        physical property.
+        """,
+    )
+    methodology = SubSection(sub_section=Methodology.m_def, repeats=False)
+
+
 class DOS(MSection):
     m_def = Section(
         description='''
@@ -1265,6 +1299,139 @@ class SpectroscopyProperties(MSection):
     spectrum = Quantity(type=Spectrum)
 
 
+class QuantityDynamic(MSection):
+    m_def = Section(
+        description="""
+        Contains the values for a quantity at different times.
+        """
+    )
+    time = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='second',
+        description="""
+        The explicit times at which the values are evaluated. Provide either
+        this or time_step and time_start.
+        """,
+    )
+    time_step = Quantity(
+        type=np.dtype(np.float64),
+        unit='second',
+        description="""
+        The time step between successive evaluations. Provide either
+        this and time_start or the explicit times.
+        """,
+    )
+    time_start = Quantity(
+        type=np.dtype(np.float64),
+        unit='second',
+        description="""
+        The time at which the evaluation started. Provide either this and
+        time_step or the explicit times.
+        """,
+    )
+
+
+class VolumeDynamic(QuantityDynamic):
+    m_def = Section(
+        description="""
+        Contains volume values evaluated at different times.
+        """
+    )
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit="m ** 3",
+        description="""
+        The volume values.
+        """,
+    )
+
+
+class PressureDynamic(QuantityDynamic):
+    m_def = Section(
+        description="""
+        Contains pressure values evaluated at different times.
+        """
+    )
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit="pascal",
+        description="""
+        The pressure values.
+        """,
+    )
+
+
+class TemperatureDynamic(QuantityDynamic):
+    m_def = Section(
+        description="""
+        Contains temperature values evaluated at different times.
+        """
+    )
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit="kelvin",
+        description="""
+        The temperature value.
+        """,
+    )
+
+
+class EnergyDynamic(QuantityDynamic):
+    m_def = Section(
+        description="""
+        Contains energy values evaluated at different times.
+        """
+    )
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit="joule",
+        description="""
+        The energy values.
+        """,
+    )
+
+
+class Trajectory(PropertySection):
+    m_def = Section(
+        description='''
+        Thermodynamic properties reported for an ensemble evolving in time.
+        ''',
+    )
+    temperature = SubSection(sub_section=TemperatureDynamic.m_def, repeats=False)
+    pressure = SubSection(sub_section=PressureDynamic.m_def, repeats=False)
+    volume = SubSection(sub_section=VolumeDynamic.m_def, repeats=False)
+    energy_potential = SubSection(sub_section=EnergyDynamic.m_def, repeats=False)
+    available_properties = Quantity(
+        type=MEnum(
+            'temperature',
+            'pressure',
+            'volume',
+            'energy_potential'
+        ),
+        shape=['0..*'],
+        description='Subset of the property names that are present in this trajectory.',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+
+class ThermodynamicProperties(MSection):
+    m_def = Section(
+        description='''
+        Thermodynamic properties.
+        ''',
+    )
+    trajectory = SubSection(
+        sub_section=Trajectory.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+
+
 class Properties(MSection):
     m_def = Section(
         description='''
@@ -1276,6 +1443,7 @@ class Properties(MSection):
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False)
     mechanical = SubSection(sub_section=MechanicalProperties.m_def, repeats=False)
+    thermodynamic = SubSection(sub_section=ThermodynamicProperties.m_def, repeats=False)
     spectroscopy = SubSection(sub_section=SpectroscopyProperties.m_def, repeats=False)
     geometry_optimization = SubSection(sub_section=GeometryOptimization.m_def, repeats=False)
 

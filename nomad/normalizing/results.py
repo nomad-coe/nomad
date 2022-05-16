@@ -27,7 +27,6 @@ import matid.geometry
 from nomad import config
 from nomad.units import ureg
 from nomad import atomutils
-from nomad.utils import deep_get
 from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
@@ -39,6 +38,13 @@ from nomad.datamodel.results import (
     Material,
     Method,
     GeometryOptimization,
+    Trajectory,
+    MolecularDynamics,
+    Methodology,
+    TemperatureDynamic,
+    VolumeDynamic,
+    PressureDynamic,
+    EnergyDynamic,
     Properties,
     Structures,
     Structure,
@@ -54,6 +60,7 @@ from nomad.datamodel.results import (
     MechanicalProperties,
     ElectronicProperties,
     VibrationalProperties,
+    ThermodynamicProperties,
     BandStructureElectronic,
     BandStructurePhonon,
     DOSElectronic,
@@ -105,23 +112,25 @@ class ResultsNormalizer(Normalizer):
         # Add the list of available_properties: it is a selected subset of the
         # stored properties.
         available_property_names = {
-            "properties.electronic.band_structure_electronic.band_gap": "electronic.band_structure_electronic.band_gap",
-            "properties.electronic.band_structure_electronic": "band_structure_electronic",
-            "properties.electronic.dos_electronic": "dos_electronic",
-            "properties.vibrational.dos_phonon": "dos_phonon",
-            "properties.vibrational.band_structure_phonon": "band_structure_phonon",
-            "properties.vibrational.energy_free_helmholtz": "energy_free_helmholtz",
-            "properties.vibrational.heat_capacity_constant_volume": "heat_capacity_constant_volume",
-            "properties.geometry_optimization": "geometry_optimization",
-            "properties.mechanical.bulk_modulus": "bulk_modulus",
-            "properties.mechanical.shear_modulus": "shear_modulus",
-            "properties.mechanical.energy_volume_curve": "energy_volume_curve",
-            "properties.spectroscopy.eels": "eels",
+            "results.properties.electronic.band_structure_electronic.band_gap": "electronic.band_structure_electronic.band_gap",
+            "results.properties.electronic.band_structure_electronic": "band_structure_electronic",
+            "results.properties.electronic.dos_electronic": "dos_electronic",
+            "results.properties.vibrational.dos_phonon": "dos_phonon",
+            "results.properties.vibrational.band_structure_phonon": "band_structure_phonon",
+            "results.properties.vibrational.energy_free_helmholtz": "energy_free_helmholtz",
+            "results.properties.vibrational.heat_capacity_constant_volume": "heat_capacity_constant_volume",
+            "results.properties.thermodynamic.trajectory": "trajectory",
+            "results.properties.geometry_optimization": "geometry_optimization",
+            "results.properties.mechanical.bulk_modulus": "bulk_modulus",
+            "results.properties.mechanical.shear_modulus": "shear_modulus",
+            "results.properties.mechanical.energy_volume_curve": "energy_volume_curve",
+            "results.properties.spectroscopy.eels": "eels",
         }
         available_properties: List[str] = []
         for path, shortcut in available_property_names.items():
-            if deep_get(results, *path.split(".")) is not None:
+            for _ in self.traverse_reversed(path.split('.')):
                 available_properties.append(shortcut)
+                break
         results.properties.available_properties = sorted(available_properties)
 
     def normalize_sample(self, sample) -> None:
@@ -416,6 +425,70 @@ class ResultsNormalizer(Normalizer):
 
         return None
 
+    def trajectory(self) -> List[Trajectory]:
+        """Returns a list of trajectories.
+        """
+        path = ["workflow"]
+        trajs = []
+        for workflow in self.traverse_reversed(path):
+            # Check validity
+            if workflow.type == "molecular_dynamics":
+                md_wf = workflow.molecular_dynamics
+                traj = Trajectory()
+                if md_wf is not None:
+                    md = MolecularDynamics(
+                        time_step=md_wf.time_step,
+                        ensemble_type=md_wf.ensemble_type,
+                    )
+                    traj.methodology = Methodology(molecular_dynamics=md)
+
+                # Loop through calculations, gather thermodynamics directly
+                # from each step in the workflow.
+                volume = []
+                volume_time = []
+                pressure = []
+                pressure_time = []
+                temperature = []
+                temperature_time = []
+                potential_energy = []
+                potential_energy_time = []
+
+                for calc in workflow.calculations_ref:
+                    time = calc.time
+                    if time is not None:
+                        time = time.magnitude
+                        if calc.volume is not None:
+                            volume.append(calc.volume.magnitude)
+                            volume_time.append(time)
+                        if calc.pressure is not None:
+                            pressure.append(calc.pressure.magnitude)
+                            pressure_time.append(time)
+                        if calc.temperature is not None:
+                            temperature.append(calc.temperature.magnitude)
+                            temperature_time.append(time)
+                        if calc.energy:
+                            if calc.energy.potential is not None:
+                                potential_energy.append(calc.energy.potential.value.magnitude)
+                                potential_energy_time.append(time)
+
+                available_properties = []
+                if volume:
+                    traj.volume = VolumeDynamic(value=volume, time=volume_time)
+                    available_properties.append('volume')
+                if pressure:
+                    traj.pressure = PressureDynamic(value=pressure, time=pressure_time)
+                    available_properties.append('pressure')
+                if temperature:
+                    traj.temperature = TemperatureDynamic(value=temperature, time=temperature_time)
+                    available_properties.append('temperature')
+                if potential_energy:
+                    traj.energy_potential = EnergyDynamic(value=potential_energy, time=potential_energy_time)
+                    available_properties.append('energy_potential')
+                if available_properties:
+                    traj.available_properties = available_properties
+                trajs.append(traj)
+        return trajs
+
     def properties(
             self,
             repr_system: System,
@@ -502,6 +575,13 @@ class ResultsNormalizer(Normalizer):
 
         # Geometry optimization
         properties.geometry_optimization = self.geometry_optimization()
+
+        # Thermodynamic
+        trajectory = self.trajectory()
+        if trajectory:
+            thermodynamic = ThermodynamicProperties()
+            thermodynamic.trajectory = trajectory
+            properties.thermodynamic = thermodynamic
 
         try:
             n_calc = len(self.section_run.calculation)
@@ -875,6 +955,8 @@ class ResultsNormalizer(Normalizer):
         finding the latest reported section or value.
         """
         def traverse(root, path, i):
+            if not root:
+                return
             sections = getattr(root, path[i])
             if isinstance(sections, list):
                 for section in reversed(sections):

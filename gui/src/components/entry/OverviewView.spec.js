@@ -47,7 +47,7 @@ test('correctly renders metadata and all properties', async () => {
 
   // We read the JSON archive corresponding to the tested API entry. Using this
   // data makes writing assertions much easier.
-  const index = (await readArchive('../../../tests/states/archives/dft.json'))[1]
+  const {index} = (await readArchive('../../../tests/states/archives/dft.json'))
 
   // Check if all method quantities are shown (on the left)
   expectQuantity('results.method.simulation.program_name', 'VASP')

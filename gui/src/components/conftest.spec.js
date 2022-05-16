@@ -642,7 +642,11 @@ export async function waitForGUI(ms = 1000) {
  */
 export async function readArchive(path) {
   const archive = await import(path)
-  return [archive, {...archive, ...archive.metadata}]
+  const index = {...archive, ...archive.metadata}
+  const properties = new Set(index?.results
+    ? index.results.properties.available_properties
+    : [])
+  return {archive, index, properties}
 }
 
 const consoleSpies = {}

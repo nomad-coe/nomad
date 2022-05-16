@@ -396,12 +396,6 @@ class ElasticNormalizer(TaskNormalizer):
 
 
 class MolecularDynamicsNormalizer(TaskNormalizer):
-    def _is_with_thermodynamics(self):
-        try:
-            return len(self.run.calculation[-1].thermodynamics[-1].values()) > 0
-        except Exception:
-            return False
-
     def _is_with_trajectory(self):
         try:
             return self.run.system[-1].atoms.positions is not None
@@ -414,9 +408,6 @@ class MolecularDynamicsNormalizer(TaskNormalizer):
 
         if not self.section:
             self.section = self.workflow.m_create(MolecularDynamics)
-
-        if self.section.with_thermodynamics is None:
-            self.section.with_thermodynamics = self._is_with_thermodynamics()
 
         if self.section.with_trajectory is None:
             self.section.with_trajectory = self._is_with_trajectory()
@@ -451,9 +442,6 @@ class ThermodynamicsNormalizer(TaskNormalizer):
 
         if self.section.temperature is None:
             set_thermo_property('temperature')
-
-        if self.section.pressure is None:
-            set_thermo_property('pressure')
 
         if self.section.helmholtz_free_energy is None:
             set_thermo_property('helmholtz_free_energy')

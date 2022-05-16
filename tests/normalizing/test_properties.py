@@ -309,5 +309,21 @@ def test_geometry_optimization(geometry_optimization):
     assert geo_opt_prop.type == "ionic"
 
 
+def test_trajectory(molecular_dynamics):
+    trajectories = molecular_dynamics.results.properties.thermodynamic.trajectory
+    n_trajectories = len(trajectories)
+    assert n_trajectories == 1
+    n_steps = 10
+    trajectory = trajectories[0]
+
+    assert trajectory.pressure.value.size == trajectory.pressure.time.size == n_steps
+    assert trajectory.volume.value.size == trajectory.volume.time.size == n_steps
+    assert trajectory.temperature.value.size == trajectory.temperature.time.size == n_steps
+    assert trajectory.energy_potential.value.size == trajectory.energy_potential.time.size == n_steps
+    assert trajectory.methodology.molecular_dynamics.time_step == 0.5 * ureg('fs')
+    assert trajectory.methodology.molecular_dynamics.ensemble_type == 'NVT'
+    assert set(trajectory.available_properties) == set(['pressure', 'volume', 'temperature', 'energy_potential'])
+
+
 def test_n_calculations(geometry_optimization):
     assert geometry_optimization.results.properties.n_calculations == 2

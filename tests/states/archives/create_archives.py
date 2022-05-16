@@ -22,7 +22,7 @@ from nomad.utils.exampledata import create_entry_archive
 
 def archive_dft_bulk():
     '''
-    Contains a typical dft archive.
+    Contains a prototypical archive containing many different properties.
     '''
     vdw_method = 'G06'
     relativity_method = 'scalar_relativistic_atomic_ZORA'
@@ -85,7 +85,8 @@ def archive_dft_bulk():
                 'energy_free_helmholtz',
                 'bulk_modulus',
                 'shear_modulus',
-                'energy_volume_curve'
+                'energy_volume_curve',
+                'trajectory'
             ],
             'electronic': {
                 'dos_electronic': {
@@ -177,7 +178,32 @@ def archive_dft_bulk():
                         'energies_fit': '/workflow/1/equation_of_state/eos_fit/0/fitted_energies'
                     }
                 ]
-            }
+            },
+            'thermodynamic': {
+                'trajectory': [
+                    {
+                        'pressure': {
+                            'value': [0],
+                            'time': [0],
+                        },
+                        'temperature': {
+                            'value': [0],
+                            'time': [0],
+                        },
+                        'volume': {
+                            'value': [0],
+                            'time': [0],
+                        },
+                        'available_properties': ['pressure', 'temperature', 'volume'],
+                        'methodology': {
+                            'molecular_dynamics': {
+                                'time_step': 1e-15,
+                                'ensemble_type': 'NVT',
+                            }
+                        }
+                    }
+                ]
+            },
         }
     }
     run = {
@@ -211,6 +237,9 @@ def archive_dft_bulk():
         }],
         'calculation': [{
             'system_ref': '/run/0/system/0',
+            'pressure': 0,
+            'temperature': 0,
+            'volume': 0,
             'dos_electronic': [{
                 'energies': [0, 1e-19],
                 'total': [
@@ -285,6 +314,12 @@ def archive_dft_bulk():
             'calculation_result_ref': '/run/0/calculation/0',
             'calculations_ref': ['/run/0/calculation/0'],
             'elastic': [{'shear_modulus_hill': 1}],
+        },
+        {
+            'type': 'molecular_dynamics',
+            'calculation_result_ref': '/run/0/calculation/0',
+            'calculations_ref': ['/run/0/calculation/0'],
+            'molecular_dynamics': {'time_step': 1e-15, 'ensemble_type': 'NVT'},
         }
     ]
 

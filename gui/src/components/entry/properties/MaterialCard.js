@@ -26,7 +26,7 @@ import Structure from '../../visualization/Structure'
 import NoData from '../../visualization/NoData'
 import searchQuantities from '../../../searchQuantities'
 import { toMateriaStructure } from '../../../utils'
-import { encyclopediaBase } from '../../../config'
+import { encyclopediaBase, guiBase } from '../../../config'
 
 /**
  * For displaying the most descriptive chemical formula that is present in an
@@ -104,7 +104,7 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
   const [structureType, setStructureType] = useState(defaultStructure)
 
   // Prepare the data for the visualizer
-  const urlPrefix = `/entry/id/${index.upload_id}/${index.entry_id}/archive/results/properties/structures`
+  const urlPrefix = `${window.location.pathname.slice(guiBase.length)}/data/results/properties/structures`
   const materialId = index.results?.material?.material_id
   const structurePath = `results.properties.structures.${structureType}`
   const structureSection = archive?.results?.properties?.structures?.[structureType]

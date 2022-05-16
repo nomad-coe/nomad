@@ -19,14 +19,13 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
 import { useUnits } from '../../../units'
+import { getLocation } from '../../../utils'
 import ElectronicProperties from '../../visualization/ElectronicProperties'
 import { refPath, resolveRef } from '../../archive/metainfo'
-import { useLocation } from 'react-router-dom'
 
 const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
-  const {pathname} = useLocation()
-  const archiveUrl = `${pathname}/archive`
+  const urlPrefix = `${getLocation()}/data`
 
   // Find out which properties are present
   const hasDos = properties.has('dos_electronic')
@@ -47,7 +46,7 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
     if (dosData.band_gap) {
       dos.energy_highest_occupied = Math.max(...dosData.band_gap.map(x => x.energy_highest_occupied))
     }
-    dos.m_path = `${archiveUrl}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
+    dos.m_path = `${urlPrefix}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
   }
 
   // Resolve band structure data
@@ -61,7 +60,7 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
       bs.energy_highest_occupied = Math.max(...bsData.band_gap.map(x => x.energy_highest_occupied))
       bs.band_gap = bsData.band_gap
     }
-    bs.m_path = `${archiveUrl}/${refPath(bsData.reciprocal_cell.split('/').slice(0, -1).join('/'))}`
+    bs.m_path = `${urlPrefix}/${refPath(bsData.reciprocal_cell.split('/').slice(0, -1).join('/'))}`
   }
 
   return <PropertyCard title="Electronic properties">

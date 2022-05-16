@@ -24,9 +24,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2022-04-06T10:35:45.214462",
+            "upload_create_time": "2022-05-12T09:26:39.346776",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2022-04-06T10:35:45.217462",
+            "publish_time": "2022-05-12T09:26:39.349776",
             "results": {
               "material": {
                 "symmetry": {
@@ -79,7 +79,8 @@
                   "energy_free_helmholtz",
                   "bulk_modulus",
                   "shear_modulus",
-                  "energy_volume_curve"
+                  "energy_volume_curve",
+                  "trajectory"
                 ],
                 "structures": {
                   "structure_primitive": {
@@ -135,6 +136,23 @@
                     ]
                   }
                 },
+                "thermodynamic": {
+                  "trajectory": [
+                    {
+                      "available_properties": [
+                        "pressure",
+                        "temperature",
+                        "volume"
+                      ],
+                      "methodology": {
+                        "molecular_dynamics": {
+                          "time_step": 1e-15,
+                          "ensemble_type": "NVT"
+                        }
+                      }
+                    }
+                  ]
+                },
                 "mechanical": {
                   "energy_volume_curve": [
                     {
@@ -178,7 +196,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2022-04-06T10:35:45.218462",
+            "entry_create_time": "2022-05-12T09:26:39.350776",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -194,7 +212,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "4891",
+          "content-length": "5344",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -210,6 +228,7 @@
           "required": {
             "resolve-inplace": false,
             "data": "*",
+            "definitions": "*",
             "results": {
               "material": "*",
               "method": "*",
@@ -219,6 +238,7 @@
                 "mechanical": "include-resolved",
                 "spectroscopy": "include-resolved",
                 "vibrational": "include-resolved",
+                "thermodynamic": "include-resolved",
                 "geometry_optimization": {
                   "energies": "include-resolved"
                 }
@@ -238,6 +258,7 @@
           "required": {
             "resolve-inplace": false,
             "data": "*",
+            "definitions": "*",
             "results": {
               "material": "*",
               "method": "*",
@@ -247,6 +268,7 @@
                 "mechanical": "include-resolved",
                 "spectroscopy": "include-resolved",
                 "vibrational": "include-resolved",
+                "thermodynamic": "include-resolved",
                 "geometry_optimization": {
                   "energies": "include-resolved"
                 }
@@ -563,6 +585,47 @@
                       "energies": "/workflow/0/thermodynamics/vibrational_free_energy_at_constant_volume",
                       "temperatures": "/workflow/0/thermodynamics/temperature"
                     }
+                  },
+                  "thermodynamic": {
+                    "trajectory": [
+                      {
+                        "available_properties": [
+                          "pressure",
+                          "temperature",
+                          "volume"
+                        ],
+                        "methodology": {
+                          "molecular_dynamics": {
+                            "time_step": 1e-15,
+                            "ensemble_type": "NVT"
+                          }
+                        },
+                        "temperature": {
+                          "time": [
+                            0
+                          ],
+                          "value": [
+                            0
+                          ]
+                        },
+                        "pressure": {
+                          "time": [
+                            0
+                          ],
+                          "value": [
+                            0
+                          ]
+                        },
+                        "volume": {
+                          "time": [
+                            0
+                          ],
+                          "value": [
+                            0
+                          ]
+                        }
+                      }
+                    ]
                   }
                 }
               }
@@ -571,7 +634,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "9455",
+          "content-length": "10561",
           "content-type": "application/json",
           "server": "uvicorn"
         }

@@ -449,7 +449,7 @@ export const SearchContext = React.memo(({
       // inputSectionContext, we set the filter inside nested query.
       const sectionContext = useContext(inputSectionContext)
       const section = sectionContext?.section
-      const subname = useMemo(() => name.split('.').pop(), [name])
+      const subname = useMemo(() => section ? name.slice(section.length + 1) : undefined, [name, section])
 
       const value = useRecoilValue(queryFamily(section || name))
       return section
@@ -469,7 +469,7 @@ export const SearchContext = React.memo(({
       // inputSectionContext, we set the filter inside nested query.
       const sectionContext = useContext(inputSectionContext)
       const section = sectionContext?.section
-      const subname = useMemo(() => name.split('.').pop(), [name])
+      const subname = useMemo(() => section ? name.slice(section.length + 1) : undefined, [name, section])
 
       const setter = useSetRecoilState(queryFamily(section || name))
 
@@ -1314,17 +1314,17 @@ function toAPIFilterSingle(key, value, path = undefined) {
       newValue = undefined
     } else {
       newValue = newValue.map((item) => item instanceof Quantity
-        ? item.toSI().value
+        ? item.toSI().value()
         : item)
     }
   } else if (value instanceof Quantity) {
-    newValue = value.toSI().value
+    newValue = value.toSI().value()
   } else if (isArray(value)) {
     if (value.length === 0) {
       newValue = undefined
     } else {
       newValue = value.map((item) => item instanceof Quantity
-        ? item.toSI().value
+        ? item.toSI().value()
         : item)
     }
   } else if (isPlainObject(value)) {
