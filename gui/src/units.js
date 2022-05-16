@@ -135,6 +135,7 @@ export const unitSystems = {
     units: {
       ...SIUnits,
       length: {name: 'angstrom', fixed: false},
+      time: {name: 'femtosecond', fixed: false},
       energy: {name: 'electron_volt', fixed: false},
       pressure: {name: 'gigapascal', fixed: false},
       angle: {name: 'degree', fixed: false}

@@ -26,6 +26,7 @@ import InputTooltip from './InputTooltip'
 import InputItem, { inputItemHeight } from './InputItem'
 import InputUnavailable from './InputUnavailable'
 import Placeholder from '../../visualization/Placeholder'
+import { formatLabel } from '../../../utils'
 import { useSearchContext } from '../SearchContext'
 import { isNil } from 'lodash'
 import LoadingButton from '../../buttons/LoadingButton'
@@ -89,6 +90,7 @@ const InputField = React.memo(({
   disableSearch,
   disableOptions,
   disableSuggestions,
+  formatLabels,
   className,
   classes,
   'data-testid': testID
@@ -163,7 +165,7 @@ const InputField = React.memo(({
     for (let [key, value] of Object.entries(finalOptions)) {
       opt[key] = {
         checked: filter ? filter.has(key) : false,
-        label: value.label,
+        label: formatLabels ? formatLabel(value.label) : value.label,
         disabled: !disableStatistics
       }
     }
@@ -180,7 +182,7 @@ const InputField = React.memo(({
       }
     }
     setVisibleOptions(opt)
-  }, [agg, filter, finalOptions, locked, disableStatistics])
+  }, [agg, filter, finalOptions, locked, disableStatistics, formatLabels])
 
   // Show more values
   const handleShowMore = useCallback(() => {
@@ -376,6 +378,7 @@ InputField.propTypes = {
   disableSearch: PropTypes.bool, // Whether to show the search field
   disableOptions: PropTypes.bool, // Whether to show the options gathered through aggregations
   disableSuggestions: PropTypes.bool, // Whether to disable the text field suggestions
+  formatLabels: PropTypes.bool, // Whether to reformat the options labels
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string

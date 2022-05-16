@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { range, isNil } from 'lodash'
+import { range, size, isNil } from 'lodash'
 import { scalePow } from 'd3-scale'
 import {
   format,
@@ -38,6 +38,7 @@ import {
   isWithinInterval,
   eachQuarterOfInterval
 } from 'date-fns'
+import { scale as chromaScale } from 'chroma-js'
 import { scale, add, DType, formatNumber } from '../../utils.js'
 
 // The available scaling options
@@ -261,4 +262,171 @@ export function getTicks(min, max, n, dtype, mode = 'scientific', decimals = 3) 
       .reduce((prev, curr) => prev[1] < curr[1] ? prev : curr) // Select best option
     return closestDuration[0]
   }
+}
+
+/**
+ * Returns the default x-axis layout used in the plots.
+ *
+ * @param {object} theme The current app theme.
+ * @returns An object containing a plotly configuration for an x-axis.
+ */
+export function getXAxisLayout(theme) {
+  return {
+    automargin: false,
+    autorange: true,
+    linecolor: '#333',
+    linewidth: 1,
+    mirror: true,
+    ticks: 'outside',
+    showline: true,
+    fixedrange: true,
+    title: {
+      standoff: 10,
+      font: {
+        family: theme.typography.fontFamily,
+        size: 16,
+        color: '#333'
+      },
+      tickfont: {
+        family: theme.typography.fontFamily,
+        size: 14,
+        color: '#333'
+      }
+    }
+  }
+}
+
+/**
+ * Returns the default y-axis layout used in the plots.
+ *
+ * @param {object} theme The current app theme.
+ * @returns An object containing a plotly configuration for a y-axis.
+ */
+export function getYAxisLayout(theme) {
+  return {
+    automargin: true,
+    autorange: true,
+    linecolor: '#333',
+    linewidth: 1,
+    mirror: true,
+    ticks: 'outside',
+    showline: true,
+    title: {
+      standoff: 10,
+      font: {
+        family: theme.typography.fontFamily,
+        size: 16,
+        color: '#333'
+      }
+    },
+    tickfont: {
+      family: 'Titillium Web,sans-serif',
+      size: 14,
+      color: '#333'
+    }
+  }
+}
+
+/**
+ * Returns a list of linestyles.
+ *
+ * @param {number} nLines number of lines to plot
+ */
+export function getLineStyles(nLines, theme) {
+  const styles = []
+  const lineStyles = ['solid', 'dot', 'dashdot']
+  const colors = chromaScale([theme.palette.primary.dark, theme.palette.secondary.light])
+    .mode('lch').colors(nLines)
+  for (let i = 0; i < nLines; ++i) {
+    const line = {
+      dash: lineStyles[i % lineStyles.length],
+      color: colors[i],
+      width: 2
+    }
+    styles.push(line)
+  }
+  return styles
+}
+
+/**
+ * Returns a layout for a plot with several vertically stacked plots with a
+ * shared x-axis.
+ *
+ * @param {number} nLines number of lines to plot
+ */
+export function getPlotLayoutVertical(plots, xtitle, theme) {
+  // Static layout configuration
+  const layout = {
+    showlegend: false,
+    grid: {
+      ygap: 0.15,
+      columns: 1,
+      pattern: 'independent',
+      roworder: 'top to bottom'
+    }
+  }
+
+  // Create configuration for each axis that has valid data.
+  let iAxis = 0
+  for (const plot of plots) {
+    if (plot.data !== false) {
+      ++iAxis
+      const n = iAxis === 1 ? '' : iAxis
+      layout[`yaxis${n}`] = { ...getYAxisLayout(theme), title: plot.ytitle }
+      layout[`xaxis${n}`] = {
+        ...getXAxisLayout(theme),
+        showticks: true,
+        showticklabels: false
+      }
+    }
+  }
+
+  // The last available plot gets the shared x-axis label
+  const n = iAxis === 1 ? '' : iAxis
+  layout[`xaxis${n}`] = {
+    ...getXAxisLayout(theme),
+    showticklabels: true,
+    title: xtitle
+  }
+
+  // Add subplot layout based on the found valid data
+  layout.grid.subplots = range(1, iAxis + 1).map(i => {
+    const n = i === 1 ? '' : i
+    return `x${n}y${n}`
+  })
+  layout.grid.rows = iAxis
+
+  return layout
+}
+
+/**
+ * Returns traces for a plot with several vertically stacked plots with a shared
+ * x-axis.
+ *
+ * @param {number} nLines number of lines to plot
+ */
+export function getPlotTracesVertical(plots, theme) {
+  const traces = []
+  let iAxis = 0
+  for (const plot of plots) {
+    if (plot.data) {
+      ++iAxis
+      const n = iAxis === 1 ? '' : iAxis
+      traces.push(
+        {
+          x: plot.data.x,
+          y: plot.data.y,
+          yaxis: `y${n}`,
+          xaxis: `x${n}`,
+          type: 'scatter',
+          mode: 'lines',
+          line: {
+            color: theme.palette.primary.main,
+            width: 2
+          }
+        }
+      )
+    }
+  }
+  return size(traces) ? traces : undefined
 }

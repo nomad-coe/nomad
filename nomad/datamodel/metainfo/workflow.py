@@ -1298,13 +1298,13 @@ class MolecularDynamics(MSection):
         validate=False)
 
     ensemble_type = Quantity(
-        type=str,
+        type=MEnum(["NVE", "NVT", "NPT"]),
         shape=[],
         description='''
         Ensemble type used.
         ''')
 
-    timestep = Quantity(
+    time_step = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         unit='s',

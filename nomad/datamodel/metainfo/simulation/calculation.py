@@ -502,6 +502,18 @@ class Energy(MSection):
         The lowest unoccupied energy.
         """)
 
+    kinetic = SubSection(
+        sub_section=EnergyEntry.m_def,
+        description='''
+        Contains the value and information regarding the kinetic energy.
+        ''')
+
+    potential = SubSection(
+        sub_section=EnergyEntry.m_def,
+        description='''
+        Contains the value and information regarding the potential energy.
+        ''')
+
 
 class ForcesEntry(Atomic):
     '''
@@ -1625,35 +1637,12 @@ class BaseCalculation(MSection):
         contamination in spin-unrestricted calculations.
         ''')
 
-    pressure = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='pascal',
-        description='''
-        Value of the pressure of the system.
-        ''')
-
-    temperature = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='kelvin',
-        description='''
-        Value of the temperature of the system at which the properties are calculated.
-        ''')
-
     time_physical = Quantity(
         type=np.dtype(np.int32),
         shape=[],
         unit='second',
         description='''
         The elapsed time with respect to the start of the simulation.
-        ''')
-
-    time_step = Quantity(
-        type=np.dtype(np.int32),
-        shape=[],
-        description='''
-        The number of time steps with respect to the start of the simulation.
         ''')
 
     energy = SubSection(sub_section=Energy.m_def, categories=[FastAccess])
@@ -1685,6 +1674,45 @@ class BaseCalculation(MSection):
     charges = SubSection(sub_section=Charges.m_def, repeats=True)
 
     density_charge = SubSection(sub_section=Density.m_def, repeats=True)
+
+    volume = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m ** 3',
+        description='''
+        Value of the volume of the system.
+        ''')
+
+    pressure = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        Value of the pressure of the system.
+        ''')
+
+    temperature = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='kelvin',
+        description='''
+        Value of the temperature of the system.
+        ''')
+
+    step = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        The number of time steps with respect to the start of the simulation.
+        ''')
+
+    time = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='second',
+        description='''
+        The elapsed simulated physical time since the start of the simulation.
+        ''')
 
 
 class ScfIteration(BaseCalculation):

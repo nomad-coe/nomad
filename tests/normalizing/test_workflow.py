@@ -117,7 +117,3 @@ def test_molecular_dynamics_workflow(workflow_archive):
     assert sec_workflow.calculation_result_ref.m_def.name == 'Calculation'
     assert sec_workflow.molecular_dynamics.finished_normally
     assert sec_workflow.molecular_dynamics.with_trajectory
-    assert sec_workflow.molecular_dynamics.with_thermodynamics
-
-    assert sec_workflow.thermodynamics is not None
-    assert len(sec_workflow.thermodynamics.temperature) == 101

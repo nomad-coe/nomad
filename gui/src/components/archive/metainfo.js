@@ -606,6 +606,9 @@ export function resolveRef(ref, data) {
  */
 export function refPath(ref) {
   try {
+    if (ref.startsWith('#')) {
+      ref = ref.slice(1)
+    }
     const segments = ref.split('/').filter(segment => segment !== '')
     const reducer = (current, segment) => {
       return isNaN(segment) ? `${current}/${segment}` : `${current}:${segment}`

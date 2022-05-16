@@ -31,18 +31,14 @@ import { cloneDeep } from 'lodash'
 
 let archive
 let index
-let props
+let properties
 
 beforeAll(async () => {
-  // We read example archive data from a JSON file
-  [archive, index] = await readArchive('../../../tests/states/archives/dft.json')
-  props = new Set(index?.results
-    ? index.results.properties.available_properties
-    : [])
+  ({archive, index, properties} = await readArchive('../../../tests/states/archives/dft.json'))
 })
 
 test('correctly renders entry with all material information', async () => {
-  render(<MaterialCard index={index} properties={props} archive={archive}/>)
+  render(<MaterialCard index={index} properties={properties} archive={archive}/>)
   expectComposition(index)
   expectSymmetry(index)
   expectLatticeParameters(index)
@@ -52,7 +48,7 @@ test('correctly renders entry with all material information', async () => {
 test('correctly renders material without symmetry information', async () => {
   const indexNew = cloneDeep(index)
   delete indexNew.results.material.symmetry
-  render(<MaterialCard index={indexNew} properties={props} archive={archive}/>)
+  render(<MaterialCard index={indexNew} properties={properties} archive={archive}/>)
   expectComposition(indexNew)
   expectNoSymmetry(indexNew)
   expectLatticeParameters(indexNew)
@@ -64,7 +60,7 @@ test('correctly renders material without lattice information', async () => {
   delete indexNew.results.properties.structures.structure_original.lattice_parameters
   delete indexNew.results.properties.structures.structure_conventional.lattice_parameters
   delete indexNew.results.properties.structures.structure_primitive.lattice_parameters
-  render(<MaterialCard index={indexNew} properties={props} archive={archive}/>)
+  render(<MaterialCard index={indexNew} properties={properties} archive={archive}/>)
   expectComposition(indexNew)
   expectSymmetry(indexNew)
   expectNoLatticeParameters(indexNew)
@@ -74,7 +70,7 @@ test('correctly renders material without lattice information', async () => {
 test('correctly renders material without any structure information', async () => {
   const indexNew = cloneDeep(index)
   delete indexNew.results.properties.structures
-  render(<MaterialCard index={indexNew} properties={props} archive={archive}/>)
+  render(<MaterialCard index={indexNew} properties={properties} archive={archive}/>)
   expectComposition(indexNew)
   expectSymmetry(indexNew)
   expectNoLatticeParameters(indexNew)

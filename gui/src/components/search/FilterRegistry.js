@@ -17,7 +17,7 @@
  */
 import React from 'react'
 import { isNil, isArray } from 'lodash'
-import { setToArray, getDatatype, getSerializer, getDeserializer, getLabel, DType } from '../../utils'
+import { setToArray, getDatatype, getSerializer, getDeserializer, formatLabel, DType } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { Unit } from '../../units'
 import InputList from './input/InputList'
@@ -47,6 +47,7 @@ export const labelElectronic = 'Electronic'
 export const labelVibrational = 'Vibrational'
 export const labelMechanical = 'Mechanical'
 export const labelSpectroscopy = 'Spectroscopy'
+export const labelThermodynamic = 'Thermodynamic'
 export const labelGeometryOptimization = 'Geometry optimization'
 export const labelELN = 'Electronic Lab Notebook'
 export const labelAuthor = 'Author / Origin'
@@ -153,7 +154,7 @@ function saveFilter(name, group, config, parent) {
   data.serializerPretty = getSerializer(data.dtype, true)
   data.dimension = data.unit && new Unit(data.unit).dimension()
   data.deserializer = getDeserializer(data.dtype, data.dimension)
-  data.label = config.label || getLabel(name)
+  data.label = config.label || formatLabel(searchQuantities[name]?.name || name)
   data.nested = searchQuantities[name]?.nested
   data.section = !isNil(data.nested)
   data.repeats = searchQuantities[name]?.repeats
@@ -281,6 +282,7 @@ const termQuantityBool = {
   }
 }
 const termQuantityNonExclusive = {aggs: {terms: {size: 5}}, exclusive: false}
+const termQuantityAll = {aggs: {terms: {size: 5}}, exclusive: false, multiple: true, queryMode: 'all'}
 const noAggQuantity = {}
 const nestedQuantity = {}
 const noQueryQuantity = {guiOnly: true, multiple: false}
@@ -386,7 +388,7 @@ registerFilter(
 registerFilter(
   'results.properties.available_properties',
   labelProperties,
-  {termQuantity, multiple: true, exclusive: false, queryMode: 'all'}
+  termQuantityAll
 )
 registerFilter(
   'results.properties.mechanical.energy_volume_curve',
@@ -404,6 +406,16 @@ registerFilter(
     {name: 'final_energy_difference', ...numberHistogramQuantity, scale: '1/8'},
     {name: 'final_displacement_maximum', ...numberHistogramQuantity, scale: '1/8'},
     {name: 'final_force_maximum', ...numberHistogramQuantity, scale: '1/8'}
+  ]
+)
+registerFilter(
+  'results.properties.thermodynamic.trajectory',
+  labelThermodynamic,
+  nestedQuantity,
+  [
+    {name: 'available_properties', ...termQuantityAll},
+    {name: 'methodology.molecular_dynamics.ensemble_type', ...termQuantity},
+    {name: 'methodology.molecular_dynamics.time_step', ...numberHistogramQuantity}
   ]
 )
 
@@ -452,7 +464,7 @@ registerFilterOptions(
   'electronic_properties',
   labelElectronic,
   'results.properties.available_properties',
-  'Electronic properties',
+  'Electronic Properties',
   'The electronic properties that are present in an entry.',
   {
     'electronic.band_structure_electronic.band_gap': {label: 'Band gap'},
@@ -466,7 +478,7 @@ registerFilterOptions(
   'vibrational_properties',
   labelVibrational,
   'results.properties.available_properties',
-  'Vibrational properties',
+  'Vibrational Properties',
   'The vibrational properties that are present in an entry.',
   {
     dos_phonon: {label: 'Phonon density of states'},
@@ -481,7 +493,7 @@ registerFilterOptions(
   'mechanical_properties',
   labelMechanical,
   'results.properties.available_properties',
-  'Mechanical properties',
+  'Mechanical Properties',
   'The mechanical properties that are present in an entry.',
   {
     bulk_modulus: {label: 'Bulk modulus'},
@@ -495,10 +507,22 @@ registerFilterOptions(
   'spectroscopic_properties',
   labelSpectroscopy,
   'results.properties.available_properties',
-  'Spectroscopic properties',
+  'Spectroscopic Properties',
   'The spectroscopic properties that are present in an entry.',
   {
     eels: {label: 'Electron energy loss spectrum'}
+  }
+)
+
+// Thermodynamical properties: subset of results.properties.available_properties
+registerFilterOptions(
+  'thermodynamic_properties',
+  labelThermodynamic,
+  'results.properties.available_properties',
+  'Thermodynamic Properties',
+  'The thermodynamic properties that are present.',
+  {
+    trajectory: {label: 'Trajectory'}
   }
 )
 

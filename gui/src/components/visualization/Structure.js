@@ -111,6 +111,7 @@ const Structure = React.memo(({
   captureName,
   positionsOnly,
   sizeLimit,
+  bondLimit,
   positionsSubject,
   'data-testid': testID,
   placeHolderStyle,
@@ -119,13 +120,13 @@ const Structure = React.memo(({
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
-  const [showBonds, setShowBonds] = useState(true)
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [showCell, setShowCell] = useState(true)
   const [wrap, setWrap] = useState(materialType === 'bulk')
   const [showPrompt, setShowPrompt] = useState(false)
   const [accepted, setAccepted] = useState(false)
-  const [nAtoms, setNAtoms] = useState(false)
+  const [nAtoms, setNAtoms] = useState()
+  const [showBonds, setShowBonds] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // Variables
@@ -303,7 +304,10 @@ const Structure = React.memo(({
     if (!accepted) {
       const nAtoms = data.positions.length
       setNAtoms(nAtoms)
-      if (nAtoms > 300) {
+      if (nAtoms <= bondLimit) {
+        setShowBonds(true)
+      }
+      if (nAtoms > sizeLimit) {
         setShowPrompt(true)
         return
       }
@@ -316,7 +320,7 @@ const Structure = React.memo(({
     }
 
     loadSystem(data, refViewer)
-  }, [data, positionsOnly, accepted, loadSystem])
+  }, [data, positionsOnly, accepted, loadSystem, sizeLimit, bondLimit])
 
   // Viewer settings
   useEffect(() => {
@@ -508,12 +512,13 @@ Structure.propTypes = {
     PropTypes.object
   ]),
   options: PropTypes.object, // Viewer options
-  materialType: PropTypes.oneOf(['bulk', '2D', '1D', 'molecule / cluster', 'unknown']),
+  materialType: PropTypes.oneOf(['bulk', '2D', '1D', 'molecule / cluster', 'unavailable']),
   structureType: PropTypes.oneOf(['original', 'conventional', 'primitive']),
   m_path: PropTypes.string, // Path of the structure data in the metainfo
   captureName: PropTypes.string, // Name of the file that the user can download
   positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
   sizeLimit: PropTypes.number, // Maximum system size before a prompt is shown
+  bondLimit: PropTypes.number, // The size at which bonds are turned off
   placeHolderStyle: PropTypes.string, // The CSS class to apply for the Placeholder component.
   noDataStyle: PropTypes.string, // The CSS class to apply for the NoData component.
   /**
@@ -526,7 +531,8 @@ Structure.propTypes = {
 }
 Structure.defaultProps = {
   captureName: 'structure',
-  sizeLimit: 300
+  sizeLimit: 500,
+  bondLimit: 50
 }
 
 export default withWebGLErrorHandler(withErrorHandler(Structure, 'Could not load structure.'))

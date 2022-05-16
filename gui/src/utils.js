@@ -18,7 +18,7 @@
 import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, startCase } from 'lodash'
 import { Quantity } from './units'
 import { format } from 'date-fns'
-import { dateFormat } from './config'
+import { dateFormat, guiBase } from './config'
 import { scale as chromaScale } from 'chroma-js'
 import searchQuantities from './searchQuantities.json'
 
@@ -689,12 +689,13 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
 }
 
 /**
- * Used to create a label from the metainfo name.
+ * Used to create a formatted label for a metainfo name or value. Replaces
+ * underscores with whitespace and capitalizes the first letters.
+ *
  * @param {str} name Metainfo name
  * @returns A formatted label constructed from the metainfo name.
  */
-export function getLabel(name) {
-  let label = searchQuantities[name]?.name || name
+export function formatLabel(label) {
   label = label.replace(/_/g, ' ')
   label = startCase(label)
   return label
@@ -722,4 +723,15 @@ export function stripIndent(code) {
   }
   const indent = lines[0].length - lines[0].trimStart().length
   return lines.map(line => line.substring(indent)).join('\n')
+}
+
+/**
+ * Used to imperatively get a path that works for react-router and points to the
+ * currently displayed page. The useLocation hook should be preferred, but
+ * sometimes getting the path imperatively can prevent unnecessary renders.
+ *
+ * @returns A formatted label constructed from the metainfo name.
+ */
+export function getLocation() {
+  return `${window.location.pathname.slice(guiBase.length)}`
 }

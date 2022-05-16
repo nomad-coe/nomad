@@ -19,17 +19,16 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
 import { useUnits } from '../../../units'
+import { getLocation } from '../../../utils'
 import { refPath, resolveRef } from '../../archive/metainfo'
 import MechanicalProperties from '../../visualization/MechanicalProperties'
-import { useLocation } from 'react-router-dom'
 
 /**
  * Card displaying mechanical properties.
  */
 const MechanicalPropertiesCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
-  const {pathname} = useLocation()
-  const archiveUrl = `${pathname}/archive`
+  const urlPrefix = `${getLocation()}/data`
 
   // Find out which properties are present
   const hasEVCurves = properties.has('energy_volume_curve')
@@ -46,7 +45,7 @@ const MechanicalPropertiesCard = React.memo(({index, properties, archive}) => {
   if (hasEVCurves && archive) {
     const evCurveData = archive?.results?.properties?.mechanical?.energy_volume_curve
     evCurves = {
-      m_path: `${archiveUrl}/${refPath(evCurveData[0].volumes.split('/').slice(0, -1).join('/'))}`,
+      m_path: `${urlPrefix}/${refPath(evCurveData[0].volumes.split('/').slice(0, -1).join('/'))}`,
       data: evCurveData.map(ev => ({
         volumes: resolveRef(ev.volumes, archive),
         energies: resolveRef(ev.energies_raw || ev.energies_fit, archive),

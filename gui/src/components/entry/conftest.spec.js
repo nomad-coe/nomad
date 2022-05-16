@@ -18,6 +18,7 @@
  */
 
 import { expectQuantity, screen } from '../conftest.spec'
+import { expectPlotButtons } from '../visualization/conftest.spec'
 import { within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
@@ -82,4 +83,12 @@ export function expectNoStructure(index, root = screen) {
   const select = root.getByText('Structure')
   const parent = select.parentElement
   expect(within(parent).getByText('no data')).toBeInTheDocument()
+}
+
+export function expectTrajectory(index, root = screen) {
+  expect(root.queryByText('Trajectory')).toBeInTheDocument()
+  expectQuantity('results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step', '1 fs')
+  expectQuantity('results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type', 'NVT')
+  const trajectoryPlot = screen.getByTestId('trajectory')
+  expectPlotButtons(trajectoryPlot)
 }

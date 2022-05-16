@@ -24,6 +24,7 @@ import MaterialCard from '../entry/properties/MaterialCard'
 import NexusCard from './properties/NexusCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
 import MechanicalPropertiesCard from '../entry/properties/MechanicalPropertiesCard'
+import ThermodynamicPropertiesCard from '../entry/properties/ThermodynamicPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 import SpectroscopyCard from './properties/SpectroscopyCard'
 import { MethodMetadata } from './EntryDetails'
@@ -114,6 +115,7 @@ const OverviewView = React.memo((props) => {
             mechanical: 'include-resolved',
             spectroscopy: 'include-resolved',
             vibrational: 'include-resolved',
+            thermodynamic: 'include-resolved',
             // For geometry optimizations we require only the energies.
             // Trajectory, optimized structure, etc. are unnecessary.
             geometry_optimization: {
@@ -226,6 +228,7 @@ const OverviewView = React.memo((props) => {
         <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
         <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
         <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>
+        <ThermodynamicPropertiesCard index={index} archive={archive} properties={properties}/>
         <GeometryOptimizationCard index={index} archive={archive} properties={properties}/>
         <SpectroscopyCard index={index} archive={archive} properties={properties}/>
       </Grid>

@@ -35,6 +35,7 @@ import FilterSubMenuEELS from './FilterSubMenuEELS'
 import FilterSubMenuElectronic from './FilterSubMenuElectronic'
 import FilterSubMenuVibrational from './FilterSubMenuVibrational'
 import FilterSubMenuMechanical from './FilterSubMenuMechanical'
+import FilterSubMenuThermodynamic from './FilterSubMenuThermodynamic'
 import FilterSubMenuSpectroscopy from './FilterSubMenuSpectroscopy.js'
 import FilterSubMenuELN from './FilterSubMenuELN.js'
 import FilterSubMenuAuthor from './FilterSubMenuAuthor'
@@ -62,6 +63,7 @@ import {
   labelIDs,
   labelAccess,
   labelSpectroscopy,
+  labelThermodynamic,
   labelArchive,
   labelGeometryOptimization
 } from '../FilterRegistry'
@@ -119,6 +121,7 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelVibrational} depth={1}/>
       <FilterMenuItem value={labelMechanical} depth={1}/>
       <FilterMenuItem value={labelSpectroscopy} depth={1}/>
+      <FilterMenuItem value={labelThermodynamic} depth={1}/>
       <FilterMenuItem value={labelGeometryOptimization} depth={1}/>
       <FilterMenuItem value={labelELN} depth={0}/>
       <FilterMenuItem value={labelAuthor} depth={0}/>
@@ -150,6 +153,7 @@ const FilterMainMenu = React.memo(({
         <FilterSubMenuElectronic value={labelElectronic}/>
         <FilterSubMenuVibrational value={labelVibrational}/>
         <FilterSubMenuMechanical value={labelMechanical}/>
+        <FilterSubMenuThermodynamic value={labelThermodynamic}/>
         <FilterSubMenuSpectroscopy value={labelSpectroscopy}/>
         <FilterSubMenuGeometryOptimization value={labelGeometryOptimization}/>
         <FilterSubMenuELN value={labelELN}/>

@@ -35,7 +35,7 @@ import {
 import { DOI } from './dataset/DOI'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-import { get, isNil } from 'lodash'
+import { get, isNil, isString, isNumber } from 'lodash'
 import searchQuantities from '../searchQuantities'
 import Placeholder from './visualization/Placeholder'
 import NoData from './visualization/NoData'
@@ -645,4 +645,61 @@ SectionTable.propTypes = {
   classes: PropTypes.object,
   units: PropTypes.object,
   'data-testid': PropTypes.string
+}
+
+/**
+ * Recursively displays all of the quantities that are present within the given
+ * section.
+ */
+export const SectionTableAutomatic = React.memo(({data, prefix, columns}) => {
+  // Figure out a flat list of quantities to display
+  const quantities = []
+  const addMethodQuantities = (obj, parentKey) => {
+    const children = {}
+    Object.keys(obj).forEach(key => {
+      const value = obj[key]
+      if (Array.isArray(value) || isString(value) || isNumber(value)) {
+        const metainfoPath = `${prefix}.${parentKey === '' ? '' : `${parentKey}.`}${key}`
+        quantities.push({
+          label: key.replace(/_/g, ' '),
+          quantity: metainfoPath,
+          value: value
+        })
+      } else if (value instanceof Object) {
+        children[key] = value
+      }
+    })
+    Object.keys(children).forEach(key => addMethodQuantities(children[key], `${parentKey === '' ? '' : `${parentKey}.`}${key}`))
+  }
+  addMethodQuantities(data, '')
+
+  // Create rows that each have a fixed number of items
+  const rows = []
+  quantities.forEach((quantity, index) => {
+    let row
+    if (index % columns === 0) {
+      rows.push([])
+    }
+    row = rows[Math.floor(index / columns)]
+    row.push(quantity)
+  })
+
+  return <QuantityTable>
+    {rows.map((row, i) => <QuantityRow key={i}>
+      {row.map((cell) => <QuantityCell
+        key={cell.label}
+        {...cell}
+      />)}
+    </QuantityRow>)}
+  </QuantityTable>
+})
+
+SectionTableAutomatic.propTypes = {
+  data: PropTypes.object,
+  prefix: PropTypes.string, // Possible prefix that is needed to resolve the quantity metainfo
+  columns: PropTypes.number // The number of columns to display
+}
+
+SectionTableAutomatic.defaultProps = {
+  columns: 3
 }

@@ -47,6 +47,9 @@
       "calculation": [
         {
           "system_ref": "/run/0/system/0",
+          "volume": 0,
+          "pressure": 0,
+          "temperature": 0,
           "dos_electronic": [
             {
               "energies": [
@@ -265,19 +268,30 @@
         "/run/0/calculation/0"
       ],
       "elastic": {}
+    },
+    {
+      "type": "molecular_dynamics",
+      "calculation_result_ref": "/run/0/calculation/0",
+      "calculations_ref": [
+        "/run/0/calculation/0"
+      ],
+      "molecular_dynamics": {
+        "ensemble_type": "NVT",
+        "time_step": 1e-15
+      }
     }
   ],
   "metadata": {
     "upload_id": "dft_upload",
-    "upload_create_time": "2022-04-06T10:35:45.214462",
+    "upload_create_time": "2022-05-12T09:26:39.346776",
     "entry_id": "dft_bulk",
     "calc_id": "dft_bulk",
     "entry_hash": "dummy_hash_dft_bulk",
-    "entry_create_time": "2022-04-06T10:35:45.218462",
+    "entry_create_time": "2022-05-12T09:26:39.350776",
     "parser_name": "parsers/vasp",
     "mainfile": "vasp.xml",
     "published": true,
-    "publish_time": "2022-04-06T10:35:45.217462",
+    "publish_time": "2022-05-12T09:26:39.349776",
     "with_embargo": false,
     "embargo_length": 0,
     "license": "CC BY 4.0",
@@ -353,7 +367,8 @@
         "energy_free_helmholtz",
         "bulk_modulus",
         "shear_modulus",
-        "energy_volume_curve"
+        "energy_volume_curve",
+        "trajectory"
       ],
       "structures": {
         "structure_original": {
@@ -461,6 +476,47 @@
           {
             "type": "voigt_reuss_hill_average",
             "value": 1
+          }
+        ]
+      },
+      "thermodynamic": {
+        "trajectory": [
+          {
+            "available_properties": [
+              "pressure",
+              "temperature",
+              "volume"
+            ],
+            "methodology": {
+              "molecular_dynamics": {
+                "time_step": 1e-15,
+                "ensemble_type": "NVT"
+              }
+            },
+            "temperature": {
+              "time": [
+                0
+              ],
+              "value": [
+                0
+              ]
+            },
+            "pressure": {
+              "time": [
+                0
+              ],
+              "value": [
+                0
+              ]
+            },
+            "volume": {
+              "time": [
+                0
+              ],
+              "value": [
+                0
+              ]
+            }
           }
         ]
       }

@@ -39,6 +39,7 @@ from nomad.datamodel.metainfo.workflow import (
     Workflow,
     GeometryOptimization,
     Elastic,
+    MolecularDynamics,
     EquationOfState,
     EOSFit
 )
@@ -566,8 +567,37 @@ def geometry_optimization() -> EntryArchive:
 def molecular_dynamics() -> EntryArchive:
     """Molecular dynamics calculation."""
     template = get_template_dft()
+    run = template.run[0]
+
+    # Create calculations
+    n_steps = 10
+    calcs = []
+    for step in range(n_steps):
+        system = System()
+        run.m_add_sub_section(Run.system, system)
+        calc = Calculation()
+        calc.system_ref = system
+        calc.time = step
+        calc.step = step
+        calc.volume = step
+        calc.pressure = step
+        calc.temperature = step
+        calc.energy = Energy(
+            potential=EnergyEntry(value=step),
+        )
+        calcs.append(calc)
+        run.m_add_sub_section(Run.calculation, calc)
+
+    # Create workflow
     workflow = template.m_create(Workflow)
     workflow.type = "molecular_dynamics"
+    workflow.calculation_result_ref = calcs[-1]
+    workflow.calculations_ref = calcs
+    workflow.molecular_dynamics = MolecularDynamics(
+        time_step=0.5 * ureg('fs'),
+        ensemble_type='NVT'
+    )
+
     return run_normalize(template)
 
 
