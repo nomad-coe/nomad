@@ -24,6 +24,7 @@ import os.path
 import json
 
 from nomad import utils, config
+from nomad.archive.required import _parse_path
 from nomad.metainfo import MSection, Quantity, Reference, SubSection, QuantityReference
 from nomad.datamodel import EntryArchive
 from nomad.archive.storage import TOCPacker, _decode, _entries_per_block
@@ -32,6 +33,7 @@ from nomad.archive import (
     write_partial_archive_to_mongo, read_partial_archive_from_mongo, read_partial_archives_from_mongo,
     create_partial_archive, compute_required_with_referenced, RequiredReader,
     RequiredValidationError)
+from nomad.utils.exampledata import ExampleData
 
 
 def create_example_uuid(index: int = 0):
@@ -283,92 +285,145 @@ def test_read_springer():
         springer['doesnotexist']
 
 
+@pytest.mark.parametrize(
+    'path, result', [
+        pytest.param(
+            '/entries/sample_entry/archive#/seg01/1', (None, None, 'sample_entry', 'archive', '/seg01/1'),
+            id='local-same-upload-01'),
+        pytest.param(
+            '../entries/sample_entry/archive#/seg01/1', (None, None, 'sample_entry', 'archive', '/seg01/1'),
+            id='local-same-upload-02'),
+        pytest.param(
+            '/uploads/sample_upload/archive/sample_entry#/seg1/22',
+            (None, 'sample_upload', 'sample_entry', 'archive', '/seg1/22'),
+            id='local-another-upload-01'),
+        pytest.param(
+            '/upload/archive/sample_entry#/seg1/22', (None, None, 'sample_entry', 'archive', '/seg1/22'),
+            id='local-another-upload-02'),
+        pytest.param(
+            '/upload/archive/mainfile/mainfile_id#/seg1/22',
+            (None, None, utils.hash(None, 'mainfile_id'), 'archive', '/seg1/22'),
+            id='local-another-upload-03'),
+        pytest.param(
+            '../uploads/sample_upload/archive/sample_entry#/seg1/22',
+            (None, 'sample_upload', 'sample_entry', 'archive', '/seg1/22'),
+            id='local-another-upload-04'),
+        pytest.param(
+            'https://myoasis.de/uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
+            ('https://myoasis.de', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
+            id='remote-upload-01'),
+        pytest.param(
+            './uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
+            ('.', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'), id='remote-upload-02'),
+        pytest.param(
+            './uploads/sample_upload/archives/sample_entry#/run/0/calculation/1',
+            None, id='remote-upload-03'),
+        pytest.param(
+            'localhost/uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
+            ('localhost', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
+            id='remote-upload-04'),
+        pytest.param(
+            'http://127.0.0.1/uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
+            ('http://127.0.0.1', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
+            id='remote-upload-05'),
+    ])
+def test_parsing_reference(path, result):
+    path_parts = _parse_path(path)
+    assert path_parts == result
+
+
 @pytest.fixture(scope='session')
-def archive():
-    archive = EntryArchive.m_from_dict(json.loads('''
-        {
-            "metadata": {
-                "entry_id": "test_id"
-            },
-            "results": {
-                "properties": {
-                    "electronic": {
-                        "dos_electronic": {
-                            "energies": "/run/0/calculation/1/dos_electronic/0/energies"
-                        }
-                    }
+def json_dict():
+    return json.loads(
+        '''
+{
+    "metadata": {
+        "entry_id": "test_id"
+    },
+    "results": {
+        "properties": {
+            "electronic": {
+                "dos_electronic": {
+                    "energies": "/run/0/calculation/1/dos_electronic/0/energies"
                 }
-            },
-            "run": [
+            }
+        }
+    },
+    "run": [
+        {
+            "system": [
                 {
-                    "system": [
+                    "atoms": {
+                        "labels": [
+                            "He"
+                        ]
+                    },
+                    "symmetry": [
                         {
-                            "atoms": {
-                                "labels": [
-                                    "He"
-                                ]
-                            },
-                            "symmetry": [
-                                {
-                                    "space_group_number": 221
-                                }
-                            ]
-                        },
-                        {
-                            "atoms": {
-                                "labels": [
-                                    "H"
-                                ]
-                            },
-                            "symmetry": [
-                                {
-                                    "space_group_number": 221
-                                }
-                            ]
+                            "space_group_number": 221
                         }
-                    ],
-                    "calculation": [
+                    ]
+                },
+                {
+                    "atoms": {
+                        "labels": [
+                            "H"
+                        ]
+                    },
+                    "symmetry": [
                         {
-                            "system_ref": "/run/0/system/1",
-                            "energy": {
-                                "total": {
-                                    "value": 0.1
-                                }
-                            }
-                        },
-                        {
-                            "system_ref": "/run/0/system/1",
-                            "energy": {
-                                "total": {
-                                    "value": 0.2
-                                }
-                            },
-                            "dos_electronic": [
-                                {
-                                    "energies": [0.0, 0.1]
-                                }
-                            ],
-                            "eigenvalues": [
-                            ]
-                        },
-                        {
-                            "system_ref": "/run/0/system/1",
-                            "energy": {
-                                "total": {
-                                    "value": 0.1
-                                }
-                            }
+                            "space_group_number": 221
                         }
                     ]
                 }
             ],
-            "workflow": [
+            "calculation": [
                 {
-                    "calculation_result_ref": "/run/0/calculation/1"
+                    "system_ref": "/run/0/system/1",
+                    "energy": {
+                        "total": {
+                            "value": 0.1
+                        }
+                    }
+                },
+                {
+                    "system_ref": "/run/0/system/1",
+                    "energy": {
+                        "total": {
+                            "value": 0.2
+                        }
+                    },
+                    "dos_electronic": [
+                        {
+                            "energies": [0.0, 0.1]
+                        }
+                    ],
+                    "eigenvalues": [
+                    ]
+                },
+                {
+                    "system_ref": "/run/0/system/1",
+                    "energy": {
+                        "total": {
+                            "value": 0.1
+                        }
+                    }
                 }
             ]
         }
-        '''))
+    ],
+    "workflow": [
+        {
+            "calculation_result_ref": "/run/0/calculation/1"
+        }
+    ]
+}
+''')
+
+
+@pytest.fixture(scope='session')
+def archive(json_dict):
+    archive = EntryArchive.m_from_dict(json_dict)
     assert archive.run is not None
     assert len(archive.run) == 1
     return archive
@@ -440,9 +495,116 @@ def test_required_reader(archive, required, error, resolve_inplace):
         return
 
     assert error is None
-    results = required_reader.read(archive_reader, 'entry_id')
+    results = required_reader.read(archive_reader, 'entry_id', None)
 
     assert_required_results(results, required_reader.required, archive)
+
+
+@pytest.fixture(scope='module')
+def example_data_with_reference(elastic_module, raw_files_module, mongo_module, test_user, json_dict):
+    '''
+    Provides a couple of entries with references.
+
+    Only used in test_required_reader_with_remote_reference.
+    '''
+    data = ExampleData(main_author=test_user)
+
+    data.create_upload(upload_id='id_published_with_ref', upload_name='name_published', published=True)
+
+    del json_dict['results']
+
+    ref_list = [
+        '/run/0/calculation/1',  # plain direct reference
+        '#/run/0/calculation/1',  # new-style reference
+        '../entries/id_01/archive#/workflow/0/calculation_result_ref',  # reference to another archive
+        '../entries/id_05/archive#/workflow/0/calculation_result_ref',  # circular reference
+        '../entries/id_04/archive#/workflow/0/calculation_result_ref',  # circular reference
+        'https://another.domain/entries/id_03/archive#/workflow/0/calculation_result_ref'  # remote reference
+    ]
+
+    for index, ref in enumerate(ref_list):
+        json_dict['workflow'][0]['calculation_result_ref'] = ref
+        data.create_entry(
+            upload_id='id_published_with_ref',
+            entry_id=f'id_{index + 1:02d}',
+            entry_archive=EntryArchive.m_from_dict(json_dict))
+
+    data.save(with_files=True, with_es=True, with_mongo=True)
+    yield data
+    data.delete()
+
+
+@pytest.fixture(scope='function')
+def remote_reference_required():
+    '''
+    Only used in test_required_reader_with_remote_reference.
+    '''
+    return {'workflow': 'include-resolved'}
+
+
+@pytest.mark.parametrize(
+    'resolve_inplace', [
+        pytest.param(True, id='inplace'),
+        pytest.param(False, id='root'),
+    ])
+@pytest.mark.parametrize(
+    'entry_id, inplace_result', [
+        pytest.param(
+            'id_01', {
+                'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
+                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]},
+            id='plain-direct-reference'),
+        pytest.param(
+            'id_02', {
+                'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
+                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]},
+            id='new-style-reference'),
+        pytest.param(
+            'id_03', {
+                'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
+                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]},
+            id='reference-to-another-archive'),
+        pytest.param(
+            # circular reference detected thus untouched
+            'id_04', '../entries/id_04/archive#/workflow/0/calculation_result_ref',
+            id='circular-reference-1'),
+        pytest.param(
+            # circular reference detected thus untouched
+            'id_05', '../entries/id_05/archive#/workflow/0/calculation_result_ref',
+            id='circular-reference-2'),
+        pytest.param(
+            # remote reference detected thus untouched
+            'id_06', 'https://another.domain/entries/id_03/archive#/workflow/0/calculation_result_ref',
+            id='remote-reference'),
+        pytest.param(
+            'id_07', '../entries/id_07/archive#/workflow/0/calculation_result_ref',
+            id='does-not-exist'),
+    ])
+def test_required_reader_with_remote_reference(
+        json_dict, remote_reference_required, resolve_inplace,
+        example_data_with_reference, test_user, entry_id, inplace_result):
+    archive = {'workflow': json_dict['workflow']}
+
+    archive['workflow'][0][
+        'calculation_result_ref'] = f'../entries/{entry_id}/archive#/workflow/0/calculation_result_ref'
+
+    f = BytesIO()
+    write_archive(f, 1, [('entry_id', archive)], entry_toc_depth=2)
+    packed_archive = f.getbuffer()
+
+    archive_reader = ArchiveReader(BytesIO(packed_archive))
+    required_reader = RequiredReader(
+        remote_reference_required, resolve_inplace=resolve_inplace, user=test_user)
+    results = required_reader.read(archive_reader, 'entry_id', None)
+    ref_result = results['workflow'][0]['calculation_result_ref']
+
+    if resolve_inplace or entry_id == 'id_07':
+        assert ref_result == inplace_result
+    else:
+        # if not resolved inplace, the target archive is copied to the current archive,
+        # so the reference is overwritten by the following pattern,
+        # whether the target destination is another reference is not controlled by this reference.
+        assert ref_result == f'/{entry_id}/workflow/0/calculation_result_ref'
 
 
 def assert_required_results(

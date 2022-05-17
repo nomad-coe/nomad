@@ -16,12 +16,17 @@
 # limitations under the License.
 #
 
+import dataclasses
 import functools
+import re
 from typing import cast, Union, Dict, Tuple, Any
+
+from cachetools.func import lru_cache
+from fastapi import HTTPException
 
 from nomad import utils
 from nomad.metainfo import Definition, Section, Quantity, SubSection, Reference, QuantityReference
-from .storage import ArchiveReader, ArchiveList, ArchiveError
+from .storage import ArchiveReader, ArchiveList, ArchiveError, ArchiveDict
 from .query import ArchiveQueryError, _to_son, _query_archive_key_pattern, _extract_key_and_index, \
     _extract_child
 
@@ -54,6 +59,82 @@ def _setdefault(target: Union[dict, list], key, value_type: type):
         target[key] = value_type()
 
     return target[key]
+
+
+# ../entries/<entry_id>/archive#<path>
+# /entries/<entry_id>/archive#<path>
+_regex_form_a = re.compile(r'^(?:\.\.)?/entries/([^?]+)/(archive|raw)#([^?]+?)$')
+
+# ../upload/<upload_id>/archive/<entry_id>#<path>
+# /uploads/<upload_id>/archive/<entry_id>#<path>
+# <installation>/uploads/<upload_id>/archive/<entry_id>#<path>
+_regex_form_b = re.compile(r'^([^?]+?)?/uploads?/(\w*)/?(archive|raw)/([^?]+?)#([^?]+?)$')
+
+
+def _parse_path(url: str, upload_id: str = None):
+    '''
+    Parse a reference path.
+
+    The upload_id of current upload is taken as the input to account for that the relative reference has no
+    information about the upload_id, and it may also contain no entry_id. Has to know the upload_id when only
+    path to mainfile is given.
+
+    On exit:
+    Returns None if the path is invalid. Otherwise, returns a tuple of: (installation, entry_id, kind, path)
+
+    If installation is None, indicating it is a local path.
+    '''
+
+    url_match = _regex_form_a.match(url)
+    if url_match:
+        entry_id = url_match.group(1)
+        kind = url_match.group(2)  # archive or raw
+        path = url_match.group(3)
+
+        return None, upload_id, entry_id, kind, path
+
+    # try another form
+    url_match = _regex_form_b.match(url)
+    if not url_match:
+        # not valid
+        return None
+
+    installation = url_match.group(1)
+    if installation == '':
+        installation = None
+    elif installation == '..':
+        installation = None
+
+    # if empty, it is a local reference to the same upload, use the current upload_id
+    other_upload_id = upload_id if url_match.group(2) == '' else url_match.group(2)
+
+    kind = url_match.group(3)  # archive or raw
+    entry_id = url_match.group(4)
+    path = url_match.group(5)
+
+    if entry_id.startswith('mainfile/'):
+        entry_id = utils.hash(other_upload_id, entry_id.replace('mainfile/', ''))
+    elif '/' in entry_id:  # should not contain '/' in entry_id
+        return None
+
+    return installation, other_upload_id, entry_id, kind, path
+
+
+@dataclasses.dataclass
+class RequiredReferencedArchive:
+    '''
+    Hold necessary information for each query so that there is no need to
+    pass them around as separate arguments.
+
+    The same RequiredReader object will be reused for different archives,
+    so it is chosen to pass archive explicitly as a method argument instead of
+    class member. Otherwise, a new RequiredReader object needs to be created.
+    '''
+    upload_id: str = None
+    path_prefix: str = None
+    result_root: dict = None
+    archive_root: ArchiveDict = None
+    visited_paths: set = dataclasses.field(default_factory=lambda: set())
 
 
 class RequiredReader:
@@ -95,24 +176,22 @@ class RequiredReader:
 
     def __init__(
             self, required: Union[dict, str], root_section_def: Section = None,
-            resolve_inplace: bool = False):
+            resolve_inplace: bool = False, user=None):
         if root_section_def is None:
             from nomad import datamodel
             self.root_section_def = datamodel.EntryArchive.m_def
         else:
             self.root_section_def = root_section_def
 
-        # noinspection PyTypeChecker
-        self._result_root: dict = None
-        # noinspection PyTypeChecker
-        self._archive_root: dict = None  # it is actually an ArchiveReader, but we use it as dict
-
         self.resolve_inplace = resolve_inplace
         self.required = self.validate(required, is_root=True)
 
+        # store user information that will be used to retrieve references using the same authentication
+        self.user = user
+
     def validate(
             self, required: Union[str, dict], definition: Definition = None,
-            loc: list = None, is_root=False) -> dict:
+            loc: list = None, is_root: bool = False) -> dict:
         '''
         Validates the required specification of this instance. It will replace all
         string directives with dicts. Those will have keys `_def` and `_directive`. It
@@ -187,25 +266,24 @@ class RequiredReader:
 
         return result
 
-    def read(self, archive_reader: ArchiveReader, entry_id: str) -> dict:
+    def read(self, archive_reader: ArchiveReader, entry_id: str, upload_id: str) -> dict:
         '''
         Reads the archive of the given entry id from the given archive reader and applies
         the instance's requirement specification.
         '''
-        assert self._result_root is None and self._archive_root is None, \
-            'instance cannot be used concurrently for multiple reads at the same time'
 
-        self._archive_root = archive_reader[utils.adjust_uuid_size(entry_id)]
-        result: dict = {}
-        self._result_root = result
-        result.update(**cast(dict, self._apply_required(self.required, self._archive_root)))
+        archive_root = archive_reader[utils.adjust_uuid_size(entry_id)]
+        result_root: dict = {}
 
-        self._archive_root = None
-        self._result_root = None
+        dataset = RequiredReferencedArchive(upload_id, '', result_root, archive_root)
 
-        return result
+        result = self._apply_required(self.required, archive_root, dataset)
+        result_root.update(**cast(dict, result))
 
-    def _resolve_refs(self, archive: dict, definition: Definition) -> dict:
+        return result_root
+
+    def _resolve_refs(
+            self, definition: Definition, archive: dict, dataset: RequiredReferencedArchive) -> dict:
         ''' Resolves all references in archive. '''
         if isinstance(definition, Quantity):
             # it's a quantity ref, the archive is already resolved
@@ -219,18 +297,17 @@ class RequiredReader:
             prop_def = section_def.all_properties[prop]
             if isinstance(prop_def, SubSection):
                 def handle_item(v):
-                    return self._resolve_refs(v, prop_def.sub_section.m_resolved())
+                    return self._resolve_refs(prop_def.sub_section.m_resolved(), v, dataset)
             elif isinstance(prop_def.type, Reference):
                 if isinstance(prop_def.type, QuantityReference):
                     target_def = prop_def.type.target_quantity_def.m_resolved()
                 else:
                     target_def = prop_def.type.target_section_def.m_resolved()
 
-                required = dict(
-                    _directive='include-resolved', _def=target_def, _ref=prop_def.type)
+                required = dict(_directive='include-resolved', _def=target_def, _ref=prop_def.type)
 
                 def handle_item(v):
-                    return self._resolve_ref(required, v)
+                    return self._resolve_ref(required, v, dataset)
             else:
                 result[prop] = value.to_list() if isinstance(value, ArchiveList) else value
                 continue
@@ -240,18 +317,73 @@ class RequiredReader:
 
         return result
 
-    def _resolve_ref(self, required: dict, path: str) -> Union[dict, str]:
+    def _resolve_ref(self, required: dict, path: str, dataset: RequiredReferencedArchive) -> Union[dict, str]:
         # The archive item is a reference, the required is still a dict, the references
         # This is a simplified version of the metainfo implementation (m_resolve).
         # It implements the same semantics, but does not apply checks.
         # TODO the metainfo should also provide this implementation
 
-        # resolve to archive_item
-        if not path.startswith('/'):
-            # TODO support custom reference resolution, e.g. user_id based
+        # check if local reference first so that it does not break backward compatibility
+        if not path.startswith('/entries') and not path.startswith('/uploads'):
+            if path.startswith('/'):
+                # legacy version in the same entry
+                return self._resolve_ref_local(required, path, dataset)
+
+            if path.startswith('#/'):
+                # new version in the same entry
+                return self._resolve_ref_local(required, path[1:], dataset)
+
+        # it appears to be a local path may or may not be the same archive
+        url_parts = _parse_path(path, dataset.upload_id)
+
+        # cannot identify the path, return the path
+        if url_parts is None:
             return path
 
-        resolved = self._archive_root
+        installation, upload_id, entry_id, kind, fragment = url_parts
+
+        if installation is None:
+            # it is a local archive
+            # check circular reference
+            new_path = entry_id + fragment
+            # circular reference, does not handle
+            if new_path in dataset.visited_paths:
+                return path
+
+            other_archive = self._retrieve_archive(kind, entry_id, upload_id)
+            # fail to parse the archive, the archive may not exist, return the plain path
+            if other_archive is None:
+                return path
+
+            other_dataset = RequiredReferencedArchive(
+                upload_id=upload_id, path_prefix=f'{dataset.path_prefix}/{entry_id}',
+                visited_paths=dataset.visited_paths.copy())
+
+            # add the path to the visited paths
+            other_dataset.visited_paths.add(new_path)
+
+            # if not resolved inplace
+            # need to create a new path in the result to make sure data does not overlap
+            other_dataset.result_root = _setdefault(
+                dataset.result_root, entry_id, dict) if not self.resolve_inplace else dataset.result_root
+
+            other_dataset.archive_root = other_archive
+
+            # need to resolve it again to get relative position correctly
+            return self._resolve_ref_local(required, fragment, other_dataset)
+
+        # it appears to be a remote reference, won't try to resolve it
+        if self.resolve_inplace:
+            raise ArchiveQueryError(f'resolvable reference to remote archive not implemented: {path}')
+
+        # simply return the intact path if not required to resolve in-place
+        return path
+
+    def _resolve_ref_local(self, required: dict, path: str, dataset: RequiredReferencedArchive):
+        '''
+        On enter, path must be relative to the archive root.
+        '''
+        resolved = dataset.archive_root
         path_stack = path.strip('/').split('/')
 
         try:
@@ -264,14 +396,14 @@ class RequiredReader:
         if isinstance(required['_def'], Quantity):
             resolved_result = _to_son(resolved)
         else:
-            resolved_result = self._apply_required(required, resolved)
+            resolved_result = self._apply_required(required, resolved, dataset)  # type: ignore
 
         # return or add to root depending on self.resolve_inplace
         if self.resolve_inplace:
             return resolved_result
 
         path_stack.reverse()
-        target_container: Union[dict, list] = self._result_root
+        target_container: Union[dict, list] = dataset.result_root
         # noinspection PyTypeChecker
         prop_or_index: Union[str, int] = None
         while len(path_stack) > 0:
@@ -287,19 +419,22 @@ class RequiredReader:
                     target_container.extend([None] * size_diff)  # type: ignore
 
         target_container[prop_or_index] = resolved_result  # type: ignore
-        return path
 
-    def _apply_required(self, required: dict, archive_item: Union[dict, str]) -> Union[Dict, str]:
+        return dataset.path_prefix + path
+
+    def _apply_required(
+            self, required: dict, archive_item: Union[dict, str],
+            dataset: RequiredReferencedArchive) -> Union[Dict, str]:
         if archive_item is None:
-            return None
+            return None  # type: ignore
 
         directive = required.get('_directive')
         if directive is not None:
             if directive == 'include-resolved':
                 if isinstance(archive_item, str):
-                    return self._resolve_ref(required, archive_item)
+                    return self._resolve_ref(required, archive_item, dataset)
 
-                return self._resolve_refs(archive_item, required['_def'])
+                return self._resolve_refs(required['_def'], archive_item, dataset)
 
             if directive in ['*', 'include']:
                 return _to_son(archive_item)
@@ -307,7 +442,7 @@ class RequiredReader:
             raise ArchiveQueryError(f'unknown directive {required}')
 
         if isinstance(archive_item, str):
-            return self._resolve_ref(required, archive_item)
+            return self._resolve_ref(required, archive_item, dataset)
 
         result: dict = {}
         for key, val in required.items():
@@ -320,10 +455,49 @@ class RequiredReader:
                 archive_child = _extract_child(archive_item, prop, index)
 
                 if isinstance(archive_child, (ArchiveList, list)):
-                    result[prop] = [self._apply_required(val, item) for item in archive_child]
+                    result[prop] = [self._apply_required(val, item, dataset) for item in archive_child]
                 else:
-                    result[prop] = self._apply_required(val, archive_child)
+                    result[prop] = self._apply_required(val, archive_child, dataset)
             except (KeyError, IndexError):
                 continue
 
         return result
+
+    @lru_cache(maxsize=32)
+    def _retrieve_archive(self, kind: str, id_or_path: str, upload_id: str):
+        '''
+        Retrieves the archive from the server using the stored user credentials.
+
+        The entry_id based API is used.
+
+        The upload_id is only used when the path to mainfile is given to fetch the corresponding entry_id.
+
+        Returns:
+            dict: The archive as a dict.
+            None: The archive could not be found.
+        '''
+
+        if kind == 'raw':
+            # it is a path to raw file
+            # get the corresponding entry id
+            from nomad.processing import Entry
+            entry: Entry = Entry.objects(upload_id=upload_id, mainfile=id_or_path).first()
+            if not entry:
+                # cannot find the entry, None will be identified in the caller
+                return None
+
+            entry_id = entry.entry_id
+        else:
+            # it is an entry id
+            entry_id = id_or_path
+
+        # do not rely on upload_id, as have to retrieve the archive via API due to user credentials
+        from nomad.app.v1.routers.entries import answer_entry_archive_request
+        # it should retrieve the minimum information from server with minimal bandwidth
+        try:
+            response = answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=self.user)
+        except HTTPException:
+            # in case of 404, return None to indicate that the archive cannot be found
+            return None
+
+        return response['data']['archive']
