@@ -45,7 +45,7 @@ from nomad.metainfo.elasticsearch_extension import DocumentType, material_entry_
 from .utils import parameter_dependency_from_model, update_url_query_arguments
 
 
-User = datamodel.User.m_def.a_pydantic.model
+User: Any = datamodel.User.m_def.a_pydantic.model
 # It is important that datetime.datetime comes last. Otherwise, number valued strings
 # are interpreted as epoch dates by pydantic
 Value = Union[StrictInt, StrictFloat, StrictBool, str, datetime.datetime]

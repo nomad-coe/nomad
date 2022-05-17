@@ -681,14 +681,14 @@ def _read_archive(entry_metadata, uploads, required_reader: RequiredReader):
             return {
                 'entry_id': entry_id,
                 'parser_name': entry_metadata['parser_name'],
-                'archive': required_reader.read(archive, entry_id)}
+                'archive': required_reader.read(archive, entry_id, upload_id)}
     except ArchiveQueryError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-def _validate_required(required: ArchiveRequired) -> RequiredReader:
+def _validate_required(required: ArchiveRequired, user) -> RequiredReader:
     try:
-        return RequiredReader(required)
+        return RequiredReader(required, user=user)
     except RequiredValidationError as e:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -707,7 +707,7 @@ def _read_entry_from_archive(entry, uploads, required_reader: RequiredReader):
                 'entry_id': entry_id,
                 'upload_id': upload_id,
                 'parser_name': entry['parser_name'],
-                'archive': required_reader.read(archive, entry_id)}
+                'archive': required_reader.read(archive, entry_id, upload_id)}
     except ArchiveQueryError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
     except KeyError as e:
@@ -716,14 +716,14 @@ def _read_entry_from_archive(entry, uploads, required_reader: RequiredReader):
         return None
 
 
-def _read_entries_from_archive(entries, required):
+def _read_entries_from_archive(entries, required, user):
     '''
     Takes pickleable arguments so that it can be offloaded to worker processes.
 
     It is important to ensure the return values are also pickleable.
     '''
     with _Uploads() as uploads:
-        required_reader = _validate_required(required)
+        required_reader = _validate_required(required, user)
 
         responses = [_read_entry_from_archive(
             entry, uploads, required_reader) for entry in entries if entry is not None]
@@ -756,7 +756,7 @@ def _answer_entries_archive_request(
         config.archive.max_process_number)
 
     if number <= 1:
-        request_data: list = _read_entries_from_archive(search_response.data, required)
+        request_data: list = _read_entries_from_archive(search_response.data, required, user)
     else:
         entries_per_process = len(search_response.data) // number + 1
 
@@ -765,7 +765,7 @@ def _answer_entries_archive_request(
 
         try:
             responses = pool.map(
-                functools.partial(_read_entries_from_archive, required=required),
+                functools.partial(_read_entries_from_archive, required=required, user=user),
                 zip_longest(*[iter(search_response.data)] * entries_per_process))
         finally:
             # gracefully shutdown the pool
@@ -858,7 +858,7 @@ def _answer_entries_archive_download_request(
     manifest = []
     search_includes = ['entry_id', 'upload_id', 'parser_name']
 
-    required_reader = RequiredReader('*')
+    required_reader = RequiredReader('*', user=user)
 
     # a generator of StreamedFile objects to create the zipstream from
     def streamed_files():
@@ -1077,7 +1077,7 @@ async def get_entry_raw_file(
 
 def answer_entry_archive_request(
         query: Dict[str, Any], required: ArchiveRequired, user: User, entry_metadata=None):
-    required_reader = _validate_required(required)
+    required_reader = _validate_required(required, user)
 
     if not entry_metadata:
         response = perform_search(

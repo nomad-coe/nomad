@@ -893,7 +893,7 @@ def _es_to_api_aggregation(
 
     if isinstance(agg, BucketAggregation):
         es_agg = es_aggs['agg:' + name]
-        values = set()
+        values: set = set()
 
         def get_bucket(es_bucket) -> Bucket:
             if has_no_pagination:
