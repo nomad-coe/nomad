@@ -1,16 +1,16 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "nomad.fullname" . }}-app-gunicorn-log-config
+  name: {{ include "nomad.fullname" . }}-app-uvicorn-log-config
   labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-app-gunicorn-log-config
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-app-uvicorn-log-config
     helm.sh/chart: {{ include "nomad.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
-  gunicorn.log.conf: |
+  uvicorn.log.conf: |
     [loggers]
-    keys=root, gunicorn, gunicorn.error, gunicorn.access, uvicorn.access
+    keys=root, uvicorn.access
 
     [handlers]
     keys=console, logstash
@@ -21,21 +21,6 @@ data:
     [logger_root]
     level=INFO
     handlers=console, logstash
-
-    [logger_gunicorn]
-    level=INFO
-    handlers=console, logstash
-    qualname=gunicorn
-
-    [logger_gunicorn.error]
-    level=INFO
-    handlers=console, logstash
-    qualname=gunicorn.error
-
-    [logger_gunicorn.access]
-    level=INFO
-    handlers=console, logstash
-    qualname=gunicorn.access
 
     [logger_uvicorn.access]
     level=INFO
@@ -62,17 +47,17 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "nomad.fullname" . }}-app-gunicorn-config
+  name: {{ include "nomad.fullname" . }}-app-run-script
   labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-app-gunicorn-config
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-app-run-script
     helm.sh/chart: {{ include "nomad.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
-  gunicorn.conf: |
-    secure_scheme_headers = {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
-    worker_connections = 1000
-    workers = {{ .Values.app.worker }}
+  run.sh: |
+    #!/bin/bash
+    python -m nomad.cli admin ops gui-config
+    python -m uvicorn --log-config  uvicorn.log.conf --workers {{ .Values.app.worker }} --host 0.0.0.0 nomad.app.main:app
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -107,12 +92,12 @@ spec:
         - mountPath: /app/nomad.yaml
           name: nomad-conf
           subPath: nomad.yaml
-        - mountPath: /app/gunicorn.log.conf
-          name: gunicorn-log-conf
-          subPath: gunicorn.log.conf
-        - mountPath: /app/gunicorn.conf
-          name: gunicorn-conf
-          subPath: gunicorn.conf
+        - mountPath: /app/uvicorn.log.conf
+          name: uvicorn-log-conf
+          subPath: uvicorn.log.conf
+        - mountPath: /app/run.sh
+          name: app-run-script
+          subPath: run.sh
         - mountPath: /app/.volumes/fs/public
           name: public-volume
         - mountPath: /app/.volumes/fs/staging
@@ -166,7 +151,7 @@ spec:
               name: {{ .Values.datacite.secret }}
               key: user
         {{ end }}
-        command: ["./run.sh"]
+        command: ["/bin/sh", "run.sh"]
         livenessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/alive"
@@ -186,12 +171,12 @@ spec:
       imagePullSecrets:
       - name: {{ .Values.image.secret }}
       volumes:
-      - name: gunicorn-log-conf
+      - name: uvicorn-log-conf
         configMap:
-          name: {{ include "nomad.fullname" . }}-app-gunicorn-log-config
-      - name: gunicorn-conf
+          name: {{ include "nomad.fullname" . }}-app-uvicorn-log-config
+      - name: app-run-script
         configMap:
-          name: {{ include "nomad.fullname" . }}-app-gunicorn-config
+          name: {{ include "nomad.fullname" . }}-app-run-script
       - name: nomad-conf
         configMap:
           name: {{ include "nomad.fullname" . }}-configmap
