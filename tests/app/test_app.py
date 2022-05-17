@@ -16,9 +16,21 @@
 # limitations under the License.
 #
 
-from flask import Blueprint
-import os.path
 
-docs_folder = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), '../../../docs/build'))
-blueprint = Blueprint('docs', __name__, static_url_path='/', static_folder=docs_folder)
+def test_alive(client):
+    rv = client.get('/alive')
+    assert rv.status_code == 200
+
+
+def test_docs(client):
+    rv = client.get('/docs/index.html')
+    assert rv.status_code == 200
+    assert 'no-cache, no-store, must-revalidate' in rv.headers['Cache-Control']
+    rv = client.get('/docs/oasis.html')
+    assert rv.status_code == 200
+    assert 'Cache-Control' not in rv.headers
+
+
+def test_dist(client):
+    rv = client.get('/dist/nomad-lab.tar.gz')
+    assert rv.status_code == 200
