@@ -1949,6 +1949,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             context_section = None
             if isinstance(m_context, MSection):
                 context_section = m_context
+                definitions = getattr(context_section, 'definitions', None)
+                if isinstance(definitions, Package):
+                    context_section = definitions
             m_def_proxy = SectionReference.deserialize(context_section, None, m_def)
             if isinstance(m_context, Context):
                 m_def_proxy.m_proxy_context = m_context
