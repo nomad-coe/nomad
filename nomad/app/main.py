@@ -72,9 +72,9 @@ configured_gui_folder = os.path.join(gui_folder, '../.gui_configured')
 if os.path.exists(configured_gui_folder):
     gui_folder = configured_gui_folder
 
-app.mount(f'{app_base}/dist', StaticFiles(directory=dist_folder), name='dist')
-app.mount(f'{app_base}/docs', StaticFiles(directory=docs_folder), name='docs')
-app.mount(f'{app_base}/gui', StaticFiles(directory=gui_folder), name='gui')
+app.mount(f'{app_base}/dist', StaticFiles(directory=dist_folder, check_dir=False), name='dist', )
+app.mount(f'{app_base}/docs', StaticFiles(directory=docs_folder, check_dir=False), name='docs')
+app.mount(f'{app_base}/gui', StaticFiles(directory=gui_folder, check_dir=False), name='gui')
 
 
 @app.on_event('startup')
