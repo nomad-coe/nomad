@@ -16,21 +16,19 @@
 # limitations under the License.
 #
 
-from fastapi import FastAPI, status, Response
-from fastapi.responses import JSONResponse, HTMLResponse
-# We use a2wsgi. It is an alternative to the fastapi provided WSGIMiddleware that manages
-# to stream requests instead of buffering them.
-from a2wsgi import WSGIMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.exceptions import HTTPException as StarletteHTTPException
+import os
+
+from fastapi import FastAPI, Request, Response, status
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from nomad import config, infrastructure
-
-from .optimade import optimade_app
-from .flask import app as flask_app
-from .v1.main import app as v1_app
 from .dcat.main import app as dcat_app
+from .optimade import optimade_app
+from .v1.main import app as v1_app
 
 
 class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
@@ -63,7 +61,20 @@ app_base = config.services.api_base_path
 app.mount(f'{app_base}/api/v1', v1_app)
 app.mount(f'{app_base}/dcat', dcat_app)
 app.mount(f'{app_base}/optimade', optimade_app)
-app.mount(app_base, WSGIMiddleware(flask_app))  # type: ignore
+
+dist_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../dist'))
+docs_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs/build'))
+gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static/gui'))
+if not os.path.exists(gui_folder):
+    os.makedirs(gui_folder)
+
+configured_gui_folder = os.path.join(gui_folder, '../.gui_configured')
+if os.path.exists(configured_gui_folder):
+    gui_folder = configured_gui_folder
+
+app.mount(f'{app_base}/dist', StaticFiles(directory=dist_folder), name='dist')
+app.mount(f'{app_base}/docs', StaticFiles(directory=docs_folder), name='docs')
+app.mount(f'{app_base}/gui', StaticFiles(directory=gui_folder), name='gui')
 
 
 @app.on_event('startup')
@@ -72,7 +83,8 @@ async def startup_event():
     import_all_parsers()
 
     from nomad import infrastructure
-    # each subprocess is supposed disconnect connect again: https://jira.mongodb.org/browse/PYTHON-2090
+    # each subprocess is supposed disconnect and
+    # connect again: https://jira.mongodb.org/browse/PYTHON-2090
     try:
         from mongoengine import disconnect
         disconnect()
@@ -93,7 +105,8 @@ async def http_exception_handler(request, exc):
         accept = None
 
     if accept is not None and 'html' in accept:
-        return HTMLResponse(status_code=404, content=f'''
+        return HTMLResponse(
+            status_code=404, content=f'''
         <html>
             <head><title>{config.meta.name}</title></head>
             <body>
@@ -108,24 +121,41 @@ async def http_exception_handler(request, exc):
         </html>
         ''')
 
-    return JSONResponse(status_code=404, content={
-        'detail': 'Not found',
-        'info': {
-            'app': config.meta,
-            'apis': {
-                'v1': {
-                    'root': f'{app_base}/api/v1',
-                    'dashboard': f'{app_base}/api/v1/extensions/docs',
-                    'documentation': f'{app_base}/api/v1/extensions/redoc',
-                },
-                'optimade': {
-                    'root': f'{app_base}/optimade/v1',
-                    'dashboard': f'{app_base}/optimade/v1/extensions/docs'
-                },
-                'dcat': {
-                    'root': f'{app_base}/dcat',
-                    'dashboard': f'{app_base}/dcat/extensions/docs'
+    return JSONResponse(
+        status_code=404, content={
+            'detail': 'Not found',
+            'info': {
+                'app': config.meta,
+                'apis': {
+                    'v1': {
+                        'root': f'{app_base}/api/v1',
+                        'dashboard': f'{app_base}/api/v1/extensions/docs',
+                        'documentation': f'{app_base}/api/v1/extensions/redoc',
+                    },
+                    'optimade': {
+                        'root': f'{app_base}/optimade/v1',
+                        'dashboard': f'{app_base}/optimade/v1/extensions/docs'
+                    },
+                    'dcat': {
+                        'root': f'{app_base}/dcat',
+                        'dashboard': f'{app_base}/dcat/extensions/docs'
+                    }
                 }
             }
-        }
-    })
+        })
+
+
+@app.get(f'{app_base}/alive')
+async def alive():
+    ''' Simple endpoint to utilize kubernetes liveness/readiness probing. '''
+    return "I am, alive!"
+
+
+@app.middleware("http")
+async def add_header(request: Request, call_next):
+    response = await call_next(request)
+    if str(request.url).endswith('index.html'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    if str(request.url).endswith('.js'):
+        response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+    return response

@@ -836,14 +836,20 @@ class Entry(Proc):
                 entry_archive_dict[section_results] = entry_archive[section_results].to_dict()
             entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
             self._apply_metadata_from_mongo(upload, entry_metadata)
-            return entry_metadata
         except KeyError:
             # Due to hard processing failures, it might be possible that an entry might not
             # have an archive. Return the metadata that is available.
             if self._entry_metadata is not None:
-                return self._entry_metadata
+                entry_metadata = self._entry_metadata
             else:
-                return self.mongo_metadata(upload)
+                entry_metadata = self.mongo_metadata(upload)
+
+        if not entry_metadata.m_parent:
+            # Other parts of the code might assume that a entry metadata is always part of
+            # an actual archive.
+            EntryArchive(metadata=entry_metadata)
+
+        return entry_metadata
 
     def mongo_metadata(self, upload: 'Upload') -> EntryMetadata:
         '''

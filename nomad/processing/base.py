@@ -572,7 +572,7 @@ class Proc(Document):
                     ]
                 }, mongo_update)
             try_counter += 1
-            if old_record and old_record.get('sync_counter') == self.sync_counter:
+            if old_record and old_record.get('sync_counter', 0) == self.sync_counter:
                 # We have successfully scheduled the process!
                 self.reload()
                 return not prev_process_running
@@ -764,7 +764,7 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
         cls = all_proc_cls.get(cls_name, None)
 
     if cls is None:
-        logger.critical('document not a subcass of Proc')
+        logger.critical('document not a subclass of Proc')
         raise ProcNotRegistered('document %s not a subclass of Proc' % cls_name)
 
     # get the process instance
@@ -772,15 +772,10 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
         try:
             self = cls.get(self_id)
         except KeyError as e:
-            from nomad.app import flask
-            if flask.app.config['TESTING']:
-                # This only happens in tests, where it is not always avoidable that
-                # tasks from old test-cases bleed over.
-                raise ProcObjectDoesNotExist()
             logger.warning('called object is missing, retry')
             raise task.retry(exc=e, countdown=3)
     except KeyError:
-        logger.critical('called object is missing, retries exeeded', proc_id=self_id)
+        logger.critical('called object is missing, retries exceeded', proc_id=self_id)
         raise ProcObjectDoesNotExist()
 
     return self

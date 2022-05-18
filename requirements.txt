@@ -57,15 +57,10 @@ celery[redis]==4.4.7
 mongoengine==0.19.1
 pymongo==3.11.4
 Werkzeug==2.0.3
-flask==2.0.3
-flask-restplus==0.13.0
-flask-cors==3.0.10
-flask_httpauth==4.5.0
 itsdangerous==2.0.1
 passlib==1.7.4
 python-logstash==0.4.6
 gitpython==3.1.24
-gunicorn[eventlet]==20.1.0
 m2r==0.2.1
 zipstream-new==1.1.5
 bagit==1.8.1
@@ -90,12 +85,12 @@ jinja2==3.0.3
 rdflib==5.0.0
 fastapi==0.63.0
 uvicorn[standard]==0.13.4
-a2wsgi==1.4.0
 python-multipart==0.0.5
 jupyterhub==1.4.2
 dockerspawner==12.1.0
 oauthenticator==14.2.0
 validators==0.18.2
+aiofiles==0.8.0
 
 # [dev]
 markupsafe==2.0.1

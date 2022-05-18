@@ -226,14 +226,14 @@ def springer_update(max_n_query, retry_time):
 
 @ops.command(help='Configures the GUIs based on NOMAD config.')
 def gui_config():
-    import os
     import os.path
     from nomad import config
     import glob
     import shutil
     import json
 
-    gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../app/flask/static/gui'))
+    gui_folder = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), '../../app/static/gui'))
     run_gui_folder = os.path.join(gui_folder, '../.gui_configured')
 
     # copy
@@ -283,14 +283,14 @@ def upgrade():
 
 @upgrade.command(
     help='''Converts (upgrades) records from one mongodb and migrates to another.
-            Note, it is strongly recommended to run this command with loglevel verbosed, i.e.
+            Note, it is strongly recommended to run this command with loglevel verbose, i.e.
 
                 nomad -v upgrade migrate-mongo ...
 
          ''')
 @click.option(
     '--host', type=str, default=config.mongo.host,
-    help='The mongodb host. By default same as the configureed db.')
+    help='The mongodb host. By default same as the configured db.')
 @click.option(
     '--port', type=int, default=config.mongo.port,
     help='The mongodb port. By default same as the configured db.')
@@ -383,12 +383,12 @@ def migrate_mongo(
         entry_update = json.loads(entry_update)
 
     if entry_query:
-        print('Quering entries...')
+        print('Querying entries...')
         src_entry_collection = db_src.calc if 'calc' in db_src.collection_names() else db_src.entry
         upload_ids = list(src_entry_collection.distinct('upload_id', entry_query))
     if upload_ids:
         upload_query = {'_id': {'$in': upload_ids}}
-    print('Quering uploads...')
+    print('Querying uploads...')
     uploads = db_src.upload.find(upload_query)
 
     migrate.migrate_mongo_uploads(

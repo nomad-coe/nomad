@@ -520,8 +520,8 @@ nomad admin ops gui-config
 ```
 
 To run NOMAD, you must run two services. One is the NOMAD app, it serves the API and GUI:
-```
-gunicorn "${params[@]}" -b 0.0.0.0:8000 nomad.app:app
+```sh
+--8<-- "run.sh"
 ```
 
 the second is the NOMAD worker, that runs the NOMAD processing.

@@ -27,8 +27,7 @@ target/
 .vscode/extensions.json
 nomad.yaml
 !tests/nomad.yaml
-gunicorn.log.conf
-gunicorn.conf
+*.log.conf
 build/
 dist/
 setup.json
@@ -46,7 +45,6 @@ gui/.yarn/
 gui/.yarnrc.yml
 gui/junit.xml
 examples/workdir/
-gunicorn.log.conf
 nomad/gitinfo.py
 **/node_modules/
 jupyterhub_cookie_secret
