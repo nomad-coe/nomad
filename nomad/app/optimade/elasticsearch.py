@@ -256,6 +256,11 @@ class StructureCollection(EntryCollection):
                         get_results()
                     section = archive
                     for segment in path:
+                        if isinstance(section, list):
+                            if len(section) == 0:
+                                value = None
+                                break
+                            section = section[0]
                         value = getattr(section, segment)
                         section = value
 
