@@ -135,13 +135,13 @@ spec:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/gui/index.html"
             port: 80
-          initialDelaySeconds: 15
+          initialDelaySeconds: 60
           periodSeconds: 15
         readinessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/gui/index.html"
             port: 80
-          initialDelaySeconds: 3
+          initialDelaySeconds: 60
           periodSeconds: 3
       nodeSelector:
         nomadtype: public
