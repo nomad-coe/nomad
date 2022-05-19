@@ -24,9 +24,7 @@ gui:
 
 app:
   replicas: 1
-  worker: 1
-  threads: 4
-  workerClass: "gthread"
+  worker: 2
   nomadNodeType: "public"
 
 worker:

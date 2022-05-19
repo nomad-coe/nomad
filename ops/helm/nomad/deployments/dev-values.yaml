@@ -8,6 +8,9 @@ proxy:
 ingress:
   enabled: true
 
+app:
+  worker: 2
+
 gui:
   debug: true
 
