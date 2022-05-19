@@ -2064,6 +2064,7 @@ class ThermodynamicProperties(MSection):
 
 
 class SolarCell(MSection):
+<<<<<<< HEAD
     m_def = Section(
         description='''
         Properties of solar cells.
@@ -2085,19 +2086,36 @@ class SolarCell(MSection):
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
+=======
+
+    m_def = Section(
+        description='''
+        Properties of solar cells.
+        ''',
+    )
+
+>>>>>>> Perovskite database poc metainfo schema and parsers
     open_circuit_voltage = Quantity(
         type=np.dtype(np.float64),
         unit='V',
         shape=[],
+<<<<<<< HEAD
         description='''
         Open circuit voltage of a solar cell.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
+=======
+        description="""
+        Open circuit voltage of a solar cell.
+                    """)
+
+>>>>>>> Perovskite database poc metainfo schema and parsers
     short_circuit_current_density = Quantity(
         type=np.dtype(np.float64),
         unit='A / m**2',
         shape=[],
+<<<<<<< HEAD
         description='''
         Short circuit current density of a solar cell.
         ''',
@@ -2239,6 +2257,97 @@ class SpectroscopyProperties(MSection):
         ''',
     )
     spectrum = Quantity(type=Spectrum)
+=======
+        description="""
+        Short circuit current density of a solar cell.
+                    """)
+
+    fill_factor = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description="""
+        Fill factor of a solar cell in absolute values (from 0 to 1).
+                    """)
+
+    efficiency = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description="""
+        Power conversion effciency of a solar cell in percentage %.
+                    """)
+
+    illumination_intensity = Quantity(
+        type=np.dtype(np.float64),
+        unit=('W/m**2'),
+        shape=[],
+        description="""
+    The light intensity during the IV measurement.
+                    """)
+
+    substrate = Quantity(
+        type=str,
+        description="""
+        Substrate used in the solar cell. Might be a stack in which seperate layers are
+        separated by a vertical bar " | ".
+                    """)
+
+    back_contact = Quantity(
+        type=str,
+        description="""
+        Back contact used in the solar cell. Might be a stack in which seperate layers are
+        separated by a vertical bar " | ".
+                    """)
+
+    electron_transport_layer = Quantity(
+        type=str,
+        description="""
+        Electron selective contact used in the solar cell. Might be a stack in which
+        seperate layers are separated by a vertical bar " | ".
+                    """)
+
+    hole_transport_layer = Quantity(
+        type=str,
+        description="""
+        Hole selective contact used in the solar cell. Might be a stack in which seperate layers are
+        separated by a vertical bar " | ".
+                    """)
+
+    absorber = Quantity(
+        type=str,
+        description="""
+        Absorber layer used in the solar cell. Might be an stack in which seperate layers are
+        separated by a vertical bar " | ".
+                    """)
+
+    device_stack = Quantity(
+        type=str,
+        description="""
+        Substrate used in the solar cell. Might be an stack in which seperate layers are
+        separated by a vertical bar " | ".
+                    """)
+
+    device_architecture = Quantity(
+        type=str,
+        description="""
+        Device architecture of the solar cell. Examples are:
+        `pn-Heterojunction`, `pin`, `nip`, ...
+                    """)
+
+    device_area = Quantity(
+        type=np.dtype(np.float64),
+        unit=('m**2'),
+        shape=[],
+        description="""
+        The total area of the cell during IV and stability measurements under illumination.
+                    """)
+
+    absorber_fabrication = Quantity(
+        type=str,
+        description="""
+        Technique describing the fabrication of the absorber layer. Examples are:
+        `Spin-coating`, `Evaporation`, `Doctor blading`, ...
+                    """)
+>>>>>>> Perovskite database poc metainfo schema and parsers
 
 
 class Properties(MSection):
