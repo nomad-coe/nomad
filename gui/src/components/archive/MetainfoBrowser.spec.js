@@ -69,4 +69,4 @@ test('Browse metainfo reursively', async () => {
   const lane = await navigateTo(path)
   const laneIndex = path ? path.split('/').length : 0
   await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), metainfoItemFilter, 2)
-}, 12 * minutes)
+}, 20 * minutes)

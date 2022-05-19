@@ -99,4 +99,4 @@ test.each([
   const lane = await navigateTo(path)
   const laneIndex = path ? path.split('/').length : 0
   await browseRecursively(lane, laneIndex, join(`*ArchiveBrowser ${name}*`, path), archiveItemFilter, filterKeyLength)
-}, 12 * minutes)
+}, 20 * minutes)
