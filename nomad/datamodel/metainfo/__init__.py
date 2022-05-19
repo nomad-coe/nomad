@@ -17,3 +17,4 @@
 #
 from .simulation import m_env
 from .eln.material_library import m_package
+from .eln.perovskite_database import m_package

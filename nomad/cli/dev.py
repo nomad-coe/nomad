@@ -474,6 +474,38 @@ def units(ctx):
     # ones.
     unit_list.sort(key=lambda x: 0 if x.get('definition') is None else 1)
 
+    # Go through the metainfo and check that all units are defined. Note that
+    # this will break if complex derived units are used in the metainfo. In
+    # this case they can only be validated in a GUI test.
+    unit_names = set()
+    for unit in unit_list:
+        unit_names.add(unit['name'])
+        for alias in unit.get('aliases', []):
+            unit_names.add(alias)
+
+    all_metainfo = _all_metainfo_packages()
+    units = set()
+    packages = all_metainfo.m_to_dict(with_meta=True)['packages']
+    for package in packages:
+        sections = package.get('section_definitions', [])
+        for section in sections:
+            quantities = section.get('quantities', [])
+            for quantity in quantities:
+                unit = quantity.get('unit')
+                if unit is not None:
+                    parts = unit.split()
+                    for part in parts:
+                        is_operator = part in {'/', '**', '*'}
+                        is_number = True
+                        try:
+                            int(part)
+                        except Exception:
+                            is_number = False
+                        if not is_operator and not is_number:
+                            units.add(part)
+    # for unit in units:
+    #     assert unit in unit_names, 'The unit "{}" is not defined in the unit definitions.'.format(unit)
+
     # Print unit conversion table and unit systems as a Javascript source file
     output = '''/*
  * Copyright The NOMAD Authors.
