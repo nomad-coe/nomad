@@ -24,9 +24,36 @@ import {
   startAPI,
   closeAPI
 } from '../conftest.spec'
-import { within, waitFor } from '@testing-library/dom'
 import UploadPage from './UploadPage'
+import {fireEvent, waitFor, within, act} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+
+const testShownColumnsAction = async () => {
+  await screen.findByTitle('Change the shown columns.')
+  expect(screen.queryByText('Parser name')).not.toBeInTheDocument()
+  expect(screen.queryByText('Comment')).not.toBeInTheDocument()
+  expect(screen.queryByText('References')).not.toBeInTheDocument()
+  expect(screen.queryByText('Datasets')).not.toBeInTheDocument()
+
+  let uploadPageRows = screen.queryAllByTestId('datatable-row')
+  expect(uploadPageRows.length).toBe(1)
+  expect(within(uploadPageRows[0]).queryByText('Mocked')).not.toBeInTheDocument()
+  expect(within(uploadPageRows[0]).queryByText('doi')).not.toBeInTheDocument()
+  expect(within(uploadPageRows[0]).queryByText('no datasets')).not.toBeInTheDocument()
+
+  act(() => { fireEvent.click(screen.getByTitle('Change the shown columns.')) })
+  await waitFor(() => expect(screen.queryByText('Datasets')).toBeInTheDocument())
+  await waitFor(() => expect(screen.queryByText('Comment')).toBeInTheDocument())
+  await waitFor(() => expect(screen.queryByText('References')).toBeInTheDocument())
+  await waitFor(() => expect(screen.queryByText('Parser name')).toBeInTheDocument())
+
+  act(() => { fireEvent.click(screen.getByText('Comment')) })
+  act(() => { fireEvent.click(screen.getByText('References')) })
+  act(() => { fireEvent.click(screen.getByText('Datasets')) })
+  await waitFor(() => expect(within(uploadPageRows[0]).queryByText('Mocked')).toBeInTheDocument())
+  await waitFor(() => expect(within(uploadPageRows[0]).queryByText('doi')).toBeInTheDocument())
+  await waitFor(() => expect(within(uploadPageRows[0]).queryByText('no datasets')).toBeInTheDocument())
+}
 
 const testPublishedWritePermissions = async () => {
   // Wait to load the page, i.e. wait for some text to appear
@@ -125,6 +152,7 @@ test.each([
   await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await testPublishedWritePermissions()
+  await testShownColumnsAction()
   closeAPI()
 })
 
@@ -169,6 +197,7 @@ test.each([
   await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await testReadOnlyPermissions()
+  await testShownColumnsAction()
   closeAPI()
 })
 
@@ -192,11 +221,12 @@ test.each([
   await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await testUnpublishedWritePermissions()
+  await testShownColumnsAction()
   closeAPI()
 })
 
 test('Render upload page: multiple entries', async () => {
-  await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries', 'test', 'password')
+  await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries')
   render(<UploadPage uploadId="dft_upload_1"/>)
 
   // Wait to load the page, i.e. wait for some text to appear
@@ -307,8 +337,7 @@ test.each([
     'dft_upload',
     'test',
     'password'
-  ],
-  [
+  ], [
     'Published with embargo and logged in as coauthor',
     'tests.states.uploads.published_with_embargo',
     'tests/data/uploads/uploadpage-published-with-embargo-coauthor',
@@ -320,19 +349,11 @@ test.each([
   await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await testEmbargoedPublishesWritePermissions()
+  await testShownColumnsAction()
   closeAPI()
 })
 
 test.each([
-  [
-    'unpublished, logged in as neither reviewer nor coauthor or main author',
-    'tests.states.uploads.unpublished',
-    'tests/data/uploads/uploadpage-unpublished-external',
-    'dft_upload',
-    'admin',
-    'password',
-    'You do not have access to the specified upload - not published yet.'
-  ],
   [
     'unpublished, not authenticated',
     'tests.states.uploads.unpublished',
@@ -340,6 +361,15 @@ test.each([
     'dft_upload',
     '',
     '',
+    'You do not have access to the specified upload - not published yet.'
+  ],
+  [
+    'unpublished, logged in as neither reviewer nor coauthor or main author',
+    'tests.states.uploads.unpublished',
+    'tests/data/uploads/uploadpage-unpublished-external',
+    'dft_upload',
+    'admin',
+    'password',
     'You do not have access to the specified upload - not published yet.'
   ],
   [
