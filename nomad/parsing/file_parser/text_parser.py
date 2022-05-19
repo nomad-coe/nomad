@@ -524,6 +524,9 @@ class TextParser(FileParser):
                 if quantity._sub_parser is not None:
                     self._parse_quantity(quantity)
 
+            # free up memory
+            self._file_handler = b' '
+
         else:
             for quantity in self._quantities:
                 if quantity.name == key or key is None:
@@ -531,3 +534,12 @@ class TextParser(FileParser):
                         self._parse_quantity(quantity)
 
         return self
+
+    def clear(self):
+        '''
+        Deletes the file mapping for all sub parsers.
+        '''
+        for quantity in self.quantities:
+            if quantity._sub_parser is not None:
+                quantity._sub_parser.clear()
+        self._file_handler = None
