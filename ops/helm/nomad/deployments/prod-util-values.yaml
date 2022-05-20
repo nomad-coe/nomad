@@ -31,7 +31,7 @@ app:
 
 worker:
   replicas: 1
-  routing: "worker"
+  routing: "queue"
   processes: 12
   nomadNodeType: "prod-worker"
 
