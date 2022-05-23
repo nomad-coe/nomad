@@ -10,12 +10,18 @@ pip install nomad-lab
 ```
 
 !!! attention
-    Since NOMAD v1 is still in beta, there is no official pypi release. `pip install` will
-    still give you the Python library for the NOMAD v0.10.x version.
+    Since NOMAD v1.1.x is still in beta, there is no official pypi release. `pip install` will
+    still give you the Python library for the NOMAD v1.0.x version.
 
-To install the latest release developer release (e.g. v1) from our servers use:
+To install the latest release developer release (e.g. v1.1.x) from our servers use:
 ```sh
 pip install nomad-lab --extra-index-url https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi/simple
+```
+
+To install an older *legacy* version of NOMAD (e.g. v0.10.x), you can of use reference
+the respective version on pypy:
+```sh
+pip install nomad-lab==v0.10.12
 ```
 
 There are different layers of dependencies that you have to install, in order to use certain functions of NOMAD.
