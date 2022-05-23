@@ -42,8 +42,8 @@ ingress:
 ## Everything concerning the nomad app
 app:
   replicas: 1
-  ## Number of gunicorn worker.
-  worker: 10
+  ## Number of uvicorn worker.
+  worker: 4
   console_loglevel: INFO
   logstash_loglevel: INFO
   nomadNodeType: "public"
