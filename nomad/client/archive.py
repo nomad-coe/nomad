@@ -130,7 +130,7 @@ class ArchiveQuery:
             self._url += '/v1' if self._url.endswith('/api') else '/api/v1'
 
         # context used for resolving references
-        self._context = ClientContext(self._url)
+        self._context = ClientContext(self._url, username=self._username, password=self._password)
 
     @property
     def _query(self) -> dict:

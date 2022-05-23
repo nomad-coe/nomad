@@ -145,7 +145,8 @@ class ParserContext(Context):
 
 def run_parser(
         mainfile_path: str, parser: Parser, mainfile_keys: List[str] = None,
-        logger=None, server_context: bool = False) -> List[EntryArchive]:
+        logger=None, server_context: bool = False,
+        username: str = None, password: str = None) -> List[EntryArchive]:
     '''
     Parses a file, given the path, the parser, and mainfile_keys, as returned by
     :func:`match_parser`, and returns the resulting EntryArchive objects. Parsers that have
@@ -157,7 +158,8 @@ def run_parser(
     if server_context:
         entry_archive = EntryArchive(m_context=ParserContext(directory))
     else:
-        entry_archive = EntryArchive(m_context=ClientContext(local_dir=directory))
+        entry_archive = EntryArchive(
+            m_context=ClientContext(local_dir=directory, username=username, password=password))
 
     entry_archive.metadata = EntryMetadata()
     entry_archive.metadata.mainfile = mainfile_path
