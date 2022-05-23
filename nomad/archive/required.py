@@ -18,7 +18,6 @@
 
 import dataclasses
 import functools
-import re
 from typing import cast, Union, Dict, Tuple, Any
 
 from cachetools.func import lru_cache
@@ -29,6 +28,7 @@ from nomad.metainfo import Definition, Section, Quantity, SubSection, Reference,
 from .storage import ArchiveReader, ArchiveList, ArchiveError, ArchiveDict
 from .query import ArchiveQueryError, _to_son, _query_archive_key_pattern, _extract_key_and_index, \
     _extract_child
+from ..datamodel.context import parse_path
 
 
 class RequiredValidationError(Exception):
@@ -59,65 +59,6 @@ def _setdefault(target: Union[dict, list], key, value_type: type):
         target[key] = value_type()
 
     return target[key]
-
-
-# ../entries/<entry_id>/archive#<path>
-# /entries/<entry_id>/archive#<path>
-_regex_form_a = re.compile(r'^(?:\.\.)?/entries/([^?]+)/(archive|raw)#([^?]+?)$')
-
-# ../upload/<upload_id>/archive/<entry_id>#<path>
-# /uploads/<upload_id>/archive/<entry_id>#<path>
-# <installation>/uploads/<upload_id>/archive/<entry_id>#<path>
-_regex_form_b = re.compile(r'^([^?]+?)?/uploads?/(\w*)/?(archive|raw)/([^?]+?)#([^?]+?)$')
-
-
-def _parse_path(url: str, upload_id: str = None):
-    '''
-    Parse a reference path.
-
-    The upload_id of current upload is taken as the input to account for that the relative reference has no
-    information about the upload_id, and it may also contain no entry_id. Has to know the upload_id when only
-    path to mainfile is given.
-
-    On exit:
-    Returns None if the path is invalid. Otherwise, returns a tuple of: (installation, entry_id, kind, path)
-
-    If installation is None, indicating it is a local path.
-    '''
-
-    url_match = _regex_form_a.match(url)
-    if url_match:
-        entry_id = url_match.group(1)
-        kind = url_match.group(2)  # archive or raw
-        path = url_match.group(3)
-
-        return None, upload_id, entry_id, kind, path
-
-    # try another form
-    url_match = _regex_form_b.match(url)
-    if not url_match:
-        # not valid
-        return None
-
-    installation = url_match.group(1)
-    if installation == '':
-        installation = None
-    elif installation == '..':
-        installation = None
-
-    # if empty, it is a local reference to the same upload, use the current upload_id
-    other_upload_id = upload_id if url_match.group(2) == '' else url_match.group(2)
-
-    kind = url_match.group(3)  # archive or raw
-    entry_id = url_match.group(4)
-    path = url_match.group(5)
-
-    if entry_id.startswith('mainfile/'):
-        entry_id = utils.hash(other_upload_id, entry_id.replace('mainfile/', ''))
-    elif '/' in entry_id:  # should not contain '/' in entry_id
-        return None
-
-    return installation, other_upload_id, entry_id, kind, path
 
 
 @dataclasses.dataclass
@@ -334,7 +275,7 @@ class RequiredReader:
                 return self._resolve_ref_local(required, path[1:], dataset)
 
         # it appears to be a local path may or may not be the same archive
-        url_parts = _parse_path(path, dataset.upload_id)
+        url_parts = parse_path(path, dataset.upload_id)
 
         # cannot identify the path, return the path
         if url_parts is None:

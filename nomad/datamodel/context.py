@@ -28,6 +28,69 @@ from nomad.datamodel.datamodel import EntryMetadata
 from nomad.metainfo import Context as MetainfoContext, MSection, Quantity, MetainfoReferenceError
 from nomad.datamodel import EntryArchive
 
+# ../entries/<entry_id>/archive#<path>
+# /entries/<entry_id>/archive#<path>
+_regex_form_a = re.compile(r'^(?:\.\.)?/entries/([^?]+)/(archive|raw)#([^?]+?)$')
+
+# ../upload/<upload_id>/archive/<entry_id>#<path>
+# /uploads/<upload_id>/archive/<entry_id>#<path>
+# <installation>/uploads/<upload_id>/archive/<entry_id>#<path>
+_regex_form_b = re.compile(r'^([^?]+?)?/uploads?/(\w*)/?(archive|raw)/([^?]+?)#([^?]+?)$')
+
+
+def parse_path(url: str, upload_id: str = None):
+    '''
+    Parse a reference path.
+
+    The upload_id of current upload is taken as the input to account for that the relative reference has no
+    information about the upload_id, and it may also contain no entry_id. Has to know the upload_id when only
+    path to mainfile is given.
+
+    On exit:
+    Returns None if the path is invalid. Otherwise, returns a tuple of: (installation, upload_id, entry_id, kind, path)
+
+    If installation is None, indicating it is a local path.
+
+    Returns:
+        (installation, upload_id, entry_id, kind, path): successfully parsed path
+        None: fail to parse path
+    '''
+
+    url_match = _regex_form_b.match(url)
+    if not url_match:
+        # try another form
+        url_match = _regex_form_a.match(url)
+        if not url_match:
+            # not valid
+            return None
+
+        entry_id = url_match.group(1)
+        kind = url_match.group(2)  # archive or raw
+        path = url_match.group(3)
+
+        return None, upload_id, entry_id, kind, path
+
+    installation = url_match.group(1)
+    if installation == '':
+        installation = None
+    elif installation == '..':
+        installation = None
+
+    # if empty, it is a local reference to the same upload, use the current upload_id
+    other_upload_id = upload_id if url_match.group(2) == '' else url_match.group(2)
+
+    kind = url_match.group(3)  # archive or raw
+    entry_id = url_match.group(4)
+    path = url_match.group(5)
+
+    if kind == 'archive':
+        if entry_id.startswith('mainfile/'):
+            entry_id = utils.generate_entry_id(other_upload_id, entry_id.replace('mainfile/', ''))
+        elif '/' in entry_id:  # should not contain '/' in entry_id
+            return None
+
+    return installation, other_upload_id, entry_id, kind, path
+
 
 class Context(MetainfoContext):
     '''
@@ -128,42 +191,26 @@ class Context(MetainfoContext):
         raise NotImplementedError()
 
     def _parse_url(self, url: str) -> tuple:
-        installation_url = self.installation_url
-        upload_id = self.upload_id
+        url_results = parse_path(f'{url}#/placeholder', self.upload_id)
+        if url_results is None:
+            raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
 
-        url_match = re.match(r'^../uploads?/([\w\-]*)/?(archive|raw)/([^?]+)$', url)
-        if url_match:
-            if url_match.group(1) is not '':
-                upload_id = url_match.group(1)
-            kind = url_match.group(2)
-            path = url_match.group(3)
-            return installation_url, upload_id, kind, path
+        installation_url, upload_id, id_or_path, kind, _fragment = url_results  # _fragment === /placeholder
 
-        url_match = re.search(r'(?<!\.)/uploads/([\w\-]+)/(archive|raw)/([^?]+)$', url)
-        if url_match:
-            installation_url = url.replace(url_match.group(0), '')
-            upload_id = url_match.group(1)
-            kind = url_match.group(2)
-            path = url_match.group(3)
-            return installation_url, upload_id, kind, path
+        if installation_url is None:
+            installation_url = self.installation_url
 
-        raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
+        return installation_url, upload_id, kind, id_or_path
 
     def load_url(self, url: str) -> MSection:
-        installation_url, upload_id, kind, path = self._parse_url(url)
+        installation_url, upload_id, kind, id_or_path = self._parse_url(url)
+
         if kind == 'archive':
-            if path.startswith('mainfile/'):
-                entry_id = utils.generate_entry_id(upload_id, path.replace('mainfile/', ''))
-            elif '/' in path:
-                raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
-            else:
-                entry_id = path
-
-            return self.load_archive(entry_id, upload_id, installation_url)
-
+            return self.load_archive(id_or_path, upload_id, installation_url)
         if kind == 'raw':
-            return self.load_raw_file(path, upload_id, installation_url)
+            return self.load_raw_file(id_or_path, upload_id, installation_url)
 
+        # never happens
         raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
 
     def resolve_archive_url(self, url: str) -> MSection:
@@ -237,6 +284,10 @@ class ServerContext(Context):
         return self.upload_files.raw_file(*args, **kwargs)
 
 
+def _validate_url(url):
+    return config.api_url(api='api/v1') if url is None else url
+
+
 class ClientContext(Context):
     '''
     Since it is a client side context, use config.client.url by default.
@@ -247,16 +298,21 @@ class ClientContext(Context):
             references.
         - local_dir: For intra "upload" references, files will be looked up here.
     '''
-    def __init__(self, installation_url: str = None, local_dir: str = None):
+
+    def __init__(self, installation_url: str = None, local_dir: str = None, username: str = None, password: str = None):
         super().__init__(config.client.url + '/v1' if installation_url is None else installation_url)
         self.local_dir = local_dir
+        self._user = username if username else config.client.user
+        self._password = password if password else config.client.password
 
     def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
         # TODO currently upload_id might be None
-        if installation_url is None:
-            installation_url = config.api_url(api='api/v1')
-
-        response = requests.get(f'{installation_url}/uploads/{upload_id}/archive/{entry_id}')
+        if upload_id is None:
+            url = f'{_validate_url(installation_url)}/entries/{entry_id}/archive'
+        else:
+            url = f'{_validate_url(installation_url)}/uploads/{upload_id}/archive/{entry_id}'
+        from nomad.client import Auth
+        response = requests.get(url, auth=Auth(user=self._user, password=self._password))
 
         if response.status_code != 200:
             raise MetainfoReferenceError(f'cannot retrieve archive {entry_id} from {installation_url}')
@@ -278,11 +334,9 @@ class ClientContext(Context):
 
             raise MetainfoReferenceError(f'cannot retrieve raw file without upload id')
 
-        if installation_url is None:
-            installation_url = config.api_url(api='api/v1')
-
-        url = f'{installation_url}/uploads/{upload_id}/raw/{path}'
-        response = requests.get(url)
+        url = f'{_validate_url(installation_url)}/uploads/{upload_id}/raw/{path}'
+        from nomad.client import Auth
+        response = requests.get(url, auth=Auth(user=self._user, password=self._password))
 
         if response.status_code != 200:
             raise MetainfoReferenceError(f'cannot retrieve raw file {path} from {url}')

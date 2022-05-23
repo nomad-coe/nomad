@@ -24,7 +24,6 @@ import os.path
 import json
 
 from nomad import utils, config
-from nomad.archive.required import _parse_path
 from nomad.metainfo import MSection, Quantity, Reference, SubSection, QuantityReference
 from nomad.datamodel import EntryArchive
 from nomad.archive.storage import TOCPacker, _decode, _entries_per_block
@@ -283,53 +282,6 @@ def test_read_springer():
     springer = read_archive(config.normalize.springer_db_path)
     with pytest.raises(KeyError):
         springer['doesnotexist']
-
-
-@pytest.mark.parametrize(
-    'path, result', [
-        pytest.param(
-            '/entries/sample_entry/archive#/seg01/1', (None, None, 'sample_entry', 'archive', '/seg01/1'),
-            id='local-same-upload-01'),
-        pytest.param(
-            '../entries/sample_entry/archive#/seg01/1', (None, None, 'sample_entry', 'archive', '/seg01/1'),
-            id='local-same-upload-02'),
-        pytest.param(
-            '/uploads/sample_upload/archive/sample_entry#/seg1/22',
-            (None, 'sample_upload', 'sample_entry', 'archive', '/seg1/22'),
-            id='local-another-upload-01'),
-        pytest.param(
-            '/upload/archive/sample_entry#/seg1/22', (None, None, 'sample_entry', 'archive', '/seg1/22'),
-            id='local-another-upload-02'),
-        pytest.param(
-            '/upload/archive/mainfile/mainfile_id#/seg1/22',
-            (None, None, utils.hash(None, 'mainfile_id'), 'archive', '/seg1/22'),
-            id='local-another-upload-03'),
-        pytest.param(
-            '../uploads/sample_upload/archive/sample_entry#/seg1/22',
-            (None, 'sample_upload', 'sample_entry', 'archive', '/seg1/22'),
-            id='local-another-upload-04'),
-        pytest.param(
-            'https://myoasis.de/uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
-            ('https://myoasis.de', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
-            id='remote-upload-01'),
-        pytest.param(
-            './uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
-            ('.', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'), id='remote-upload-02'),
-        pytest.param(
-            './uploads/sample_upload/archives/sample_entry#/run/0/calculation/1',
-            None, id='remote-upload-03'),
-        pytest.param(
-            'localhost/uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
-            ('localhost', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
-            id='remote-upload-04'),
-        pytest.param(
-            'http://127.0.0.1/uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
-            ('http://127.0.0.1', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
-            id='remote-upload-05'),
-    ])
-def test_parsing_reference(path, result):
-    path_parts = _parse_path(path)
-    assert path_parts == result
 
 
 @pytest.fixture(scope='session')

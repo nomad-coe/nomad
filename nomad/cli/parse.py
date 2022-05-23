@@ -30,13 +30,22 @@ from .cli import cli
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
 @click.option('--parser', help='Skip matching and use the provided parser')
 @click.option('--server-context', is_flag=True, default=False, help='Whether to use server context.')
-def _parse(mainfile, show_archive, archive_with_meta, show_metadata, skip_normalizers, not_strict, parser, server_context):
+@click.option('--username', default=None, help='Username for authentication.')
+@click.option('--password', default=None, help='Password for authentication.')
+def _parse(
+        mainfile, show_archive, archive_with_meta, show_metadata, skip_normalizers, not_strict, parser, server_context,
+        username, password):
     import sys
     import json
 
     from nomad.client import parse, normalize_all
 
-    kwargs = dict(strict=not not_strict, parser_name=parser, server_context=server_context)
+    kwargs = dict(
+        strict=not not_strict,
+        parser_name=parser,
+        server_context=server_context,
+        username=username,
+        password=password)
 
     entry_archives = parse(mainfile, **kwargs)
 
