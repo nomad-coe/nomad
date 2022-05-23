@@ -19,7 +19,7 @@
 import pytest
 import json
 import datetime
-
+import pytz
 from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Datetime, Capitalized, Bytes
 
 
@@ -33,7 +33,8 @@ from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Dat
     pytest.param(Dimension, '*', id='Dimension-*'),
     pytest.param(Dimension, 1, id='Dimension-1'),
     pytest.param(Dimension, 'quantity', id='Dimension-quantity'),
-    pytest.param(Datetime, datetime.datetime.now(), id='Datetime'),
+    pytest.param(Datetime, datetime.datetime.now(datetime.timezone.utc), id='Datetime'),
+    pytest.param(Datetime, datetime.datetime.now(pytz.timezone('America/Los_Angeles')), id='Datetime'),
     pytest.param(Capitalized, 'Hello', id='Capitalize'),
     pytest.param(Bytes, b'hello', id='Bytes')
 ])
@@ -66,6 +67,7 @@ def test_basic_types(def_type, value):
     pytest.param(Datetime, 'Wed, 01 Jan 1970 00:00:00 -0100', None, id='Datetime-rfc822'),
     pytest.param(Datetime, '1970-01-01T00:00:00Z', None, id='Datetime-aniso861-time'),
     pytest.param(Datetime, '1970-01-01', None, id='Datetime-aniso861-date'),
+    pytest.param(Datetime, '2022-05-19T05:16:32.237914-07:00', None, id='Datetime-conversion-from-localtime-to-UTC'),
     pytest.param(Capitalized, 'hello', 'Hello', id='Capitalize')
 ])
 def test_value_normalization(def_type, orig_value, normalized_value):

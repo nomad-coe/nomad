@@ -815,6 +815,11 @@ class _Datetime(DataType):
         except ValueError:
             pass
 
+        try:
+            return datetime.fromisoformat(datetime_str)
+        except ValueError:
+            pass
+
         raise TypeError('Invalid date literal %s' % datetime_str)
 
     def _convert(self, value):
@@ -833,6 +838,11 @@ class _Datetime(DataType):
         if not isinstance(value, datetime):
             raise TypeError('%s is not a datetime.' % value)
 
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=pytz.utc)
+        else:
+            value = value.astimezone(pytz.utc)
+
         return value
 
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
@@ -842,7 +852,6 @@ class _Datetime(DataType):
         if value is None:
             return None
 
-        value.replace(tzinfo=pytz.utc)
         return value.isoformat()
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
