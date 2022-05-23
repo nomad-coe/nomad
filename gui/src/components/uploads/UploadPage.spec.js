@@ -28,6 +28,8 @@ import UploadPage from './UploadPage'
 import {fireEvent, waitFor, within, act} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
+afterEach(() => closeAPI())
+
 const testShownColumnsAction = async () => {
   await screen.findByTitle('Change the shown columns.')
   expect(screen.queryByText('Parser name')).not.toBeInTheDocument()
@@ -153,7 +155,6 @@ test.each([
   render(<UploadPage uploadId={uploadId}/>)
   await testPublishedWritePermissions()
   await testShownColumnsAction()
-  closeAPI()
 })
 
 test.each([
@@ -198,7 +199,6 @@ test.each([
   render(<UploadPage uploadId={uploadId}/>)
   await testReadOnlyPermissions()
   await testShownColumnsAction()
-  closeAPI()
 })
 
 test.each([
@@ -222,11 +222,10 @@ test.each([
   render(<UploadPage uploadId={uploadId}/>)
   await testUnpublishedWritePermissions()
   await testShownColumnsAction()
-  closeAPI()
 })
 
 test('Render upload page: multiple entries', async () => {
-  await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries')
+  await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries', 'test', 'password')
   render(<UploadPage uploadId="dft_upload_1"/>)
 
   // Wait to load the page, i.e. wait for some text to appear
@@ -250,8 +249,6 @@ test('Render upload page: multiple entries', async () => {
   expect(within(rows[2]).queryByText('vasp_3.xml')).toBeInTheDocument()
   expect(within(rows[3]).queryByText('vasp_4.xml')).toBeInTheDocument()
   expect(within(rows[4]).queryByText('vasp_5.xml')).toBeInTheDocument()
-
-  closeAPI()
 })
 
 test('Delete selected entries from table', async () => {
@@ -325,8 +322,6 @@ test('Delete selected entries from table', async () => {
     expect(within(table).queryAllByText('vasp_3.xml').length).toBe(0)
     expect(within(table).queryAllByText('vasp_5.xml').length).toBe(0)
   })
-
-  closeAPI()
 })
 
 test.each([
@@ -350,7 +345,6 @@ test.each([
   render(<UploadPage uploadId={uploadId}/>)
   await testEmbargoedPublishesWritePermissions()
   await testShownColumnsAction()
-  closeAPI()
 })
 
 test.each([
@@ -401,5 +395,4 @@ test.each([
   await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
   await screen.findByText(msg)
-  closeAPI()
 })
