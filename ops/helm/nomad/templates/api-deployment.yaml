@@ -156,14 +156,14 @@ spec:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/alive"
             port: 8000
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 5
         readinessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/alive"
             port: 8000
-          initialDelaySeconds: 15
+          initialDelaySeconds: 60
           periodSeconds: 15
           timeoutSeconds: 5
       nodeSelector:

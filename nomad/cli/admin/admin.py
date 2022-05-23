@@ -18,7 +18,6 @@
 #
 
 import click
-import sys
 
 from nomad import config
 from nomad.cli.cli import cli
@@ -35,6 +34,7 @@ def admin(ctx):
 @click.option('--remove', is_flag=True, help='Do not just reset all dbs, but also remove them.')
 @click.option('--i-am-really-sure', is_flag=True, help='Must be set for the command to to anything.')
 def reset(remove, i_am_really_sure):
+    import sys
     if not i_am_really_sure:
         print('You do not seem to be really sure about what you are doing.')
         sys.exit(1)
@@ -343,6 +343,8 @@ def migrate_mongo(
         host, port, src_db_name, dst_db_name, upload_query, entry_query,
         ids_from_file, failed_ids_to_file, upload_update, entry_update, overwrite, fix_problems, dry):
     import json
+    import sys
+
     from pymongo.database import Database
     from nomad import infrastructure
     import nomad.cli.admin.migrate as migrate
@@ -394,3 +396,54 @@ def migrate_mongo(
     migrate.migrate_mongo_uploads(
         db_src, db_dst, uploads, failed_ids_to_file, upload_update, entry_update, overwrite,
         fix_problems, dry)
+
+
+@admin.command(
+    help='''
+        Rewrites the existing dataset URLs in existing DOI records with freshly generated dataset URLs.
+        This is useful, if the URL layout has changed.''')
+@click.argument('DOIs', nargs=-1)
+@click.option('--dry', is_flag=True, help='Just test if DOI exists and print is current URL.')
+@click.option('--save-existing-records', help='A filename to store the existing DOI records in.')
+def rewrite_doi_urls(dois, dry, save_existing_records):
+    import json
+    import requests
+
+    from nomad.doi import edit_doi_url, _create_dataset_url
+
+    existing_records = []
+
+    if len(dois) == 0:
+        from nomad import infrastructure
+        from nomad.datamodel import Dataset
+        infrastructure.setup_mongo()
+
+        datasets = Dataset.m_def.a_mongo.objects(doi__exists=True)
+        dois = [dataset.doi for dataset in datasets]
+
+    try:
+        for doi in dois:
+            # TODO remove this
+            if doi == '10.17172/NOMAD/2016.10.14-1':
+                continue
+
+            # check if doi exits
+            response = requests.get(f'https://api.datacite.org/dois/{doi}')
+            if response.status_code == 404:
+                print(f'Cannot rewrite {doi}. DOI does not exist.')
+                continue
+
+            data = response.json()
+            existing_records.append(data)
+
+            if data['data']['attributes']['url'] == _create_dataset_url(doi):
+                print(f'Already up-to-date {doi}')
+                continue
+
+            print(f'Updating {doi} ...')
+            if not dry:
+                edit_doi_url(doi)
+    finally:
+        if save_existing_records:
+            with open(save_existing_records, 'wt') as f:
+                json.dump(existing_records, f, indent=2)

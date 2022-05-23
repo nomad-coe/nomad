@@ -31,16 +31,43 @@ from nomad.datamodel import User
 from nomad import config, utils
 
 
-def edit_url(doi: str, url: str = None):
+def _create_dataset_url(doi: str) -> str:
+    '''
+    Returns:
+        The url that set in the DOI record and is used to resolve the DOI. The URL
+        points to the dataset page in the NOMAD GUI.
+    '''
+    return f'{config.gui_url()}/dataset/doi/{doi}'
+
+
+def edit_doi_url(doi: str, url: str = None):
     ''' Changes the URL of an already findable DOI. '''
     if url is None:
-        url = 'https://nomad-lab.eu/prod/rae/gui/datasets/doi/%s' % doi
+        url = _create_dataset_url(doi)
 
-    metadata_url = '%s/doi/%s' % (config.datacite.mds_host, doi)
-    response = requests.put(
-        metadata_url,
-        headers={'Content-Type': 'text/plain;charset=UTF-8'},
-        data='doi=%s\nurl=%s' % (doi, url), **_requests_args())
+    doi_url = '%s/doi/%s' % (config.datacite.mds_host, doi)
+    headers = {'Content-Type': 'text/plain;charset=UTF-8'}
+    data = f'doi={doi}\nurl={url}'
+    response = requests.put(doi_url, headers=headers, data=data, **_requests_args())
+
+    # There seems to be a bug in datacite. Some old records might have somehow invalid
+    # xml stored at datacite and for those the DOI update might fail. We try to
+    # get the xml string, parse and re-serialize and put it again. After this the
+    # url update might work.
+    if response.status_code == 422 and 'No matching global declaration available' in response.text:
+        metadata_url = f'{config.datacite.mds_host}/metadata/{doi}'
+        response = requests.get(metadata_url, **_requests_args())
+        original_xml = response.text
+        tree = ET.fromstring(original_xml)
+        repaired_xml = ET.tostring(tree, encoding='UTF-8', method='xml').decode('utf-8')
+        response = requests.put(metadata_url, **_requests_args())
+        requests.put(
+            metadata_url,
+            headers={'Content-Type': 'application/xml;charset=UTF-8'},
+            data=repaired_xml.encode('utf-8'), **_requests_args())
+        response = requests.put(doi_url, headers=headers, data=data, **_requests_args())
+        if response.status_code >= 300:
+            raise Exception(f'Encountered known xml problems for {doi}. But could not fix.')
 
     if response.status_code >= 300:
         raise Exception('Unexpected datacite response (status code %d): %s' % (
@@ -96,7 +123,7 @@ class DOI(Document):
         doi.doi_url = '%s/doi/%s' % (config.datacite.mds_host, doi_str)
         doi.state = 'created'
         doi.create_time = create_time
-        doi.url = '%s/dataset/doi/%s' % (config.gui_url(), doi_str)
+        doi.url = _create_dataset_url(doi_str)
 
         affiliation = ''
         if user.affiliation is not None:
