@@ -164,7 +164,7 @@ Published.propTypes = {
 
 export const VisitEntryAction = React.memo(function VisitEntryAction({data, ...props}) {
   const {user} = useApi()
-  const hide = data.with_embargo && !user && !data.viewers.find(viewer => viewer.user_id === user.sub)
+  const hide = (data.with_embargo && !user && !data.viewers.find(viewer => viewer.user_id === user.sub)) || data.process_running
   if (hide) {
     return ''
   }
