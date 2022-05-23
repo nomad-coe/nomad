@@ -42,7 +42,7 @@ def resolve_difference(values):
 class TaskNormalizer(Normalizer):
     def __init__(self, entry_archive, workflow_index):
         super().__init__(entry_archive)
-        workflow_index = workflow_index if len(entry_archive.workflow) < workflow_index else -1
+        workflow_index = workflow_index if len(entry_archive.workflow) > workflow_index else -1
         self.workflow = entry_archive.workflow[workflow_index]
         run = self.workflow.run_ref
         self.run = run if run else entry_archive.run[-1]
@@ -117,6 +117,9 @@ class SinglePointNormalizer(TaskNormalizer):
 
         scc = self.run.calculation
         if not scc:
+            if self.section.method is None:
+                # remove single point section
+                self.workflow.m_remove_sub_section(Workflow.single_point, 0)
             return
 
         if not self.section.n_scf_steps:
@@ -245,6 +248,9 @@ class GeometryOptimizationNormalizer(TaskNormalizer):
                 try:
                     energy = trajectory[step].energy.total.value
                 except (IndexError, AttributeError):
+                    invalid = True
+                    break
+                if energy is None:
                     invalid = True
                     break
                 energies.append(energy.magnitude)
