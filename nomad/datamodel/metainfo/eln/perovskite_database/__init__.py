@@ -17,10 +17,7 @@
 # limitations under the License.
 #
 
-from email.policy import default
 import numpy as np
-from sqlalchemy import MetaData, true
-import os.path
 from nomad.units import ureg
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, MEnum, Reference, Datetime, Section)
@@ -77,7 +74,7 @@ Examples:
 Unpublished
                     """,
         a_eln=dict(
-            component='EnumEditQuantity'))
+            component='EnumEditQuantity', props=dict(suggestions=[])))
 
     lead_author = Quantity(
         type=str,
@@ -86,7 +83,7 @@ Unpublished
     The surname of the first author. If several authors, end with et al. If the DOI number is given correctly, this will be extracted automatically from www.crossref.org
                     """,
         a_eln=dict(
-            component='EnumEditQuantity'))
+            component='EnumEditQuantity', props=dict(suggestions=[])))
 
     publication_date = Quantity(
         type=Datetime,
@@ -127,7 +124,7 @@ Unpublished
     This could be anything given additional description to the cell that is not captured by any other field.
                     """,
         a_eln=dict(
-            component='EnumEditQuantity'))
+            component='EnumEditQuantity', props=dict(suggestions=[])))
 
     internal_sample_id = Quantity(
         type=str,
@@ -769,7 +766,7 @@ Example
 9; 1 | 3; 2
                     """,
         a_eln=dict(
-            component='EnumEditQuantity', props=dict(suggestions=['', '1 | 1 | 1 >> nan >> 7; 3 >> nan', '1 >> 1', '1 | 1 >> 1 >> 1', '0.75; 40 | 1', '0.2; 7.5', '1', '1 >> 1 >> 1 >> 1 | 1', 'nan | 0.2; 7.5', '1 >> 1 | nan', '1; 39 | 1', '1 >> 1 >> 1', '1 >> 1 | 1', '1; 0.01', 'nan >> 1 | 1', '0.01; 1; 0.15; 1 | 1; 3; 1.5', '1 >> 1 >> 1 | nan', '0.75; 1; 9 | 1', '1 | nan', '1 | 1 | nan', '1; 0.25 | 1 >> 1', '1 | nan | nan', 'nan | nan', '9; 0.4; 0.6 | 1 >> 1', '6; 1 | nan', '1 | 1 >> 1', 'nan | 1', 'nan | 1 | nan', '9; 1 | nan', '0.6; 0.4; 10 | 1', '1; 3 | 1', '1 | 1 | 1', '3; 1 | 1', '10; 0.2 | 1', '1 >> 1 | 7; 1', '1 | 0.02; 0.8; 1; 120', '1 | 3.5; 1', '1 | 1 | 1 | 1 | 1', '1 | 1 >> 1 | 1 >> 1', '1; 0.25 | nan', '0.75; 80 | 1 | 1', '1 | 1', '20; 1', '0.25; 9 | 1', '1 | 1 | 1 | 1'])))
+            component='EnumEditQuantity', props=dict(suggestions=[''])))
 
     deposition_solvents_supplier = Quantity(
         type=str,
@@ -1597,8 +1594,8 @@ Ozone
                 archive.results.material.chemical_formula_reduced = final_formula[0]
                 chemical_formula_reduced = archive.results.material.chemical_formula_reduced
                 archive.results.material.elements = final_formula[1]
-                archive.results.material.n_elements = len(final_formula[1])
-                if archive.results.material.chemical_formula_reduced is None:
+                # archive.results.material.n_elements = len(final_formula[1])
+                if archive.results.material.chemical_formula_hill is None:
                     archive.results.material.chemical_formula_hill = Formula(chemical_formula_reduced).format('hill')
 
 
@@ -6778,6 +6775,7 @@ nan
 
 
 class PerovskiteSolarCell(EntryData):
+
     m_def = Section(a_eln=dict(lane_width='800px'))
 
     comments = Quantity(
@@ -6785,13 +6783,6 @@ class PerovskiteSolarCell(EntryData):
         description='''Remarks, observations and free text about the perovskite solar cell
                     experiments and measurements.''',
         a_eln=dict(component='RichTextEditQuantity'))
-
-    # test_strings = Quantity(
-    #     type=str,
-    #     description='''Test Quantity str with suggestions''',
-    #     a_eln=dict(component='EnumEditQuantity', suggestions=['one', 'two', 'three']))
-    #     a_eln=dict(component='EnumEditQuantity'))
-    #     a_eln=dict(component='EnumEditQuantity'))
 
     ref = SubSection(section_def=Ref)
     cell = SubSection(section_def=Cell)
@@ -6809,17 +6800,6 @@ class PerovskiteSolarCell(EntryData):
     eqe = SubSection(section_def=EQE)
     stability = SubSection(section_def=Stability)
     outdoor = SubSection(section_def=Outdoor)
-
-    # def normalize(self, archive, logger):
-    #     if archive.data.jv:
-    #         self.summary_Voc = archive.data.jv.default_Voc
-    #         self.summary_Jsc = archive.data.jv.default_Jsc
-    #         self.summary_FF = archive.data.jv.default_FF
-    #         self.summary_PCE = archive.data.jv.default_PCE
-    #     if archive.data.perovskite:
-    #         self.summary_composition_long_form = archive.data.perovskite.composition_long_form
-    #     if archive.data.cell:
-    #         self.summary_stack_sequence = archive.data.cell.stack_sequence
 
 
 m_package.__init_metainfo__()
