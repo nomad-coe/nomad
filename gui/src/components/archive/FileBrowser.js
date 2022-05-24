@@ -77,6 +77,7 @@ class RawDirectoryAdaptor extends Adaptor {
     this.editable = editable
     this.data = undefined
     this.timestamp = undefined
+    this.initialized = false
   }
   needToFetchData() {
     return this.data === undefined
@@ -150,13 +151,16 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
     // components are unmounted.
     const oldTimestamp = lane.adaptor.timestamp // Timestamp from the store the last time we loaded the directory data
     const newTimestamp = newStoreObj.upload?.complete_time // Current timestamp from the store
-    if (newTimestamp && !oldTimestamp) {
-      // The store is being initialized with api data, no need to refresh, just update the adaptor timestamp
-      lane.adaptor.timestamp = newTimestamp
-    } else if (newTimestamp && oldTimestamp && newTimestamp !== oldTimestamp && !newStoreObj.isProcessing) {
-      // Reprocessed
-      await lane.adaptor.fetchData(api, dataStore, true)
-      setRefreshCounter(oldValue => oldValue + 1) // Trigger rerender
+    if (newStoreObj.hasUpload) {
+      if (!lane.adaptor.initialized) {
+        // No need to a new refresh again, just update the adaptor timestamp
+        lane.adaptor.timestamp = newTimestamp
+        lane.adaptor.initialized = true
+      } else if (newTimestamp !== oldTimestamp && !newStoreObj.isProcessing) {
+        // Reprocessed
+        await lane.adaptor.fetchData(api, dataStore, true)
+        setRefreshCounter(oldValue => oldValue + 1) // Trigger rerender
+      }
     }
   }, [api, dataStore, lane, setRefreshCounter])
 
