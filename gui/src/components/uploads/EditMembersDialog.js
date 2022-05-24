@@ -30,6 +30,7 @@ import {useApi} from '../api'
 import {useErrors} from '../errors'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import DeleteIcon from '@material-ui/icons/Delete'
+import { useDataStoreContext } from '../DataStore'
 import { useUploadContext } from './UploadContext'
 
 export const editMembersDialogContext = React.createContext()
@@ -335,7 +336,8 @@ function EditMembersDialog({...props}) {
   const {disabled} = props
   const {api} = useApi()
   const {raiseError} = useErrors()
-  const {upload, setUpload} = useUploadContext()
+  const dataStore = useDataStoreContext()
+  const {uploadId, upload} = useUploadContext()
   const [open, setOpen] = useState(false)
   const [members, setMembers] = useState([])
   const [isChanged, setIsChanged] = useState(false)
@@ -380,13 +382,13 @@ function EditMembersDialog({...props}) {
     if (isChanged) {
       const newCoauthors = members.filter(member => member.role === 'Co-author').map(member => member.user_id)
       const newReviewers = members.filter(member => member.role === 'Reviewer').map(member => member.user_id)
-      api.post(`/uploads/${upload.upload_id}/edit`, {
+      api.post(`/uploads/${uploadId}/edit`, {
         'metadata': {
           'coauthors': newCoauthors,
           'reviewers': newReviewers
         }
       }).then(results => {
-        setUpload(results.data)
+        dataStore.updateUpload(uploadId, {upload: results.data})
         setOpen(false)
       }).catch(err => raiseError(err))
     } else {

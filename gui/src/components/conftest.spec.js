@@ -38,6 +38,7 @@ import { Router, MemoryRouter } from 'react-router-dom'
 import { createBrowserHistory } from 'history'
 import { APIProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
+import DataStore from './DataStore'
 import searchQuantities from '../searchQuantities'
 import '@testing-library/jest-dom/extend-expect' // Adds convenient expect-methods
 import { keycloakBase } from '../config'
@@ -92,7 +93,9 @@ export const WrapperDefault = ({children}) => {
             <MemoryRouter>
               <ErrorSnacks>
                 <ErrorBoundary>
-                  {children}
+                  <DataStore>
+                    {children}
+                  </DataStore>
                 </ErrorBoundary>
               </ErrorSnacks>
             </MemoryRouter>

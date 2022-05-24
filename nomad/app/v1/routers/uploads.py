@@ -1086,6 +1086,10 @@ async def post_upload_raw_create_dir_path(
             detail=f'Path `{path}` already exists.')
     try:
         upload.staging_upload_files.raw_create_directory(path)
+        # No real processing is needed when just adding a folder, but we should signal that
+        # the upload has changed.
+        upload.complete_time = datetime.utcnow()
+        upload.save()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -9,13 +9,12 @@ import { getSectionReference, SectionMDef, useGlobalMetainfo } from '../archive/
 import { useUploadContext } from './UploadContext'
 
 const CreateEntry = React.memo(function CreateEntry(props) {
-  const {data} = useUploadContext()
+  const {uploadId, isProcessing} = useUploadContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const globalMetainfo = useGlobalMetainfo()
   const [templates, setTemplates] = useState([])
   const [template, setTemplate] = useState()
-  const uploadId = data.upload.upload_id
   const [name, setName] = useState('')
   const history = useHistory()
   const location = useLocation()
@@ -29,7 +28,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
     }
 
     // Do not reload all possible entries while still processing.
-    if (data.upload.process_running) {
+    if (isProcessing) {
       return
     }
 
@@ -88,7 +87,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
     }
 
     getTemplates().then(setTemplates).catch(raiseError)
-  }, [api, raiseError, setTemplates, globalMetainfo, data])
+  }, [api, raiseError, setTemplates, globalMetainfo, isProcessing])
 
   const handleAdd = useCallback(() => {
     api.put(`uploads/${uploadId}/raw/?file_name=${name}.archive.json&wait_for_processing=true`, selectedTemplate.archive)

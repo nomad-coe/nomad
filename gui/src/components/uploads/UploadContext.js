@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
-import { DoesNotExist, useApi } from '../api'
-import { useErrors } from '../errors'
+import { DoesNotExist } from '../api'
+import { useDataStoreContext } from '../DataStore'
 import { useHistory } from 'react-router-dom'
 import { getUrl } from '../nav/Routes'
 
@@ -30,83 +30,26 @@ export function useUploadContext() {
 }
 
 const UploadContext = React.memo(function UploadContext({uploadId, children}) {
-  const {api, user} = useApi()
-  const {raiseError} = useErrors()
+  const dataStore = useDataStoreContext()
+  const [uploadStoreObj, setUploadStoreObj] = useState(dataStore.getUpload(uploadId))
+
+  const onUploadStoreUpdated = useCallback((oldStoreObj, newStoreObj) => {
+    setUploadStoreObj(newStoreObj)
+  }, [setUploadStoreObj])
+
+  useEffect(() => {
+    return dataStore.subscribeToUpload(uploadId, onUploadStoreUpdated, true, true)
+  }, [dataStore, uploadId, onUploadStoreUpdated])
+
   const history = useHistory()
 
-  const [pagination, setPagination] = useState({
-    page_size: 5, page: 1, order: 'asc', order_by: 'process_status'
-  })
-  const [deleteClicked, setDeleteClicked] = useState(false)
-  const [data, setData] = useState(null)
-  const [apiData, setApiData] = useState(null)
-  const [error, setError] = useState(null)
-  const upload = data?.upload
-  const hasUpload = !!upload
-  const setUpload = useMemo(() => (upload) => {
-    setData(data => ({...data, upload: upload}))
-  }, [setData])
-  const isProcessing = upload?.process_running
-
-  const fetchData = useCallback(() => () => {
-    api.get(`/uploads/${uploadId}/entries`, pagination, {returnRequest: true})
-      .then(apiData => {
-        setApiData(apiData)
-        setData(apiData.response)
-      })
-      .catch((error) => {
-        if (error instanceof DoesNotExist && deleteClicked) {
-          history.push(getUrl('user/uploads', new URL(window.location.href).pathname))
-          return
-        }
-        if (error.apiMessage === 'Page out of range requested.') {
-          // Can happen if entries have been deleted and the page is no longer in range
-          pagination.page = 1
-          setPagination(pagination)
-        } else if (!hasUpload && error.apiMessage) {
-          setError(error.apiMessage)
-        } else {
-          raiseError(error)
-        }
-      })
-  }, [api, hasUpload, uploadId, pagination, setPagination, deleteClicked, raiseError, setData, setApiData, history])
-
-  // constant fetching of upload data when necessary
   useEffect(() => {
-    if (isProcessing) {
-      const interval = setInterval(fetchData(), 1000)
-      return () => clearInterval(interval)
+    if (uploadStoreObj.error && uploadStoreObj.error instanceof DoesNotExist && uploadStoreObj.deletionRequested) {
+      history.push(getUrl('user/uploads', new URL(window.location.href).pathname))
     }
-  }, [fetchData, isProcessing])
+  })
 
-  // initial fetching of upload data
-  useEffect(fetchData(), [fetchData])
-
-  const viewers = upload?.viewers
-  const writers = upload?.writers
-  const isViewer = user && viewers?.includes(user.sub)
-  const isWriter = user && writers?.includes(user.sub)
-
-  const contextValue = useMemo(() => ({
-    uploadId: uploadId,
-    upload: upload,
-    hasUpload: hasUpload,
-    setUpload: setUpload,
-    setPagination: setPagination,
-    pagination: pagination,
-    data: data,
-    apiData: apiData,
-    isViewer: isViewer,
-    isWriter: isWriter,
-    update: fetchData,
-    error: error,
-    deleteClicked: deleteClicked,
-    setDeleteClicked: setDeleteClicked,
-    isProcessing: isProcessing
-  }), [
-    uploadId, upload, hasUpload, setUpload, setPagination, pagination, data, apiData,
-    isViewer, isWriter, fetchData, error, deleteClicked, setDeleteClicked, isProcessing
-  ])
+  const contextValue = useMemo(() => { return uploadStoreObj }, [uploadStoreObj])
 
   return <uploadContext.Provider value={contextValue}>
     {children}

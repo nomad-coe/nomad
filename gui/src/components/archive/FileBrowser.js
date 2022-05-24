@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useMemo, useState, useRef } from 'react'
+import React, { useContext, useMemo, useCallback, useState, useRef, useEffect } from 'react'
 import { useHistory } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { makeStyles, Typography, IconButton, Box, Grid, Button, Tooltip, TextField,
   Dialog, DialogContent, DialogContentText } from '@material-ui/core'
 import DialogActions from '@material-ui/core/DialogActions'
+import { useDataStoreContext } from '../DataStore'
 import Browser, { Item, Content, Adaptor, browserContext, laneContext, Title, Compartment } from './Browser'
 import { useApi } from '../api'
 import UploadIcon from '@material-ui/icons/CloudUpload'
@@ -74,23 +75,23 @@ class RawDirectoryAdaptor extends Adaptor {
     this.title = title
     this.highlightedItem = highlightedItem
     this.editable = editable
-    this.data = undefined // Will be set by RawDirectoryContent component when loaded
+    this.data = undefined
+    this.timestamp = undefined
   }
   needToFetchData() {
     return this.data === undefined
   }
-  async fetchData(api) {
-    if (this.data === undefined) {
+  async fetchData(api, dataStore, force = false) {
+    if (this.data === undefined || force) {
+      if (this.data === undefined) {
+        this.data = null // to prevent redundant fetches
+      }
+      this.timestamp = dataStore.getUpload(this.uploadId).upload?.complete_time
       const encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
       const response = await api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
       const elementsByName = {}
       response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
       this.data = {response, elementsByName}
-    }
-  }
-  onFilesUpdated(uploadId, path) {
-    if (uploadId === this.uploadId && this.path.startsWith(path)) {
-      this.data = undefined
     }
   }
   itemAdaptor(key) {
@@ -131,6 +132,7 @@ const useRawDirectoryContentStyles = makeStyles(theme => ({
 }))
 function RawDirectoryContent({uploadId, path, title, highlightedItem, editable}) {
   const classes = useRawDirectoryContentStyles()
+  const dataStore = useDataStoreContext()
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
   const history = useHistory()
@@ -141,6 +143,28 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
   const createDirName = useRef()
   const { raiseError } = useErrors()
 
+  const [, setRefreshCounter] = useState(0)
+
+  const refreshIfNeeded = useCallback(async (oldStoreObj, newStoreObj) => {
+    // Called when a store update occurs. Note, adaptors can be cached while the browser & lanes
+    // components are unmounted.
+    const oldTimestamp = lane.adaptor.timestamp // Timestamp from the store the last time we loaded the directory data
+    const newTimestamp = newStoreObj.upload?.complete_time // Current timestamp from the store
+    if (newTimestamp && !oldTimestamp) {
+      // The store is being initialized with api data, no need to refresh, just update the adaptor timestamp
+      lane.adaptor.timestamp = newTimestamp
+    } else if (newTimestamp && oldTimestamp && newTimestamp !== oldTimestamp && !newStoreObj.isProcessing) {
+      // Reprocessed
+      await lane.adaptor.fetchData(api, dataStore, true)
+      setRefreshCounter(oldValue => oldValue + 1) // Trigger rerender
+    }
+  }, [api, dataStore, lane, setRefreshCounter])
+
+  useEffect(() => {
+    refreshIfNeeded(undefined, dataStore.getUpload(uploadId))
+    return dataStore.subscribeToUpload(uploadId, refreshIfNeeded, true, false)
+  }, [dataStore, uploadId, refreshIfNeeded])
+
   const handleDrop = (files) => {
     if (!files[0]?.name) {
       return // Not dropping a file, but something else. Ignore.
@@ -149,19 +173,9 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
     for (const file of files) {
       formData.append('file', file)
     }
-    browser.blockUntilProcessed({
-      uploadId: uploadId,
-      apiCall: api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData, {
-        onUploadProgress: (progressEvent) => {
-          // TODO: would be nice to show progress somehow
-        }
-      }),
-      apiCallText: 'Uploading file',
-      onSuccess: () => {
-        browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, path))
-        browser.update()
-      }
-    })
+    api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData)
+      .then(response => dataStore.updateUpload(uploadId, {upload: response.data}))
+      .catch(error => raiseError(error))
   }
 
   const handleCreateDir = () => {
@@ -170,31 +184,29 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
     if (dirName) {
       const fullPath = encodedPath + (encodedPath ? '/' : '') + encodeURIComponent(dirName)
       api.post(`/uploads/${uploadId}/raw-create-dir/${fullPath}`)
-        .then(() => {
-          browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, path))
-          browser.update()
-        })
+        .then(response => dataStore.updateUpload(uploadId, {upload: response.data}))
         .catch(raiseError)
     }
   }
 
   const handleDeleteDir = () => {
     setOpenConfirmDeleteDirDialog(false)
-    browser.blockUntilProcessed({
-      uploadId: uploadId,
-      apiCall: api.delete(`/uploads/${uploadId}/raw/${encodedPath}`),
-      apiCallText: 'Deleting directory',
-      onSuccess: () => {
-        const segments = path.split('/')
-        const parentPath = segments.slice(0, segments.length - 1).join('/')
-        browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, parentPath))
-        if (lane.index > 0) {
-          history.push(browser.lanes.current[lane.index - 1].path)
+    api.delete(`/uploads/${uploadId}/raw/${encodedPath}`)
+      .then(response => {
+        const mainfile = lane.adaptor.context?.mainfile // Will be set if we're on an entry page
+        if (typeof mainfile === 'string' && (mainfile === path || path === '' || mainfile.startsWith(path + '/'))) {
+          // This will delete the current entry - go to upload overview page
+          history.push(`/user/uploads/upload/id/${uploadId}`)
+        } else {
+          const gotoLane = lane.index > 0 ? lane.index - 1 : 0
+          history.push(browser.lanes.current[gotoLane].path)
         }
-      }})
+        dataStore.updateUpload(uploadId, {upload: response.data})
+      })
+      .catch(raiseError)
   }
 
-  if (lane.adaptor.data === undefined) {
+  if (!lane.adaptor.data) {
     return <Content key={path}><Typography>loading ...</Typography></Content>
   } else {
     // Data loaded
@@ -378,7 +390,9 @@ function RawFileContent({uploadId, path, data, editable}) {
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
   const history = useHistory()
+  const dataStore = useDataStoreContext()
   const { api } = useApi()
+  const { raiseError } = useErrors()
   const [openConfirmDeleteFileDialog, setOpenConfirmDeleteFileDialog] = useState(false)
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
   const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?ignore_mime_type=true`
@@ -394,18 +408,19 @@ function RawFileContent({uploadId, path, data, editable}) {
 
   const handleDeleteFile = () => {
     setOpenConfirmDeleteFileDialog(false)
-    browser.blockUntilProcessed({
-      uploadId: uploadId,
-      apiCall: api.delete(`/uploads/${uploadId}/raw/${encodedPath}`),
-      apiCallText: 'Deleting file',
-      onSuccess: () => {
-        const segments = path.split('/')
-        const parentPath = segments.slice(0, segments.length - 1).join('/')
-        browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, parentPath))
-        if (lane.index > 0) {
-          history.push(browser.lanes.current[lane.index - 1].path)
+    api.delete(`/uploads/${uploadId}/raw/${encodedPath}`)
+      .then(response => {
+        const mainfile = lane.adaptor.context?.mainfile // Will be set if we're on an entry page
+        if (path === mainfile) {
+          // Deleting the main entry - go to upload overview page
+          history.push(`/user/uploads/upload/id/${uploadId}`)
+        } else {
+          const gotoLane = lane.index > 0 ? lane.index - 1 : 0
+          history.push(browser.lanes.current[gotoLane].path)
         }
-      }})
+        dataStore.updateUpload(uploadId, {upload: response.data})
+      })
+      .catch(raiseError)
   }
 
   // A nicer, human-readable size string

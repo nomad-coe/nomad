@@ -31,6 +31,7 @@ import Navigation from './nav/Navigation'
 import GUIMenu from './GUIMenu'
 import { APIProvider, GlobalLoginRequired, onKeycloakEvent } from './api'
 import { GlobalMetainfo } from './archive/metainfo'
+import DataStore from './DataStore'
 
 const keycloak = Keycloak({
   url: keycloakBase,
@@ -51,8 +52,10 @@ export default function App() {
                     <ErrorSnacks>
                       <ErrorBoundary>
                         <GlobalLoginRequired>
-                          <Navigation />
-                          <GUIMenu/>
+                          <DataStore>
+                            <Navigation />
+                            <GUIMenu/>
+                          </DataStore>
                         </GlobalLoginRequired>
                       </ErrorBoundary>
                     </ErrorSnacks>
