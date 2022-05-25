@@ -21,12 +21,15 @@ import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import {
   Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip,
   IconButton, useTheme, Grid, Dialog, DialogContent, DialogContentText, DialogActions,
-  Button } from '@material-ui/core'
+  Button, MenuItem } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane } from './Browser'
 import { RawFileAdaptor } from './FileBrowser'
-import { isEditable, PackageMDef, QuantityMDef, removeSubSection, resolveRefAsync, SectionMDef, SubSectionMDef, useMetainfo } from './metainfo'
+import {
+  isEditable, PackageMDef, QuantityMDef, removeSubSection, resolveRef, resolveRefAsync, SectionMDef, SubSectionMDef,
+  useMetainfo
+} from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
@@ -47,11 +50,14 @@ import SaveIcon from '@material-ui/icons/Save'
 import AddIcon from '@material-ui/icons/AddCircle'
 import CodeIcon from '@material-ui/icons/Code'
 import DeleteIcon from '@material-ui/icons/Delete'
-import { getLineStyles } from '../../utils'
+import {getLineStyles, titleCase} from '../../utils'
 import Plot from '../visualization/Plot'
 import { useUploadContext } from '../uploads/UploadContext'
 import { EntryButton } from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
+import {ErrorHandler} from '../ErrorHandler'
+import Alert from '@material-ui/lab/Alert'
+import _ from 'lodash'
 
 export function useBrowserAdaptorContext(data) {
   const entryContext = useEntryContext()
@@ -722,6 +728,7 @@ function Section({section, def, parentRelation}) {
         </Compartment>
       )}
       {subSectionCompartment}
+      {def.m_annotations?.plot && <SectionPlots sectionDef={def} section={section}/>}
     </React.Fragment>
   } else {
     contents = <React.Fragment>
@@ -733,8 +740,10 @@ function Section({section, def, parentRelation}) {
           .map(renderQuantity)
         }
       </Compartment>
+      {def.m_annotations?.plot && <SectionPlots sectionDef={def} section={section}/>}
     </React.Fragment>
   }
+
   const eln = def?.m_annotations?.eln
   const laneWidth = (eln && eln.length > 0 ? eln[0].lane_width : undefined)
   const otherProps = (laneWidth ? {minWidth: laneWidth, maxWidth: laneWidth} : undefined)
@@ -926,49 +935,147 @@ PropertyValuesList.propTypes = ({
   ])
 })
 
+const usePlotStyle = makeStyles(theme => ({
+  error: {
+    margin: theme.spacing(1),
+    minWidth: 300
+  }
+}))
+
 const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
+  const classes = usePlotStyle()
   const theme = useTheme()
   const units = useUnits()
+  const Y = Array.isArray(plot.y) ? plot.y : [plot.y]
+  const nLines = Y.length
 
   const [data, layout] = useMemo(() => {
-    const toUnit = quantityDef => {
-      const value = section[quantityDef.name]
-      const unit = quantityDef.unit
+    const toUnit = path => {
+      const relativePath = path.replace('./', '')
+      const resolvedQuantityDef = resolveRef(relativePath, sectionDef)
+      if (resolvedQuantityDef === undefined || resolvedQuantityDef === null) {
+        throw new Error(`Could not resolve the path ${path}`)
+      }
+      const value = resolveRef(relativePath, section)
+      if (value === undefined || value === null) {
+        throw new Error(`Could not resolve the data for ${path}`)
+      }
+      const unit = resolvedQuantityDef?.unit
       if (unit) {
-        const quantity = new Q(value, quantityDef.unit).toSystem(units)
+        const quantity = new Q(value, unit).toSystem(units)
         return [quantity.value(), quantity.label()]
       } else {
         return [value, unit]
       }
     }
-    const [xValues, xUnit] = toUnit(sectionDef._properties[plot.x])
-    const [yValues, yUnit] = toUnit(sectionDef._properties[plot.y])
 
-    const data = [
-      {
+    let xValues, xUnit
+    try {
+      [xValues, xUnit] = toUnit(plot.x)
+    } catch (e) {
+      return [{error: e.message}, undefined]
+    }
+    const xPath = plot.x.split('/')
+    const xLabel = titleCase(xPath[xPath.length - 1])
+
+    let lines = getLineStyles(nLines, theme).map(line => {
+      return {type: 'scatter',
+        mode: 'lines',
+        line: line}
+    })
+    if (plot.lines) {
+      Y.forEach((y, index) => {
+        _.merge(lines[index], plot.lines[index])
+      })
+    }
+
+    let data = []
+    let yUnits = []
+    let yLabels = []
+    Y.forEach((y, index) => {
+      let yValues, yUnit
+      try {
+        [yValues, yUnit] = toUnit(y)
+      } catch (e) {
+        data = {error: e.message}
+        return
+      }
+      const yPath = y.split('/')
+      const yLabel = titleCase(yPath[yPath.length - 1])
+      const line = {
+        name: yLabel,
         x: xValues,
         y: yValues,
-        type: 'scatter',
-        mode: 'lines',
-        line: getLineStyles(1, theme)
+        ...lines[index]
       }
-    ]
+      data.push(line)
+      yUnits.push(yUnit)
+      yLabels.push(yLabel)
+    })
 
-    const layout = {
-      yaxis: {
-        title: {
-          text: yUnit ? `${plot.y} (${yUnit})` : plot.y
+    const getColor = index => {
+      const line = lines[index]
+      if ('mode' in line) {
+        if (line.mode === 'lines') {
+          return {color: line.line?.color}
+        } else if (line.mode === 'markers') {
+          return {color: line.marker?.color}
         }
-      },
+      }
+      return {color: '#000000'}
+    }
+
+    const sameUnit = yUnits.every(unit => unit === yUnits[0])
+
+    let layout = {
       xaxis: {
-        title: {
-          text: yUnit ? `${plot.x} (${xUnit})` : plot.x
-        }
+        title: xUnit ? `${xLabel} (${xUnit})` : xLabel
+      },
+      yaxis: {
+        title: sameUnit ? `${titleCase(title)} (${yUnits[0]})` : (yUnits[0] ? `${yLabels[0]} (${yUnits[0]})` : yLabels[0]),
+        titlefont: !sameUnit && nLines > 1 ? getColor(0) : undefined,
+        tickfont: !sameUnit && nLines > 1 ? getColor(0) : undefined
+      },
+      showlegend: sameUnit && nLines > 1,
+      legend: {
+        x: 1,
+        y: 1,
+        xanchor: 'right'
       }
     }
 
+    if (!sameUnit) {
+      Y.forEach((y, index) => {
+        const color = getColor(index)
+        if (index > 0) {
+          layout[`yaxis${index + 1}`] = {
+            title: yUnits[index] ? `${yLabels[index]} (${yUnits[index]})` : yLabels[index],
+            anchor: 'x',
+            overlaying: 'y',
+            side: index % 2 === 0 ? 'left' : 'right',
+            titlefont: nLines > 1 ? color : undefined,
+            tickfont: nLines > 1 ? color : undefined
+          }
+          data[index]['yaxis'] = `y${index + 1}`
+        }
+      })
+    }
+
+    if (plot.layout) {
+      _.merge(layout, plot.layout)
+    }
+
     return [data, layout]
-  }, [section, plot, sectionDef, theme, units])
+  }, [Y, nLines, plot.layout, plot.lines, plot.x, section, sectionDef, theme, title, units])
+
+  if ('error' in data) {
+    return <Alert
+      severity="error"
+      className={classes.error}
+    >
+      {`Error when plotting ${titleCase(plot.label)}: ${data.error}`}
+    </Alert>
+  }
 
   return <Box minWidth={500}>
     <Plot
@@ -976,14 +1083,84 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
       layout={layout}
       floatTitle={title}
       fixedMargins={true}
+      config={plot.config}
     />
   </Box>
 })
 XYPlot.propTypes = {
   plot: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
   sectionDef: PropTypes.object.isRequired,
+  section: PropTypes.object,
   title: PropTypes.string
+}
+
+export const SectionPlots = React.memo(function SectionPlots({section, sectionDef}) {
+  const classes = usePlotStyle()
+  const plot = sectionDef.m_annotations?.plot
+  const [selected, setSelected] = useState([0])
+  const plots = useMemo(() => {
+    let plots = (Array.isArray(plot) ? [...plot] : [{...plot}])
+    plots.forEach(plot => {
+      if (!('label' in plot)) {
+        const pathParts = Array.isArray(plot.y) ? ['unnamed'] : plot.y.split('/')
+        plot.label = pathParts[pathParts.length - 1]
+      }
+    })
+    return plots
+  }, [plot])
+
+  useEffect(() => {
+    setSelected([0])
+  }, [plots.length])
+
+  if (plots.length < 1 || selected.find(index => index >= plots.length)) {
+    return ''
+  }
+
+  const errorMessage = `Unexpected error when plotting ${titleCase(plots[0].label || '')}`
+
+  return <Compartment title="plot">
+    <Box minWidth={500}>
+      {plots.length > 1 && <TextField
+        select variant='filled' size='small' fullWidth label={'Shown plots'} style={{marginBottom: 2}}
+        SelectProps={{
+          multiple: true,
+          value: selected,
+          onChange: event => setSelected(event.target.value),
+          renderValue: newSelected => newSelected.map(index => titleCase(plots[index].label))?.join(', ')
+        }}
+      >
+        {plots.map((plot, index) => (
+          <MenuItem key={index} value={index}>
+            <Checkbox
+              checked={selected.findIndex(selectedIndex => selectedIndex === index) >= 0}
+            />
+            {titleCase(plot.label)}
+          </MenuItem>
+        ))}
+      </TextField>}
+      {selected.map(index => plots?.[index])
+        ?.map((plot, index) => (
+          <ErrorHandler
+            key={index}
+            className={classes.error}
+            message={errorMessage}
+          >
+            <XYPlot
+              sectionDef={sectionDef}
+              section={section}
+              plot={plot}
+              title={plot.label}
+            />
+          </ErrorHandler>
+        ))
+      }
+    </Box>
+  </Compartment>
+})
+SectionPlots.propTypes = {
+  sectionDef: PropTypes.object.isRequired,
+  section: PropTypes.object
 }
 
 function Quantity({value, def}) {

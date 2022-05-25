@@ -44,6 +44,7 @@ import ResolveDOI from '../dataset/ResolveDOI'
 import { DatatableExamples } from '../datatable/DatatableExamples'
 import {EditQuantityExamples} from '../editQuantity/EditQuantityExamples'
 import UploadPage from '../uploads/UploadPage'
+import {PlotExamples} from '../archive/PlotExamples'
 
 /**
  * Each route is an object with possible nested sub routes. Therefore, each object only
@@ -374,6 +375,10 @@ export const routes = [
   {
     path: 'dev/editquantity',
     render: () => <EditQuantityExamples />
+  },
+  {
+    path: 'dev/plot',
+    render: () => <PlotExamples />
   }
 ]
 

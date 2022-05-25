@@ -30,7 +30,7 @@ const editQuantityComponents = {
   ReferenceEditQuantity: ReferenceEditQuantity
 }
 
-const JsonEditor = React.memo(function JsonEditor({data, onChange}) {
+export const JsonEditor = React.memo(function JsonEditor({data, onChange}) {
   const [json, setJson] = useState(JSON.stringify(data, null, 2))
   const [error, setError] = useState(null)
 
