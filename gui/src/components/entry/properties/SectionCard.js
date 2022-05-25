@@ -24,6 +24,7 @@ import { Box, IconButton, Typography } from '@material-ui/core'
 import CodeIcon from '@material-ui/icons/Code'
 import MoreIcon from '@material-ui/icons/MoreVert'
 import { ArchiveButton } from '../../nav/Routes'
+import {SectionPlots} from '../../archive/ArchiveBrowser'
 
 const SectionCard = React.memo(({archivePath, sectionDef, section, ...props}) => {
   const {entryId, uploadId, requireArchive} = useEntryContext()
@@ -64,6 +65,7 @@ const SectionCard = React.memo(({archivePath, sectionDef, section, ...props}) =>
         showJson={showJson}
         {...props}
       />
+      {sectionDef.m_annotations?.plot && <SectionPlots sectionDef={sectionDef} section={section}/>}
     </Box>
   </PropertyCard>
 })

@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-import React, { useContext, useRef, useLayoutEffect, useMemo, useState, useCallback, createRef, useEffect } from 'react'
+import React, {createRef, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, Card, CardContent, Box, Typography, Grid, Chip, Tooltip, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, IconButton } from '@material-ui/core'
+import { Box, Button, Card, CardContent, Chip, CircularProgress, Dialog, DialogActions, DialogContent,
+  DialogContentText, DialogTitle, Grid, IconButton, makeStyles, Tooltip, Typography } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
@@ -297,6 +297,7 @@ function Lane({lane}) {
   const containerRef = createRef()
   const { key, adaptor, next, fetchDataCounter, error } = lane
   lane.containerRef = containerRef
+
   const content = useMemo(() => {
     if (error) {
       return <div className={classes.error}>

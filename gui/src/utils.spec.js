@@ -27,6 +27,7 @@ describe('titleCase', () => {
     expect(titleCase('ab')).toBe('Ab')
     expect(titleCase('a b')).toBe('A B')
     expect(titleCase('aa bb')).toBe('Aa Bb')
+    expect(titleCase('aa_bb')).toBe('Aa Bb')
   })
 })
 
