@@ -21,45 +21,126 @@ import {
   render,
   screen,
   startAPI,
-  closeAPI
+  closeAPI, waitForGUI
 } from '../conftest.spec'
 import { within } from '@testing-library/dom'
 import UploadPage from './UploadPage'
-import {fireEvent, waitFor} from '@testing-library/react'
+import {act, fireEvent, waitFor} from '@testing-library/react'
 
-const testWritePermissions = async () => {
-  // Wait to load the page, i.e. wait for some text to appear
-  await screen.findByText('unnamed upload')
-
-  // Open the members dialog
-  fireEvent.click(screen.getByTestId('edit-members-action'))
-  await waitFor(() =>
-    expect(screen.queryByText('Main author')).toBeInTheDocument()
-  )
-
-  let dialog = screen.getByTestId('edit-members-dialog')
-  expect(within(dialog).queryByText('Affiliation')).toBeInTheDocument()
-  expect(within(dialog).queryByText('Role')).toBeInTheDocument()
-
+const testInitialDialog = async (dialog) => {
   let rows = within(dialog).queryAllByTestId('datatable-row')
   expect(rows.length).toBe(3)
 
   expect(within(rows[0]).queryByText('Markus Scheidgen')).toBeInTheDocument()
   expect(within(rows[0]).queryByText('Main author')).toBeInTheDocument()
-  expect(within(rows[0]).getByTestId('member-delete-button')).toBeInTheDocument()
   expect(within(rows[0]).getByTestId('member-delete-button')).toBeDisabled()
 
   expect(within(rows[1]).queryByText('Sheldon Cooper')).toBeInTheDocument()
   expect(within(rows[1]).queryByText('Testeversity')).toBeInTheDocument()
   expect(within(rows[1]).queryByText('Co-author')).toBeInTheDocument()
-  expect(within(rows[1]).getByTestId('member-delete-button')).toBeInTheDocument()
   expect(within(rows[1]).getByTestId('member-delete-button')).toBeEnabled()
 
   expect(within(rows[2]).queryByText('Test Tester')).toBeInTheDocument()
   expect(within(rows[2]).queryByText('Testeversity')).toBeInTheDocument()
   expect(within(rows[2]).queryByText('Reviewer')).toBeInTheDocument()
-  expect(within(rows[2]).getByTestId('member-delete-button')).toBeInTheDocument()
   expect(within(rows[2]).getByTestId('member-delete-button')).toBeEnabled()
+}
+
+const testNewDialog = async (dialog) => {
+  let rows = within(dialog).queryAllByTestId('datatable-row')
+  expect(rows.length).toBe(3)
+
+  expect(within(rows[0]).queryByText('Markus Scheidgen')).toBeInTheDocument()
+  expect(within(rows[0]).queryByText('Main author')).toBeInTheDocument()
+  expect(within(rows[0]).getByTestId('member-delete-button')).toBeDisabled()
+
+  expect(within(rows[1]).queryByText('Admin Administrator')).toBeInTheDocument()
+  expect(within(rows[1]).queryByText('Co-author')).toBeInTheDocument()
+  expect(within(rows[1]).getByTestId('member-delete-button')).toBeEnabled()
+
+  expect(within(rows[2]).queryByText('Test Tester')).toBeInTheDocument()
+  expect(within(rows[2]).queryByText('Testeversity')).toBeInTheDocument()
+  expect(within(rows[2]).queryByText('Reviewer')).toBeInTheDocument()
+  expect(within(rows[2]).getByTestId('member-delete-button')).toBeEnabled()
+}
+
+const testAddRemoveMembers = async (dialog) => {
+  const searchMembers = within(dialog).queryAllByRole('combobox')[0]
+  const autocompleteInput = within(searchMembers).getByRole('textbox')
+  const addMemberButton = within(dialog).getByText('Add')
+
+  await waitFor(() => expect(within(dialog).queryByText('The selected user is already in the members list')).not.toBeVisible())
+
+  searchMembers.focus()
+  // assign an incomplete value to the input field
+  fireEvent.change(autocompleteInput, { target: { value: 'teste' } })
+  await waitForGUI()
+  await waitFor(() => expect(autocompleteInput.value).toEqual('teste'))
+  fireEvent.keyDown(searchMembers, { key: 'ArrowDown' })
+  fireEvent.keyDown(searchMembers, { key: 'Enter' })
+  await waitForGUI()
+  // test if it is completed
+  await waitFor(() => expect(autocompleteInput.value).toEqual('Test Tester (Testeversity)'))
+  await waitFor(() => expect(addMemberButton).toBeDisabled())
+  await waitFor(() => expect(within(dialog).queryByText('The selected user is already in the members list')).toBeVisible())
+
+  searchMembers.focus()
+  // assign an incomplete value to the input field
+  fireEvent.change(autocompleteInput, { target: { value: '' } })
+  fireEvent.change(autocompleteInput, { target: { value: 'admin' } })
+  await waitForGUI()
+  await waitFor(() => expect(autocompleteInput.value).toEqual('admin'))
+  fireEvent.keyDown(searchMembers, { key: 'ArrowDown' })
+  fireEvent.keyDown(searchMembers, { key: 'Enter' })
+  await waitForGUI()
+  await waitFor(() => expect(autocompleteInput.value).toEqual('Admin Administrator'))
+  await waitFor(() => expect(addMemberButton).toBeEnabled())
+  await waitFor(() => expect(within(dialog).queryByText('The selected user is already in the members list')).not.toBeVisible())
+
+  fireEvent.click(addMemberButton)
+  await waitFor(() => expect(within(dialog).queryAllByTestId('datatable-row').length).toBe(4))
+
+  let rows = within(dialog).queryAllByTestId('datatable-row')
+  expect(within(rows[0]).queryByText('Markus Scheidgen')).toBeInTheDocument()
+  expect(within(rows[0]).queryByText('Main author')).toBeInTheDocument()
+  expect(within(rows[0]).getByTestId('member-delete-button')).toBeDisabled()
+
+  expect(within(rows[1]).queryByText('Sheldon Cooper')).toBeInTheDocument()
+  expect(within(rows[1]).queryByText('Testeversity')).toBeInTheDocument()
+  expect(within(rows[1]).queryByText('Co-author')).toBeInTheDocument()
+  expect(within(rows[1]).getByTestId('member-delete-button')).toBeEnabled()
+
+  expect(within(rows[2]).queryByText('Test Tester')).toBeInTheDocument()
+  expect(within(rows[2]).queryByText('Testeversity')).toBeInTheDocument()
+  expect(within(rows[2]).queryByText('Reviewer')).toBeInTheDocument()
+  expect(within(rows[2]).getByTestId('member-delete-button')).toBeEnabled()
+
+  expect(within(rows[3]).queryByText('Admin Administrator')).toBeInTheDocument()
+  expect(within(rows[3]).queryByText('Co-author')).toBeInTheDocument()
+  expect(within(rows[3]).getByTestId('member-delete-button')).toBeEnabled()
+
+  fireEvent.click(within(rows[1]).getByTestId('member-delete-button'))
+  await waitFor(() => expect(within(dialog).queryAllByTestId('datatable-row').length).toBe(3))
+}
+
+const submitChanges = async (dialog) => {
+  let submitButton = within(dialog).queryByText('Submit')
+  expect(submitButton).toBeEnabled()
+  fireEvent.click(submitButton)
+  await waitFor(() => expect(screen.queryByTestId('edit-members-dialog')).not.toBeInTheDocument())
+}
+
+const openMembersDialog = async () => {
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('unnamed upload')
+
+  // Open the members dialog
+  await act(async () => { fireEvent.click(screen.getByTestId('edit-members-action')) })
+  await waitFor(() => expect(screen.queryByText('Main author')).toBeInTheDocument())
+  let dialog = screen.getByTestId('edit-members-dialog')
+  expect(within(dialog).queryByText('Affiliation')).toBeInTheDocument()
+  expect(within(dialog).queryByText('Role')).toBeInTheDocument()
+  return dialog
 }
 
 const testReadOnlyPermissions = async () => {
@@ -78,35 +159,39 @@ test.each([
     'dft_upload',
     'test',
     'password'
-  ],
-  [
+  ], [
     'Published and logged in as coauthor',
     'tests.states.uploads.published',
     'tests/data/uploads/members-dialog-published-coauthor',
     'dft_upload',
     'scooper',
     'password'
-  ],
-  [
+  ], [
     'Unpublished and logged in as main author',
     'tests.states.uploads.unpublished',
     'tests/data/uploads/members-dialog-unpublished-author',
     'dft_upload',
     'test',
     'password'
-  ],
-  [
-    'Unpublished and logged in as coauthor',
-    'tests.states.uploads.unpublished',
-    'tests/data/uploads/members-dialog-unpublished-coauthor',
-    'dft_upload',
-    'scooper',
-    'password'
   ]
 ])('Members dialog: %s', async (name, state, snapshot, uploadId, username, password) => {
   await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
-  await testWritePermissions()
+
+  let dialog = await openMembersDialog()
+  await testInitialDialog(dialog)
+  await testAddRemoveMembers(dialog)
+
+  await submitChanges(dialog)
+  await waitForGUI(2000)
+
+  if (username === 'test') {
+    let newDialog = await openMembersDialog()
+    await testNewDialog(newDialog)
+  } else if (username === 'scooper') {
+    await testReadOnlyPermissions()
+  }
+
   closeAPI()
 })
 
@@ -118,24 +203,21 @@ test.each([
     'dft_upload',
     'ttester',
     'password'
-  ],
-  [
+  ], [
     'Published and logged in as neither reviewer nor coauthor or main author',
     'tests.states.uploads.published',
     'tests/data/uploads/members-dialog-published-external',
     'dft_upload',
     'admin',
     'password'
-  ],
-  [
+  ], [
     'Published and not authenticated',
     'tests.states.uploads.published',
     'tests/data/uploads/members-dialog-published-noauth',
     'dft_upload',
     '',
     ''
-  ],
-  [
+  ], [
     'Unpublished and logged in as reviewer',
     'tests.states.uploads.unpublished',
     'tests/data/uploads/members-dialog-unpublished-reviewer',

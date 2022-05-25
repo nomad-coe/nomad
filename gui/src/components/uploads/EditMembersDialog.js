@@ -228,14 +228,14 @@ function AddMember({...props}) {
 
   let timeout = null
 
-  const handleInputChange = (event, value) => {
+  const handleInputChange = useCallback((event, value) => {
     clearTimeout(timeout)
     timeout = setTimeout(() => {
       fetchUsers(event, value)
     }, 700)
-  }
+  }, [])
 
-  const handleChange = (event, value) => {
+  const handleChange = useCallback((event, value) => {
     if (value && value?.user_id) {
       setNewMember(value)
       setIsValid(true)
@@ -243,9 +243,9 @@ function AddMember({...props}) {
     } else {
       setIsValid(false)
     }
-  }
+  }, [members])
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     if (role) {
       if (!members.map(member => member.user_id).includes(newMember.user_id)) {
         newMember['role'] = role
@@ -255,13 +255,14 @@ function AddMember({...props}) {
         setIsDuplicated(true)
       }
     }
-  }
+  }, [members, newMember, role, setIsChanged, setMembers])
 
   return <React.Fragment>
     <AutoComplete
       style={{width: '100%'}}
       options={suggestions}
       getOptionLabel={option => (option.affiliation ? `${option.name} (${option.affiliation})` : option.name)}
+      getOptionSelected={(option, value) => value ? option.user_id === value.user_id : false}
       onInputChange={handleInputChange}
       onChange={handleChange}
       renderInput={params => (
