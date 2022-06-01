@@ -5384,6 +5384,7 @@ Potential biasing
         if (self.data_file):
             with archive.m_context.raw_file(self.data_file) as f:
                 jv_dict = jv_dict_generator(f.name)
+                self.measured = True
                 self.average_over_n_number_of_cells = jv_dict['no_cells']
                 self.light_mask_area = jv_dict['active_area']
                 self.light_intensity = jv_dict['intensity']
@@ -5641,6 +5642,37 @@ class EQE(MSection):
 
     n_values = Quantity(type=int, derived=derive_n_values)
 
+    def derive_n_raw_values(self):
+        if self.raw_eqe_array is not None:
+            return len(self.raw_eqe_array)
+        if self.raw_photon_energy_array is not None:
+            return len(self.raw_photon_energy_array)
+        else:
+            return 0
+
+    n_raw_values = Quantity(type=int, derived=derive_n_raw_values)
+
+    raw_eqe_array = Quantity(
+        type=np.dtype(np.float64), shape=['n_raw_values'],
+        description='EQE array of the spectrum',
+        a_plot={
+            'x': 'photon_energy_array', 'y': 'raw_eqe_array'
+        })
+
+    raw_photon_energy_array = Quantity(
+        type=np.dtype(np.float64), shape=['n_raw_values'], unit='eV',
+        description='Raw Photon energy array of the eqe spectrum',
+        a_plot={
+            'x': 'raw_photon_energy_array', 'y': 'raw_eqe_array'
+        })
+
+    raw_wavelength_array = Quantity(
+        type=np.dtype(np.float64), shape=['n_raw_values'], unit='nanometer',
+        description='Raw wavelength array of the eqe spectrum',
+        a_plot={
+            'x': 'raw_wavelength_array', 'y': 'raw_eqe_array'
+        })
+
     eqe_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'],
         description='EQE array of the spectrum',
@@ -5650,14 +5682,14 @@ class EQE(MSection):
 
     wavelength_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'], unit='nanometer',
-        description='wavelngth array of the eqe spectrum',
+        description='Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum ',
         a_plot={
             'x': 'wavelength_array', 'y': 'eqe_array'
         })
 
     photon_energy_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'], unit='eV',
-        description='wavelngth array of the eqe spectrum',
+        description='Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum',
         a_plot={
             'x': 'photon_energy_array', 'y': 'eqe_array'
         })
@@ -5682,7 +5714,9 @@ class EQE(MSection):
                 self.voc_rad = eqe_dict['voc_rad']
                 self.urbach_energy = eqe_dict['urbach_e']
                 self.photon_energy_array = np.array(eqe_dict['photon_energy_array'])
+                self.raw_photon_energy_array = np.array(eqe_dict['photon_energy_raw'])
                 self.eqe_array = np.array(eqe_dict['eqe_array'])
+                self.raw_eqe_array = np.array(eqe_dict['eqe_raw'])
                 if archive.data.perovskite is None:
                     archive.data.perovskite = Perovskite()
                 archive.data.perovskite.band_gap = str(self.bandgap_eqe.magnitude)
@@ -5690,6 +5724,7 @@ class EQE(MSection):
 
         if self.photon_energy_array is not None:
             self.wavelength_array = self.photon_energy_array.to('nm', 'sp')  # pylint: disable=E1101
+            self.raw_wavelength_array = self.raw_photon_energy_array.to('nm', 'sp')  # pylint: disable=E1101
 
 
 class Stability(MSection):

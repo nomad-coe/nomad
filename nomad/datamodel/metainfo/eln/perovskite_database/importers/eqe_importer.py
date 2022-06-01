@@ -35,6 +35,7 @@ from scipy.signal import savgol_filter
 
 def read_eqe(filename, header_lines=None):
 
+    eqe_dict = {}
     # header_lines = None
     if header_lines is None:
         header_lines = 0
@@ -88,6 +89,8 @@ def read_eqe(filename, header_lines=None):
         x.sort()
         y = np.flip(y)
 
+    eqe_dict['photon_energy_raw'] = x
+    eqe_dict['eqe_raw'] = y
     xold = x
     x = np.linspace(min(x), max(x), 500, endpoint=True)
     y = np.interp(x, xold, y)
@@ -197,7 +200,6 @@ def read_eqe(filename, header_lines=None):
     e_g = x_new[dEQE_interp.argmax()]
     # print('band gap is max(d/dE (EQE) = %s eV' %(E_G)
 
-    eqe_dict = {}
     eqe_dict['bandgap_eqe'] = round(e_g, 3)
     eqe_dict['integrated_Jsc'] = round(JSC_int, 3)
     eqe_dict['eqe_array'] = y_new
