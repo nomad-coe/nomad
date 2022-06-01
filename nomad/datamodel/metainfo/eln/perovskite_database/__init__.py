@@ -17,6 +17,7 @@
 # limitations under the License.
 #
 
+from timeit import repeat
 import numpy as np
 from nomad.units import ureg
 from nomad.metainfo import (
@@ -4687,6 +4688,44 @@ Air
             component='NumberEditQuantity'))
 
 
+class JVcurve(MSection):
+    '''
+    Section describing a current density, voltage curve.
+    '''
+    m_def = Section(label_quantity='cell_name')
+
+    def derive_n_values(self):
+        if self.current_density is not None:
+            return len(self.current_density)
+        if self.voltage is not None:
+            return len(self.voltage)
+        else:
+            return 0
+
+    n_values = Quantity(type=int, derived=derive_n_values)
+
+    cell_name = Quantity(
+        type=str,
+        shape=[],
+        description='Cell identification name.',
+        a_eln=dict(component='StringEditQuantity'))
+
+    current_density = Quantity(
+        type=np.dtype(np.float64), shape=['n_values'],
+        unit='mA/cm^2',
+        description='Current density array of the *JV* curve.',
+        a_plot={
+            'x': 'voltage', 'y': 'current_density'
+        })
+
+    voltage = Quantity(
+        type=np.dtype(np.float64), shape=['n_values'], unit='V',
+        description='Voltage array of the of the *JV* curve.',
+        a_plot={
+            'x': 'voltage', 'y': 'current_density'
+        })
+
+
 class JV(MSection):
 
     data_file = Quantity(
@@ -5338,6 +5377,8 @@ Potential biasing
         a_eln=dict(
             component='NumberEditQuantity'))
 
+    jv_curve = SubSection(section_def=JVcurve, repeats=True)
+
     def normalize(self, archive, logger):
         from nomad.datamodel.metainfo.eln.perovskite_database.importers.jv_parser import jv_dict_generator
         if (self.data_file):
@@ -5375,6 +5416,14 @@ Potential biasing
                 self.default_Jsc_scan_direction = jv_dict['default_Jsc_scan_direction']
                 self.default_FF_scan_direction = jv_dict['default_FF_scan_direction']
                 self.default_PCE_scan_direction = jv_dict['default_PCE_scan_direction']
+
+                self.jv_curve = []
+                for curve in range(len(jv_dict['jv_curve'])):
+                    jv_set = JVcurve(
+                        cell_name=jv_dict['jv_curve'][curve]['name'],
+                        voltage=jv_dict['jv_curve'][curve]['voltage'],
+                        current_density=jv_dict['jv_curve'][curve]['current_density'])
+                    self.jv_curve.append(jv_set)
 
         addSolarCell(archive)
         if self.default_Voc is not None:
