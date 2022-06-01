@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import reduce
 import re
 from pymatgen.core import Composition
 
@@ -184,8 +185,9 @@ class PerovskiteFormulaCleaner():
                 composition_final = Composition(int_formula)
                 clean_formulas_no_brackets = composition_final.get_reduced_composition_and_factor()[0]
                 composition_final_int = Composition(clean_formulas_no_brackets)
-                hill_formula = composition_final_int.hill_formula
-                reduced_formula = Composition(hill_formula).reduced_formula
+                # hill_formula = composition_final_int.hill_formula
+                reduced_formula = composition_final_int.get_reduced_composition_and_factor()[0].to_pretty_string()
+                # reduced_formula = Composition(hill_formula).reduced_formula
                 elements = composition_final_int.chemical_system.split('-')
 
             except ValueError:
@@ -199,7 +201,7 @@ if __name__ == "__main__":
     # formulas_raw = ['Cs0.075FA0.75MA0.175PbBr0.33I2.67', 'Cs0.2FA0.8PbI3', 'Cs0.025FA0.475MA0.5Pb0.5Sn0.5I3', 'MA2CuBr3.5Cl0.5', 'FA0.95MA0.05PbBr0.15I2.85 | DA2PbI4', '(PDA)MAPb2I7', 'MAPb0.2Sn0.8Br0.4I2.6', 'CsPb1.0Br1.5I1.5', 'FA0.8MA0.2PbBr0.095I0.905', 'MASnF0.4I2.6', 'BU2FA8Pb9I28', 'MASnBr2.64I0.36', '(4AMP)MA2Pb3I10', 'Cs0.15FA0.85PbBr0.45I2.55', 'BA2MA3Pb4I12', 'Cs0.05FA0.07MA0.25PbI3', 'Cs0.04FA0.96PbBr3']
     # strValue = "FA0.95MA0.05PbBr0.15I2.85"
     # for item in formulas_raw:
-    formula_cleaner = PerovskiteFormulaCleaner('FAMACsPbI3')
+    formula_cleaner = PerovskiteFormulaCleaner('FA0.5MA0.5PbI3')
     # replaced_formula = formula_cleaner.replace_formula()
     final_formula = formula_cleaner.clean_formula()
     print(final_formula)

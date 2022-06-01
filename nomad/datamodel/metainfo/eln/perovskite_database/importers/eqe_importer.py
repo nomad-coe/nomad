@@ -221,32 +221,3 @@ filename = '/home/pepe_marquez/NOMAD/nomad/nomad/datamodel/metainfo/eln/perovski
 # filename = '/home/pepe_marquez/NOMAD/nomad/nomad/datamodel/metainfo/eln/perovskite_database/importers/EQE_Liu_ACSEnergyLett_19_recipeB.dat'
 # read_eqe(filename, header_lines=0)
 read_eqe(filename, 9)
-
-
-# import io
-# def read_csv(filename, sep=',', skiprows=0, header=1):
-#     lines = "".join([line for line in open(filename)
-#                      if not line.startswith(comment)])
-#     return pd.read_csv(io.StringIO(lines), sep=sep, skiprows=skiprows, header=header)
-
-# def file_len(filename):
-#     with open(filename) as f:
-#         for i, l in enumerate(f):
-#             pass
-#     return i + 1
-
-# def custom_csv(filename):
-#     _file_len = file_len(filename)
-#     for i in range(_file_len):
-#         try:
-#             df = read_csv(filename, skiprows=i, sep='\t')
-#             df.dropna()
-#             return df
-#         except Exception:
-#             print(i)
-#     return
-# # print(custom_csv(filename))
-# # df = pd.read_csv(custom_csv(filename), comment='\\', sep='\t')
-# df = custom_csv(filename)
-# print(df.columns)
-# print(custom_csv(filename))
