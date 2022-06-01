@@ -131,22 +131,3 @@ def jv_dict_generator(filename):
                                     'current_density': df_curves[df_curves.columns[column]].values})
 
     return jv_dict
-
-
-filename = '/home/pepe_marquez/NOMAD/nomad/nomad/datamodel/metainfo/eln/perovskite_database/importers/15_2.txt'
-# with open(filename) as f:
-#     df_curves = pd.read_csv(f, header=19, skiprows=[20], sep='\t', encoding='unicode_escape', engine='python')
-#     df_curves = df_curves.dropna(how='all', axis=1)
-# print(df_curves[df_curves.columns[0]])
-# # filename = '/home/pepe_marquez/NOMAD/nomad/nomad/datamodel/metainfo/eln/perovskite_database/importers/EQE_Liu_ACSEnergyLett_19_recipeB.dat'
-# # read_eqe(filename, header_lines=0)
-# # print(jv_dict_generator(filename))
-
-# jv_dict = {}
-# jv_dict['jv_curve'] = []
-# for column in range(1, len(df_curves.columns)):
-#     jv_dict['jv_curve'].append({
-#                                 'name': df_curves.columns[column],
-#                                 'voltage': df_curves[df_curves.columns[0]].values,
-#                                 'current_density': df_curves[df_curves.columns[column]].values})
-# print(jv_dict)

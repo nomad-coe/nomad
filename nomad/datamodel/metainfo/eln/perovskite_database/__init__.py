@@ -17,6 +17,7 @@
 # limitations under the License.
 #
 
+from timeit import repeat
 import numpy as np
 from nomad.units import ureg
 from nomad.metainfo import (
