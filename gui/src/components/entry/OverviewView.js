@@ -84,7 +84,7 @@ const useStyles = makeStyles(theme => ({
  * Shows an informative overview about the selected entry.
  */
 const OverviewView = React.memo((props) => {
-  const {metadata, metadataApiData, exists, editable, requireArchive, archiveApiData} = useEntryContext()
+  const {metadata, metadataApiData, exists, editable, archiveApiData} = useEntryContext()
   const archive = useMemo(() => archiveApiData?.response?.data?.archive, [archiveApiData])
   const index = metadata
   const [sections, setSections] = useState([])
@@ -97,35 +97,6 @@ const OverviewView = React.memo((props) => {
       : []
     )
   }, [index])
-
-  useEffect(() => {
-    if (editable === true) {
-      requireArchive()
-    } else if (editable === false) {
-      requireArchive({
-        'resolve-inplace': false,
-        data: '*',
-        definitions: '*',
-        results: {
-          material: '*',
-          method: '*',
-          properties: {
-            structures: '*',
-            electronic: 'include-resolved',
-            mechanical: 'include-resolved',
-            spectroscopy: 'include-resolved',
-            vibrational: 'include-resolved',
-            thermodynamic: 'include-resolved',
-            // For geometry optimizations we require only the energies.
-            // Trajectory, optimized structure, etc. are unnecessary.
-            geometry_optimization: {
-              energies: 'include-resolved'
-            }
-          }
-        }
-      })
-    }
-  }, [requireArchive, editable])
 
   useEffect(() => {
     if (!context.metainfo || !archive?.data) {
