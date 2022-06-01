@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import reduce
 import re
 from pymatgen.core import Composition
 
