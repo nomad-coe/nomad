@@ -1,5 +1,6 @@
 from typing import List, Dict, Set, Any
 from elasticsearch_dsl import Q
+import ase.formula
 
 from optimade.filterparser import LarkParser
 from optimade.server.entry_collections import EntryCollection
@@ -13,7 +14,7 @@ from nomad.search import search
 from nomad.app.v1.models import MetadataPagination, MetadataRequired
 from nomad import datamodel, files, utils, config
 from nomad.normalizing.optimade import (
-    optimade_chemical_formula_reduced, optimade_chemical_formula_anonymous,
+    optimade_chemical_formula_anonymous,
     optimade_chemical_formula_hill)
 
 from .filterparser import _get_transformer as get_transformer
@@ -21,6 +22,24 @@ from .common import provider_specific_fields
 
 
 logger = utils.get_logger(__name__)
+
+
+def optimade_chemical_formula_reduced(formula: str):
+    if formula is None:
+        return formula
+
+    try:
+        ase_formula = ase.formula.Formula(formula).reduce()[0].count()
+        result_formula = ''
+        for element in sorted(ase_formula.keys()):
+            result_formula += element
+            element_count = ase_formula[element]
+            if element_count > 1:
+                result_formula += str(element_count)
+
+        return result_formula
+    except Exception:
+        return formula
 
 
 class NomadStructureMapper(StructureMapper):

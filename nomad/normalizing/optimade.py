@@ -66,7 +66,7 @@ def optimade_chemical_formula_reduced(formula: str):
         return formula
 
     try:
-        ase_formula = ase.formula.Formula(formula).reduce()[0].count()
+        ase_formula = ase.formula.Formula(formula).count()
         result_formula = ''
         for element in sorted(ase_formula.keys()):
             result_formula += element
