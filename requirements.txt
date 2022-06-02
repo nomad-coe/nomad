@@ -14,13 +14,13 @@ docstring-parser==0.12
 Pint==0.17
 orjson==3.6.0
 click==7.1.2
-requests==2.26.0
+requests==2.27.1
 pytz==2021.1
 aniso8601==7.0.0
 ase==3.19.0
 python-keycloak==0.26.1
 elasticsearch-dsl==7.4.0
-pydantic==1.8.2
+pydantic==1.9.1
 jmespath==0.10.0
 httpx==0.22.0
 memoization==0.4.0
@@ -46,13 +46,13 @@ asr==0.4.1
 bitarray==2.3.5
 
 # [infrastructure]
-optimade[mongo]==0.14.0
+optimade[mongo]==0.18.0
 structlog==20.1.0
 elasticsearch==7.17.1
 msgpack==0.5.6
 celery[redis]==4.4.7
 mongoengine==0.19.1
-pymongo==3.11.4
+pymongo==3.12.1
 Werkzeug==0.16.1
 itsdangerous==1.1.0
 passlib==1.7.4
@@ -80,7 +80,7 @@ python-json-logger==2.0.2
 recommonmark==0.7.1
 jinja2==2.11.3
 rdflib==5.0.0
-fastapi==0.63.0
+fastapi==0.65.3
 uvicorn[standard]==0.13.4
 python-multipart==0.0.5
 validators==0.18.2
