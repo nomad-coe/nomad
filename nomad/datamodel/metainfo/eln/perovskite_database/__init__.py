@@ -156,7 +156,19 @@ Unpublished
 
     def normalize(self, archive, logger):
         from nomad.datamodel.datamodel import EntryMetadata
+        import requests
+        import dateutil.parser
+
+        # Parse journal name, lead author and publication date from crossref
         if self.DOI_number:
+            if not self.ID_temp:
+                r = requests.get(f'https://api.crossref.org/works/{self.DOI_number}')
+                temp_dict = r.json()
+                given_name = temp_dict['message']['author'][0]['given']
+                familiy_name = temp_dict['message']['author'][0]['family']
+                self.journal = temp_dict['message']['container-title'][0]
+                self.publication_date = dateutil.parser.parse(temp_dict['message']['created']['date-time'])
+                self.lead_author = given_name + ' ' + familiy_name
             if not archive.metadata:
                 archive.metadata = EntryMetadata()
             if not archive.metadata.references:
