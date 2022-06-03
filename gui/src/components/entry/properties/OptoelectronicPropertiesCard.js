@@ -22,7 +22,7 @@ import OptoelectronicProperties from '../../visualization/OptoelectronicProperti
 
 const OptoelectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   // Find out which properties are present
-  const hasBg = properties.has('band_gap_optical')
+  const hasBg = properties.has('optoelectronic.band_gap')
   const hasSc = properties.has('solar_cell')
 
   // Do not show the card if none of the properties are available
@@ -31,7 +31,7 @@ const OptoelectronicPropertiesCard = React.memo(({index, properties, archive}) =
   }
 
   // Resolve band gap data
-  let bandGap = index?.results?.properties?.optoelectronic?.band_gap_optical || false
+  let bandGap = index?.results?.properties?.optoelectronic?.band_gap || false
 
   // Resolve solar cell data
   let solarCell = index?.results?.properties?.optoelectronic?.solar_cell || false

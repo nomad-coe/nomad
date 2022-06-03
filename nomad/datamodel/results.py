@@ -2134,17 +2134,17 @@ class SolarCell(MSection):
     )
     device_stack = Quantity(
         type=str,
+        shape=['0..*'],
         description='''
-        Substrate used in the solar cell. Might be an stack in which seperate layers are
-        separated by a vertical bar ' | '.
+        Layers of the entire device.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
     absorber = Quantity(
         type=str,
+        shape=['0..*'],
         description='''
-        Absorber layer used in the solar cell. Might be an stack in which seperate layers are
-        separated by a vertical bar ' | '.
+        Absorber layers used in the solar cell.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
@@ -2161,33 +2161,33 @@ class SolarCell(MSection):
     )
     electron_transport_layer = Quantity(
         type=str,
+        shape=['0..*'],
         description='''
-        Electron selective contact used in the solar cell. Might be a stack in which
-        seperate layers are separated by a vertical bar ' | '.
+        Electron selective contact layers used in the solar cell.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
     hole_transport_layer = Quantity(
         type=str,
+        shape=['0..*'],
         description='''
-        Hole selective contact used in the solar cell. Might be a stack in which seperate layers are
-        separated by a vertical bar ' | '.
+        Hole selective contact layers used in the solar cell.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
     substrate = Quantity(
         type=str,
+        shape=['0..*'],
         description='''
-        Substrate used in the solar cell. Might be a stack in which seperate layers are
-        separated by a vertical bar ' | '.
+        Substrate layers used in the solar cell.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
     back_contact = Quantity(
         type=str,
+        shape=['0..*'],
         description='''
-        Back contact used in the solar cell. Might be a stack in which seperate layers are
-        separated by a vertical bar ' | '.
+        Back contact layers used in the solar cell.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
@@ -2199,9 +2199,9 @@ class OptoelectronicProperties(MSection):
         Optoelectronic properties.
         '''
     )
-    band_gap_optical = SubSection(
+    band_gap = SubSection(
         description='''
-        Optical band gap.
+        Band gap.
         ''',
         sub_section=BandGap.m_def,
         repeats=True,

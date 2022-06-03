@@ -41,16 +41,16 @@ const FilterSubMenuOptoElectronic = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputSection
-          section="results.properties.optoelectronic.band_gap_optical"
+          section="results.properties.optoelectronic.band_gap"
           visible={visible}
         >
           <InputField
-            quantity="results.properties.optoelectronic.band_gap_optical.type"
+            quantity="results.properties.optoelectronic.band_gap.type"
             visible={visible}
             disableSearch
           />
           <InputRange
-            quantity="results.properties.optoelectronic.band_gap_optical.value"
+            quantity="results.properties.optoelectronic.band_gap.value"
             visible={visible}
           />
         </InputSection>

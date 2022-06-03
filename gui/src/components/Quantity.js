@@ -132,6 +132,7 @@ const Quantity = React.memo((props) => {
     withClipboard,
     ellipsisFront,
     hideIfUnavailable,
+    maxWidth,
     format
   } = {...presets, ...props}
 
@@ -236,7 +237,7 @@ const Quantity = React.memo((props) => {
     return <div className={row ? styles.row : (column ? styles.column : styles.flex)} data-testid={`quantity-${def?.name}`}>{children}</div>
   } else {
     return (
-      <div className={styles.root} data-testid={noLabel ? undefined : `quantity-${def?.name}`}>
+      <div className={styles.root} style={{maxWidth: maxWidth}} data-testid={noLabel ? undefined : `quantity-${def?.name}`}>
         {!noLabel ? <Typography
           noWrap
           classes={{root: styles.label}}
@@ -303,7 +304,12 @@ Quantity.propTypes = {
   ellipsisFront: PropTypes.bool,
   hideIfUnavailable: PropTypes.bool,
   description: PropTypes.string,
-  format: PropTypes.bool
+  format: PropTypes.bool,
+  maxWidth: PropTypes.string
+}
+
+Quantity.defaultProps = {
+  maxWidth: '280px'
 }
 
 export default Quantity
@@ -503,6 +509,7 @@ export const QuantityCell = React.memo(({
   hideIfUnavailable,
   format,
   children,
+  maxWidth,
   ...other
 }) => {
   const context = useContext(quantityTableContext)
@@ -523,6 +530,7 @@ export const QuantityCell = React.memo(({
         format={format}
         noWrap
         data={finalData}
+        maxWidth={maxWidth}
       />}
     </TableCell>
 })
@@ -533,6 +541,8 @@ QuantityCell.propTypes = {
   data: PropTypes.object,
   label: PropTypes.string,
   description: PropTypes.string,
+  options: PropTypes.object,
+  maxWidth: PropTypes.string,
   className: PropTypes.string,
   hideIfUnavailable: PropTypes.bool,
   format: PropTypes.bool,

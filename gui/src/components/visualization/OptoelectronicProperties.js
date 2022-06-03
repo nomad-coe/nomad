@@ -21,8 +21,7 @@ import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 import SolarCell from './SolarCell'
 import BandGap from './BandGap'
 
-// Displays the set of optoelectronic properties and deals with missing data and
-// placeholders while loading.
+// Displays the set of optoelectronic properties.
 const OptoelectronicProperties = React.memo(({
   bandGap,
   solarCell
@@ -31,9 +30,9 @@ const OptoelectronicProperties = React.memo(({
     <PropertyItem title="Solar cell" xs={12} height="auto" minHeight="100px">
       <SolarCell data={solarCell} />
     </PropertyItem>
-    <PropertyItem title="Optical band gaps" xs={12} height="auto" minHeight="100px">
+    <PropertyItem title="Band gap" xs={12} height="auto" minHeight="100px">
       <BandGap
-        section="results.properties.optoelectronic.band_gap_optical"
+        section="results.properties.optoelectronic.band_gap"
         data={bandGap}
       />
     </PropertyItem>

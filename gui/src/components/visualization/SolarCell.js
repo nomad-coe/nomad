@@ -25,26 +25,27 @@ import Placeholder from './Placeholder'
  * Shows a summary of solar cell properties.
  */
 const SolarCell = React.memo(({data}) => {
+  const prefix = 'results.properties.optoelectronic.solar_cell'
   return data !== false
     ? data
       ? <QuantityTable>
         <QuantityRow>
-          <QuantityCell value={data?.efficiency} quantity="results.properties.optoelectronic.solar_cell.efficiency"/>
-          <QuantityCell value={data?.fill_factor} quantity="results.properties.optoelectronic.solar_cell.fill_factor"/>
-          <QuantityCell value={data?.open_circuit_voltage} quantity="results.properties.optoelectronic.solar_cell.open_circuit_voltage"/>
-          <QuantityCell value={data?.short_circuit_current_density} quantity="results.properties.optoelectronic.solar_cell.short_circuit_current_density"/>
+          <QuantityCell value={data?.efficiency} quantity={`${prefix}.efficiency`}/>
+          <QuantityCell value={data?.fill_factor} quantity={`${prefix}.fill_factor`}/>
+          <QuantityCell value={data?.open_circuit_voltage} quantity={`${prefix}.open_circuit_voltage`}/>
+          <QuantityCell value={data?.short_circuit_current_density} quantity={`${prefix}.short_circuit_current_density`}/>
         </QuantityRow>
         <QuantityRow>
-          <QuantityCell value={data?.illumination_intensity} quantity="results.properties.optoelectronic.solar_cell.illumination_intensity"/>
-          <QuantityCell value={data?.device_area} quantity="results.properties.optoelectronic.solar_cell.device_area"/>
-          <QuantityCell value={data?.device_architecture} colSpan={2} quantity="results.properties.optoelectronic.solar_cell.device_architecture"/>
+          <QuantityCell value={data?.illumination_intensity} quantity={`${prefix}.illumination_intensity`}/>
+          <QuantityCell value={data?.device_area} quantity={`${prefix}.device_area`}/>
+          <QuantityCell value={data?.device_architecture} colSpan={2} quantity={`${prefix}.device_architecture`}/>
         </QuantityRow>
         <QuantityRow>
-          <QuantityCell value={data?.absorber} colSpan={2} quantity="results.properties.optoelectronic.solar_cell.absorber"/>
-          <QuantityCell value={data?.absorber_fabrication} colSpan={2} quantity="results.properties.optoelectronic.solar_cell.absorber_fabrication"/>
+          <QuantityCell value={data?.absorber} colSpan={2} quantity={`${prefix}.absorber`}/>
+          <QuantityCell value={data?.absorber_fabrication} colSpan={2} quantity={`${prefix}.absorber_fabrication`}/>
         </QuantityRow>
         <QuantityRow>
-          <QuantityCell value={data?.device_stack} colSpan={4} quantity="results.properties.optoelectronic.solar_cell.device_stack"/>
+          <QuantityCell value={data?.device_stack} colSpan={4} maxWidth="none" quantity={`${prefix}.device_stack`}/>
         </QuantityRow>
       </QuantityTable>
       : <Placeholder />

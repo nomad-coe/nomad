@@ -315,11 +315,9 @@ Example:
     def normalize(self, archive, logger):
         addSolarCell(archive)
         if self.stack_sequence:
-            archive.results.properties.optoelectronic.solar_cell.device_stack = self.stack_sequence
-
+            archive.results.properties.optoelectronic.solar_cell.device_stack = self.stack_sequence.split(' | ')
         if self.architecture:
             archive.results.properties.optoelectronic.solar_cell.device_architecture = self.architecture
-
         if self.area_total or self.area_measured:
             if self.area_measured and not self.area_total:
                 archive.results.properties.optoelectronic.solar_cell.device_area = self.area_measured
@@ -523,7 +521,7 @@ Unknown
     def normalize(self, archive, logger):
         addSolarCell(archive)
         if self.stack_sequence:
-            archive.results.properties.optoelectronic.solar_cell.substrate = self.stack_sequence
+            archive.results.properties.optoelectronic.solar_cell.substrate = self.stack_sequence.split(' | ')
 
 
 class ETL(MSection):
@@ -1103,7 +1101,7 @@ Ar plasma
     def normalize(self, archive, logger):
         addSolarCell(archive)
         if self.stack_sequence:
-            archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = self.stack_sequence
+            archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = self.stack_sequence.split(' | ')
 
 
 class Perovskite(MSection):
@@ -1546,18 +1544,18 @@ Ozone
         addSolarCell(archive)
 
         if self.composition_short_form:
-            archive.results.properties.optoelectronic.solar_cell.absorber = self.composition_short_form
+            archive.results.properties.optoelectronic.solar_cell.absorber = self.composition_short_form.split(' | ')
 
         if self.band_gap:
             band_gap = BandGap()
             band_gap.value = float(self.band_gap) * ureg('eV')
             if band_gap.value is None:
                 band_gap.value = 0
-            archive.results.properties.optoelectronic.band_gap_optical = [band_gap]
+            archive.results.properties.optoelectronic.band_gap = [band_gap]
             props = archive.results.properties.available_properties
             if not props:
                 props = []
-            props.append('band_gap_optical')
+            props.append('optoelectronic.band_gap')
             archive.results.properties.available_properties = props
 
         if self.composition_long_form:
@@ -2851,7 +2849,7 @@ UV-ozone
     def normalize(self, archive, logger):
         addSolarCell(archive)
         if self.stack_sequence:
-            archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = self.stack_sequence
+            archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = self.stack_sequence.split(' | ')
 
 
 class Backcontact(MSection):
@@ -3431,7 +3429,7 @@ UV-ozone
     def normalize(self, archive, logger):
         addSolarCell(archive)
         if self.stack_sequence:
-            archive.results.properties.optoelectronic.solar_cell.back_contact = self.stack_sequence
+            archive.results.properties.optoelectronic.solar_cell.back_contact = self.stack_sequence.split(' | ')
 
 
 class Add(MSection):

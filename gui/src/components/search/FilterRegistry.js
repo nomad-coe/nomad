@@ -284,6 +284,7 @@ const termQuantityBool = {
 }
 const termQuantityNonExclusive = {aggs: {terms: {size: 5}}, exclusive: false}
 const termQuantityAll = {aggs: {terms: {size: 5}}, exclusive: false, multiple: true, queryMode: 'all'}
+const termQuantityAllNonExclusive = {...termQuantityNonExclusive, queryMode: 'all'}
 const noAggQuantity = {}
 const nestedQuantity = {}
 const noQueryQuantity = {guiOnly: true, multiple: false}
@@ -369,7 +370,7 @@ registerFilter(
   ]
 )
 registerFilter(
-  'results.properties.optoelectronic.band_gap_optical',
+  'results.properties.optoelectronic.band_gap',
   labelOptoelectronic,
   nestedQuantity,
   [
@@ -389,13 +390,13 @@ registerFilter(
     {name: 'illumination_intensity', ...numberHistogramQuantity, scale: '1/4'},
     {name: 'device_area', ...numberHistogramQuantity, scale: '1/4'},
     {name: 'device_architecture', ...termQuantity},
-    {name: 'device_stack', ...termQuantity},
-    {name: 'absorber', ...termQuantity},
     {name: 'absorber_fabrication', ...termQuantity},
-    {name: 'electron_transport_layer', ...termQuantity},
-    {name: 'hole_transport_layer', ...termQuantity},
-    {name: 'substrate', ...termQuantity},
-    {name: 'back_contact', ...termQuantity}
+    {name: 'device_stack', ...termQuantityAllNonExclusive},
+    {name: 'absorber', ...termQuantityAllNonExclusive},
+    {name: 'electron_transport_layer', ...termQuantityAllNonExclusive},
+    {name: 'hole_transport_layer', ...termQuantityAllNonExclusive},
+    {name: 'substrate', ...termQuantityAllNonExclusive},
+    {name: 'back_contact', ...termQuantityAllNonExclusive}
   ]
 )
 registerFilter(
@@ -512,7 +513,7 @@ registerFilterOptions(
   'Optoelectronic properties',
   'The optoelectronic properties that are present in an entry.',
   {
-    'band_gap_optical': {label: 'Band gap optical'},
+    'optoelectronic.band_gap': {label: 'Band gap'},
     'solar_cell': {label: 'Solar cell'}
   }
 )
