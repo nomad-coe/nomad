@@ -2138,7 +2138,10 @@ class SolarCell(MSection):
         description='''
         Layers of the entire device.
         ''',
-        a_elasticsearch=Elasticsearch(material_entry_type)
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
     )
     absorber = Quantity(
         type=str,
@@ -2146,7 +2149,10 @@ class SolarCell(MSection):
         description='''
         Absorber layers used in the solar cell.
         ''',
-        a_elasticsearch=Elasticsearch(material_entry_type)
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
     )
     absorber_fabrication = Quantity(
         type=str,
@@ -2166,7 +2172,10 @@ class SolarCell(MSection):
         description='''
         Electron selective contact layers used in the solar cell.
         ''',
-        a_elasticsearch=Elasticsearch(material_entry_type)
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
     )
     hole_transport_layer = Quantity(
         type=str,
@@ -2174,7 +2183,10 @@ class SolarCell(MSection):
         description='''
         Hole selective contact layers used in the solar cell.
         ''',
-        a_elasticsearch=Elasticsearch(material_entry_type)
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
     )
     substrate = Quantity(
         type=str,
@@ -2182,7 +2194,10 @@ class SolarCell(MSection):
         description='''
         Substrate layers used in the solar cell.
         ''',
-        a_elasticsearch=Elasticsearch(material_entry_type)
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
     )
     back_contact = Quantity(
         type=str,
@@ -2190,7 +2205,10 @@ class SolarCell(MSection):
         description='''
         Back contact layers used in the solar cell.
         ''',
-        a_elasticsearch=Elasticsearch(material_entry_type)
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
     )
 
 

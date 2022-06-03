@@ -17,14 +17,12 @@
 # limitations under the License.
 #
 
-from timeit import repeat
 import numpy as np
 from nomad.units import ureg
 from nomad.metainfo import (
-    MSection, Package, Quantity, SubSection, MEnum, Reference, Datetime, Section)
-from nomad.metainfo.metainfo import SectionProxy
+    MSection, Package, Quantity, SubSection, Datetime, Section)
 from nomad.datamodel.data import EntryData
-from nomad.datamodel.results import BandGap, BandStructureElectronic, ElectronicProperties, Material, OptoelectronicProperties, Properties, Results, SolarCell
+from nomad.datamodel.results import BandGap, Material, OptoelectronicProperties, Properties, Results, SolarCell
 
 
 m_package = Package(name='perovskite_database')
@@ -50,28 +48,44 @@ def addSolarCell(archive):
 
 class Ref(MSection):
 
+    m_def = Section(
+        a_eln=dict(lane_width='800px'))
+
+    internal_sample_id = Quantity(
+        type=str,
+        shape=[],
+        description="""
+    This is your own unique cell identifier. With this text string alone, you should be able to identify this cell in your own internal data management system.
+                    """,
+        a_eln=dict(component='StringEditQuantity'))
+
+    free_text_comment = Quantity(
+        type=str,
+        shape=[],
+        description="""
+    This could be anything given additional description to the cell that is not captured by any other field.
+                    """,
+        a_eln=dict(component='RichTextEditQuantity'))
+
     ID = Quantity(
         type=np.dtype(np.int64),
         shape=[],
         description="""
-    nan
                     """)
 
     ID_temp = Quantity(
         type=np.dtype(np.int64),
         shape=[],
         description="""
-    nan
                     """)
 
+    # Add in the future auto filling from metadata.author
     name_of_person_entering_the_data = Quantity(
         type=str,
         shape=[],
         description="""
     Your name.
-                    """,
-        a_eln=dict(
-            component='EnumEditQuantity', props=dict(suggestions=['Krishanu Day', 'Rahim Munir', 'Wolfganf Tress', 'Oleksandra Shargaiev', 'Rafael Betancur', 'Jeffry Kettle', 'Rahul Patidar', 'Andrea Crovetto', 'Marion Flanke', 'Eva Unger', 'Janardan Dagar', 'Oliver Maus', 'Michael Saliba', 'Zafar Iqbal', 'Hampus Näsström', 'Iacopo Benesperi', 'Jean Rousset', 'Adam Hultqvist', 'Xiaoliang Zhang', 'Ulrich Paetzold', 'Miguel Anaya', 'G. Martínez-Denegri', 'Donglin Jia', 'Yu-Hisen Chiang', 'David Fairen-Jimenez', 'Alberto Garcia-Fernandez', 'Joel A. Smith', 'Jacob Vagott', 'Junxin Wang', 'Gabriella Stephania Anaya Gonazalez', 'Emilio J. Juarez-Perez', 'T. Jesper Jacobsson', 'Barbara Primera Darwich', 'Mayank Kedia', 'Zhigian Xie', 'Daniel Ramirez', 'Manuel Vásquez Montoya', 'Amran Al-Ashour', 'Jorge Pascual Mielgo', 'Kyle Frohna', 'Bowen Yang', 'Weiwei Zuo', 'Carlo Perini', 'Jie Yang', 'Mark Grischek', 'Weifei Fu', 'Hans Köbler', 'Jinzhao Li', 'Fanny Baumann', 'Luigi Angelo Castriotta', 'Qisen Zhou', 'Max Grischek', 'Ibrahim Dar', 'Juan Felipe Montoya', 'Shaoni Kar', 'Mark Khenkin', 'Gopinath Paramasivam', 'Anuja Vijayan', 'Waqas Zia', 'Carolin Rehermann', 'Tobias Abzieher', 'Vincent Schröder', 'Hannes Michaels', 'Jose J. Jeronimi-Rednon', 'Lena Kuske', 'Onkar S. Game', 'Ilknur Byrrak Pehlivan', 'Mahmoud Hussein', 'Shahidul Alam', 'Ashis Kulkarni', 'Brendan Coles', 'Junming Qiu', 'Neha Arora', 'Aman Anand', 'Juan-Pablo Correa-Baena', 'Thomas Unold', 'Tudur David', 'Isaac Gould', 'Hua Wu', 'Giuseppe Nasti', 'Paul Fassl', 'Gerrit Boschloo', 'Elena Avilia', 'Antonio Ricciardulli', 'Florian Mathies', 'Kari Sveinbjörnsson', 'Katrin Hirselandt', 'Diego DiGirolamo'])))
+                    """)
 
     data_entered_by_author = Quantity(
         type=bool,
@@ -109,18 +123,14 @@ Unpublished
         shape=[],
         description="""
     Publication date. If the DOI number is given correctly, this will be extracted automatically from www.crossref.org
-                    """,
-        a_eln=dict(
-            component='DateTimeEditQuantity'))
+                    """)
 
     journal = Quantity(
         type=str,
         shape=[],
         description="""
     nan
-                    """,
-        a_eln=dict(
-            component='EnumEditQuantity', props=dict(suggestions=['Electronic Materials Letters', 'SIAM Journal on Applied Mathematics', 'Phase Transitions', 'Journal of Visualized Experiments', 'Dyes and Pigments', 'International Journal of Hydrogen Energy', 'Journal of Semiconductors', 'Science', 'Chinese Chemical Letters', 'Nanoscale Advances', 'Science China Physics, Mechanics & Astronomy', 'Asian Journal of Organic Chemistry', 'Chemical Physics', 'ACS Central Science', 'Nature', 'Materials Research Bulletin', 'Nanoscale Horizons', 'MRS Communications', 'Solar Energy Materials and Solar Cells', 'Inorganic Chemistry Communications', 'CrystEngComm', 'Energy Technology', 'Journal of Power Sources', 'Semiconductor Science and Technology', 'Materials Today Chemistry', 'Materials for Renewable and Sustainable Energy', 'Advanced Functional Materials', 'iScience', 'Chem', 'Advanced Energy Materials', 'IEEE Journal of Photovoltaics', 'Procedia Engineering', 'Analytical Chemistry', 'Applied Nanoscience', 'Electrochimica Acta', 'Scientific Reports', 'Organic Photonic Materials and Devices XIX', 'Journal of Nanomaterials', 'Journal of Energy Chemistry', 'Journal of Sol-Gel Science and Technology', 'Materials Today: Proceedings', 'Optical Materials', 'Scripta Materialia', 'Applied Materials Today', 'Surfaces and Interfaces', 'ACS Omega', 'Journal of Applied Physics', 'APL Materials', 'Langmuir', 'Cellulose', 'Frontiers in Physics', 'IEEE Photonics Journal', 'Functional Materials Letters', 'Materiali in tehnologije', 'ACS Applied Energy Materials', 'Journal of Crystal Growth', 'Journal of Industrial and Engineering Chemistry', 'Solid State Sciences', 'Chemical Physics Letters', 'The Journal of Chemical Physics', 'Applied Physics A', 'ChemPhysChem', 'Materials Today Energy', 'Journal of Nano- and Electronic Physics', 'Frontiers of Optoelectronics', '9th International Symposium on Advanced Optical Manufacturing and Testing Technologies: Optoelectronic Materials and Devices for Sensing and Imaging', 'ECS Transactions', 'Energy Environ. Sci.', 'Bulletin of the Korean Chemical Society', 'Journal of Physics: Conference Series', 'Micromachines', 'Zeitschrift für Naturforschung A', 'Russian Chemical Bulletin', 'Applied Sciences', 'Materials Science and Engineering: B', 'Macromolecules', 'Frontiers in Energy Research', 'Thin Solid Films', 'European Journal of Inorganic Chemistry', 'Materials Research Express', 'Journal of Physics D: Applied Physics', 'Acta Chimica Sinica', 'Semiconductors', 'Optik', 'Journal of Materials Science: Materials in Electronics', 'Materials Letters', 'Molecules', 'Journal of Porphyrins and Phthalocyanines', 'Journal of The Electrochemical Society', '2D Materials', 'New Journal of Physics', 'Polymer', 'Nanoscale', 'Advanced Electronic Materials', 'Journal of Nanoscience and Nanotechnology', 'Acta Materialia', 'Photonics Research', 'Journal of Solid State Chemistry', 'Progress in Photovoltaics: Research and Applications', 'Journal of the Chilean Chemical Society', 'Science Advances', 'NPG Asia Materials', 'International Journal of Electrochemical Science', 'ACS Nano', 'Journal of Vacuum Science & Technology A', 'Materials Chemistry Frontiers', 'Optics Express', 'Science China Materials', 'Nano-Micro Letters', 'Japanese Journal of Applied Physics', 'Coatings', 'E3S Web of Conferences', 'Journal of Advanced Dielectrics', 'Optical and Quantum Electronics', 'Nanomaterials', 'Ionics', 'Thin Films for Solar and Energy Technology VIII', 'Chem. Sci.', 'Australian Journal of Chemistry', 'Philosophical Transactions of the Royal Society A: Mathematical, Physical and Engineering Sciences', 'Science China Chemistry', 'The Journal of Physical Chemistry Letters', 'Journal of the Taiwan Institute of Chemical Engineers', 'IEEE Electron Device Letters', 'Solar RRL', 'Chemistry - An Asian Journal', 'Organic Letters', 'Frontiers in Chemistry', 'Arabian Journal for Science and Engineering', 'Journal of Solid State Electrochemistry', 'ACS Applied Nano Materials', 'International Journal of Photoenergy', 'Chemical Science', 'Macromolecular Research', 'Korean Journal of Materials Research', 'Journal of Chemistry', '2015 IEEE 42nd Photovoltaic Specialist Conference (PVSC)', 'Data in Brief', 'IEEE Transactions on Nanotechnology', 'Journal of Photonics for Energy', 'physica status solidi (RRL) - Rapid Research Letters', '2018 1st International Cognitive Cities Conference (IC3)', 'Nano Letters', 'Inorganic Chemistry Frontiers', 'IEEE Journal of the Electron Devices Society', 'Chemical Engineering Science', 'Journal of Materials Research', 'Polyhedron', 'Nature Nanotechnology', 'Chinese Physics Letters', 'PLOS ONE', 'Nature Communications', 'Surface Review and Letters', 'Beilstein Journal of Organic Chemistry', 'ACS Catalysis', 'Communications Chemistry', 'Applied Optics', 'IOP Conference Series: Earth and Environmental Science', 'Applied Physics Letters', 'Russian Journal of Physical Chemistry B', 'Helvetica Chimica Acta', 'The Journal of Physical Chemistry C', 'Optoelectronics Letters', 'Nano Research', 'Polymers', 'Surface and Coatings Technology', 'ACS Energy Letters', 'Small', 'Energies', 'The Journal of Organic Chemistry', 'Carbon', 'Plasmonics', 'AIP Advances', 'Synthetic Metals', 'Journal of Radiation Research and Applied Sciences', 'Organic Photonic Materials and Devices XVIII', 'Polymer International', 'Royal Society Open Science', 'Metals', 'Oxide-based Materials and Devices VIII', 'European Journal of Organic Chemistry', 'Crystals', 'Technical Physics Letters', 'Solar Energy', 'Renewable Energy', 'Optical Engineering', 'Energy & Environmental Science', 'Beilstein Journal of Nanotechnology', 'Applied Physics Express', 'Journal of Renewable and Sustainable Energy', 'Journal of Materials Science', 'Journal of Materials Chemistry C', 'Organic Electronics', 'Opto-Electronics Review', 'Nanomaterials and Nanotechnology', 'Nature Photonics', 'Chemical Engineering Journal', '-', 'RSC Adv.', 'Science Bulletin', 'Monatshefte für Chemie - Chemical Monthly', 'Chemistry – An Asian Journal', 'Advanced Engineering Materials', 'Organic Photovoltaics XIV', 'Electrochemistry Communications', 'Materials Science in Semiconductor Processing', 'IOP Conference Series: Materials Science and Engineering', 'Physica B: Condensed Matter', 'Oxide-based Materials and Devices VII', 'Photochemical & Photobiological Sciences', 'Chinese Journal of Catalysis', 'Organic Photonic Materials and Devices XX', 'Organic Chemistry Frontiers', 'AIMS Materials Science', 'Nanoscale Research Letters', 'SN Applied Sciences', 'Vacuum', 'Materials Research Innovations', 'Nanotechnology', 'International Journal of Energy Research', 'physica status solidi (RRL) – Rapid Research Letters', 'Doklady Physical Chemistry', 'RSC Advances', 'Journal of the Ceramic Society of Japan', 'Polymer Journal', 'ACS Photonics', 'Journal of Inorganic and Organometallic Polymers and Materials', 'New Journal of Chemistry', 'Chinese Physics B', 'Spectrochimica Acta Part A: Molecular and Biomolecular Spectroscopy', 'Molecular Crystals and Liquid Crystals', 'ChemElectroChem', 'Advanced Science', 'Polymer Chemistry', 'Small Methods', 'Advanced Materials Technologies', 'Organic, Hybrid, and Perovskite Photovoltaics XVIII', 'Chemistry – A European Journal', 'Organic Photovoltaics XVI', 'Chem. Commun.', 'Advanced Optical Materials', 'Nano', 'Molecular Systems Design & Engineering', 'ChemistrySelect', 'ECS Journal of Solid State Science and Technology', 'Journal of Molecular Structure', 'Current Applied Physics', 'Journal of the American Chemical Society', 'Chemical Papers', 'Polymer Composites', 'Energy Storage Materials', 'Journal of Photochemistry and Photobiology A: Chemistry', 'Frontiers in Materials', 'ACS Sustainable Chemistry & Engineering', 'physica status solidi (a)', 'Nature Energy', 'Inorganic Chemistry', 'Canadian Journal of Chemistry', 'Electrochemistry', 'Journal of Electronic Materials', 'Chemistry of Materials', 'IEEE Transactions on Electron Devices', 'Chemistry - A European Journal', 'Materials Horizons', 'Tetrahedron', 'Optical Materials Express', 'Optics Letters', 'ChemPlusChem', 'Chinese Journal of Polymer Science', 'Oxide-based Materials and Devices IX', 'Organic Photovoltaics XV', 'Solid State Communications', 'Particle & Particle Systems Characterization', 'Chemical Communications', 'Phys. Chem. Chem. Phys.', 'European Polymer Journal', 'Crystal Growth & Design', 'Industrial & Engineering Chemistry Research', 'Journal of Physics and Chemistry of Solids', 'Materials', 'Nanosystems: Physics, Chemistry, Mathematics', 'Journal of Photopolymer Science and Technology', 'Energy', 'Journal of Materials Chemistry A', 'Journal of Inorganic Materials', 'Chemistry Letters', 'Solid-State Electronics', 'Journal of Materials Science & Technology', 'MRS Advances', 'Materials & Design', 'Micro & Nano Letters', 'Energy Science & Engineering', 'Advances in Materials Science and Engineering', 'Sustainable Energy & Fuels', 'Dalton Transactions', 'J. Mater. Chem. A', 'ChemPhotoChem', 'Journal of the Chinese Chemical Society', 'Nature Materials', 'Journal of Colloid and Interface Science', 'Nano Convergence', 'Nano Energy', 'Organic Photovoltaics XVII', 'Materials Today', 'Bulletin of the Chemical Society of Japan', 'Superlattices and Microstructures', 'Faraday Discuss.', 'ACS Applied Materials & Interfaces', 'Light: Science & Applications', 'Joule', 'J. Mater. Chem. C', 'Journal of CO2 Utilization', 'Journal of Nanoparticle Research', 'ChemNanoMat', 'Accounts of Chemical Research', 'Advanced Materials Interfaces', 'Angewandte Chemie International Edition', 'Journal of Alloys and Compounds', 'Sustainability', 'Materials Today Communications', 'Nature Chemistry', 'Journal of the Korean Physical Society', 'Chinese Journal of Chemistry', 'Materials Chemistry and Physics', 'Physical Chemistry Chemical Physics', 'ChemSusChem', 'Applied Science and Convergence Technology', 'Polymer Bulletin', 'Advanced Materials', 'Materials Technology', 'Energy Procedia', 'Optoelectronic Devices and Integration VI', 'Journal of the American Ceramic Society', 'Applied Surface Science', 'Latvian Journal of Physics and Technical Sciences', 'Ceramics International', 'Science and Technology of Advanced Materials'])))
+                    """)
 
     part_of_initial_dataset = Quantity(
         type=bool,
@@ -135,24 +145,6 @@ Unpublished
         description="""
     nan
                     """)
-
-    free_text_comment = Quantity(
-        type=str,
-        shape=[],
-        description="""
-    This could be anything given additional description to the cell that is not captured by any other field.
-                    """,
-        a_eln=dict(
-            component='EnumEditQuantity', props=dict(suggestions=[])))
-
-    internal_sample_id = Quantity(
-        type=str,
-        shape=[],
-        description="""
-    This is your own unique cell identifier. With this text string alone, you should be able to identify this cell in your own internal data management system.
-                    """,
-        a_eln=dict(
-            component='EnumEditQuantity', props=dict(suggestions=[])))
 
     def normalize(self, archive, logger):
         from nomad.datamodel.datamodel import EntryMetadata
