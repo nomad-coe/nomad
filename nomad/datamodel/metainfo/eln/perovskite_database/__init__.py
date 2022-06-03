@@ -2280,6 +2280,11 @@ Examples:
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', '50 min', '50 W/cm2; 2.42 s', 'Colling rate < GHT-3', '40kHz; 5W; 2 min', '40kHz; 10W; 2 min', '10 pulses per sample', '2.5', '40kHz; 10W; 1 min', 'Colling rate < GHT-2', '1', '40kHz; 10W; 3 min', '2.47 s', '5', '105 deg. C', '70 C >> 254 nm', '30% RH; 8 h', '30 min', '100 deg. C', '40kHz; 5W; 1 min', '7s', '30% RH; 12 h', '50 W/cm2; 2.40 s', '50 W/cm2; 2.38 s', '50 W/cm2; 2.50 s', '40kHz; 10W; 4 min', '40kHz; 5W; 3 min', '30% RH; 4 h', '2 min', '85 deg. C in Air 50 % RH', '9s', 'Colling rate < GHT-4', '40kHz; 5W; 4 min', '20 min', '50 W/cm2; 2.45 s', '10s', '10 s', '13s', '45 deg. C', '105 C', '40 mW/cm2', 'Fast cooling in ice 150 >> 0', '80 deg. C; 15 s', '11s', '50 W/cm2; 2.53 s', '50 W/cm2; 2.55 s', '50 W/cm2; 2.47 s', '200 Mpa; 90 deg.C; 60 min', '0.5', '85 deg. C in O2', 'Several hours', 'Fast cooling in air 150 >> 0', '85 deg. C in N2', 'nan >> 100 deg C 5 min', '80W/cm 20.1mm/s', '500W, 30 sec', '200 Mpa;  60 min', 'Spin-coating>> 2 mg/ml>> 100 deg. C>> 10 min', '70 deg. C; 60 min'])))
 
+    def normalize(self, archive, logger):
+        addSolarCell(archive)
+        if self.procedure:
+            archive.results.properties.optoelectronic.solar_cell.absorber_fabrication = self.procedure.split(' | ')
+
 
 class HTL(MSection):
 
@@ -5549,6 +5554,23 @@ Short circuit
 
 class EQE(MSection):
 
+    m_def = Section(
+        a_eln=dict(lane_width='600px'),
+        a_plot=[
+            {
+                'label': 'Raw EQE',
+                'x': 'raw_wavelength_array',
+                'y': 'raw_eqe_array',
+                'layout': {'yaxis': {'type': 'lin'}},
+            },
+            {
+                'label': 'Interpolated/extrapolated EQE log scale',
+                'x': 'wavelength_array',
+                'y': 'eqe_array',
+                'layout': {'yaxis': {'type': 'log'}},
+                'config': {"editable": 'true'},
+            }])
+
     eqe_data_file = Quantity(
         type=str,
         description="""
@@ -6809,13 +6831,13 @@ nan
 
 class PerovskiteSolarCell(EntryData):
 
-    m_def = Section(a_eln=dict(lane_width='800px'))
+    m_def = Section(a_eln=dict(lane_width='400px'))
 
-    comments = Quantity(
-        type=str,
-        description='''Remarks, observations and free text about the perovskite solar cell
-                    experiments and measurements.''',
-        a_eln=dict(component='RichTextEditQuantity'))
+    # comments = Quantity(
+    #     type=str,
+    #     description='''Remarks, observations and free text about the perovskite solar cell
+    #                 experiments and measurements.''',
+    #     a_eln=dict(component='RichTextEditQuantity'))
 
     ref = SubSection(section_def=Ref)
     cell = SubSection(section_def=Cell)

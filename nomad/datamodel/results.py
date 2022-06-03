@@ -2150,6 +2150,7 @@ class SolarCell(MSection):
     )
     absorber_fabrication = Quantity(
         type=str,
+        shape=['0..*'],
         description='''
         Technique describing the fabrication of the absorber layer. Examples are:
         `Spin-coating`, `Evaporation`, `Doctor blading`, ...
