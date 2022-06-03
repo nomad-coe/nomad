@@ -164,7 +164,7 @@ class PerovskiteFormulaCleaner():
                   The composition could not be parsed.
                   ''')
         else:
-            for word, replacement in self.cation_dict.items():
+            for word, replacement in sorted(self.cation_dict.items(), key=lambda x: len(x[1])):
                 item = re.sub(word, replacement, item)
             output_formula = item
             return output_formula
@@ -200,7 +200,8 @@ if __name__ == "__main__":
     # formulas_raw = ['Cs0.075FA0.75MA0.175PbBr0.33I2.67', 'Cs0.2FA0.8PbI3', 'Cs0.025FA0.475MA0.5Pb0.5Sn0.5I3', 'MA2CuBr3.5Cl0.5', 'FA0.95MA0.05PbBr0.15I2.85 | DA2PbI4', '(PDA)MAPb2I7', 'MAPb0.2Sn0.8Br0.4I2.6', 'CsPb1.0Br1.5I1.5', 'FA0.8MA0.2PbBr0.095I0.905', 'MASnF0.4I2.6', 'BU2FA8Pb9I28', 'MASnBr2.64I0.36', '(4AMP)MA2Pb3I10', 'Cs0.15FA0.85PbBr0.45I2.55', 'BA2MA3Pb4I12', 'Cs0.05FA0.07MA0.25PbI3', 'Cs0.04FA0.96PbBr3']
     # strValue = "FA0.95MA0.05PbBr0.15I2.85"
     # for item in formulas_raw:
-    formula_cleaner = PerovskiteFormulaCleaner('FA0.5MA0.5PbI3')
+    formula_cleaner = PerovskiteFormulaCleaner('(ThMA)2MA2Pb3I10')
+    replaced_formula = formula_cleaner.replace_formula()
     # replaced_formula = formula_cleaner.replace_formula()
     final_formula = formula_cleaner.clean_formula()
-    print(final_formula)
+    print(final_formula, replaced_formula)
