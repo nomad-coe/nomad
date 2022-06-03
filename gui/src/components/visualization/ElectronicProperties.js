@@ -22,7 +22,7 @@ import { Quantity } from '../../units'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
-import { SectionTable } from '../Quantity'
+import BandGap from './BandGap'
 import { makeStyles } from '@material-ui/core/styles'
 import { electronicRange } from '../../config'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
@@ -44,13 +44,6 @@ const useStyles = makeStyles((theme) => {
     }
   }
 })
-
-// Band gap quantities to show. Saved as const object to prevent re-renders
-const bandGapQuantities = {
-  index: {label: 'Ch.', align: 'left'},
-  value: {label: 'Value'},
-  type: {label: 'Type', placeholder: 'no gap'}
-}
 
 const ElectronicProperties = React.memo(({
   bs,
@@ -114,13 +107,7 @@ const ElectronicProperties = React.memo(({
         />
       </PropertyItem>
       <PropertyItem title="Band gaps" xs={4}>
-        <SectionTable
-          horizontal
-          section="results.properties.electronic.band_structure_electronic.band_gap"
-          quantities={bandGapQuantities}
-          data={bs === false ? false : bs?.band_gap && {data: bs.band_gap}}
-          units={units}
-        />
+        <BandGap data={bs && bs?.band_gap}/>
       </PropertyItem>
     </>}
   </PropertyGrid>

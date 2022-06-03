@@ -2,7 +2,7 @@
 pip
 wheel
 pyyaml==6.0
-numpy==1.21.2
+numpy==1.22.4
 fastentrypoints==0.12
 cython>=0.19
 future==0.18.2
