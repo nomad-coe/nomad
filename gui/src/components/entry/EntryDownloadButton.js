@@ -34,9 +34,13 @@ const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
 
   const download = (choice) => {
     let queryStringData = toAPIFilter(query)
-    const owner = query.visibility || 'visible'
+    const owner = query.visibility || (user ? 'visible' : 'public')
     const openDownload = (token) => {
-      const url = `${apiBase}/v1/entries/${choice}/download?owner=${owner}&signature_token=${token}&json_query=${JSON.stringify(queryStringData)}`
+      const endpoint = choice === 'raw' ? 'raw' : 'archive/download'
+      let url = `${apiBase}/v1/entries/${endpoint}?owner=${owner}&json_query=${JSON.stringify(queryStringData)}`
+      if (token) {
+        url = `${url}&signature_token=${token}`
+      }
       window.location.assign(url)
     }
 
