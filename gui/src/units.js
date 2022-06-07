@@ -134,10 +134,10 @@ export const unitSystems = {
     description: 'Custom unit setup',
     units: {
       ...SIUnits,
-      length: {name: 'angstrom', fixed: false},
-      time: {name: 'femtosecond', fixed: false},
+      length: {name: 'meter', fixed: false},
+      time: {name: 'second', fixed: false},
       energy: {name: 'electron_volt', fixed: false},
-      pressure: {name: 'gigapascal', fixed: false},
+      pressure: {name: 'pascal', fixed: false},
       angle: {name: 'degree', fixed: false}
     }
   },
