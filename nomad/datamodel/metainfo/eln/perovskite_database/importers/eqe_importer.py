@@ -219,7 +219,7 @@ def read_eqe(filename, header_lines=None):
     return eqe_dict
 
 
-#filename = '/home/pepe_marquez/NOMAD/nomad/nomad/datamodel/metainfo/eln/perovskite_database/importers/15 of iii batch.txt'
+# filename = '/home/pepe_marquez/NOMAD/nomad/nomad/datamodel/metainfo/eln/perovskite_database/importers/15 of iii batch.txt'
 # filename = '/home/pepe_marquez/NOMAD/nomad/nomad/datamodel/metainfo/eln/perovskite_database/importers/EQE_Liu_ACSEnergyLett_19_recipeB.dat'
 # read_eqe(filename, header_lines=0)
-#read_eqe(filename, 9)
+# read_eqe(filename, 9)
