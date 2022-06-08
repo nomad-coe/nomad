@@ -165,7 +165,7 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
   }
 
   useEffect(() => {
-    if (preview && selectedViewer.requiresLoadedData && data.current === undefined) {
+    if (preview && !failedToPreview && selectedViewer.requiresLoadedData && data.current === undefined) {
       // Need to load the file data content for the viewer
       data.current = null
       api.get(url)
@@ -173,9 +173,12 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
           data.current = response
           setDataLoaded(true)
         })
-        .catch(raiseError)
+        .catch(error => {
+          setFailedToPreview(true)
+          raiseError(error)
+        })
     }
-  }, [preview, selectedViewer, user, url, data, dataLoaded, setDataLoaded, api, raiseError])
+  }, [preview, failedToPreview, selectedViewer, user, url, data, dataLoaded, setDataLoaded, api, raiseError])
 
   if (!preview) {
     return (
@@ -245,6 +248,7 @@ function FilePreviewText({uploadId, path}) {
   const [contents, setContents] = useState(null)
   const [hasMore, setHasMore] = useState(true)
   const loading = useRef(false)
+  const [loadFailed, setLoadFailed] = useState(false)
   const containerRef = React.createRef()
 
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
@@ -254,7 +258,7 @@ function FilePreviewText({uploadId, path}) {
     // gets updates, therefore calling this infinitely before it gets any chances of
     // receiving the results (https://github.com/CassetteRocks/react-infinite-scroller/issues/163).
     // Therefore, we use `loading` to keep track of if we are already running a load request.
-    if (hasMore && !loading.current) {
+    if (hasMore && !loading.current && !loadFailed) {
       loading.current = true
       api.get(
         `/uploads/${uploadId}/raw/${encodedPath}`,
@@ -269,10 +273,14 @@ function FilePreviewText({uploadId, path}) {
           setContents(old => (old || '') + (contents || ''))
           setHasMore(contents?.length === 16 * 1024)
         })
-        .catch(raiseError)
+        .catch(error => {
+          setLoadFailed(true)
+          setContents(old => (old || '') + '\n\nERROR - COULD NOT READ FILE!')
+          raiseError(error)
+        })
         .finally(() => { loading.current = false })
     }
-  }, [uploadId, encodedPath, loading, hasMore, setHasMore, setContents, api, raiseError, contents])
+  }, [uploadId, encodedPath, loading, loadFailed, setLoadFailed, hasMore, setHasMore, setContents, api, raiseError, contents])
 
   useEffect(() => {
     // Trigger loading the first chunk

@@ -1864,8 +1864,11 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
         return upload
     elif include_others:
         if not upload.published:
+            if user:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                    You do not have access to the specified upload.'''))
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-                You do not have access to the specified upload - not published yet.'''))
+                You need to log in to access the specified upload.'''))
         if upload.published and upload.with_embargo:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You do not have access to the specified upload - published with embargo.'''))

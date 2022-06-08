@@ -7,6 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0NzhhNmNkMi0zZWMzLTRiNGItYmE3Ni1mMTkxYzdjMWNiNTUiLCJleHAiOjE2NTQ2Mjg2MjEsIm5iZiI6MCwiaWF0IjoxNjU0NTkyNjI3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjMxNzNhMGQ3LTc2ZDAtNDgwOS1hNDk0LTI2YWM3OWM5MWM3YyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.FJ7kDAoIpQ3lQmHYPegTZYBdOjHzNf6ABA43eAUH_YsTzlwriPnZV8HqGCGfebVr5VFMd9EPu14nam3W6SDDnx9QboyS6L4fB44ZF8wnMKF1gDwNQMPxZIuXSwhdB4k8UgHJFZ9CRoqegI497oao6LgxoQptHkzVyh9ermaJ0enrlR1xMFi9xlu532UxazEA8fiRSI3SNDJKmKaxHRP68dV0dEwH9ra-3pWsJhXl5DyuXMXMko4zhH3WZJRe3z8HbWv86AJYlA5a5rFy6ikQqpS0yvHbdG7EAmDg8LrV5gScXkhdeFu3lGDsba-ROuAZvYt-gwfNNFmcV4sNfRs4sw",
           "cookie": null
         }
       },
@@ -32,9 +33,9 @@
             "process_status": "SUCCESS",
             "errors": [],
             "warnings": [],
-            "complete_time": "2022-04-06T10:01:03.363000",
+            "complete_time": "2022-06-07T09:03:44.585000",
             "upload_id": "dft_upload_1",
-            "upload_create_time": "2022-04-06T10:01:03.362000",
+            "upload_create_time": "2022-06-07T09:03:44.584000",
             "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
             "coauthors": [],
             "reviewers": [],
@@ -44,13 +45,13 @@
             "writers": [
               "68878af7-6845-46c0-b2c1-250d4d8eb470"
             ],
-            "published": true,
+            "published": false,
             "published_to": [],
-            "publish_time": "2022-04-06T10:01:03.365000",
             "with_embargo": false,
             "embargo_length": 0,
             "license": "CC BY 4.0",
-            "entries": 6
+            "entries": 6,
+            "upload_files_server_path": "/home/dsikter/nomad/.volumes/fs/staging/df/dft_upload_1"
           },
           "data": [
             {
@@ -59,22 +60,47 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk_1",
-              "entry_create_time": "2022-04-06T10:01:03.366000",
+              "entry_create_time": "2022-06-07T09:03:44.587000",
               "mainfile": "vasp_1.xml",
               "upload_id": "dft_upload_1",
               "parser_name": "parsers/vasp",
               "entry_metadata": {
+                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
                 "upload_id": "dft_upload_1",
                 "references": [
                   "doi"
                 ],
+                "parser_name": "parsers/vasp",
                 "origin": "Markus Scheidgen",
+                "calc_id": "dft_bulk_1",
+                "published": false,
+                "writers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  }
+                ],
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-04-06T10:01:03.362004",
+                "upload_create_time": "2022-06-07T09:03:44.584454+00:00",
+                "processed": true,
                 "nomad_commit": "bf3c06fa",
-                "publish_time": "2022-04-06T10:01:03.365004",
+                "mainfile": "vasp_1.xml",
+                "main_author": {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                "viewers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  }
+                ],
+                "entry_create_time": "2022-06-07T09:03:44.587454+00:00",
+                "with_embargo": false,
+                "domain": "dft",
+                "comment": "Mocked",
                 "results": {
                   "material": {
                     "symmetry": {
@@ -127,7 +153,8 @@
                       "energy_free_helmholtz",
                       "bulk_modulus",
                       "shear_modulus",
-                      "energy_volume_curve"
+                      "energy_volume_curve",
+                      "trajectory"
                     ],
                     "structures": {
                       "structure_primitive": {
@@ -183,6 +210,23 @@
                         ]
                       }
                     },
+                    "thermodynamic": {
+                      "trajectory": [
+                        {
+                          "available_properties": [
+                            "pressure",
+                            "temperature",
+                            "volume"
+                          ],
+                          "methodology": {
+                            "molecular_dynamics": {
+                              "time_step": 1e-15,
+                              "ensemble_type": "NVT"
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "mechanical": {
                       "energy_volume_curve": [
                         {
@@ -204,32 +248,6 @@
                     }
                   }
                 },
-                "last_processing_time": "2021-03-17T15:47:32.899000",
-                "parser_name": "parsers/vasp",
-                "calc_id": "dft_bulk_1",
-                "published": true,
-                "writers": [
-                  {
-                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                    "name": "Markus Scheidgen"
-                  }
-                ],
-                "processed": true,
-                "mainfile": "vasp_1.xml",
-                "main_author": {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                },
-                "viewers": [
-                  {
-                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                    "name": "Markus Scheidgen"
-                  }
-                ],
-                "entry_create_time": "2022-04-06T10:01:03.366004",
-                "with_embargo": false,
-                "domain": "dft",
-                "comment": "Mocked",
                 "entry_id": "dft_bulk_1",
                 "authors": [
                   {
@@ -246,22 +264,47 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk_2",
-              "entry_create_time": "2022-04-06T10:01:03.367000",
+              "entry_create_time": "2022-06-07T09:03:44.588000",
               "mainfile": "vasp_2.xml",
               "upload_id": "dft_upload_1",
               "parser_name": "parsers/vasp",
               "entry_metadata": {
+                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
                 "upload_id": "dft_upload_1",
                 "references": [
                   "doi"
                 ],
+                "parser_name": "parsers/vasp",
                 "origin": "Markus Scheidgen",
+                "calc_id": "dft_bulk_2",
+                "published": false,
+                "writers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  }
+                ],
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-04-06T10:01:03.362004",
+                "upload_create_time": "2022-06-07T09:03:44.584454+00:00",
+                "processed": true,
                 "nomad_commit": "bf3c06fa",
-                "publish_time": "2022-04-06T10:01:03.365004",
+                "mainfile": "vasp_2.xml",
+                "main_author": {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                "viewers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  }
+                ],
+                "entry_create_time": "2022-06-07T09:03:44.588454+00:00",
+                "with_embargo": false,
+                "domain": "dft",
+                "comment": "Mocked",
                 "results": {
                   "material": {
                     "symmetry": {
@@ -314,7 +357,8 @@
                       "energy_free_helmholtz",
                       "bulk_modulus",
                       "shear_modulus",
-                      "energy_volume_curve"
+                      "energy_volume_curve",
+                      "trajectory"
                     ],
                     "structures": {
                       "structure_primitive": {
@@ -370,6 +414,23 @@
                         ]
                       }
                     },
+                    "thermodynamic": {
+                      "trajectory": [
+                        {
+                          "available_properties": [
+                            "pressure",
+                            "temperature",
+                            "volume"
+                          ],
+                          "methodology": {
+                            "molecular_dynamics": {
+                              "time_step": 1e-15,
+                              "ensemble_type": "NVT"
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "mechanical": {
                       "energy_volume_curve": [
                         {
@@ -391,32 +452,6 @@
                     }
                   }
                 },
-                "last_processing_time": "2021-03-17T15:47:32.899000",
-                "parser_name": "parsers/vasp",
-                "calc_id": "dft_bulk_2",
-                "published": true,
-                "writers": [
-                  {
-                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                    "name": "Markus Scheidgen"
-                  }
-                ],
-                "processed": true,
-                "mainfile": "vasp_2.xml",
-                "main_author": {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                },
-                "viewers": [
-                  {
-                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                    "name": "Markus Scheidgen"
-                  }
-                ],
-                "entry_create_time": "2022-04-06T10:01:03.367004",
-                "with_embargo": false,
-                "domain": "dft",
-                "comment": "Mocked",
                 "entry_id": "dft_bulk_2",
                 "authors": [
                   {
@@ -433,22 +468,47 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk_3",
-              "entry_create_time": "2022-04-06T10:01:03.368000",
+              "entry_create_time": "2022-06-07T09:03:44.589000",
               "mainfile": "vasp_3.xml",
               "upload_id": "dft_upload_1",
               "parser_name": "parsers/vasp",
               "entry_metadata": {
+                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
                 "upload_id": "dft_upload_1",
                 "references": [
                   "doi"
                 ],
+                "parser_name": "parsers/vasp",
                 "origin": "Markus Scheidgen",
+                "calc_id": "dft_bulk_3",
+                "published": false,
+                "writers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  }
+                ],
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-04-06T10:01:03.362004",
+                "upload_create_time": "2022-06-07T09:03:44.584454+00:00",
+                "processed": true,
                 "nomad_commit": "bf3c06fa",
-                "publish_time": "2022-04-06T10:01:03.365004",
+                "mainfile": "vasp_3.xml",
+                "main_author": {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                "viewers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  }
+                ],
+                "entry_create_time": "2022-06-07T09:03:44.589454+00:00",
+                "with_embargo": false,
+                "domain": "dft",
+                "comment": "Mocked",
                 "results": {
                   "material": {
                     "symmetry": {
@@ -501,7 +561,8 @@
                       "energy_free_helmholtz",
                       "bulk_modulus",
                       "shear_modulus",
-                      "energy_volume_curve"
+                      "energy_volume_curve",
+                      "trajectory"
                     ],
                     "structures": {
                       "structure_primitive": {
@@ -557,6 +618,23 @@
                         ]
                       }
                     },
+                    "thermodynamic": {
+                      "trajectory": [
+                        {
+                          "available_properties": [
+                            "pressure",
+                            "temperature",
+                            "volume"
+                          ],
+                          "methodology": {
+                            "molecular_dynamics": {
+                              "time_step": 1e-15,
+                              "ensemble_type": "NVT"
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "mechanical": {
                       "energy_volume_curve": [
                         {
@@ -578,32 +656,6 @@
                     }
                   }
                 },
-                "last_processing_time": "2021-03-17T15:47:32.899000",
-                "parser_name": "parsers/vasp",
-                "calc_id": "dft_bulk_3",
-                "published": true,
-                "writers": [
-                  {
-                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                    "name": "Markus Scheidgen"
-                  }
-                ],
-                "processed": true,
-                "mainfile": "vasp_3.xml",
-                "main_author": {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                },
-                "viewers": [
-                  {
-                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                    "name": "Markus Scheidgen"
-                  }
-                ],
-                "entry_create_time": "2022-04-06T10:01:03.368004",
-                "with_embargo": false,
-                "domain": "dft",
-                "comment": "Mocked",
                 "entry_id": "dft_bulk_3",
                 "authors": [
                   {
@@ -620,22 +672,47 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk_4",
-              "entry_create_time": "2022-04-06T10:01:03.369000",
+              "entry_create_time": "2022-06-07T09:03:44.590000",
               "mainfile": "vasp_4.xml",
               "upload_id": "dft_upload_1",
               "parser_name": "parsers/vasp",
               "entry_metadata": {
+                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
                 "upload_id": "dft_upload_1",
                 "references": [
                   "doi"
                 ],
+                "parser_name": "parsers/vasp",
                 "origin": "Markus Scheidgen",
+                "calc_id": "dft_bulk_4",
+                "published": false,
+                "writers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  }
+                ],
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-04-06T10:01:03.362004",
+                "upload_create_time": "2022-06-07T09:03:44.584454+00:00",
+                "processed": true,
                 "nomad_commit": "bf3c06fa",
-                "publish_time": "2022-04-06T10:01:03.365004",
+                "mainfile": "vasp_4.xml",
+                "main_author": {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                "viewers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  }
+                ],
+                "entry_create_time": "2022-06-07T09:03:44.590454+00:00",
+                "with_embargo": false,
+                "domain": "dft",
+                "comment": "Mocked",
                 "results": {
                   "material": {
                     "symmetry": {
@@ -688,7 +765,8 @@
                       "energy_free_helmholtz",
                       "bulk_modulus",
                       "shear_modulus",
-                      "energy_volume_curve"
+                      "energy_volume_curve",
+                      "trajectory"
                     ],
                     "structures": {
                       "structure_primitive": {
@@ -744,6 +822,23 @@
                         ]
                       }
                     },
+                    "thermodynamic": {
+                      "trajectory": [
+                        {
+                          "available_properties": [
+                            "pressure",
+                            "temperature",
+                            "volume"
+                          ],
+                          "methodology": {
+                            "molecular_dynamics": {
+                              "time_step": 1e-15,
+                              "ensemble_type": "NVT"
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "mechanical": {
                       "energy_volume_curve": [
                         {
@@ -765,32 +860,6 @@
                     }
                   }
                 },
-                "last_processing_time": "2021-03-17T15:47:32.899000",
-                "parser_name": "parsers/vasp",
-                "calc_id": "dft_bulk_4",
-                "published": true,
-                "writers": [
-                  {
-                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                    "name": "Markus Scheidgen"
-                  }
-                ],
-                "processed": true,
-                "mainfile": "vasp_4.xml",
-                "main_author": {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                },
-                "viewers": [
-                  {
-                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                    "name": "Markus Scheidgen"
-                  }
-                ],
-                "entry_create_time": "2022-04-06T10:01:03.369004",
-                "with_embargo": false,
-                "domain": "dft",
-                "comment": "Mocked",
                 "entry_id": "dft_bulk_4",
                 "authors": [
                   {
@@ -807,22 +876,47 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk_5",
-              "entry_create_time": "2022-04-06T10:01:03.370000",
+              "entry_create_time": "2022-06-07T09:03:44.591000",
               "mainfile": "vasp_5.xml",
               "upload_id": "dft_upload_1",
               "parser_name": "parsers/vasp",
               "entry_metadata": {
+                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
                 "upload_id": "dft_upload_1",
                 "references": [
                   "doi"
                 ],
+                "parser_name": "parsers/vasp",
                 "origin": "Markus Scheidgen",
+                "calc_id": "dft_bulk_5",
+                "published": false,
+                "writers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  }
+                ],
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-04-06T10:01:03.362004",
+                "upload_create_time": "2022-06-07T09:03:44.584454+00:00",
+                "processed": true,
                 "nomad_commit": "bf3c06fa",
-                "publish_time": "2022-04-06T10:01:03.365004",
+                "mainfile": "vasp_5.xml",
+                "main_author": {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                "viewers": [
+                  {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  }
+                ],
+                "entry_create_time": "2022-06-07T09:03:44.591454+00:00",
+                "with_embargo": false,
+                "domain": "dft",
+                "comment": "Mocked",
                 "results": {
                   "material": {
                     "symmetry": {
@@ -875,7 +969,8 @@
                       "energy_free_helmholtz",
                       "bulk_modulus",
                       "shear_modulus",
-                      "energy_volume_curve"
+                      "energy_volume_curve",
+                      "trajectory"
                     ],
                     "structures": {
                       "structure_primitive": {
@@ -931,6 +1026,23 @@
                         ]
                       }
                     },
+                    "thermodynamic": {
+                      "trajectory": [
+                        {
+                          "available_properties": [
+                            "pressure",
+                            "temperature",
+                            "volume"
+                          ],
+                          "methodology": {
+                            "molecular_dynamics": {
+                              "time_step": 1e-15,
+                              "ensemble_type": "NVT"
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "mechanical": {
                       "energy_volume_curve": [
                         {
@@ -952,32 +1064,6 @@
                     }
                   }
                 },
-                "last_processing_time": "2021-03-17T15:47:32.899000",
-                "parser_name": "parsers/vasp",
-                "calc_id": "dft_bulk_5",
-                "published": true,
-                "writers": [
-                  {
-                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                    "name": "Markus Scheidgen"
-                  }
-                ],
-                "processed": true,
-                "mainfile": "vasp_5.xml",
-                "main_author": {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                },
-                "viewers": [
-                  {
-                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                    "name": "Markus Scheidgen"
-                  }
-                ],
-                "entry_create_time": "2022-04-06T10:01:03.370004",
-                "with_embargo": false,
-                "domain": "dft",
-                "comment": "Mocked",
                 "entry_id": "dft_bulk_5",
                 "authors": [
                   {
@@ -992,7 +1078,33 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "30840",
+          "content-length": "33332",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "8767910f03914d1fdd73a7a5d27f2edc": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload_1/raw/README.md",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0NzhhNmNkMi0zZWMzLTRiNGItYmE3Ni1mMTkxYzdjMWNiNTUiLCJleHAiOjE2NTQ2Mjg2MjEsIm5iZiI6MCwiaWF0IjoxNjU0NTkyNjI3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjMxNzNhMGQ3LTc2ZDAtNDgwOS1hNDk0LTI2YWM3OWM5MWM3YyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.FJ7kDAoIpQ3lQmHYPegTZYBdOjHzNf6ABA43eAUH_YsTzlwriPnZV8HqGCGfebVr5VFMd9EPu14nam3W6SDDnx9QboyS6L4fB44ZF8wnMKF1gDwNQMPxZIuXSwhdB4k8UgHJFZ9CRoqegI497oao6LgxoQptHkzVyh9ermaJ0enrlR1xMFi9xlu532UxazEA8fiRSI3SNDJKmKaxHRP68dV0dEwH9ra-3pWsJhXl5DyuXMXMko4zhH3WZJRe3z8HbWv86AJYlA5a5rFy6ikQqpS0yvHbdG7EAmDg8LrV5gScXkhdeFu3lGDsba-ROuAZvYt-gwfNNFmcV4sNfRs4sw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "detail": "Not found. Invalid path?"
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "37",
           "content-type": "application/json",
           "server": "uvicorn"
         }

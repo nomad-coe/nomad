@@ -1,4 +1,29 @@
 {
+  "ff95b7af4ca8739b8ba0065e4de2b8d7": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/raw/README.md",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "detail": "You need to log in to access the specified upload."
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "63",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
   "9efcb5c38a525a0d1b33c9740d2fec4f": [
     {
       "request": {
@@ -13,11 +38,11 @@
       "response": {
         "status": 401,
         "body": {
-          "detail": "You do not have access to the specified upload - not published yet."
+          "detail": "You need to log in to access the specified upload."
         },
         "headers": {
           "connection": "close",
-          "content-length": "80",
+          "content-length": "63",
           "content-type": "application/json",
           "server": "uvicorn"
         }

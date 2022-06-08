@@ -78,22 +78,18 @@ class RawDirectoryAdaptor extends Adaptor {
     this.data = undefined
     this.timestamp = undefined
     this.initialized = false
+    this.dependencies = new Set([uploadId])
   }
-  needToFetchData() {
-    return this.data === undefined
+  depends() {
+    return this.dependencies
   }
-  async fetchData(api, dataStore, force = false) {
-    if (this.data === undefined || force) {
-      if (this.data === undefined) {
-        this.data = null // to prevent redundant fetches
-      }
-      this.timestamp = dataStore.getUpload(this.uploadId).upload?.complete_time
-      const encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-      const response = await api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
-      const elementsByName = {}
-      response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
-      this.data = {response, elementsByName}
-    }
+  async initialize(api, dataStore) {
+    this.timestamp = dataStore.getUpload(this.uploadId).upload?.complete_time
+    const encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
+    const response = await api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
+    const elementsByName = {}
+    response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
+    this.data = {response, elementsByName}
   }
   itemAdaptor(key) {
     if (key === '_mainfile') {
@@ -144,25 +140,22 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
   const createDirName = useRef()
   const { raiseError } = useErrors()
 
-  const [, setRefreshCounter] = useState(0)
-
   const refreshIfNeeded = useCallback(async (oldStoreObj, newStoreObj) => {
     // Called when a store update occurs. Note, adaptors can be cached while the browser & lanes
     // components are unmounted.
-    const oldTimestamp = lane.adaptor.timestamp // Timestamp from the store the last time we loaded the directory data
-    const newTimestamp = newStoreObj.upload?.complete_time // Current timestamp from the store
     if (newStoreObj.hasUpload) {
+      const oldTimestamp = lane.adaptor.timestamp // Timestamp from the store the last time we called initialize
+      const newTimestamp = newStoreObj.upload?.complete_time // Current timestamp from the store
       if (!lane.adaptor.initialized) {
         // No need to a new refresh again, just update the adaptor timestamp
         lane.adaptor.timestamp = newTimestamp
         lane.adaptor.initialized = true
       } else if (newTimestamp !== oldTimestamp && !newStoreObj.isProcessing) {
         // Reprocessed
-        await lane.adaptor.fetchData(api, dataStore, true)
-        setRefreshCounter(oldValue => oldValue + 1) // Trigger rerender
+        browser.invalidateLanesWithDependency(uploadId)
       }
     }
-  }, [api, dataStore, lane, setRefreshCounter])
+  }, [browser, lane, uploadId])
 
   useEffect(() => {
     refreshIfNeeded(undefined, dataStore.getUpload(uploadId))
@@ -230,7 +223,7 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
             actions={
               <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
                 <Grid item>
-                  <IconButton size="small" onClick={() => browser.update(lane)}>
+                  <IconButton size="small" onClick={() => browser.invalidateLanesFromIndex(lane.index)}>
                     <Tooltip title="reload directory contents">
                       <ReloadIcon/>
                     </Tooltip>
@@ -352,6 +345,10 @@ export class RawFileAdaptor extends Adaptor {
     this.path = path
     this.data = data
     this.editable = editable
+    this.dependencies = new Set([uploadId])
+  }
+  depends() {
+    return this.dependencies
   }
   async itemAdaptor(key) {
     if (key === 'archive') {
