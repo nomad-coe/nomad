@@ -35,6 +35,7 @@ from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Dat
     pytest.param(Dimension, 'quantity', id='Dimension-quantity'),
     pytest.param(Datetime, datetime.datetime.now(datetime.timezone.utc), id='Datetime'),
     pytest.param(Datetime, datetime.datetime.now(pytz.timezone('America/Los_Angeles')), id='Datetime'),
+    pytest.param(Datetime, datetime.date.today(), id='Date'),
     pytest.param(Capitalized, 'Hello', id='Capitalize'),
     pytest.param(Bytes, b'hello', id='Bytes')
 ])
@@ -45,12 +46,20 @@ def test_basic_types(def_type, value):
     section = TestSectionA()
     assert section.quantity is None
     section.quantity = value
+    if not isinstance(value, datetime.datetime) and isinstance(value, datetime.date):
+        assert section.quantity == datetime.datetime.combine(value, datetime.datetime.min.time()).replace(
+            tzinfo=pytz.utc)
+    else:
+        assert section.quantity == value
 
-    assert section.quantity == value
     section_serialized = section.m_to_dict()
     json.dumps(section_serialized)
     section = TestSectionA.m_from_dict(section_serialized)
-    assert section.quantity == value
+    if not isinstance(value, datetime.datetime) and isinstance(value, datetime.date):
+        assert section.quantity == datetime.datetime.combine(value, datetime.datetime.min.time()).replace(
+            tzinfo=pytz.utc)
+    else:
+        assert section.quantity == value
 
     class TestSectionB(MSection):
         quantity = Quantity(type=def_type, default=value)
