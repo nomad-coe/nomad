@@ -110,7 +110,7 @@ rabbitmq:
   nodeSelector:
     nomadtype: public
   image.pullSecrets: nil
-  rabbitmq:
+  auth:
     username: rabbitmq
     password: rabbitmq
     erlangCookie: SWQOKODSQALRPCLNMEQG
