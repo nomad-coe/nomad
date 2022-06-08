@@ -46,9 +46,9 @@ all_coauthor_entry_metadata = {
 
 all_admin_metadata = dict(
     # Every attribute which only admins can set
-    upload_create_time='2021-05-04T11:00:00',
-    entry_create_time='2021-05-04T11:00:00',
-    publish_time='2021-05-04T11:00:00',
+    upload_create_time='2021-05-04T00:00:00',
+    entry_create_time='2021-05-04T00:00:00',
+    publish_time='2021-05-04T00:00:00',
     license='a license',
     main_author='lhofstadter')
 

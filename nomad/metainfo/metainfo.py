@@ -29,7 +29,7 @@ import pint
 import pint.unit
 import pint.quantity
 import aniso8601
-from datetime import datetime
+from datetime import datetime, date
 import pytz
 import docstring_parser
 import jmespath
@@ -834,6 +834,9 @@ class _Datetime(DataType):
 
         elif isinstance(value, pint.Quantity):
             value = datetime.fromtimestamp(value.magnitude)
+
+        elif not isinstance(value, datetime) and isinstance(value, date):
+            value = datetime.combine(value, datetime.min.time())
 
         if not isinstance(value, datetime):
             raise TypeError('%s is not a datetime.' % value)
