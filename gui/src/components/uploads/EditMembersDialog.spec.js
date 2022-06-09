@@ -76,6 +76,7 @@ const testAddRemoveMembers = async (dialog) => {
   fireEvent.change(autocompleteInput, { target: { value: 'teste' } })
   await waitForGUI()
   await waitFor(() => expect(autocompleteInput.value).toEqual('teste'))
+  await waitForGUI()
   fireEvent.keyDown(searchMembers, { key: 'ArrowDown' })
   fireEvent.keyDown(searchMembers, { key: 'Enter' })
   await waitForGUI()
@@ -90,6 +91,7 @@ const testAddRemoveMembers = async (dialog) => {
   fireEvent.change(autocompleteInput, { target: { value: 'admin' } })
   await waitForGUI()
   await waitFor(() => expect(autocompleteInput.value).toEqual('admin'))
+  await waitForGUI()
   fireEvent.keyDown(searchMembers, { key: 'ArrowDown' })
   fireEvent.keyDown(searchMembers, { key: 'Enter' })
   await waitForGUI()
@@ -187,6 +189,7 @@ test.each([
 
   if (username === 'test') {
     let newDialog = await openMembersDialog()
+    waitForGUI()
     await testNewDialog(newDialog)
   } else if (username === 'scooper') {
     await testReadOnlyPermissions()
