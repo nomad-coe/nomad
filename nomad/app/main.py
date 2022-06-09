@@ -29,6 +29,7 @@ from nomad import config, infrastructure
 from .dcat.main import app as dcat_app
 from .optimade import optimade_app
 from .v1.main import app as v1_app
+from .h5grove_app import app as h5grove_app
 
 
 class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
@@ -61,6 +62,7 @@ app_base = config.services.api_base_path
 app.mount(f'{app_base}/api/v1', v1_app)
 app.mount(f'{app_base}/dcat', dcat_app)
 app.mount(f'{app_base}/optimade', optimade_app)
+app.mount(f'{app_base}/h5grove', h5grove_app)
 
 dist_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../dist'))
 docs_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs/build'))

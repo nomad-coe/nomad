@@ -22,7 +22,7 @@ python-keycloak==0.26.1
 elasticsearch-dsl==7.4.0
 pydantic==1.8.2
 jmespath==0.10.0
-h5grove==0.0.14
+h5grove==1.0.0
 httpx==0.22.0
 memoization==0.4.0
 
