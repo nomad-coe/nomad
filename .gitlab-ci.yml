@@ -198,7 +198,7 @@ deploy dev:
   script:
     - RELEASE_NAME=`echo ${CI_COMMIT_REF_NAME} | sed -e 's/[^A-Za-z0-9\-]/-/g' | sed -e 's/^[0-9-]*//g' | head -c 43`
     - helm dependency update ops/helm/nomad
-    - helm upgrade --namespace nomad --install $RELEASE_NAME ops/helm/nomad -f ops/helm/nomad/deployments/dev-values.yaml --set proxy.external.path=/dev/rae/$RELEASE_NAME,image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - helm upgrade --namespace nomad --install $RELEASE_NAME ops/helm/nomad -f ops/helm/nomad/deployments/dev-values.yaml --set proxy.external.path=/dev/rae/$RELEASE_NAME,jupyterhub.hub.baseUrl==/dev/rae/$RELEASE_NAME/north,image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/dev/rae/$RELEASE_NAME/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
