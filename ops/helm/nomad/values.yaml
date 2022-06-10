@@ -185,3 +185,33 @@ process:
 datacite:
   enabled: false
   prefix: "10.17172"
+
+jupyterhub:
+  proxy:
+    secretToken: '0eec5f3e6924cb30ff9ca7412fbd67b3a8b13d040973c8bf1df68bd21f8cb65b'
+  hub:
+    baseUrl: "/fairdi/nomad/latest/north/"
+    config:
+      JupyterHub:
+        authenticator_class: tmpauthenticator.TmpAuthenticator
+    db:
+      type: sqlite-memory
+
+
+  singleuser:
+    storage:
+      type: none
+
+  prePuller:
+    hook:
+      enabled: false
+
+  scheduling:
+    userScheduler:
+      enabled: false
+    podPriority:
+      enabled: false
+    userPlaceholder:
+      enabled: false
+      replicas: 0
+
