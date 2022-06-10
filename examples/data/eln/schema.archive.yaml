@@ -51,7 +51,7 @@ definitions:
         - nomad.datamodel.metainfo.eln.Instrument
         - nomad.datamodel.data.EntryData
     Process:
-      base_section: nomad.datamodel.metainfo.eln.Process
+      base_sections: ['nomad.datamodel.metainfo.eln.Process', 'nomad.parsing.tabular.TableData']
       quantities:
         instrument:
           type: Instrument
