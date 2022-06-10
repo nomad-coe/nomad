@@ -139,7 +139,7 @@ export function EditQuantityExamples() {
                           component: NumberEditQuantity
                           defaultDisplayUnit="bohr"`}
                   >
-                    <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'meter'})} defaultDisplayUnit="bohr"/>
+                    <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'meter', m_annotations: {eln: [{defaultDisplayUnit: 'bohr'}]}})}/>
                   </Example>
                 </Grid>
                 <Grid item>
@@ -153,7 +153,7 @@ export function EditQuantityExamples() {
                           component: NumberEditQuantity
                           defaultDisplayUnit="eV"`}
                   >
-                    <NumberEditQuantity {...createDefaultProps('float_derived_unit', {type: float, unit: 'joule'})} defaultDisplayUnit="eV"/>
+                    <NumberEditQuantity {...createDefaultProps('float_derived_unit', {type: float, unit: 'joule', m_annotations: {eln: [{defaultDisplayUnit: 'eV'}]}})}/>
                   </Example>
                 </Grid>
                 <Grid item>
@@ -167,7 +167,7 @@ export function EditQuantityExamples() {
                           component: NumberEditQuantity
                           defaultDisplayUnit="milliampere / ms^2 * cm"`}
                   >
-                    <NumberEditQuantity {...createDefaultProps('float_complex_unit', {type: float, unit: 'ampere / second^2 * meter'})} defaultDisplayUnit="milliampere / ms^2 * cm"/>
+                    <NumberEditQuantity {...createDefaultProps('float_complex_unit', {type: float, unit: 'ampere / second^2 * meter', m_annotations: {eln: [{defaultDisplayUnit: 'milliampere / ms^2 * cm'}]}})}/>
                   </Example>
                 </Grid>
                 <Grid item>
