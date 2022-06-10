@@ -193,7 +193,9 @@ def perform_entries_archive_test(
                 assert key in archive
         else:
             for key in required: assert key in archive
-            for key in archive: assert key in required
+            for key in archive:
+                if key != 'm_ref_archives':
+                    assert key in required
 
     return json_response
 

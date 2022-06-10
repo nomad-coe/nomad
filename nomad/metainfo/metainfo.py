@@ -994,6 +994,9 @@ class Context():
     def resolve_archive(self, *args, **kwargs):
         return self.resolve_archive_url(*args, **kwargs)
 
+    def cache_archive(self, url: str, archive):
+        raise NotImplementedError()
+
 
 class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclass of collections.abs.Mapping
     '''
@@ -1953,6 +1956,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         through the optional parameter. Otherwise, the section definition is read from
         the `m_def` key in the section data.
         '''
+        if 'm_ref_archives' in dct and isinstance(m_context, Context):
+            # dct['m_ref_archives'] guarantees that 'm_def' exists
+            for entry_url, archive_json in dct['m_ref_archives'].items():
+                m_context.cache_archive(entry_url, MSection.from_dict(archive_json, m_context=m_context))
+            del dct['m_ref_archives']
 
         # first try to find a m_def in the data
         if 'm_def' in dct:

@@ -463,19 +463,19 @@ def example_data_with_reference(elastic_module, raw_files_module, mongo_module, 
 
     data.create_upload(upload_id='id_published_with_ref', upload_name='name_published', published=True)
 
-    del json_dict['results']
-
     ref_list = [
-        '/run/0/calculation/1',  # plain direct reference
-        '#/run/0/calculation/1',  # new-style reference
-        '../entries/id_01/archive#/workflow/0/calculation_result_ref',  # reference to another archive
-        '../entries/id_05/archive#/workflow/0/calculation_result_ref',  # circular reference
-        '../entries/id_04/archive#/workflow/0/calculation_result_ref',  # circular reference
-        'https://another.domain/entries/id_03/archive#/workflow/0/calculation_result_ref'  # remote reference
+        {'calculation_result_ref': '/run/0/calculation/1'},  # plain direct reference
+        {'calculation_result_ref': '#/run/0/calculation/1'},  # new-style reference
+        {'workflows_ref': ['../entries/id_01/archive#/workflow/0']},  # reference to another archive
+        {'workflows_ref': ['../entries/id_05/archive#/workflow/0']},  # circular reference
+        {'workflows_ref': ['../entries/id_04/archive#/workflow/0']},  # circular reference
+        {'workflows_ref': ['https://another.domain/entries/id_03/archive#/workflow/0']}  # remote reference
     ]
 
+    del json_dict['results']
+
     for index, ref in enumerate(ref_list):
-        json_dict['workflow'][0]['calculation_result_ref'] = ref
+        json_dict['workflow'][0] = ref
         data.create_entry(
             upload_id='id_published_with_ref',
             entry_id=f'id_{index + 1:02d}',
@@ -502,34 +502,34 @@ def remote_reference_required():
 @pytest.mark.parametrize(
     'entry_id, inplace_result', [
         pytest.param(
-            'id_01', {
+            'id_01', {'calculation_result_ref': {
                 'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
-                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]},
+                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]}},
             id='plain-direct-reference'),
         pytest.param(
-            'id_02', {
+            'id_02', {'calculation_result_ref': {
                 'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
-                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]},
+                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]}},
             id='new-style-reference'),
         pytest.param(
-            'id_03', {
+            'id_03', {'calculation_result_ref': {
                 'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
-                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]},
+                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]}},
             id='reference-to-another-archive'),
         pytest.param(
             # circular reference detected thus untouched
-            'id_04', '../entries/id_04/archive#/workflow/0/calculation_result_ref',
+            'id_04', '../entries/id_04/archive#/workflow/0',
             id='circular-reference-1'),
         pytest.param(
             # circular reference detected thus untouched
-            'id_05', '../entries/id_05/archive#/workflow/0/calculation_result_ref',
+            'id_05', '../entries/id_05/archive#/workflow/0',
             id='circular-reference-2'),
         pytest.param(
             # remote reference detected thus untouched
-            'id_06', 'https://another.domain/entries/id_03/archive#/workflow/0/calculation_result_ref',
+            'id_06', 'https://another.domain/entries/id_03/archive#/workflow/0',
             id='remote-reference'),
         pytest.param(
-            'id_07', '../entries/id_07/archive#/workflow/0/calculation_result_ref',
+            'id_07', '../entries/id_07/archive#/workflow/0',
             id='does-not-exist'),
     ])
 def test_required_reader_with_remote_reference(
@@ -537,8 +537,7 @@ def test_required_reader_with_remote_reference(
         example_data_with_reference, test_user, entry_id, inplace_result):
     archive = {'workflow': json_dict['workflow']}
 
-    archive['workflow'][0][
-        'calculation_result_ref'] = f'../entries/{entry_id}/archive#/workflow/0/calculation_result_ref'
+    archive['workflow'][0]['workflows_ref'] = [f'../entries/{entry_id}/archive#/workflow/0']
 
     f = BytesIO()
     write_archive(f, 1, [('entry_id', archive)], entry_toc_depth=2)
@@ -548,15 +547,30 @@ def test_required_reader_with_remote_reference(
     required_reader = RequiredReader(
         remote_reference_required, resolve_inplace=resolve_inplace, user=test_user)
     results = required_reader.read(archive_reader, 'entry_id', None)
-    ref_result = results['workflow'][0]['calculation_result_ref']
+    ref_result = results['workflow'][0]
+
+    while 'workflows_ref' in ref_result:
+        ref_result = ref_result['workflows_ref'][0]
 
     if resolve_inplace or entry_id == 'id_07':
         assert ref_result == inplace_result
     else:
+        # print(results)
         # if not resolved inplace, the target archive is copied to the current archive,
         # so the reference is overwritten by the following pattern,
         # whether the target destination is another reference is not controlled by this reference.
-        assert ref_result == f'/{entry_id}/workflow/0/calculation_result_ref'
+        assert ref_result == f'../entries/{entry_id}/archive#/workflow/0'
+
+        from nomad.datamodel import ClientContext
+        archive_obj = EntryArchive.m_from_dict(results, m_context=ClientContext())
+        resolved_obj = archive_obj.workflow[0].workflows_ref[0].m_proxy_resolve()
+        from nomad.metainfo import MProxy
+        if entry_id in ['id_01', 'id_02']:
+            # reference to calculation_result_ref
+            assert isinstance(resolved_obj.calculation_result_ref, MProxy)
+        else:
+            # reference to another workflows_ref
+            assert isinstance(resolved_obj.workflows_ref[0], MProxy)
 
 
 def assert_required_results(
