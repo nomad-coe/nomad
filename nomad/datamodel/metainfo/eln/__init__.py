@@ -63,11 +63,6 @@ class ElnBaseSection(MSection):
         if not archive.results.eln:
             archive.results.eln = ELN()
 
-        for quantity in self.m_def.all_quantities.values():
-            tabular_parser_annotation = quantity.m_annotations.get('tabular_parser', None)
-            if tabular_parser_annotation:
-                self.tabular_parser(quantity, archive, logger, **tabular_parser_annotation)
-
         if self.lab_id:
             if archive.results.eln.lab_ids is None:
                 archive.results.eln.lab_ids = []
@@ -95,21 +90,6 @@ class ElnBaseSection(MSection):
         if not archive.results.eln.sections:
             archive.results.eln.sections = []
         archive.results.eln.sections.append(self.m_def.name)
-
-    def tabular_parser(self, quantity_def: Quantity, archive, logger, **kwargs):
-        from nomad.parsing.tabular import parse_columns, read_table_data
-
-        if not quantity_def.is_scalar:
-            raise NotImplementedError('CSV parser is only implemented for single files.')
-
-        value = self.m_get(quantity_def)
-        if not value:
-            return
-
-        with archive.m_context.raw_file(self.data_file) as f:
-            data = read_table_data(self.data_file, f, **kwargs)
-
-        parse_columns(data, self)
 
 
 class ElnActivityBaseSecton(ElnBaseSection):

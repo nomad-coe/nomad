@@ -52,6 +52,27 @@ class Table(EntryData):
         description='References that connect to each row. Each row is stored in it individual entry.')
 
 
+class TableData(MSection):
+    def normalize(self, archive, logger):
+        for quantity in self.m_def.all_quantities.values():
+            tabular_parser_annotation = quantity.m_annotations.get('tabular_parser', None)
+            if tabular_parser_annotation:
+                self.tabular_parser(quantity, archive, logger, **tabular_parser_annotation)
+
+    def tabular_parser(self, quantity_def: Quantity, archive, logger, **kwargs):
+        if not quantity_def.is_scalar:
+            raise NotImplementedError('CSV parser is only implemented for single files.')
+
+        value = self.m_get(quantity_def)
+        if not value:
+            return
+
+        with archive.m_context.raw_file(self.data_file) as f:
+            data = read_table_data(self.data_file, f, **kwargs)
+
+        parse_columns(data, self)
+
+
 m_package.__init_metainfo__()
 
 
@@ -90,6 +111,19 @@ def _create_column_to_quantity_mapping(section_def: Section):
 
                 if tabular_annotation and 'unit' in tabular_annotation:
                     value *= ureg(tabular_annotation['unit'])
+
+                if len(value.shape) == 1 and len(quantity.shape) == 0:
+                    if len(value) == 1:
+                        value = value[0]
+                    elif len(value) == 0:
+                        value = None
+                    else:
+                        raise MetainfoError(
+                            'The shape of {quantity.name} does not match the given data.')
+                elif len(value.shape) != len(quantity.shape):
+                    raise MetainfoError(
+                        'The shape of {quantity.name} does not match the given data.')
+
                 section.m_set(quantity, value)
 
             mapping[col_name] = set_value
