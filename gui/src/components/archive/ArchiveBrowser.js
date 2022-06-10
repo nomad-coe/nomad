@@ -946,7 +946,9 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
   const classes = usePlotStyle()
   const theme = useTheme()
   const units = useUnits()
-  const Y = Array.isArray(plot.y) ? plot.y : [plot.y]
+  const xAxis = plot.x || plot['x_axis'] || plot['xAxis']
+  const yAxis = plot.y || plot['y_axis'] || plot['yAxis']
+  const Y = Array.isArray(yAxis) ? yAxis : [yAxis]
   const nLines = Y.length
 
   const [data, layout] = useMemo(() => {
@@ -971,11 +973,11 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
 
     let xValues, xUnit
     try {
-      [xValues, xUnit] = toUnit(plot.x)
+      [xValues, xUnit] = toUnit(xAxis)
     } catch (e) {
       return [{error: e.message}, undefined]
     }
-    const xPath = plot.x.split('/')
+    const xPath = xAxis.split('/')
     const xLabel = titleCase(xPath[xPath.length - 1])
 
     let lines = getLineStyles(nLines, theme).map(line => {
@@ -1066,7 +1068,7 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     }
 
     return [data, layout]
-  }, [Y, nLines, plot.layout, plot.lines, plot.x, section, sectionDef, theme, title, units])
+  }, [Y, nLines, plot.layout, plot.lines, xAxis, section, sectionDef, theme, title, units])
 
   if ('error' in data) {
     return <Alert
@@ -1102,7 +1104,8 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
     let plots = (Array.isArray(plot) ? [...plot] : [{...plot}])
     plots.forEach(plot => {
       if (!('label' in plot)) {
-        const pathParts = Array.isArray(plot.y) ? ['unnamed'] : plot.y.split('/')
+        const yAxis = plot.y || plot['y_axis'] || plot['yAxis']
+        const pathParts = Array.isArray(yAxis) ? ['unnamed'] : yAxis.split('/')
         plot.label = pathParts[pathParts.length - 1]
       }
     })

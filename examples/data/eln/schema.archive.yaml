@@ -138,10 +138,10 @@ definitions:
                     # line plots
                     plot:
                       title: Pressure and Temperature over Time
-                      x_axis: time
-                      y_axis:
+                      x: time
+                      y:
                         - chamber_pressure
-                        - chamber_temperature
+                        - substrate_temperature
                   quantities:
                     data_file:
                       type: str
