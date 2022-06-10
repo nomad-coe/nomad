@@ -45,12 +45,12 @@ import { useTools } from '../north/NorthPage'
 import { EntryButton } from '../nav/Routes'
 import { useErrors } from '../errors'
 
-const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem = null, editable = false}) => {
+const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem = null}) => {
   const context = useBrowserAdaptorContext()
   const adaptor = useMemo(() => {
     return new RawDirectoryAdaptor(
-      context, uploadId, path, rootTitle, highlightedItem, editable)
-  }, [context, uploadId, path, rootTitle, highlightedItem, editable])
+      context, uploadId, path, rootTitle, highlightedItem)
+  }, [context, uploadId, path, rootTitle, highlightedItem])
 
   if (!context.metainfo) {
     return ''
@@ -62,19 +62,18 @@ FileBrowser.propTypes = {
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired,
   rootTitle: PropTypes.string.isRequired,
-  highlightedItem: PropTypes.string,
-  editable: PropTypes.bool
+  highlightedItem: PropTypes.string
 }
 export default FileBrowser
 
 class RawDirectoryAdaptor extends Adaptor {
-  constructor(context, uploadId, path, title, highlightedItem, editable = false) {
+  constructor(context, uploadId, path, title, highlightedItem) {
     super(context)
     this.uploadId = uploadId
     this.path = path
     this.title = title
     this.highlightedItem = highlightedItem
-    this.editable = editable
+    this.editable = undefined
     this.data = undefined
     this.timestamp = undefined
     this.initialized = false
@@ -84,7 +83,9 @@ class RawDirectoryAdaptor extends Adaptor {
     return this.dependencies
   }
   async initialize(api, dataStore) {
-    this.timestamp = dataStore.getUpload(this.uploadId).upload?.complete_time
+    const uploadStoreObj = await dataStore.getUploadAsync(this.uploadId, true, false)
+    this.timestamp = uploadStoreObj.upload?.complete_time
+    this.editable = uploadStoreObj.isEditable
     const encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
     const response = await api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
     const elementsByName = {}
@@ -101,7 +102,7 @@ class RawDirectoryAdaptor extends Adaptor {
       if (element.is_file) {
         return new RawFileAdaptor(this.context, this.uploadId, ext_path, element, this.editable)
       } else {
-        return new RawDirectoryAdaptor(this.context, this.uploadId, ext_path, key, null, this.editable)
+        return new RawDirectoryAdaptor(this.context, this.uploadId, ext_path, key, null)
       }
     }
     throw new Error('Bad path: ' + key)

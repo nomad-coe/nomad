@@ -31,7 +31,7 @@ const useStyles = makeStyles(theme => ({
 const BrowseEntryFilesView = React.memo((props) => {
   const {entryId} = useEntryContext()
   const classes = useStyles()
-  const {api, user} = useApi()
+  const {api} = useApi()
   const {raiseError} = useErrors()
 
   const [data, setData] = useState(null)
@@ -70,7 +70,6 @@ const BrowseEntryFilesView = React.memo((props) => {
         path={mainfileDirname}
         rootTitle="Entry files"
         highlightedItem={mainfileBasename}
-        editable={!data.published && user && !!(data.writers.find(writer => writer.user_id === user.sub))}
       />
     </Page>
   } else {
