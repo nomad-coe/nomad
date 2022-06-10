@@ -2,6 +2,10 @@
 import os
 import sys
 import importlib
+import warnings
+
+warnings.filterwarnings('ignore', message=r'v0\.17 of the `optimade` package.*')
+
 
 # patch optimade python tools config (patched module most be outside this module to force import before optimade)
 os.environ['OPTIMADE_CONFIG_FILE'] = os.path.join(os.path.dirname(__file__), 'optimade_config.json')
@@ -13,7 +17,25 @@ sys.modules['optimade.server.logger'] = importlib.import_module('nomad.app.optim
 from nomad import config, utils  # nopep8
 from optimade.server.config import CONFIG  # nopep8
 CONFIG.root_path = '%s/optimade' % config.services.api_base_path
-CONFIG.base_url = config.api_url(api='optimade')
+CONFIG.base_url = '%s://%s' % (
+    'https' if config.services.https else 'http',
+    config.services.api_host.strip('/'))
+
+
+from .common import provider_specific_fields, create_provider_field  # nopep8
+
+
+CONFIG.provider_fields = dict(
+    structures=[
+        create_provider_field(name, quantity.annotation.definition)
+        for name, quantity in provider_specific_fields().items()
+    ] + [
+        dict(name='archive_url', description='', type='string', sortable=False),
+        dict(name='entry_page_url', description='', type='string', sortable=False),
+        dict(name='raw_file_download_url', description='', type='string', sortable=False)
+    ]
+)
+
 
 from optimade.server import main as optimade  # nopep8
 from optimade.server.routers import structures  # nopep8
@@ -61,6 +83,14 @@ def general_exception(request, exc, status_code=500, **kwargs):
 
 
 setattr(exception_handlers, 'general_exception', general_exception)
+
+
+@optimade.app.on_event('startup')
+async def startup_event():
+    from optimade.server.warnings import OptimadeWarning
+    import warnings
+
+    warnings.filterwarnings('ignore', category=OptimadeWarning)
 
 # "export" the app object
 optimade_app = optimade.app

@@ -1,25 +1,20 @@
-from typing import Optional, Tuple, List, Union, Dict, Set, Any
+from typing import List, Dict, Set, Any
 from elasticsearch_dsl import Q
-from fastapi import HTTPException
-from pydantic import create_model
-from datetime import datetime
-import numpy as np
+import ase.formula
 
 from optimade.filterparser import LarkParser
 from optimade.server.entry_collections import EntryCollection
-from optimade.server.query_params import EntryListingQueryParams, SingleEntryQueryParams
 from optimade.server.exceptions import BadRequest
 from optimade.server.mappers import StructureMapper
-from optimade.models import StructureResource, StructureResourceAttributes
-from optimade.models.utils import OptimadeField, SupportLevel
-from optimade.server.schemas import ENTRY_INFO_SCHEMAS
+from optimade.server.mappers.entries import classproperty
+from optimade.models import StructureResource
 
 from nomad.units import ureg
 from nomad.search import search
 from nomad.app.v1.models import MetadataPagination, MetadataRequired
-from nomad import datamodel, files, utils, metainfo, config
+from nomad import datamodel, files, utils, config
 from nomad.normalizing.optimade import (
-    optimade_chemical_formula_reduced, optimade_chemical_formula_anonymous,
+    optimade_chemical_formula_anonymous,
     optimade_chemical_formula_hill)
 
 from .filterparser import _get_transformer as get_transformer
@@ -27,94 +22,49 @@ from .common import provider_specific_fields
 
 
 logger = utils.get_logger(__name__)
-float64 = np.dtype('float64')
-int64 = np.dtype('int64')
-int32 = np.dtype(np.int32)
 
 
-class StructureResourceAttributesByAlias(StructureResourceAttributes):
-    nmd_entry_page_url: Optional[str] = OptimadeField(
-        None,
-        alias='_nmd_entry_page_url',
-        description='The url for the NOMAD gui entry page for this structure.',
-        support=SupportLevel.OPTIONAL)
+def optimade_chemical_formula_reduced(formula: str):
+    if formula is None:
+        return formula
 
-    nmd_raw_file_download_url: Optional[str] = OptimadeField(
-        None,
-        alias='_nmd_raw_file_download_url',
-        description='The url to download all entry raw files as .zip file.',
-        support=SupportLevel.OPTIONAL)
+    try:
+        ase_formula = ase.formula.Formula(formula).reduce()[0].count()
+        result_formula = ''
+        for element in sorted(ase_formula.keys()):
+            result_formula += element
+            element_count = ase_formula[element]
+            if element_count > 1:
+                result_formula += str(element_count)
 
-    nmd_archive_url: Optional[str] = OptimadeField(
-        None,
-        alias='_nmd_archive_url',
-        description='The url to the NOMAD archive json of this structure.',
-        support=SupportLevel.OPTIONAL)
-
-    def dict(self, *args, **kwargs):
-        kwargs['by_alias'] = True
-        return super().dict(*args, **kwargs)
+        return result_formula
+    except Exception:
+        return formula
 
 
-def create_nomad_structure_resource_attributes_cls():
-    fields: Dict[str, Tuple[type, OptimadeField]] = {}
+class NomadStructureMapper(StructureMapper):
+    @classmethod
+    def deserialize(cls, results):
+        # We are not doing this here, but will do it in the overwritten StructureCollection
+        # find method below
+        return results
 
-    for name, search_quantity in provider_specific_fields().items():
-        quantity = search_quantity.definition
+    @classproperty
+    def ALL_ATTRIBUTES(cls) -> Set[str]:  # pylint: disable=no-self-argument
+        result = getattr(cls, '_ALL_ATTRIBUTES', None)
+        if result is None:
+            result = StructureMapper.ALL_ATTRIBUTES  # pylint: disable=no-member
+            cls._ALL_ATTRIBUTES = result
 
-        pydantic_type: type
-        if not quantity.is_scalar:
-            pydantic_type = list
-        elif quantity.type == int32:
-            pydantic_type = int
-        elif quantity.type in [str, int, float, bool]:
-            if quantity.type == float64:
-                pydantic_type = float
-            elif quantity.type == int64:
-                pydantic_type = int
-            else:
-                pydantic_type = quantity.type
-        elif quantity.type == metainfo.Datetime:
-            pydantic_type = datetime
-        elif isinstance(quantity.type, metainfo.MEnum):
-            pydantic_type = str
-        elif isinstance(quantity.type, metainfo.Reference):
-            continue
-        else:
-            raise NotImplementedError('Search quantity type not support in optimade API')
-
-        field = Optional[pydantic_type], OptimadeField(
-            None,
-            alias=f'_nmd_{name}',
-            sortable=False,
-            description=quantity.description if quantity.description else 'Not available. Will be added soon.',
-            support=SupportLevel.OPTIONAL,
-            queryable=SupportLevel.OPTIONAL)
-
-        fields[f'nmd_{name}'] = field
-
-    return create_model(
-        'NomadStructureResourceAttributes',
-        __base__=StructureResourceAttributesByAlias,
-        **fields)
-
-
-NomadStructureResourceAttributes = create_nomad_structure_resource_attributes_cls()
-
-
-class NomadStructureResource(StructureResource):
-    attributes: NomadStructureResourceAttributes  # type: ignore
-
-
-ENTRY_INFO_SCHEMAS['structures'] = NomadStructureResource.schema
+        return result
 
 
 class StructureCollection(EntryCollection):
 
     def __init__(self):
         super().__init__(
-            resource_cls=NomadStructureResource,
-            resource_mapper=StructureMapper,
+            resource_cls=StructureResource,
+            resource_mapper=NomadStructureMapper,
             transformer=get_transformer(without_prefix=False))
 
         self.parser = LarkParser(version=(1, 0, 0), variant="default")
@@ -137,36 +87,29 @@ class StructureCollection(EntryCollection):
         # This seams solely mongodb specific
         raise NotImplementedError()
 
-    def find(
-            self,
-            params: Union[EntryListingQueryParams, SingleEntryQueryParams]) \
-            -> Tuple[List[StructureResource], int, bool, set]:
+    def find(self, params):
 
-        criteria = self.handle_query_params(params)
-        single_entry = isinstance(params, SingleEntryQueryParams)
-        response_fields = criteria.pop("fields")
+        (
+            results,
+            data_returned,
+            more_data_available,
+            exclude_fields,
+            include_fields
+        ) = super().find(params)
 
-        results, data_returned, more_data_available = self._run_db_query(
-            criteria, single_entry=isinstance(params, SingleEntryQueryParams)
-        )
+        if isinstance(results, list):
+            results = self._es_to_optimade_results(results, response_fields=include_fields)
+        else:
+            results = self._es_to_optimade_result(results, response_fields=include_fields)
 
-        results = self._es_to_optimade_results(results, response_fields=response_fields)
-
-        if single_entry:
-            results = results[0] if results else None
-
-            if data_returned > 1:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f'Instead of a single entry, {data_returned} entries were found')
-
-        exclude_fields = self.all_fields - response_fields
+        results = StructureMapper.deserialize(results)
 
         return (
             results,
             data_returned,
             more_data_available,
             exclude_fields,
+            include_fields
         )
 
     def _check_aliases(self, aliases):
@@ -175,7 +118,10 @@ class StructureCollection(EntryCollection):
     def _es_to_optimade_result(
             self, es_result: dict,
             response_fields: Set[str],
-            upload_files_cache: Dict[str, files.UploadFiles]) -> StructureResource:
+            upload_files_cache: Dict[str, files.UploadFiles] = None) -> StructureResource:
+
+        if upload_files_cache is None:
+            upload_files_cache = {}
 
         entry_id, upload_id = es_result['entry_id'], es_result['upload_id']
         upload_files = upload_files_cache.get(upload_id)
@@ -195,22 +141,19 @@ class StructureCollection(EntryCollection):
             return None
 
         entry_archive_reader = archive_reader[entry_id]
-        archive = datamodel.EntryArchive(
-            metadata=datamodel.EntryMetadata.m_from_dict(
-                entry_archive_reader['metadata'].to_dict())
-        )
+        archive = {
+            'metadata': entry_archive_reader['metadata'].to_dict()}
 
         # Lazy load results if only if results provider specfic field is requested
         def get_results():
-            if not archive.results:
-                archive.results = datamodel.Results.m_from_dict(
-                    entry_archive_reader['results'].to_dict())
-            return archive.results
+            if 'results' not in archive:
+                archive['results'] = entry_archive_reader['results'].to_dict()
 
-        attrs = archive.metadata.optimade.m_to_dict()
+        attrs = archive['metadata'].get('optimade', {})
 
         attrs['immutable_id'] = entry_id
-        attrs['last_modified'] = archive.metadata.upload_create_time
+        attrs['id'] = entry_id
+        attrs['last_modified'] = archive['metadata']['upload_create_time']
 
         # TODO this should be removed, once all data is reprocessed with the right normalization
         attrs['chemical_formula_reduced'] = optimade_chemical_formula_reduced(
@@ -233,15 +176,15 @@ class StructureCollection(EntryCollection):
                     continue
 
                 if request_field == '_nmd_archive_url':
-                    attrs[request_field] = config.api_url() + f'/archive/{upload_id}/{entry_id}'
+                    attrs[request_field[5:]] = config.api_url() + f'/archive/{upload_id}/{entry_id}'
                     continue
 
                 if request_field == '_nmd_entry_page_url':
-                    attrs[request_field] = config.gui_url(f'entry/id/{upload_id}/{entry_id}')
+                    attrs[request_field[5:]] = config.gui_url(f'entry/id/{upload_id}/{entry_id}')
                     continue
 
                 if request_field == '_nmd_raw_file_download_url':
-                    attrs[request_field] = config.api_url() + f'/raw/calc/{upload_id}/{entry_id}'
+                    attrs[request_field[5:]] = config.api_url() + f'/raw/calc/{upload_id}/{entry_id}'
                     continue
 
                 search_quantity = provider_specific_fields().get(request_field[5:])
@@ -261,7 +204,7 @@ class StructureCollection(EntryCollection):
                                 value = None
                                 break
                             section = section[0]
-                        value = getattr(section, segment)
+                        value = section[segment]
                         section = value
 
                     # Empty values are not stored and only the magnitude of
@@ -269,18 +212,14 @@ class StructureCollection(EntryCollection):
                     if value is not None:
                         if isinstance(value, ureg.Quantity):
                             value = value.magnitude
-                        attrs[request_field] = value
+                        attrs[request_field[5:]] = value
                 except Exception:
                     # TODO there a few things that can go wrong. Most notable the search
                     # quantity might have a path with repeated sections. This won't be
                     # handled right now.
                     pass
 
-        return self.resource_cls(
-            type='structures',
-            id=entry_id,
-            attributes=attrs,
-            relationships=None)
+        return attrs
 
     def _es_to_optimade_results(self, es_results: List[dict], response_fields: Set[str]):
         upload_files_cache: Dict[str, files.UploadFiles] = {}

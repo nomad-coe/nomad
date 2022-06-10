@@ -306,7 +306,7 @@ def test_nmd_properties(client, example_structures):
 
     assert attr.get('_nmd_results_material_elements') == ['H', 'O']
     assert '_nmd_results_material_structural_type' in attr
-    assert '_nmd_doesnotexist' not in attr
+    assert attr['_nmd_doesnotexist'] is None
     assert '_nmd_archive_url' in attr
 
 
