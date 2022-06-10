@@ -179,12 +179,13 @@ NumberField.propTypes = {
 }
 
 export const NumberEditQuantity = React.memo((props) => {
-  const {quantityDef, value, onChange, defaultDisplayUnit, ...otherProps} = props
+  const {quantityDef, value, onChange, ...otherProps} = props
   const systemUnits = useUnits()
   const {raiseError} = useErrors()
   const defaultUnit = useMemo(() => quantityDef.unit && new Unit(quantityDef.unit), [quantityDef])
   const dimension = defaultUnit && defaultUnit.dimension(false)
   const [checked, setChecked] = useState(true)
+  const {defaultDisplayUnit, ...fieldProps} = getFieldProps(quantityDef)
 
   // Try to parse defaultDisplayUnit
   const defaultDisplayUnitObj = useMemo(() => {
@@ -200,7 +201,7 @@ export const NumberEditQuantity = React.memo((props) => {
       }
     }
     return defaultDisplayUnitObj
-  }, [defaultDisplayUnit, dimension, quantityDef, raiseError])
+  }, [defaultDisplayUnit, dimension, quantityDef.name, raiseError])
 
   const [unit, setUnit] = useState(
     defaultDisplayUnitObj ||
@@ -242,7 +243,7 @@ export const NumberEditQuantity = React.memo((props) => {
       unit={quantityDef?.unit}
       displayUnit={unit}
       dataType={quantityDef.type?.type_data}
-      {...getFieldProps(quantityDef)}
+      {...fieldProps}
       {...otherProps}
     />
     {unit && (
@@ -262,8 +263,7 @@ export const NumberEditQuantity = React.memo((props) => {
 NumberEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   value: PropTypes.number,
-  onChange: PropTypes.func,
-  defaultDisplayUnit: PropTypes.string
+  onChange: PropTypes.func
 }
 
 export const useUnitSelectStyles = makeStyles(theme => ({

@@ -122,9 +122,11 @@ export function getFieldProps(quantityDef) {
   const eln = quantityDef?.m_annotations?.eln
   const name = quantityDef.name.replace(/_/g, ' ')
   const label = eln?.[0].label || capitalize(name)
+  const {component, ...elnProps} = eln?.[0] || {}
   return {
     label: label,
-    helpDescription: quantityDef.description
+    helpDescription: quantityDef.description,
+    ...elnProps
   }
 }
 
