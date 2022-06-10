@@ -582,7 +582,7 @@ parsers = [
         mainfile_contents_re=(r'https://eelsdb.eu/spectra')
     ),
     MatchingParserInterface(
-        'nexusparser.NexusParser',
+        'nexusparser.parser.NexusParser',
         name='parsers/nexus', code_name='NEXUS', code_homepage='https://www.nexus.eu/',
         mainfile_mime_re=r'(application/.*)|(text/.*)',
         mainfile_name_re=(r'.*\.nxs'),
