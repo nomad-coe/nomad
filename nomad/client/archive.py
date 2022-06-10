@@ -129,9 +129,6 @@ class ArchiveQuery:
         if not self._url.endswith('/api/v1'):
             self._url += '/v1' if self._url.endswith('/api') else '/api/v1'
 
-        # context used for resolving references
-        self._context = ClientContext(self._url, username=self._username, password=self._password)
-
     @property
     def _query(self) -> dict:
         return {'and': self._query_list}
@@ -395,8 +392,9 @@ class ArchiveQuery:
             # TODO a generic ClientContext might not be good enough. For intra upload
             # references (that do not contain an upload_id), the ClientContext needs
             # to use the upload id the entry that we try to produce here!
+            context = ClientContext(self._url, username=self._username, password=self._password)
             result = [EntryArchive.m_from_dict(
-                result['archive'], m_context=self._context) for result in response_json['data']]
+                result['archive'], m_context=context) for result in response_json['data']]
 
             if not result:
                 print(f'No result returned for id {upload[0]}, is the query proper?')

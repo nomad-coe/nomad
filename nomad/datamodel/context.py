@@ -215,11 +215,13 @@ class Context(MetainfoContext):
 
     def resolve_archive_url(self, url: str) -> MSection:
         if url not in self.archives:
-            archive = self.load_url(url)
-            self.archives[url] = archive
-            self.urls[archive] = url
+            self.cache_archive(url, self.load_url(url))
 
         return self.archives[url]
+
+    def cache_archive(self, url: str, archive):
+        self.archives[url] = archive
+        self.urls[archive] = url
 
 
 class ServerContext(Context):

@@ -74,6 +74,7 @@ class RequiredReferencedArchive:
     upload_id: str = None
     path_prefix: str = None
     result_root: dict = None
+    ref_result_root: dict = None
     archive_root: ArchiveDict = None
     visited_paths: set = dataclasses.field(default_factory=lambda: set())
 
@@ -215,11 +216,18 @@ class RequiredReader:
 
         archive_root = archive_reader[utils.adjust_uuid_size(entry_id)]
         result_root: dict = {}
+        ref_result_root: dict = {}
 
-        dataset = RequiredReferencedArchive(upload_id, '', result_root, archive_root)
+        dataset = RequiredReferencedArchive(upload_id, '', result_root, ref_result_root, archive_root)
 
         result = self._apply_required(self.required, archive_root, dataset)
         result_root.update(**cast(dict, result))
+
+        for value in ref_result_root.values():
+            if 'm_def' not in value:
+                value['m_def'] = 'nomad.datamodel.EntryArchive'
+
+        result_root.update({'m_ref_archives': ref_result_root})
 
         return result_root
 
@@ -297,21 +305,30 @@ class RequiredReader:
                 return path
 
             other_dataset = RequiredReferencedArchive(
-                upload_id=upload_id, path_prefix=f'{dataset.path_prefix}/{entry_id}',
-                visited_paths=dataset.visited_paths.copy())
+                upload_id=upload_id, path_prefix=f'../entries/{entry_id}/archive#',
+                visited_paths=dataset.visited_paths.copy(), ref_result_root=dataset.ref_result_root)
 
             # add the path to the visited paths
             other_dataset.visited_paths.add(new_path)
 
+            if self.resolve_inplace:
+                other_dataset.result_root = dataset.result_root
+                other_dataset.archive_root = other_archive
+
+                # need to resolve it again to get relative position correctly
+                return self._resolve_ref_local(required, fragment, other_dataset)
+
             # if not resolved inplace
             # need to create a new path in the result to make sure data does not overlap
-            other_dataset.result_root = _setdefault(
-                dataset.result_root, entry_id, dict) if not self.resolve_inplace else dataset.result_root
-
+            other_dataset.result_root = {}
             other_dataset.archive_root = other_archive
 
             # need to resolve it again to get relative position correctly
-            return self._resolve_ref_local(required, fragment, other_dataset)
+            return_value = self._resolve_ref_local(required, fragment, other_dataset)
+
+            dataset.ref_result_root.update({f'../entries/{entry_id}/archive': other_dataset.result_root})
+
+            return return_value
 
         # it appears to be a remote reference, won't try to resolve it
         if self.resolve_inplace:
