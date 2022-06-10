@@ -505,12 +505,12 @@ function UploadOverview(props) {
             <div className={classes.stepContent}>
               <FilesBrower uploadId={uploadId} disabled={isProcessing || deleteClicked} />
             </div>
-            <React.Fragment>
+            {(isAuthenticated && isWriter) && <React.Fragment>
               <Typography className={classes.stepContent}>
                 Or, create and edit entries manually.
               </Typography>
               <CreateEntry />
-            </React.Fragment>
+            </React.Fragment>}
           </StepContent>
         </Step>
         <Step expanded={!isEmpty} active={false}>
