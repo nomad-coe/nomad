@@ -187,8 +187,16 @@ datacite:
   prefix: "10.17172"
 
 jupyterhub:
+  # fullnameOverride and nameOverride distinguishes blank strings, null values,
+  # and non-blank strings. For more details, see the configuration reference.
+  fullnameOverride: "deploy-jupyterhub-using-nomad-helm-chart"
+  nameOverride: "nomad"
+
   proxy:
     secretToken: '0eec5f3e6924cb30ff9ca7412fbd67b3a8b13d040973c8bf1df68bd21f8cb65b'
+    service:
+      type: ClusterIP
+
   hub:
     baseUrl: "/fairdi/nomad/latest/north/"
     config:
