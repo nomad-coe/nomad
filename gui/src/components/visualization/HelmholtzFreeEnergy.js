@@ -26,7 +26,6 @@ import { withErrorHandler } from '../ErrorHandler'
 const HelmholtzFreeEnergy = React.memo(({
   data,
   layout,
-  aspectRatio,
   className,
   placeholderStyle,
   units,
@@ -89,7 +88,6 @@ const HelmholtzFreeEnergy = React.memo(({
   return <Plot
     data={finalData}
     layout={finalLayout}
-    aspectRatio={aspectRatio}
     floatTitle="Helmholtz free energy"
     metaInfoLink={data?.m_path}
     data-testid={testID}
@@ -108,7 +106,6 @@ HelmholtzFreeEnergy.propTypes = {
     })
   ]),
   layout: PropTypes.object,
-  aspectRatio: PropTypes.number,
   className: PropTypes.string,
   placeholderStyle: PropTypes.string,
   noDataStyle: PropTypes.string,

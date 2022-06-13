@@ -30,7 +30,6 @@ const valueUnit = new Unit('1/joule')
 const DOS = React.memo(({
   data,
   layout,
-  aspectRatio,
   className,
   placeholderStyle,
   units,
@@ -184,7 +183,6 @@ const DOS = React.memo(({
   return <Plot
     data={finalData}
     layout={finalLayout}
-    aspectRatio={aspectRatio}
     floatTitle="Density of states"
     warning={normalizedToHOE === false ? msgNormalizationWarning : null}
     metaInfoLink={data?.m_path}
@@ -206,7 +204,6 @@ DOS.propTypes = {
     })
   ]),
   layout: PropTypes.object,
-  aspectRatio: PropTypes.number,
   className: PropTypes.string,
   placeholderStyle: PropTypes.string,
   noDataStyle: PropTypes.string,

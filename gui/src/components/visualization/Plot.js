@@ -272,7 +272,8 @@ const Plot = React.memo(({
     let defaultConfig = {
       scrollZoom: true,
       displayModeBar: false,
-      showTips: false
+      showTips: false,
+      responsive: true
     }
     return mergeObjects(config, defaultConfig)
   }, [config])
@@ -395,6 +396,11 @@ const Plot = React.memo(({
     Plotly.downloadImage(canvasRef.current, captureSettings)
   }, [canvasRef, captureSettings])
 
+  // Handles parent resize event
+  const handleResize = useCallback((width, height) => {
+    setRatio(width / height)
+  }, [])
+
   // If data is set explicitly to False, we show the NoData component.
   if (data === false) {
     return <Box className={clsx(className, styles.root)} position='relative' width='100%' data-testid={testID}>
@@ -420,7 +426,7 @@ const Plot = React.memo(({
       style={{visibility: loading ? 'hidden' : 'visible'}}
       float={float}
       onFloat={() => setFloat(!float)}
-      onChangeRatio={setRatio}
+      onResize={handleResize}
     >
       <div className={styles.column}>
         {float && <Typography variant="h6">{floatTitle}</Typography>}

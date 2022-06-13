@@ -159,7 +159,6 @@ const GeometryOptimization = React.memo(({energies, convergence, className, clas
         <Plot
           data={finalData}
           layout={plotLayout}
-          aspectRatio={2}
           floatTitle="Energy convergence"
         />
       </ErrorHandler>
