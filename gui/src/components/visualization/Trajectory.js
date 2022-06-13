@@ -35,7 +35,7 @@ const pressureUnit = new Unit('pascal')
 /**
  * Graph for the thermodynamic properties reported during molecular dynamics.
  */
-function Trajectory({temperature, pressure, energyPotential, methodology, layout, aspectRatio, className, units, archiveURL, ...other}) {
+function Trajectory({temperature, pressure, energyPotential, methodology, layout, className, units, archiveURL, ...other}) {
   const theme = useTheme()
 
   // Create a configuration for the plot data
@@ -119,7 +119,6 @@ Trajectory.propTypes = {
   energyPotential: dynamicShape,
   methodology: PropTypes.object,
   layout: PropTypes.object,
-  aspectRatio: PropTypes.number,
   className: PropTypes.string,
   units: PropTypes.object,
   archiveURL: PropTypes.string // Path for the data in the archive browser

@@ -28,7 +28,7 @@ const energyUnit = new Unit('joule')
 /**
  * Graph for EELS (electron energy loss specroscopy) data.
  */
-function EELS({data, layout, aspectRatio, className, units, ...other}) {
+function EELS({data, layout, className, units, ...other}) {
   const [finalData, setFinalData] = useState(undefined)
   const theme = useTheme()
 
@@ -89,7 +89,6 @@ function EELS({data, layout, aspectRatio, className, units, ...other}) {
   return <Plot
     data={finalData}
     layout={tmpLayout}
-    aspectRatio={aspectRatio}
     floatTitle="EELS"
     fixedMargins={true}
     className={className}
@@ -103,7 +102,6 @@ EELS.propTypes = {
     energy: PropTypes.arrayOf(PropTypes.number)
   })),
   layout: PropTypes.object,
-  aspectRatio: PropTypes.number,
   className: PropTypes.string,
   units: PropTypes.object
 }

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useResizeDetector } from 'react-resize-detector'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -26,6 +26,7 @@ import {
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { isNil } from 'lodash'
 
 /**
  * Component that wraps it's children in a container that can be 'floated',
@@ -60,15 +61,24 @@ export default function Floatable({
   float,
   children,
   onFloat,
-  onChangeRatio
+  onResize
 }) {
   // The ratio is calculated dynamically from the final size
   const { height, width, ref } = useResizeDetector()
-  const ratio = useMemo(() => { return width / height }, [width, height])
+  const dim = useRef({width: 800, height: 600})
 
+  // When the figure is floated, fix the width/height.
   useEffect(() => {
-    onChangeRatio && onChangeRatio(ratio)
-  }, [onChangeRatio, ratio])
+    if (!float) {
+      dim.current = {
+        width: width,
+        height: height
+      }
+    }
+    if (onResize && !isNil(width) && !isNil(height)) {
+      onResize(width, height)
+    }
+  }, [float, width, height, onResize])
 
   // Dynamic styles
   const useDynamicStyles = makeStyles((theme) => {
@@ -80,6 +90,7 @@ export default function Floatable({
     const windowHeight = window.innerHeight - margin
     const windowWidth = Math.min(window.innerWidth, maxWidth) - margin
     const windowRatio = windowWidth / windowHeight
+    const ratio = dim.current.width / dim.current.height
     let width
     let height
     if (windowRatio > ratio) {
@@ -106,7 +117,10 @@ export default function Floatable({
   const dynamicStyles = useDynamicStyles({classes: classes})
 
   return <div ref={ref} className={clsx(styles.root, className)} style={style}>
-    {float ? '' : children}
+    {float
+      ? <div style={{width: dim.current.width, height: dim.current.height}} />
+      : children
+    }
     <Dialog fullWidth={false} maxWidth={false} open={float}
       classes={{paper: dynamicStyles.dialogRoot}}
     >
@@ -133,7 +147,7 @@ Floatable.propTypes = {
    * boolean indicating the current float status.
    */
   onFloat: PropTypes.func,
-  onChangeRatio: PropTypes.func,
+  onResize: PropTypes.func,
   children: PropTypes.node,
   className: PropTypes.string,
   classes: PropTypes.object,

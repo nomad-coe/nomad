@@ -64,7 +64,6 @@ const VibrationalProperties = React.memo(({
       <BandStructure
         data={bs}
         layout={bsLayout}
-        aspectRatio={1.2}
         units={units}
         onRelayouting={handleBSRelayouting}
         onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
@@ -78,7 +77,6 @@ const VibrationalProperties = React.memo(({
       <DOS
         data={dos}
         layout={dosLayout}
-        aspectRatio={0.6}
         onRelayouting={handleDOSRelayouting}
         onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
         units={units}
@@ -91,7 +89,6 @@ const VibrationalProperties = React.memo(({
     <PropertyItem title="Heat capacity" xs={6}>
       <HeatCapacity
         data={heatCapacity}
-        aspectRatio={1}
         units={units}
         data-testid="heat-capacity"
       />
@@ -99,7 +96,6 @@ const VibrationalProperties = React.memo(({
     <PropertyItem title="Helmholtz free energy" xs={6}>
       <HelmholtzFreeEnergy
         data={freeEnergy}
-        aspectRatio={1}
         units={units}
         data-testid="energy-free"
       />
