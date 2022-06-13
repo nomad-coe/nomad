@@ -219,6 +219,7 @@ const OverviewView = React.memo((props) => {
             <SectionCard
               key={index} {...section}
               archivePath={section.archivePath.replaceAll('.', '/')}
+              readOnly={!editable}
             />
           ))
         }

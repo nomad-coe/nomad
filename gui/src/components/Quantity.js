@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useMemo, useContext} from 'react'
+import React, {useMemo, useContext, useCallback} from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import {
@@ -50,7 +50,7 @@ import { RouteLink } from './nav/Routes'
 */
 const useQuantityStyles = makeStyles(theme => ({
   root: {
-    maxWidth: theme.spacing(35)
+    width: '100%'
   },
   valueContainer: {
     display: 'flex',
@@ -134,7 +134,24 @@ const Quantity = React.memo((props) => {
     hideIfUnavailable,
     format
   } = {...presets, ...props}
-  const children = props.children || (presets.render && presets.render(data))
+
+  const getRenderFromType = useCallback((quantity, data) => {
+    const type = quantity.type
+    if (type.type_data === 'str') {
+      return <Typography noWrap>
+        {data[quantity.name]}
+      </Typography>
+    } else if (type.type_data === 'nomad.metainfo.metainfo._Datetime') {
+      return <Typography noWrap>
+        {formatTimestamp(data[quantity.name])}
+      </Typography>
+    }
+    return <Typography noWrap>
+      {data[quantity.name]}
+    </Typography>
+  }, [])
+
+  const children = props.children || (presets.render && presets.render(data)) || (quantity?.name && quantity.type && getRenderFromType(quantity, data))
   const units = useUnits()
   let content = null
   let clipboardContent = null
@@ -146,7 +163,7 @@ const Quantity = React.memo((props) => {
 
   const def = typeof quantity === 'string'
     ? searchQuantities[quantity]
-    : undefined
+    : quantity?.name && quantity.type && quantity
 
   // Determine the final label to show
   const useLabel = useMemo(() => {
