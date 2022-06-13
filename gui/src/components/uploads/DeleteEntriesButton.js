@@ -19,14 +19,14 @@ import React, { useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { Tooltip, IconButton, Dialog, DialogContent, DialogContentText, DialogActions, Button } from '@material-ui/core'
 import DeleteIcon from '@material-ui/icons/Delete'
-import { useDataStoreContext } from '../DataStore'
+import { useDataStore } from '../DataStore'
 import { useUploadContext } from './UploadContext'
 import {useApi} from '../api'
 import {useErrors} from '../errors'
 import {pluralize} from '../../utils'
 
 const DeleteEntriesButton = React.memo(({tooltip, disabled, buttonProps, dark, selectedEntries, selectedCount, setSelected}) => {
-  const dataStore = useDataStoreContext()
+  const dataStore = useDataStore()
   const {uploadId} = useUploadContext()
   const {api} = useApi()
   const {raiseError} = useErrors()

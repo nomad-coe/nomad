@@ -44,7 +44,7 @@ function removeSubscription(store, key, cb) {
 
 export const dataStoreContext = React.createContext()
 
-export function useDataStoreContext() {
+export function useDataStore() {
   return useContext(dataStoreContext)
 }
 

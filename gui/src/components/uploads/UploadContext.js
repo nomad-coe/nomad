@@ -19,7 +19,7 @@
 import React, { useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { DoesNotExist } from '../api'
-import { useDataStoreContext } from '../DataStore'
+import { useDataStore } from '../DataStore'
 import { useHistory } from 'react-router-dom'
 import { getUrl } from '../nav/Routes'
 
@@ -30,7 +30,7 @@ export function useUploadContext() {
 }
 
 const UploadContext = React.memo(function UploadContext({uploadId, children}) {
-  const dataStore = useDataStoreContext()
+  const dataStore = useDataStore()
   const [uploadStoreObj, setUploadStoreObj] = useState(dataStore.getUpload(uploadId))
 
   const onUploadStoreUpdated = useCallback((oldStoreObj, newStoreObj) => {

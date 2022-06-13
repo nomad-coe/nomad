@@ -35,7 +35,7 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import OpenInNewIcon from '@material-ui/icons/OpenInNew'
 import Quantity from '../Quantity'
 import {DOI} from '../dataset/DOI'
-import { useDataStoreContext } from '../DataStore'
+import { useDataStore } from '../DataStore'
 import { useUploadContext } from './UploadContext'
 
 function EditComments(props) {
@@ -308,7 +308,7 @@ function EditMetaDataDialog({...props}) {
   const classes = useEditMetaDataDialogStyles()
   const {api, user} = useApi()
   const {raiseError} = useErrors()
-  const dataStore = useDataStoreContext()
+  const dataStore = useDataStore()
   const {uploadId, upload, entries} = useUploadContext()
   const [open, setOpen] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)

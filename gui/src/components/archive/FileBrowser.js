@@ -21,7 +21,7 @@ import PropTypes from 'prop-types'
 import { makeStyles, Typography, IconButton, Box, Grid, Button, Tooltip, TextField,
   Dialog, DialogContent, DialogContentText } from '@material-ui/core'
 import DialogActions from '@material-ui/core/DialogActions'
-import { useDataStoreContext } from '../DataStore'
+import { useDataStore } from '../DataStore'
 import Browser, { Item, Content, Adaptor, browserContext, laneContext, Title, Compartment } from './Browser'
 import { useApi } from '../api'
 import UploadIcon from '@material-ui/icons/CloudUpload'
@@ -130,7 +130,7 @@ const useRawDirectoryContentStyles = makeStyles(theme => ({
 }))
 function RawDirectoryContent({uploadId, path, title, highlightedItem, editable}) {
   const classes = useRawDirectoryContentStyles()
-  const dataStore = useDataStoreContext()
+  const dataStore = useDataStore()
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
   const history = useHistory()
@@ -392,7 +392,7 @@ function RawFileContent({uploadId, path, data, editable}) {
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
   const history = useHistory()
-  const dataStore = useDataStoreContext()
+  const dataStore = useDataStore()
   const { api } = useApi()
   const { raiseError } = useErrors()
   const [openConfirmDeleteFileDialog, setOpenConfirmDeleteFileDialog] = useState(false)

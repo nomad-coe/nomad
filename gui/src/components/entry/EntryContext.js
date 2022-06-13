@@ -18,7 +18,7 @@
 
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
-import { useDataStoreContext } from '../DataStore'
+import { useDataStore } from '../DataStore'
 
 const entryContext = React.createContext()
 
@@ -27,7 +27,7 @@ export const useEntryContext = () => {
 }
 
 const EntryContext = React.memo(function EntryContext({entryId, children}) {
-  const dataStore = useDataStoreContext()
+  const dataStore = useDataStore()
   const [entryStoreObj, setEntryStoreObj] = useState(dataStore.getEntry(entryId))
 
   const onEntryStoreUpdated = useCallback((oldStoreObj, newStoreObj) => {

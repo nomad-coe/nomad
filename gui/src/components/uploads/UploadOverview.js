@@ -45,7 +45,7 @@ import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import CreateEntry from './CreateEntry'
-import { useDataStoreContext } from '../DataStore'
+import { useDataStore } from '../DataStore'
 import { useUploadContext } from './UploadContext'
 import { useApi } from '../api'
 import ReloadIcon from '@material-ui/icons/Replay'
@@ -303,7 +303,7 @@ function UploadOverview(props) {
   const classes = useStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
-  const dataStore = useDataStoreContext()
+  const dataStore = useDataStore()
   const {
     uploadId, upload, entries, apiData, hasUpload, isProcessing, error,
     isWriter, pagination, deleteRequested} = useUploadContext()

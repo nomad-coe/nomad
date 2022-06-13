@@ -23,7 +23,7 @@ import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
-import { useDataStoreContext } from '../DataStore'
+import { useDataStore } from '../DataStore'
 import { useApi } from '../api'
 import NavigateIcon from '@material-ui/icons/ArrowRight'
 
@@ -112,7 +112,7 @@ const useBrowserStyles = makeStyles(theme => ({
 }))
 export const Browser = React.memo(function Browser({adaptor, form}) {
   const classes = useBrowserStyles()
-  const dataStore = useDataStoreContext()
+  const dataStore = useDataStore()
   const rootRef = useRef()
   const outerRef = useRef()
   const innerRef = useRef()
