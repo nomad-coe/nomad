@@ -16,6 +16,8 @@
 # limitations under the License.
 #
 
+import hashlib
+import itertools
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, \
     Callable as TypingCallable, cast
 from dataclasses import dataclass
@@ -47,6 +49,11 @@ Elasticsearch = TypeVar('Elasticsearch')
 MSectionBound = TypeVar('MSectionBound', bound='MSection')
 SectionDefOrCls = Union['Section', 'SectionProxy', Type['MSection']]
 T = TypeVar('T')
+_hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
+
+
+def _default_hash():
+    return hashlib.new(_hash_method)
 
 
 def to_section_def(section_def: SectionDefOrCls):
@@ -2539,6 +2546,9 @@ class Definition(MSection):
     aliases: 'Quantity' = _placeholder_quantity
     more: 'Quantity' = _placeholder_quantity
 
+    # store the hash object generated
+    _cached_hash: 'hashlib._Hash' = None  # type: ignore
+
     def __init__(self, *args, **kwargs):
         if is_bootstrapping:
             super().__init__(*args, **kwargs)
@@ -2605,6 +2615,35 @@ class Definition(MSection):
 
     def __repr__(self):
         return '%s:%s' % (self.qualified_name(), self.m_def.name)
+
+    def _hash_seed(self) -> str:
+        '''
+        Generates a unique representation for computing the hash of a definition.
+
+        The order of aliases is not important.
+        '''
+        if len(self.aliases) == 0:
+            return str(self.name)
+        return str(self.name) + ''.join([str(i) for i in sorted(self.aliases)])
+
+    def _hash(self, regenerate=False) -> 'hashlib._Hash':
+        '''
+        Generates a hash object based on the unique representation of the definition.
+        '''
+        if self._cached_hash is None or regenerate:
+            self._cached_hash = _default_hash()
+            self._cached_hash.update(self._hash_seed().encode('utf-8'))
+
+        return self._cached_hash
+
+    @property
+    def definition_id(self) -> str:
+        '''
+        Syntax sugar.
+
+        Returns the hash digest.
+        '''
+        return self._hash().hexdigest()
 
 
 class Property(Definition):
@@ -2870,6 +2909,41 @@ class Quantity(Property):
                 'Higher dimensional quantities (%s) need a dtype and will be treated as ' \
                 'numpy arrays.' % self
 
+    def _hash_seed(self) -> str:
+        '''
+        Generate a unique representation for this quantity.
+
+        The custom type MUST have the method `_hash_seed()` to be used to generate a proper id.
+
+        Returns:
+            str: The generated unique representation.
+        '''
+        new_id = super(Quantity, self)._hash_seed()
+
+        if isinstance(self.type, Reference):
+            new_id += f'Ref->{self.type.target_section_def.qualified_name()}'
+        else:
+            try:
+                type_id = QuantityType.serialize(self, Quantity.type, self.type)
+                if 'type_data' in type_id:
+                    if isinstance(type_id['type_data'], list):
+                        type_id['type_data'].sort()
+                new_id += json.dumps(type_id)
+            except MetainfoError as e:
+                # unlikely but for completeness
+                if hasattr(self.type, '_hash_seed'):
+                    new_id += self.type._hash_seed()
+                else:
+                    raise e
+
+        for dim in self.shape:
+            new_id += dim if isinstance(dim, str) else str(dim)
+
+        new_id += f'{str(self.unit)}{"N" if self.default is None else self.default}'
+        new_id += "T" if self.virtual else "F"
+
+        return new_id
+
 
 def derived(**kwargs):
     def decorator(f) -> Quantity:
@@ -3025,6 +3099,25 @@ class SubSection(Property):
             assert not isinstance(self.sub_section.m_resolved(), MProxy), 'Cannot resolve "sub_section"'
         except MetainfoReferenceError as e:
             assert False, f'Cannot resolve "sub_section": {str(e)}'
+
+    def _hash(self, regenerate=False) -> 'hashlib._Hash':
+        if self._cached_hash is not None and not regenerate:
+            return self._cached_hash
+
+        base_id = f'{super(SubSection, self)._hash_seed()}{"T" if self.repeats else "F"}'
+
+        self._cached_hash = _default_hash()
+        self._cached_hash.update(base_id.encode('utf-8'))
+
+        for item in itertools.chain(
+                self.sub_section.quantities,
+                self.sub_section.base_sections,
+                self.sub_section.extending_sections,
+                self.sub_section.sub_sections):
+            if id(self) != id(item):
+                self._cached_hash.update(item._hash(regenerate).digest())
+
+        return self._cached_hash
 
 
 class Section(Definition):
@@ -3362,6 +3455,22 @@ class Section(Definition):
 
         return super(Section, cls).m_from_dict(data, **kwargs)
 
+    def _hash(self, regenerate=False) -> 'hashlib._Hash':
+        if self._cached_hash is not None and not regenerate:
+            return self._cached_hash
+
+        self._cached_hash = super(Section, self)._hash(regenerate)
+
+        for item in itertools.chain(
+                self.quantities,
+                self.base_sections,
+                self.extending_sections,
+                self.sub_sections):
+            if id(self) != id(item):
+                self._cached_hash.update(item._hash(regenerate).digest())
+
+        return self._cached_hash
+
 
 def dict_to_named_list(data):
     if not isinstance(data, dict):
@@ -3485,6 +3594,18 @@ class Package(Definition):
         if archive.definitions == self and archive.metadata:
             if archive.metadata.entry_name is None and self.name and self.name != '*':
                 archive.metadata.entry_name = self.name
+
+    def _hash(self, regenerate=False) -> 'hashlib._Hash':
+        if self._cached_hash is not None and not regenerate:
+            return self._cached_hash
+
+        self._cached_hash = super(Package, self)._hash(regenerate)
+
+        for item in self.section_definitions:  # pylint: disable=not-an-iterable
+            if id(self) != id(item):
+                self._cached_hash.update(item._hash(regenerate).digest())
+
+        return self._cached_hash
 
 
 class Category(Definition):
