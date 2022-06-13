@@ -53,7 +53,7 @@ async function testBrowseAround(editable) {
     browserTree: fileBrowserTree,
     editable
   }
-  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle} editable={editable}/>)
+  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle}/>)
   await waitFor(() => {
     expect(screen.getByText('Root Title')).toBeVisible()
   })
@@ -139,7 +139,7 @@ test('starting in entry dir', async () => {
     browserTree: fileBrowserTreeModified,
     editable: true
   }
-  render(<FileBrowser uploadId="browser_test" path={entryDir} rootTitle={browserConfig.rootTitle} editable={true}/>)
+  render(<FileBrowser uploadId="browser_test" path={entryDir} rootTitle={browserConfig.rootTitle}/>)
   await waitFor(() => {
     expect(screen.getByText('Root Title')).toBeVisible()
   })
@@ -158,7 +158,7 @@ test('delete files', async () => {
     browserTree: fileBrowserTreeCopy,
     editable: true
   }
-  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle} editable={true}/>)
+  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle}/>)
   await waitFor(() => {
     expect(screen.getByText('Root Title')).toBeVisible()
   })
@@ -186,7 +186,7 @@ test('delete folder', async () => {
     browserTree: fileBrowserTreeCopy,
     editable: true
   }
-  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle} editable={true}/>)
+  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle}/>)
   await waitFor(() => {
     expect(screen.getByText('Root Title')).toBeVisible()
   })

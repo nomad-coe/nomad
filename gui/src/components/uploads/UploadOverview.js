@@ -45,6 +45,7 @@ import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import CreateEntry from './CreateEntry'
+import { useDataStore } from '../DataStore'
 import { useUploadContext } from './UploadContext'
 import { useApi } from '../api'
 import ReloadIcon from '@material-ui/icons/Replay'
@@ -302,9 +303,10 @@ function UploadOverview(props) {
   const classes = useStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
+  const dataStore = useDataStore()
   const {
-    uploadId, setUpload, hasUpload, error, update, upload, isProcessing, apiData,
-    isWriter, pagination, setPagination, data, deleteClicked, setDeleteClicked} = useUploadContext()
+    uploadId, upload, entries, apiData, hasUpload, isProcessing, error,
+    isWriter, pagination, deleteRequested} = useUploadContext()
   const [uploading, setUploading] = useState(null)
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
@@ -338,7 +340,7 @@ function UploadOverview(props) {
         setUploading(percentCompleted)
       }
     })
-      .then(results => setUpload(results.data))
+      .then(results => dataStore.updateUpload(uploadId, {upload: results.data}))
       .catch(raiseError)
       .finally(() => {
         setUploading(null)
@@ -347,44 +349,43 @@ function UploadOverview(props) {
 
   const handleNameChange = (upload_name) => {
     api.post(`/uploads/${uploadId}/edit`, {metadata: {upload_name: upload_name}})
-      .then(update())
+      .then(dataStore.requestRefreshUpload(uploadId))
       .catch(raiseError)
   }
 
   const handlePublish = ({embargo_length}) => {
     api.post(`/uploads/${uploadId}/action/publish?embargo_length=${embargo_length}`)
-      .then(results => setUpload(results.data))
+      .then(results => dataStore.updateUpload(uploadId, {upload: results.data}))
       .catch(raiseError)
   }
 
   const handleLiftEmbargo = () => {
     setOpenEmbargoConfirmDialog(false)
     api.post(`/uploads/${uploadId}/edit`, {metadata: {embargo_length: 0}})
-      .then(update())
+      .then(dataStore.requestRefreshUpload(uploadId))
       .catch(raiseError)
   }
 
   const handleReload = () => {
-    update()()
+    dataStore.requestRefreshUpload(uploadId)
   }
 
   const handleReprocess = () => {
     api.post(`/uploads/${uploadId}/action/process`)
-      .then(results => setUpload(results.data))
+      .then(results => dataStore.updateUpload(uploadId, {upload: results.data}))
       .catch(raiseError)
   }
 
   const handleDelete = () => {
     setOpenDeleteConfirmDialog(false)
-    setDeleteClicked(true)
     api.delete(`/uploads/${uploadId}`)
-      .then(results => setUpload(results.data))
+      .then(results => dataStore.updateUpload(uploadId, {upload: results.data, deletionRequested: true}))
       .catch(raiseError)
   }
 
-  if (!hasUpload) {
+  if (!hasUpload || !entries) {
     return <Page limitedWidth>
-      {(error ? <Typography> {error} </Typography> : <Typography>loading ...</Typography>)}
+      {(error ? <Typography>{error.apiMessage || error.message || 'Failed to load'}</Typography> : <Typography>loading ...</Typography>)}
     </Page>
   }
 
@@ -503,7 +504,7 @@ function UploadOverview(props) {
               </React.Fragment>
             )}
             <div className={classes.stepContent}>
-              <FilesBrower uploadId={uploadId} disabled={isProcessing || deleteClicked} />
+              <FilesBrower uploadId={uploadId} disabled={isProcessing || deleteRequested} />
             </div>
             {(isAuthenticated && isWriter) && <React.Fragment>
               <Typography className={classes.stepContent}>
@@ -516,12 +517,12 @@ function UploadOverview(props) {
         <Step expanded={!isEmpty} active={false}>
           <StepLabel>Process data</StepLabel>
           <StepContent>
-            <ProcessingStatus data={data} />
+            <ProcessingStatus data={apiData.response} />
             <ProcessingTable
-              data={data.data.map(entry => ({...entry.entry_metadata, ...entry}))}
-              pagination={combinePagination(pagination, data.pagination)}
+              data={entries.map(entry => ({...entry.entry_metadata, ...entry}))}
+              pagination={combinePagination(pagination, apiData.response?.pagination)}
               customTitle='entry'
-              onPaginationChanged={setPagination}/>
+              onPaginationChanged={newPagination => dataStore.updateUpload(uploadId, {pagination: newPagination})}/>
           </StepContent>
         </Step>
         {(isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>

@@ -107,7 +107,7 @@ const defaultSelectedColumns = [
 export default function ProcessingTable(props) {
   const [selected, setSelected] = useState([])
   const {pagination, customTitle} = props
-  const {upload, isWriter} = useUploadContext()
+  const {upload, isEditable} = useUploadContext()
 
   const selectedQuery = useMemo(() => {
     if (selected === 'all') {
@@ -125,12 +125,12 @@ export default function ProcessingTable(props) {
       <DatatableToolbar title={pluralize((customTitle || 'search result'), pagination.total, true)}>
         <DatatableToolbarActions selection>
           <EntryDownloadButton tooltip="Download files" query={selectedQuery} />
-          {isWriter &&
+          {isEditable &&
             <EditMetaDataDialog
               isIcon
               selectedEntries={selectedQuery}
             />}
-          {isWriter &&
+          {isEditable &&
             <DeleteEntriesButton
               isIcon
               selectedEntries={selectedQuery}

@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useMemo, useState, useRef } from 'react'
+import React, { useContext, useMemo, useCallback, useState, useRef, useEffect } from 'react'
 import { useHistory } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { makeStyles, Typography, IconButton, Box, Grid, Button, Tooltip, TextField,
   Dialog, DialogContent, DialogContentText } from '@material-ui/core'
 import DialogActions from '@material-ui/core/DialogActions'
+import { useDataStore } from '../DataStore'
 import Browser, { Item, Content, Adaptor, browserContext, laneContext, Title, Compartment } from './Browser'
 import { useApi } from '../api'
 import UploadIcon from '@material-ui/icons/CloudUpload'
@@ -44,12 +45,12 @@ import { useTools } from '../north/NorthPage'
 import { EntryButton } from '../nav/Routes'
 import { useErrors } from '../errors'
 
-const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem = null, editable = false}) => {
+const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem = null}) => {
   const context = useBrowserAdaptorContext()
   const adaptor = useMemo(() => {
     return new RawDirectoryAdaptor(
-      context, uploadId, path, rootTitle, highlightedItem, editable)
-  }, [context, uploadId, path, rootTitle, highlightedItem, editable])
+      context, uploadId, path, rootTitle, highlightedItem)
+  }, [context, uploadId, path, rootTitle, highlightedItem])
 
   if (!context.metainfo) {
     return ''
@@ -61,37 +62,35 @@ FileBrowser.propTypes = {
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired,
   rootTitle: PropTypes.string.isRequired,
-  highlightedItem: PropTypes.string,
-  editable: PropTypes.bool
+  highlightedItem: PropTypes.string
 }
 export default FileBrowser
 
 class RawDirectoryAdaptor extends Adaptor {
-  constructor(context, uploadId, path, title, highlightedItem, editable = false) {
+  constructor(context, uploadId, path, title, highlightedItem) {
     super(context)
     this.uploadId = uploadId
     this.path = path
     this.title = title
     this.highlightedItem = highlightedItem
-    this.editable = editable
-    this.data = undefined // Will be set by RawDirectoryContent component when loaded
+    this.editable = undefined
+    this.data = undefined
+    this.timestamp = undefined
+    this.initialized = false
+    this.dependencies = new Set([uploadId])
   }
-  needToFetchData() {
-    return this.data === undefined
+  depends() {
+    return this.dependencies
   }
-  async fetchData(api) {
-    if (this.data === undefined) {
-      const encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-      const response = await api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
-      const elementsByName = {}
-      response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
-      this.data = {response, elementsByName}
-    }
-  }
-  onFilesUpdated(uploadId, path) {
-    if (uploadId === this.uploadId && this.path.startsWith(path)) {
-      this.data = undefined
-    }
+  async initialize(api, dataStore) {
+    const uploadStoreObj = await dataStore.getUploadAsync(this.uploadId, true, false)
+    this.timestamp = uploadStoreObj.upload?.complete_time
+    this.editable = uploadStoreObj.isEditable
+    const encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
+    const response = await api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
+    const elementsByName = {}
+    response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
+    this.data = {response, elementsByName}
   }
   itemAdaptor(key) {
     if (key === '_mainfile') {
@@ -103,7 +102,7 @@ class RawDirectoryAdaptor extends Adaptor {
       if (element.is_file) {
         return new RawFileAdaptor(this.context, this.uploadId, ext_path, element, this.editable)
       } else {
-        return new RawDirectoryAdaptor(this.context, this.uploadId, ext_path, key, null, this.editable)
+        return new RawDirectoryAdaptor(this.context, this.uploadId, ext_path, key, null)
       }
     }
     throw new Error('Bad path: ' + key)
@@ -131,6 +130,7 @@ const useRawDirectoryContentStyles = makeStyles(theme => ({
 }))
 function RawDirectoryContent({uploadId, path, title, highlightedItem, editable}) {
   const classes = useRawDirectoryContentStyles()
+  const dataStore = useDataStore()
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
   const history = useHistory()
@@ -141,6 +141,28 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
   const createDirName = useRef()
   const { raiseError } = useErrors()
 
+  const refreshIfNeeded = useCallback(async (oldStoreObj, newStoreObj) => {
+    // Called when a store update occurs. Note, adaptors can be cached while the browser & lanes
+    // components are unmounted.
+    if (newStoreObj.hasUpload) {
+      const oldTimestamp = lane.adaptor.timestamp // Timestamp from the store the last time we called initialize
+      const newTimestamp = newStoreObj.upload?.complete_time // Current timestamp from the store
+      if (!lane.adaptor.initialized) {
+        // No need to a new refresh again, just update the adaptor timestamp
+        lane.adaptor.timestamp = newTimestamp
+        lane.adaptor.initialized = true
+      } else if (newTimestamp !== oldTimestamp && !newStoreObj.isProcessing) {
+        // Reprocessed
+        browser.invalidateLanesWithDependency(uploadId)
+      }
+    }
+  }, [browser, lane, uploadId])
+
+  useEffect(() => {
+    refreshIfNeeded(undefined, dataStore.getUpload(uploadId))
+    return dataStore.subscribeToUpload(uploadId, refreshIfNeeded, true, false)
+  }, [dataStore, uploadId, refreshIfNeeded])
+
   const handleDrop = (files) => {
     if (!files[0]?.name) {
       return // Not dropping a file, but something else. Ignore.
@@ -149,19 +171,9 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
     for (const file of files) {
       formData.append('file', file)
     }
-    browser.blockUntilProcessed({
-      uploadId: uploadId,
-      apiCall: api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData, {
-        onUploadProgress: (progressEvent) => {
-          // TODO: would be nice to show progress somehow
-        }
-      }),
-      apiCallText: 'Uploading file',
-      onSuccess: () => {
-        browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, path))
-        browser.update()
-      }
-    })
+    api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData)
+      .then(response => dataStore.updateUpload(uploadId, {upload: response.data}))
+      .catch(error => raiseError(error))
   }
 
   const handleCreateDir = () => {
@@ -170,31 +182,29 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
     if (dirName) {
       const fullPath = encodedPath + (encodedPath ? '/' : '') + encodeURIComponent(dirName)
       api.post(`/uploads/${uploadId}/raw-create-dir/${fullPath}`)
-        .then(() => {
-          browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, path))
-          browser.update()
-        })
+        .then(response => dataStore.updateUpload(uploadId, {upload: response.data}))
         .catch(raiseError)
     }
   }
 
   const handleDeleteDir = () => {
     setOpenConfirmDeleteDirDialog(false)
-    browser.blockUntilProcessed({
-      uploadId: uploadId,
-      apiCall: api.delete(`/uploads/${uploadId}/raw/${encodedPath}`),
-      apiCallText: 'Deleting directory',
-      onSuccess: () => {
-        const segments = path.split('/')
-        const parentPath = segments.slice(0, segments.length - 1).join('/')
-        browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, parentPath))
-        if (lane.index > 0) {
-          history.push(browser.lanes.current[lane.index - 1].path)
+    api.delete(`/uploads/${uploadId}/raw/${encodedPath}`)
+      .then(response => {
+        const mainfile = lane.adaptor.context?.mainfile // Will be set if we're on an entry page
+        if (typeof mainfile === 'string' && (mainfile === path || path === '' || mainfile.startsWith(path + '/'))) {
+          // This will delete the current entry - go to upload overview page
+          history.push(`/user/uploads/upload/id/${uploadId}`)
+        } else {
+          const gotoLane = lane.index > 0 ? lane.index - 1 : 0
+          history.push(browser.lanes.current[gotoLane].path)
         }
-      }})
+        dataStore.updateUpload(uploadId, {upload: response.data})
+      })
+      .catch(raiseError)
   }
 
-  if (lane.adaptor.data === undefined) {
+  if (!lane.adaptor.data) {
     return <Content key={path}><Typography>loading ...</Typography></Content>
   } else {
     // Data loaded
@@ -214,7 +224,7 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
             actions={
               <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
                 <Grid item>
-                  <IconButton size="small" onClick={() => browser.update(lane)}>
+                  <IconButton size="small" onClick={() => browser.invalidateLanesFromIndex(lane.index)}>
                     <Tooltip title="reload directory contents">
                       <ReloadIcon/>
                     </Tooltip>
@@ -336,6 +346,10 @@ export class RawFileAdaptor extends Adaptor {
     this.path = path
     this.data = data
     this.editable = editable
+    this.dependencies = new Set([uploadId])
+  }
+  depends() {
+    return this.dependencies
   }
   async itemAdaptor(key) {
     if (key === 'archive') {
@@ -378,7 +392,9 @@ function RawFileContent({uploadId, path, data, editable}) {
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
   const history = useHistory()
+  const dataStore = useDataStore()
   const { api } = useApi()
+  const { raiseError } = useErrors()
   const [openConfirmDeleteFileDialog, setOpenConfirmDeleteFileDialog] = useState(false)
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
   const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?ignore_mime_type=true`
@@ -394,18 +410,19 @@ function RawFileContent({uploadId, path, data, editable}) {
 
   const handleDeleteFile = () => {
     setOpenConfirmDeleteFileDialog(false)
-    browser.blockUntilProcessed({
-      uploadId: uploadId,
-      apiCall: api.delete(`/uploads/${uploadId}/raw/${encodedPath}`),
-      apiCallText: 'Deleting file',
-      onSuccess: () => {
-        const segments = path.split('/')
-        const parentPath = segments.slice(0, segments.length - 1).join('/')
-        browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, parentPath))
-        if (lane.index > 0) {
-          history.push(browser.lanes.current[lane.index - 1].path)
+    api.delete(`/uploads/${uploadId}/raw/${encodedPath}`)
+      .then(response => {
+        const mainfile = lane.adaptor.context?.mainfile // Will be set if we're on an entry page
+        if (path === mainfile) {
+          // Deleting the main entry - go to upload overview page
+          history.push(`/user/uploads/upload/id/${uploadId}`)
+        } else {
+          const gotoLane = lane.index > 0 ? lane.index - 1 : 0
+          history.push(browser.lanes.current[gotoLane].path)
         }
-      }})
+        dataStore.updateUpload(uploadId, {upload: response.data})
+      })
+      .catch(raiseError)
   }
 
   // A nicer, human-readable size string

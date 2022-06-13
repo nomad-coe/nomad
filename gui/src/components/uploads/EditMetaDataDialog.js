@@ -35,6 +35,7 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import OpenInNewIcon from '@material-ui/icons/OpenInNew'
 import Quantity from '../Quantity'
 import {DOI} from '../dataset/DOI'
+import { useDataStore } from '../DataStore'
 import { useUploadContext } from './UploadContext'
 
 function EditComments(props) {
@@ -48,7 +49,7 @@ function EditComments(props) {
     </Box>
     <TextField
       fullWidth label='Comment' multiline
-      rows={6} defaultValue={value} variant='filled' size='small'
+      minRows={6} defaultValue={value} variant='filled' size='small'
       onChange={(event) => onChange(event.target.value)}
       inputProps={{ 'data-testid': 'metadata-comment-field' }}
     />
@@ -307,7 +308,8 @@ function EditMetaDataDialog({...props}) {
   const classes = useEditMetaDataDialogStyles()
   const {api, user} = useApi()
   const {raiseError} = useErrors()
-  const {upload, setUpload, data} = useUploadContext()
+  const dataStore = useDataStore()
+  const {uploadId, upload, entries} = useUploadContext()
   const [open, setOpen] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const isProcessing = upload?.process_running
@@ -333,12 +335,12 @@ function EditMetaDataDialog({...props}) {
           raiseError(err)
         })
     }
-  }, [api, user, raiseError, data, open, userDatasetsFetched, setUserDatasetsFetched])
+  }, [api, user, raiseError, open, userDatasetsFetched, setUserDatasetsFetched])
 
-  const defaultComment = useMemo(() => data?.data?.length > 0 ? data?.data[0]?.entry_metadata?.comment || '' : '', [data])
-  const defaultReferences = useMemo(() => data?.data?.length > 0 ? data?.data[0]?.entry_metadata?.references || [] : [], [data])
-  const defaultDatasets = useMemo(() => data?.data?.length > 0 ? (data?.data[0]?.entry_metadata?.datasets ? userDatasets
-    .filter(datasetFullData => data?.data[0]?.entry_metadata?.datasets.map(dataset => dataset.dataset_id).includes(datasetFullData.dataset_id)) : []) : [], [data, userDatasets])
+  const defaultComment = useMemo(() => entries?.length > 0 ? entries[0]?.entry_metadata?.comment || '' : '', [entries])
+  const defaultReferences = useMemo(() => entries?.length > 0 ? entries[0]?.entry_metadata?.references || [] : [], [entries])
+  const defaultDatasets = useMemo(() => entries?.length > 0 ? (entries[0]?.entry_metadata?.datasets ? userDatasets
+    .filter(datasetFullData => entries[0]?.entry_metadata?.datasets.map(dataset => dataset.dataset_id).includes(datasetFullData.dataset_id)) : []) : [], [entries, userDatasets])
 
   const handleOpenDialog = useCallback(() => {
     setActions([])
@@ -355,13 +357,13 @@ function EditMetaDataDialog({...props}) {
       try {
         const requestBody = {metadata: metadata, verify_only: verify_only, owner: 'user'}
         if (selectedEntries.entry_id) requestBody.query = selectedEntries
-        await api.post(`uploads/${data.upload.upload_id}/edit`, requestBody)
+        await api.post(`uploads/${uploadId}/edit`, requestBody)
         resolve('')
       } catch (error) {
         reject(error.apiMessage)
       }
     })
-  }, [api, data, selectedEntries])
+  }, [api, uploadId, selectedEntries])
 
   const submitChanges = useCallback((metadata) => {
     edit(metadata, true)
@@ -369,7 +371,7 @@ function EditMetaDataDialog({...props}) {
         edit(metadata, false)
           .then(results => {
             setActions([])
-            setUpload(results.data)
+            dataStore.updateUpload(uploadId, {upload: results.data})
           }).catch(err => {
             raiseError(err)
           })
@@ -380,7 +382,7 @@ function EditMetaDataDialog({...props}) {
           if (error.loc.includes('datasets')) setActions(oldActions => [...oldActions, {'error_dataset': error.msg}])
         })
       })
-  }, [edit, setUpload, raiseError])
+  }, [edit, uploadId, dataStore, raiseError])
 
   const isCommentChanged = useMemo(() => !!actions.find(action => 'set_comment' in action), [actions])
   const isReferencesChanged = useMemo(() => !!actions.find(action => 'add_reference' in action || 'remove_reference' in action), [actions])

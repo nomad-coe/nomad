@@ -1086,6 +1086,10 @@ async def post_upload_raw_create_dir_path(
             detail=f'Path `{path}` already exists.')
     try:
         upload.staging_upload_files.raw_create_directory(path)
+        # No real processing is needed when just adding a folder, but we should signal that
+        # the upload has changed.
+        upload.complete_time = datetime.utcnow()
+        upload.save()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1860,8 +1864,11 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
         return upload
     elif include_others:
         if not upload.published:
+            if user:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                    You do not have access to the specified upload.'''))
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-                You do not have access to the specified upload - not published yet.'''))
+                You need to log in to access the specified upload.'''))
         if upload.published and upload.with_embargo:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You do not have access to the specified upload - published with embargo.'''))

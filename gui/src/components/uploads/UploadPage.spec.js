@@ -355,7 +355,7 @@ test.each([
     'dft_upload',
     '',
     '',
-    'You do not have access to the specified upload - not published yet.'
+    'You need to log in to access the specified upload.'
   ],
   [
     'unpublished, logged in as neither reviewer nor coauthor or main author',
@@ -364,7 +364,7 @@ test.each([
     'dft_upload',
     'admin',
     'password',
-    'You do not have access to the specified upload - not published yet.'
+    'You do not have access to the specified upload.'
   ],
   [
     'published with embargo, not authenticated',

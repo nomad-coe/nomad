@@ -1,4 +1,30 @@
 {
+  "ff95b7af4ca8739b8ba0065e4de2b8d7": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/raw/README.md",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1MmQ4ODY1NC05ZTNiLTQ2MTEtYmZjMS0zN2VkMTdlNWNlYTMiLCJleHAiOjE2NTQ2Mjg1NzEsIm5iZiI6MCwiaWF0IjoxNjU0NTkyNTgxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjMxZTFmYjA3LTYwMzEtNDMxZi05YTlkLWJhMDk4ZjMxNzY5MyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.CFB_5-EXJRWGkypZvL95uAiRiqAXo9N99qoijFoeK_yY6Qvvf630bvdJKubDkz0zG7Pqk3acP8LO5B1A8SVaaOmAz9L3jg4jQvZUdKrqUk0JwMNcVTorTqsb7TpT3fb6RV11xSWudzMBlsiSeiEpq5HKdA7X71Qw5XoitTbaqRZMNnLcTdRtGzLfRmeNkJ85YdbWbvcITeJ8402ygjDxAB0HmgROmGWIZhZ51G1lm_mescfL0sI7KAo96WNzHrBd73izEkPCIlGjnbjl6QFVWffsNZwV-vh8_KK_QtVDvOLtlGOkPyECK3ugnxVjI9-XTG8Hc4hplrRzgo8knn6j_A",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "detail": "Not found. Invalid path?"
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "37",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
   "9efcb5c38a525a0d1b33c9740d2fec4f": [
     {
       "request": {
@@ -7,7 +33,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjOTM5MDIxNS02NTJlLTQzOTktYjkwNS0wYjQ2NjljZWNjZjMiLCJleHAiOjE2NDkyNzUxNzIsIm5iZiI6MCwiaWF0IjoxNjQ5MjM5MTg4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjdkYjY5NzQ3LWUzNzMtNDc3ZC05YzEyLTE2YWFiZGY5NTZiZCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.VBC0ARvsAV4QPebMNbGrOb-G60SFDFO6TXNt5Rs2PQQ4CmV6qhkmwlPw1iXVTnI2yJ2lzzqDQTCZsrmTMXNGMTDHGK19vNvy3vAXwG9NvWEpSS81LG36NdhCdtHlYIQjRasRccS1tOigFjLiwmQeVRfPYIf47X_TUUPfVIZc3nQA2_Q3mz9XHnTqrj1R3cMX2OCM-M5Q5vrzPQ2XWckWbr6N-9j3QiJR43CIPoeY-fd85X45LvL7ZtJFZvSKpioPCMzbLOYtLjLRdCnm5HMrX4k8yKBFiJE9qw6WP2DZyCxA7Isw47JONacwNriKGdQVj5efERNll3nJwMEjM8y89Q",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1MmQ4ODY1NC05ZTNiLTQ2MTEtYmZjMS0zN2VkMTdlNWNlYTMiLCJleHAiOjE2NTQ2Mjg1NzEsIm5iZiI6MCwiaWF0IjoxNjU0NTkyNTgxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjMxZTFmYjA3LTYwMzEtNDMxZi05YTlkLWJhMDk4ZjMxNzY5MyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.CFB_5-EXJRWGkypZvL95uAiRiqAXo9N99qoijFoeK_yY6Qvvf630bvdJKubDkz0zG7Pqk3acP8LO5B1A8SVaaOmAz9L3jg4jQvZUdKrqUk0JwMNcVTorTqsb7TpT3fb6RV11xSWudzMBlsiSeiEpq5HKdA7X71Qw5XoitTbaqRZMNnLcTdRtGzLfRmeNkJ85YdbWbvcITeJ8402ygjDxAB0HmgROmGWIZhZ51G1lm_mescfL0sI7KAo96WNzHrBd73izEkPCIlGjnbjl6QFVWffsNZwV-vh8_KK_QtVDvOLtlGOkPyECK3ugnxVjI9-XTG8Hc4hplrRzgo8knn6j_A",
           "cookie": null
         }
       },
@@ -31,9 +57,9 @@
             "process_status": "SUCCESS",
             "errors": [],
             "warnings": [],
-            "complete_time": "2022-04-06T09:59:42.405000",
+            "complete_time": "2022-06-07T09:02:56.891000",
             "upload_id": "dft_upload",
-            "upload_create_time": "2022-04-06T09:59:42.404000",
+            "upload_create_time": "2022-06-07T09:02:56.890000",
             "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
             "coauthors": [
               "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
@@ -56,7 +82,7 @@
             "embargo_length": 0,
             "license": "CC BY 4.0",
             "entries": 1,
-            "upload_files_server_path": "/home/lauri/repositories/nomad-FAIR/.volumes/fs/staging/df/dft_upload"
+            "upload_files_server_path": "/home/dsikter/nomad/.volumes/fs/staging/df/dft_upload"
           },
           "data": [
             {
@@ -65,12 +91,12 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk",
-              "entry_create_time": "2022-04-06T09:59:42.407000",
+              "entry_create_time": "2022-06-07T09:02:56.893000",
               "mainfile": "vasp.xml",
               "upload_id": "dft_upload",
               "parser_name": "parsers/vasp",
               "entry_metadata": {
-                "last_processing_time": "2021-03-17T15:47:32.899000",
+                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
                 "upload_id": "dft_upload",
                 "references": [
                   "doi"
@@ -92,7 +118,7 @@
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-04-06T09:59:42.404419",
+                "upload_create_time": "2022-06-07T09:02:56.890678+00:00",
                 "processed": true,
                 "nomad_commit": "bf3c06fa",
                 "mainfile": "vasp.xml",
@@ -114,7 +140,7 @@
                     "name": "Test Tester"
                   }
                 ],
-                "entry_create_time": "2022-04-06T09:59:42.407419",
+                "entry_create_time": "2022-06-07T09:02:56.893678+00:00",
                 "with_embargo": false,
                 "domain": "dft",
                 "comment": "Mocked",
@@ -170,7 +196,8 @@
                       "energy_free_helmholtz",
                       "bulk_modulus",
                       "shear_modulus",
-                      "energy_volume_curve"
+                      "energy_volume_curve",
+                      "trajectory"
                     ],
                     "structures": {
                       "structure_primitive": {
@@ -226,6 +253,23 @@
                         ]
                       }
                     },
+                    "thermodynamic": {
+                      "trajectory": [
+                        {
+                          "available_properties": [
+                            "pressure",
+                            "temperature",
+                            "volume"
+                          ],
+                          "methodology": {
+                            "molecular_dynamics": {
+                              "time_step": 1e-15,
+                              "ensemble_type": "NVT"
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "mechanical": {
                       "energy_volume_curve": [
                         {
@@ -265,7 +309,141 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "7833",
+          "content-length": "8360",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "82d17176ee69d18778e33cc33362abe1": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/rawdir/?page_size=500&include_entry_info=true",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJlOWZhZWM1Mi1lYWZhLTRiMWYtYmE2Yy0xZmE4ZmRiYzExZWIiLCJleHAiOjE2NTQ2Mjg1NzEsIm5iZiI6MCwiaWF0IjoxNjU0NTkyNTgxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjMxZTFmYjA3LTYwMzEtNDMxZi05YTlkLWJhMDk4ZjMxNzY5MyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.LJFsaVaN1YJDqlPvIuDMzlvp_2Hols0wUli34j-2BRMmqH3UsVZKA_PXvg4f9j8v574cW47xRlg8TKjaCOKjqLF7S9iiTFrc9lMuS3QJL3xIh_pRNO_64uLthLLl6ENUcMs6a77mA0cK_GcTL41So9yYRNEv76lOkQlJ1bXZRlDy-Lqd-SyDGdgwVFLr-34FTH5ytddYs6PZQZHHPuwMejFMFKf_LTNh0RUOxAt0p_SVOOwU3BThQNhSJoArCPVkAJpbFTqnvvd9TsyVoctEAXuIFaOw7zbh55n5kPauk1eGNz-vaSJHa2czl6DtxrowSis1riahuKUMGSKO_clZ5w",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "path": "",
+          "access": "unpublished",
+          "directory_metadata": {
+            "name": "",
+            "size": 3269,
+            "content": [
+              {
+                "name": "1.aux",
+                "size": 8,
+                "is_file": true
+              },
+              {
+                "name": "2.aux",
+                "size": 8,
+                "is_file": true
+              },
+              {
+                "name": "3.aux",
+                "size": 8,
+                "is_file": true
+              },
+              {
+                "name": "4.aux",
+                "size": 8,
+                "is_file": true
+              },
+              {
+                "name": "vasp.xml",
+                "size": 3237,
+                "entry_id": "dft_bulk",
+                "parser_name": "parsers/vasp",
+                "is_file": true
+              }
+            ]
+          },
+          "pagination": {
+            "page_size": 500,
+            "order": "asc",
+            "page": 1,
+            "total": 5,
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/rawdir/?page_size=500&include_entry_info=true",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/rawdir/?page_size=500&include_entry_info=true"
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "999",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "cd2b263727fb2d6704d7b6a1e68a2c83": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/archive/query",
+        "method": "POST",
+        "body": {
+          "owner": "visible",
+          "query": {
+            "quantities": "definitions.section_definitions",
+            "processed": true
+          },
+          "required": {
+            "definitions": "*",
+            "metadata": {
+              "mainfile": "*",
+              "entry_name": "*"
+            }
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJlOWZhZWM1Mi1lYWZhLTRiMWYtYmE2Yy0xZmE4ZmRiYzExZWIiLCJleHAiOjE2NTQ2Mjg1NzEsIm5iZiI6MCwiaWF0IjoxNjU0NTkyNTgxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjMxZTFmYjA3LTYwMzEtNDMxZi05YTlkLWJhMDk4ZjMxNzY5MyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.LJFsaVaN1YJDqlPvIuDMzlvp_2Hols0wUli34j-2BRMmqH3UsVZKA_PXvg4f9j8v574cW47xRlg8TKjaCOKjqLF7S9iiTFrc9lMuS3QJL3xIh_pRNO_64uLthLLl6ENUcMs6a77mA0cK_GcTL41So9yYRNEv76lOkQlJ1bXZRlDy-Lqd-SyDGdgwVFLr-34FTH5ytddYs6PZQZHHPuwMejFMFKf_LTNh0RUOxAt0p_SVOOwU3BThQNhSJoArCPVkAJpbFTqnvvd9TsyVoctEAXuIFaOw7zbh55n5kPauk1eGNz-vaSJHa2czl6DtxrowSis1riahuKUMGSKO_clZ5w",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "name": "quantities",
+                "value": "definitions.section_definitions"
+              },
+              {
+                "name": "processed",
+                "value": true
+              }
+            ]
+          },
+          "pagination": {
+            "page_size": 10,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 0
+          },
+          "required": {
+            "definitions": "*",
+            "metadata": {
+              "mainfile": "*",
+              "entry_name": "*"
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "463",
           "content-type": "application/json",
           "server": "uvicorn"
         }

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import React, {useCallback, useMemo, useRef, useState} from 'react'
 import PropTypes from 'prop-types'
 import {PropertyCard} from './PropertyCard'
 import SectionEditor from '../../archive/SectionEditor'
@@ -165,12 +165,8 @@ SectionPreview.propTypes = {
 }
 
 const SectionCard = React.memo(({archivePath, sectionDef, section, readOnly, ...props}) => {
-  const {entryId, uploadId, requireArchive} = useEntryContext()
+  const {entryId, uploadId} = useEntryContext()
   const [showJson, setShowJson] = useState(false)
-
-  useEffect(() => {
-    requireArchive()
-  }, [requireArchive])
 
   const actions = <React.Fragment>
     <IconButton onClick={() => setShowJson(value => !value)}>

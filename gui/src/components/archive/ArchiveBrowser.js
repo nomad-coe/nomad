@@ -67,15 +67,17 @@ export function useBrowserAdaptorContext(data) {
 
   const entryId = entryContext?.entryId
   const uploadId = entryContext?.uploadId || uploadContext?.uploadId
+  const mainfile = entryContext?.metadata?.mainfile
 
   const context = useMemo(() => ({
     api: api,
     metainfo: metainfo,
     archive: data,
     resources: {},
+    uploadId: uploadId,
     entryId: entryId,
-    uploadId: uploadId
-  }), [entryId, uploadId, metainfo, api, data])
+    mainfile: mainfile
+  }), [uploadId, entryId, mainfile, api, data, metainfo])
 
   return context
 }

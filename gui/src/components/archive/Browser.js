@@ -18,14 +18,13 @@
 
 import React, {createRef, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react'
 import PropTypes from 'prop-types'
-import { Box, Button, Card, CardContent, Chip, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogContentText, DialogTitle, Grid, IconButton, makeStyles, Tooltip, Typography } from '@material-ui/core'
+import { makeStyles, Card, CardContent, Box, Typography, Grid, Chip, Tooltip, IconButton } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
+import { useDataStore } from '../DataStore'
 import { useApi } from '../api'
-import { useErrors } from '../errors'
 import NavigateIcon from '@material-ui/icons/ArrowRight'
 
 function escapeBadPathChars(s) {
@@ -56,23 +55,10 @@ export class Adaptor {
   }
 
   /**
-   * If this adaptor needs to fetch some data via the API
+   * A potentially asynchronous method called to initialize an adaptor, before any
+   * calls are made to the itemAdaptor or render methods.
    */
-  needToFetchData() {
-    return false
-  }
-
-  /**
-   * A potentially asynchronous method that is called when the browser is updated if
-   * the adaptor needs to fetch data
-   */
-  fetchData(api) {
-  }
-
-  /**
-   * Called to inform adaptors that the files of an upload has been updated.
-   */
-  onFilesUpdated(uploadId, path) {
+  initialize(api, dataStore) {
   }
 
   /**
@@ -81,6 +67,14 @@ export class Adaptor {
    * @returns An adaptor that is used to render the next lane.
    */
   itemAdaptor(key) {
+    return null
+  }
+
+  /**
+   * Optionally returns a set of strings defining this lanes dependencies. These dependencies
+   * are used to determine if an adaptor is to be invalidated when calling invalidateLanesWithDependency
+   */
+  depends() {
     return null
   }
 
@@ -118,6 +112,7 @@ const useBrowserStyles = makeStyles(theme => ({
 }))
 export const Browser = React.memo(function Browser({adaptor, form}) {
   const classes = useBrowserStyles()
+  const dataStore = useDataStore()
   const rootRef = useRef()
   const outerRef = useRef()
   const innerRef = useRef()
@@ -125,7 +120,6 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   const { url } = useRouteMatch()
 
   const { api } = useApi()
-  const { raiseError } = useErrors()
 
   useLayoutEffect(() => {
     function update() {
@@ -141,27 +135,103 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     }
   })
 
-  const [render, setRender] = useState(0)
-  const update = useCallback((lane) => {
-    if (lane) {
-      const index = lanes.current.indexOf(lane)
-      if (index >= 0) {
-        lanes.current.splice(index)
-      }
-    } else if (lanes.current.length > 0) {
-      lanes.current.splice(-1)
-    }
-    // If all lanes got updated, remove all data from the root adaptor to force reload
-    if (lanes.current.length === 0) {
-      adaptor.data = undefined
-    }
-    setRender(current => current + 1)
-  }, [setRender, adaptor])
   const [, setInternalRender] = useState(0)
   const internalUpdate = useCallback(() => {
     setInternalRender(current => current + 1)
   }, [setInternalRender])
   const lanes = useRef(null)
+  const computingForUrl = useRef(null)
+  const computeLanes = useCallback(async () => {
+    if (!url || computingForUrl.current === url) {
+      // We have no url (happens if we navigate to a different tab), or we're already in the
+      // midst of computing lanes for this url
+      return
+    }
+    computingForUrl.current = url
+    const rootPath = url.endsWith('/') ? url.substring(0, url.length - 1) : url
+    const segments = ['root'].concat(pathname.substring(url.length).split('/').filter(segment => segment))
+    const oldLanes = lanes.current
+    const newLanes = []
+    for (let index = 0; index < segments.length; index++) {
+      const segment = unescapeBadPathChars(segments[index])
+      const prev = index === 0 ? null : newLanes[index - 1]
+      let lane
+      let newLaneCreated = false
+
+      if (oldLanes && oldLanes[index]?.key === segment && !newLaneCreated) {
+        // reuse the existing lane (incl. its adaptor and data)
+        lane = oldLanes[index]
+        lane.next = null
+      } else {
+        // create new lane
+        lane = {
+          index: index,
+          key: segment,
+          path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
+          next: null,
+          prev: prev,
+          initialized: false
+        }
+        newLaneCreated = true
+        // Set or create the lane adaptor
+        if (!prev) {
+          // The root lane - use provided adaptor
+          lane.adaptor = adaptor
+        } else {
+          // Non-root lane - create adaptor
+          try {
+            lane.adaptor = await prev.adaptor.itemAdaptor(segment)
+          } catch (error) {
+            console.log(error)
+            lane.error = `The item "${segment}" could not be found.`
+          }
+        }
+        // initialize the adaptor
+        if (lane.adaptor) {
+          try {
+            await lane.adaptor.initialize(api, dataStore)
+            lane.initialized = true
+          } catch (error) {
+            console.log(error)
+            lane.error = 'Could not initialize view' + (lane.index > 0 ? `: item "${segment}" not found.` : '.')
+          }
+        }
+      }
+      if (prev) {
+        prev.next = lane
+      }
+      newLanes.push(lane)
+      if (lane.error) {
+        break // Ignore subsequent segments/lanes
+      }
+    }
+    lanes.current = newLanes
+    computingForUrl.current = null
+    internalUpdate()
+  }, [adaptor, api, dataStore, internalUpdate, url, pathname])
+
+  // Method used to invalidate and refresh lanes from the provided lane index and forward.
+  const invalidateLanesFromIndex = useCallback((index) => {
+    index = index || 0
+    lanes.current.splice(index)
+    // If all adaptors got invalidated, remove all data from the root adaptor to force reload
+    if (lanes.current.length === 0) {
+      adaptor.data = undefined
+    }
+    computeLanes()
+  }, [adaptor, computeLanes])
+
+  // Method used to invalidate all lanes that have a certain dependency. The first lane which
+  // has this dependency, and all subsequent lanes, are invalidated.
+  const invalidateLanesWithDependency = useCallback((dependency) => {
+    for (const lane of lanes.current) {
+      const dependencies = lane.adaptor && lane.adaptor.depends()
+      if (dependencies && dependencies.has(dependency)) {
+        invalidateLanesFromIndex(lane.index)
+        return
+      }
+    }
+  }, [invalidateLanesFromIndex])
 
   // do no reuse the lanes if the adaptor has changed, e.g. due to updated archive data
   useEffect(() => {
@@ -169,74 +239,16 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   }, [adaptor])
 
   useEffect(() => {
-    if (!url) {
-      return
+    computeLanes()
+  }, [computeLanes])
+
+  const contextValue = useMemo(() => {
+    return {
+      lanes,
+      invalidateLanesFromIndex,
+      invalidateLanesWithDependency
     }
-
-    const rootPath = url.endsWith('/') ? url.substring(0, url.length - 1) : url
-    const segments = ['root'].concat(pathname.substring(url.length).split('/').filter(segment => segment))
-
-    async function computeLanes() {
-      const oldLanes = lanes.current
-      const newLanes = []
-      for (let index = 0; index < segments.length; index++) {
-        const segment = unescapeBadPathChars(segments[index])
-        const prev = index === 0 ? null : newLanes[index - 1]
-        let lane
-
-        if (oldLanes && oldLanes[index]?.key === segment) {
-          // reuse the existing lane (incl. its adaptor and data)
-          lane = oldLanes[index]
-          lane.next = null
-        } else {
-          // create new lane
-          lane = {
-            index: index,
-            key: segment,
-            path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
-            next: null,
-            prev: prev,
-            fetchDataCounter: 0,
-            update: update
-          }
-          if (!prev) {
-            lane.adaptor = adaptor
-          } else {
-            try {
-              lane.adaptor = await prev.adaptor.itemAdaptor(segment)
-            } catch (error) {
-              console.log(error)
-              lane.error = `The item "${segment}" could not be found.`
-            }
-          }
-        }
-        if (prev) {
-          prev.next = lane
-        }
-        if (!lane.error && lane.adaptor.needToFetchData()) {
-          try {
-            await lane.adaptor.fetchData(api)
-            lane.fetchDataCounter += 1
-          } catch (error) {
-            console.log(error)
-            lane.error = `Could not fetch data for "${segment}". Bad path provided?`
-          }
-        }
-        newLanes.push(lane)
-        if (lane.error) {
-          break // Ignore subsequent segments/lanes
-        }
-      }
-      lanes.current = newLanes
-    }
-    computeLanes().then(() => internalUpdate())
-  }, [lanes, url, pathname, adaptor, render, update, internalUpdate, api, raiseError])
-
-  const contextValue = useMemo(() => ({
-    lanes: lanes,
-    update: update,
-    blockUntilProcessed: undefined // Will be set when creating WaitForProcessingDialog component
-  }), [lanes, update])
+  }, [lanes, invalidateLanesFromIndex, invalidateLanesWithDependency])
 
   if (url === undefined) {
     // Can happen when navigating to another tab, possibly with the browser's back/forward buttons
@@ -257,7 +269,6 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
             </div>
           </div>
         </div>
-        <WaitForProcessingDialog/>
       </CardContent>
     </Card>
   </browserContext.Provider>
@@ -295,7 +306,7 @@ const useLaneStyles = makeStyles(theme => ({
 function Lane({lane}) {
   const classes = useLaneStyles()
   const containerRef = createRef()
-  const { key, adaptor, next, fetchDataCounter, error } = lane
+  const { key, adaptor, next, initialized, error } = lane
   lane.containerRef = containerRef
 
   const content = useMemo(() => {
@@ -305,7 +316,7 @@ function Lane({lane}) {
         <Typography color="error">{error}</Typography>
       </div>
     }
-    if (!adaptor) {
+    if (!adaptor || !initialized) {
       return ''
     }
     return <div className={classes.root} key={`lane:${lane.path}`} data-testid={`lane${lane.index}:${lane.key}`}>
@@ -320,7 +331,7 @@ function Lane({lane}) {
     // We deliberetly break the React rules here. The goal is to only update if the
     // lanes contents change and not the lane object.
     // eslint-disable-next-line
-  }, [key, adaptor, fetchDataCounter, next?.key, classes, error])
+  }, [lane, key, adaptor, initialized, next?.key, classes, error])
 
   return content
 }
@@ -553,102 +564,3 @@ Title.propTypes = ({
     PropTypes.node
   ])
 })
-
-const statusesProcessing = ['PENDING', 'RUNNING', 'WAITING_FOR_RESULT']
-
-function WaitForProcessingDialog() {
-  const browser = useContext(browserContext)
-  const { api } = useApi()
-  const [jobDef, setJobDef] = useState()
-  const [apiResponse, setApiResponse] = useState()
-  const [apiError, setApiError] = useState()
-  const [refreshing, setRefreshing] = useState(false)
-  const [errorsAcknowledged, setErrorsAcknowledged] = useState(false)
-
-  const blockUntilProcessed = useCallback(({uploadId, apiCall, apiCallText, onSuccess, onFail}) => {
-    apiCall
-      .then(response => {
-        setApiResponse(response)
-      })
-      .catch(error => {
-        setApiError(error)
-      })
-    setJobDef({uploadId, apiCallText, onSuccess, onFail})
-  }, [setApiResponse, setApiError, setJobDef])
-
-  browser.blockUntilProcessed = blockUntilProcessed // add callback to the browser context
-
-  const refresh = useCallback(() => {
-    api.get(`/uploads/${jobDef.uploadId}`)
-      .then(response => {
-        setApiResponse(response)
-        setRefreshing(false)
-      })
-      .catch(error => {
-        setApiError(error)
-      })
-  }, [api, jobDef, setApiResponse, setApiError, setRefreshing])
-
-  const processStatus = apiResponse?.data?.process_status
-  const isProcessing = jobDef && !apiError && (!apiResponse || statusesProcessing.includes(processStatus))
-  const hasErrors = apiError || processStatus === 'FAILURE'
-  const showDialog = jobDef && (isProcessing || (hasErrors && !errorsAcknowledged))
-
-  useEffect(() => {
-    if (jobDef) {
-      if (!apiError && apiResponse && isProcessing && !refreshing) {
-        // Last response was still processing. Wait and try to refresh again
-        setRefreshing(true)
-        const interval = setInterval(refresh(), 1000)
-        return () => clearInterval(interval)
-      }
-      if (!showDialog) {
-        // Closing dialog
-        setJobDef(null)
-        setApiResponse(null)
-        setApiError(null)
-        setRefreshing(false)
-        setErrorsAcknowledged(false)
-        if (hasErrors) {
-          if (jobDef.onFail) {
-            jobDef.onFail()
-          }
-        } else {
-          if (jobDef.onSuccess) {
-            jobDef.onSuccess()
-          }
-        }
-      }
-    }
-  }, [jobDef, apiResponse, apiError, isProcessing, showDialog, hasErrors, refresh,
-    refreshing, setRefreshing, setJobDef, setApiResponse, setApiError, setErrorsAcknowledged])
-
-  if (!showDialog) {
-    return ''
-  }
-  return <Dialog open={true} style={{textAlign: 'center'}}>
-    <DialogTitle>{jobDef.apiCallText}</DialogTitle>
-    <DialogContent>
-      {apiResponse
-        ? <DialogContentText>{apiResponse.data?.last_status_message || 'Processing...'}</DialogContentText>
-        : <DialogContentText>Initiating...</DialogContentText>
-      }
-      {isProcessing &&
-        <CircularProgress />
-      }
-      {apiError &&
-        <DialogContentText color="error">{apiError.apiMessage || 'Operation failed'}</DialogContentText>
-      }
-      {processStatus === 'FAILURE' &&
-        <DialogContentText color="error">{(apiResponse.data?.errors || ['Operation failed'])[0]}</DialogContentText>
-      }
-      {hasErrors &&
-        <DialogActions>
-          <Button onClick={() => setErrorsAcknowledged(true)} autoFocus>OK</Button>
-        </DialogActions>
-      }
-    </DialogContent>
-  </Dialog>
-}
-WaitForProcessingDialog.propTypes = {
-}

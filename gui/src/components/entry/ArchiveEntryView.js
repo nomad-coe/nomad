@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Card, CardContent, Typography, makeStyles } from '@material-ui/core'
 import ArchiveBrowser from '../archive/ArchiveBrowser'
 import Page from '../Page'
@@ -49,11 +49,7 @@ const useStyles = makeStyles(theme => ({
 
 export default function ArchiveEntryView(props) {
   const classes = useStyles()
-  const {requireArchive, archive, archiveApiData, exists} = useEntryContext()
-
-  useEffect(() => {
-    requireArchive()
-  }, [requireArchive])
+  const {archive, archiveApiData, exists} = useEntryContext()
 
   if (!exists) {
     return (

@@ -22,13 +22,12 @@ import Page from '../Page'
 import { useUploadContext } from './UploadContext'
 
 const UploadFilesView = React.memo(function UploadFilesView() {
-  const {uploadId, isWriter} = useUploadContext()
+  const {uploadId} = useUploadContext()
   return <Page>
     <FileBrowser
       uploadId={uploadId}
       path=""
       rootTitle="Upload files"
-      editable={isWriter}
     />
   </Page>
 })

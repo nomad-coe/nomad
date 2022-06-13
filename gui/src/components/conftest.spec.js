@@ -33,11 +33,13 @@ import {
   queryAllByRole,
   queries
 } from '@testing-library/react'
+import { prettyDOM } from '@testing-library/dom'
 import { seconds, server } from '../setupTests'
 import { Router, MemoryRouter } from 'react-router-dom'
 import { createBrowserHistory } from 'history'
 import { APIProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
+import DataStore from './DataStore'
 import searchQuantities from '../searchQuantities'
 import '@testing-library/jest-dom/extend-expect' // Adds convenient expect-methods
 import { keycloakBase } from '../config'
@@ -92,7 +94,9 @@ export const WrapperDefault = ({children}) => {
             <MemoryRouter>
               <ErrorSnacks>
                 <ErrorBoundary>
-                  {children}
+                  <DataStore>
+                    {children}
+                  </DataStore>
                 </ErrorBoundary>
               </ErrorSnacks>
             </MemoryRouter>
@@ -688,4 +692,18 @@ export function unblockConsoleOutput() {
     consoleSpies.errorSpy.mockRestore()
     consoleSpies.logSpy = consoleSpies.errorSpy = null
   }
+}
+
+/**
+ * Utility for dumping a testing-library dom object to file, for inspection.
+ * @param {*} domObj
+ * @param {*} filePath Path to file. Default is 'domdump.html'
+ */
+export function dumpPrettyDom(domObj, filePath = 'domdump.html') {
+  return new Promise((resolve, reject) => {
+    fs.writeFile(filePath, prettyDOM(domObj, 10000000, {highlight: false}), 'utf8', (err) => {
+      if (err) reject(err)
+      else resolve()
+    })
+  })
 }

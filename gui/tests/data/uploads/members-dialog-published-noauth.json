@@ -1,4 +1,29 @@
 {
+  "ff95b7af4ca8739b8ba0065e4de2b8d7": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/raw/README.md",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "detail": "Not found. Invalid path?"
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "37",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
   "9efcb5c38a525a0d1b33c9740d2fec4f": [
     {
       "request": {
@@ -30,9 +55,9 @@
             "process_status": "SUCCESS",
             "errors": [],
             "warnings": [],
-            "complete_time": "2022-04-06T10:19:07.689000",
+            "complete_time": "2022-06-09T12:54:03.886000",
             "upload_id": "dft_upload",
-            "upload_create_time": "2022-04-06T10:19:07.688000",
+            "upload_create_time": "2022-06-09T12:54:03.885000",
             "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
             "coauthors": [
               "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
@@ -51,7 +76,7 @@
             ],
             "published": true,
             "published_to": [],
-            "publish_time": "2022-04-06T10:19:07.691000",
+            "publish_time": "2022-06-09T12:54:03.888000",
             "with_embargo": false,
             "embargo_length": 0,
             "license": "CC BY 4.0",
@@ -64,7 +89,7 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk",
-              "entry_create_time": "2022-04-06T10:19:07.692000",
+              "entry_create_time": "2022-06-09T12:54:03.889000",
               "mainfile": "vasp.xml",
               "upload_id": "dft_upload",
               "parser_name": "parsers/vasp",
@@ -77,9 +102,9 @@
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-04-06T10:19:07.688782",
+                "upload_create_time": "2022-06-09T12:54:03.885625+00:00",
                 "nomad_commit": "bf3c06fa",
-                "publish_time": "2022-04-06T10:19:07.691782",
+                "publish_time": "2022-06-09T12:54:03.888625+00:00",
                 "results": {
                   "material": {
                     "symmetry": {
@@ -132,7 +157,8 @@
                       "energy_free_helmholtz",
                       "bulk_modulus",
                       "shear_modulus",
-                      "energy_volume_curve"
+                      "energy_volume_curve",
+                      "trajectory"
                     ],
                     "structures": {
                       "structure_primitive": {
@@ -188,6 +214,23 @@
                         ]
                       }
                     },
+                    "thermodynamic": {
+                      "trajectory": [
+                        {
+                          "available_properties": [
+                            "pressure",
+                            "temperature",
+                            "volume"
+                          ],
+                          "methodology": {
+                            "molecular_dynamics": {
+                              "time_step": 1e-15,
+                              "ensemble_type": "NVT"
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "mechanical": {
                       "energy_volume_curve": [
                         {
@@ -209,7 +252,7 @@
                     }
                   }
                 },
-                "last_processing_time": "2021-03-17T15:47:32.899000",
+                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
                 "parser_name": "parsers/vasp",
                 "calc_id": "dft_bulk",
                 "published": true,
@@ -243,7 +286,7 @@
                     "name": "Test Tester"
                   }
                 ],
-                "entry_create_time": "2022-04-06T10:19:07.692782",
+                "entry_create_time": "2022-06-09T12:54:03.889625+00:00",
                 "with_embargo": false,
                 "domain": "dft",
                 "comment": "Mocked",
@@ -265,7 +308,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "7830",
+          "content-length": "8379",
           "content-type": "application/json",
           "server": "uvicorn"
         }

@@ -19,17 +19,18 @@ import React, { useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { Tooltip, IconButton, Dialog, DialogContent, DialogContentText, DialogActions, Button } from '@material-ui/core'
 import DeleteIcon from '@material-ui/icons/Delete'
+import { useDataStore } from '../DataStore'
 import { useUploadContext } from './UploadContext'
 import {useApi} from '../api'
 import {useErrors} from '../errors'
 import {pluralize} from '../../utils'
 
 const DeleteEntriesButton = React.memo(({tooltip, disabled, buttonProps, dark, selectedEntries, selectedCount, setSelected}) => {
-  const {upload, setUpload} = useUploadContext()
+  const dataStore = useDataStore()
+  const {uploadId} = useUploadContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
-  const uploadId = upload.upload_id
 
   const handleClick = useCallback(() => {
     setOpenDeleteConfirmDialog(true)
@@ -40,13 +41,13 @@ const DeleteEntriesButton = React.memo(({tooltip, disabled, buttonProps, dark, s
     const requestBody = {query: selectedEntries, include_parent_folders: includeParentFolders}
     api.post(`uploads/${uploadId}/action/delete-entry-files`, requestBody)
       .then(results => {
-        setUpload(results.data)
+        dataStore.updateUpload(uploadId, {upload: results.data})
         setSelected([])
       })
       .catch(err =>
         raiseError(err)
       )
-  }, [setOpenDeleteConfirmDialog, api, raiseError, uploadId, setUpload, selectedEntries, setSelected])
+  }, [setOpenDeleteConfirmDialog, api, raiseError, uploadId, dataStore, selectedEntries, setSelected])
 
   return (
     <React.Fragment>
