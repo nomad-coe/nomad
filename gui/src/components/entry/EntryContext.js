@@ -28,7 +28,7 @@ export const useEntryContext = () => {
 }
 
 const EntryContext = React.memo(function EntryContext({entryId, children}) {
-  const {api} = useApi()
+  const {api, user} = useApi()
   const {raiseError} = useErrors()
   const [metadataApiData, setMetadataApiData] = useState()
   const metadata = useMemo(() => metadataApiData?.response?.data, [metadataApiData])
@@ -116,9 +116,10 @@ const EntryContext = React.memo(function EntryContext({entryId, children}) {
   }, [setArchiveVersion])
 
   const value = useMemo(() => {
-    const editable = metadata && !metadata.published && (metadata.quantities.find(quantity => {
-      return quantity === 'data'
-    }) !== null)
+    const editable = metadata &&
+      !metadata.published &&
+      metadata.quantities.includes('.data') &&
+      metadata.writers.map(user => user.user_id).includes(user?.sub)
     return {
       entryId: entryId,
       uploadId: metadata?.upload_id,
@@ -138,7 +139,7 @@ const EntryContext = React.memo(function EntryContext({entryId, children}) {
   }, [
     entryId, exists, metadata, archive, metadataApiData, archiveApiData,
     savedArchiveVersion, archiveVersion, requireArchive, reload, handleArchiveChanged,
-    saveArchive
+    saveArchive, user
   ])
   return <entryContext.Provider value={value}>
     {children}
