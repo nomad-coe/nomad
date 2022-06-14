@@ -91,7 +91,7 @@ const PropertyPreview = React.memo(({quantityDef, section}) => {
     return <QuantityCell>
       <Quantity data={section} quantity={quantityDef} >
         <Box width='100%'>
-          {section[quantityDef.name].slice(0, maxPreviewLength).map((value, index) =>
+          {values.slice(0, maxPreviewLength).map((value, index) =>
             <Quantity key={index} data={{[quantityDef.name]: value}} quantity={quantityDef} noLabel/>
           )}
           {values.length >= maxPreviewLength &&
@@ -113,20 +113,24 @@ const PropertyPreview = React.memo(({quantityDef, section}) => {
       </Quantity>
     </QuantityCell>
   } else {
-    return <Box textAlign="center">
-      <Matrix
-        values={section[quantityDef.name]}
-        shape={shape}
-        invert={false}
-        type={quantityDef.type.type_data}
-        key={`matrix:${quantityDef.name}`}
-      />
-      <Typography noWrap variant="caption">
-        ({quantityDef.shape.map((dimension, index) => <span key={index}>
-          {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
-        </span>)}&nbsp;)
-      </Typography>
-    </Box>
+    return <QuantityCell>
+      <Quantity data={section} quantity={quantityDef} >
+        <Box width={'100%'} textAlign='center'>
+          <Matrix
+            values={section[quantityDef.name]}
+            shape={shape}
+            invert={false}
+            type={quantityDef.type.type_data}
+            key={`matrix:${quantityDef.name}`}
+          />
+          <Typography noWrap variant="caption">
+            ({quantityDef.shape.map((dimension, index) => <span key={index}>
+              {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
+            </span>)}&nbsp;)
+          </Typography>
+        </Box>
+      </Quantity>
+    </QuantityCell>
   }
 })
 PropertyPreview.propTypes = {
