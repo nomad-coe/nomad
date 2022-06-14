@@ -192,10 +192,14 @@ dev setup tests:
 
 deploy dev:
   stage: release
+  image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner:helm3.9.0
   before_script:
     - mkdir -p /etc/deploy
     - echo ${CI_K8S_CONFIG} | base64 -d > ${KUBECONFIG}
   script:
+    # switching to namespaces eg: nomad-dev-RELEASE_NAME
+    # - NAMESPACE_NAME=nomad-dev-`echo ${CI_COMMIT_REF_NAME} | sed -e 's/[^A-Za-z0-9\-]/-/g' | sed -e 's/^[0-9-]*//g' | head -c 43`
+    # - RELEASE_NAME=nomad
     - RELEASE_NAME=`echo ${CI_COMMIT_REF_NAME} | sed -e 's/[^A-Za-z0-9\-]/-/g' | sed -e 's/^[0-9-]*//g' | head -c 43`
     - helm dependency update ops/helm/nomad
     - helm upgrade --namespace nomad --install $RELEASE_NAME ops/helm/nomad -f ops/helm/nomad/deployments/dev-values.yaml --set proxy.external.path=/dev/rae/$RELEASE_NAME,jupyterhub.hub.baseUrl==/dev/rae/$RELEASE_NAME/north,image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
