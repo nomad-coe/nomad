@@ -123,10 +123,7 @@ class MEnum(Sequence):
 
         self._list = list(kwargs.values())
         self._values = set(kwargs.values())  # For allowing constant time member check
-        self._map = kwargs
-
-    def __getattr__(self, attr):
-        return self._map[attr]
+        self.__dict__.update(kwargs)
 
     def __getitem__(self, index):
         return self._list[index]

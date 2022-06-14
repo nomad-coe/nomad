@@ -91,6 +91,7 @@ dockerspawner==12.1.0
 oauthenticator==14.2.0
 validators==0.18.2
 aiofiles==0.8.0
+joblib==1.1.0
 
 # [dev]
 markupsafe==2.0.1
