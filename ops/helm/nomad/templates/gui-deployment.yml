@@ -101,8 +101,8 @@ data:
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location ~ /north/ {
-          proxy_pass http://hub:9000;
+      location {{ .Values.proxy.external.path }}/north/ {
+          proxy_pass http://{{ include "nomad.fullname" . }}-proxy-public;
 
           proxy_set_header X-Real-IP $remote_addr;
           proxy_set_header Host $host;

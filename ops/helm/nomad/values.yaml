@@ -187,6 +187,9 @@ datacite:
   prefix: "10.17172"
 
 jupyterhub:
+  debug:
+    enabled: true
+
   # fullnameOverride and nameOverride distinguishes blank strings, null values,
   # and non-blank strings. For more details, see the configuration reference.
   fullnameOverride: "deploy-jupyterhub-using-nomad-helm-chart"
@@ -203,6 +206,8 @@ jupyterhub:
       JupyterHub:
         authenticator_class: tmpauthenticator.TmpAuthenticator
     db:
+      #  /nomad/fairdi/prod/fs/north
+      # possibly with db prefix
       type: sqlite-memory
 
 
