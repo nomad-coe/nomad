@@ -91,6 +91,9 @@ const useWithHelpStyles = makeStyles(theme => ({
         display: 'none'
       }
     }
+  },
+  linkButton: {
+    width: '10%'
   }
 }))
 
@@ -193,5 +196,75 @@ export const StringField = React.memo((props) => {
   />
 })
 StringField.propTypes = {
+  onChange: PropTypes.func
+}
+
+export const TextFieldWithLinkButton = React.memo(React.forwardRef((props, ref) => {
+  const {withOtherAdornment, label, validateURL, value, helpDescription, 'data-testid': TestId, ...otherProps} = props
+  const classes = useWithHelpStyles()
+
+  return <TextField
+    value={value}
+    inputRef={ref}
+    className={classes.root}
+    InputProps={{endAdornment:
+      <>
+        { helpDescription &&
+        <div id="help">
+          <HelpAdornment title={label} description={helpDescription} withOtherAdornment={withOtherAdornment}/>
+        </div>
+        }
+        {
+          validateURL(value) &&
+          <Button className={classes.linkButton} label={label} variant='contained' color='primary' onClick={() => window.open(value, '_blank')}>
+            link
+          </Button>
+        }
+      </>
+    }}
+    label={label}
+    data-testid={TestId}
+    {...otherProps}
+  />
+}))
+TextFieldWithLinkButton.propTypes = {
+  withOtherAdornment: PropTypes.bool,
+  label: PropTypes.string,
+  value: PropTypes.string,
+  validateURL: PropTypes.func,
+  helpDescription: PropTypes.string,
+  'data-testid': PropTypes.string
+}
+
+export const URLEditQuantity = React.memo((props) => {
+  const {quantityDef, onChange, ...otherProps} = props
+
+  const validateURL = useCallback((value) => {
+    if (!value) { return false }
+    try {
+      let url = new URL(value)
+      if (url) { return true }
+    } catch (_) {
+      return false
+    }
+  }, [])
+
+  const handleChange = useCallback((value) => {
+    if (onChange && validateURL(value)) {
+      onChange(value === '' ? undefined : value)
+    }
+  }, [onChange, validateURL])
+
+  return <TextFieldWithLinkButton
+    fullWidth variant='filled' size='small'
+    validateURL={validateURL}
+    onChange={event => handleChange(event.target.value)}
+    {...getFieldProps(quantityDef)}
+    {...otherProps}
+  />
+})
+URLEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  value: PropTypes.string,
   onChange: PropTypes.func
 }

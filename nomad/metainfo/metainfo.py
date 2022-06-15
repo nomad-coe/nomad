@@ -39,6 +39,7 @@ import base64
 import importlib
 import email.utils
 from urllib.parse import urlsplit, urlunsplit, SplitResult
+import validators
 
 from nomad.config import process
 from nomad.units import ureg as units
@@ -840,6 +841,30 @@ class _File(DataType):
         return value
 
 
+class _URL(DataType):
+    def _test(self, url_str: str) -> str:
+        if url_str is None:
+            return None
+
+        if not isinstance(url_str, str):
+            raise TypeError('Links need to be given as URL strings')
+        if not validators.url(url_str):
+            raise ValueError('The given URL could not be fetched')
+
+        return url_str
+
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        return self._test(value)
+
+    def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if value is None:
+            return None
+        return self._test(value)
+
+    def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        return self._test(value)
+
+
 class _Datetime(DataType):
 
     def _parse(self, datetime_str: str) -> datetime:
@@ -954,10 +979,11 @@ JSON = _JSON()
 Capitalized = _Capitalized()
 Bytes = _Bytes()
 File = _File()
+URL = _URL()
 
 predefined_datatypes = {
     'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
-    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File}
+    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File, 'URL': URL}
 
 
 # Metainfo data storage and reflection interface
