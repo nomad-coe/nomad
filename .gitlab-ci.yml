@@ -29,11 +29,8 @@ build:
     - git submodule update --init --recursive --jobs=4
     # create the version information
     - ./gitinfo.sh
-  script:
-    # ignore test directories of dependencies, there is a lot of data that we not use
-    # in the context of the docker image
-    - find dependencies -name "*test*" -type d -exec echo "{}/" \;  >> .dockerignore
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+  script:
     - docker build -t $TEST_IMAGE .
     - docker push $TEST_IMAGE
   except:
