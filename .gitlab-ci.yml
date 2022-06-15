@@ -206,7 +206,6 @@ deploy dev:
       --set image.tag=$CI_COMMIT_REF_SLUG
       --set roll=true
       --wait
-  after_script:
     - docker pull $TEST_IMAGE
     - docker run
       -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod
