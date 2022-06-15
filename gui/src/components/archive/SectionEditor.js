@@ -5,7 +5,7 @@ import { useEntryContext } from '../entry/EntryContext'
 import _ from 'lodash'
 import ListEditQuantity from '../editQuantity/ListEditQuantity'
 import {DateTimeEditQuantity} from '../editQuantity/DateTimeEditQuantity'
-import {StringEditQuantity} from '../editQuantity/StringEditQuantity'
+import { StringEditQuantity, URLEditQuantity } from '../editQuantity/StringEditQuantity'
 import {NumberEditQuantity} from '../editQuantity/NumberEditQuantity'
 import {EnumEditQuantity} from '../editQuantity/EnumEditQuantity'
 import {AutocompleteEditQuantity} from '../editQuantity/AutocompleteEditQuantity'
@@ -19,6 +19,7 @@ import { RadioEnumEditQuantity } from '../editQuantity/RadioEnumEditQuantity'
 const editQuantityComponents = {
   NumberEditQuantity: NumberEditQuantity,
   StringEditQuantity: StringEditQuantity,
+  URLEditQuantity: URLEditQuantity,
   EnumEditQuantity: EnumEditQuantity,
   SelectEnumEditQuantity: EnumEditQuantity,
   RadioEnumEditQuantity: RadioEnumEditQuantity,
