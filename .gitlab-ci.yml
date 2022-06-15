@@ -203,6 +203,8 @@ deploy dev:
       --values ops/helm/nomad/deployments/dev-values.yaml
       --set proxy.external.path=/dev/rae/$CI_COMMIT_REF_SLUG
       --set jupyterhub.hub.baseUrl=/dev/rae/$CI_COMMIT_REF_SLUG/north
+      --set jupyterhub.fullnameOverride=${CI_COMMIT_REF_SLUG}
+      --set jupyterhub.nameOverride="nomad"
       --set image.tag=$CI_COMMIT_REF_SLUG
       --set roll=true
       --wait
