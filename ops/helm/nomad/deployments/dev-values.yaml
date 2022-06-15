@@ -17,6 +17,8 @@ gui:
 worker:
   replicas: 1
   routing: "queue"
+  # request and limit in GB, good prod sizes are 64, 420
+  memrequest: 1
 
 elastic:
   host: elasticsearch.elasticsearch-7.svc.cluster.local
