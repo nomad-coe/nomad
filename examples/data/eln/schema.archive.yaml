@@ -51,7 +51,7 @@ definitions:
         - nomad.datamodel.metainfo.eln.Instrument
         - nomad.datamodel.data.EntryData
     Process:
-      base_sections: ['nomad.datamodel.metainfo.eln.Process', 'nomad.parsing.tabular.TableData']
+      base_section: nomad.datamodel.metainfo.eln.Process
       quantities:
         instrument:
           type: Instrument
@@ -127,7 +127,7 @@ definitions:
             sub_sections:
               pvd_evaporation:
                 section:
-                  base_section: Process
+                  base_sections: ['Process', 'nomad.parsing.tabular.TableData']
                   m_annotations:
                     # We can use the eln annotations to put the section to the overview
                     # page, and hide unwanted inherited quantities.

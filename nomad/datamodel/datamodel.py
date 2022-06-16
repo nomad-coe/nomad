@@ -34,7 +34,7 @@ from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry
 m_package = metainfo.Package()
 
 from .results import Results  # noqa
-from .data import EntryData  # noqa
+from .data import EntryData, ArchiveSection  # noqa
 from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
@@ -709,7 +709,7 @@ class EntryMetadata(metainfo.MSection):
         self.n_quantities = n_quantities
 
 
-class EntryArchive(metainfo.MSection):
+class EntryArchive(ArchiveSection):
     m_def = metainfo.Section(label='Entry')
 
     entry_id = metainfo.Quantity(
@@ -739,6 +739,8 @@ class EntryArchive(metainfo.MSection):
     definitions = metainfo.SubSection(sub_section=metainfo.Package)
 
     def normalize(self, archive, logger):
+        super(EntryArchive, self).normalize(archive, logger)
+
         if not archive.metadata.entry_type:
             if archive.definitions is not None:
                 archive.metadata.entry_type = 'Schema'

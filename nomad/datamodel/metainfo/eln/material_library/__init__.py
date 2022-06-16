@@ -21,8 +21,7 @@ import numpy as np
 from nomad.units import ureg
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, MEnum, Reference, Datetime, Section)
-from nomad.metainfo.metainfo import SectionProxy
-from nomad.datamodel.data import EntryData
+from nomad.datamodel.data import EntryData, ArchiveSection
 
 
 m_package = Package(name='material_library')
@@ -90,7 +89,7 @@ class Chemical(EntryData):
         a_eln=dict(component='RichTextEditQuantity'))
 
     def normalize(self, archive, logger):
-        super().normalize(archive, logger)
+        super(Chemical, self).normalize(archive, logger)
 
         if self.formula:
             archive.metadata.entry_name = self.formula
@@ -154,13 +153,13 @@ class Instrument(EntryData):
     maintenance = SubSection(section_def=Maintenance, repeats=True)
 
     def normalize(self, archive, logger):
-        super().normalize(archive, logger)
+        super(Instrument, self).normalize(archive, logger)
 
         if self.name:
             archive.metadata.entry_name = self.name
 
 
-class Process(MSection):
+class Process(ArchiveSection):
     ''' Any physical process applied to the sample. '''
     operator = Quantity(
         type=MEnum([
@@ -202,6 +201,8 @@ class Process(MSection):
         a_eln=dict(component='RichTextEditQuantity'))
 
     def normalize(self, archive, logger):
+        super(Process, self).normalize(archive, logger)
+
         if self.creates_layer:
             logger.debug('create layer if necessary')
             layer_exists = False
@@ -269,7 +270,7 @@ class PVDEvaporation(Process):
         a_browser=dict(adaptor='RawFileAdaptor'))
 
     def normalize(self, archive, logger):
-        super().normalize(archive, logger)
+        super(PVDEvaporation, self).normalize(archive, logger)
 
         if not self.data_file:
             return
@@ -401,7 +402,7 @@ class Processes(MSection):
     chemical_bath_deposition = SubSection(section_def=ChemicalBathDeposition)
 
 
-class Measurement(MSection):
+class Measurement(ArchiveSection):
     '''
     Any measurement performed on the sample.
     '''
@@ -537,6 +538,8 @@ class XrayDiffraction(Measurement):
         a_eln=dict(component='FileEditQuantity'))
 
     def normalize(self, archive, logger):
+        super(XrayDiffraction, self).normalize(archive, logger)
+
         if not self.data_file:
             return
 
