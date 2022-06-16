@@ -203,6 +203,7 @@ deploy dev:
       --set jupyterhub.hub.baseUrl=/dev/rae/$RELEASE_NAME/north
       --set jupyterhub.fullnameOverride=${RELEASE_NAME}
       --set jupyterhub.nameOverride="nomad"
+      --set jupyterhub.hub.config.GenericOAuthenticator.oauth_callback_url=https://nomad-lab.eu/dev/rae/$RELEASE_NAME/north/hub/oauth_callback
       --set image.tag=$CI_COMMIT_REF_SLUG
       --set roll=true
       --wait

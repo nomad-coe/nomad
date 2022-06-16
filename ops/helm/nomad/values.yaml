@@ -192,8 +192,8 @@ jupyterhub:
 
   # fullnameOverride and nameOverride distinguishes blank strings, null values,
   # and non-blank strings. For more details, see the configuration reference.
-  fullnameOverride: "deploy-jupyterhub-using-nomad-helm-chart"
-  nameOverride: "nomad"
+  fullnameOverride: ""
+  nameOverride:
 
   proxy:
     secretToken: '0eec5f3e6924cb30ff9ca7412fbd67b3a8b13d040973c8bf1df68bd21f8cb65b'
@@ -202,14 +202,25 @@ jupyterhub:
 
   hub:
     baseUrl: "/fairdi/nomad/latest/north/"
-    config:
-      JupyterHub:
-        authenticator_class: tmpauthenticator.TmpAuthenticator
     db:
       #  /nomad/fairdi/prod/fs/north
       # possibly with db prefix
       type: sqlite-memory
-
+    config:
+      JupyterHub:
+        # authenticator_class: tmpauthenticator.TmpAuthenticator
+        authenticator_class: generic-oauth
+      GenericOAuthenticator:
+        client_id: nomad_public
+        # client_secret: your-client-secret
+        oauth_callback_url: https://nomad-lab.eu/fairdi/nomad/latest/north/hub/oauth_callback
+        authorize_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
+        token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
+        userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
+        login_service: keycloak
+        username_key: preferred_username
+        userdata_params:
+          state: state
 
   singleuser:
     storage:
