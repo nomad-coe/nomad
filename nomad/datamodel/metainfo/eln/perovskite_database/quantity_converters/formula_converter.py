@@ -164,7 +164,7 @@ class PerovskiteFormulaCleaner():
                   The composition could not be parsed.
                   ''')
         else:
-            for word, replacement in sorted(self.cation_dict.items(), key=lambda x: len(x[1])):
+            for word, replacement in sorted(self.cation_dict.items(), key=lambda x: len(x[0]), reverse=True):
                 item = re.sub(word, replacement, item)
             output_formula = item
             return output_formula
