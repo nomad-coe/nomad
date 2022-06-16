@@ -17,14 +17,15 @@
 #
 
 import numpy as np            # pylint: disable=unused-import
-import typing                 # pylint: disable=unused-import
+
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference, MEnum, derived)
+    Reference)
 from nomad.datamodel.metainfo.simulation.method import Method
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
 from nomad.datamodel.metainfo.common import FastAccess
+from nomad.datamodel.data import ArchiveSection
 
 m_package = Package()
 
@@ -175,7 +176,7 @@ class MessageRun(MSection):
         ''')
 
 
-class Run(MSection):
+class Run(ArchiveSection):
     '''
     Every section run represents a single call of a program.
     '''
@@ -243,6 +244,8 @@ class Run(MSection):
     calculation = SubSection(sub_section=Calculation.m_def, repeats=True)
 
     def normalize(self, archive, logger):
+        super(Run, self).normalize(archive, logger)
+
         if archive.metadata.entry_type:
             return
 

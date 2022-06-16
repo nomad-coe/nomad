@@ -17,17 +17,40 @@
 #
 
 import os.path
-from nomad import metainfo
-from nomad.datamodel.results import Results
+
+from nomad.metainfo import MSection
 
 
-class EntryData(metainfo.MSection):
+class ArchiveSection(MSection):
+    '''
+    Base class for sections in a NOMAD archive. Provides a framework for custom
+    section normalization via the `normalize` function.
+    '''
+    def normalize(self, archive, logger):
+        '''
+        Is called during entry normalization. If you overwrite this with custom
+        normalization code, make sure to call `super(YourClass, self).normalize(archive, logger)`.
+        Otherwise, not all normalize functions might be called for section definitions
+        with multiple base-classes.
+
+        Arguments:
+            archive: The whole archive that is normalized.
+            logger: The structlog logger used during normalization.
+        '''
+        pass
+
+
+class EntryData(ArchiveSection):
     '''
     An empty base section definition. This can be used to add new top-level sections
     to an entry.
     '''
 
     def normalize(self, archive, logger):
+        super(EntryData, self).normalize(archive, logger)
+
+        from nomad.datamodel.results import Results
+
         archive.metadata.entry_type = self.m_def.name
         if archive.metadata.entry_name is None and archive.metadata.mainfile:
             archive.metadata.entry_name = os.path.basename(archive.metadata.mainfile)

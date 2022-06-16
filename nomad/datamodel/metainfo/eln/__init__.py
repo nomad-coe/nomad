@@ -17,14 +17,14 @@
 #
 
 from nomad import utils
-from nomad.datamodel.data import EntryData
+from nomad.datamodel.data import EntryData, ArchiveSection
 from nomad.datamodel.results import ELN, Results, Material
-from nomad.metainfo import MSection, Package, Quantity, Datetime
+from nomad.metainfo import Package, Quantity, Datetime
 
 m_package = Package(name='material_library')
 
 
-class ElnBaseSection(MSection):
+class ElnBaseSection(ArchiveSection):
     '''
     A generic abstract base section for ELNs that provides a few commonly used properties.
 
@@ -53,6 +53,8 @@ class ElnBaseSection(MSection):
         a_eln=dict(component='RichTextEditQuantity'))
 
     def normalize(self, archive, logger):
+        super(ElnBaseSection, self).normalize(archive, logger)
+
         if isinstance(self, EntryData):
             if archive.data == self and self.name:
                 archive.metadata.entry_name = self.name
@@ -107,7 +109,7 @@ class ElnActivityBaseSecton(ElnBaseSection):
         description='A short consistent handle for the applied method.')
 
     def normalize(self, archive, logger):
-        super().normalize(archive, logger)
+        super(ElnActivityBaseSecton, self).normalize(archive, logger)
 
         if archive.results.eln.methods is None:
             archive.results.eln.methods = []
@@ -131,7 +133,8 @@ class ElnWithFormulaBaseSection(ElnBaseSection):
         a_eln=dict(component='StringEditQuantity'))
 
     def normalize(self, archive, logger):
-        super().normalize(archive, logger)
+        super(ElnWithFormulaBaseSection, self).normalize(archive, logger)
+
         if logger is None:
             logger = utils.get_logger(__name__)
         from ase import Atoms
@@ -165,7 +168,7 @@ class Sample(ElnWithFormulaBaseSection):
 class Instrument(ElnBaseSection):
     ''' A ELN base section that can be used for instruments.'''
     def normalize(self, archive, logger):
-        super().normalize(archive, logger)
+        super(Instrument, self).normalize(archive, logger)
 
         if self.name:
             if archive.results.eln.instruments is None:

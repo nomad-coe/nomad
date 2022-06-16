@@ -76,11 +76,11 @@ from nomad.metainfo import Environment
 from .datamodel import (
     Dataset, User, Author, EditableUserMetadata, AuthLevel,
     MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
-    EntryMetadata, EntryArchive, EntryData, user_reference, author_reference)
+    EntryMetadata, EntryArchive, user_reference, author_reference)
 from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
 from .results import Results
-from .data import EntryData
+from .data import EntryData, ArchiveSection
 from .context import Context, ClientContext, ServerContext
 
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.datamodel'].m_package)  # type: ignore

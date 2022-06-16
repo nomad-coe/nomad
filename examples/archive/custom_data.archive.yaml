@@ -1,0 +1,5 @@
+data:
+  m_def: 'examples.archive.custom_schema.SampleDatabase'
+  samples:
+    - formula: NaCl
+      added_date: '2022-06-18'

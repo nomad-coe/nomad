@@ -24,12 +24,12 @@ import re
 
 from nomad import utils
 from nomad.units import ureg
-from nomad.datamodel.datamodel import EntryArchive, EntryData
+from nomad.datamodel import EntryArchive, EntryData, ArchiveSection
 from nomad.datamodel.context import Context
 from nomad.metainfo import Section, Quantity, Package, Reference, SectionProxy, MSection, Property
 from nomad.metainfo.metainfo import MetainfoError, SubSection
+from nomad.parsing.parser import MatchingParser
 
-from .parser import MatchingParser
 
 # We define a simple base schema for tabular data. The parser will then generate more
 # specialized sections based on the table headers. These specialized defintions will use
@@ -52,8 +52,10 @@ class Table(EntryData):
         description='References that connect to each row. Each row is stored in it individual entry.')
 
 
-class TableData(MSection):
+class TableData(ArchiveSection):
     def normalize(self, archive, logger):
+        super(TableData, self).normalize(archive, logger)
+
         for quantity in self.m_def.all_quantities.values():
             tabular_parser_annotation = quantity.m_annotations.get('tabular_parser', None)
             if tabular_parser_annotation:

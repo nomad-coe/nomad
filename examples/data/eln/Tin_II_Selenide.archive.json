@@ -1,1 +1,12 @@
-{"data":{"m_def":"../upload/raw/schema.archive.yaml#/definitions/section_definitions/0","name":"Tin (II) Selenide","lab_id":"0023","description":"<p><strong>Tin selenide</strong>, also known as stannous selenide, is an inorganic compound with the formula <em>SnSe</em>.</p>\n<p>Tin(II) Selenide is a crystalline solid used as a semiconductor and in photo optic applications.&nbsp;</p>","chemical_formula":"Sn2Se","form":"crystalline solid","cas_number":"1315-06-6","ec_number":"215-257-6"}}
+{
+    "data": {
+        "m_def": "../upload/raw/schema.archive.yaml#/definitions/section_definitions/0",
+        "name": "Tin (II) Selenide",
+        "lab_id": "0023",
+        "description": "<p><strong>Tin selenide</strong>, also known as stannous selenide, is an inorganic compound with the formula <em>SnSe</em>.</p>\n<p>Tin(II) Selenide is a crystalline solid used as a semiconductor and in photo optic applications.&nbsp;</p>",
+        "chemical_formula": "Sn2Se",
+        "form": "crystalline solid",
+        "cas_number": "1315-06-6",
+        "ec_number": "215-257-6"
+    }
+}

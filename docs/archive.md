@@ -159,37 +159,81 @@ Here is a basic example for a `archive.yaml` file that contains data and a match
 --8<-- "examples/data/custom-schema/intra-entry.archive.yaml"
 ```
 
-## Metainfo schemas for ELNs
-
-NOMAD allows to edit Archive data directly in its UI. This is called NOMAD ELN. The
-idea is to define a schema to define possible data structured and then use NOMAD to
-enter and edit data according to the schema.
-
-An ELN is simply an upload full of NOMAD archives that can be edited by users. In order,
-to enter any data, you will need to have a schema. This is what an ELN schema can look
-like:
-
-```yaml
---8<-- "examples/data/custom-schema/simple-schema.archive.yaml"
-```
-
-### Annotations (and ELNs)
-
-Schema elements can have annotations. These annotations provide additional information
-that NOMAD can use to alter its behavior around these definitions. A reference for
-these annotations will be added here soon.
-
-As part of the GUI, you'll find an overview about all ELN edit annotations and components [here]({{ nomad_url() }}/../gui/dev/editquantity).
-
-The ELN (and tabular data) example
-upload contains a schema that uses and demonstrates all our current annotations:
-
-```yaml
---8<-- "examples/data/eln/schema.archive.yaml"
-```
-
 ## Metainfo Python interface
 
 To learn more about the Python interface, look at the [Metainfo documentation](metainfo.md)
 that explains how the underlying Python classes work, and how you can extend the
 metainfo by providing your own classes.
+
+
+## Custom metainfo schemas (e.g. for ELNs)
+
+With custom metainfo schemas, you can extend the existing NOMAD schemas. This will allow
+you to provide .json or .yaml data even if NOMAD does not support it out of the box. It
+also allows you to define editable data (e.g. to create an ELN).
+
+
+The idea is that a schema defines all possible data structures. NOMAD uses this information
+to parse data or provide editing functions with schema specific forms.
+This is what a custom schema can look like:
+
+```yaml
+--8<-- "examples/data/custom-schema/simple-schema.archive.yaml"
+```
+
+### Annotations (for ELNs)
+
+Schema elements can have annotations. These annotations provide additional information
+that NOMAD can use to alter its behavior around these definitions. A reference for
+these annotations will be added here soon.
+
+Many annotations control the representation of data in the GUI. This can be for plots
+or data entry/editing capabilities. As part of the GUI, you'll find an overview about all
+ELN edit annotations and components [here]({{ nomad_url() }}/../gui/dev/editquantity).
+
+The ELN example upload, that you can create from the upload page, contains a schema that
+uses and demonstrates all our current annotations:
+
+```yaml
+--8<-- "examples/data/eln/schema.archive.yaml"
+```
+
+### Custom normalizers
+
+For custom schemas, you might want to add custom normalizers. All files are parsed
+and normalized when they are uploaded or changed. The NOMAD metainfo Python interface
+allows you to add functions that are called when your data is normalized.
+
+Here is an example:
+
+```python
+--8<-- "examples/archive/custom_schema.py"
+```
+
+To add a `normalize` function, your section has to inherit from `ArchiveSection` which
+provides the base for this functionality. Now you can overwrite the `normalize` function
+and add you own behavior. Make sure to call the `super` implementation properly to
+support schemas with multiple inheritance.
+
+If we parse an archive like this:
+
+```yaml
+--8<-- "examples/archive/custom_data.archive.yaml"
+```
+
+we will get a final normalized archive that contains our data like this:
+
+```json
+{
+  "data": {
+    "m_def": "examples.archive.custom_schema.SampleDatabase",
+    "samples": [
+      {
+        "added_date": "2022-06-18T00:00:00+00:00",
+        "formula": "NaCl",
+        "sample_id": "2022-06-18 00:00:00+00:00--NaCl"
+      }
+    ]
+  }
+}
+```
