@@ -790,6 +790,10 @@ class _File(DataType):
 class _Datetime(DataType):
 
     def _parse(self, datetime_str: str) -> datetime:
+        # removing trailing spaces and replacing the potential white space between date and time with char 'T'
+        if datetime_str[0].isdigit():
+            datetime_str = datetime_str.strip().replace(' ', 'T')
+
         try:
             return aniso8601.parse_datetime(datetime_str)
         except ValueError:

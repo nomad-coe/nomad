@@ -72,6 +72,7 @@ def test_basic_types(def_type, value):
 @pytest.mark.parametrize('def_type, orig_value, normalized_value', [
     pytest.param(Unit, 'm*m/s', units.parse_units('m*m/s'), id='Unit'),
     pytest.param(Datetime, '1970-01-01 01:00:00', None, id='Datetime-str'),
+    pytest.param(Datetime, '1970-01-01 01:00+01', None, id='Datetime-str-tz'),
     pytest.param(Datetime, '1970-01-01 01:00:00.0000', None, id='Datetime-str-ms'),
     pytest.param(Datetime, 'Wed, 01 Jan 1970 00:00:00 -0100', None, id='Datetime-rfc822'),
     pytest.param(Datetime, '1970-01-01T00:00:00Z', None, id='Datetime-aniso861-time'),
