@@ -8,6 +8,7 @@ oasis:
 
 north:
   jupyterhub_crypt_key: '978bfb2e13a8448a253c629d8dd84ff89587f30e635b753153960930cad9d36d'
+  hub_ip_connect: '172.17.0.1'
 
 keycloak:
   server_url: 'http://keycloak:8080/auth/'

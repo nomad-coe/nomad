@@ -12,7 +12,6 @@
 .git/
 .coverage
 **/.ipynb_checkpoints
-**/.volumes
 
 nomad_lab.egg-info/
 

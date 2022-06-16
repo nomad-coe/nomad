@@ -11,7 +11,7 @@ __pycache__
 *.pyc
 *.egg-info/
 /data/
-.volumes/
+/.volumes
 .pytest_cache/
 .coverage*
 htmlcov

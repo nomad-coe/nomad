@@ -9,17 +9,26 @@ central NOMAD installation.
 ## Quick-start
 
 - Find a linux computer.
-- Make sure you have [docker](https://docs.docker.com/engine/install/) and [docker-compose](https://docs.docker.com/compose/install/) installed. You have the necessary rights to run docker.
+- Make sure you have [docker](https://docs.docker.com/engine/install/) and [docker-compose](https://docs.docker.com/compose/install/) installed.
 - Download our basic configuration files [nomad-oasis.zip](assets/nomad-oasis.zip)
 - Run the following commands
+
 ```sh
 unzip nomad-oasis.zip
 cd nomad-oasis
+sudo chown -R 1000 .volumes
 docker-compose pull
 docker-compose up -d
 curl localhost/nomad-oasis/alive
 ```
+
 - Open [http://localhost/nomad-oasis](http://localhost/nomad-oasis) in your browser.
+
+To run NORTH (the NOMAD Remote Tools Hub), the `hub` container needs to run docker and
+the container has to be run under the docker group. You need to replace the default group
+id `991` in the `docker-compose.yaml`'s `hub` section with your systems docker group id.
+Run `id` if you are a docker user, or `getent group | grep docker` to find our your
+systems docker gid. The user id 1000 is used as the nomad user inside all containers.
 
 This is good as a quick test. We strongly recommend to read the following instructions
 carefully and adapt the configuration files accordingly. The following might also
@@ -132,8 +141,14 @@ A few things to notice:
 - The NOMAD images are pulled from our gitlab at MPCDF, the other services use images from a public registry (*dockerhub*).
 - The NOMAD images tag determines the image version or `stable`, `latest`, or specific development branches of NOMAD.
 - All container will be named `nomad_oasis_*`. These names can be used later to reference the container with the `docker` cmd.
-- The services are setup to restart `always`, you might want to change this to `no` while debugging errors to prevent
-indefinite restarts.
+- The services are setup to restart `always`, you might want to change this to `no` while debugging errors to prevent indefinite restarts.
+- Make sure that the `PWD` environment variable is set. NORTH needs to create bind mounts that require absolute paths and we need to pass the current working directory to the configuration from the PWD variable (see hub service in the `docker-compose.yaml`).
+- The `hub` serves needs to run docker containers. We have to use the systems docker group as a group. You might need to replace `991` with your
+systems docker group id.
+- The `hub` and all containers it starts are connected to the `nomad_oasis_north_network` docker network.
+By default the docker [bridge network driver](https://docs.docker.com/network/) is used. NORTH tools
+(and their users) will have access to this network.
+
 
 #### nomad.yaml
 
@@ -254,85 +269,48 @@ If you want to report problems with your OASIS. Please provide the logs for
 
 ### Provide and connect your own user management
 
-You can download a basic configuration [here](assets/nomad-oasis-with-keycloak.zip).
-
 NOMAD uses [keycloak](https://www.keycloak.org/) for its user management. NOMAD uses
 keycloak in two way. First, the user authentication uses the OpenID Connect/OAuth interfaces provided by keycloak.
-Second, NOMD uses the keycloak realm-management API to get a list of existing users. Keycloak is highly customizable and numerous options to
-connect keycloak to existing identity providers exist.
+Second, NOMD uses the keycloak realm-management API to get a list of existing users.
+Keycloak is highly customizable and numerous options to connect keycloak to existing
+identity providers exist.
 
 This tutorial assumes that you have a some understanding about what keycloak is and
 how it works.
 
-In the following, we provide basic installation steps for running your own keycloak in
-the NOMAD Oasis docker-compose. First, add a keycloak service to the `docker-compose.yaml`:
+Start with the regular docker-compose installation above. Now you need to modify the
+`docker-compose.yaml` to add a keycloak service. You need to modify the `nginx.conf` to add
+another location for keycloak. You need to modify the `nomad.yaml` to tell nomad to
+use your and not the official NOMAD keycloak.
 
 ```yaml
-services:
-    # keycloak user management
-    keycloak:
-        restart: always
-        image: jboss/keycloak:16.1.1
-        container_name: nomad_oasis_keycloak
-        environment:
-            - PROXY_ADDRESS_FORWARDING=true
-            - KEYCLOAK_FRONTEND_URL=http://<your-host>/keycloak/auth
-        volumes:
-            - keycloak:/opt/jboss/keycloak/standalone/data
-        # Uncomment to get access to the admin console.
-        # ports:
-        #   - 8080:8080
-```
-
-Also add links to the `keycloak` service in the `app` and `worker` service:
-```yaml
-services:
-    app:
-        links:
-            - keycloak
-    worker:
-        links:
-            - keycloak
+--8<-- "ops/docker-compose/nomad-oasis/docker-compose-with-keycloak.yaml"
 ```
 
 A few notes:
-- You have to replace `<your-host>` with a hostname usable by your users.
-- The environment variables on the keycloak service allow to use keycloak behind the nginx proxy with a path prefix `keycloak`.
+
+- You have to change the `KEYCLOAK_FRONTEND_URL` variable to match you host and set a path prefix.
+- The environment variables on the keycloak service allow to use keycloak behind the nginx proxy with a path prefix, e.g. `keycloak`.
 - By default, keycloak will use a simple H2 file database stored in the given volume. Keycloak offers many other options to connect SQL databases.
 - We will use keycloak with our nginx proxy here, but you can also host-bind the port `8080` to access keycloak directly.
 
 Second, we add a keycloak location to the nginx config:
 ```nginx
-location /keycloak {
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
-    rewrite /keycloak/(.*) /$1 break;
-    proxy_pass http://keycloak:8080;
-}
+--8<-- "ops/docker-compose/nomad-oasis/nginx-with-keycloak.conf"
 ```
 
 A few notes:
+
 - Again, we are using `keycloak` as a path prefix. We configure the headers to allow
 keycloak to pick up the rewritten url.
 
 Third, we modify the keycloak configuration in the `nomad.yaml`:
 ```yaml
-services:
-    admin_user_id: 'a9e97ae9-7568-4b44-bb9f-7a7c6be898e8'
-
-keycloak:
-    server_url: 'http://keycloak:8080/auth'
-    public_server_url: 'http://<your-host>/keycloak/auth'
-    realm_name: nomad
-    username: 'admin'
-    password: 'password'
-    oasis: true
+--8<-- "ops/docker-compose/nomad-oasis/nomad-with-keycloak.yaml"
 ```
 
 A few notes:
+
 - There are two urls to configure for keycloak. The `server_url` is used by the nomad
 services to directly communicate with keycloak within the docker network. The `public_server_url`
 is used by the UI for perform the authentication flow.
@@ -362,6 +340,7 @@ select the realm file that you can find [in this .zip](assets/nomad-oasis-with-k
 to import our example configuration.
 
 A few notes on the realm configuration:
+
 - Realm and client settings are almost all default keycloak settings.
 - You should change the password of the admin user in the nomad realm.
 - The admin user in the nomad realm has the additional `view-users` client role for `realm-management`
@@ -380,7 +359,7 @@ current working directory of your installation/docker-compose. This directory ca
 To backup the mongodb, please refer to the official [mongodb documentation](https://docs.mongodb.com/manual/core/backups/). We suggest a simple mongodump export that is backed up alongside your files. The default configuration mounts `.volumes/mongo` into the mongodb container (as `/backup`) for this purpose. You can use this to export the NOMAD mongo database. Combine this with rsync on the `.volumes` directory and everything should be set. To create a new mongodump run:
 
 ```sh
-docker exec nomad_oasis_mongo mongodump -d nomad_v1 -o /backup
+docker exec nomad_oasis_mongo mongodump -d nomad_oasis_v1 -o /backup
 ```
 
 The elasticsearch contents can be reproduced with the information in the files and the mongodb.

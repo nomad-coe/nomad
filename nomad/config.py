@@ -131,14 +131,9 @@ fs = NomadConfig(
     local_tmp='/tmp',
     prefix_size=2,
     archive_version_suffix='v1',
-    working_directory=os.getcwd()
+    working_directory=os.getcwd(),
+    external_working_directory=None
 )
-
-try:
-    fs.staging_external = os.path.abspath(fs.staging)
-    fs.public_external = os.path.abspath(fs.public)
-except Exception:
-    pass
 
 elastic = NomadConfig(
     host='localhost',
@@ -256,17 +251,27 @@ def _check_config():
     if keycloak.public_server_url is None:
         keycloak.public_server_url = keycloak.server_url
 
-    if fs.staging_external is None:
-        fs.staging_external = fs.staging
+    def set_external_path(source_obj, source_key, target_obj, target_key, overwrite=False):
+        source_value = getattr(source_obj, source_key)
+        target_value = getattr(target_obj, target_key)
 
-    if fs.staging_external is not None and not os.path.isabs(fs.staging_external):
-        fs.staging_external = os.path.abspath(fs.staging_external)
+        if target_value and not overwrite:
+            return
 
-    if north.users_fs is not None and not os.path.isabs(north.users_fs):
-        north.users_fs = os.path.abspath(north.users_fs)
+        if not source_value:
+            return
 
-    if north.shared_fs is not None and not os.path.isabs(north.shared_fs):
-        north.shared_fs = os.path.abspath(north.shared_fs)
+        if fs.external_working_directory and not os.path.isabs(source_value):
+            target_value = os.path.join(fs.external_working_directory, source_value)
+        else:
+            target_value = source_value
+
+        setattr(target_obj, target_key, target_value)
+
+    set_external_path(fs, 'staging', fs, 'staging_external')
+    set_external_path(fs, 'public', fs, 'public_external')
+    set_external_path(north, 'users_fs', north, 'users_fs', overwrite=True)
+    set_external_path(north, 'shared_fs', north, 'shared_fs', overwrite=True)
 
 
 mail = NomadConfig(
