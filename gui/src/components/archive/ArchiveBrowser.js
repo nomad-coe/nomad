@@ -1036,7 +1036,7 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
         title: xUnit ? `${xLabel} (${xUnit})` : xLabel
       },
       yaxis: {
-        title: sameUnit ? `${titleCase(title)} (${yUnits[0]})` : (yUnits[0] ? `${yLabels[0]} (${yUnits[0]})` : yLabels[0]),
+        title: sameUnit ? (yUnits[0] ? `${titleCase(title)} (${yUnits[0]})` : titleCase(title)) : (yUnits[0] ? `${yLabels[0]} (${yUnits[0]})` : yLabels[0]),
         titlefont: !sameUnit && nLines > 1 ? getColor(0) : undefined,
         tickfont: !sameUnit && nLines > 1 ? getColor(0) : undefined
       },
