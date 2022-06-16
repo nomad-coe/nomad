@@ -196,7 +196,6 @@ jupyterhub:
   nameOverride:
 
   proxy:
-    secretToken: '0eec5f3e6924cb30ff9ca7412fbd67b3a8b13d040973c8bf1df68bd21f8cb65b'
     service:
       type: ClusterIP
 
@@ -211,6 +210,7 @@ jupyterhub:
         authenticator_class: generic-oauth
       Authenticator:
         auto_login: true
+        enable_auth_state: true
       GenericOAuthenticator:
         client_id: nomad_public
         # client_secret: your-client-secret
