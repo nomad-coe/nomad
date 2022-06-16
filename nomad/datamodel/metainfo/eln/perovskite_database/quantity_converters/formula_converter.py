@@ -47,7 +47,7 @@ cation_dict = {
     '(PTA)': 'C9H14N',
     '(PEI)': 'CH2CH2',
     'Aa': 'C15H21',
-    'MA': '(CH3NH3)2',
+    'MA': 'CH3NH3',
     '(PyrEA)': 'C7H12N2',
     'PEA': 'C6H5C2H4NH3',
     'HA': 'CH3(CH2)4CH2NH2',
