@@ -208,8 +208,9 @@ jupyterhub:
       type: sqlite-memory
     config:
       JupyterHub:
-        # authenticator_class: tmpauthenticator.TmpAuthenticator
         authenticator_class: generic-oauth
+      Authenticator:
+        auto_login: true
       GenericOAuthenticator:
         client_id: nomad_public
         # client_secret: your-client-secret
