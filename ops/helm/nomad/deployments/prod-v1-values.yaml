@@ -74,3 +74,62 @@ mail:
 datacite:
   secret: 'nomad-datacite'
   enabled: true
+
+jupyterhub:
+  enabled: true
+
+  fullnameOverride: "nomad-prod-v1"
+  nameOverride: "nomad"
+
+  proxy:
+    service:
+      type: ClusterIP
+
+  hub:
+    baseUrl: "/prod/v1/"
+    db:
+      type: sqlite-memory
+    allowNamedServers: true
+    config:
+      JupyterHub:
+        authenticator_class: generic-oauth
+      Authenticator:
+        auto_login: true
+        enable_auth_state: true
+      GenericOAuthenticator:
+        client_id: nomad_public
+        oauth_callback_url: https://nomad-lab.eu/prod/v1/north/hub/oauth_callback
+        authorize_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
+        token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
+        userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
+        login_service: keycloak
+        username_key: preferred_username
+        userdata_params:
+          state: state
+
+  singleuser:
+    storage:
+      type: none
+      #  /nomad/fairdi/prod/fs/north
+      # possibly with db prefix
+
+  cull:
+    enabled: true
+    timeout: 3600
+    every: 600
+    removeNamedServers: true
+
+  prePuller:
+    hook:
+      enabled: true
+    continuous:
+      enabled: false
+
+  scheduling:
+    userScheduler:
+      enabled: false
+    podPriority:
+      enabled: false
+    userPlaceholder:
+      enabled: false
+      replicas: 0
