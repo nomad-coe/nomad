@@ -37,7 +37,7 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
   hosts:
-  - ""
+    - ""
 
 ## Everything concerning the nomad app
 app:
@@ -144,9 +144,9 @@ kibana:
 
 mail:
   enabled: false
-  host: 'localhost'
+  host: "localhost"
   port: 25
-  from: 'support@nomad-lab.eu'
+  from: "support@nomad-lab.eu"
 
 client:
   username: admin
