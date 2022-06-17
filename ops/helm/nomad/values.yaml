@@ -187,8 +187,7 @@ datacite:
   prefix: "10.17172"
 
 jupyterhub:
-  debug:
-    enabled: true
+  enabled: true
 
   fullnameOverride: ""
   nameOverride:
