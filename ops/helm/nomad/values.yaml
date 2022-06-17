@@ -190,8 +190,6 @@ jupyterhub:
   debug:
     enabled: true
 
-  # fullnameOverride and nameOverride distinguishes blank strings, null values,
-  # and non-blank strings. For more details, see the configuration reference.
   fullnameOverride: ""
   nameOverride:
 
@@ -205,6 +203,7 @@ jupyterhub:
       #  /nomad/fairdi/prod/fs/north
       # possibly with db prefix
       type: sqlite-memory
+    allowNamedServers: true
     config:
       JupyterHub:
         authenticator_class: generic-oauth
@@ -227,8 +226,16 @@ jupyterhub:
     storage:
       type: none
 
+  cull:
+    enabled: true
+    timeout: 3600
+    every: 600
+    removeNamedServers: true
+
   prePuller:
     hook:
+      enabled: false
+    continuous:
       enabled: false
 
   scheduling:
@@ -239,4 +246,3 @@ jupyterhub:
     userPlaceholder:
       enabled: false
       replicas: 0
-
