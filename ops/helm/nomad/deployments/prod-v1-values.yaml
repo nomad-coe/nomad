@@ -75,16 +75,17 @@ datacite:
   secret: 'nomad-datacite'
   enabled: true
 
-jupyterhub:
-  enabled: true
+services:
+  jupyterhub:
+    enabled: true
 
+jupyterhub:
+  # enabled: true
   fullnameOverride: "nomad-prod-v1"
   nameOverride: "nomad"
-
   proxy:
     service:
       type: ClusterIP
-
   hub:
     baseUrl: "/prod/v1/"
     db:
@@ -106,19 +107,16 @@ jupyterhub:
         username_key: preferred_username
         userdata_params:
           state: state
-
   singleuser:
     storage:
       type: none
       #  /nomad/fairdi/prod/fs/north
       # possibly with db prefix
-
   cull:
     enabled: true
     timeout: 3600
     every: 600
     removeNamedServers: true
-
   prePuller:
     hook:
       enabled: true

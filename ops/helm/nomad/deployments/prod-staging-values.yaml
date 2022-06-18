@@ -78,8 +78,12 @@ datacite:
   secret: 'nomad-datacite'
   enabled: true
 
+services:
+  jupyterhub:
+    enabled: true
+
 jupyterhub:
-  enabled: true
+  # enabled: true
 
   fullnameOverride: "nomad-staging-v1"
   nameOverride: "nomad"

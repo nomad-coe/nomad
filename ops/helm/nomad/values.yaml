@@ -186,5 +186,10 @@ datacite:
   enabled: false
   prefix: "10.17172"
 
-jupyterhub:
-  enabled: false
+
+services:
+  jupyterhub:
+    enabled: false
+
+# jupyterhub:
+#   enabled: false
