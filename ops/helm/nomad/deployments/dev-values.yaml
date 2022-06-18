@@ -34,10 +34,10 @@ dbname: nomad_dev_v1
 keycloak:
   serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
   serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
-  passwordSecret: 'nomad-keycloak-password'
-  realmName: 'fairdi_nomad_prod'
-  clientId: 'nomad_public'
-  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
+  passwordSecret: "nomad-keycloak-password"
+  realmName: "fairdi_nomad_prod"
+  clientId: "nomad_public"
+  admin_user_id: "82efac55-6187-408c-8027-b98580c0e1c5"
 
 volumes:
   prefixSize: 1
@@ -51,16 +51,12 @@ services:
     enabled: true
 
 jupyterhub:
-
   # enabled: true
-
   fullnameOverride:
   nameOverride:
-
   proxy:
     service:
       type: ClusterIP
-
   hub:
     baseUrl:
     db:
@@ -82,23 +78,19 @@ jupyterhub:
         username_key: preferred_username
         userdata_params:
           state: state
-
   singleuser:
     storage:
       type: none
-
   cull:
     enabled: true
     timeout: 3600
     every: 600
     removeNamedServers: true
-
   prePuller:
     hook:
       enabled: false
     continuous:
       enabled: false
-
   scheduling:
     userScheduler:
       enabled: false

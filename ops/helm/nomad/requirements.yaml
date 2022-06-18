@@ -1,9 +1,9 @@
 dependencies:
-- name: rabbitmq
-  version: "8.30.1"
-  repository: "https://charts.bitnami.com/bitnami"
-- name: jupyterhub
-  version: "1.2.0"
-  repository: "https://jupyterhub.github.io/helm-chart/"
-  # condition: jupyterhub.enabled
-  condition: services.jupyterhub.enabled
+  - name: rabbitmq
+    version: "8.30.1"
+    repository: "https://charts.bitnami.com/bitnami"
+  - name: jupyterhub
+    version: "1.2.0"
+    repository: "https://jupyterhub.github.io/helm-chart/"
+    # condition: jupyterhub.enabled
+    condition: services.jupyterhub.enabled
