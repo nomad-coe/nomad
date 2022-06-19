@@ -66,9 +66,12 @@ mail:
   port: 25
   from: "webmaster@nomad-coe.eu"
 
-jupyterhub:
-  global:
+services:
+  jupyterhub:
     enabled: true
+
+jupyterhub:
+  # enabled: true
   fullnameOverride: "nomad-test-v1"
   nameOverride: "nomad"
   proxy:

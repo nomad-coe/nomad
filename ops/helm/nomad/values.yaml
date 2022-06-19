@@ -186,6 +186,6 @@ datacite:
   enabled: false
   prefix: "10.17172"
 
-jupyterhub:
-  global:
+services:
+  jupyterhub:
     enabled: false
