@@ -46,12 +46,9 @@ volumes:
   tmp: /nomad/fairdi/dev/v1/fs/tmp
   nomad: /nomad
 
-services:
-  jupyterhub:
-    enabled: true
-
 jupyterhub:
-  # enabled: true
+  global:
+    enabled: true
   fullnameOverride:
   nameOverride:
   proxy:

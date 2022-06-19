@@ -75,12 +75,9 @@ datacite:
   secret: "nomad-datacite"
   enabled: true
 
-services:
-  jupyterhub:
-    enabled: true
-
 jupyterhub:
-  # enabled: true
+  global:
+    enabled: true
   fullnameOverride: "nomad-prod-v1"
   nameOverride: "nomad"
   proxy:
