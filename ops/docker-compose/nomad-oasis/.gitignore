@@ -1,0 +1,14 @@
+.volumes/fs/north/*/*
+!.volumes/fs/north/*/.empty
+
+.volumes/fs/public/*
+!.volumes/fs/public/.empty
+
+.volumes/fs/staging/*
+!.volumes/fs/staging/.empty
+
+.volumes/fs/tmp/*
+!.volumes/fs/tmp/.empty
+
+.volumes/mongo/*
+!.volumes/mongo/.empty

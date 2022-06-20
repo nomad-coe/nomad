@@ -46,7 +46,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.0
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.1
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -63,12 +63,13 @@ services:
     # nomad app (api + gui)
     app:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.0
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.1
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
             NOMAD_SERVICE: nomad_oasis_app
             NOMAD_SERVICES_API_PORT: 80
+            NOMAD_FS_EXTERNAL_WORKING_DIRECTORY: '$PWD'
         links:
             - rabbitmq
             - elastic
@@ -81,24 +82,26 @@ services:
     # nomad remote tools hub (JupyterHUB, e.g. for AI Toolkit)
     hub:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.0
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.1
         container_name: nomad_oasis_hub
         environment:
             <<: *nomad_backend_env
             NOMAD_SERVICE: nomad_oasis_hub
-            NOMAD_NORTH_DOCKER_NETWORK: nomad_oasis_network
+            NOMAD_NORTH_DOCKER_NETWORK: nomad_oasis_north_network
             NOMAD_NORTH_HUB_IP_CONNECT: hub
             NOMAD_NORTH_HUB_IP: '0.0.0.0'
             NOMAD_NORTH_HUB_HOST: 'hub'
             NOMAD_SERVICES_API_HOST: app
+            NOMAD_FS_EXTERNAL_WORKING_DIRECTORY: '$PWD'
         links:
             - app
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
             - /var/run/docker.sock:/var/run/docker.sock
             - ./.volumes/fs:/app/.volumes/fs
+        networks: ['defautl', 'north']
         command: python -m nomad.cli admin run hub
-        user: "1000:991"
+        user: 1000:991
 
     # nomad gui (a reverse proxy for nomad)
     gui:
@@ -123,3 +126,5 @@ volumes:
 networks:
     default:
         name: nomad_oasis_network
+    north:
+        name: nomad_oasis_north_network
