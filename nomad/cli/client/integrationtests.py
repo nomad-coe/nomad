@@ -117,7 +117,11 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
                     }
                 }), auth=auth)
             assert response.status_code == 200, response.text
-            assert list(response.json()['data']['archive'].keys()) == ['processing_logs']
+            response_archive_keys = [
+                key for key in response.json()['data']['archive'].keys()
+                if not key.startswith('m_')]
+            assert response_archive_keys == ['processing_logs'], \
+                f'Archive keys {response_archive_keys} should only contain processing_logs'
 
         query_request_params = dict(
             owner='staging',
