@@ -337,10 +337,27 @@ function EditMetaDataDialog({...props}) {
     }
   }, [api, user, raiseError, open, userDatasetsFetched, setUserDatasetsFetched])
 
-  const defaultComment = useMemo(() => entries?.length > 0 ? entries[0]?.entry_metadata?.comment || '' : '', [entries])
-  const defaultReferences = useMemo(() => entries?.length > 0 ? entries[0]?.entry_metadata?.references || [] : [], [entries])
-  const defaultDatasets = useMemo(() => entries?.length > 0 ? (entries[0]?.entry_metadata?.datasets ? userDatasets
-    .filter(datasetFullData => entries[0]?.entry_metadata?.datasets.map(dataset => dataset.dataset_id).includes(datasetFullData.dataset_id)) : []) : [], [entries, userDatasets])
+  const selectedEntriesObjects = useMemo(() => {
+    return selectedEntries.upload_id ? entries : entries.filter(entry => selectedEntries.entry_id.includes(entry?.entry_id))
+  }, [entries, selectedEntries.entry_id, selectedEntries.upload_id])
+
+  const defaultComment = useMemo(() => entries?.length > 0 ? selectedEntriesObjects[0]?.entry_metadata?.comment || '' : '', [entries])
+
+  const defaultReferences = useMemo(() => {
+    if (entries?.length < 0) {
+      return []
+    }
+    const referencesList = selectedEntriesObjects.map(entry => entry?.entry_metadata?.references).flat()
+    return referencesList.filter((value, index) => referencesList.indexOf(value) === index)
+  }, [entries.length, selectedEntriesObjects])
+
+  const defaultDatasets = useMemo(() => {
+    if (entries?.length < 0) {
+      return []
+    }
+    const datasetsList = selectedEntriesObjects.map(entry => entry?.entry_metadata?.datasets)
+    return userDatasets.filter(datasetFullData => datasetsList.flat().map(dataset => dataset.dataset_id).includes(datasetFullData.dataset_id))
+  }, [selectedEntriesObjects, entries.length, userDatasets])
 
   const handleOpenDialog = useCallback(() => {
     setActions([])
