@@ -1939,22 +1939,22 @@ class Upload(Proc):
         # send email about process finish
         if not self.publish_directly and self.main_author_user.email:
             user = self.main_author_user
-            name = '%s %s' % (user.first_name, user.last_name)
-            message = '\n'.join([
-                'Dear {},',
-                '',
-                'your data "{}" uploaded at {} has completed processing.',
-                'You can review your data on your upload page: {}',
-                '',
-                'If you encounter any issues with your upload, please let us know and reply to this email.',
-                '',
-                'The nomad team'
-            ]).format(
-                name, (self.upload_name or ''), self.upload_create_time.isoformat(),  # pylint: disable=no-member
-                config.gui_url(page='uploads'))
+            upload_name_str = f'{self.upload_name }' if self.upload_name else ''
+            author_name = f'{user.first_name} {user.last_name}'
+            upload_time_string = self.upload_create_time.isoformat()  # pylint: disable=no-member
+            message = utils.strip(f'''
+                Dear {author_name},
+
+                your data {upload_name_str}uploaded at {upload_time_string} has completed processing. You can review your data on your upload page: {config.gui_url(page='uploads')}
+
+                If you encounter any issues with your upload, please let us know and reply to this email.
+
+                The nomad team
+            ''')
             try:
                 infrastructure.send_mail(
-                    name=name, email=user.email, message=message, subject='Processing completed')
+                    name=author_name, email=user.email, message=message,
+                    subject='Processing completed')
             except Exception as e:
                 # probably due to email configuration problems
                 # don't fail or present this error to clients

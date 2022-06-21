@@ -17,12 +17,42 @@
 #
 
 from typing import Dict, cast
+import numpy as np
 
-from nomad.metainfo.metainfo import Quantity, Reference
+from nomad.metainfo.metainfo import Quantity, Reference, Datetime, MEnum
 from nomad.metainfo.elasticsearch_extension import SearchQuantity, entry_type
 
 
 _provider_specific_fields: Dict[str, SearchQuantity] = None
+
+
+def create_provider_field(name, definition):
+    type = None
+    if not definition.is_scalar:
+        type = 'list'
+    elif definition.type == str or isinstance(definition.type, MEnum):
+        type = 'string'
+    elif definition.type == bool:
+        type = 'boolean'
+    elif definition.type == Datetime:
+        type = 'timestamp'
+    elif isinstance(definition.type, np.dtype) or definition.type == float:
+        type = 'float'
+    elif definition.type == int:
+        type = 'integer'
+    else:
+        raise NotImplementedError(
+            f'Optimade provider field with NOMAD type {definition.type} not implemented.')
+
+    description = definition.description
+    if not description:
+        description = 'no description available'
+
+    return dict(
+        name=name,
+        description=description,
+        type=type,
+        sortable=False)
 
 
 def provider_specific_fields() -> Dict[str, SearchQuantity]:

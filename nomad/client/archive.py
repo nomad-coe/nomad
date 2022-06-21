@@ -282,7 +282,8 @@ class ArchiveQuery:
                             break
                         else:
                             print(f'Retrying in {self._sleep_time} seconds...')
-                            time.sleep(self._sleep_time)
+                            await asyncio.sleep(self._sleep_time)
+                            num_retry += 1
                             continue
 
                 response_json = response.json()
