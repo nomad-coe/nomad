@@ -20,10 +20,10 @@ import React from 'react'
 import {
   render,
   screen,
+  within,
   startAPI,
   closeAPI, waitForGUI
 } from '../conftest.spec'
-import { within } from '@testing-library/dom'
 import UploadPage from './UploadPage'
 import {act, fireEvent, waitFor} from '@testing-library/react'
 
@@ -67,7 +67,7 @@ const testNewDialog = async (dialog) => {
 const testAddRemoveMembers = async (dialog) => {
   const searchMembers = within(dialog).queryAllByRole('combobox')[0]
   const autocompleteInput = within(searchMembers).getByRole('textbox')
-  const addMemberButton = within(dialog).getByText('Add')
+  const addMemberButton = within(dialog).getByButtonText('Add')
 
   await waitFor(() => expect(within(dialog).queryByText('The selected user is already in the members list')).not.toBeVisible())
 

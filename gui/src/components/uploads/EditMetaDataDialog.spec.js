@@ -35,7 +35,7 @@ const testComment = async () => {
   fireEvent.click(screen.getByTestId('edit-metadata-button'))
   await waitFor(() => expect(screen.queryByText('Submit')).toBeInTheDocument())
 
-  expect(screen.queryByText('Submit')).toBeDisabled()
+  expect(screen.queryByButtonText('Submit')).toBeDisabled()
   let dialog = screen.getByTestId('edit-metadata-dialog')
   expect(within(dialog).queryByText('Edit upload meta data')).toBeInTheDocument()
   expect(within(dialog).queryByText('Comments')).toBeInTheDocument()
@@ -54,7 +54,7 @@ const testReferences = async () => {
   fireEvent.click(screen.getByTestId('edit-metadata-button'))
   await waitFor(() => expect(screen.queryByText('Submit')).toBeInTheDocument())
 
-  expect(screen.queryByText('Submit')).toBeDisabled()
+  expect(screen.queryByButtonText('Submit')).toBeDisabled()
   let dialog = screen.getByTestId('edit-metadata-dialog')
   expect(within(dialog).queryByText('Edit upload meta data')).toBeInTheDocument()
   expect(within(dialog).queryByText('References')).toBeInTheDocument()
@@ -105,7 +105,7 @@ const testDatasetForPublished = async () => {
   fireEvent.click(screen.getByTestId('edit-metadata-button'))
   await waitFor(() => expect(screen.queryByText('Submit')).toBeInTheDocument())
 
-  expect(screen.queryByText('Submit')).toBeDisabled()
+  expect(screen.queryByButtonText('Submit')).toBeDisabled()
   let dialog = screen.getByTestId('edit-metadata-dialog')
   expect(within(dialog).queryByText('Edit upload meta data')).toBeInTheDocument()
   expect(within(dialog).queryByText('Comments')).toBeInTheDocument()

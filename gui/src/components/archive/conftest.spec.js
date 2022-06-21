@@ -147,12 +147,12 @@ export async function selectItemAndWaitForRender(lane, laneIndex, itemKey, item 
   }
   userEvent.click(item)
   await waitFor(() => {
-    const nextLane = getLane(laneIndex + 1)
+    const nextLane = getLane(laneIndex + 1, itemKey)
     expect(nextLane).not.toBeNull()
     expect(getLane(laneIndex + 2)).toBeNull()
     expect(within(nextLane).queryAllByTestId(isWaitingForUpdateTestId).length).toBe(0)
   })
-  const nextLane = getLane(laneIndex + 1)
+  const nextLane = getLane(laneIndex + 1, itemKey)
   expect(within(nextLane).queryByText(laneErrorBoundryMessage)).toBeNull()
   return nextLane
 }

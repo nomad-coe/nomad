@@ -42,7 +42,7 @@ test('correctly renders entry with all material information', async () => {
   expectComposition(index)
   expectSymmetry(index)
   expectLatticeParameters(index)
-  expectStructure(index)
+  await expectStructure(index)
 })
 
 test('correctly renders material without symmetry information', async () => {
@@ -52,7 +52,7 @@ test('correctly renders material without symmetry information', async () => {
   expectComposition(indexNew)
   expectNoSymmetry(indexNew)
   expectLatticeParameters(indexNew)
-  expectStructure(indexNew)
+  await expectStructure(indexNew)
 })
 
 test('correctly renders material without lattice information', async () => {
@@ -64,7 +64,7 @@ test('correctly renders material without lattice information', async () => {
   expectComposition(indexNew)
   expectSymmetry(indexNew)
   expectNoLatticeParameters(indexNew)
-  expectStructure(indexNew)
+  await expectStructure(indexNew)
 })
 
 test('correctly renders material without any structure information', async () => {

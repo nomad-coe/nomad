@@ -20,6 +20,7 @@
 
 import { setupServer } from 'msw/node'
 import { configure } from '@testing-library/react'
+import '@testing-library/jest-dom' // Adds convenient expect-methods
 
 /**
  * Code to configure or set up the testing framework before each test file in

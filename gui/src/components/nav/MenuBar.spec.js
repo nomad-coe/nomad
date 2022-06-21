@@ -18,15 +18,19 @@
 
 import React from 'react'
 import 'regenerator-runtime/runtime'
-import { toHaveStyle } from '@testing-library/jest-dom'
 import { fireEvent, waitFor } from '@testing-library/react'
 import { render, screen } from '../conftest.spec'
 import { MenuBar, MenuBarItem, MenuBarMenu } from './MenuBar'
 import { Router } from 'react-router-dom'
 import {createMemoryHistory} from 'history'
 
-function toBePrimaryColored(htmlElement) {
-  return toHaveStyle(htmlElement, 'color: rgb(63, 81, 181)')
+function toBePrimaryColored(received) {
+  if (this.isNot) {
+    expect(received).not.toEqual(expect.toHaveStyle('color: rgb(63, 81, 181)'))
+  } else {
+    expect(received).toEqual(expect.toHaveStyle('color: rgb(63, 81, 181)'))
+  }
+  return {pass: !this.isNot}
 }
 
 expect.extend({toBePrimaryColored})

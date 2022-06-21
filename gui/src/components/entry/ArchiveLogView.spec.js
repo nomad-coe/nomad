@@ -46,23 +46,22 @@ test('Correctly renders the page', async () => {
 
   // Unchecking the checkbox INFO should re-paint the DOM with only one log and no seeMore button
   userEvent.click(infoBox)
-  let updatedLogs = await screen.queryAllByTestId('Accordions')
-  expect(updatedLogs).toHaveLength(1)
+  await waitFor(() => expect(screen.queryAllByTestId('Accordions')).toHaveLength(1))
   expect(seeMoreButton).not.toBeInTheDocument()
 
   // Re-checking the INFO button should repaint the DOM with the seeMore Button as well as the 10 logs
   userEvent.click(infoBox)
   expect(await screen.findByText(/see more/i)).toBeInTheDocument()
-  expect(await screen.queryAllByTestId('Accordions')).toHaveLength(10)
+  expect(screen.queryAllByTestId('Accordions')).toHaveLength(10)
 
   // Selecting new key from the dropdown menu would add that key to the description of all logs that exist
-  await waitFor(async () => expect(await screen.queryByTestId('system_size')).not.toBeInTheDocument())
-  const view = await screen.getByTestId('selectOption')
-  const butt = await within(view).getByRole('button')
+  await waitFor(() => expect(screen.queryByTestId('system_size')).not.toBeInTheDocument())
+  const view = screen.getByTestId('selectOption')
+  const butt = within(view).getByRole('button')
   await userEvent.click(butt)
-  await waitFor(async () => expect(await screen.queryByTestId('system_size')).toBeInTheDocument())
-  userEvent.click(await screen.queryByTestId('system_size'))
-  expect(await screen.getByText(/debug: parsers\/vasp \| undefined/i))
+  await waitFor(() => expect(screen.queryByTestId('system_size')).toBeInTheDocument())
+  userEvent.click(screen.getByTestId('system_size'))
+  expect(await screen.findByText(/debug: parsers\/vasp \| undefined/i))
 
   closeAPI()
 })

@@ -143,7 +143,7 @@ const UnitSelector = React.memo(({
       {dimensions.map(([dimension, unitInfo]) => {
         const unitDef = units.units[dimension]
         if (isNil(unitDef)) {
-          return
+          return null
         }
         const selectedUnit = unitDef.name
         const disabled = unitDef.fixed
