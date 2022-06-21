@@ -204,7 +204,7 @@ class StructureCollection(EntryCollection):
                                 value = None
                                 break
                             section = section[0]
-                        value = getattr(section, segment)
+                        value = section[segment]
                         section = value
 
                     # Empty values are not stored and only the magnitude of
