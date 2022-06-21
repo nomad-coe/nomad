@@ -19,10 +19,11 @@ then change directory to nomad
 cd nomad
 ```
 
-There are several branches in the repository. The master branch contains the latest released version, but there are also
-develop branches for each version called vX.X.X. Checkout the branch you want to work on.
+There are several branches in the repository. The master branch contains the latest released version,
+but there is also a develop (new features) and release branch (hotfixes). There are also
+tags for each version called vX.X.X. Checkout the branch you want to work on.
 ```
-git checkout vX.X.X
+git checkout develop
 ```
 The development branches are protected and you should create a new branch including your changes.
 ```
