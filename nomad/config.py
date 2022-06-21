@@ -428,7 +428,7 @@ archive = NomadConfig(
     block_size=256 * 1024,
     read_buffer_size=256 * 1024,  # GPFS needs at least 256K to achieve decent performance
     max_process_number=20,  # maximum number of processes can be assigned to process archive query
-    min_entires_per_process=20  # minimum number of entries per process
+    min_entries_per_process=20  # minimum number of entries per process
 )
 
 
