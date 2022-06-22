@@ -82,6 +82,7 @@ jupyterhub:
         userdata_params:
           state: state
   singleuser:
+    podNameTemplate: 
     initContainers:
       - name: fix-permissions
         image: busybox
