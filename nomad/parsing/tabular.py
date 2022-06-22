@@ -104,6 +104,7 @@ def _create_column_to_quantity_mapping(section_def: Section):
                     f'Column names must be unique, to be used for tabular parsing.')
 
             def set_value(section: MSection, value, path=path, quantity=quantity, tabular_annotation=tabular_annotation):
+                import numpy as np
                 for sub_section, section_def in path:
                     next_section = section.m_get_sub_section(sub_section, -1)
                     if not next_section:
@@ -113,6 +114,9 @@ def _create_column_to_quantity_mapping(section_def: Section):
 
                 if tabular_annotation and 'unit' in tabular_annotation:
                     value *= ureg(tabular_annotation['unit'])
+
+                if isinstance(value, (int, float, str)):
+                    value = np.array(value)
 
                 if len(value.shape) == 1 and len(quantity.shape) == 0:
                     if len(value) == 1:
