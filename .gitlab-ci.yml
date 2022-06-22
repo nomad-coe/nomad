@@ -21,170 +21,170 @@ variables:
   TEST_IMAGE: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
   STABLE_IMAGE: ${CI_REGISTRY_IMAGE}:stable
   LATEST_IMAGE: ${CI_REGISTRY_IMAGE}:latest
-#
-# build:
-#   stage: build
-#   before_script:
-#     - git submodule sync --recursive
-#     - git submodule update --init --recursive --jobs=4
-#     # create the version information
-#     - ./gitinfo.sh
-#     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
-#   script:
-#     - docker build -t $TEST_IMAGE .
-#     - docker push $TEST_IMAGE
-#   except:
-#     - /^dev-.*$/
-#     - tags
-#
-# python linting:
-#   stage: test
-#   image: $TEST_IMAGE
-#   script:
-#     - cd /app
-#     - python -m pycodestyle --ignore=E501,E701,E731 nomad tests
-#     - python -m pylint --load-plugins=pylint_mongoengine,nomad.metainfo.pylint_plugin nomad tests
-#     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
-#   except:
-#     refs:
-#       - tags
-#     variables:
-#       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-#       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
-#
-# gui linting:
-#   stage: test
-#   before_script:
-#     - git submodule sync
-#     - git submodule update --init -- gui/materia gui/crystcif-parse
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.js
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev metainfo > gui/src/metainfo.json
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev example-upload-metadata > gui/src/exampleUploads.json
-#     - docker run --rm $TEST_IMAGE cat dependencies/nomad-remote-tools-hub/tools.json > gui/src/northTools.json
-#   script:
-#     - cd gui
-#     - yarn --network-timeout 1200000
-#     - yarn run lint
-#   except:
-#     refs:
-#       - tags
-#     variables:
-#       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-#       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
-#
-# python tests:
-#   stage: test
-#   image: $TEST_IMAGE
-#   services:
-#     - name: rabbitmq:3.9.13
-#       alias: rabbitmq
-#     - name: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
-#       alias: elastic
-#       command:
-#         - bash
-#         - "-c"
-#         - ES_JAVA_OPTS="-Xms512m -Xmx512m" docker-entrypoint.sh elasticsearch -Ediscovery.type=single-node -Expack.security.enabled=false
-#     - name: mongo:5.0.6
-#       alias: mongo
-#   variables:
-#     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
-#     RABBITMQ_DEFAULT_USER: rabbitmq
-#     RABBITMQ_DEFAULT_PASS: rabbitmq
-#     RABBITMQ_DEFAULT_VHOST: /
-#     NOMAD_RABBITMQ_HOST: rabbitmq
-#     NOMAD_ELASTIC_HOST: elastic
-#     NOMAD_MONGO_HOST: mongo
-#     NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
-#     NOMAD_NORMALIZE_SPRINGER_DB_PATH: /nomad/fairdi/db/data/springer.msg
-#   script:
-#     - sleep 5
-#     - curl http://elastic:9200/_cat/health
-#     - cd /app
-#     - ls /builds
-#     - python -m pytest --cov=nomad -sv tests
-#   except:
-#     refs:
-#       - tags
-#     variables:
-#       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-#       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
-#
-# gui tests:
-#   stage: test
-#   before_script:
-#     - git submodule sync
-#     - git submodule update --init -- gui/materia gui/crystcif-parse
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.js
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev example-upload-metadata > gui/src/exampleUploads.json
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev metainfo > gui/src/metainfo.json
-#     - docker run --rm $TEST_IMAGE python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
-#     - docker run --rm $TEST_IMAGE cat dependencies/nomad-remote-tools-hub/tools.json > gui/src/northTools.json
-#   script:
-#     - cd gui
-#     - yarn --network-timeout 1200000
-#     - yarn test --ci --collectCoverage --reporters=default --reporters=jest-junit
-#   coverage: /Lines\s*:\s*(\d+.?\d*)%/
-#   artifacts:
-#       when: always
-#       reports:
-#         junit:
-#           - gui/junit.xml
-#         cobertura: gui/coverage/cobertura-coverage.xml
-#   except:
-#     refs:
-#       - tags
-#     variables:
-#       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-#       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
-#
-# install tests:
-#   stage: test
-#   image: python:3.7
-#   before_script:
-#     - git submodule sync --recursive
-#     - sleep 5
-#     - git submodule update --init --recursive --jobs=4
-#   script:
-#     - pip install --upgrade pip
-#     - pip install fastentrypoints
-#     - pip install pyyaml
-#     - pip install numpy
-#     - python setup.py compile
-#     - python setup.py sdist
-#     - pip install dist/nomad-lab-*.tar.gz
-#     - python -c "import nomad.datamodel, nomad.datamodel.metainfo, nomad.client"
-#     - pip install `echo dist/nomad-lab-*.tar.gz`[parsing]
-#     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
-#     - git clone --branch v1.0.0 https://github.com/nomad-coe/nomad-parser-example.git example-parser
-#     - cd example-parser
-#     - python exampleparser/__main__.py tests/data/example.out
-#   except:
-#     refs:
-#       - tags
-#     variables:
-#       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-#       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
-#
-# dev setup tests:
-#   stage: test
-#   image: python:3.7
-#   script:
-#     - pip install --upgrade pip
-#     - ./setup.sh
-#     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
-#     - python -c "import nomad.app"
-#     - python -c "import nomad.processing"
-#   except:
-#     refs:
-#       - tags
-#     variables:
-#       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-#       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+
+build:
+  stage: build
+  before_script:
+    - git submodule sync --recursive
+    - git submodule update --init --recursive --jobs=4
+    # create the version information
+    - ./gitinfo.sh
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+  script:
+    - docker build -t $TEST_IMAGE .
+    - docker push $TEST_IMAGE
+  except:
+    - /^dev-.*$/
+    - tags
+
+python linting:
+  stage: test
+  image: $TEST_IMAGE
+  script:
+    - cd /app
+    - python -m pycodestyle --ignore=E501,E701,E731 nomad tests
+    - python -m pylint --load-plugins=pylint_mongoengine,nomad.metainfo.pylint_plugin nomad tests
+    - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+
+gui linting:
+  stage: test
+  before_script:
+    - git submodule sync
+    - git submodule update --init -- gui/materia gui/crystcif-parse
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.js
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev metainfo > gui/src/metainfo.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev example-upload-metadata > gui/src/exampleUploads.json
+    - docker run --rm $TEST_IMAGE cat dependencies/nomad-remote-tools-hub/tools.json > gui/src/northTools.json
+  script:
+    - cd gui
+    - yarn --network-timeout 1200000
+    - yarn run lint
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+
+python tests:
+  stage: test
+  image: $TEST_IMAGE
+  services:
+    - name: rabbitmq:3.9.13
+      alias: rabbitmq
+    - name: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
+      alias: elastic
+      command:
+        - bash
+        - "-c"
+        - ES_JAVA_OPTS="-Xms512m -Xmx512m" docker-entrypoint.sh elasticsearch -Ediscovery.type=single-node -Expack.security.enabled=false
+    - name: mongo:5.0.6
+      alias: mongo
+  variables:
+    RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
+    RABBITMQ_DEFAULT_USER: rabbitmq
+    RABBITMQ_DEFAULT_PASS: rabbitmq
+    RABBITMQ_DEFAULT_VHOST: /
+    NOMAD_RABBITMQ_HOST: rabbitmq
+    NOMAD_ELASTIC_HOST: elastic
+    NOMAD_MONGO_HOST: mongo
+    NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
+    NOMAD_NORMALIZE_SPRINGER_DB_PATH: /nomad/fairdi/db/data/springer.msg
+  script:
+    - sleep 5
+    - curl http://elastic:9200/_cat/health
+    - cd /app
+    - ls /builds
+    - python -m pytest --cov=nomad -sv tests
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+
+gui tests:
+  stage: test
+  before_script:
+    - git submodule sync
+    - git submodule update --init -- gui/materia gui/crystcif-parse
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.js
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev example-upload-metadata > gui/src/exampleUploads.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev metainfo > gui/src/metainfo.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
+    - docker run --rm $TEST_IMAGE cat dependencies/nomad-remote-tools-hub/tools.json > gui/src/northTools.json
+  script:
+    - cd gui
+    - yarn --network-timeout 1200000
+    - yarn test --ci --collectCoverage --reporters=default --reporters=jest-junit
+  coverage: /Lines\s*:\s*(\d+.?\d*)%/
+  artifacts:
+      when: always
+      reports:
+        junit:
+          - gui/junit.xml
+        cobertura: gui/coverage/cobertura-coverage.xml
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+
+install tests:
+  stage: test
+  image: python:3.7
+  before_script:
+    - git submodule sync --recursive
+    - sleep 5
+    - git submodule update --init --recursive --jobs=4
+  script:
+    - pip install --upgrade pip
+    - pip install fastentrypoints
+    - pip install pyyaml
+    - pip install numpy
+    - python setup.py compile
+    - python setup.py sdist
+    - pip install dist/nomad-lab-*.tar.gz
+    - python -c "import nomad.datamodel, nomad.datamodel.metainfo, nomad.client"
+    - pip install `echo dist/nomad-lab-*.tar.gz`[parsing]
+    - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
+    - git clone --branch v1.0.0 https://github.com/nomad-coe/nomad-parser-example.git example-parser
+    - cd example-parser
+    - python exampleparser/__main__.py tests/data/example.out
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+
+dev setup tests:
+  stage: test
+  image: python:3.7
+  script:
+    - pip install --upgrade pip
+    - ./setup.sh
+    - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
+    - python -c "import nomad.app"
+    - python -c "import nomad.processing"
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 deploy dev:
   stage: deploy
