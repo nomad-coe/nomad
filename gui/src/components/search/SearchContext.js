@@ -888,7 +888,7 @@ export const SearchContext = React.memo(({
   }, [filterDefaults, resource, api, raiseError, resolve])
 
   // This is a debounced version of apiCall.
-  const apiCallDebounced = useCallback(debounce(apiCall, 400), [])
+  const apiCallDebounced = useMemo(() => debounce(apiCall, 400), [apiCall])
 
   /**
    * Intermediate function that should primarily be used when trying to perform
@@ -935,55 +935,54 @@ export const SearchContext = React.memo(({
   // When query, aggregation or pagination changes, update the search context
   useEffect(() => {
     apiCallInterMediate(query, aggs, pagination, resultsUsed)
-  }, [query, aggs, pagination, resultsUsed, apiCallInterMediate, apiCallDebounced])
+  }, [query, aggs, pagination, resultsUsed, apiCallInterMediate])
 
-  // Hook for refreshing the results.
-  const useRefresh = useCallback(() => {
-    const query = useRecoilValue(queryState)
-    const aggs = useRecoilValue(aggsState)
-    const pagination = useRecoilValue(paginationState)
-    const resultsUsed = useRecoilValue(resultsUsedState)
+  // const useRefresh = useCallback(() => {
+  //   const query = useRecoilValue(queryState)
+  //   const aggs = useRecoilValue(aggsState)
+  //   const pagination = useRecoilValue(paginationState)
+  //   const resultsUsed = useRecoilValue(resultsUsedState)
 
-    const refresh = useCallback(() => {
-      apiCallInterMediate(query, aggs, pagination, resultsUsed, undefined, true)
-    }, [aggs, pagination, query, resultsUsed])
-    return refresh
-  }, [aggsState, apiCallInterMediate, paginationState, queryState, resultsUsedState])
+  //   const refresh = useCallback(() => {
+  //     apiCallInterMediate(query, aggs, pagination, resultsUsed, undefined, true)
+  //   }, [aggs, pagination, query, resultsUsed])
+  //   return refresh
+  // }, [aggsState, apiCallInterMediate, paginationState, queryState, resultsUsedState])
 
   // Hook for imperatively requesting aggregation data. By using this hook you
   // can track the state of individual calls and perform callbacks.
-  const useAggCall = useCallback((name, id) => {
-    const key = useMemo(() => `${name}:${id}`, [name, id])
-    const query = useRecoilValue(queryState)
-    const pagination = useRecoilValue(paginationState)
-    const resultsUsed = useRecoilValue(resultsUsedState)
-    const setAgg = useSetRecoilState(aggsFamily(key))
+  // const useAggCall = useCallback((name, id) => {
+  //   const key = useMemo(() => `${name}:${id}`, [name, id])
+  //   const query = useRecoilValue(queryState)
+  //   const pagination = useRecoilValue(paginationState)
+  //   const resultsUsed = useRecoilValue(resultsUsedState)
+  //   const setAgg = useSetRecoilState(aggsFamily(key))
 
-    /**
-     * @param {number} size The new aggregation size
-     * @param {string} id Identifier for this call
-     * @param {function} callback: Function that returns an array containing the
-     * new aggregation response and an error if one was encountered. Returns the
-     * special value 'undefined' for the response if no update was necessary.
-     */
-    const aggCall = useCallback((config, callback) => {
-      const aggs = {[key]: {...config, update: true}}
-      apiCallInterMediate(
-        query, aggs, pagination, resultsUsed,
-        (response) => callback(response && response[key])
-      )
+  //   /**
+  //    * @param {number} size The new aggregation size
+  //    * @param {string} id Identifier for this call
+  //    * @param {function} callback: Function that returns an array containing the
+  //    * new aggregation response and an error if one was encountered. Returns the
+  //    * special value 'undefined' for the response if no update was necessary.
+  //    */
+  //   const aggCall = useCallback((config, callback) => {
+  //     const aggs = {[key]: {...config, update: true}}
+  //     apiCallInterMediate(
+  //       query, aggs, pagination, resultsUsed,
+  //       (response) => callback(response && response[key])
+  //     )
 
-      // We also need to update aggregation request state, otherwise the
-      // subsequent calls will not be able to know what was done by this call.
-      // To do this without triggering another API call, we disable API updates
-      // for one cycle.
-      disableUpdate.current = true
-      aggs[key].update = false
-      setAgg(aggs[key])
-    }, [key, query, pagination, resultsUsed, setAgg])
+  //     // We also need to update aggregation request state, otherwise the
+  //     // subsequent calls will not be able to know what was done by this call.
+  //     // To do this without triggering another API call, we disable API updates
+  //     // for one cycle.
+  //     disableUpdate.current = true
+  //     aggs[key].update = false
+  //     setAgg(aggs[key])
+  //   }, [key, query, pagination, resultsUsed, setAgg])
 
-    return aggCall
-  }, [queryState, paginationState, resultsUsedState, aggsFamily, apiCallInterMediate])
+  //   return aggCall
+  // }, [queryState, paginationState, resultsUsedState, aggsFamily, apiCallInterMediate])
 
   // This updated the query string to represent the latest value within the
   // search context.
@@ -993,38 +992,88 @@ export const SearchContext = React.memo(({
 
   // The context contains a set of functions that can be used to hook into
   // different data.
-  const values = useMemo(() => ({
-    resource,
-    useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
-    useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
-    useIsCollapsed: () => useRecoilValue(isCollapsedState),
-    useSetIsCollapsed: () => useSetRecoilState(isCollapsedState),
-    useIsStatisticsEnabled: () => useRecoilValue(isStatisticsEnabledState),
-    useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState),
-    useQuery: () => useRecoilValue(queryState),
-    useFilterValue: useFilterValue,
-    useSetFilter: useSetFilter,
-    useFilterState: useFilterState,
-    useFiltersState: useFiltersState,
-    useResetFilters: useResetFilters,
-    useRefresh: useRefresh,
-    useFilterLocked: useFilterLocked,
-    useFiltersLocked: useFiltersLocked,
-    useFiltersLockedState: useFiltersLockedState,
-    useStatisticValue: useStatisticValue,
-    useSetStatistic: useSetStatistic,
-    useStatisticState: useStatisticState,
-    useStatisticsValue: useStatisticsValue,
-    useStatisticsState: useStatisticsState,
-    useUpdateQueryString: useUpdateQueryString,
-    useResults: useResults,
-    useApiData: useApiData,
-    useAgg: useAgg,
-    useAggCall: useAggCall,
-    useSetFilters: useSetFilters,
-    filters: filters,
-    filterData: filterData
-  }), [
+  const values = useMemo(() => {
+    // Hook for refreshing the results.
+    const useRefresh = () => {
+      const query = useRecoilValue(queryState)
+      const aggs = useRecoilValue(aggsState)
+      const pagination = useRecoilValue(paginationState)
+      const resultsUsed = useRecoilValue(resultsUsedState)
+
+      const refresh = useCallback(() => {
+        apiCallInterMediate(query, aggs, pagination, resultsUsed, undefined, true)
+      }, [aggs, pagination, query, resultsUsed])
+      return refresh
+    }
+
+    // Hook for imperatively requesting aggregation data. By using this hook you
+    // can track the state of individual calls and perform callbacks.
+    const useAggCall = (name, id) => {
+      const key = useMemo(() => `${name}:${id}`, [name, id])
+      const query = useRecoilValue(queryState)
+      const pagination = useRecoilValue(paginationState)
+      const resultsUsed = useRecoilValue(resultsUsedState)
+      const setAgg = useSetRecoilState(aggsFamily(key))
+
+      /**
+       * @param {number} size The new aggregation size
+       * @param {string} id Identifier for this call
+       * @param {function} callback: Function that returns an array containing the
+       * new aggregation response and an error if one was encountered. Returns the
+       * special value 'undefined' for the response if no update was necessary.
+       */
+      const aggCall = useCallback((config, callback) => {
+        const aggs = {[key]: {...config, update: true}}
+        apiCallInterMediate(
+          query, aggs, pagination, resultsUsed,
+          (response) => callback(response && response[key])
+        )
+
+        // We also need to update aggregation request state, otherwise the
+        // subsequent calls will not be able to know what was done by this call.
+        // To do this without triggering another API call, we disable API updates
+        // for one cycle.
+        disableUpdate.current = true
+        aggs[key].update = false
+        setAgg(aggs[key])
+      }, [key, query, pagination, resultsUsed, setAgg])
+
+      return aggCall
+    }
+
+    return {
+      resource,
+      useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
+      useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
+      useIsCollapsed: () => useRecoilValue(isCollapsedState),
+      useSetIsCollapsed: () => useSetRecoilState(isCollapsedState),
+      useIsStatisticsEnabled: () => useRecoilValue(isStatisticsEnabledState),
+      useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState),
+      useQuery: () => useRecoilValue(queryState),
+      useFilterValue: useFilterValue,
+      useSetFilter: useSetFilter,
+      useFilterState: useFilterState,
+      useFiltersState: useFiltersState,
+      useResetFilters: useResetFilters,
+      useRefresh: useRefresh,
+      useFilterLocked: useFilterLocked,
+      useFiltersLocked: useFiltersLocked,
+      useFiltersLockedState: useFiltersLockedState,
+      useStatisticValue: useStatisticValue,
+      useSetStatistic: useSetStatistic,
+      useStatisticState: useStatisticState,
+      useStatisticsValue: useStatisticsValue,
+      useStatisticsState: useStatisticsState,
+      useUpdateQueryString: useUpdateQueryString,
+      useResults: useResults,
+      useApiData: useApiData,
+      useAgg: useAgg,
+      useAggCall: useAggCall,
+      useSetFilters: useSetFilters,
+      filters: filters,
+      filterData: filterData
+    }
+  }, [
     resource,
     useFilterValue,
     useSetFilter,
@@ -1040,18 +1089,21 @@ export const SearchContext = React.memo(({
     useStatisticsValue,
     useStatisticsState,
     useUpdateQueryString,
-    useRefresh,
     useResults,
     useApiData,
     useAgg,
-    useAggCall,
     useSetFilters,
+    filters,
+    filterData,
+    queryState,
+    aggsState,
+    paginationState,
+    resultsUsedState,
+    apiCallInterMediate,
+    aggsFamily,
     isMenuOpenState,
     isCollapsedState,
-    isStatisticsEnabledState,
-    queryState,
-    filters,
-    filterData
+    isStatisticsEnabledState
   ])
 
   return <searchContext.Provider value={values}>
