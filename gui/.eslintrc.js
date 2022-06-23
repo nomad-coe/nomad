@@ -24,7 +24,6 @@ module.exports = {
             "anonymous": "never"
         }],
         "camelcase": [0],
-        "no-async-promise-executor": ["warn"],
         "object-curly-spacing": [0],
         "object-curly-newline": [0],
         "no-var": [0],
@@ -37,7 +36,7 @@ module.exports = {
         "object-shorthand": [0],
         "dot-notation": [0],
         "lines-between-class-members": [0],
-        "react-hooks/rules-of-hooks": "warn",
+        "react-hooks/rules-of-hooks": "error",
         "react-hooks/exhaustive-deps": "warn",
         "react/display-name": [0]
     },

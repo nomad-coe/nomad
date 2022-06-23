@@ -30,13 +30,9 @@ const ThermodynamicPropertiesCard = React.memo(({index, properties, archive}) =>
   const hasTrajectory = properties.has('trajectory')
   const urlPrefix = `${getLocation()}/data`
 
-  // Do not show the card if none of the properties are available
-  if (!hasTrajectory) {
-    return null
-  }
-
   // Resolve and return component for showing the list of trajectories
   const trajectory = useMemo(() => {
+    if (!hasTrajectory) return null
     const trajsIndex = index?.results?.properties?.thermodynamic?.trajectory
     const trajsArchive = archive?.results?.properties?.thermodynamic?.trajectory || []
 
@@ -61,7 +57,10 @@ const ThermodynamicPropertiesCard = React.memo(({index, properties, archive}) =>
         archiveURL={`${urlPrefix}/results/properties/thermodynamic/trajectory:${i}`}
       />
     })
-  }, [archive, index, units, urlPrefix])
+  }, [archive, index, units, urlPrefix, hasTrajectory])
+
+  // Do not show the card if none of the properties are available
+  if (!hasTrajectory) return null
 
   return <PropertyCard title="Thermodynamic">
     {trajectory}

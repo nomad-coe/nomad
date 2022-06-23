@@ -341,7 +341,9 @@ function EditMetaDataDialog({...props}) {
     return selectedEntries.upload_id ? entries : entries.filter(entry => selectedEntries.entry_id.includes(entry?.entry_id))
   }, [entries, selectedEntries.entry_id, selectedEntries.upload_id])
 
-  const defaultComment = useMemo(() => entries?.length > 0 ? selectedEntriesObjects[0]?.entry_metadata?.comment || '' : '', [entries])
+  const defaultComment = useMemo(() => (
+    entries?.length > 0 ? selectedEntriesObjects[0]?.entry_metadata?.comment || '' : ''
+  ), [entries, selectedEntriesObjects])
 
   const defaultReferences = useMemo(() => {
     if (entries?.length < 0) {
@@ -370,12 +372,13 @@ function EditMetaDataDialog({...props}) {
   }, [api, actions])
 
   const edit = useCallback((metadata, verify_only) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const requestBody = {metadata: metadata, verify_only: verify_only, owner: 'user'}
         if (selectedEntries.entry_id) requestBody.query = selectedEntries
-        await api.post(`uploads/${uploadId}/edit`, requestBody)
-        resolve('')
+          api.post(`uploads/${uploadId}/edit`, requestBody)
+            .then(() => resolve(''))
+            .catch(error => reject(error.apiMessage))
       } catch (error) {
         reject(error.apiMessage)
       }

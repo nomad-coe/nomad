@@ -950,10 +950,10 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
   const units = useUnits()
   const xAxis = plot.x || plot['x_axis'] || plot['xAxis']
   const yAxis = plot.y || plot['y_axis'] || plot['yAxis']
-  const Y = Array.isArray(yAxis) ? yAxis : [yAxis]
-  const nLines = Y.length
 
   const [data, layout] = useMemo(() => {
+    const Y = Array.isArray(yAxis) ? yAxis : [yAxis]
+    const nLines = Y.length
     const toUnit = path => {
       const relativePath = path.replace('./', '')
       const resolvedQuantityDef = resolveRef(relativePath, sectionDef)
@@ -1070,7 +1070,7 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     }
 
     return [data, layout]
-  }, [Y, nLines, plot.layout, plot.lines, xAxis, section, sectionDef, theme, title, units])
+  }, [plot.layout, plot.lines, xAxis, yAxis, section, sectionDef, theme, title, units])
 
   if ('error' in data) {
     return <Alert
@@ -1201,11 +1201,13 @@ function Reference({value, def}) {
   const {raiseError} = useErrors()
   const [loading, setLoading] = useState(true)
   const {update, adaptor: {context}} = useContext(laneContext)
+  const upload_id = context.upload_id
+  context.resources = context.resources || {}
+  const resources = context.resources
 
   useEffect(() => {
     const url = value.split('#')[0]
-    const upload_id = context.upload_id
-    if (context.resources?.[url]) {
+    if (resources?.[url]) {
       setLoading(false)
       return
     }
@@ -1217,14 +1219,11 @@ function Reference({value, def}) {
 
     api.get(`uploads/${upload_id}/${url.slice('../upload/'.length)}`)
       .then(response => {
-        if (!context.resources) {
-          context.resources = {}
-        }
-        context.resources[url] = response.data.archive
+        resources[url] = response.data.archive
         update()
       })
       .catch(raiseError)
-  }, [api, context.upload_id, context.resources, raiseError, setLoading, update, value])
+  }, [api, upload_id, resources, raiseError, setLoading, update, value])
 
   if (loading) {
     return <Content>

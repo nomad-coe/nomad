@@ -482,7 +482,7 @@ function mockKeycloak(username, password) {
   }
 
   const updateToken = (refresh_token) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         let command = `curl -s -X POST ${keycloakURL} \\
       -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
@@ -542,7 +542,7 @@ function mockKeycloak(username, password) {
   }
 
   const loadUserInfo = (username) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const user = testUsers[username]
         resolve(user)
