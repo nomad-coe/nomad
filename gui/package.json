@@ -11,8 +11,8 @@
     "@date-io/date-fns": "1.x",
     "@fontsource/material-icons": "^4.2.1",
     "@fontsource/titillium-web": "^4.2.2",
-    "@h5web/app": "1.4.0",
-    "@h5web/lib": "1.4.0",
+    "@h5web/app": "5.0.1",
+    "@h5web/lib": "5.0.1",
     "@material-ui/core": "^4.0.0",
     "@material-ui/icons": "^4.0.0",
     "@material-ui/lab": "^4.0.0-alpha.49",
@@ -37,7 +37,7 @@
     "object-hash": "^2.0.3",
     "pace": "^0.0.4",
     "pace-js": "^1.0.2",
-    "plotly.js-cartesian-dist-min": "^1.54.7",
+    "plotly.js-cartesian-dist-min": "^2.12.1",
     "qs": "^6.8.0",
     "react": "^16.13.1",
     "react-app-polyfill": "^1.0.1",
@@ -120,12 +120,11 @@
   "jest": {
     "coverageReporters": ["html", "text", "text-summary", "cobertura"],
     "transformIgnorePatterns": [
-      "/node_modules/(?!@h5web)"
+      "/node_modules/(?!@h5web|d3|internmap)"
     ],
     "moduleNameMapper": {
       "^.+\\.(css|less)$": "<rootDir>/src/CSSStub.js",
-      "d3": "<rootDir>/node_modules/d3/dist/d3.min.js",
-      "three": "<rootDir>/node_modules/three/build/three.min.js"
+      "three.meshline": "<rootDir>/src/CSSStub.js"
     }
   },
   "resolutions": {
