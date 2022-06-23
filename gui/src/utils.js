@@ -24,8 +24,8 @@ import searchQuantities from './searchQuantities.json'
 
 export const isEquivalent = (a, b) => {
   // Create arrays of property names
-  var aProps = Object.getOwnPropertyNames(a)
-  var bProps = Object.getOwnPropertyNames(b)
+  const aProps = Object.getOwnPropertyNames(a)
+  const bProps = Object.getOwnPropertyNames(b)
 
   // If number of properties is different,
   // objects are not equivalent
@@ -33,8 +33,8 @@ export const isEquivalent = (a, b) => {
     return false
   }
 
-  for (var i = 0; i < aProps.length; i++) {
-    var propName = aProps[i]
+  for (let i = 0; i < aProps.length; i++) {
+    const propName = aProps[i]
 
     // If values of same property are not equal,
     // objects are not equivalent
@@ -153,10 +153,10 @@ export function arraysEqual(_arr1, _arr2) {
     return false
   }
 
-  var arr1 = _arr1.concat().sort()
-  var arr2 = _arr2.concat().sort()
+  const arr1 = _arr1.concat().sort()
+  const arr2 = _arr2.concat().sort()
 
-  for (var i = 0; i < arr1.length; i++) {
+  for (let i = 0; i < arr1.length; i++) {
     if (arr1[i] !== arr2[i]) { return false }
   }
 
@@ -177,8 +177,8 @@ export function objectFilter(obj, predicate) {
 }
 
 export function titleCase(str) {
-  var splitStr = str.toLowerCase().split(/[_ ]/)
-  for (var i = 0; i < splitStr.length; i++) {
+  const splitStr = str.toLowerCase().split(/[_ ]/)
+  for (let i = 0; i < splitStr.length; i++) {
     // You do not need to check if i is larger than splitStr length, as your for does that for you
     // Assign it back to the array
     splitStr[i] = splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1)
@@ -598,11 +598,11 @@ export function approxInteger(number) {
   if (tier === 0) return number.toFixed(0)
 
   // Get suffix and determine scale
-  var suffix = SISymbol[tier]
-  var scale = Math.pow(10, tier * 3)
+  const suffix = SISymbol[tier]
+  const scale = Math.pow(10, tier * 3)
 
   // Scale the number and count the number of decimals
-  var scaled = number / scale
+  const scaled = number / scale
   let nUsed, nDecimals
   const split = scaled.toString().split('.')
   if (split.length > 1) {

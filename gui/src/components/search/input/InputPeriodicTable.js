@@ -35,7 +35,7 @@ import { getScaler } from '../../plotting/common'
 
 // A fixed 2D, 10x18 array for the element data.
 const elements = []
-for (var i = 0; i < 10; i++) {
+for (let i = 0; i < 10; i++) {
   elements[i] = Array.apply(null, Array(18))
 }
 elementData.elements.forEach(element => {
@@ -268,7 +268,7 @@ const useTableStyles = makeStyles(theme => ({
 function eqSet(as, bs) {
   if (isNil(as) || isNil(bs)) return false
   if (as.size !== bs.size) return false
-  for (var a of as) if (!bs.has(a)) return false
+  for (const a of as) if (!bs.has(a)) return false
   return true
 }
 
