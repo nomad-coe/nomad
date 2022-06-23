@@ -188,22 +188,24 @@ dev setup tests:
 
 deploy dev:
   stage: deploy
+  environment:
+    name: dev/$CI_COMMIT_REF_NAME
+    url: https://nomad-lab.eu/dev/rae/$CI_ENVIRONMENT_SLUG
   before_script:
     - mkdir ~/.kube/
     - echo ${CI_K8S_CONFIG} | base64 -d > ~/.kube/config
   script:
     - helm dependency update ops/helm/nomad
-    - RELEASE_NAME=`echo ${CI_COMMIT_REF_NAME} | sed -e 's/[^A-Za-z0-9\-]/-/g' | sed -e 's/^[0-9-]*//g' | head -c 43`
-    - helm upgrade $RELEASE_NAME ops/helm/nomad
+    - helm upgrade $CI_ENVIRONMENT_SLUG ops/helm/nomad
       --install
       --namespace nomad
       --values ops/helm/nomad/deployments/dev-values.yaml
-      --set proxy.external.path=/dev/rae/$RELEASE_NAME
-      --set jupyterhub.hub.baseUrl=/dev/rae/$RELEASE_NAME/north
-      --set jupyterhub.fullnameOverride=${RELEASE_NAME}
+      --set proxy.external.path=/dev/rae/$CI_ENVIRONMENT_SLUG
+      --set jupyterhub.hub.baseUrl=/dev/rae/$CI_ENVIRONMENT_SLUG/north
+      --set jupyterhub.fullnameOverride=${CI_ENVIRONMENT_SLUG}
       --set jupyterhub.nameOverride="nomad"
-      --set jupyterhub.singleuser.podNameTemplate="${RELEASE_NAME}-north-{username}--{servername}"
-      --set jupyterhub.hub.config.GenericOAuthenticator.oauth_callback_url=https://nomad-lab.eu/dev/rae/$RELEASE_NAME/north/hub/oauth_callback
+      --set jupyterhub.singleuser.podNameTemplate="${CI_ENVIRONMENT_SLUG}-north-{username}--{servername}"
+      --set jupyterhub.hub.config.GenericOAuthenticator.oauth_callback_url=https://nomad-lab.eu/dev/rae/$CI_ENVIRONMENT_SLUG/north/hub/oauth_callback
       --set image.tag=$CI_COMMIT_REF_SLUG
       --set roll=true
       --wait
@@ -211,7 +213,7 @@ deploy dev:
     - docker run
       -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod
       $TEST_IMAGE
-      python -m nomad.cli client -n https://nomad-lab.eu/dev/rae/$RELEASE_NAME/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
+      python -m nomad.cli client -n https://nomad-lab.eu/dev/rae/$CI_ENVIRONMENT_SLUG/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
     - /^dev-.*$/
   when: manual
