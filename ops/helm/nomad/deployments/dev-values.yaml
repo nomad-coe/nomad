@@ -60,10 +60,7 @@ jupyterhub:
   hub:
     baseUrl:
     db:
-      # type: sqlite-memory
-      type: sqlite-pvc
-      pvc:
-        storageClassName: manual-test-north-hub-db
+      type: sqlite-memory
     allowNamedServers: true
     shutdownOnLogout: true
     config:
@@ -84,24 +81,8 @@ jupyterhub:
           state: state
   singleuser:
     podNameTemplate:
-    initContainers:
-      - name: fix-permissions
-        image: busybox
-        imagePullPolicy: IfNotPresent
-        securityContext:
-          runAsUser: 0
-        command: ["/bin/sh", "-c", "chown 1000:100 /home/jovyan"]
-        volumeMounts:
-          - mountPath: /home/jovyan
-            name: home
-            subPath: "{username}"
     storage:
-      # type: none
-      type: static
-      homeMountPath: /home/jovyan/work
-      static:
-        pvcName: test-north-home
-        subPath: "{username}"
+      type: none
   cull:
     enabled: true
     timeout: 3600

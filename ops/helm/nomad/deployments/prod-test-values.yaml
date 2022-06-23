@@ -68,10 +68,9 @@ mail:
 
 services:
   jupyterhub:
-    enabled: true
+    enabled: false
 
 jupyterhub:
-  # enabled: true
   fullnameOverride: "nomad-test-v1"
   nameOverride: "nomad"
   proxy:
@@ -80,7 +79,9 @@ jupyterhub:
   hub:
     baseUrl: "/prod/v1/test/"
     db:
-      type: sqlite-memory
+      type: sqlite-pvc
+      pvc:
+        storageClassName: manual-test-north-hub-db
     allowNamedServers: true
     config:
       JupyterHub:
@@ -99,8 +100,24 @@ jupyterhub:
         userdata_params:
           state: state
   singleuser:
+    podNameTemplate: "nomad-test-v1-north-{username}--{servername}"
+    initContainers:
+      - name: fix-permissions
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsUser: 0
+        command: ["/bin/sh", "-c", "chown 1000:100 /home/jovyan"]
+        volumeMounts:
+          - mountPath: /home/jovyan
+            name: home
+            subPath: "{username}"
     storage:
-      type: none
+      type: static
+      homeMountPath: /home/jovyan/work
+      static:
+        pvcName: test-north-home
+        subPath: "{username}"
   cull:
     enabled: true
     timeout: 3600

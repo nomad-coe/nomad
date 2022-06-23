@@ -77,10 +77,9 @@ datacite:
 
 services:
   jupyterhub:
-    enabled: true
+    enabled: false
 
 jupyterhub:
-  # enabled: true
   fullnameOverride: "nomad-prod-v1"
   nameOverride: "nomad"
   proxy:
@@ -89,7 +88,9 @@ jupyterhub:
   hub:
     baseUrl: "/prod/v1/"
     db:
-      type: sqlite-memory
+      type: sqlite-pvc
+      pvc:
+        storageClassName: manual-prod-north-hub-db
     allowNamedServers: true
     config:
       JupyterHub:
@@ -108,10 +109,24 @@ jupyterhub:
         userdata_params:
           state: state
   singleuser:
+    podNameTemplate: "nomad-prod-v1-north-{username}--{servername}"
+    initContainers:
+      - name: fix-permissions
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsUser: 0
+        command: ["/bin/sh", "-c", "chown 1000:100 /home/jovyan"]
+        volumeMounts:
+          - mountPath: /home/jovyan
+            name: home
+            subPath: "{username}"
     storage:
-      type: none
-      #  /nomad/fairdi/prod/fs/north
-      # possibly with db prefix
+      type: static
+      homeMountPath: /home/jovyan/work
+      static:
+        pvcName: prod-north-home
+        subPath: "{username}"
   cull:
     enabled: true
     timeout: 3600
