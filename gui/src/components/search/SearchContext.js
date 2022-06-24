@@ -937,53 +937,6 @@ export const SearchContext = React.memo(({
     apiCallInterMediate(query, aggs, pagination, resultsUsed)
   }, [query, aggs, pagination, resultsUsed, apiCallInterMediate])
 
-  // const useRefresh = useCallback(() => {
-  //   const query = useRecoilValue(queryState)
-  //   const aggs = useRecoilValue(aggsState)
-  //   const pagination = useRecoilValue(paginationState)
-  //   const resultsUsed = useRecoilValue(resultsUsedState)
-
-  //   const refresh = useCallback(() => {
-  //     apiCallInterMediate(query, aggs, pagination, resultsUsed, undefined, true)
-  //   }, [aggs, pagination, query, resultsUsed])
-  //   return refresh
-  // }, [aggsState, apiCallInterMediate, paginationState, queryState, resultsUsedState])
-
-  // Hook for imperatively requesting aggregation data. By using this hook you
-  // can track the state of individual calls and perform callbacks.
-  // const useAggCall = useCallback((name, id) => {
-  //   const key = useMemo(() => `${name}:${id}`, [name, id])
-  //   const query = useRecoilValue(queryState)
-  //   const pagination = useRecoilValue(paginationState)
-  //   const resultsUsed = useRecoilValue(resultsUsedState)
-  //   const setAgg = useSetRecoilState(aggsFamily(key))
-
-  //   /**
-  //    * @param {number} size The new aggregation size
-  //    * @param {string} id Identifier for this call
-  //    * @param {function} callback: Function that returns an array containing the
-  //    * new aggregation response and an error if one was encountered. Returns the
-  //    * special value 'undefined' for the response if no update was necessary.
-  //    */
-  //   const aggCall = useCallback((config, callback) => {
-  //     const aggs = {[key]: {...config, update: true}}
-  //     apiCallInterMediate(
-  //       query, aggs, pagination, resultsUsed,
-  //       (response) => callback(response && response[key])
-  //     )
-
-  //     // We also need to update aggregation request state, otherwise the
-  //     // subsequent calls will not be able to know what was done by this call.
-  //     // To do this without triggering another API call, we disable API updates
-  //     // for one cycle.
-  //     disableUpdate.current = true
-  //     aggs[key].update = false
-  //     setAgg(aggs[key])
-  //   }, [key, query, pagination, resultsUsed, setAgg])
-
-  //   return aggCall
-  // }, [queryState, paginationState, resultsUsedState, aggsFamily, apiCallInterMediate])
-
   // This updated the query string to represent the latest value within the
   // search context.
   useEffect(() => {
