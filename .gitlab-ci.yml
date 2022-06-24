@@ -229,7 +229,7 @@ stop deploy dev:
     - mkdir ~/.kube/
     - echo ${CI_K8S_CONFIG} | base64 -d > ~/.kube/config
   script:
-    - helm uninstall $CI_ENVIRONMENT_SLUG
+    - helm uninstall $CI_ENVIRONMENT_SLUG --namespace nomad
   when: manual
 
 deploy prod:
