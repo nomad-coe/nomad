@@ -102,7 +102,7 @@ data:
       }
 
       location {{ .Values.proxy.external.path }}/north/ {
-          proxy_pass http://{{ include "nomad.fullname" . }}-proxy-public;
+          proxy_pass http://{{ include "jupyterhub.fullname" . }}-proxy-public;
 
           proxy_set_header X-Real-IP $remote_addr;
           proxy_set_header Host $host;

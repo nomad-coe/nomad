@@ -52,8 +52,8 @@ services:
 
 jupyterhub:
   # enabled: true
-  fullnameOverride:
-  nameOverride:
+  fullnameOverride: null
+  nameOverride: "north"
   proxy:
     service:
       type: ClusterIP

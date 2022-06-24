@@ -189,3 +189,9 @@ datacite:
 services:
   jupyterhub:
     enabled: false
+
+
+# jupyterhub:
+#   enabled: true
+#   fullnameOverride: null
+#   nameOverride: "north"

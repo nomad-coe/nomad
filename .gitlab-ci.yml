@@ -202,8 +202,7 @@ deploy dev:
       --values ops/helm/nomad/deployments/dev-values.yaml
       --set proxy.external.path=/dev/rae/$CI_ENVIRONMENT_SLUG
       --set jupyterhub.hub.baseUrl=/dev/rae/$CI_ENVIRONMENT_SLUG/north
-      --set jupyterhub.fullnameOverride=${CI_ENVIRONMENT_SLUG}
-      --set jupyterhub.nameOverride="nomad"
+      --set jupyterhub.fullnameOverride=${CI_ENVIRONMENT_SLUG}-north
       --set jupyterhub.singleuser.podNameTemplate="${CI_ENVIRONMENT_SLUG}-north-{username}--{servername}"
       --set jupyterhub.hub.config.GenericOAuthenticator.oauth_callback_url=https://nomad-lab.eu/dev/rae/$CI_ENVIRONMENT_SLUG/north/hub/oauth_callback
       --set image.tag=$CI_COMMIT_REF_SLUG

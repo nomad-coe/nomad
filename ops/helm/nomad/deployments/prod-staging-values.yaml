@@ -83,8 +83,7 @@ services:
     enabled: true
 
 jupyterhub:
-  fullnameOverride: "nomad-staging-v1"
-  nameOverride: "nomad"
+  fullnameOverride: "nomad-staging-v1-north"
   proxy:
     service:
       type: ClusterIP

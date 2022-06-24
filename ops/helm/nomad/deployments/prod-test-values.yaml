@@ -71,8 +71,7 @@ services:
     enabled: false
 
 jupyterhub:
-  fullnameOverride: "nomad-test-v1"
-  nameOverride: "nomad"
+  fullnameOverride: "nomad-test-v1-north"
   proxy:
     service:
       type: ClusterIP

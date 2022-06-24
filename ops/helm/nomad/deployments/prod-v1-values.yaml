@@ -80,8 +80,7 @@ services:
     enabled: false
 
 jupyterhub:
-  fullnameOverride: "nomad-prod-v1"
-  nameOverride: "nomad"
+  fullnameOverride: "nomad-prod-v1-north"
   proxy:
     service:
       type: ClusterIP
