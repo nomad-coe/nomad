@@ -193,7 +193,7 @@ deploy_dev:
     deployment_tier: development
     url: https://nomad-lab.eu/dev/rae/$CI_ENVIRONMENT_SLUG
     auto_stop_in: 7 days
-    on_stop: stop_dev
+    on_stop: stop_deploy_dev
   before_script:
     - mkdir ~/.kube/
     - echo ${CI_K8S_CONFIG} | base64 -d > ~/.kube/config
