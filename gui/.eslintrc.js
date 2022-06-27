@@ -24,6 +24,18 @@ module.exports = {
             "anonymous": "never"
         }],
         "camelcase": [0],
+        "object-curly-spacing": [0],
+        "object-curly-newline": [0],
+        "no-var": ["error"],
+        "prefer-const": [0],
+        "quotes": [0],
+        "quote-props": [0],
+        "indent": [0],
+        "multiline-ternary": [0],
+        "no-empty": [0],
+        "object-shorthand": [0],
+        "dot-notation": [0],
+        "lines-between-class-members": [0],
         "react-hooks/rules-of-hooks": "error",
         "react-hooks/exhaustive-deps": "warn",
         "react/display-name": [0]

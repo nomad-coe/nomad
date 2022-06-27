@@ -344,18 +344,17 @@ function EditMembersDialog({...props}) {
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
 
   const getUsers = useCallback((user_ids, roles) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let response = await api.get(`users?user_id=${user_ids.join('&user_id=')}`)
-        let members = response['data'].map((member, index) => {
-          member.role = roles[index]
-          return member
+    return new Promise((resolve, reject) => {
+      api.get(`users?user_id=${user_ids.join('&user_id=')}`)
+        .then(response => {
+          const members = response['data'].map((member, index) => {
+            member.role = roles[index]
+            return member
+          })
+          resolve(members)
         })
-        resolve(members)
-      } catch (error) {
-        reject(new Error('Unable to fetch the members' + error))
-      }
-    })
+        .catch(error => reject(new Error('Unable to fetch the members' + error)))
+      })
   }, [api])
 
   const fetchMembers = useCallback(() => {

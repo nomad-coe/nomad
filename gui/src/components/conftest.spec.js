@@ -41,12 +41,42 @@ import { APIProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import DataStore from './DataStore'
 import searchQuantities from '../searchQuantities'
-import '@testing-library/jest-dom/extend-expect' // Adds convenient expect-methods
 import { keycloakBase } from '../config'
+import { useKeycloak } from 'react-keycloak'
 import { GlobalMetainfo, createGlobalMetainfo } from './archive/metainfo'
 import metainfoData from '../metainfo'
 
 beforeEach(async () => {
+  // For some strange reason, the useKeycloak mock gets reset if we set it earlier
+  if (!useKeycloak()) {
+    useKeycloak.mockReturnValue(
+      [
+        {
+          // Default Keycloak mock
+          init: jest.fn().mockResolvedValue(true),
+          updateToken: jest.fn(),
+          login: jest.fn(),
+          logout: jest.fn(),
+          register: jest.fn(),
+          accountManagement: jest.fn(),
+          createLoginUrl: jest.fn(),
+          loadUserInfo: jest.fn(),
+          authenticated: false,
+          token: '',
+          refreshToken: ''
+        },
+        true
+      ])
+  }
+
+  // Mock the window.ResizeObserver (jest does not seem to mock it in a way that works)
+  class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  window.ResizeObserver = ResizeObserver
+
   metainfoData._metaInfo = await createGlobalMetainfo()
 })
 
@@ -55,29 +85,14 @@ const crypto = require('crypto')
 const { execSync } = require('child_process')
 const keycloakURL = `${keycloakBase}realms/fairdi_nomad_test/protocol/openid-connect/token`
 
-jest.mock('react-keycloak', () => ({
-  ...jest.requireActual('react-keycloak'),
-  useKeycloak: jest.fn()
-}))
-// eslint-disable-next-line import/first
-import { useKeycloak } from 'react-keycloak'
+jest.mock('react-keycloak', () => {
+  const originalModule = jest.requireActual('react-keycloak')
 
-// Default Keycloak mock
-let defaultKeycloakMock = {
-  init: jest.fn().mockResolvedValue(true),
-  updateToken: jest.fn(),
-  login: jest.fn(),
-  logout: jest.fn(),
-  register: jest.fn(),
-  accountManagement: jest.fn(),
-  createLoginUrl: jest.fn(),
-  loadUserInfo: jest.fn(),
-  authenticated: false,
-  token: '',
-  refreshToken: ''
-}
-useKeycloak.mockImplementation(() => {
-  return [defaultKeycloakMock, true]
+  return {
+    __esModule: true,
+    ...originalModule,
+    useKeycloak: jest.fn()
+  }
 })
 
 /*****************************************************************************/
@@ -467,7 +482,7 @@ function mockKeycloak(username, password) {
   }
 
   const updateToken = (refresh_token) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         let command = `curl -s -X POST ${keycloakURL} \\
       -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
@@ -527,7 +542,7 @@ function mockKeycloak(username, password) {
   }
 
   const loadUserInfo = (username) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const user = testUsers[username]
         resolve(user)
@@ -555,9 +570,7 @@ function mockKeycloak(username, password) {
     login(username, password)
   }
 
-  useKeycloak.mockImplementation(() => {
-    return [mockedKeycloak, true]
-  })
+  useKeycloak.mockReturnValue([mockedKeycloak, true])
 }
 
 /**
@@ -653,13 +666,17 @@ export async function readArchive(path) {
   return {archive, index, properties}
 }
 
-const consoleSpies = {}
+export const consoleSpies = {}
+const consoleIgnoreStrings = [
+  'Warning: You seem to have overlapping act()',
+  'Warning: An update to %s inside a test was not wrapped in act'
+]
 
 /**
  * Utility for spying on the console, and yielding errors if something is printed to it
  * (since most of the time, we don't want anything to be printed to the console).
  * Typical usage: call blockConsoleOutput before the test, and unblockConsoleOutput after,
- * for example using beforeEach and afterEach.
+ * for example using beforeEach and afterEach. Note, some common jest warnings are ignored.
  */
 export function blockConsoleOutput() {
   if (consoleSpies.logSpy) {
@@ -670,14 +687,42 @@ export function blockConsoleOutput() {
 }
 
 /**
- * Expects that nothing has been written to the console (so far)
+ * Returns a list with the strings printed to the console, except excluded jest warnings.
+ */
+export function filteredConsoleOutput() {
+  const rv = []
+  for (const consoleSpy of [consoleSpies.logSpy, consoleSpies.errorSpy]) {
+    for (const call of consoleSpy.mock.calls) {
+      let message = '' + call[0]
+      let isOk = false
+      for (const s of consoleIgnoreStrings) {
+        if (message.startsWith(s)) {
+          isOk = true
+          break
+        }
+      }
+      if (!isOk) {
+        rv.push(message)
+      }
+    }
+  }
+  return rv
+}
+
+/**
+ * Expects that nothing has been written to the console (so far). Note, some common jest warnings are ignored.
  */
 export function expectNoConsoleOutput() {
   if (!consoleSpies.logSpy) {
     throw Error('Need to call blockConsoleOutput before using this method!')
   }
-  expect(consoleSpies.logSpy).not.toBeCalled()
-  expect(consoleSpies.errorSpy).not.toBeCalled()
+  const consoleOutput = filteredConsoleOutput()
+  if (consoleOutput.length) {
+    for (const message of consoleOutput) {
+      process.stdout.write(`Unexpected console output: ${message}\n`)
+    }
+    expect(consoleOutput.length).toBe(0) // Fails
+  }
 }
 
 /**

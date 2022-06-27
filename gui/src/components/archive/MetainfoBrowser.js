@@ -760,17 +760,19 @@ const useVicinityGraphStyles = makeStyles(theme => ({
   }
 }))
 
+const linkColors = {
+  [QuantityMDef]: purple[500],
+  '_none': grey[700]
+}
+const nodeColors = {
+  [QuantityMDef]: lime[500],
+  [SectionMDef]: blue[500],
+  [CategoryMDef]: teal[500]
+}
+
 export function VicinityGraph({def}) {
   const globalMetainfo = useGlobalMetainfo()
-  const linkColors = {
-    [QuantityMDef]: purple[500],
-    '_none': grey[700]
-  }
-  const nodeColors = {
-    [QuantityMDef]: lime[500],
-    [SectionMDef]: blue[500],
-    [CategoryMDef]: teal[500]
-  }
+
   const graph = useMemo(() => {
     const graph = vicinityGraph(def)
     let x1 = Math.min(...graph.nodes.map(n => n.x)) - 32
@@ -845,7 +847,7 @@ export function VicinityGraph({def}) {
         .attr('transform', d => 'translate(' + d.x + ',' + d.y + ')')
     }
     ticked()
-  }, [graph, history, linkColors, nodeColors, svgRef, globalMetainfo])
+  }, [graph, history, svgRef, globalMetainfo])
 
   useLayoutEffect(() => {
     svgRef.current.style.height = svgRef.current.clientWidth / graph.aspectRatio

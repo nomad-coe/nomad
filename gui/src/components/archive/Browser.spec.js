@@ -19,7 +19,7 @@ import { join, basename } from 'path'
 import React from 'react'
 import PropTypes from 'prop-types'
 import { waitFor } from '@testing-library/dom'
-import { render, screen, within } from '../conftest.spec'
+import { blockConsoleOutput, expectNoConsoleOutput, filteredConsoleOutput, consoleSpies, render, screen, within } from '../conftest.spec'
 import { itemsInTreePath, checkLanes, navigateTo, selectItemAndWaitForRender, getLane } from './conftest.spec'
 import Browser, { Item, Content, Compartment, Adaptor, Title, laneErrorBoundryMessage } from './Browser'
 
@@ -77,8 +77,7 @@ TestContent.propTypes = {
 }
 
 test('Test browser lane error boundry', async () => {
-  const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+  blockConsoleOutput()
 
   try {
     const browserConfig = { browserTree, rootTitle: 'Root title' }
@@ -91,15 +90,13 @@ test('Test browser lane error boundry', async () => {
     await checkLanes('', browserConfig)
     await navigateTo('dir1', browserConfig)
     await navigateTo('dir1/success', browserConfig)
-    expect(consoleLogSpy).not.toBeCalled()
-    expect(consoleErrorSpy).not.toBeCalled()
+    expectNoConsoleOutput()
     // Call lane which fails to render
     await expect(selectItemAndWaitForRender(getLane(1), 1, 'fail')).rejects.toThrow()
     expect(within(getLane(2)).queryByText(laneErrorBoundryMessage)).not.toBeNull()
-    expect(consoleLogSpy).toBeCalled()
-    expect(consoleErrorSpy).toBeCalled()
+    expect(filteredConsoleOutput().length).not.toBe(0)
   } finally {
-    consoleLogSpy.mockRestore()
-    consoleErrorSpy.mockRestore()
+    consoleSpies.logSpy.mockRestore()
+    consoleSpies.errorSpy.mockRestore()
   }
 })

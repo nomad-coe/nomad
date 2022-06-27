@@ -78,7 +78,7 @@ RUN \
     find /usr/local/lib/python3.7/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" | grep -v h5py && strip -s "{}"' \;
 
 # Built the GUI in the gui build image
-FROM node:14.8 as gui_build
+FROM node:16.15 as gui_build
 RUN mkdir -p /app
 WORKDIR /app
 ENV PATH /app/node_modules/.bin:$PATH
@@ -102,7 +102,7 @@ FROM final
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && apt-get install -y libmagic-dev curl vim zip unzip
 # Install the proxy used by north
 RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-RUN apt-get install -y nodejs
+RUN apt-get install -y nodejs=16.15.1-deb-1nodesource1
 RUN npm install -g configurable-http-proxy
 
 # copy the sources for tests, coverage, qa, etc.

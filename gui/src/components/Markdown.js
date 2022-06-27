@@ -33,7 +33,7 @@ import { appBase } from '../config'
  * It uses marked with styled 'borrowed' from the materials ui docs system.
  */
 
-var styles = theme => {
+const styles = theme => {
   return {
     root: {
       fontFamily: theme.typography.fontFamily,

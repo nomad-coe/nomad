@@ -1,10 +1,6 @@
 {
     "presets": [
-        "@babel/react", "@babel/env", "next/babel", {
-            "targets": {
-                "node": "current"
-            }
-        }
+        "@babel/react"
     ],
     "sourceMap": "inline",
     "retainLines": true

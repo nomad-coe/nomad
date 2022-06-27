@@ -63,7 +63,7 @@ export function expectNoLatticeParameters(index, root = screen) {
   expect(within(parent).getByText('no data')).toBeInTheDocument()
 }
 
-export function expectStructure(index, root = screen) {
+export async function expectStructure(index, root = screen) {
   // Before clicking only the default value should be visible
   const select = root.getByText('Original')
   expect(select).toBeInTheDocument()
@@ -74,8 +74,8 @@ export function expectStructure(index, root = screen) {
 
   // After clicking all the options should be shown
   userEvent.click(select)
-  expect(root.queryByText('Conventional')).toBeInTheDocument()
-  expect(root.queryByText('Primitive')).toBeInTheDocument()
+  expect(await root.findByText('Conventional')).toBeInTheDocument()
+  expect(await root.findByText('Primitive')).toBeInTheDocument()
   userEvent.click(select)
 }
 

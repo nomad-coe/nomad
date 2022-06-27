@@ -159,10 +159,9 @@ export function useSuggestions(quantities, input, minLength = 2, debounceTime = 
   }, [api, minLength])
 
   // Debounced version
-  const fetchSuggestionsDebounced = useCallback(
-    debounce(fetchSuggestions, debounceTime),
-    [fetchSuggestions]
-  )
+  const fetchSuggestionsDebounced = useMemo(() => (
+    debounce(fetchSuggestions, debounceTime)
+  ), [fetchSuggestions, debounceTime])
 
   // Whenever input or the targeted quantities change, fetch suggestions
   useEffect(() => {

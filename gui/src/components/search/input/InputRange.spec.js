@@ -61,7 +61,7 @@ describe('test initial state', () => {
     }
 
     // Get the formatted datetime in current timezone (timezones differ, so the
-    // local timezone must be used in order to prevent tests from braking).
+    // local timezone must be used in order to prevent tests from breaking).
     if (dtype === DType.Timestamp) {
       min = format(min, 'dd/MM/yyyy kk:mm')
       max = format(max, 'dd/MM/yyyy kk:mm')
@@ -94,9 +94,11 @@ describe('test invalid/valid numeric input', () => {
       `field: ${field}, input: %s, valid: %s`,
       async (input, valid) => {
         renderSearchEntry(<InputRange visible quantity={quantity} disableHistogram={!histogram}/>)
+        const user = userEvent.setup()
         const field = await screen.findByDisplayValue(value)
-        userEvent.type(field, input)
-        fireEvent.keyDown(field, {key: 'Enter', code: 'Enter'})
+        await user.clear(field)
+        await user.type(field, input)
+        await user.keyboard('[Enter]')
         if (valid) {
           expect(screen.queryByText(message)).toBeNull()
         } else {
@@ -187,10 +189,10 @@ test.each([
   expect(sliderMax).toHaveStyle(`left: 100%`)
 
   // After changing the min field to 25%, min slider moves to 25% position.
-  testSliderMove(quantity, min, max, inputMin, sliderMin, 25, false, histogram)
+  await testSliderMove(quantity, min, max, inputMin, sliderMin, 25, false, histogram)
 
   // After changing the max field to 75%, min slider moves to 75% position.
-  testSliderMove(quantity, min, max, inputMax, sliderMax, 75, true, histogram)
+  await testSliderMove(quantity, min, max, inputMax, sliderMax, 75, true, histogram)
   closeAPI()
 })
 
@@ -205,14 +207,18 @@ test.each([
  * @param {bool} isMax Is the max knob being moved.
  * @param {bool} isMax Is the slider shown for a histogram.
  */
-function testSliderMove(quantity, min, max, input, slider, percentage, isMax, histogram) {
+async function testSliderMove(quantity, min, max, input, slider, percentage, isMax, histogram) {
   const data = filterData[quantity]
   const dtype = data.dtype
   const discretization = (histogram && dtype === DType.Int) ? 1 : 0
   const range = max - min + discretization
   const value = min + range * (percentage / 100) - (isMax ? discretization : 0)
-  userEvent.type(input, value.toString())
-  fireEvent.keyDown(input, {key: 'Enter', code: 'Enter'})
+
+  const user = userEvent.setup()
+  await user.clear(input)
+  await user.type(input, value.toString())
+  await user.keyboard('[Enter]')
+
   const style = window.getComputedStyle(slider)
   const left = parseFloat(style.getPropertyValue('left').slice(0, -1))
   expect(left).toBeCloseTo(percentage, 8)

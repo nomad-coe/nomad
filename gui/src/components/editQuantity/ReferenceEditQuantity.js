@@ -74,10 +74,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       setSuggestions(response.data)
     }).catch(raiseError)
   }, [api, raiseError, fetchedSuggestionsFor, setSuggestions, referencedSectionQualifiedName])
-  const fetchSuggestionsDebounced = useCallback(
-    debounce(fetchSuggestions, 500),
-    [fetchSuggestions]
-  )
+  const fetchSuggestionsDebounced = useMemo(() => debounce(fetchSuggestions, 500), [fetchSuggestions])
 
   useEffect(() => {
     if (!value || value === '') {

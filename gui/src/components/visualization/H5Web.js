@@ -4,8 +4,8 @@ import { appBase } from '../../config'
 import { App, H5GroveProvider } from '@h5web/app'
 import { useApi } from '../api'
 
-import '@h5web/app/dist/style-lib.css'
-import '@h5web/app/dist/style.css'
+import '@h5web/lib/dist/styles.css'
+import '@h5web/app/dist/styles.css'
 
 const H5Web = ({upload_id, filename}) => {
   const {api} = useApi()

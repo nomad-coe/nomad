@@ -68,9 +68,6 @@ const nElementMap = {
   10: 'decimary'
 }
 const MaterialCard = React.memo(({index, properties, archive}) => {
-  if (!index?.results?.material) {
-    return ''
-  }
   // Find out which properties are present
   const structures = index?.results?.properties?.structures
   const hasStructures = structures?.structure_original ||
@@ -103,6 +100,14 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
   }
   const [structureType, setStructureType] = useState(defaultStructure)
 
+  const handleStructureChange = useCallback((event) => {
+    setStructureType(event.target.value)
+  }, [])
+
+  if (!index?.results?.material) {
+    return null
+  }
+
   // Prepare the data for the visualizer
   const urlPrefix = `${window.location.pathname.slice(guiBase.length)}/data/results/properties/structures`
   const materialId = index.results?.material?.material_id
@@ -110,10 +115,6 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
   const structureSection = archive?.results?.properties?.structures?.[structureType]
   const m_path = `${urlPrefix}/${structureType}`
   let structure = structureSection && toMateriaStructure(structureSection)
-
-  const handleStructureChange = useCallback((event) => {
-    setStructureType(event.target.value)
-  }, [])
 
   // Dropdown for selecting a specific structure
   const select = hasStructures && <FormControl>

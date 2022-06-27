@@ -134,10 +134,7 @@ export const NumberField = React.memo((props) => {
   }, [convertInPlace, deserialize, displayUnit, onChange, unit])
 
   // Routes text field changes to a handler after a debounce time
-  const debouncedHandleChange = useCallback(
-    debounce(handleChange, 500),
-    [handleChange]
-  )
+  const debouncedHandleChange = useMemo(() => debounce(handleChange, 500), [handleChange])
 
   // When input changes, saves the entered text into a state and queues a
   // processing event with debounce time.

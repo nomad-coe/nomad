@@ -88,7 +88,7 @@ test('Render uploads page: sort by upload create time', async () => {
 
   // Testing the example list to contain the exampleUploads json file
   let exampleUploadsKeys = Object.keys(exampleUploadsJSON)
-  exampleUploadsKeys.map((category) => {
+  exampleUploadsKeys.forEach((category) => {
     expect(screen
       .getByRole('heading', { name: exampleUploadsJSON[category].title }))
       .toBeInTheDocument()
