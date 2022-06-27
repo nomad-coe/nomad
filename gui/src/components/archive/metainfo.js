@@ -310,9 +310,11 @@ class Metainfo {
     sectionDef._qualifiedName = parentDef ? `${parentDef._qualifiedName || parentDef._unique_id || parentDef.name}.${sectionDef.name}` : sectionDef.name
     sectionDef._package = pkg
 
-    sectionDef.inner_section_definitions.forEach((innerSectionDef, index) => (
-      this._addSection(pkg, innerSectionDef, sectionDef, 'inner_section_definitions', index)
-    ))
+    let index = 0
+    for (const innerSectionDef of sectionDef.inner_section_definitions) {
+      await this._addSection(pkg, innerSectionDef, sectionDef, 'inner_section_definitions', index)
+      index++
+    }
 
     const addPropertiesFromSections = async sections => {
       for (const ref of sections) {
