@@ -44,12 +44,12 @@ const GeometryOptimization = React.memo(({energies, convergence, className, clas
     }
 
     // Convert energies into the correct units and calculate the total difference
-    let energyDiffTotal = new Quantity(diffTotal(energies), energyUnit).toSystem(units).value()
-    let convergenceCriteria = isNil(convergence?.convergence_tolerance_energy_difference)
+    const energyDiffTotal = new Quantity(diffTotal(energies), energyUnit).toSystem(units).value()
+    const convergenceCriteria = isNil(convergence?.convergence_tolerance_energy_difference)
       ? undefined
       : new Quantity(convergence.convergence_tolerance_energy_difference, energyUnit).toSystem(units).value()
 
-    let steps = [...Array(energies.length).keys()]
+    const steps = [...Array(energies.length).keys()]
     const energyDiff = []
     for (let i = 0; i < energyDiffTotal.length - 1; ++i) {
       energyDiff.push(Math.abs(energyDiffTotal[i + 1] - energyDiffTotal[i]))

@@ -127,7 +127,7 @@ export const InputTextQuantity = React.memo(({
     if (value.trim().length === 0) {
       return
     }
-    let valid = true
+    const valid = true
     if (valid) {
       // Submit to search context on successful validation.
       setFilter(old => {

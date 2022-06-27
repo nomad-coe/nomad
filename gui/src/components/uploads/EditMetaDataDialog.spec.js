@@ -36,12 +36,12 @@ const testComment = async () => {
   await waitFor(() => expect(screen.queryByText('Submit')).toBeInTheDocument())
 
   expect(screen.queryByButtonText('Submit')).toBeDisabled()
-  let dialog = screen.getByTestId('edit-metadata-dialog')
+  const dialog = screen.getByTestId('edit-metadata-dialog')
   expect(within(dialog).queryByText('Edit upload meta data')).toBeInTheDocument()
   expect(within(dialog).queryByText('Comments')).toBeInTheDocument()
   expect(within(dialog).queryByText('Mocked')).toBeInTheDocument()
 
-  let commentField = within(dialog).getByTestId('metadata-comment-field')
+  const commentField = within(dialog).getByTestId('metadata-comment-field')
   fireEvent.change(commentField, {target: {value: 'new comment'}})
   await waitFor(() => expect(screen.queryByText('Submit')).toBeEnabled())
 }
@@ -55,7 +55,7 @@ const testReferences = async () => {
   await waitFor(() => expect(screen.queryByText('Submit')).toBeInTheDocument())
 
   expect(screen.queryByButtonText('Submit')).toBeDisabled()
-  let dialog = screen.getByTestId('edit-metadata-dialog')
+  const dialog = screen.getByTestId('edit-metadata-dialog')
   expect(within(dialog).queryByText('Edit upload meta data')).toBeInTheDocument()
   expect(within(dialog).queryByText('References')).toBeInTheDocument()
   expect(within(dialog).queryByText('Datasets')).toBeInTheDocument()
@@ -73,8 +73,8 @@ const testReferences = async () => {
   expect(rows.length).toBe(0)
   expect(screen.queryByTestId('reference-delete-action')).not.toBeInTheDocument()
 
-  let referenceField = within(dialog).getByTestId('new-reference-field')
-  let referenceAddButton = within(dialog).queryByTestId('reference-add-button')
+  const referenceField = within(dialog).getByTestId('new-reference-field')
+  const referenceAddButton = within(dialog).queryByTestId('reference-add-button')
 
   fireEvent.change(referenceField, {target: {value: 'invalid url'}})
   await waitFor(() => expect(referenceAddButton).toBeEnabled())
@@ -106,7 +106,7 @@ const testDatasetForPublished = async () => {
   await waitFor(() => expect(screen.queryByText('Submit')).toBeInTheDocument())
 
   expect(screen.queryByButtonText('Submit')).toBeDisabled()
-  let dialog = screen.getByTestId('edit-metadata-dialog')
+  const dialog = screen.getByTestId('edit-metadata-dialog')
   expect(within(dialog).queryByText('Edit upload meta data')).toBeInTheDocument()
   expect(within(dialog).queryByText('Comments')).toBeInTheDocument()
   expect(within(dialog).queryByText('Mocked')).toBeInTheDocument()
@@ -114,13 +114,13 @@ const testDatasetForPublished = async () => {
   fireEvent.click(screen.getByTestId('reference-delete-action'))
   await waitFor(() => expect(screen.queryByText('doi')).not.toBeInTheDocument())
 
-  let datasetField = within(dialog).getByTestId('new-dataset-field')
+  const datasetField = within(dialog).getByTestId('new-dataset-field')
   fireEvent.change(datasetField, {target: {value: 'new dataset (1)'}})
   await waitFor(() => expect(within(dialog).queryByText('add entry to new dataset')).toBeEnabled())
 
   fireEvent.click(within(dialog).queryByText('add entry to new dataset'))
   await waitFor(() => expect(within(dialog).queryByText('add entry to new dataset')).not.toBeInTheDocument())
-  let rows = within(dialog).queryAllByTestId('datatable-row')
+  const rows = within(dialog).queryAllByTestId('datatable-row')
   expect(rows.length).toBe(1)
 
   expect(within(rows[0]).queryByText('new dataset (1)')).toBeInTheDocument()

@@ -181,8 +181,8 @@ function saveFilter(name, group, config, parent) {
 function registerFilter(name, group, config, subQuantities) {
   saveFilter(name, group, config)
   if (subQuantities) {
-    for (let subConfig of subQuantities) {
-      let subname = `${name}.${subConfig.name}`
+    for (const subConfig of subQuantities) {
+      const subname = `${name}.${subConfig.name}`
       saveFilter(subname, group, subConfig, name)
     }
   }

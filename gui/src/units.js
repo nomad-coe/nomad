@@ -613,7 +613,7 @@ export function getUnits(dimension) {
  */
 export function parseQuantity(input, requireValue = true, requireUnit = true, dimension = undefined) {
   input = input.trim()
-  let valueString = input.match(/^[+-]?((\d+\.\d+|\d+\.|\.\d?|\d+)(e|e\+|e-)\d+|(\d+\.\d+|\d+\.|\.\d?|\d+))?/)?.[0]
+  const valueString = input.match(/^[+-]?((\d+\.\d+|\d+\.|\.\d?|\d+)(e|e\+|e-)\d+|(\d+\.\d+|\d+\.|\.\d?|\d+))?/)?.[0]
   if (requireValue && isNil(valueString)) {
     return {error: 'Enter a valid numerical value'}
   }

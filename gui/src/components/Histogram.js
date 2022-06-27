@@ -38,7 +38,7 @@ function isSelected(d, selected, multiple) {
       isSelected = false
     } else {
       if (Array.isArray(selected)) {
-        let selections = new Set(selected)
+        const selections = new Set(selected)
         isSelected = selections.has(d.key)
       } else {
         isSelected = selected === d.key
@@ -99,7 +99,7 @@ export default function Histogram({
 
   useEffect(() => {
     // TODO add proper treatment of not processed on server side and processing
-    let numberOfValuesToRender = numberOfValues
+    const numberOfValuesToRender = numberOfValues
     // if (data[data.length - 1] && data[data.length - 1].key === 'not processed') {
     //   if (data[data.length - 2].key === 'unavailable') {
     //     data[data.length - 2].value += data[data.length - 1].value

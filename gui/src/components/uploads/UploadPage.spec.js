@@ -37,7 +37,7 @@ const testShownColumnsAction = async () => {
   expect(screen.queryByText('References')).not.toBeInTheDocument()
   expect(screen.queryByText('Datasets')).not.toBeInTheDocument()
 
-  let uploadPageRows = screen.queryAllByTestId('datatable-row')
+  const uploadPageRows = screen.queryAllByTestId('datatable-row')
   expect(uploadPageRows.length).toBe(1)
   expect(within(uploadPageRows[0]).queryByText('Mocked')).not.toBeInTheDocument()
   expect(within(uploadPageRows[0]).queryByText('doi')).not.toBeInTheDocument()
@@ -236,10 +236,10 @@ test('Render upload page: multiple entries', async () => {
   expect(screen.queryByTestId('table-pagination')).toBeInTheDocument()
   expect(screen.queryByTestId('datatable-body')).toBeInTheDocument()
 
-  let datatableBody = screen.getByTestId('datatable-body')
+  const datatableBody = screen.getByTestId('datatable-body')
 
   // Test if the pagination works correctly
-  let rows = screen.queryAllByTestId('datatable-row')
+  const rows = screen.queryAllByTestId('datatable-row')
   expect(rows.length).toBe(5)
   expect(within(datatableBody).queryByText('vasp_6.xml')).not.toBeInTheDocument()
 

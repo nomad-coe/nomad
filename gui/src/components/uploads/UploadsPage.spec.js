@@ -31,7 +31,7 @@ import {fireEvent, waitFor, waitForElementToBeRemoved} from '@testing-library/re
 
 test('Render uploads page: sort by upload create time', async () => {
   await startAPI('tests.states.uploads.multiple_uploads', 'tests/data/uploads/uploadspage', 'test', 'password')
-  let Component = withLoginRequired(UploadsPage, undefined)
+  const Component = withLoginRequired(UploadsPage, undefined)
   render(<Component/>)
 
   // Wait to load the page, i.e. wait for some text to appear
@@ -39,7 +39,7 @@ test('Render uploads page: sort by upload create time', async () => {
     expect(screen.queryByText('1-10 of 11')).toBeInTheDocument()
   })
 
-  let datatableBody = screen.getByTestId('datatable-body')
+  const datatableBody = screen.getByTestId('datatable-body')
 
   // Test if the pagination works correctly
   let rows = screen.queryAllByTestId('datatable-row')
@@ -76,18 +76,18 @@ test('Render uploads page: sort by upload create time', async () => {
   }
 
   // Testing the "Add example uploads" functionality
-  let exampleButton = screen.getByRole('button', { name: /add example uploads/i })
+  const exampleButton = screen.getByRole('button', { name: /add example uploads/i })
 
   // Testing for Example Button to be in the document
   expect(exampleButton).toBeInTheDocument()
 
   // Testing for the example button to show the Dialog box with a list of examples
   fireEvent.click(exampleButton)
-  let dialogTitle = screen.getByRole('heading', { name: /select a sample upload/i })
+  const dialogTitle = screen.getByRole('heading', { name: /select a sample upload/i })
   expect(dialogTitle).toBeInTheDocument()
 
   // Testing the example list to contain the exampleUploads json file
-  let exampleUploadsKeys = Object.keys(exampleUploadsJSON)
+  const exampleUploadsKeys = Object.keys(exampleUploadsJSON)
   exampleUploadsKeys.forEach((category) => {
     expect(screen
       .getByRole('heading', { name: exampleUploadsJSON[category].title }))

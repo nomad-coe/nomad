@@ -207,7 +207,7 @@ export const SearchContext = React.memo(({
       key: `filtersState_${indexContext}`,
       get: ({get}) => {
         const query = {}
-        for (let key of filters) {
+        for (const key of filters) {
           const filter = get(queryFamily(key))
           query[key] = filter
         }
@@ -229,7 +229,7 @@ export const SearchContext = React.memo(({
       key: `lockedState_${indexContext}`,
       get: ({get}) => {
         const locks = {}
-        for (let key of filters) {
+        for (const key of filters) {
           const filter = get(lockedFamily(key))
           locks[key] = filter
         }
@@ -244,8 +244,8 @@ export const SearchContext = React.memo(({
     const queryState = selector({
       key: `query_${indexContext}`,
       get: ({get}) => {
-        let query = {}
-        for (let key of filters) {
+        const query = {}
+        for (const key of filters) {
           const filter = get(queryFamily(key))
           if (filter !== undefined) {
             query[key] = filter
@@ -254,7 +254,7 @@ export const SearchContext = React.memo(({
         return query
       },
       set: ({ set }, data) => {
-        for (let filter of filters) {
+        for (const filter of filters) {
           set(queryFamily(filter), undefined)
         }
         if (data) {
@@ -304,7 +304,7 @@ export const SearchContext = React.memo(({
       },
       get: ({get}) => {
         const stats = {}
-        for (let filter of filters) {
+        for (const filter of filters) {
           const stat = get(statisticFamily(filter))
           if (stat) stats[filter] = stat
         }
@@ -407,8 +407,8 @@ export const SearchContext = React.memo(({
     const aggsState = selector({
       key: `aggs_${indexContext}`,
       get: ({get}) => {
-        let aggs = {}
-        for (let key of get(aggKeys)) {
+        const aggs = {}
+        for (const key of get(aggKeys)) {
           const agg = get(aggsFamily(key))
           if (agg !== undefined) {
             aggs[key] = agg
@@ -530,7 +530,7 @@ export const SearchContext = React.memo(({
     const useResetFilters = () => {
       const locked = useRecoilValue(lockedState)
       const reset = useRecoilCallback(({set}) => () => {
-        for (let filter of filters) {
+        for (const filter of filters) {
           if (!locked[filter]) {
             set(queryFamily(filter), undefined)
           }
@@ -580,7 +580,7 @@ export const SearchContext = React.memo(({
           key: id,
           get: ({get}) => {
             const query = {}
-            for (let key of names) {
+            for (const key of names) {
               const filter = get(lockedFamily(key))
               query[key] = filter
             }
@@ -614,7 +614,7 @@ export const SearchContext = React.memo(({
           key: id,
           get: ({get}) => {
             const query = {}
-            for (let key of names) {
+            for (const key of names) {
               const filter = get(queryFamily(key))
               query[key] = filter
             }
@@ -759,7 +759,7 @@ export const SearchContext = React.memo(({
   const resolve = useCallback(prop => {
     const {response, timestamp, queryChanged, paginationChanged, search, aggsToUpdate, resource, callback} = prop
     const data = response.response
-    let next = apiQueue.current[0]
+    const next = apiQueue.current[0]
     if (next !== timestamp) {
       apiMap.current[timestamp] = prop
       return
@@ -816,7 +816,7 @@ export const SearchContext = React.memo(({
         aggsChanged.push(key)
       }
     }
-    let apiQuery = {...query}
+    const apiQuery = {...query}
     if (filterDefaults) {
       for (const [key, value] of Object.entries(filterDefaults)) {
         if (isNil(query[key])) {
@@ -909,7 +909,7 @@ export const SearchContext = React.memo(({
     // (or even if no API call is made).
     const queryChanged = forceUpdate ? true : query !== oldQuery.current
     const paginationChanged = pagination !== oldPagination.current
-    let [reducedAggs, updateAggs] = reduceAggs(
+    const [reducedAggs, updateAggs] = reduceAggs(
       aggs,
       updatedAggsMap.current,
       queryChanged,
@@ -1088,7 +1088,7 @@ function qsToSearch(queryString) {
   const queryObj = qs.parse(queryString, {comma: true})
 
   // Deserialize statistics
-  let statistics = {}
+  const statistics = {}
   const stats = queryObj.statistics
   if (stats) {
     const statsArray = isArray(stats) ? stats : [stats]
@@ -1130,7 +1130,7 @@ export function searchToQsData(search) {
     let newValue
     if (isPlainObject(value)) {
       newValue = {}
-      for (let [keyInner, valueInner] of Object.entries(value)) {
+      for (const [keyInner, valueInner] of Object.entries(value)) {
         const valueConverted = convert(
           keyInner,
           valueInner,
@@ -1202,7 +1202,7 @@ function searchToQs(query, locked, statistics) {
  * format that is supported by the API.
  */
 export function toAPIFilter(query, resource) {
-  let queryCustomized = {}
+  const queryCustomized = {}
   if (!query) {
     return undefined
   }
@@ -1222,7 +1222,7 @@ export function toAPIFilter(query, resource) {
     const section = data?.section
     if (section) {
       const sectionData = {}
-      for (let [keyNested, valueNested] of Object.entries(value)) {
+      for (const [keyNested, valueNested] of Object.entries(value)) {
         customize(`${key}.${keyNested}`, valueNested, sectionData, keyNested)
       }
       parent[key] = sectionData
@@ -1237,12 +1237,12 @@ export function toAPIFilter(query, resource) {
       }
     }
   }
-  for (let [k, v] of Object.entries(query)) {
+  for (const [k, v] of Object.entries(query)) {
     customize(k, v, queryCustomized)
   }
 
   // Create the API-compatible keys and values.
-  let queryNormalized = {}
+  const queryNormalized = {}
   for (const [k, v] of Object.entries(queryCustomized)) {
     const [newKey, newValue] = toAPIFilterSingle(k, v)
     const splitted = newKey.split(':')
@@ -1334,7 +1334,7 @@ function toAPIFilterSingle(key, value, path = undefined) {
     }
   } else if (isPlainObject(value)) {
     newValue = {}
-    for (let [keyInner, valueInner] of Object.entries(value)) {
+    for (const [keyInner, valueInner] of Object.entries(value)) {
       const [apiKey, apiValue] = toAPIFilterSingle(keyInner, valueInner, key)
       if (!isNil(apiValue)) {
         newValue[apiKey] = apiValue
@@ -1373,8 +1373,8 @@ function toAPIFilterSingle(key, value, path = undefined) {
 export function toGUIFilter(query, units = undefined) {
   const newQuery = {}
   if (query) {
-    for (let [key, value] of Object.entries(query)) {
-      let newKey = filterFullnames[key] || key
+    for (const [key, value] of Object.entries(query)) {
+      const newKey = filterFullnames[key] || key
       const valueGUI = toGUIFilterSingle(newKey, value, units)
       newQuery[newKey] = valueGUI
     }
@@ -1400,7 +1400,7 @@ export function toGUIFilterSingle(key, value, units = undefined, path = undefine
   const fullPath = path ? `${path}.${key}` : key
   if (isPlainObject(value)) {
     newValue = {}
-    for (let [keyInner, valueInner] of Object.entries(value)) {
+    for (const [keyInner, valueInner] of Object.entries(value)) {
       const valueConverted = toGUIFilterSingle(keyInner, valueInner, units, fullPath)
       if (!isNil(valueConverted)) {
         newValue[keyInner] = valueConverted
@@ -1410,7 +1410,7 @@ export function toGUIFilterSingle(key, value, units = undefined, path = undefine
     // If the key is an operator, the filter name is read from the path.
     const opKeys = new Set(['lte', 'lt', 'gte', 'gt'])
     const filterPath = opKeys.has(key) ? path : fullPath
-    let multiple = filterDataGlobal[filterPath].multiple
+    const multiple = filterDataGlobal[filterPath].multiple
     const deserializer = filterDataGlobal[filterPath].deserializer
     if (isArray(value) || isSet(value)) {
       newValue = new Set(value.map((v) => deserializer(v, units)))
@@ -1526,7 +1526,7 @@ function reduceAggs(aggs, oldAggs, queryChanged, updatedFilters) {
   // of them need to be updated.
   const reducedAggs = {}
   let updateAggs = false
-  for (let [key, agg] of Object.entries(aggs)) {
+  for (const [key, agg] of Object.entries(aggs)) {
     const filter_name = key.split(':')[0]
     if (!isBoolean(agg.update)) {
       throw Error(`It was not specified whether the aggregation ${key} should update or not.`)

@@ -693,11 +693,10 @@ export const SectionTableAutomatic = React.memo(({data, prefix, columns}) => {
   // Create rows that each have a fixed number of items
   const rows = []
   quantities.forEach((quantity, index) => {
-    let row
     if (index % columns === 0) {
       rows.push([])
     }
-    row = rows[Math.floor(index / columns)]
+    const row = rows[Math.floor(index / columns)]
     row.push(quantity)
   })
 

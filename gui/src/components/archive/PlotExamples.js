@@ -107,7 +107,7 @@ export function PlotExamples() {
   const exampleSectionDefs = useMemo(() => plots.map(example => ({...sectionDef, m_annotations: {plot: example.a_plot}})), [plots, sectionDef])
 
   const handleJsonChange = useCallback((data, index) => {
-    let newPlots = [...plots]
+    const newPlots = [...plots]
     newPlots[index] = data
     setPlots(newPlots)
   }, [plots])

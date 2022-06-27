@@ -42,7 +42,7 @@ export default function ResolveDOI() {
     const doiMatch = matchPath(location.pathname, {
       path: `${match.path}/:doi*`
     })
-    let { doi } = doiMatch.params
+    const { doi } = doiMatch.params
 
     api.get('/datasets/', {doi: doi})
       .then(response => {

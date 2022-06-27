@@ -38,7 +38,7 @@ function EELS({data, layout, className, units, ...other}) {
       return
     }
     const nTraces = data.length
-    let defaultLayout = {
+    const defaultLayout = {
       showlegend: nTraces > 1,
       legend: {
         x: 1,

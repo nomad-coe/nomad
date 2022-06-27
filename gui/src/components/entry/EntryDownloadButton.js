@@ -34,7 +34,7 @@ const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
 
   const handleSelect = (urlSuffix) => {
     setAnchorEl(null)
-    let queryStringData = toAPIFilter(query)
+    const queryStringData = toAPIFilter(query)
     const owner = query.visibility || 'visible'
     const url = `${apiBase}/v1/entries/${urlSuffix}?owner=${owner}&json_query=${JSON.stringify(queryStringData)}`
     window.location.assign(url)

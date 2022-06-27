@@ -325,7 +325,7 @@ export function expectQuantity(name, data, label = undefined, description = unde
 /*****************************************************************************/
 // Misc
 let filepath
-let responseCapture = {}
+const responseCapture = {}
 const readMode = process.env.READ_MODE || 'snapshot'
 const writeMode = process.env.WRITE_MODE || 'none'
 const configPath = 'nomad-test.yaml'
@@ -457,8 +457,8 @@ ${func}()"`)
 function mockKeycloak(username, password) {
   const login = (username, password) => {
     if ((username === undefined || username === '') && (password === undefined || password === '')) return
-    let response = getRefreshToken(username, password)
-    let authenticated = response.access_token !== undefined
+    const response = getRefreshToken(username, password)
+    const authenticated = response.access_token !== undefined
     if (authenticated) updateToken(response.refresh_token)
   }
 
@@ -470,7 +470,7 @@ function mockKeycloak(username, password) {
   }
 
   const getRefreshToken = (username, password) => {
-    let command = `curl -s -X POST ${keycloakURL} \\
+    const command = `curl -s -X POST ${keycloakURL} \\
       -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
       -d 'username=${username}&grant_type=password&password=${password}&client_id=nomad_gui_dev'`
     let response = require('child_process').execSync(command).toString()
@@ -484,13 +484,13 @@ function mockKeycloak(username, password) {
   const updateToken = (refresh_token) => {
     return new Promise((resolve, reject) => {
       try {
-        let command = `curl -s -X POST ${keycloakURL} \\
+        const command = `curl -s -X POST ${keycloakURL} \\
       -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
       -d 'refresh_token=${refresh_token}&grant_type=refresh_token&client_id=nomad_gui_dev'`
         let response = require('child_process').execSync(command).toString()
         response = JSON.parse(response)
         if (response.error !== undefined) return {}
-        let authenticated = response.access_token !== undefined
+        const authenticated = response.access_token !== undefined
         mockedKeycloak.updateToken = (authenticated ? () => updateToken(response.refresh_token) : jest.fn())
         mockedKeycloak.authenticated = authenticated
         mockedKeycloak.token = (authenticated ? response.access_token : '')
@@ -552,7 +552,7 @@ function mockKeycloak(username, password) {
     })
   }
 
-  let mockedKeycloak = {
+  const mockedKeycloak = {
     init: jest.fn().mockResolvedValue(true),
     updateToken: updateToken,
     login: login,
@@ -693,7 +693,7 @@ export function filteredConsoleOutput() {
   const rv = []
   for (const consoleSpy of [consoleSpies.logSpy, consoleSpies.errorSpy]) {
     for (const call of consoleSpy.mock.calls) {
-      let message = '' + call[0]
+      const message = '' + call[0]
       let isOk = false
       for (const s of consoleIgnoreStrings) {
         if (message.startsWith(s)) {

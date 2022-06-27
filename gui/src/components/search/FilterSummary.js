@@ -65,7 +65,7 @@ const FilterSummary = React.memo(({
   const theme = useTheme()
   const units = useUnits()
   const styles = useStyles({classes: classes, theme: theme})
-  let chips = []
+  const chips = []
 
   // Creates a set of chips for a quantity
   const createChips = useCallback((name, label, filterValue, onDelete) => {
@@ -105,10 +105,10 @@ const FilterSummary = React.memo(({
       })
     } else if (isObj) {
       // Range queries
-      let lte = serializer(filterValue.lte, units)
-      let gte = serializer(filterValue.gte, units)
-      let lt = serializer(filterValue.lt, units)
-      let gt = serializer(filterValue.gt, units)
+      const lte = serializer(filterValue.lte, units)
+      const gte = serializer(filterValue.gte, units)
+      const lt = serializer(filterValue.lt, units)
+      const gt = serializer(filterValue.gt, units)
       if (!isNil(gte) || !isNil(gt) || !isNil(lte) || !isNil(lt)) {
         let content
         if ((!isNil(gte) || !isNil(gt)) && (isNil(lte) && isNil(lt))) {
@@ -145,7 +145,7 @@ const FilterSummary = React.memo(({
   }, [filterData, filtersLocked, units])
 
   if (quantities) {
-    for (let quantity of quantities) {
+    for (const quantity of quantities) {
       const filterValue = filters[quantity]
       if (isNil(filterValue)) {
         continue
@@ -155,9 +155,9 @@ const FilterSummary = React.memo(({
       let newChips
       if (isSection) {
         newChips = []
-        for (let [key, value] of Object.entries(filterValue)) {
+        for (const [key, value] of Object.entries(filterValue)) {
           const onDelete = (newValue) => {
-            let newSection = {...filterValue}
+            const newSection = {...filterValue}
             if (newValue === undefined) {
               delete newSection[key]
             } else {

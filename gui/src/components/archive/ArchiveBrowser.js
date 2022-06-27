@@ -299,7 +299,7 @@ function archiveSearchOptions(data, metainfo) {
   const options = []
   const optionDefs = {}
   function traverse(data, def, parentName, parentPath) {
-    for (let key in data) {
+    for (const key in data) {
       const childDef = def._properties[key]
       if (!childDef) {
         continue
@@ -982,7 +982,7 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     const xPath = xAxis.split('/')
     const xLabel = titleCase(xPath[xPath.length - 1])
 
-    let lines = getLineStyles(nLines, theme).map(line => {
+    const lines = getLineStyles(nLines, theme).map(line => {
       return {type: 'scatter',
         mode: 'lines',
         line: line}
@@ -994,8 +994,8 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     }
 
     let data = []
-    let yUnits = []
-    let yLabels = []
+    const yUnits = []
+    const yLabels = []
     Y.forEach((y, index) => {
       let yValues, yUnit
       try {
@@ -1031,7 +1031,7 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
 
     const sameUnit = yUnits.every(unit => unit === yUnits[0])
 
-    let layout = {
+    const layout = {
       xaxis: {
         title: xUnit ? `${xLabel} (${xUnit})` : xLabel
       },
@@ -1103,7 +1103,7 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
   const plot = sectionDef.m_annotations?.plot
   const [selected, setSelected] = useState([0])
   const plots = useMemo(() => {
-    let plots = (Array.isArray(plot) ? [...plot] : [{...plot}])
+    const plots = (Array.isArray(plot) ? [...plot] : [{...plot}])
     plots.forEach(plot => {
       if (!('label' in plot)) {
         const yAxis = plot.y || plot['y_axis'] || plot['yAxis']

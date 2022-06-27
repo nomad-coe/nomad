@@ -562,7 +562,7 @@ export const MaterialButton = ({materialId, component, tooltip, ...rest}) => {
   const props = component
     ? {href: href, ...rest}
     : {href: href, color: 'primary', ...rest}
-  let comp = React.createElement(component || Button, props)
+  const comp = React.createElement(component || Button, props)
 
   if (tooltip) {
     return <Tooltip title={tooltip}>
