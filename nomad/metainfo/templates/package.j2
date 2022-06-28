@@ -5,7 +5,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, MEnum)
 from nomad.metainfo.legacy import LegacyDefinition
 {% for dependency in pkg.dependencies %}
-{{ fromat_package_import(dependency) }}
+{{ format_package_import(dependency) }}
 {%- endfor %}
 
 m_package = Package(

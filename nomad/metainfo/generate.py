@@ -90,7 +90,7 @@ def generate_metainfo_code(metainfo_pkg: Package, python_package_path: str):
 
         return ', '.join([format_definition_ref(definition) for definition in definitions])
 
-    def fromat_package_import(pkg):
+    def format_package_import(pkg):
         python_module = pkg.a_legacy.python_module
         modules = python_module.split('.')
         return 'from %s import %s' % ('.'.join(modules[:-1]), modules[-1])
@@ -116,7 +116,7 @@ def generate_metainfo_code(metainfo_pkg: Package, python_package_path: str):
         format_type=format_type,
         format_unit=format_unit,
         format_definition_refs=format_definition_refs,
-        fromat_package_import=fromat_package_import,
+        format_package_import=format_package_import,
         format_aliases=format_aliases)
 
     with open(python_package_path, 'wt') as f:
