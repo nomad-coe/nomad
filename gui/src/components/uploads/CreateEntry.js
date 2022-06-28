@@ -37,7 +37,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
         if (definition.m_def !== SectionMDef) {
           return false
         }
-        return definition.base_sections?.find(baseSection => baseSection.name === 'EntryData')
+        return definition._allBaseSections?.find(baseSection => baseSection.name === 'EntryData')
       }).map(dataSection => {
         let label = dataSection.name
         const entry_name = archive?.metadata?.entry_name
