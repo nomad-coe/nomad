@@ -776,9 +776,9 @@ export function VicinityGraph({def}) {
   const graph = useMemo(() => {
     const graph = vicinityGraph(def)
     let x1 = Math.min(...graph.nodes.map(n => n.x)) - 32
-    let y1 = Math.min(...graph.nodes.map(n => n.y)) - 24
+    const y1 = Math.min(...graph.nodes.map(n => n.y)) - 24
     let x2 = Math.max(...graph.nodes.map(n => n.x)) + 32
-    let y2 = Math.max(...graph.nodes.map(n => n.y)) + 24
+    const y2 = Math.max(...graph.nodes.map(n => n.y)) + 24
     const w = Math.max(200, Math.abs(x2 - x1))
     const px = w < 400 ? (400 - w) / 2 : 0
     x1 -= px; x2 += px

@@ -39,7 +39,7 @@ const HeatCapacity = React.memo(({
 
   // Merge custom layout with default layout
   const finalLayout = useMemo(() => {
-    let defaultLayout = {
+    const defaultLayout = {
       xaxis: {
         title: {
           text: `Temperature (${tempUnit.toSystem(units).label()})`

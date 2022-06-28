@@ -38,7 +38,7 @@ export class ErrorHandler extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      let msg = typeof this.props.message === 'string' ? this.props.message : this.props.message(this.state.error)
+      const msg = typeof this.props.message === 'string' ? this.props.message : this.props.message(this.state.error)
       return <Alert
         severity="error"
         className={this.props.className}

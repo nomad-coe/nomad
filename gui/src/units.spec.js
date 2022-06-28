@@ -53,7 +53,7 @@ test('unit conversion works both ways for each compatible unit', async () => {
       }
     }
   }
-  for (let [unitA, unitB] of conversions) {
+  for (const [unitA, unitB] of conversions) {
     const a = new Quantity(1, unitA)
     const b = a.to(unitB)
     const c = b.to(unitA)

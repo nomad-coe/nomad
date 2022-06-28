@@ -133,7 +133,7 @@ const GUIMenu = React.memo(() => {
 
   const updatePreset = useRecoilCallback(({set}) => (preset) => {
     const presetMap = presets[preset]
-    for (let [key, value] of Object.entries(presetMap)) {
+    for (const [key, value] of Object.entries(presetMap)) {
       set(guiState(key), value)
     }
     set(presetState, preset)

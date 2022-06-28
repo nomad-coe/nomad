@@ -135,17 +135,17 @@ const Plot = React.memo(({
       width = maxSize * ratio
       height = maxSize
     }
-    let defaultCapture = {
+    const defaultCapture = {
       format: 'png',
       width: width,
       height: height,
       filename: 'plot'
     }
-    let settings = mergeObjects(capture, defaultCapture)
+    const settings = mergeObjects(capture, defaultCapture)
     return settings
   }, [capture, ratio])
 
-  let styles = useStyles({classes: classes})
+  const styles = useStyles({classes: classes})
   if (noDataStyle) {
     styles.nodata = noDataStyle
   }
@@ -155,7 +155,7 @@ const Plot = React.memo(({
 
   // Set the final layout
   const finalLayout = useMemo(() => {
-    let defaultLayout = {
+    const defaultLayout = {
       dragmode: 'pan',
       hovermode: false,
       showlegend: false,
@@ -269,7 +269,7 @@ const Plot = React.memo(({
 
   // Set the final config
   const finalConfig = useMemo(() => {
-    let defaultConfig = {
+    const defaultConfig = {
       scrollZoom: true,
       displayModeBar: false,
       showTips: false,
@@ -319,7 +319,7 @@ const Plot = React.memo(({
       // Subscribe to the layout change publisher if one is given
       if (layoutSubject) {
         layoutSubject.subscribe(layout => {
-          let oldLayout = canvasRef.current.layout
+          const oldLayout = canvasRef.current.layout
           // The updates are throttled by using requestAnimationFrame: there is
           // no sense in trying to update beyond what the browser can render
           window.requestAnimationFrame(() => {

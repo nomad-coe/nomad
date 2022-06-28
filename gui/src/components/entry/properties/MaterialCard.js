@@ -114,7 +114,7 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
   const structurePath = `results.properties.structures.${structureType}`
   const structureSection = archive?.results?.properties?.structures?.[structureType]
   const m_path = `${urlPrefix}/${structureType}`
-  let structure = structureSection && toMateriaStructure(structureSection)
+  const structure = structureSection && toMateriaStructure(structureSection)
 
   // Dropdown for selecting a specific structure
   const select = hasStructures && <FormControl>

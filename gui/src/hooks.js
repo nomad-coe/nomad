@@ -131,7 +131,7 @@ export function useSuggestions(quantities, input, minLength = 2, debounceTime = 
       promise
         .then(data => {
           if (currentRequest.current === promise) {
-            for (let quantity of quantitiesDynamic) {
+            for (const quantity of quantitiesDynamic) {
               const esSuggestions = data[quantity]
               if (esSuggestions) {
                 suggestionsTemp[quantity] = esSuggestions.map(suggestion => ({

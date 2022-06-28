@@ -162,7 +162,7 @@ const InputField = React.memo(({
   // results or change in the available options.
   useEffect(() => {
     const opt = {}
-    for (let [key, value] of Object.entries(finalOptions)) {
+    for (const [key, value] of Object.entries(finalOptions)) {
       opt[key] = {
         checked: filter ? filter.has(key) : false,
         label: formatLabels ? formatLabel(value.label) : value.label,
@@ -170,7 +170,7 @@ const InputField = React.memo(({
       }
     }
     if (agg?.data) {
-      for (let value of agg.data) {
+      for (const value of agg.data) {
         const key = value.value
         const selected = filter ? filter.has(key) : false
         const oldState = opt[key]

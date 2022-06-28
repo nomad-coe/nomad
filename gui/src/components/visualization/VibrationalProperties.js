@@ -51,11 +51,11 @@ const VibrationalProperties = React.memo(({
 
   // Synchronize panning between BS/DOS plots
   const handleBSRelayouting = useCallback((event) => {
-    let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
+    const update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
     bsYSubject.next(update)
   }, [bsYSubject])
   const handleDOSRelayouting = useCallback((event) => {
-    let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
+    const update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
     dosYSubject.next(update)
   }, [dosYSubject])
 

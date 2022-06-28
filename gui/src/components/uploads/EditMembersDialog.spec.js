@@ -28,7 +28,7 @@ import UploadPage from './UploadPage'
 import {act, fireEvent, waitFor} from '@testing-library/react'
 
 const testInitialDialog = async (dialog) => {
-  let rows = within(dialog).queryAllByTestId('datatable-row')
+  const rows = within(dialog).queryAllByTestId('datatable-row')
   expect(rows.length).toBe(3)
 
   expect(within(rows[0]).queryByText('Markus Scheidgen')).toBeInTheDocument()
@@ -47,7 +47,7 @@ const testInitialDialog = async (dialog) => {
 }
 
 const testNewDialog = async (dialog) => {
-  let rows = within(dialog).queryAllByTestId('datatable-row')
+  const rows = within(dialog).queryAllByTestId('datatable-row')
   expect(rows.length).toBe(3)
 
   expect(within(rows[0]).queryByText('Markus Scheidgen')).toBeInTheDocument()
@@ -102,7 +102,7 @@ const testAddRemoveMembers = async (dialog) => {
   fireEvent.click(addMemberButton)
   await waitFor(() => expect(within(dialog).queryAllByTestId('datatable-row').length).toBe(4))
 
-  let rows = within(dialog).queryAllByTestId('datatable-row')
+  const rows = within(dialog).queryAllByTestId('datatable-row')
   expect(within(rows[0]).queryByText('Markus Scheidgen')).toBeInTheDocument()
   expect(within(rows[0]).queryByText('Main author')).toBeInTheDocument()
   expect(within(rows[0]).getByTestId('member-delete-button')).toBeDisabled()
@@ -126,7 +126,7 @@ const testAddRemoveMembers = async (dialog) => {
 }
 
 const submitChanges = async (dialog) => {
-  let submitButton = within(dialog).queryByText('Submit')
+  const submitButton = within(dialog).queryByText('Submit')
   expect(submitButton).toBeEnabled()
   fireEvent.click(submitButton)
   await waitFor(() => expect(screen.queryByTestId('edit-members-dialog')).not.toBeInTheDocument())
@@ -139,7 +139,7 @@ const openMembersDialog = async () => {
   // Open the members dialog
   await act(async () => { fireEvent.click(screen.getByTestId('edit-members-action')) })
   await waitFor(() => expect(screen.queryByText('Main author')).toBeInTheDocument())
-  let dialog = screen.getByTestId('edit-members-dialog')
+  const dialog = screen.getByTestId('edit-members-dialog')
   expect(within(dialog).queryByText('Affiliation')).toBeInTheDocument()
   expect(within(dialog).queryByText('Role')).toBeInTheDocument()
   return dialog
@@ -180,7 +180,7 @@ test.each([
   await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
 
-  let dialog = await openMembersDialog()
+  const dialog = await openMembersDialog()
   await testInitialDialog(dialog)
   await testAddRemoveMembers(dialog)
 
@@ -188,7 +188,7 @@ test.each([
   await waitForGUI(2000)
 
   if (username === 'test') {
-    let newDialog = await openMembersDialog()
+    const newDialog = await openMembersDialog()
     waitForGUI()
     await testNewDialog(newDialog)
   } else if (username === 'scooper') {

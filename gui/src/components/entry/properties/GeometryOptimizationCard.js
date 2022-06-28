@@ -51,7 +51,7 @@ export default function GeometryOptimizationCard({index, archive, properties}) {
   }
 
   // Resolve convergence properties
-  let convergence = hasConvergence ? geoOptProps : false
+  const convergence = hasConvergence ? geoOptProps : false
 
   return <PropertyCard title="Geometry optimization">
     <GeometryOptimization

@@ -113,7 +113,7 @@ const SearchBar = React.memo(({
   // list has a specific order because we want to prioritize certain items.
   const quantitySetSuggestable = useMemo(() => {
     // Prioritized items
-    let quantities = new Set([
+    const quantities = new Set([
       'results.material.elements',
       'results.material.chemical_formula_hill',
       'results.material.chemical_formula_anonymous',

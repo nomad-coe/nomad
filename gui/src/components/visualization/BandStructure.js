@@ -70,15 +70,15 @@ const BandStructure = React.memo(({
 
     // Calculate distances in k-space if missing. These distances in k-space
     // define the plot x-axis spacing.
-    let tempSegments = []
+    const tempSegments = []
     if (data.segment[0].k_path_distances === undefined) {
       let length = 0
-      for (let segment of data.segment) {
+      for (const segment of data.segment) {
         const k_path_distances = []
         const nKPoints = segment[energyName][0].length
-        let start = segment[kpointName][0]
-        let end = segment[kpointName].slice(-1)[0]
-        let segmentLength = distance(start, end)
+        const start = segment[kpointName][0]
+        const end = segment[kpointName].slice(-1)[0]
+        const segmentLength = distance(start, end)
         for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
           const kPoint = segment[kpointName][iKPoint]
           const dist = distance(start, kPoint)
@@ -89,7 +89,7 @@ const BandStructure = React.memo(({
         tempSegments.push(k_path_distances)
       }
     } else {
-      for (let segment of data.segment) {
+      for (const segment of data.segment) {
         tempSegments.push(segment.k_path_distances)
       }
     }
@@ -97,20 +97,20 @@ const BandStructure = React.memo(({
 
     // Path
     let path = []
-    for (let segment of data.segment) {
+    for (const segment of data.segment) {
       path = path.concat(segment.k_path_distances)
       tempSegments.push(segment.k_path_distances)
     }
 
     // Second spin channel
     if (nChannels === 2) {
-      let bands = []
+      const bands = []
       for (let iBand = 0; iBand < nBands; ++iBand) {
         bands.push([])
       }
-      for (let segment of data.segment) {
+      for (const segment of data.segment) {
         for (let iBand = 0; iBand < nBands; ++iBand) {
-          let nKPoints = segment[energyName][1].length
+          const nKPoints = segment[energyName][1].length
           for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
             bands[iBand].push(segment[energyName][1][iKPoint][iBand])
           }
@@ -140,13 +140,13 @@ const BandStructure = React.memo(({
     }
 
     // First spin channel
-    let bands = []
+    const bands = []
     for (let iBand = 0; iBand < nBands; ++iBand) {
       bands.push([])
     }
-    for (let segment of data.segment) {
+    for (const segment of data.segment) {
       for (let iBand = 0; iBand < nBands; ++iBand) {
-        let nKPoints = segment[energyName][0].length
+        const nKPoints = segment[energyName][0].length
         for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
           bands[iBand].push(segment[energyName][0][iKPoint][iBand])
         }
@@ -196,7 +196,7 @@ const BandStructure = React.memo(({
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
-    let defaultLayout = {
+    const defaultLayout = {
       xaxis: {
         tickangle: 0,
         tickfont: {
@@ -235,10 +235,10 @@ const BandStructure = React.memo(({
       return {}
     }
     // Set new layout that contains the segment labels
-    let labels = []
-    let labelKPoints = []
+    const labels = []
+    const labelKPoints = []
     for (let iSegment = 0; iSegment < data.segment.length; ++iSegment) {
-      let segment = data.segment[iSegment]
+      const segment = data.segment[iSegment]
       const startLabel = segment.endpoints_labels
         ? segment.endpoints_labels[0]
         : ''
@@ -246,7 +246,7 @@ const BandStructure = React.memo(({
         labels.push(startLabel)
         labelKPoints.push(pathSegments[iSegment][0])
       } else {
-        let prevLabel = labels[labels.length - 1]
+        const prevLabel = labels[labels.length - 1]
         if (prevLabel !== startLabel) {
           labels[labels.length - 1] = `${prevLabel}|${startLabel}`
         }
@@ -258,9 +258,9 @@ const BandStructure = React.memo(({
       labelKPoints.push(pathSegments[iSegment].slice(-1)[0])
     }
 
-    let shapes = []
+    const shapes = []
     for (let iShape = 1; iShape < labelKPoints.length - 1; ++iShape) {
-      let labelKPoint = labelKPoints[iShape]
+      const labelKPoint = labelKPoints[iShape]
       shapes.push({
         type: 'line',
         x0: labelKPoint,
@@ -275,7 +275,7 @@ const BandStructure = React.memo(({
         }
       })
     }
-    let ticks = {
+    const ticks = {
       shapes: shapes,
       xaxis: {
         tickmode: 'array',

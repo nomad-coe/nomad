@@ -158,7 +158,7 @@ const Structure = React.memo(({
 
   // Merge custom options with default options. These options can only set once.
   const finalOptions = useMemo(() => {
-    let defaultOptions = {
+    const defaultOptions = {
       view: {
         autoResize: false,
         autoFit: true,

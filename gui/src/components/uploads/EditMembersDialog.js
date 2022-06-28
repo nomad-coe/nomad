@@ -201,7 +201,7 @@ function AddMember({...props}) {
   const [query, setQuery] = useState('')
 
   const fetchUsers = useCallback((event, value) => {
-    let newQuery = value.toLowerCase()
+    const newQuery = value.toLowerCase()
     if (!(newQuery.startsWith(query) && suggestions.length === 0) || query === '') {
       api.getUsers(newQuery)
         .then(users => {
@@ -358,8 +358,8 @@ function EditMembersDialog({...props}) {
   }, [api])
 
   const fetchMembers = useCallback(() => {
-    let user_ids = [upload.main_author].concat(upload.coauthors, upload.reviewers)
-    let roles = ['Main author'].concat(upload.coauthors.map(_ => 'Co-author'), upload.reviewers.map(_ => 'Reviewer'))
+    const user_ids = [upload.main_author].concat(upload.coauthors, upload.reviewers)
+    const roles = ['Main author'].concat(upload.coauthors.map(_ => 'Co-author'), upload.reviewers.map(_ => 'Reviewer'))
     return getUsers(user_ids, roles)
   }, [getUsers, upload])
 

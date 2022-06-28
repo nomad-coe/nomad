@@ -68,7 +68,7 @@ const EnergyVolumeCurve = React.memo(({
     const traces = []
     let i = 0
     const lineStyles = getLineStyles(data.data.length, theme)
-    for (let curve of data.data) {
+    for (const curve of data.data) {
       const trace = {
         x: new Quantity(indices.map(i => curve.volumes[i]), volumeUnit).toSystem(units).value(),
         y: new Quantity(indices.map(i => curve.energies[i]), energyUnit).toSystem(units).value(),

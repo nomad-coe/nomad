@@ -258,7 +258,7 @@ OverviewEquationOfState.propTypes = ({
 export const Overview = React.memo((props) => {
   const {def} = props
   const units = useUnits()
-  let path = window.location.href.split('/').pop().split(':')[0]
+  const path = window.location.href.split('/').pop().split(':')[0]
 
   if (def.name === 'BandStructure' && path === 'band_structure_electronic') {
     return <OverviewBandstructureElectronic {...props} units={units}/>

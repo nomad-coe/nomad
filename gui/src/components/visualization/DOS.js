@@ -39,7 +39,7 @@ const DOS = React.memo(({
 }) => {
   // Merge custom layout with default layout
   const initialLayout = useMemo(() => {
-    let defaultLayout = {
+    const defaultLayout = {
       yaxis: {
         title: {
           text: `Energy (${energyUnit.toSystem(units).label()})`
@@ -93,9 +93,9 @@ const DOS = React.memo(({
     }
 
     // Convert units and determine range
-    let mins = []
-    let maxes = []
-    let nChannels = data.densities.length
+    const mins = []
+    const maxes = []
+    const nChannels = data.densities.length
     let energies = new Quantity(data.energies, energyUnit).toSystem(units).value()
     const values1 = new Quantity(data.densities[0], valueUnit).toSystem(units).value()
     let values2
@@ -106,7 +106,7 @@ const DOS = React.memo(({
       mins.push(Math.min(...values2))
       maxes.push(Math.max(...values2))
     }
-    let range = [Math.min(...mins), Math.max(...maxes)]
+    const range = [Math.min(...mins), Math.max(...maxes)]
     if (energyHighestOccupied !== 0) {
       energies = add(energies, -energyHighestOccupied)
     }
@@ -159,7 +159,7 @@ const DOS = React.memo(({
     }
 
     // Compute the final layout
-    let computedLayout = mergeObjects(
+    const computedLayout = mergeObjects(
       {
         xaxis: {
           title: {

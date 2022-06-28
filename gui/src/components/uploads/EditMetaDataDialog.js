@@ -67,7 +67,7 @@ function EditReferences(props) {
 
   const validateURL = useCallback((value) => {
     try {
-      let url = new URL(value)
+      const url = new URL(value)
       if (url) {}
     } catch (_) {
       return 'Pleas enter a valid URL ...'
@@ -99,7 +99,7 @@ function EditReferences(props) {
   }, [])
 
   const handleAdd = useCallback(() => {
-    let validateURLError = validateURL(newReference)
+    const validateURLError = validateURL(newReference)
     setUrlValidation(validateURLError)
     if (validateURLError) return
     onAdd(newReference)
@@ -409,7 +409,7 @@ function EditMetaDataDialog({...props}) {
   const isDatasetChanged = useMemo(() => !!actions.find(action => 'add_dataset' in action || 'remove_dataset' in action || 'create_dataset' in action), [actions])
 
   const comment = useMemo(() => {
-    let action = actions.find(action => 'set_comment' in action)
+    const action = actions.find(action => 'set_comment' in action)
     return (action ? action.set_comment : defaultComment)
   }, [actions, defaultComment])
 
@@ -427,7 +427,7 @@ function EditMetaDataDialog({...props}) {
     let datasets = [...defaultDatasets]
     actions.forEach(action => {
       if (action.add_dataset) {
-        let notSubmittedDataset = userDatasets.find(datasetFullData => action.add_dataset === datasetFullData.dataset_id)
+        const notSubmittedDataset = userDatasets.find(datasetFullData => action.add_dataset === datasetFullData.dataset_id)
         notSubmittedDataset.notSubmitted = true
         datasets = [...datasets, notSubmittedDataset]
       }
@@ -440,7 +440,7 @@ function EditMetaDataDialog({...props}) {
 
   const handleSubmitChanges = useCallback(() => {
     if (isCommentChanged || isReferencesChanged || isDatasetChanged) {
-      let metadata = {}
+      const metadata = {}
       if (isCommentChanged) metadata.comment = comment
       if (isReferencesChanged) {
         metadata.references = {}
@@ -450,7 +450,7 @@ function EditMetaDataDialog({...props}) {
       if (isDatasetChanged) {
         metadata.datasets = {}
         createNewDatasets().then(newDatasets => {
-          let newDatasetsIDs = newDatasets.map(_dataset => _dataset.dataset_id)
+          const newDatasetsIDs = newDatasets.map(_dataset => _dataset.dataset_id)
           if (actions.find(action => 'add_dataset' in action || 'create_dataset' in action)) metadata.datasets.add = actions.flatMap(action => action.add_dataset || []).concat(newDatasetsIDs)
           if (actions.find(action => 'remove_dataset' in action)) metadata.datasets.remove = actions.flatMap(action => action.remove_dataset || [])
           submitChanges(metadata)
@@ -464,9 +464,9 @@ function EditMetaDataDialog({...props}) {
   }, [actions, comment, createNewDatasets, isCommentChanged, isDatasetChanged, isReferencesChanged, submitChanges])
 
   const handleSetComment = useCallback((value) => {
-    let action = actions.find(action => 'set_comment' in action)
+    const action = actions.find(action => 'set_comment' in action)
     if (action) {
-      let newActions = [...actions]
+      const newActions = [...actions]
       if (value === defaultComment) {
         newActions.splice(actions.indexOf(action), 1)
       } else {

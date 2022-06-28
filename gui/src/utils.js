@@ -143,8 +143,8 @@ export function distance(a, b) {
  */
 export function mergeObjects(source, target, copy = false) {
   // First create a deep clone that will be used as the returned object
-  let cloned = cloneDeep(target)
-  let val = merge(cloned, source)
+  const cloned = cloneDeep(target)
+  const val = merge(cloned, source)
   return val
 }
 
@@ -216,9 +216,9 @@ export function authorList(entry, expanded) {
  * @return {boolean} Is WebGL supported.
  */
 export function hasWebGLSupport() {
-  let w = window
+  const w = window
   try {
-    let canvas = document.createElement('canvas')
+    const canvas = document.createElement('canvas')
     return !!(w.WebGLRenderingContext && (
       canvas.getContext('webgl') ||
       canvas.getContext('experimental-webgl'))
