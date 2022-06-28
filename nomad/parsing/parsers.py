@@ -27,6 +27,7 @@ from nomad.datamodel.context import Context, ClientContext
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 from .tabular import TabularDataParser
+from nexusparser.parser import NexusParser
 
 
 try:
@@ -581,13 +582,7 @@ parsers = [
         mainfile_mime_re=r'application/json',
         mainfile_contents_re=(r'https://eelsdb.eu/spectra')
     ),
-    MatchingParserInterface(
-        'nexusparser.parser.NexusParser',
-        name='parsers/nexus', code_name='NEXUS', code_homepage='https://www.nexus.eu/',
-        mainfile_mime_re=r'(application/.*)|(text/.*)',
-        mainfile_name_re=(r'.*\.nxs'),
-        supported_compressions=['gz', 'bz2', 'xz']
-    ),
+    NexusParser(),
     TabularDataParser(),
     ArchiveParser()
 ]

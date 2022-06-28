@@ -99,7 +99,7 @@ const viewerPDF = {
 }
 const viewerHDF5 = {
   name: 'hdf5',
-  fileExtensions: ['hdf5', 'hd5'],
+  fileExtensions: ['hdf5', 'hd5', 'nxs'],
   maxSizeAutoPreview: 10e6,
   render: () => {
     return <Item itemKey="h5web"><Typography>H5Web</Typography></Item>
