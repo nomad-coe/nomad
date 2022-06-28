@@ -160,8 +160,9 @@ def test_transform(example):
     assert example.m_to_dict(transform=transform) == root
 
 
-def test_schema_deserialization():
-    schema_yaml = '''
+@pytest.fixture(scope='function')
+def schema_yaml():
+    return '''
 name: advanced_metainfo_example
 section_definitions:
   - name: BaseSection
@@ -222,8 +223,10 @@ section_definitions:
         type: Datetime
       - name: floaty
         type: np.float64
-    '''
+'''
 
+
+def test_schema_deserialization(schema_yaml):
     schema_dict = yaml.load(schema_yaml, yaml.FullLoader)
     pkg = Package.m_from_dict(schema_dict)
     pkg.init_metainfo()
@@ -240,3 +243,26 @@ section_definitions:
     assert application_data.all_properties['related'].type.target_section_def.m_resolved() == application_data
     assert application_data.all_properties['time'].type == Datetime
     assert application_data.all_properties['floaty'].type == np.float64
+
+
+def test_schema_definition_id(schema_yaml):
+    '''
+    Test if the definition id is correctly generated.
+    '''
+    schema_dict = yaml.load(schema_yaml, yaml.FullLoader)
+    pkg = Package.m_from_dict(schema_dict)
+    pkg.init_metainfo()
+
+    def check_dict(value):
+        if not isinstance(value, (dict, list)):
+            return value
+        if isinstance(value, list):
+            return [check_dict(v) for v in value]
+
+        if 'm_def' in value:
+            assert value['m_def_id'] is not None
+            assert value['definition_id'] is not None
+
+        return {k: check_dict(v) for k, v in value.items() if k not in ('m_def_id', 'definition_id')}
+
+    check_dict(pkg.m_to_dict(with_def_id=True))

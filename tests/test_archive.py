@@ -24,7 +24,7 @@ import os.path
 import json
 
 from nomad import utils, config
-from nomad.metainfo import MSection, Quantity, Reference, SubSection, QuantityReference
+from nomad.metainfo import MSection, Quantity, Reference, SubSection, QuantityReference, MetainfoError, Context
 from nomad.datamodel import EntryArchive
 from nomad.archive.storage import TOCPacker, _decode, _entries_per_block
 from nomad.archive import (
@@ -379,6 +379,58 @@ def archive(json_dict):
     assert archive.run is not None
     assert len(archive.run) == 1
     return archive
+
+
+@pytest.mark.parametrize('definition_id,context,exception_type', [
+    pytest.param(EntryArchive.m_def.definition_id + 'a', None, MetainfoError, id='wrong_id_no_context'),
+    pytest.param(EntryArchive.m_def.definition_id[::-1], Context(), NotImplementedError, id='wrong_id_with_context'), ])
+def test_archive_with_wrong_id(json_dict, definition_id, context, exception_type):
+    '''
+    Test that the archive with wrong id raises the expected exception.
+    '''
+    json_dict['m_def_id'] = definition_id
+    with pytest.raises(exception_type):
+        EntryArchive.m_from_dict(json_dict, m_context=context)
+
+    del json_dict['m_def_id']
+
+
+@pytest.mark.parametrize('m_def,m_def_id', [
+    pytest.param(None, EntryArchive.m_def.definition_id, id='plain-definition-id'),
+    pytest.param('nomad.datamodel.EntryArchive', None, id='plain-definition-python-style'),
+    pytest.param(
+        'nomad.datamodel.EntryArchive@' + EntryArchive.m_def.definition_id, None,
+        id='plain-definition-with-correct-id'),
+    pytest.param(
+        'nomad.datamodel.EntryArchive@' + EntryArchive.m_def.definition_id[::-1], None,
+        id='plain-definition-with-wrong-id'),
+    pytest.param(
+        'http://my.domain#/placeholder@' + EntryArchive.m_def.definition_id, None,
+        id='url-definition'),
+])
+def test_archive_with_id_in_reference(json_dict, m_def, m_def_id, monkeypatch):
+    '''
+    Patch Context to return proper section definition to test if the archive is correctly created.
+    '''
+
+    def resolve_definition_as_section(self, definition: str, definition_id: str):  # pylint: disable=unused-argument
+        return EntryArchive
+
+    monkeypatch.setattr('nomad.metainfo.Context.resolve_definition_as_section', resolve_definition_as_section)
+
+    if m_def is not None:
+        json_dict['m_def'] = m_def
+    if m_def_id is not None:
+        json_dict['m_def_id'] = m_def_id
+
+    archive = MSection.m_from_dict(json_dict, m_context=Context())
+    assert archive.run is not None
+    assert len(archive.run) == 1
+
+    if 'm_def' in json_dict:
+        del json_dict['m_def']
+    if 'm_def_id' in json_dict:
+        del json_dict['m_def_id']
 
 
 @pytest.mark.parametrize('required, error', [
