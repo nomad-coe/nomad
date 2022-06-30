@@ -19,6 +19,8 @@
 import functools
 import itertools
 import math
+import re
+from string import ascii_uppercase
 from functools import reduce
 from typing import List, Dict, Tuple, Any, Union, Iterable, cast
 from nptyping import NDArray
@@ -27,7 +29,7 @@ from ase.utils import pbc2pbc
 import ase.geometry
 import ase.data
 from ase import Atoms
-from ase.formula import Formula
+from ase.formula import Formula as ASEFormula
 
 import numpy as np
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
@@ -354,7 +356,7 @@ def get_formula_hill(formula: str) -> str:
     if formula is None:
         return formula
 
-    return Formula(formula).format('hill')
+    return ASEFormula(formula).format('hill')
 
 
 def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> Tuple[List[str], List[int]]:
@@ -676,3 +678,81 @@ def swap_basis(atoms, a, b):
     pbc_new[b] = pbc_old[a]
     atoms.set_cell(cell_new)
     atoms.set_pbc(pbc_new)
+
+
+class Formula():
+    '''Helper class for extracting formulas used by NOMAD.
+    '''
+    formula_parentheses = re.compile(r'([A-Z][a-z]?)\((\d+)\)')
+
+    def __init__(self, formula: str):
+        self.formula = formula
+
+        # Try to parse formula with ASE. If not successfull, try to normalize
+        # the formula.
+        try:
+            self.ase_formula = ASEFormula(formula)
+        except Exception:
+            self.ase_formula = ASEFormula(self.normalize(formula))
+
+    def format(self, fmt: str) -> str:
+        '''
+        Args:
+            fmt: The used format. Available options:
+            - hill: Formula in Hill notation.
+            - reduce: Reduced formula
+            - anonymous: Anonymized formula
+        '''
+        if fmt == 'anonymous':
+            return self.formula_anonymous()
+        if fmt == 'reduce':
+            return self.formula_reduce()
+        else:
+            return self.ase_formula.format(fmt)
+
+    def normalize(self, formula: str) -> str:
+        '''Used to normalize a formula.
+        Args:
+            formula: the original formula
+
+        Returns:
+            A normalized version (=one accepted by ASE) of the formula if one
+            can be constructed.
+        '''
+        matches = list(re.finditer(self.formula_parentheses, formula))
+        if matches:
+            n_matched_chars = sum([len(match[0]) for match in matches])
+            n_formula = len(formula.strip())
+            if n_matched_chars == n_formula:
+                formula = "".join(["{}{}".format(match[1], match[2]) for match in matches])
+        return formula
+
+    def formula_anonymous(self):
+        '''Returns the anonymous formula.
+        '''
+        ase_formula = self.ase_formula.count()
+        result_formula = ''
+        for index, element_count in enumerate(reversed(sorted(ase_formula.values()))):
+            result_formula += ascii_uppercase[index]
+            if element_count > 1:
+                result_formula += str(element_count)
+
+        return result_formula
+
+    def formula_reduce(self):
+        '''Returns the reduced formula.
+        '''
+        ase_formula = self.ase_formula.count()
+        result_formula = ''
+        for element in sorted(ase_formula.keys()):
+            result_formula += element
+            element_count = ase_formula[element]
+            if element_count > 1:
+                result_formula += str(element_count)
+
+        return result_formula
+
+    def elements(self):
+        '''Returns the list of chemical elements present in the formula.
+        '''
+        return sorted(self.ase_formula.count().keys())

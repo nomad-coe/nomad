@@ -66,7 +66,7 @@ from nomad.datamodel.results import (
     DOSElectronic,
     DOSPhonon,
     EnergyFreeHelmholtz,
-    HeatCapacityConstantVolume
+    HeatCapacityConstantVolume,
 )
 
 re_label = re.compile("^([a-zA-Z][a-zA-Z]?)[^a-zA-Z]*")
@@ -217,6 +217,7 @@ class ResultsNormalizer(Normalizer):
             spg_number,
             conv_atoms,
             wyckoff_sets,
+            properties,
             optimade,
             logger
         ).material()
@@ -436,10 +437,13 @@ class ResultsNormalizer(Normalizer):
                 md_wf = workflow.molecular_dynamics
                 traj = Trajectory()
                 if md_wf is not None:
-                    md = MolecularDynamics(
-                        time_step=md_wf.time_step,
-                        ensemble_type=md_wf.ensemble_type,
-                    )
+                    md = MolecularDynamics()
+                    try:
+                        md.time_step = md_wf.integration_parameters.integration_timestep
+                        md.ensemble_type = md_wf.thermodynamic_ensemble
+                    except Exception:
+                        pass
+
                     traj.methodology = Methodology(molecular_dynamics=md)
 
                 # Loop through calculations, gather thermodynamics directly

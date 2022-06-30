@@ -22,10 +22,9 @@ import { Select, FormControl, MenuItem } from '@material-ui/core'
 import { PropertyCard, PropertyGrid, PropertyItem, PropertyCardActions } from './PropertyCard'
 import Quantity, { QuantityTable, QuantityRow, QuantityCell } from '../../Quantity'
 import { MaterialButton } from '../../nav/Routes'
-import Structure from '../../visualization/Structure'
+import Structure, { toMateriaStructure } from '../../visualization/Structure'
 import NoData from '../../visualization/NoData'
 import searchQuantities from '../../../searchQuantities'
-import { toMateriaStructure } from '../../../utils'
 import { encyclopediaBase, guiBase } from '../../../config'
 
 /**

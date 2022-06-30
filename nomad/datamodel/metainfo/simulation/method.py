@@ -921,6 +921,88 @@ class TB(MSection):
     model = SubSection(sub_section=TBModel.m_def, repeats=True)
 
 
+class NeighborSearching(MSection):
+    '''
+    Section containing the parameters for neighbor searching/lists during a molecular dynamics run.
+    '''
+
+    m_def = Section(validate=False)
+
+    neighbor_update_frequency = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of timesteps between updating the neighbor list.
+        ''')
+
+    neighbor_update_cutoff = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m',
+        description='''
+        The distance cutoff for determining the neighbor list.
+        ''')
+
+
+class ForceCalculations(MSection):
+    '''
+    Section containing the parameters for force calculations according to the referenced force field
+    during a molecular dynamics run.
+    '''
+
+    m_def = Section(validate=False)
+
+    vdw_cutoff = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m',
+        description='''
+        Cutoff for calculating VDW forces.
+        ''')
+
+    Coulomb_type = Quantity(
+        type=MEnum('cutoff', 'ewald', 'multilevel_summation', 'particle_mesh_ewald',
+                   'particle_particle_particle_mesh', 'reaction_field'),
+        shape=[],
+        description='''
+        Method used for calculating long-ranged Coulomb forces.
+
+        Allowed values are:
+
+        | Barostat Name          | Description                               |
+
+        | ---------------------- | ----------------------------------------- |
+
+        | `""`                   | No thermostat               |
+
+        | `"Cutoff"`          | Simple cutoff scheme. |
+
+        | `"Ewald"` | Standard Ewald summation as described in any solid-state physics text. |
+
+        | `"Multi-Level Summation"` |  D. Hardy, J.E. Stone, and K. Schulten,
+        [Parallel. Comput. **35**, 164](https://doi.org/10.1016/j.parco.2008.12.005)|
+
+        | `"Particle-Mesh-Ewald"`        | T. Darden, D. York, and L. Pedersen,
+        [J. Chem. Phys. **98**, 10089 (1993)](https://doi.org/10.1063/1.464397) |
+
+        | `"Particle-Particle Particle-Mesh"` | See e.g. Hockney and Eastwood, Computer Simulation Using Particles,
+        Adam Hilger, NY (1989). |
+
+        | `"Reaction-Field"` | J.A. Barker and R.O. Watts,
+        [Mol. Phys. **26**, 789 (1973)](https://doi.org/10.1080/00268977300102101)|
+        ''')
+
+    Coulomb_cutoff = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m',
+        description='''
+        Cutoff for calculating short-ranged Coulomb forces.
+        ''')
+
+    neighbor_searching = SubSection(sub_section=NeighborSearching.m_def, repeats=False)
+
+
 class ForceField(MSection):
     '''
     Section containing the parameters pertaining to a force field calculation.
@@ -929,6 +1011,8 @@ class ForceField(MSection):
     m_def = Section(validate=False)
 
     model = SubSection(sub_section=Model.m_def, repeats=True)
+
+    force_calculations = SubSection(sub_section=ForceCalculations.m_def, repeats=False)
 
 
 class Smearing(MSection):
