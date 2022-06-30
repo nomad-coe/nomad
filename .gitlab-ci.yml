@@ -219,6 +219,7 @@ deploy dev:
   except:
     - /^dev-.*$/
   when: manual
+  needs: ["build"]
 
 stop deploy dev:
   stage: deploy
@@ -231,6 +232,7 @@ stop deploy dev:
   script:
     - helm uninstall $CI_ENVIRONMENT_SLUG --namespace nomad
   when: manual
+  needs: ["build"]
 
 deploy prod:
   stage: deploy
