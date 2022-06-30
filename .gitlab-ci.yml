@@ -207,8 +207,6 @@ deploy dev:
       -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod
       $TEST_IMAGE
       python -m nomad.cli client -n https://nomad-lab.eu/dev/rae/${CI_ENVIRONMENT_SLUG}/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
-  except:
-    - /^dev-.*$/
   when: manual
   needs: ["build"]
 
