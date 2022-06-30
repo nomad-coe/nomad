@@ -17,9 +17,10 @@
 #
 
 import json
-from nomad import infrastructure
+from nomad import infrastructure, files
 from nomad.utils.exampledata import ExampleData
 from .archives.create_archives import archive_dft_bulk
+from nomad.processing import Upload
 
 
 def dft():
@@ -45,3 +46,19 @@ def dft():
         json.dump(entry.m_to_dict(include_derived=True), fout, indent=2)
 
     data.save()
+
+
+def eln():
+    infrastructure.setup()
+    main_author = infrastructure.user_management.get_user(username='test').user_id
+    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
+    upload = Upload(
+        upload_id='eln_upload_id',
+        main_author=main_author,
+        coauthors=coauthors,
+        reviewers=reviewers)
+    upload.save()
+    files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
+    upload.staging_upload_files.add_rawfiles('examples/data/eln')
+    upload.process_upload()

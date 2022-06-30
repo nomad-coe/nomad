@@ -19,7 +19,7 @@
 import React from 'react'
 import 'regenerator-runtime/runtime'
 import { waitFor, within } from '@testing-library/dom'
-import { render, screen, expectQuantity, readArchive, startAPI, closeAPI } from '../conftest.spec'
+import {render, screen, expectQuantity, readArchive, startAPI, closeAPI} from '../conftest.spec'
 import { expectPlotButtons } from '../visualization/conftest.spec'
 import {
   expectComposition,
@@ -29,15 +29,8 @@ import {
 import OverviewView from './OverviewView'
 import EntryContext from './EntryContext'
 
-beforeAll(async () => {
-  await startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
-})
-
-afterAll(() => {
-  closeAPI()
-})
-
 test('correctly renders metadata and all properties', async () => {
+  await startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
   render(<EntryContext entryId={'dft_bulk'}>
     <OverviewView />
   </EntryContext>)
@@ -143,4 +136,134 @@ test('correctly renders metadata and all properties', async () => {
   expect(within(shearModulus).getByText('Type')).toBeInTheDocument()
   expect(within(shearModulus).getByText('Value (GPa)')).toBeInTheDocument()
   expect(within(shearModulus).getByText('voigt_reuss_hill_average')).toBeInTheDocument()
+
+  closeAPI()
+})
+
+function expectQuantityToBe(name, label, value, root = screen) {
+  const element = root.queryByTestId(`quantity-${name}`)
+  expect(within(element).getByText(label)).toBeInTheDocument()
+  if (value === undefined) return
+  const values = Array.isArray(value) ? value : [value]
+  values.forEach(expectedValue => expect(within(element).queryAllByText(expectedValue).length).not.toBe(0))
+}
+
+test('eln overview as a reviewer', async () => {
+  await startAPI('tests.states.entry.eln', 'tests/data/entry/eln-reviewer', 'ttester', 'password')
+  render(<EntryContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
+    <OverviewView />
+  </EntryContext>)
+
+  await screen.findByText('HotplateAnnealing')
+
+  expect(screen.queryByTitle("Replace this entry's mainfile")).not.toBeInTheDocument()
+  expect(screen.queryByTitle('Save archive')).not.toBeInTheDocument()
+  expect(screen.queryByTitle('Delete archive')).not.toBeInTheDocument()
+
+  const sectionCards = screen.queryAllByTestId('property-card')
+  expect(sectionCards.length).toBe(3)
+
+  const cardSample = sectionCards[0]
+  const cardPvdEvaporation = sectionCards[1]
+  const cardHotplateAnnealing = sectionCards[2]
+
+  expect(within(cardSample).getByText('Sample')).toBeVisible()
+  expectQuantityToBe('chemical_formula', 'chemical formula', undefined, within(cardSample))
+  expectQuantityToBe('name', 'name', 'ELN example sample', within(cardSample))
+  expectQuantityToBe('lab_id', 'lab id', '001', within(cardSample))
+  expectQuantityToBe('description', 'description', undefined, within(cardSample))
+  expectQuantityToBe('tags', 'tags', 'project', within(cardSample))
+  expectQuantityToBe('chemicals', 'chemicals', ['../upload/raw/Copper_II_Selenide.archive.json#data', '../upload/raw/Tin_II_Selenide.archive.json#data', '../upload/raw/Zinc_Selenide.archive.json#data'], within(cardSample))
+  expectQuantityToBe('substrate_type', 'substrate type', 'SLG', within(cardSample))
+  expectQuantityToBe('substrate_thickness', 'substrate thickness', undefined, within(cardSample))
+  expectQuantityToBe('sample_is_from_collaboration', 'sample is from collaboration', undefined, within(cardSample))
+
+  expect(within(cardPvdEvaporation).getByText('PvdEvaporation')).toBeVisible()
+  expectQuantityToBe('instrument', 'instrument', '../upload/raw/PVD-P.archive.json#data', within(cardPvdEvaporation))
+  expectQuantityToBe('row_refs', 'row refs', undefined, within(cardPvdEvaporation))
+  expectQuantityToBe('data_file', 'data file', 'PVDProcess.csv', within(cardPvdEvaporation))
+  expectQuantityToBe('time', 'time', ['0', '1', '2', '3', '4', 'and 9642 more items'], within(cardPvdEvaporation))
+  expectQuantityToBe('chamber_pressure', 'chamber pressure', ['0.00313', '0.00315', '0.00313', '0.00313', '0.00314', 'and 9642 more items'], within(cardPvdEvaporation))
+  expectQuantityToBe('substrate_temperature', 'substrate temperature', ['32.4132', '32.4141', '32.416', '32.4175', '32.4181', 'and 9642 more items'], within(cardPvdEvaporation))
+
+  // Test if the plot is there
+  expect(within(cardPvdEvaporation).getByText(/Chamber Pressure \(GPa\)/)).toBeVisible()
+  expect(within(cardPvdEvaporation).getByText(/Substrate Temperature \(K\)/)).toBeVisible()
+  expect(within(cardPvdEvaporation).getByText(/Time \(fs\)/)).toBeVisible()
+
+  expect(within(cardHotplateAnnealing).getByText('HotplateAnnealing')).toBeVisible()
+  expectQuantityToBe('instrument', 'instrument', undefined, within(cardHotplateAnnealing))
+  expectQuantityToBe('method', 'method', undefined, within(cardHotplateAnnealing))
+  expectQuantityToBe('row_refs', 'row refs', undefined, within(cardHotplateAnnealing))
+  expectQuantityToBe('set_temperature', 'set temperature', '373.15', within(cardHotplateAnnealing))
+  expectQuantityToBe('duration', 'duration', '60', within(cardHotplateAnnealing))
+
+  closeAPI()
+})
+
+function expectNumberEditQuantity(numberField, unitField, value, unit) {
+  const numberFieldValueInput = within(numberField).getByRole('textbox')
+  const numberFieldUnitInput = within(unitField).getByRole('textbox', { hidden: true })
+  expect(numberFieldValueInput.value).toEqual(value)
+  expect(numberFieldUnitInput.value).toEqual(unit)
+}
+
+test.each([
+  [
+    'an author',
+    'tests.states.entry.eln',
+    'tests/data/entry/eln-author',
+    'bC7byHvWJp62Sn9uiuJUB38MT5j-',
+    'test',
+    'password'
+  ], [
+    'a coauthor',
+    'tests.states.entry.eln',
+    'tests/data/entry/eln-coauthor',
+    'bC7byHvWJp62Sn9uiuJUB38MT5j-',
+    'scooper',
+    'password'
+  ]
+])('eln overview as %s', async (name, state, snapshot, entryId, username, password) => {
+  await startAPI(state, snapshot, username, password)
+  render(<EntryContext entryId={entryId}>
+    <OverviewView />
+  </EntryContext>)
+
+  await screen.findByText('HotplateAnnealing')
+
+  const saveButton = screen.queryByTitle('Save archive').closest('button')
+  expect(saveButton).toBeInTheDocument()
+  expect(saveButton).toBeDisabled()
+
+  const reUploadButton = screen.queryByTitle("Replace this entry's mainfile").closest('button')
+  expect(reUploadButton).toBeInTheDocument()
+  expect(reUploadButton).toBeEnabled()
+
+  const deleteButton = screen.queryByTitle('Delete archive').closest('button')
+  expect(deleteButton).toBeInTheDocument()
+  expect(deleteButton).toBeEnabled()
+
+  const sectionCards = screen.queryAllByTestId('property-card')
+  expect(sectionCards.length).toBe(3)
+
+  const cardSample = sectionCards[0]
+  const cardPvdEvaporation = sectionCards[1]
+  const cardHotplateAnnealing = sectionCards[2]
+
+  expect(within(cardSample).getByText('Sample')).toBeVisible()
+  let numberFieldValue = within(cardSample).queryAllByTestId('number-edit-quantity-value')
+  let numberFieldUnit = within(cardSample).queryAllByTestId('number-edit-quantity-unit')
+  expectNumberEditQuantity(numberFieldValue[0], numberFieldUnit[0], '', 'Å')
+
+  // Test if the plot is there
+  expect(within(cardPvdEvaporation).getByText(/Chamber Pressure \(GPa\)/)).toBeVisible()
+  expect(within(cardPvdEvaporation).getByText(/Substrate Temperature \(K\)/)).toBeVisible()
+  expect(within(cardPvdEvaporation).getByText(/Time \(fs\)/)).toBeVisible()
+
+  numberFieldValue = within(cardHotplateAnnealing).queryAllByTestId('number-edit-quantity-value')
+  numberFieldUnit = within(cardHotplateAnnealing).queryAllByTestId('number-edit-quantity-unit')
+  expectNumberEditQuantity(numberFieldValue[0], numberFieldUnit[0], '373.15', 'K')
+
+  closeAPI()
 })
