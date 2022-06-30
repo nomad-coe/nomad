@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, {useCallback, useContext, useEffect, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import {
   Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip,
   IconButton, useTheme, Grid, Dialog, DialogContent, DialogContentText, DialogActions,
   Button, MenuItem } from '@material-ui/core'
-import { useRouteMatch, useHistory } from 'react-router-dom'
+import {useRouteMatch, useHistory} from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane } from './Browser'
 import { RawFileAdaptor } from './FileBrowser'
@@ -53,11 +53,12 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import {getLineStyles, titleCase} from '../../utils'
 import Plot from '../visualization/Plot'
 import { useUploadContext } from '../uploads/UploadContext'
-import { EntryButton } from '../nav/Routes'
+import {EntryButton} from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import {ErrorHandler} from '../ErrorHandler'
 import Alert from '@material-ui/lab/Alert'
 import _ from 'lodash'
+import UploadIcon from '@material-ui/icons/CloudUpload'
 
 export function useBrowserAdaptorContext(data) {
   const entryContext = useEntryContext()
@@ -285,6 +286,38 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
 ArchiveConfigForm.propTypes = ({
   data: PropTypes.object.isRequired,
   searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired
+})
+
+export const ArchiveReUploadButton = React.memo((props) => {
+  const {uploadId, metadata, reload} = useEntryContext()
+  const {api} = useApi()
+  const {raiseError} = useErrors()
+
+  const handleClick = useCallback((files) => {
+    let input = document.createElement('input')
+    input.type = 'file'
+    input.onchange = (event) => {
+      const file = event.target.files[0]
+      if (!file) {
+        return
+      }
+      let formData = new FormData() // eslint-disable-line no-undef
+      formData.set('file', file, metadata.entry_name)
+      api.put(`uploads/${uploadId}/raw/?wait_for_processing=true`, formData)
+        .then(() => {
+          reload()
+        })
+        .catch(raiseError)
+    }
+
+    input.click()
+  }, [api, metadata.entry_name, raiseError, reload, uploadId])
+
+  return <IconButton onClick={handleClick}>
+    <Tooltip title="Replace this entry's mainfile">
+      <UploadIcon/>
+    </Tooltip>
+  </IconButton>
 })
 
 export function archiveAdaptorFactory(context, data, sectionDef) {

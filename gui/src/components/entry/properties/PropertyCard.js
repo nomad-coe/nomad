@@ -45,7 +45,7 @@ const usePropertyCardStyles = makeStyles(theme => ({
 export function PropertyCard({className, children, ...headerProps}) {
   const styles = usePropertyCardStyles()
 
-  return <Card className={className}>
+  return <Card className={className} data-testid='property-card'>
     <CardHeader {...headerProps} className={styles.header} classes={{action: styles.action}}/>
     {children}
   </Card>

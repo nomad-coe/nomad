@@ -233,10 +233,10 @@ const Quantity = React.memo((props) => {
   }
 
   if (row || column || flex) {
-    return <div className={row ? styles.row : (column ? styles.column : styles.flex)}>{children}</div>
+    return <div className={row ? styles.row : (column ? styles.column : styles.flex)} data-testid={`quantity-${def?.name}`}>{children}</div>
   } else {
     return (
-      <div className={styles.root}>
+      <div className={styles.root} data-testid={noLabel ? undefined : `quantity-${def?.name}`}>
         {!noLabel ? <Typography
           noWrap
           classes={{root: styles.label}}
@@ -296,7 +296,8 @@ Quantity.propTypes = {
   value: PropTypes.any,
   quantity: PropTypes.oneOfType([
     PropTypes.string,
-    PropTypes.func
+    PropTypes.func,
+    PropTypes.object
   ]),
   withClipboard: PropTypes.bool,
   ellipsisFront: PropTypes.bool,
