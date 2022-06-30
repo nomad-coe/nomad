@@ -102,7 +102,7 @@ jupyterhub:
         imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 0
-        command: ["/bin/sh", "-c", "chown 1000:100 /home/jovyan"]
+        command: ["/bin/sh", "-c", "chown 1000:1000 /home/jovyan"]
         volumeMounts:
           - mountPath: /home/jovyan
             name: home
