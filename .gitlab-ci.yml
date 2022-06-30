@@ -1,6 +1,6 @@
 # default installed image for docker executor is: python:3.6
 # using an image that can do git, docker, docker-compose
-image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner
+image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner:latest
 
 # Uncomment the next lines, to run each pipeline/job in its own docker environment.
 # Otherwise, it will use the docker of the gitlab runner host (e.g. enc-preprocessing...).
@@ -13,15 +13,14 @@ image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner
 
 stages:
   - build
-  - prepare
   - test
+  - deploy
   - release
 
 variables:
-  TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:${CI_COMMIT_REF_NAME}
-  STABLE_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
-  LATEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
-  KUBECONFIG: /etc/deploy/config
+  TEST_IMAGE: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
+  STABLE_IMAGE: ${CI_REGISTRY_IMAGE}:stable
+  LATEST_IMAGE: ${CI_REGISTRY_IMAGE}:latest
 
 build:
   stage: build
@@ -30,11 +29,8 @@ build:
     - git submodule update --init --recursive --jobs=4
     # create the version information
     - ./gitinfo.sh
-  script:
-    # ignore test directories of dependencies, there is a lot of data that we not use
-    # in the context of the docker image
-    - find dependencies -name "*test*" -type d -exec echo "{}/" \;  >> .dockerignore
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+  script:
     - docker build -t $TEST_IMAGE .
     - docker push $TEST_IMAGE
   except:
@@ -191,28 +187,61 @@ dev setup tests:
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 deploy dev:
-  stage: release
+  stage: deploy
+  environment:
+    name: dev/$CI_COMMIT_REF_NAME
+    deployment_tier: development
+    url: https://nomad-lab.eu/dev/rae/$CI_ENVIRONMENT_SLUG
+    auto_stop_in: 7 days
+    on_stop: stop deploy dev
   before_script:
-    - mkdir -p /etc/deploy
-    - echo ${CI_K8S_CONFIG} | base64 -d > ${KUBECONFIG}
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_CONFIG} | base64 -d > ~/.kube/config
   script:
-    - RELEASE_NAME=`echo ${CI_COMMIT_REF_NAME} | sed -e 's/[^A-Za-z0-9\-]/-/g' | sed -e 's/^[0-9-]*//g' | head -c 43`
     - helm dependency update ops/helm/nomad
-    - helm upgrade --namespace nomad --install $RELEASE_NAME ops/helm/nomad -f ops/helm/nomad/deployments/dev-values.yaml --set proxy.external.path=/dev/rae/$RELEASE_NAME,image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - helm upgrade $CI_ENVIRONMENT_SLUG ops/helm/nomad
+      --install
+      --namespace nomad
+      --values ops/helm/nomad/deployments/dev-values.yaml
+      --set proxy.external.path=/dev/rae/$CI_ENVIRONMENT_SLUG
+      --set jupyterhub.hub.baseUrl=/dev/rae/$CI_ENVIRONMENT_SLUG/north
+      --set jupyterhub.fullnameOverride=${CI_ENVIRONMENT_SLUG}-north
+      --set jupyterhub.singleuser.podNameTemplate="${CI_ENVIRONMENT_SLUG}-north-{username}--{servername}"
+      --set jupyterhub.hub.config.GenericOAuthenticator.oauth_callback_url=https://nomad-lab.eu/dev/rae/$CI_ENVIRONMENT_SLUG/north/hub/oauth_callback
+      --set image.tag=$CI_COMMIT_REF_SLUG
+      --set roll=true
+      --wait
     - docker pull $TEST_IMAGE
-    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/dev/rae/$RELEASE_NAME/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
+    - docker run
+      -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod
+      $TEST_IMAGE
+      python -m nomad.cli client -n https://nomad-lab.eu/dev/rae/$CI_ENVIRONMENT_SLUG/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
     - /^dev-.*$/
   when: manual
+  needs: ["build"]
+
+stop deploy dev:
+  stage: deploy
+  environment:
+    name: dev/$CI_COMMIT_REF_NAME
+    action: stop
+  before_script:
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_CONFIG} | base64 -d > ~/.kube/config
+  script:
+    - helm uninstall $CI_ENVIRONMENT_SLUG --namespace nomad
+  when: manual
+  needs: ["build"]
 
 deploy prod:
-  stage: release
+  stage: deploy
   before_script:
-    - mkdir -p /etc/deploy
-    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ${KUBECONFIG}
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
   script:
     - helm dependency update ops/helm/nomad
-    - helm upgrade --install nomad-prod-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-v1-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - helm upgrade --install nomad-prod-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-v1-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
@@ -220,13 +249,13 @@ deploy prod:
   when: manual
 
 deploy prod staging:
-  stage: release
+  stage: deploy
   before_script:
-    - mkdir -p /etc/deploy
-    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ${KUBECONFIG}
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
   script:
     - helm dependency update ops/helm/nomad
-    - helm upgrade --install nomad-staging-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-staging-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - helm upgrade --install nomad-staging-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-staging-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/staging/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
@@ -234,13 +263,13 @@ deploy prod staging:
   when: manual
 
 deploy prod test:
-  stage: release
+  stage: deploy
   before_script:
-    - mkdir -p /etc/deploy
-    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ${KUBECONFIG}
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
   script:
     - helm dependency update ops/helm/nomad
-    - helm upgrade --install nomad-test-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-test-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - helm upgrade --install nomad-test-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-test-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/test/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
@@ -248,13 +277,13 @@ deploy prod test:
   when: manual
 
 deploy prod util:
-  stage: release
+  stage: deploy
   before_script:
-    - mkdir -p /etc/deploy
-    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ${KUBECONFIG}
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
   script:
     - helm dependency update ops/helm/nomad
-    - helm upgrade --install nomad-util-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-util-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - helm upgrade --install nomad-util-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-util-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/util/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:

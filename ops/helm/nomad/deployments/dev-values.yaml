@@ -17,6 +17,8 @@ gui:
 worker:
   replicas: 1
   routing: "queue"
+  # request and limit in GB, good prod sizes are 64, 420
+  memrequest: 1
 
 elastic:
   host: elasticsearch.elasticsearch-7.svc.cluster.local
@@ -32,10 +34,10 @@ dbname: nomad_dev_v1
 keycloak:
   serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
   serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
-  passwordSecret: 'nomad-keycloak-password'
-  realmName: 'fairdi_nomad_prod'
-  clientId: 'nomad_public'
-  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
+  passwordSecret: "nomad-keycloak-password"
+  realmName: "fairdi_nomad_prod"
+  clientId: "nomad_public"
+  admin_user_id: "82efac55-6187-408c-8027-b98580c0e1c5"
 
 volumes:
   prefixSize: 1
@@ -43,3 +45,31 @@ volumes:
   staging: /nomad/fairdi/dev/v1/fs/staging
   tmp: /nomad/fairdi/dev/v1/fs/tmp
   nomad: /nomad
+
+services:
+  jupyterhub:
+    enabled: true
+
+jupyterhub:
+  # enabled: true
+  fullnameOverride: null
+  nameOverride: "north"
+  hub:
+    baseUrl:
+    db:
+      type: sqlite-memory
+    config:
+      GenericOAuthenticator:
+        client_id: nomad_public
+        oauth_callback_url: https://nomad-lab.eu/fairdi/nomad/latest/north/hub/oauth_callback
+        authorize_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
+        token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
+        userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
+  singleuser:
+    podNameTemplate:
+    storage:
+      type: none
+
+  prePuller:
+    hook:
+      enabled: false

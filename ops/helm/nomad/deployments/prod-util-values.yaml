@@ -5,12 +5,12 @@ version:
   officialUrl: "https://nomad-lab.eu/prod/v1/gui"
 
 image:
-    tag: "latest"
-    pullPolicy: "Always"
+  tag: "latest"
+  pullPolicy: "Always"
 
 proxy:
   nodePort: 30016
-  nodeIP: '130.183.207.81'
+  nodeIP: "130.183.207.81"
   external:
     host: "nomad-lab.eu"
     path: "/prod/v1/util"
@@ -19,7 +19,7 @@ gui:
   debug: true
   matomoEnabled: false
   matomoSiteId: 2
-  encyclopediaBase: 'https://nomad-lab.eu/prod/rae/encyclopedia/#'
+  encyclopediaBase: "https://nomad-lab.eu/prod/rae/encyclopedia/#"
   aitoolkitEnabled: false
 
 app:
@@ -45,18 +45,18 @@ logstash:
 
 dbname: nomad_prod_v1
 
-uploadurl: 'https://nomad-lab.eu/prod/v1/util/api/uploads'
+uploadurl: "https://nomad-lab.eu/prod/v1/util/api/uploads"
 
 client:
-  passwordSecret: 'nomad-keycloak-password'
+  passwordSecret: "nomad-keycloak-password"
 
 keycloak:
   serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
   serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
-  passwordSecret: 'nomad-keycloak-password'
-  realmName: 'fairdi_nomad_prod'
-  clientId: 'nomad_public'
-  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
+  passwordSecret: "nomad-keycloak-password"
+  realmName: "fairdi_nomad_prod"
+  clientId: "nomad_public"
+  admin_user_id: "82efac55-6187-408c-8027-b98580c0e1c5"
 
 volumes:
   prefixSize: 1
@@ -68,10 +68,10 @@ volumes:
 
 mail:
   enabled: false
-  host: 'mailrelay.mpcdf.mpg.de'
+  host: "mailrelay.mpcdf.mpg.de"
   port: 25
-  from: 'support@nomad-lab.eu'
+  from: "support@nomad-lab.eu"
 
 datacite:
-  secret: 'nomad-datacite'
+  secret: "nomad-datacite"
   enabled: false

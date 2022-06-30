@@ -5,12 +5,12 @@ version:
   officialUrl: "https://nomad-lab.eu/prod/v1/gui"
 
 image:
-    tag: "latest"
-    pullPolicy: "Always"
+  tag: "latest"
+  pullPolicy: "Always"
 
 proxy:
   nodePort: 30008
-  nodeIP: '130.183.207.81'
+  nodeIP: "130.183.207.81"
   external:
     host: "nomad-lab.eu"
     path: "/prod/v1/test"
@@ -40,17 +40,17 @@ logstash:
 
 dbname: nomad_test_v1
 
-uploadurl: 'http://nomad-lab.eu/prod/rae/test/api/uploads'
+uploadurl: "http://nomad-lab.eu/prod/rae/test/api/uploads"
 
 client:
-  passwordSecret: 'nomad-keycloak-password'
+  passwordSecret: "nomad-keycloak-password"
 
 keycloak:
   serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
-  passwordSecret: 'nomad-keycloak-password'
-  realmName: 'fairdi_nomad_prod'
-  clientId: 'nomad_public'
-  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
+  passwordSecret: "nomad-keycloak-password"
+  realmName: "fairdi_nomad_prod"
+  clientId: "nomad_public"
+  admin_user_id: "82efac55-6187-408c-8027-b98580c0e1c5"
 
 volumes:
   prefixSize: 1
@@ -62,6 +62,45 @@ volumes:
 
 mail:
   enabled: true
-  host: 'mailrelay.mpcdf.mpg.de'
+  host: "mailrelay.mpcdf.mpg.de"
   port: 25
-  from: 'webmaster@nomad-coe.eu'
+  from: "webmaster@nomad-coe.eu"
+
+services:
+  jupyterhub:
+    enabled: false
+
+jupyterhub:
+  fullnameOverride: "nomad-test-v1-north"
+  hub:
+    baseUrl: "/prod/v1/test/"
+    db:
+      type: sqlite-pvc
+      pvc:
+        storageClassName: manual-test-north-hub-db
+    config:
+      GenericOAuthenticator:
+        client_id: nomad_public
+        oauth_callback_url: https://nomad-lab.eu/prod/v1/test/north/hub/oauth_callback
+        authorize_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
+        token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
+        userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
+  singleuser:
+    podNameTemplate: "nomad-test-v1-north-{username}--{servername}"
+    initContainers:
+      - name: fix-permissions
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsUser: 0
+        command: ["/bin/sh", "-c", "chown 1000:1000 /home/jovyan"]
+        volumeMounts:
+          - mountPath: /home/jovyan
+            name: home
+            subPath: "{username}"
+    storage:
+      type: static
+      homeMountPath: /home/jovyan/work
+      static:
+        pvcName: test-north-home
+        subPath: "{username}"

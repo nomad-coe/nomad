@@ -37,7 +37,7 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
   hosts:
-  - ""
+    - ""
 
 ## Everything concerning the nomad app
 app:
@@ -144,9 +144,9 @@ kibana:
 
 mail:
   enabled: false
-  host: 'localhost'
+  host: "localhost"
   port: 25
-  from: 'support@nomad-lab.eu'
+  from: "support@nomad-lab.eu"
 
 client:
   username: admin
@@ -185,3 +185,51 @@ process:
 datacite:
   enabled: false
   prefix: "10.17172"
+
+services:
+  jupyterhub:
+    enabled: false
+
+jupyterhub:
+  # fullnameOverride: null
+  # nameOverride: "north"
+  proxy:
+    service:
+      type: ClusterIP
+  hub:
+    allowNamedServers: true
+    shutdownOnLogout: true
+    config:
+      JupyterHub:
+        authenticator_class: generic-oauth
+      Authenticator:
+        auto_login: true
+        enable_auth_state: true
+      GenericOAuthenticator:
+        client_id: nomad_public
+        oauth_callback_url:
+        authorize_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_test/protocol/openid-connect/auth
+        token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_test/protocol/openid-connect/token
+        userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_test/protocol/openid-connect/userinfo
+        login_service: keycloak
+        username_key: preferred_username
+        userdata_params:
+          state: state
+  cull:
+    enabled: true
+    timeout: 3600
+    every: 600
+    removeNamedServers: true
+  prePuller:
+    hook:
+      enabled: true
+    continuous:
+      enabled: false
+  scheduling:
+    userScheduler:
+      enabled: false
+    podPriority:
+      enabled: false
+    userPlaceholder:
+      enabled: false
+      replicas: 0
