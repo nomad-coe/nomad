@@ -252,7 +252,7 @@ export default function About() {
         [homepage](https://nomad-lab.eu/repo-arch), our
         [documentation](${appBase}/docs/index.html).
         There is also an [FAQ](https://nomad-lab.eu/repository-archive-faqs)
-        and the more detailed [uploader documentation](${appBase}/docs/upload.html).
+        and the more detailed [uploader documentation](${appBase}/docs/web.html).
         `}</Markdown>
       </Grid>
       <InfoCard xs={6} title="Interactive Search" top>
@@ -266,7 +266,7 @@ export default function About() {
         NOMAD provides data in <i>processed</i> and <i>normalized</i> form in a machine processable and common hierarchical format.
         This <i>processed data</i>, i.e. the <b>NOMAD Archive</b>, is organized into nested sections of quantities with well defined units,
         data types, shapes, and descriptions. These definitions are called the <b>NOMAD Metainfo</b> and they
-        can be <Link component={RouterLink} to={'/metainfo'}>browsed here</Link>.
+        can be <Link component={RouterLink} to={'/analyze/metainfo'}>browsed here</Link>.
       </InfoCard>
       <Grid item xs={12} style={{paddingTop: 0, paddingBottom: 0}}>
         <AboutSvg ref={svg}></AboutSvg>
@@ -289,8 +289,8 @@ export default function About() {
         cite your data with a <b>DOI</b> that we provide on request.
         </p>
         <p>
-          You can provide via GUI or shell command <Link component={RouterLink} to={'/uploads'}>here</Link>.
-          Manage already uploaded data <Link component={RouterLink} to={'/userdata'}>here</Link>.
+          You can provide via GUI or shell command or manage already uploaded
+          data <Link component={RouterLink} to={'/user'}>here</Link>.
         </p>
       </InfoCard>
       <InfoCard xs={4} title="Processing" bottom>
@@ -303,8 +303,8 @@ export default function About() {
         </p>
         <p>NOMAD supports most community codes and file formats: <CodeList/></p>
         <p>
-        To use NOMAD&apos;s parsers and normalizers outside of NOMAD.
-        Read <Link href="">here</Link> on how to install
+        To use NOMAD&apos;s parsers and normalizers outside of NOMAD read <Link href={`${appBase}/docs/local_parsers.html`}>here</Link>.
+        Read <Link href={`${appBase}/docs/pythonlib.html`}>here</Link> on how to install
         our software and how to use NOMAD processing in your Python environment.
         </p>
       </InfoCard>
@@ -314,12 +314,12 @@ export default function About() {
       standardized [OPTiMaDe API](https://github.com/Materials-Consortia/OPTiMaDe/tree/master)
       materials science database API, and more.
 
-      We offer a [tutorial on how to use the API with plain Python](${appBase}/docs/api_tutorial.html).
-      Another [tutorial covers how to install and use NOMAD's Python client library](${appBase}/docs/archive_tutorial.html).
+      We offer a [tutorial on how to use the API with plain Python](${appBase}/docs/api.html).
+      Another [tutorial covers how to install and use NOMAD's Python client library](${appBase}/docs/archive.html).
       The [NOMAD Analytics Toolkit](https://nomad-lab.eu/AIToolkit) allows to use
       this without installation and directly on NOMAD servers.
 
-      Visit our [API page](/apis).
+      Visit our [API page](/analyze/apis).
       `}</Markdown></InfoCard>
       <Grid item xs={12}>
         <Markdown>{`
@@ -341,7 +341,7 @@ export default function About() {
         The source-code for NOMAD is maintained
         at the MPCDF's [gitlab](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR).
         To push code, you need an MPCDF account and you can apply
-        [here](https://www.mpcdf.mpg.de/userspace/forms/onlineregistrationform).
+        [here](https://www.mpcdf.mpg.de/userspace/new-users).
 
         ${debug ? `
         ### Material science data and domains
