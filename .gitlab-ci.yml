@@ -202,7 +202,7 @@ deploy dev:
     - helm upgrade $CI_ENVIRONMENT_SLUG ops/helm/nomad
       --install
       --namespace nomad
-      --values ops/helm/nomad/deployments/dev-values.yaml
+      --values ops/helm/deployments/dev-values.yaml
       --set proxy.external.path=/dev/rae/$CI_ENVIRONMENT_SLUG
       --set jupyterhub.hub.baseUrl=/dev/rae/$CI_ENVIRONMENT_SLUG/north
       --set jupyterhub.fullnameOverride=${CI_ENVIRONMENT_SLUG}-north
@@ -241,7 +241,7 @@ deploy prod:
     - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
   script:
     - helm dependency update ops/helm/nomad
-    - helm upgrade --install nomad-prod-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-v1-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
+    - helm upgrade --install nomad-prod-v1 ops/helm/nomad -f ops/helm/deployments/prod-v1-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
@@ -255,7 +255,7 @@ deploy prod staging:
     - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
   script:
     - helm dependency update ops/helm/nomad
-    - helm upgrade --install nomad-staging-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-staging-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
+    - helm upgrade --install nomad-staging-v1 ops/helm/nomad -f ops/helm/deployments/prod-staging-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/staging/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
@@ -269,7 +269,7 @@ deploy prod test:
     - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
   script:
     - helm dependency update ops/helm/nomad
-    - helm upgrade --install nomad-test-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-test-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
+    - helm upgrade --install nomad-test-v1 ops/helm/nomad -f ops/helm/deployments/prod-test-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/test/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
@@ -283,7 +283,7 @@ deploy prod util:
     - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
   script:
     - helm dependency update ops/helm/nomad
-    - helm upgrade --install nomad-util-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-util-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
+    - helm upgrade --install nomad-util-v1 ops/helm/nomad -f ops/helm/deployments/prod-util-values.yaml --set image.tag=$CI_COMMIT_REF_SLUG,roll=true --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/util/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
