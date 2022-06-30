@@ -27,7 +27,7 @@ spec:
           - path: {{ $ingressPath }}
             backend:
               service:
-                name: {{ $fullName }}-gui
+                name: {{ $fullName }}-proxy
                 port:
                   number: {{ $servicePort }}
   {{- end }}
