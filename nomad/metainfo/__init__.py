@@ -54,6 +54,7 @@ from .metainfo import (
     SectionReference,
     QuantityReference,
     File,
+    URL,
     Datetime,
     Unit,
     JSON,
