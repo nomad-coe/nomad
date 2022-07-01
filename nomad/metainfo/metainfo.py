@@ -39,7 +39,6 @@ import base64
 import importlib
 import email.utils
 from urllib.parse import urlsplit, urlunsplit, SplitResult
-import validators
 
 from nomad.units import ureg as units
 
@@ -789,14 +788,24 @@ class _File(DataType):
 
 
 class _URL(DataType):
+    def _validate_web_url(self, url_str: str):
+        urlRegex = re.compile(
+            r'^(?:http|ftp)s?://'
+            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
+            r'localhost|'
+            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+            r'(?::\d+)?'
+            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+        return (re.match(urlRegex, url_str) is not None)
+
     def _test(self, url_str: str) -> str:
         if url_str is None:
             return None
 
         if not isinstance(url_str, str):
             raise TypeError('Links need to be given as URL strings')
-        if not validators.url(url_str):
-            raise ValueError('The given URL could not be fetched')
+        if not self._validate_web_url(url_str):
+            raise ValueError('The given URL is not valid')
 
         return url_str
 
