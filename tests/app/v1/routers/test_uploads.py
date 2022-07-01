@@ -1140,6 +1140,73 @@ def test_put_upload_raw_path(
             assert not processing
 
 
+@pytest.mark.parametrize('mode, user, expected_status_code', [
+    pytest.param(
+        'multipart', 'test_user', 409, id='conflict_in_concurrent_editing')])
+def test_editing_raw_file(
+        client, proc_infra, non_empty_processed, example_data_writeable, test_auth_dict,
+        mode, user, expected_status_code):
+    upload_id = 'examples_template'
+    target_path = 'examples_template'
+    action = 'PUT'
+    url = f'uploads/{upload_id}/raw/{target_path}'
+    path = 'examples_template/template.json'
+    user_auth, __token = test_auth_dict[user]
+
+    # Get an existing upload with entries
+    response = perform_get(client, f'uploads/{upload_id}/archive/mainfile/{path}', user_auth=user_auth)
+    assert response.status_code == 200
+    response_json = response.json()
+    entry_hash = response_json['data']['archive']['metadata']['entry_hash']
+
+    # First edit
+    query_args = {'file_name': 'example.json', 'wait_for_processing': True,
+                  'include_archive': True, 'entry_hash': entry_hash}
+    response, _ = assert_file_upload_and_processing(
+        client, action, url, mode, user, test_auth_dict, upload_id,
+        example_file_mainfile_different_atoms, target_path, query_args, True, False,
+        200, ProcessStatus.SUCCESS, ['examples_template/template.json'], False, True)
+
+    # Second edit on the same entry
+    query_args = {'file_name': 'example.json', 'wait_for_processing': True, 'entry_hash': entry_hash}
+    response, _ = assert_file_upload_and_processing(
+        client, action, url, mode, user, test_auth_dict, upload_id,
+        example_file_mainfile_different_atoms, target_path, query_args, True, False,
+        expected_status_code, None, None, None, None)
+
+    # Get the updated archive
+    response = perform_get(client, f'uploads/{upload_id}/archive/mainfile/{path}', user_auth=user_auth)
+    assert response.status_code == 200
+    response_json = response.json()
+    entry_hash = response_json['data']['archive']['metadata']['entry_hash']
+
+    # Edit with the updated hash code
+    query_args = {'file_name': 'example.json', 'wait_for_processing': True,
+                  'include_archive': True, 'entry_hash': entry_hash}
+    response, _ = assert_file_upload_and_processing(
+        client, action, url, mode, user, test_auth_dict, upload_id,
+        example_file_mainfile_different_atoms, target_path, query_args, True, False,
+        200, ProcessStatus.SUCCESS, ['examples_template/template.json'], False, True)
+
+    # Get the updated archive
+    response = perform_get(client, f'uploads/{upload_id}/archive/mainfile/{path}', user_auth=user_auth)
+    assert response.status_code == 200
+    response_json = response.json()
+    entry_hash = response_json['data']['archive']['metadata']['entry_hash']
+
+    # Somebody deletes the file faster
+    response = client.delete(f'uploads/{upload_id}/raw/{path}', headers=user_auth)
+    assert response.status_code == 200
+    time.sleep(1)
+
+    # Editing the file which was deleted by someone else
+    query_args = {'file_name': 'example.json', 'wait_for_processing': True, 'entry_hash': entry_hash}
+    response, _ = assert_file_upload_and_processing(
+        client, action, url, mode, user, test_auth_dict, upload_id,
+        example_file_mainfile_different_atoms, target_path, query_args, True, False,
+        expected_status_code, None, None, None, None)
+
+
 @pytest.mark.parametrize('user, upload_id, path, expected_status_code', [
     pytest.param(
         'test_user', 'id_published_w', 'test_content/newdir', 401, id='published'),

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useContext, useEffect, useMemo, useState} from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import {
@@ -58,6 +58,7 @@ import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import {ErrorHandler} from '../ErrorHandler'
 import Alert from '@material-ui/lab/Alert'
 import _ from 'lodash'
+import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 
 export function useBrowserAdaptorContext(data) {
@@ -129,18 +130,64 @@ ArchiveBrowser.propTypes = ({
 export default ArchiveBrowser
 
 export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
-  const {editable, archiveHasChanges, saveArchive} = useEntryContext()
+  const {editable, archiveHasChanges, saveArchive, reload} = useEntryContext()
+  const [openErrorDialog, setOpenErrorDialog] = useState(false)
+  const [disabled, setDisabled] = useState(false)
+
+  const handleClick = useCallback(() => {
+    saveArchive().catch(error => {
+      if (error?.status === 409) {
+        setOpenErrorDialog(true)
+        setDisabled(true)
+      }
+    })
+  }, [saveArchive])
+
+  const handleReload = useCallback(() => {
+    reload()
+    setOpenErrorDialog(false)
+  }, [reload])
+
   return <React.Fragment>
     {editable &&
       <IconButton
-        disabled={!archiveHasChanges} color="primary"
-        onClick={saveArchive}
+        disabled={!archiveHasChanges || disabled} color="primary"
+        onClick={handleClick}
       >
         <Tooltip title="Save archive">
           <SaveIcon/>
         </Tooltip>
       </IconButton>
     }
+    <Dialog
+      open={openErrorDialog}
+      aria-describedby="alert-dialog-description"
+    >
+      <DialogContent>
+        <DialogContentText>
+          The changes cannot be saved. The content has been modified by someone else.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenErrorDialog(false)}>OK</Button>
+        <Button onClick={handleReload} autoFocus>Reload</Button>
+      </DialogActions>
+    </Dialog>
+  </React.Fragment>
+})
+
+export const ArchiveReloadButton = React.memo(function ArchiveSaveButton(props) {
+  const {reload} = useEntryContext()
+
+  return <React.Fragment>
+    <IconButton
+      color="primary"
+      onClick={reload}
+    >
+      <Tooltip title="Reload archive">
+        <ReloadIcon/>
+      </Tooltip>
+    </IconButton>
   </React.Fragment>
 })
 
@@ -278,6 +325,7 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
         <SourceApiDialogButton maxWidth="lg" fullWidth>
           <SourceApiCall />
         </SourceApiDialogButton>
+        <ArchiveReloadButton />
         <ArchiveSaveButton/>
       </FormGroup>
     </Box>

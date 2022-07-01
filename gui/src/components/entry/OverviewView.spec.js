@@ -19,7 +19,7 @@
 import React from 'react'
 import 'regenerator-runtime/runtime'
 import { waitFor, within } from '@testing-library/dom'
-import {render, screen, expectQuantity, readArchive, startAPI, closeAPI} from '../conftest.spec'
+import { render, screen, expectQuantity, readArchive, startAPI, closeAPI, waitForGUI } from '../conftest.spec'
 import { expectPlotButtons } from '../visualization/conftest.spec'
 import {
   expectComposition,
@@ -28,6 +28,8 @@ import {
 } from './conftest.spec'
 import OverviewView from './OverviewView'
 import EntryContext from './EntryContext'
+import {fireEvent} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 test('correctly renders metadata and all properties', async () => {
   await startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
@@ -265,5 +267,60 @@ test.each([
   numberFieldUnit = within(cardHotplateAnnealing).queryAllByTestId('number-edit-quantity-unit')
   expectNumberEditQuantity(numberFieldValue[0], numberFieldUnit[0], '373.15', 'K')
 
+  closeAPI()
+})
+
+test.each([
+  [
+    'an author',
+    'tests.states.entry.eln',
+    'tests/data/entry/eln-concurrent',
+    'bC7byHvWJp62Sn9uiuJUB38MT5j-',
+    'test',
+    'password'
+  ]
+])('eln concurrent editing', async (name, state, snapshot, entryId, username, password) => {
+  await startAPI(state, snapshot, username, password)
+  const screen1 = await render(<EntryContext entryId={entryId}>
+    <OverviewView />
+  </EntryContext>)
+
+  await screen1.findByText('HotplateAnnealing')
+
+  const saveButton1 = screen1.queryByTitle('Save archive').closest('button')
+  expect(saveButton1).toBeInTheDocument()
+  expect(saveButton1).toBeDisabled()
+
+  const deleteButton1 = screen1.queryByTitle('Delete archive').closest('button')
+  expect(deleteButton1).toBeEnabled()
+  fireEvent.click(deleteButton1)
+  await waitForGUI()
+  const deleteButtons = screen1.queryAllByText(/delete mainfile/i)
+  const deleteButton = deleteButtons[0]
+
+  const screen2 = await render(<EntryContext entryId={entryId}>
+    <OverviewView />
+  </EntryContext>)
+
+  await screen2.findByText('HotplateAnnealing')
+
+  const saveButton2 = screen2.queryByTitle('Save archive').closest('button')
+  expect(saveButton2).toBeInTheDocument()
+  expect(saveButton2).toBeDisabled()
+
+  const sectionCards2 = screen2.queryAllByTestId('property-card')
+  expect(sectionCards2.length).toBe(3)
+  const cardSample2 = sectionCards2[0]
+  const inputTextField2 = within(cardSample2).queryAllByRole('textbox', { hidden: true })
+  fireEvent.change(inputTextField2[0], { target: { value: 'new text 2' } })
+
+  userEvent.click(deleteButton)
+  await waitForGUI()
+
+  expect(saveButton2).toBeEnabled()
+  fireEvent.click(saveButton2)
+
+  await waitForGUI()
+  expect(await screen2.queryByText('The changes cannot be saved. The content has been modified by someone else.')).toBeInTheDocument()
   closeAPI()
 })

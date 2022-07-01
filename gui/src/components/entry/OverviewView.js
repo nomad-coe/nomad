@@ -33,7 +33,9 @@ import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../bu
 import { useEntryContext } from './EntryContext'
 import SectionCard from './properties/SectionCard'
 import { createMetainfo, traverse } from '../archive/metainfo'
-import { ArchiveSaveButton, ArchiveDeleteButton, ArchiveReUploadButton, useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
+import {
+  ArchiveSaveButton, ArchiveDeleteButton, useBrowserAdaptorContext, ArchiveReloadButton, ArchiveReUploadButton
+} from '../archive/ArchiveBrowser'
 import { useErrors } from '../errors'
 import DefinitionsCard from './properties/DefinitionsCard'
 
@@ -181,6 +183,7 @@ const OverviewView = React.memo((props) => {
       <Grid item xs={8} className={classes.rightColumn}>
         {editable && (
           <Box textAlign="right" className={classes.editActions} display={'flex'} justifyContent={'flex-end'}>
+            <ArchiveReloadButton />
             <ArchiveSaveButton />
             <ArchiveReUploadButton />
             <ArchiveDeleteButton />
