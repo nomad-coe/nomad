@@ -300,7 +300,8 @@ const DataStore = React.memo(({children}) => {
 
         // Convenience methods
         handleArchiveChanged: () => { handleArchiveChanged(entryId) },
-        saveArchive: () => { saveArchive(entryId) }
+        saveArchive: () => { return saveArchive(entryId) },
+        reload: () => { requestRefreshEntry(entryId) }
       }
       entryStore.current[entryId] = entryStoreObj
     }
@@ -505,12 +506,20 @@ const DataStore = React.memo(({children}) => {
       delete newArchive.metadata
       delete newArchive.results
       delete newArchive.processing_logs
-      api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}&wait_for_processing=true`, newArchive)
-        .then(response => {
-          requestRefreshEntry(entryId)
-        })
-        .catch(raiseError)
-      updateEntry(entryId, {savedArchiveVersion: archiveVersion})
+      return new Promise((resolve, reject) => {
+        api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}&wait_for_processing=true&entry_hash=${archive.metadata.entry_hash}`, newArchive)
+          .then(response => {
+            requestRefreshEntry(entryId)
+          })
+          .catch(error => {
+            if (error?.status === 409) {
+              reject(error)
+            } else {
+              raiseError(error)
+            }
+          })
+        updateEntry(entryId, {savedArchiveVersion: archiveVersion})
+      })
     }
   }
 

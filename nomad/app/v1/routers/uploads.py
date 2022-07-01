@@ -860,6 +860,10 @@ async def put_upload_raw_path(
             description=strip('''
             If the archive data should be included in the response when using
             `wait_for_processing` (**USE WITH CARE**).''')),
+        entry_hash: str = FastApiQuery(
+            None,
+            description=strip('''
+            The hash code of the not modified entry.''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
     Upload one or more files to the directory specified by `path` in the the upload specified by `upload_id`.
@@ -909,6 +913,16 @@ async def put_upload_raw_path(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='No upload file provided.')
+
+    if entry_hash:
+        upload_path = upload_paths[0]
+        full_path = os.path.join(path, os.path.basename(upload_path))
+        entry_id = utils.generate_entry_id(upload_id, full_path)
+        entry = upload.get_entry(entry_id)
+        if entry and entry_hash != entry.entry_hash or not entry:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail='The provided hash did not match the current file.')
 
     for upload_path in upload_paths:
         decompress = files.auto_decompress(upload_path)
