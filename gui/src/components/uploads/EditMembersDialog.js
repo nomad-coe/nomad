@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useContext, useMemo, useState, useReducer, useRef} from 'react'
+import React, {useCallback, useContext, useMemo, useState, useReducer} from 'react'
 import {
   makeStyles, DialogTitle, DialogContent, Dialog, IconButton, Tooltip,
   Box, Divider, TextField, MenuItem, Select, Typography, FormControl, InputLabel, CircularProgress
@@ -24,6 +24,7 @@ import DialogContentText from '@material-ui/core/DialogContentText'
 import MembersIcon from '@material-ui/icons/People'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
+import { debounce } from 'lodash'
 import {Datatable, DatatableTable} from '../datatable/Datatable'
 import PropTypes from 'prop-types'
 import {useApi} from '../api'
@@ -227,15 +228,9 @@ function AddMember({...props}) {
     setQuery(newQuery)
   }, [api, raiseError, query, suggestions])
 
-  const timeout = useRef()
-  const handleInputChange = useCallback((event, value) => {
-    if (timeout.current) {
-      clearTimeout(timeout.current)
-    }
-    timeout.current = setTimeout(() => {
-      fetchUsers(event, value)
-    }, 700)
-  }, [timeout, fetchUsers])
+  const handleInputChange = useMemo(() => (
+    debounce(fetchUsers, 700)
+  ), [fetchUsers])
 
   const handleChange = useCallback((event, value) => {
     if (value && value?.user_id) {

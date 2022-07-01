@@ -27,7 +27,7 @@ module.exports = {
         "object-curly-spacing": [0],
         "object-curly-newline": [0],
         "no-var": ["error"],
-        "prefer-const": ["warn"],
+        "prefer-const": "error",
         "quotes": [0],
         "quote-props": [0],
         "indent": [0],

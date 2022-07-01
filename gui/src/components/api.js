@@ -27,7 +27,7 @@ import Cookies from 'universal-cookie'
 import { apiBase, globalLoginRequired } from '../config'
 import { Box, makeStyles, Typography } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
-import { useKeycloak } from 'react-keycloak'
+import { useKeycloak } from '@react-keycloak/web'
 import axios from 'axios'
 import { useErrors } from './errors'
 import * as searchQuantities from '../searchQuantities.json'
@@ -371,7 +371,7 @@ export const apiContext = React.createContext()
 export const APIProvider = React.memo(({
   children
 }) => {
-  const [keycloak] = useKeycloak()
+  const {keycloak} = useKeycloak()
   const setLoading = useSetLoading()
   const api = useState(new Api(keycloak, setLoading))[0]
   const [user, setUser] = useState()

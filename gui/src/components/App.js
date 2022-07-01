@@ -24,7 +24,7 @@ import DateFnsUtils from '@date-io/date-fns'
 import { MuiPickersUtilsProvider } from '@material-ui/pickers'
 import { nomadTheme, keycloakBase, keycloakRealm, keycloakClientId } from '../config'
 import Keycloak from 'keycloak-js'
-import { KeycloakProvider } from 'react-keycloak'
+import { ReactKeycloakProvider } from '@react-keycloak/web'
 import { MuiThemeProvider } from '@material-ui/core/styles'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import Navigation from './nav/Navigation'
@@ -33,7 +33,7 @@ import { APIProvider, GlobalLoginRequired, onKeycloakEvent } from './api'
 import { GlobalMetainfo } from './archive/metainfo'
 import DataStore from './DataStore'
 
-const keycloak = Keycloak({
+const keycloak = new Keycloak({
   url: keycloakBase,
   realm: keycloakRealm,
   clientId: keycloakClientId
@@ -41,7 +41,7 @@ const keycloak = Keycloak({
 
 export default function App() {
   return (
-    <KeycloakProvider keycloak={keycloak} onEvent={onKeycloakEvent(keycloak)} initConfig={{ onLoad: 'check-sso', 'checkLoginIframe': false, promiseType: 'native' }} LoadingComponent={<div />}>
+    <ReactKeycloakProvider authClient={keycloak} onEvent={onKeycloakEvent(keycloak)} initOptions={{ onLoad: 'check-sso', 'checkLoginIframe': false, promiseType: 'native' }} LoadingComponent={<div />}>
       <RecoilRoot>
         <APIProvider>
           <MuiPickersUtilsProvider utils={DateFnsUtils}>
@@ -66,6 +66,6 @@ export default function App() {
           </MuiPickersUtilsProvider>
         </APIProvider>
       </RecoilRoot>
-    </KeycloakProvider>
+    </ReactKeycloakProvider>
   )
 }
