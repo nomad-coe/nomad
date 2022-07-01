@@ -409,21 +409,28 @@ const quantityPresets = {
 /**
  * Representational component for tables containing metainfo data.
  */
-const useTableStyles = makeStyles(theme => ({
+const useMetaInfoTableStyles = makeStyles(theme => ({
   root: {
     border: `1px solid ${theme.palette.grey[300]}`
+  },
+  wrap: {
+    borderBottom: `none`
+  },
+  fixed: {
+    tableLayout: 'fixed'
   }
 }))
-export const MetaInfoTable = React.memo(({data, className, classes, children}) => {
-  const styles = useTableStyles(classes)
-  return <TableContainer className={clsx(className, styles.root)}>
-    <Table size="small">
+export const MetaInfoTable = React.memo(({fixed, wrap, className, classes, children}) => {
+  const styles = useMetaInfoTableStyles(classes)
+  return <TableContainer className={clsx(className, styles.root, wrap && styles.wrap)}>
+    <Table size="small" className={clsx(fixed && styles.fixed)}>
       {children}
     </Table>
   </TableContainer>
 })
 MetaInfoTable.propTypes = {
-  data: PropTypes.object,
+  fixed: PropTypes.bool, // Whether the table cells should have equal sizes
+  wrap: PropTypes.bool, // Whether the table rows should wrap
   className: PropTypes.string,
   classes: PropTypes.object,
   children: PropTypes.node
@@ -433,9 +440,9 @@ MetaInfoTable.propTypes = {
  * Used to organize individual quantities in a table.
  */
 const quantityTableContext = React.createContext()
-export const QuantityTable = React.memo(({data, className, children}) => {
-  return <quantityTableContext.Provider value={data}>
-    <MetaInfoTable className={className}>
+export const QuantityTable = React.memo(({data, fixed, wrap, className, children}) => {
+  return <quantityTableContext.Provider value={{data, wrap}}>
+    <MetaInfoTable wrap={wrap} fixed={fixed} className={className}>
       <TableBody>
         {children}
       </TableBody>
@@ -444,6 +451,8 @@ export const QuantityTable = React.memo(({data, className, children}) => {
 })
 QuantityTable.propTypes = {
   data: PropTypes.object,
+  fixed: PropTypes.bool,
+  wrap: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node
 }
@@ -452,18 +461,24 @@ QuantityTable.propTypes = {
  * Used to organize Quantities in a table row.
  */
 const useRowStyles = makeStyles(theme => ({
-  root: {}
+  root: {},
+  wrap: {
+    display: 'inline-flex',
+    flexWrap: 'wrap',
+    overflow: 'hidden'
+  }
 }))
 export const QuantityRow = React.memo(({className, classes, children}) => {
   const styles = useRowStyles()
-
-  return <TableRow className={clsx(className, styles.root)}>
+  const wrap = useContext(quantityTableContext)?.wrap
+  return <TableRow className={clsx(className, styles.root, wrap && styles.wrap)}>
     {children}
   </TableRow>
 })
 
 QuantityRow.propTypes = {
   className: PropTypes.string,
+  wrap: PropTypes.bool, // Whether to wrap the cells once they overflow
   classes: PropTypes.object,
   children: PropTypes.node
 }
@@ -471,6 +486,12 @@ QuantityRow.propTypes = {
 /**
  * Used to display a quantity in a table cell.
  */
+const useCellStyles = makeStyles(theme => ({
+  wrap: {
+    borderBottom: `1px solid ${theme.palette.grey[300]} !important`,
+    flexGrow: 1
+  }
+}))
 export const QuantityCell = React.memo(({
   quantity,
   value,
@@ -479,23 +500,31 @@ export const QuantityCell = React.memo(({
   description,
   classes,
   className,
+  hideIfUnavailable,
+  format,
   children,
   ...other
 }) => {
-  const contextData = useContext(quantityTableContext)
+  const context = useContext(quantityTableContext)
+  const wrap = context?.wrap
+  const contextData = context?.data
   const finalData = data || contextData
+  const styles = useCellStyles()
 
-  return <TableCell align="left" {...other}>
-    {children || <Quantity
-      quantity={quantity}
-      value={value}
-      label={label}
-      description={description}
-      format
-      noWrap
-      data={finalData}
-    />}
-  </TableCell>
+  return (hideIfUnavailable && isNil(value))
+    ? null
+    : <TableCell align="left" {...other} className={clsx(wrap && styles.wrap)}>
+      {children || <Quantity
+        quantity={quantity}
+        value={value}
+        label={label}
+        description={description}
+        hideIfUnavailable={hideIfUnavailable}
+        format={format}
+        noWrap
+        data={finalData}
+      />}
+    </TableCell>
 })
 
 QuantityCell.propTypes = {
@@ -504,10 +533,15 @@ QuantityCell.propTypes = {
   data: PropTypes.object,
   label: PropTypes.string,
   description: PropTypes.string,
-  options: PropTypes.object,
   className: PropTypes.string,
+  hideIfUnavailable: PropTypes.bool,
+  format: PropTypes.bool,
   classes: PropTypes.object,
   children: PropTypes.node
+}
+
+QuantityCell.defaultProps = {
+  format: true
 }
 
 /**

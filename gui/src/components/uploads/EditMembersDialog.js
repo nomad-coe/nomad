@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useContext, useMemo, useState, useReducer} from 'react'
+import React, {useCallback, useContext, useMemo, useState, useReducer, useRef} from 'react'
 import {
   makeStyles, DialogTitle, DialogContent, Dialog, IconButton, Tooltip,
   Box, Divider, TextField, MenuItem, Select, Typography, FormControl, InputLabel, CircularProgress
@@ -227,14 +227,15 @@ function AddMember({...props}) {
     setQuery(newQuery)
   }, [api, raiseError, query, suggestions])
 
-  let timeout = null
-
+  const timeout = useRef()
   const handleInputChange = useCallback((event, value) => {
-    clearTimeout(timeout)
-    timeout = setTimeout(() => {
+    if (timeout.current) {
+      clearTimeout(timeout.current)
+    }
+    timeout.current = setTimeout(() => {
       fetchUsers(event, value)
     }, 700)
-  }, [])
+  }, [timeout, fetchUsers])
 
   const handleChange = useCallback((event, value) => {
     if (value && value?.user_id) {

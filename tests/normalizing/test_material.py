@@ -558,3 +558,79 @@ def test_conventional_structure(atoms, expected):
     assert np.allclose(pos, expected.get_positions())
     assert np.array_equal(structure_conventional.species_at_sites, expected.get_chemical_symbols())
     assert np.allclose(cell, expected.get_cell())
+
+
+def test_topology_calculation(topology_calculation):
+    """Tests that a topology that originates from the calculation itself is
+    correctly extracted.
+    """
+    topology = topology_calculation.results.material.topology
+    assert len(topology) == 5
+
+    # Test the original structure
+    original = topology[0]
+    assert original.structural_type == "unavailable"
+    assert original.atoms.cartesian_site_positions.shape == (6, 3)
+    assert len(original.atoms.species_at_sites) == 6
+    assert original.atoms.lattice_vectors.shape == (3, 3)
+    assert original.atoms.dimension_types == [False, False, False]
+    assert original.formula_hill == "H4O2"
+    assert original.formula_reduced == "H4O2"
+    assert original.formula_anonymous == "A4B2"
+    assert original.elements == ["H", "O"]
+    assert original.n_elements == 2
+    assert original.n_atoms == 6
+    assert original.parent_system is None
+    assert original.child_systems == ['/results/material/topology/1']
+
+    # Test molecule group
+    mol_group = topology[1]
+    assert mol_group.structural_type == "group"
+    assert np.array_equal(mol_group.indices, [[0, 1, 2, 3, 4, 5]])
+    assert original.formula_hill == "H4O2"
+    assert original.formula_reduced == "H4O2"
+    assert original.formula_anonymous == "A4B2"
+    assert mol_group.elements == ["H", "O"]
+    assert mol_group.n_elements == 2
+    assert mol_group.n_atoms == 6
+    assert mol_group.parent_system == '/results/material/topology/0'
+    assert mol_group.child_systems == ['/results/material/topology/2']
+
+    # Test molecule
+    mol = topology[2]
+    assert mol.structural_type == "molecule"
+    assert np.array_equal(mol.indices, [[0, 1, 2], [3, 4, 5]])
+    assert mol.formula_hill == "H2O"
+    assert mol.formula_reduced == "H2O"
+    assert mol.formula_anonymous == "A2B"
+    assert mol.elements == ["H", "O"]
+    assert mol.n_elements == 2
+    assert mol.n_atoms == 3
+    assert mol.parent_system == '/results/material/topology/1'
+    assert mol.child_systems == ['/results/material/topology/3']
+
+    # Test monomer group
+    mon_group = topology[3]
+    assert mon_group.structural_type == "group"
+    assert np.array_equal(mon_group.indices, [[0, 1]])
+    assert mon_group.formula_hill == "H2"
+    assert mon_group.formula_reduced == "H2"
+    assert mon_group.formula_anonymous == "A2"
+    assert mon_group.elements == ["H"]
+    assert mon_group.n_elements == 1
+    assert mon_group.n_atoms == 2
+    assert mon_group.parent_system == '/results/material/topology/2'
+    assert mon_group.child_systems == ['/results/material/topology/4']
+
+    # Test monomer
+    mon = topology[4]
+    assert mon.structural_type == "monomer"
+    assert np.array_equal(mon.indices, [[0, 1]])
+    assert mon.formula_hill == "H2"
+    assert mon.formula_reduced == "H2"
+    assert mon.formula_anonymous == "A2"
+    assert mon.elements == ["H"]
+    assert mon.n_elements == 1
+    assert mon.n_atoms == 2
+    assert mon.parent_system == '/results/material/topology/3'
+    assert mon.child_systems is None

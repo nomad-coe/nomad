@@ -61,7 +61,7 @@ export const NumberField = React.memo((props) => {
 
   // Given the text input, returns a the extracted number, unit and possible
   // errors.
-  const deserialize = useCallback((input) => {
+  const parseInput = useCallback((input) => {
     if (isNil(input) || input === '') {
       previousNumberPart.current = ''
       return {}
@@ -115,8 +115,10 @@ export const NumberField = React.memo((props) => {
 
     // Try to interpret the value, if a meaningful value was returned, send the
     // new value in a normalized form to the handler.
-    let {value: number, unit: newUnit, error} = deserialize(trimmed)
-    newUnit = newUnit || displayUnit
+    const parsedInput = parseInput(trimmed)
+    const {value: number, error} = parsedInput
+    const newUnit = parsedInput.unit || displayUnit
+
     if (error) {
       setError(error)
     } else {
@@ -124,14 +126,13 @@ export const NumberField = React.memo((props) => {
         setInputValue(previousNumberPart.current)
       }
       if (onChange) {
-        number = (isNil(number) || isNil(unit))
+        previousNumber.current = (isNil(number) || isNil(unit))
           ? number
           : new Quantity(number, newUnit).to(unit).value()
-        previousNumber.current = number
-        onChange(number, newUnit)
+        onChange(previousNumber.current, newUnit)
       }
     }
-  }, [convertInPlace, deserialize, displayUnit, onChange, unit])
+  }, [convertInPlace, parseInput, displayUnit, onChange, unit])
 
   // Routes text field changes to a handler after a debounce time
   const debouncedHandleChange = useMemo(() => debounce(handleChange, 500), [handleChange])

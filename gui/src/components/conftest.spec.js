@@ -33,7 +33,7 @@ import {
   queryAllByRole,
   queries
 } from '@testing-library/react'
-import { prettyDOM } from '@testing-library/dom'
+import { prettyDOM, getDefaultNormalizer } from '@testing-library/dom'
 import { seconds, server } from '../setupTests'
 import { Router, MemoryRouter } from 'react-router-dom'
 import { createBrowserHistory } from 'history'
@@ -314,10 +314,10 @@ export function within(element, queriesToBind = defaultAndCustomQueries) {
  * @param {object} root The container to work on.
 */
 export function expectQuantity(name, data, label = undefined, description = undefined, root = screen) {
-  description = description || searchQuantities[name].description.replace(/\n/g, ' ')
+  description = description || searchQuantities[name].description
   label = label || searchQuantities[name].name.replace(/_/g, ' ')
   const value = isPlainObject(data) ? get(data, name) : data
-  const element = root.getByTitle(description)
+  const element = root.getByTitle(description, {normalizer: getDefaultNormalizer({trim: false, collapseWhitespace: false})})
   expect(root.getByText(label)).toBeInTheDocument()
   expect(within(element).getByText(value)).toBeInTheDocument()
 }

@@ -21,6 +21,7 @@ import { Typography, makeStyles, Box, Grid, Divider } from '@material-ui/core'
 import Quantity from '../Quantity'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
 import MaterialCard from '../entry/properties/MaterialCard'
+import MaterialCardTopology from '../entry/properties/MaterialCardTopology'
 import NexusCard from './properties/NexusCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
 import MechanicalPropertiesCard from '../entry/properties/MechanicalPropertiesCard'
@@ -200,7 +201,10 @@ const OverviewView = React.memo((props) => {
         }
         <DefinitionsCard index={index} archive={archive}/>
         <NexusCard index={index}/>
-        <MaterialCard index={index} archive={archive} properties={properties}/>
+        {index?.results?.material?.topology
+          ? <MaterialCardTopology index={index} archive={archive} properties={properties}/>
+          : <MaterialCard index={index} archive={archive} properties={properties}/>
+        }
         <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
         <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
         <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>

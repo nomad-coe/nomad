@@ -342,14 +342,14 @@ export const ArchiveReUploadButton = React.memo((props) => {
   const {raiseError} = useErrors()
 
   const handleClick = useCallback((files) => {
-    let input = document.createElement('input')
+    const input = document.createElement('input')
     input.type = 'file'
     input.onchange = (event) => {
       const file = event.target.files[0]
       if (!file) {
         return
       }
-      let formData = new FormData() // eslint-disable-line no-undef
+      const formData = new FormData() // eslint-disable-line no-undef
       formData.set('file', file, metadata.entry_name)
       api.put(`uploads/${uploadId}/raw/?wait_for_processing=true`, formData)
         .then(() => {
