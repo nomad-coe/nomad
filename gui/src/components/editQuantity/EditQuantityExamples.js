@@ -133,13 +133,13 @@ export function EditQuantityExamples() {
                     code={`
                     float_unit:
                       type: np.float64
-                      unit: meter
+                      unit: second
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit="bohr"`}
+                          defaultDisplayUnit="fs"`}
                   >
-                    <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'meter', m_annotations: {eln: [{defaultDisplayUnit: 'bohr'}]}})}/>
+                    <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'second', m_annotations: {eln: [{defaultDisplayUnit: 'fs'}]}})}/>
                   </Example>
                 </Grid>
                 <Grid item>
@@ -175,7 +175,7 @@ export function EditQuantityExamples() {
                     code={`
                     float_with_bounds:
                       type: np.float64
-                      unit: second
+                      unit: meter
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
@@ -183,7 +183,7 @@ export function EditQuantityExamples() {
                           maxValue: 10`}
                   >
                     <NumberEditQuantity
-                      {...createDefaultProps('float_with_bounds', {type: float, unit: 'second'})}
+                      {...createDefaultProps('float_with_bounds', {type: float, unit: 'meter'})}
                       minValue={0} maxValue={10}
                     />
                   </Example>
