@@ -18,7 +18,7 @@
 import React from 'react'
 import { CircularProgress, Grid, makeStyles, Paper, Slide, Typography } from '@material-ui/core'
 import Page from '../Page'
-import { useUploadContext } from './UploadContext'
+import { useUploadPageContext } from './UploadPageContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -34,7 +34,7 @@ const useStyles = makeStyles(theme => ({
 }))
 
 const UploadProcessingStatus = React.memo(function ProcessingStatus() {
-  const {isProcessing, upload} = useUploadContext()
+  const {isProcessing, upload} = useUploadPageContext()
   const classes = useStyles()
 
   if (!upload) {

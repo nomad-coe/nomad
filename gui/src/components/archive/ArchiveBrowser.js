@@ -52,7 +52,7 @@ import CodeIcon from '@material-ui/icons/Code'
 import DeleteIcon from '@material-ui/icons/Delete'
 import {getLineStyles, titleCase} from '../../utils'
 import Plot from '../visualization/Plot'
-import { useUploadContext } from '../uploads/UploadContext'
+import { useUploadPageContext } from '../uploads/UploadPageContext'
 import {EntryButton} from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import {ErrorHandler} from '../ErrorHandler'
@@ -63,12 +63,12 @@ import UploadIcon from '@material-ui/icons/CloudUpload'
 
 export function useBrowserAdaptorContext(data) {
   const entryContext = useEntryContext()
-  const uploadContext = useUploadContext()
+  const uploadPageContext = useUploadPageContext()
   const metainfo = useMetainfo(data)
   const {api} = useApi()
 
   const entryId = entryContext?.entryId
-  const uploadId = entryContext?.uploadId || uploadContext?.uploadId
+  const uploadId = entryContext?.uploadId || uploadPageContext?.uploadId
   const mainfile = entryContext?.metadata?.mainfile
 
   const context = useMemo(() => ({

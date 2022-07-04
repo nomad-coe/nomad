@@ -19,10 +19,10 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import FileBrowser from '../archive/FileBrowser'
 import Page from '../Page'
-import { useUploadContext } from './UploadContext'
+import { useUploadPageContext } from './UploadPageContext'
 
 const UploadFilesView = React.memo(function UploadFilesView() {
-  const {uploadId} = useUploadContext()
+  const {uploadId} = useUploadPageContext()
   return <Page>
     <FileBrowser
       uploadId={uploadId}

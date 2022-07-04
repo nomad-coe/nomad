@@ -36,7 +36,7 @@ import OpenInNewIcon from '@material-ui/icons/OpenInNew'
 import Quantity from '../Quantity'
 import {DOI} from '../dataset/DOI'
 import { useDataStore } from '../DataStore'
-import { useUploadContext } from './UploadContext'
+import { useUploadPageContext } from './UploadPageContext'
 
 function EditComments(props) {
   const {value, onChange} = props
@@ -309,7 +309,7 @@ function EditMetaDataDialog({...props}) {
   const {api, user} = useApi()
   const {raiseError} = useErrors()
   const dataStore = useDataStore()
-  const {uploadId, upload, entries} = useUploadContext()
+  const {uploadId, upload, entries} = useUploadPageContext()
   const [open, setOpen] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const isProcessing = upload?.process_running

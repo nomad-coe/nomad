@@ -29,7 +29,7 @@ import DeleteEntriesButton from './DeleteEntriesButton'
 import Quantity from '../Quantity'
 import EditMetaDataDialog from './EditMetaDataDialog'
 import {pluralize} from '../../utils'
-import { useUploadContext } from './UploadContext'
+import { useUploadPageContext } from './UploadPageContext'
 
 const columns = [
   {
@@ -107,7 +107,7 @@ const defaultSelectedColumns = [
 export default function ProcessingTable(props) {
   const [selected, setSelected] = useState([])
   const {pagination, customTitle} = props
-  const {upload, isEditable} = useUploadContext()
+  const {upload, isEditable} = useUploadPageContext()
 
   const selectedQuery = useMemo(() => {
     if (selected === 'all') {

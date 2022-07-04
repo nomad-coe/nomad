@@ -6,10 +6,10 @@ import { useErrors } from '../errors'
 import { getUrl } from '../nav/Routes'
 import { useHistory, useLocation } from 'react-router-dom'
 import { getSectionReference, SectionMDef, useGlobalMetainfo } from '../archive/metainfo'
-import { useUploadContext } from './UploadContext'
+import { useUploadPageContext } from './UploadPageContext'
 
 const CreateEntry = React.memo(function CreateEntry(props) {
-  const {uploadId, isProcessing} = useUploadContext()
+  const {uploadId, isProcessing} = useUploadPageContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const globalMetainfo = useGlobalMetainfo()
