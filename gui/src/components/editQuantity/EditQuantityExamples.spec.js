@@ -37,7 +37,7 @@ test('correctly renders edit quantities', async () => {
   const numberFieldUnitInput = within(numberFieldUnit[0]).getByRole('textbox', { hidden: true })
   const numberFieldCheckBoxs = screen.queryAllByTitle('If checked, numeric value is converted when the unit is changed.')
   const numberFieldCheckBox = within(numberFieldCheckBoxs[0]).getByRole('checkbox', { hidden: true })
-  await waitFor(() => expect(numberFieldUnitInput.value).toEqual('bohr'))
+  await waitFor(() => expect(numberFieldUnitInput.value).toEqual('fs'))
 
   // Check that 'read' mode is enabled
   await waitFor(() => expect(numberFieldCheckBox.checked).toBe(true))
@@ -47,24 +47,36 @@ test('correctly renders edit quantities', async () => {
   // value that is returned has gone through some conversions and due to
   // floating point accuracies it's serialized form may change, but detect this and prevent
   // the text from changing)
-  fireEvent.change(numberFieldValueInput, { target: { value: '1.5' } })
+  fireEvent.change(numberFieldValueInput, { target: { value: '1' } })
   fireEvent.keyDown(numberFieldValueInput, {key: 'Enter', code: 'Enter'})
-  await waitFor(() => expect(numberFieldValueInput.value).toEqual('1.5'))
-  await waitFor(() => expect(screen.queryByText(/"float_unit": 7\.937658163559664e-11/i)).toBeInTheDocument())
+  await waitFor(() => expect(numberFieldValueInput.value).toEqual('1'))
+  await waitFor(() => expect(screen.queryByText(/"float_unit": 1e-15/i)).toBeInTheDocument())
 
   // Change the unit, see that text input changes, debug output remains the same
-  fireEvent.change(numberFieldUnitInput, { target: { value: 'angstrom' } })
+  fireEvent.change(numberFieldUnitInput, { target: { value: 's' } })
   fireEvent.keyDown(numberFieldUnitInput, {key: 'Enter', code: 'Enter'})
-  await waitFor(() => expect(numberFieldValueInput.value).toEqual('0.7937658163559663'))
-  await waitFor(() => expect(screen.queryByText(/"float_unit": 7\.937658163559664e-11/i)).toBeInTheDocument())
+  await waitFor(() => expect(numberFieldValueInput.value).toEqual('1e-15'))
+  await waitFor(() => expect(screen.queryByText(/"float_unit": 1e-15/i)).toBeInTheDocument())
 
   // Enter value with unit, see that only numeric value is preserved in field,
   // unit selection has changed and that debug output is correct
-  fireEvent.change(numberFieldValueInput, { target: { value: '1.5m' } })
+  fireEvent.change(numberFieldValueInput, { target: { value: '30000000fs' } })
   fireEvent.keyDown(numberFieldValueInput, {key: 'Enter', code: 'Enter'})
-  await waitFor(() => expect(numberFieldValueInput.value).toEqual('1.5'))
-  await waitFor(() => expect(numberFieldUnitInput.value).toEqual('m'))
-  await waitFor(() => expect(screen.queryByText(/"float_unit": 1\.5/i)).toBeInTheDocument())
+  await waitFor(() => expect(numberFieldValueInput.value).toEqual('30000000'))
+  await waitFor(() => expect(numberFieldUnitInput.value).toEqual('fs'))
+  await waitFor(() => expect(screen.queryByText(/"float_unit": 3e-8/i)).toBeInTheDocument())
+
+  fireEvent.change(numberFieldValueInput, { target: { value: '1minute' } })
+  fireEvent.keyDown(numberFieldValueInput, {key: 'Enter', code: 'Enter'})
+  await waitFor(() => expect(numberFieldValueInput.value).toEqual('1'))
+  await waitFor(() => expect(numberFieldUnitInput.value).toEqual('minute'))
+  await waitFor(() => expect(screen.queryByText(/"float_unit": 60/i)).toBeInTheDocument())
+
+  // Change the unit, see that text input changes, debug output remains the same
+  fireEvent.change(numberFieldUnitInput, { target: { value: 'fs' } })
+  fireEvent.keyDown(numberFieldUnitInput, {key: 'Enter', code: 'Enter'})
+  await waitFor(() => expect(numberFieldValueInput.value).toEqual('6e+16'))
+  await waitFor(() => expect(screen.queryByText(/"float_unit": 60/i)).toBeInTheDocument())
 
   // Change to 'write' mode
   fireEvent.click(numberFieldCheckBox)
@@ -72,16 +84,19 @@ test('correctly renders edit quantities', async () => {
   await waitFor(() => expect(numberFieldCheckBox.checked).toBe(false))
 
   // Change the unit, see that text input remains the same, debug output changes
-  fireEvent.change(numberFieldUnitInput, { target: { value: 'bohr' } })
+  fireEvent.change(numberFieldUnitInput, { target: { value: 's' } })
   fireEvent.keyDown(numberFieldUnitInput, {key: 'Enter', code: 'Enter'})
-  await waitFor(() => expect(screen.queryByText(/"float_unit": 7\.937658163559664e-11/i)).toBeInTheDocument())
-  await waitFor(() => expect(numberFieldValueInput.value).toEqual('1.5'))
+  await waitFor(() => expect(screen.queryByText(/"float_unit": 60000000000000000/i)).toBeInTheDocument())
+  await waitFor(() => expect(numberFieldValueInput.value).toEqual('6e+16'))
+
+  const numberFieldValueInputInMeter = within(numberFieldValue[4]).getByRole('textbox')
+  const numberFieldUnitInputInMeter = within(numberFieldUnit[3]).getByRole('textbox', { hidden: true })
 
   // Enter value with unit, see that only numeric value is preserved in field,
   // unit selection has changed and that debug output is correct
-  fireEvent.change(numberFieldValueInput, { target: { value: '1.5angstrom' } })
-  fireEvent.keyDown(numberFieldValueInput, {key: 'Enter', code: 'Enter'})
-  await waitFor(() => expect(numberFieldValueInput.value).toEqual('1.5'))
-  await waitFor(() => expect(numberFieldUnitInput.value).toEqual('Å'))
-  await waitFor(() => expect(screen.queryByText(/"float_unit": 1\.5e-10/i)).toBeInTheDocument())
+  fireEvent.change(numberFieldValueInputInMeter, { target: { value: '1.5angstrom' } })
+  fireEvent.keyDown(numberFieldValueInputInMeter, {key: 'Enter', code: 'Enter'})
+  await waitFor(() => expect(numberFieldValueInputInMeter.value).toEqual('1.5'))
+  await waitFor(() => expect(numberFieldUnitInputInMeter.value).toEqual('Å'))
+  await waitFor(() => expect(screen.queryByText(/"float_with_bounds": 1\.5e-10/i)).toBeInTheDocument())
 })
