@@ -182,7 +182,6 @@ test('eln overview as a reviewer', async () => {
 
   expect(within(cardPvdEvaporation).getByText('PvdEvaporation')).toBeVisible()
   expectQuantityToBe('instrument', 'instrument', '../upload/raw/PVD-P.archive.json#data', within(cardPvdEvaporation))
-  expectQuantityToBe('row_refs', 'row refs', undefined, within(cardPvdEvaporation))
   expectQuantityToBe('data_file', 'data file', 'PVDProcess.csv', within(cardPvdEvaporation))
   expectQuantityToBe('time', 'time', ['0', '1', '2', '3', '4', 'and 9642 more items'], within(cardPvdEvaporation))
   expectQuantityToBe('chamber_pressure', 'chamber pressure', ['0.00313', '0.00315', '0.00313', '0.00313', '0.00314', 'and 9642 more items'], within(cardPvdEvaporation))
@@ -196,7 +195,6 @@ test('eln overview as a reviewer', async () => {
   expect(within(cardHotplateAnnealing).getByText('HotplateAnnealing')).toBeVisible()
   expectQuantityToBe('instrument', 'instrument', undefined, within(cardHotplateAnnealing))
   expectQuantityToBe('method', 'method', undefined, within(cardHotplateAnnealing))
-  expectQuantityToBe('row_refs', 'row refs', undefined, within(cardHotplateAnnealing))
   expectQuantityToBe('set_temperature', 'set temperature', '373.15', within(cardHotplateAnnealing))
   expectQuantityToBe('duration', 'duration', '60', within(cardHotplateAnnealing))
 

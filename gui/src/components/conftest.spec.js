@@ -42,7 +42,7 @@ import { ErrorSnacks, ErrorBoundary } from './errors'
 import DataStore from './DataStore'
 import searchQuantities from '../searchQuantities'
 import { keycloakBase } from '../config'
-import { useKeycloak } from 'react-keycloak'
+import { useKeycloak } from '@react-keycloak/web'
 import { GlobalMetainfo, createGlobalMetainfo } from './archive/metainfo'
 import metainfoData from '../metainfo'
 
@@ -50,8 +50,8 @@ beforeEach(async () => {
   // For some strange reason, the useKeycloak mock gets reset if we set it earlier
   if (!useKeycloak()) {
     useKeycloak.mockReturnValue(
-      [
-        {
+      {
+        keycloak: {
           // Default Keycloak mock
           init: jest.fn().mockResolvedValue(true),
           updateToken: jest.fn(),
@@ -65,8 +65,8 @@ beforeEach(async () => {
           token: '',
           refreshToken: ''
         },
-        true
-      ])
+        initialized: true
+      })
   }
 
   // Mock the window.ResizeObserver (jest does not seem to mock it in a way that works)
@@ -85,8 +85,8 @@ const crypto = require('crypto')
 const { execSync } = require('child_process')
 const keycloakURL = `${keycloakBase}realms/fairdi_nomad_test/protocol/openid-connect/token`
 
-jest.mock('react-keycloak', () => {
-  const originalModule = jest.requireActual('react-keycloak')
+jest.mock('@react-keycloak/web', () => {
+  const originalModule = jest.requireActual('@react-keycloak/web')
 
   return {
     __esModule: true,
@@ -570,7 +570,7 @@ function mockKeycloak(username, password) {
     login(username, password)
   }
 
-  useKeycloak.mockReturnValue([mockedKeycloak, true])
+  useKeycloak.mockReturnValue({keycloak: mockedKeycloak, initialized: true})
 }
 
 /**

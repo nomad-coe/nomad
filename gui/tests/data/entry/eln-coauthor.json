@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkY2FjMjY2OC05NzZiLTRkMDUtYjhhYy1iNjViOTI5MWQ2YjgiLCJleHAiOjE2NTUzMTA1NjcsIm5iZiI6MCwiaWF0IjoxNjU1Mjc0NTc0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjEwZGNiNzgxLTAxMGUtNDhjOS1iNmQ2LWMxODFhOGUyMWIxZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.XJGhVNaV-ZmxmrU6_XvS6bFPJNZvbMkxTqKkTdQL_zmfGTLJ7eRB2xSh3YE0x0cqmctlvMDbsHnetaN1z_mtAqKANORjOVI1LBF2665DO-3Xu6cOctA1yKi0AgwfUdKxQ8DCD_-8zSEMNntmPv-4pPXtn8ekndadlwhdoaUsy_x-xhz0BuqXqVCOPqjua1ymzQHgYQ4PCXvXV-W--GuBAeOcRns0LxMq93L_Eu5RPfPFHA1b2ldocqqf_OxcuEeBp9GFd2iNibdkUg9HsyPNQNHhEiUdVshuQpvfZGHsgSVvo6_wY_SnM1fdmbqORvnnPZ0sjAZRDLXlIMJYFIMv_w",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJiNTcxMTRiOS0wYjFiLTQ1ZWEtYjdhOS0zMjQxNzdiODcyNzUiLCJleHAiOjE2NTY3MTc5NTgsIm5iZiI6MCwiaWF0IjoxNjU2NjgxOTc1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjczNWNiNzk4LThjMTktNGQxNS1hNjlmLWZkOWI2ZDg3YWY2OCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.X9E1l3Oa_bJf1eoE2XfSu_3QCe8W3EOAgxf605z3XniN5EemYNcpulFFPt5awt-rgGndyba33DwKk7YwhWiM_0T2voVb8Z_w2srdzP2LSSWY83oJkJaymXQ7EOK7opF6C0kmi1qAN59VuK0ePJOCAO9NiD0lqcH1biKZEWgn5_jJedjkQzVjngRE0prjSVO2e_vMUfulrscVuZz9olAaqLCZi1slV0u6UGJJIARs41l3v9Y0zaNaPdpJ7tDF4LYrrRG64O-6tH8fC_FLaQdWEnlbwPq4m0YgkEP5V6x3FsO3NzyO05ODpRu5R6rya2w7KLC5x-4xR_eNAHw7JzgeDQ",
           "cookie": null
         }
       },
@@ -22,9 +22,6 @@
             "origin": "Markus Scheidgen",
             "quantities": [
               "",
-              ".data",
-              ".metadata",
-              ".results",
               "data",
               "data.chemicals",
               "data.description",
@@ -83,9 +80,9 @@
             ],
             "datasets": [],
             "n_quantities": 55,
-            "nomad_version": "1.1.1",
-            "upload_create_time": "2022-06-15T06:29:31.748000+00:00",
-            "nomad_commit": "4350ae6f",
+            "nomad_version": "1.1.2",
+            "upload_create_time": "2022-07-01T13:26:12.134000+00:00",
+            "nomad_commit": "d0778d6a",
             "processing_errors": [],
             "results": {
               "eln": {
@@ -116,7 +113,7 @@
               }
             },
             "entry_name": "ELN example sample",
-            "last_processing_time": "2022-06-15T06:29:31.930000+00:00",
+            "last_processing_time": "2022-07-01T13:26:12.230000+00:00",
             "parser_name": "parsers/archive",
             "calc_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
             "published": false,
@@ -161,7 +158,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2022-06-15T06:29:31.878000+00:00",
+            "entry_create_time": "2022-07-01T13:26:07.947000+00:00",
             "with_embargo": false,
             "files": [
               "sample.archive.json",
@@ -190,7 +187,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5509",
+          "content-length": "5457",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -208,7 +205,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjOTkyM2FiMi04ZjQ3LTQxNjgtYjNlNi00MDRmOWM3Y2ZjMTEiLCJleHAiOjE2NTUzMTA1NjcsIm5iZiI6MCwiaWF0IjoxNjU1Mjc0NTc0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjEwZGNiNzgxLTAxMGUtNDhjOS1iNmQ2LWMxODFhOGUyMWIxZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.b4wuA2F4LR1FkHKAHh9j-fT88YxENvj5fJE7ImBVU2u32PKEZyzKt5bW7plhtTVFoy9NrWJvxtOJn2kIj6owT1TT4jMdVNXVAmeeHWXfvDFPitPwfcBvepTIfUhV-80zmVaPtHCGgk_aBAgHqE-_uM1WKNa6JeXZWH41JwinlAA26ZSaiazuSOE9iU1Q5vZ448Hj8I0aThh2VSSAoIMxG026C7A6g2cvA9flYKJgc-IPM3qJpbOCAguWBk18KywoHRAaf5jPE5aeIG44tj3zRJkMP_s_wlJiNolky95Bvi_yvYDCjaPNyyVji8ZDBaAHyZWevugoM3U4h4KxO2Wk3Q",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI4ZGM1Njg2Yi1jMDExLTQ0MDEtOWQzMi0xYjM1YWYxZjcxZjEiLCJleHAiOjE2NTY3MTc5NTgsIm5iZiI6MCwiaWF0IjoxNjU2NjgxOTc1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjczNWNiNzk4LThjMTktNGQxNS1hNjlmLWZkOWI2ZDg3YWY2OCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.UVvw1ZEB2KNWEBjVorNpPTvKBUa6WcqWQuOZ9wDRBMS8to1_LgODr6l1QfXFJMHCgxCbD6DHn-BGfMq3LBgtRJPuJCysM85vXIkT950FP1LTZLUy-Yt-HD4uaAGwq9DB4zK43r81XyJef3YoeM49zpMZv7AsCblPCGlNPuBm4E5jKEd-PFKa72wapCwa5ExJM8KLcA6MqtnWHzpfRzZdTexhK0cFjPZ73IMUZuwoxeYtHlIdxu45Lfc-KzuIMI2wH00xeMK2ZfnkbOw9YutD_PXZ5QxBPLKY3f4cAF9ub2PE0uWGra_UgrUll-ZyDOngh0KdkzwP4EHN4mS6fYGhQw",
           "cookie": null
         }
       },
@@ -227,23 +224,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "8M_ZHbBfSQeRD5dviInBfA",
+                  "process_worker_id": "U4uecvw7TNqtkNbRBxuhaw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.03868818283081055",
-                  "input_size": "197784",
+                  "exec_time": "0.033935546875",
+                  "input_size": "1469",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "8M_ZHbBfSQeRD5dviInBfA",
+                  "process_worker_id": "U4uecvw7TNqtkNbRBxuhaw",
                   "parser": "parsers/archive",
                   "step": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 },
                 {
@@ -252,24 +249,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "8M_ZHbBfSQeRD5dviInBfA",
+                  "process_worker_id": "U4uecvw7TNqtkNbRBxuhaw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.00033164024353027344",
-                  "input_size": "197784",
+                  "exec_time": "0.00046253204345703125",
+                  "input_size": "1469",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "8M_ZHbBfSQeRD5dviInBfA",
+                  "process_worker_id": "U4uecvw7TNqtkNbRBxuhaw",
                   "parser": "parsers/archive",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 },
                 {
@@ -278,46 +275,35 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "8M_ZHbBfSQeRD5dviInBfA",
+                  "process_worker_id": "U4uecvw7TNqtkNbRBxuhaw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.32",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.2346193790435791",
-                  "input_size": "197784",
+                  "exec_time": "0.2660496234893799",
+                  "input_size": "1469",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "8M_ZHbBfSQeRD5dviInBfA",
+                  "process_worker_id": "U4uecvw7TNqtkNbRBxuhaw",
                   "parser": "parsers/archive",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.32",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0002551078796386719",
+                  "exec_time": "0.00028228759765625",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "8M_ZHbBfSQeRD5dviInBfA",
+                  "process_worker_id": "U4uecvw7TNqtkNbRBxuhaw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.32",
-                  "level": "INFO"
-                },
-                {
-                  "exec_time": "0.005828142166137695",
-                  "event": "entry metadata indexed",
-                  "proc": "Entry",
-                  "process": "process_entry",
-                  "process_worker_id": "8M_ZHbBfSQeRD5dviInBfA",
-                  "parser": "parsers/archive",
-                  "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.32",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 }
               ],
@@ -29297,12 +29283,12 @@
               },
               "metadata": {
                 "upload_id": "eln_upload_id",
-                "upload_create_time": "2022-06-15T06:29:31.748000+00:00",
+                "upload_create_time": "2022-07-01T13:26:12.134000+00:00",
                 "entry_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
                 "entry_name": "ELN example sample",
                 "entry_type": "Sample",
-                "entry_hash": "x05p0oXbgVQseh4HJanlqSjK7SKi",
-                "entry_create_time": "2022-06-15T06:29:31.878000+00:00",
+                "entry_hash": "onBu6z_Xfq3YuDSpkT1Q-akJVQ3y",
+                "entry_create_time": "2022-07-01T13:26:07.947000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "sample.archive.json",
                 "files": [
@@ -29320,10 +29306,10 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-06-15T06:29:31.930341+00:00",
+                "last_processing_time": "2022-07-01T13:26:12.230259+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.1.1",
-                "nomad_commit": "4350ae6f",
+                "nomad_version": "1.1.2",
+                "nomad_commit": "d0778d6a",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                 "coauthors": [
@@ -29337,9 +29323,6 @@
                 "n_quantities": 55,
                 "quantities": [
                   "",
-                  ".data",
-                  ".metadata",
-                  ".results",
                   "data",
                   "data.chemicals",
                   "data.description",
@@ -29435,13 +29418,14 @@
                     "001"
                   ]
                 }
-              }
+              },
+              "m_ref_archives": {}
             }
           }
         },
         "headers": {
           "connection": "close",
-          "content-length": "661669",
+          "content-length": "661234",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -29468,7 +29452,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5Y2M2YzMyYi1lOTY5LTQxNmQtODliZS0xMTk2MDkyN2I5ZGIiLCJleHAiOjE2NTUzMTA1NjcsIm5iZiI6MCwiaWF0IjoxNjU1Mjc0NTc1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjEwZGNiNzgxLTAxMGUtNDhjOS1iNmQ2LWMxODFhOGUyMWIxZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.GkJjdkKeDJwodx8fQjpwkW23jPmcjmNC8neDaxzrK19dNoHEfe0kUe_q9gs2x1CWLvQ6LDcK0_--2u9PV-o1i3-cln12XA4JMo_jHwtsvYGhBmApYaN99P_LzHftoaTUY9UJWqyrx5fbA11chDVRf5XKp_5SFPQkA_WQOOhqpvDWUwKKBxe2tkwBivKJF3PsYvTGO1ROGOMwcGZ3dCK-DjipDX6VA0QVy3UUgut-C7YQL9ZVuj7_qvDGOGOII_Ob3QZuoBZy-0Kn2kap1FsoYl4fBMJ6OuKrsZIJND8J22ycedR2yqVwmP-br79OH0NgWcua7dB0B013xPXqtj2Y5A",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJhNDJkYTFjYy1mMGUwLTRjYzYtODk5Zi0wMmYwMzAxZjg5ZmEiLCJleHAiOjE2NTY3MTc5NTgsIm5iZiI6MCwiaWF0IjoxNjU2NjgxOTc2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjczNWNiNzk4LThjMTktNGQxNS1hNjlmLWZkOWI2ZDg3YWY2OCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.Nac65vKsg2XZgdwPFa4YNxDtZH0oKBpIQ0bw4dSvM10-ptHHsKwqdGIn1oKOSgU6fvHlMmP83I7C7CLZG8EBgGNgJ5N3nNAooGAWh_hZsj4PtztqTNkNjUt76yLSvIqNrSqaXzvuNjCVJcv5HWYSw6CJRzJbM1pTI8rpsnXW1QzvR9-7ecNtzTS1wnXY8B7tPPE5H-t8kX03m_rjm-CNtBJAs-k7OBNYcFSv_PW-9oyeZP1yPe2Clwzeh_h1_WSCLR_4cXjOkEpLKVW5h93Nd_COAKTIUXuMd2oDT-X70PPK_Csf-845CvVWQFcj9Yjdcy--59DNaTMc4vX4mHRm0Q",
           "cookie": null
         }
       },
@@ -29522,7 +29506,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIxY2FmMDhiZS0xZjQ5LTQwNTAtYWRiMC1kMWU1NmRlZDlhZWMiLCJleHAiOjE2NTUzMTA1NjcsIm5iZiI6MCwiaWF0IjoxNjU1Mjc0NTc1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjEwZGNiNzgxLTAxMGUtNDhjOS1iNmQ2LWMxODFhOGUyMWIxZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.UkYWS3hs8pROKvni1qK0-0pbLxoXKH3BRD6IKncPXQ-qMrOEzPZOa9XLEzYU16vVks9laHDrJJQlBW7Eye3b-eWmQkajULWQmXMfyS_PhPq1seaWiw-xPSY_gODqWEd8cYCMHR0Gjkr6J-CIlsbH4Ao0e4ysfMkmnxcgnIr_Zm7lWZ4bQUD6rOyZ0BuDVFunOoLdf0cAmv7YNMXaj2uAicnAkdkrYDRxUvwh3AZeSz05jXq56D3gY-bUrC8tNt51XmUuzj28Q2VICNi6nhKIKQb76M0Qp4oh36JzT6yUW0yQ4nHeVbXvAnWxmV4FiXNxtBMrKoVYGaLjMN7Dq7ZYaQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkOWQzYWVlYi1kZGMyLTQ1MGQtYTJkYy05NGIyZjBmNDY0NjMiLCJleHAiOjE2NTY3MTc5NTgsIm5iZiI6MCwiaWF0IjoxNjU2NjgxOTc2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjczNWNiNzk4LThjMTktNGQxNS1hNjlmLWZkOWI2ZDg3YWY2OCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.KfF8UYspsGrjIg2-0Gg-KkF1a6ISeP1k7ORcgaH5YJtSOZ5yW-RzsL-GOvxzUwEeEhUldsMv9QAZ-H1TzDvknOXiao-B8zQWpb6kCbQ1biMF205M1kqLrg5sP-2jg4al_0LUi9ENim764EoQLJ-18nMZhqCIWWRlQBKfOD2lqTfTDx9qB30bq9uAmUA40YwCqmjZaFhpuV3lywiRQf40-5RGu5m2PZRPZtiPbXI6XupwvF8JGNCDgaJgqV38rtsCrynJqqee_DjhdT_HH86nN7CWru9L0CgR8kQUfvoyWR0Wlt_Vs1hBM0FL9eQxHKXsxspUXAasRt88GQk3TFG2dA",
           "cookie": null
         }
       },
@@ -29541,23 +29525,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "NIorNtcgQTGRzt1jA0sDkA",
+                  "process_worker_id": "YqgC2ecRSTulIubg6XI7Sw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.023226499557495117",
-                  "input_size": "9337",
+                  "exec_time": "0.03383469581604004",
+                  "input_size": "9341",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "NIorNtcgQTGRzt1jA0sDkA",
+                  "process_worker_id": "YqgC2ecRSTulIubg6XI7Sw",
                   "parser": "parsers/archive",
                   "step": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 },
                 {
@@ -29566,24 +29550,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "NIorNtcgQTGRzt1jA0sDkA",
+                  "process_worker_id": "YqgC2ecRSTulIubg6XI7Sw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.00038123130798339844",
-                  "input_size": "9337",
+                  "exec_time": "0.00047135353088378906",
+                  "input_size": "9341",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "NIorNtcgQTGRzt1jA0sDkA",
+                  "process_worker_id": "YqgC2ecRSTulIubg6XI7Sw",
                   "parser": "parsers/archive",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 },
                 {
@@ -29592,57 +29576,46 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "NIorNtcgQTGRzt1jA0sDkA",
+                  "process_worker_id": "YqgC2ecRSTulIubg6XI7Sw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.00012826919555664062",
-                  "input_size": "9337",
+                  "exec_time": "0.0001647472381591797",
+                  "input_size": "9341",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "NIorNtcgQTGRzt1jA0sDkA",
+                  "process_worker_id": "YqgC2ecRSTulIubg6XI7Sw",
                   "parser": "parsers/archive",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0002677440643310547",
+                  "exec_time": "0.00046753883361816406",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "NIorNtcgQTGRzt1jA0sDkA",
+                  "process_worker_id": "YqgC2ecRSTulIubg6XI7Sw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
-                  "level": "INFO"
-                },
-                {
-                  "exec_time": "0.005613088607788086",
-                  "event": "entry metadata indexed",
-                  "proc": "Entry",
-                  "process": "process_entry",
-                  "process_worker_id": "NIorNtcgQTGRzt1jA0sDkA",
-                  "parser": "parsers/archive",
-                  "logger": "nomad.processing",
-                  "timestamp": "2022-06-15 08:29.31",
+                  "timestamp": "2022-07-01 15:26.12",
                   "level": "INFO"
                 }
               ],
               "metadata": {
                 "upload_id": "eln_upload_id",
-                "upload_create_time": "2022-06-15T06:29:31.748000+00:00",
+                "upload_create_time": "2022-07-01T13:26:12.134000+00:00",
                 "entry_id": "83DS7AzwqTKFVwlrdVeaL3kMSLU_",
                 "entry_name": "Electronic Lab Notebook example schema",
                 "entry_type": "Schema",
-                "entry_hash": "siJPJPj26GBdKOVoQ0yfk6XtHs_i",
-                "entry_create_time": "2022-06-15T06:29:31.890000+00:00",
+                "entry_hash": "zck4eiMj4Rpd6sKI4fh5X1PHL7zS",
+                "entry_create_time": "2022-07-01T13:26:07.961000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "schema.archive.yaml",
                 "files": [
@@ -29660,10 +29633,10 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-06-15T06:29:31.933278+00:00",
+                "last_processing_time": "2022-07-01T13:26:12.230616+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.1.1",
-                "nomad_commit": "4350ae6f",
+                "nomad_version": "1.1.2",
+                "nomad_commit": "d0778d6a",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                 "coauthors": [
@@ -29677,9 +29650,6 @@
                 "n_quantities": 149,
                 "quantities": [
                   "",
-                  ".definitions",
-                  ".metadata",
-                  ".results",
                   "definitions",
                   "definitions.more",
                   "definitions.name",
@@ -29851,8 +29821,7 @@
                     "m_parent_sub_section": "section_definitions",
                     "name": "Process",
                     "base_sections": [
-                      "nomad.datamodel.metainfo.eln.Process",
-                      "nomad.parsing.tabular.Table"
+                      "nomad.datamodel.metainfo.eln.Process"
                     ],
                     "quantities": [
                       {
@@ -30079,7 +30048,8 @@
                             },
                             "name": "PvdEvaporation",
                             "base_sections": [
-                              "#/definitions/section_definitions/2"
+                              "#/definitions/section_definitions/2",
+                              "nomad.parsing.tabular.TableData"
                             ],
                             "quantities": [
                               {
@@ -30253,13 +30223,14 @@
                     ]
                   }
                 ]
-              }
+              },
+              "m_ref_archives": {}
             }
           }
         },
         "headers": {
           "connection": "close",
-          "content-length": "27253",
+          "content-length": "26835",
           "content-type": "application/json",
           "server": "uvicorn"
         }

@@ -275,23 +275,20 @@
       "calculations_ref": [
         "/run/0/calculation/0"
       ],
-      "molecular_dynamics": {
-        "ensemble_type": "NVT",
-        "time_step": 1e-15
-      }
+      "molecular_dynamics": {}
     }
   ],
   "metadata": {
     "upload_id": "dft_upload",
-    "upload_create_time": "2022-05-24T12:23:54.236095+00:00",
+    "upload_create_time": "2022-07-01T13:38:09.912887+00:00",
     "entry_id": "dft_bulk",
     "calc_id": "dft_bulk",
     "entry_hash": "dummy_hash_dft_bulk",
-    "entry_create_time": "2022-05-24T12:23:54.240095+00:00",
+    "entry_create_time": "2022-07-01T13:38:09.916887+00:00",
     "parser_name": "parsers/vasp",
     "mainfile": "vasp.xml",
     "published": true,
-    "publish_time": "2022-05-24T12:23:54.239095+00:00",
+    "publish_time": "2022-07-01T13:38:09.915887+00:00",
     "with_embargo": false,
     "embargo_length": 0,
     "license": "CC BY 4.0",

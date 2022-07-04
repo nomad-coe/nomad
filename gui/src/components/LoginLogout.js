@@ -22,7 +22,7 @@ import { Button, Link, makeStyles } from '@material-ui/core'
 import { keycloakBase, keycloakRealm } from '../config'
 import LoginIcon from '@material-ui/icons/AccountCircle'
 import { useApi } from './api'
-import { useKeycloak } from 'react-keycloak'
+import { useKeycloak } from '@react-keycloak/web'
 
 const useStyles = makeStyles(theme => ({
   root: {
