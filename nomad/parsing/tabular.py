@@ -80,7 +80,7 @@ class XLSOnlyTableData(ArchiveSection):
         super(XLSOnlyTableData, self).normalize(archive, logger)
 
         for quantity in self.m_def.all_quantities.values():
-            tabular_parser_annotation = quantity.m_annotations.get('tabular_parser')
+            tabular_parser_annotation = quantity.m_annotations.get('tabular_parser', None)
             if tabular_parser_annotation:
                 self.tabular_parser(quantity, archive, logger)
 
@@ -169,74 +169,6 @@ def _create_column_to_quantity_mapping(section_def: Section):
     return mapping
 
 
-@cached(max_size=10)
-def _XLSOnly_create_column_to_quantity_mapping(section_def: Section):
-    mapping: Dict[str, Callable[[MSection, Any], MSection]] = {}
-
-    def add_section_def(section_def: Section, path: List[Tuple[SubSection, Section]]):
-        properties: Set[Property] = set()
-
-        for quantity in section_def.all_quantities.values():
-            if quantity in properties:
-                continue
-            properties.add(quantity)
-
-            tabular_annotation = quantity.m_annotations.get('tabular', None)
-            if tabular_annotation and 'name' in tabular_annotation:
-                col_name = '{}.{}'.format(tabular_annotation['sheet_name'], tabular_annotation['name']) if tabular_annotation['sheet_name'] else '{}.{}'.format(0, tabular_annotation['name'])
-            else:
-                col_name = quantity.name
-                if len(path) > 0:
-                    col_name = f'{".".join([item[0].name for item in path])}.{col_name}'
-
-            if col_name in mapping:
-                raise MetainfoError(
-                    f'The schema has non unique column names. {col_name} exists twice. '
-                    f'Column names must be unique, to be used for tabular parsing.')
-
-            def set_value(section: MSection, value, path=path, quantity=quantity, tabular_annotation=tabular_annotation):
-                import numpy as np
-                for sub_section, section_def in path:
-                    next_section = section.m_get_sub_section(sub_section, -1)
-                    if not next_section:
-                        next_section = section_def.section_cls()
-                        section.m_add_sub_section(sub_section, next_section, -1)
-                    section = next_section
-
-                if tabular_annotation and 'unit' in tabular_annotation:
-                    value *= ureg(tabular_annotation['unit'])
-
-                if isinstance(value, (int, float, str)):
-                    value = np.array(value)
-
-                if len(value.shape) == 1 and len(quantity.shape) == 0:
-                    if len(value) == 1:
-                        value = value[0]
-                    elif len(value) == 0:
-                        value = None
-                    else:
-                        raise MetainfoError(
-                            'The shape of {quantity.name} does not match the given data.')
-                elif len(value.shape) != len(quantity.shape):
-                    raise MetainfoError(
-                        'The shape of {quantity.name} does not match the given data.')
-
-                section.m_set(quantity, value)
-
-            mapping[col_name] = set_value
-
-        for sub_section in section_def.all_sub_sections.values():
-            if sub_section in properties or sub_section.repeats:
-                continue
-            next_base_section = sub_section.sub_section
-            properties.add(sub_section)
-            for sub_section_section in next_base_section.all_inheriting_sections + [next_base_section]:
-                add_section_def(sub_section_section, path + [(sub_section, sub_section_section,)])
-
-    add_section_def(section_def, [])
-    return mapping
-
-
 def parse_columns(pd_dataframe, section: MSection):
     '''
     Parses the given pandas dataframe and adds columns (all values as array) to
@@ -259,14 +191,17 @@ def XLSOnly_parse_columns(pd_exlFile, section: MSection):
     import pandas as pd
     exlFile: pd.ExcelFile = pd_exlFile
 
-    mapping = _XLSOnly_create_column_to_quantity_mapping(section.m_def)  # type: ignore
+    mapping = _create_column_to_quantity_mapping(section.m_def)  # type: ignore
     for column in mapping:
-        if '.' in column:
-            sheet_name = column.split('.')[0]
-            col_name = column.split('.')[1]
+        if '/' in column:
+            sheet_name, col_name = column.split('/')
             data = pd.read_excel(exlFile, sheet_name=sheet_name, comment='#')
             if col_name in data:
                 mapping[column](section, data.loc[:, col_name])
+        else:
+            data = pd.read_excel(exlFile, sheet_name=0, comment='#')
+            if column in data:
+                mapping[column](section, data.loc[:, column])
 
 
 def parse_table(pd_dataframe, section_def: Section, logger):
