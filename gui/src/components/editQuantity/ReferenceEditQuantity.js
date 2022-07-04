@@ -22,7 +22,7 @@ import { useErrors } from '../errors'
 import { debounce } from 'lodash'
 import { Autocomplete } from '@material-ui/lab'
 import { TextField } from '@material-ui/core'
-import { useEntryContext } from '../entry/EntryContext'
+import { useEntryPageContext } from '../entry/EntryPageContext'
 import { resolveRefAsync } from '../archive/metainfo'
 import { ItemButton, useLane } from '../archive/Browser'
 import { useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
@@ -30,7 +30,7 @@ import { getFieldProps } from './StringEditQuantity'
 import { isWaitingForUpdateTestId } from '../../utils'
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
-  const {archive} = useEntryContext()
+  const {archive} = useEntryPageContext()
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const {api} = useApi()

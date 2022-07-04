@@ -20,7 +20,7 @@ import { join } from 'path'
 import userEvent from '@testing-library/user-event'
 import { render, screen, within, startAPI, closeAPI, blockConsoleOutput, unblockConsoleOutput } from '../conftest.spec'
 import { getLane, navigateTo, browseRecursively } from '../archive/conftest.spec'
-import EntryContext from './EntryContext'
+import EntryPageContext from './EntryPageContext'
 import ArchiveEntryView from './ArchiveEntryView'
 import { minutes } from '../../setupTests'
 
@@ -83,7 +83,7 @@ test.each([
     'tests/data/uploads/archive_browser_test_' + name.replace(/ /g, '_'),
     'test', 'password')
 
-  render(<EntryContext entryId={entryId}><ArchiveEntryView /></EntryContext>)
+  render(<EntryPageContext entryId={entryId}><ArchiveEntryView /></EntryPageContext>)
   expect(await screen.findByText('Entry')).toBeVisible()
 
   if (withDefinition) {

@@ -27,15 +27,15 @@ import {
   expectLatticeParameters
 } from './conftest.spec'
 import OverviewView from './OverviewView'
-import EntryContext from './EntryContext'
+import EntryPageContext from './EntryPageContext'
 import {fireEvent} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 test('correctly renders metadata and all properties', async () => {
   await startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
-  render(<EntryContext entryId={'dft_bulk'}>
+  render(<EntryPageContext entryId={'dft_bulk'}>
     <OverviewView />
-  </EntryContext>)
+  </EntryPageContext>)
 
   // Wait to load the entry metadata, i.e. wait for some of the text to appear
   await screen.findByText('VASP')
@@ -152,9 +152,9 @@ function expectQuantityToBe(name, label, value, root = screen) {
 
 test('eln overview as a reviewer', async () => {
   await startAPI('tests.states.entry.eln', 'tests/data/entry/eln-reviewer', 'ttester', 'password')
-  render(<EntryContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
+  render(<EntryPageContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
     <OverviewView />
-  </EntryContext>)
+  </EntryPageContext>)
 
   await screen.findByText('HotplateAnnealing')
 
@@ -226,9 +226,9 @@ test.each([
   ]
 ])('eln overview as %s', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  render(<EntryContext entryId={entryId}>
+  render(<EntryPageContext entryId={entryId}>
     <OverviewView />
-  </EntryContext>)
+  </EntryPageContext>)
 
   await screen.findByText('HotplateAnnealing')
 
@@ -279,9 +279,9 @@ test.each([
   ]
 ])('eln concurrent editing', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  const screen1 = await render(<EntryContext entryId={entryId}>
+  const screen1 = await render(<EntryPageContext entryId={entryId}>
     <OverviewView />
-  </EntryContext>)
+  </EntryPageContext>)
 
   await screen1.findByText('HotplateAnnealing')
 
@@ -296,9 +296,9 @@ test.each([
   const deleteButtons = screen1.queryAllByText(/delete mainfile/i)
   const deleteButton = deleteButtons[0]
 
-  const screen2 = await render(<EntryContext entryId={entryId}>
+  const screen2 = await render(<EntryPageContext entryId={entryId}>
     <OverviewView />
-  </EntryContext>)
+  </EntryPageContext>)
 
   await screen2.findByText('HotplateAnnealing')
 

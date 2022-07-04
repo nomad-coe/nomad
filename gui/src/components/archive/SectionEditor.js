@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
 import { Box, makeStyles, TextField } from '@material-ui/core'
-import { useEntryContext } from '../entry/EntryContext'
+import { useEntryPageContext } from '../entry/EntryPageContext'
 import _ from 'lodash'
 import ListEditQuantity from '../editQuantity/ListEditQuantity'
 import {DateTimeEditQuantity} from '../editQuantity/DateTimeEditQuantity'
@@ -103,7 +103,7 @@ const useSectionEditorStyles = makeStyles(theme => ({
 }))
 const SectionEditor = React.memo(function SectionEditor({sectionDef, section, onChange, showJson}) {
   const classes = useSectionEditorStyles()
-  const {handleArchiveChanged} = useEntryContext()
+  const {handleArchiveChanged} = useEntryPageContext()
   const rootRef = useRef()
 
   const handleChange = useCallback((property, value) => {

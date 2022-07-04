@@ -24,7 +24,7 @@ import { amber } from '@material-ui/core/colors'
 import Page from '../Page'
 import { useErrors } from '../errors'
 import { useApi } from '../api'
-import { useEntryContext } from './EntryContext'
+import { useEntryPageContext } from './EntryPageContext'
 import Checkbox from '@material-ui/core/Checkbox'
 import FormControlLabel from '@material-ui/core/FormControlLabel'
 
@@ -170,7 +170,7 @@ FilterLogTagsByKeys.propTypes = {
 
 export default function ArchiveLogView(props) {
   const classes = useStyles()
-  const {entryId} = useEntryContext()
+  const {entryId} = useEntryPageContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
 

@@ -21,7 +21,7 @@ import { useErrors } from '../errors'
 import FileBrowser from '../archive/FileBrowser'
 import { useApi } from '../api'
 import Page from '../Page'
-import { useEntryContext } from './EntryContext'
+import { useEntryPageContext } from './EntryPageContext'
 
 const useStyles = makeStyles(theme => ({
   error: {
@@ -29,7 +29,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 const BrowseEntryFilesView = React.memo((props) => {
-  const {entryId} = useEntryContext()
+  const {entryId} = useEntryPageContext()
   const classes = useStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
