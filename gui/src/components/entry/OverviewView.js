@@ -31,7 +31,7 @@ import SpectroscopyCard from './properties/SpectroscopyCard'
 import { MethodMetadata } from './EntryDetails'
 import Page from '../Page'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
-import { useEntryContext } from './EntryContext'
+import { useEntryPageContext } from './EntryPageContext'
 import SectionCard from './properties/SectionCard'
 import { createMetainfo, traverse } from '../archive/metainfo'
 import {
@@ -87,7 +87,7 @@ const useStyles = makeStyles(theme => ({
  * Shows an informative overview about the selected entry.
  */
 const OverviewView = React.memo((props) => {
-  const {metadata, metadataApiData, exists, editable, archiveApiData} = useEntryContext()
+  const {metadata, metadataApiData, exists, editable, archiveApiData} = useEntryPageContext()
   const archive = useMemo(() => archiveApiData?.response?.data?.archive, [archiveApiData])
   const index = metadata
   const [sections, setSections] = useState([])

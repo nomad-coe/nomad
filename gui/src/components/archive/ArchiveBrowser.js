@@ -45,14 +45,14 @@ import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '..
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
 import SectionEditor from './SectionEditor'
-import { useEntryContext } from '../entry/EntryContext'
+import { useEntryPageContext } from '../entry/EntryPageContext'
 import SaveIcon from '@material-ui/icons/Save'
 import AddIcon from '@material-ui/icons/AddCircle'
 import CodeIcon from '@material-ui/icons/Code'
 import DeleteIcon from '@material-ui/icons/Delete'
 import {getLineStyles, titleCase} from '../../utils'
 import Plot from '../visualization/Plot'
-import { useUploadContext } from '../uploads/UploadContext'
+import { useUploadPageContext } from '../uploads/UploadPageContext'
 import {EntryButton} from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import {ErrorHandler} from '../ErrorHandler'
@@ -62,14 +62,14 @@ import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 
 export function useBrowserAdaptorContext(data) {
-  const entryContext = useEntryContext()
-  const uploadContext = useUploadContext()
+  const entryPageContext = useEntryPageContext()
+  const uploadPageContext = useUploadPageContext()
   const metainfo = useMetainfo(data)
   const {api} = useApi()
 
-  const entryId = entryContext?.entryId
-  const uploadId = entryContext?.uploadId || uploadContext?.uploadId
-  const mainfile = entryContext?.metadata?.mainfile
+  const entryId = entryPageContext?.entryId
+  const uploadId = entryPageContext?.uploadId || uploadPageContext?.uploadId
+  const mainfile = entryPageContext?.metadata?.mainfile
 
   const context = useMemo(() => ({
     api: api,
@@ -130,7 +130,7 @@ ArchiveBrowser.propTypes = ({
 export default ArchiveBrowser
 
 export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
-  const {editable, archiveHasChanges, saveArchive, reload} = useEntryContext()
+  const {editable, archiveHasChanges, saveArchive, reload} = useEntryPageContext()
   const [openErrorDialog, setOpenErrorDialog] = useState(false)
   const [disabled, setDisabled] = useState(false)
 
@@ -177,7 +177,7 @@ export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
 })
 
 export const ArchiveReloadButton = React.memo(function ArchiveSaveButton(props) {
-  const {reload} = useEntryContext()
+  const {reload} = useEntryPageContext()
 
   return <React.Fragment>
     <IconButton
@@ -193,7 +193,7 @@ export const ArchiveReloadButton = React.memo(function ArchiveSaveButton(props) 
 
 export const ArchiveDeleteButton = React.memo(function ArchiveDeleteButton(props) {
   const history = useHistory()
-  const {editable, uploadId, entryId} = useEntryContext()
+  const {editable, uploadId, entryId} = useEntryPageContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
@@ -337,7 +337,7 @@ ArchiveConfigForm.propTypes = ({
 })
 
 export const ArchiveReUploadButton = React.memo((props) => {
-  const {uploadId, metadata, reload} = useEntryContext()
+  const {uploadId, metadata, reload} = useEntryPageContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
 
@@ -675,7 +675,7 @@ QuantityValue.propTypes = ({
 })
 
 function Section({section, def, parentRelation}) {
-  const {editable, handleArchiveChanged} = useEntryContext() || {}
+  const {editable, handleArchiveChanged} = useEntryPageContext() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
   const lane = useLane()
@@ -845,7 +845,7 @@ Section.propTypes = ({
 })
 
 function SubSection({subSectionDef, section, editable}) {
-  const {handleArchiveChanged} = useEntryContext() || {}
+  const {handleArchiveChanged} = useEntryPageContext() || {}
   const lane = useLane()
   const history = useHistory()
   const { label, getItemLabel } = useMemo(() => {

@@ -18,9 +18,10 @@
 import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, startCase } from 'lodash'
 import { Quantity } from './units'
 import { format } from 'date-fns'
-import { dateFormat, guiBase } from './config'
+import { dateFormat, guiBase, apiBase } from './config'
 import { scale as chromaScale } from 'chroma-js'
 import searchQuantities from './searchQuantities.json'
+const crypto = require('crypto')
 
 export const isEquivalent = (a, b) => {
   // Create arrays of property names
@@ -688,4 +689,258 @@ export function stripIndent(code) {
  */
 export function getLocation() {
   return `${window.location.pathname.slice(guiBase.length)}`
+}
+
+/**
+ * Calculates the entryId given the uploadId, the mainfile, and, optionally, the mainfileKey.
+ */
+ export function generateEntryId(uploadId, mainfile, mainfileKey) {
+  const hash = crypto.createHash('sha512').update(uploadId).update(mainfile)
+  if (mainfileKey) {
+    hash.update(mainfileKey)
+  }
+  return hash.digest('base64').slice(0, 28)
+    .replace(/\+/g, '-') // Convert '+' to '-'
+    .replace(/\//g, '_') // Convert '/' to '_'
+}
+
+/**
+ * Utilities parse and analyze *nomad urls*. A nomad url identifies some *nomad resource*,
+ * which can be:
+ *  1) a nomad installation,
+ *  2) an upload,
+ *  3) an archive, or
+ *  4) a schema (the global schema or a custom schema)
+ * Upload, archive and schema urls can, in addition, contain a path segment which specifies
+ * a location *within* the resource (a raw file or folder if the resource is an upload, or
+ * a location in the json-structure if the resource is an archive or a custom schema). Note, custom
+ * schemas are stored in entries, therefore "archive-urls" and "custom schema-urls" are very
+ * similar. A url is identified as a custom schema-url if it has a path where the first element
+ * is "definitions" (the key reserved for custom schema specifications).
+ *
+ * Nomad urls can be absolute or relative. Absolute urls contain all information needed to
+ * locate the resource, including the nomad installation url. Relative urls can only be resolved
+ * when given a *base url* (which must be an absolute nomad url), which defines our "point of origin".
+ *
+ * Possible formats (expressions in [brackets] are optional):
+ *  Installation urls
+ *    A normal url, starting with "http://" or "https://", locating the api of the nomad installation.
+ *    Should always end with "/api".
+ *    Example:
+ *      https://nomad-lab.eu/prod/rae/api
+ *  Urls relative to the current installation:
+ *    ../uploads/<uploadId> [ /raw/<rawPath> [ #archPath ] ]
+ *    ../uploads/<uploadId>/archive/<entryid> [ #<archPath> ]
+ *    ../uploads/<uploadId>/archive/mainfile/<mainfile> [ #<archPath> ]
+ *  Urls relative to the current upload:
+ *    ../upload [ /raw/<rawPath> [ #archPath ] ]
+ *    ../upload/archive/<entryid> [ #<archPath> ]
+ *    ../upload/archive/mainfile/<mainfile> [ #archPath ]
+ *  Urls relative to the current archive/custom schema:
+ *    #<archPath>
+ *  Absolute urls:
+ *    1) Urls to the global schema:
+ *      nomad.datamodel [ .<more path elements> ]
+ *    2) Urls to an upload/archive/custom schema located in some installation: just like
+ *      urls relative to the current installation, but with an actual installation url instead
+ *      of the initial '..'
+ */
+
+export const refType = {
+  installation: 'installation',
+  upload: 'upload',
+  archive: 'archive',
+  globalSchema: 'global-schema',
+  customSchema: 'custom-schema'
+}
+
+/**
+ * Parses a nomad url and returns an object with the following attributes:
+ *  originalUrl
+ *    the original url string.
+ *  originalUrlRelativeTo
+ *    One of: refType.installation | refType.upload | refType.archive | null (for absolute urls)
+ *  type
+ *    One of: refType.installation | refType.upload | refType.archive | refType.globalSchema | refType.customSchema
+ *  installationUrl
+ *    The nomad installation url (if specified in the url).
+ *  uploadId
+ *    The uploadId, if it can be determined.
+ *  entryId
+ *    The entryId, if it can be determined.
+ *  mainfile
+ *    The mainfile path, if specified in the url.
+ *  path
+ *    The path within the upload/archive/schema
+ *
+ * If the url cannot be parsed, an error is thrown.
+ */
+export function parseNomadUrl(url) {
+  const prefix = `Could not parse nomad url "${url}": `
+  if (!url) throw new Error(prefix + 'empty value')
+  if (typeof url !== 'string') throw new Error(prefix + 'bad type, expected string, got ' + typeof url)
+  let originalUrlRelativeTo, type, installationUrl, uploadId, entryId, mainfile, path
+
+  const archPathPos = url.indexOf('#')
+  const archPath = archPathPos !== -1 ? url.slice(archPathPos + 1) : undefined
+  let rest = archPathPos !== -1 ? url.slice(0, archPathPos) : url
+  let rawPath
+
+  if (rest.startsWith('http://') || rest.startsWith('https://')) {
+    // Url includes installationUrl
+    let apiPos = rest.indexOf('/api/')
+    if (apiPos === -1 && rest.endsWith('/api')) apiPos = rest.length - 4
+    if (apiPos === -1) throw new Error(prefix + 'absolute nomad installation url does not contain "/api"')
+    installationUrl = url.slice(0, apiPos + 4)
+    rest = rest.slice(apiPos + 5)
+    if (rest && !rest.startsWith('uploads/')) throw new Error(prefix + 'expected "/uploads/<uploadId>" in absolute url')
+    originalUrlRelativeTo = null
+  } else if (url.startsWith('../')) {
+    rest = rest.slice(3)
+  } else if (url.startsWith('#')) {
+    originalUrlRelativeTo = refType.archive
+  } else if (url.startsWith('nomad.datamodel.' || url === 'nomad.datamodel')) {
+    originalUrlRelativeTo = null
+  } else {
+    throw new Error(prefix + 'bad start sequence')
+  }
+  const restParts = rest.split('/')
+  if ((installationUrl && rest) || url.startsWith('../')) {
+    // Expect upload ref
+    if (restParts[0] === 'uploads') {
+      // Ref with upload id
+      if (!installationUrl) {
+        originalUrlRelativeTo = refType.installation
+      }
+      if (restParts.length === 1) throw new Error(prefix + 'expected "/uploads/<uploadId>" in url')
+      uploadId = restParts[1]
+      restParts.splice(0, 2)
+    } else if (restParts[0] === 'upload') {
+      // Relative ref
+      originalUrlRelativeTo = refType.upload
+      restParts.splice(0, 1)
+    } else {
+      throw new Error(prefix + 'expected "/upload" or "/uploads" in url')
+    }
+    if (restParts.length) {
+      // There is more. Expect "raw" or "archive"
+      if (restParts[0] === 'raw') {
+        rawPath = restParts.slice(1).join('/')
+      } else if (restParts[0] === 'archive') {
+        if (restParts.length === 1) throw new Error(prefix + '"archive" must be followed by entry id or "mainfile"')
+        if (restParts[1] === 'mainfile') {
+          if (restParts.length === 2) throw new Error(prefix + '"mainfile" must be followed by a mainfile path')
+          mainfile = restParts.slice(2).join('/')
+        } else {
+          if (restParts.length !== 2) throw new Error(prefix + 'unexpected path element after entry id')
+          entryId = restParts[1]
+        }
+      } else {
+        throw new Error(prefix + 'expected "raw" or "archive" after upload ref')
+      }
+    }
+  }
+  if (url.startsWith('nomad.datamodel')) {
+    // Refers to the global schema
+    type = refType.globalSchema
+    path = url
+  } else if (installationUrl && !uploadId) {
+    // Pure installation url
+    type = refType.installation
+  } else if (archPath !== undefined) {
+    // Refers to an archive, and has archPath
+    if (!url.startsWith('#') && !entryId && !mainfile && !rawPath) throw new Error(prefix + 'Unexpected "#" without entry reference')
+    mainfile = mainfile || rawPath
+    type = (archPath === 'definitions' || archPath.startsWith('definitions/')) ? refType.customSchema : refType.archive
+    path = archPath
+  } else if (entryId || mainfile) {
+    // Refers to an archive, but has no archPath
+    type = refType.archive
+  } else {
+    // Refers to an upload
+    type = refType.upload
+    path = rawPath
+  }
+
+  if (uploadId && mainfile) {
+    entryId = generateEntryId(uploadId, mainfile)
+  }
+
+  return {
+    originalUrl: url,
+    originalUrlRelativeTo,
+    type,
+    installationUrl,
+    uploadId,
+    entryId,
+    mainfile,
+    path
+  }
+}
+
+/**
+ * Normalizes the url, with respect to the given baseUrl. A baseUrl is required if the url
+ * is relative. Each of the two urls can be either a string or a parsed nomad url (i.e. an
+ * object returned by calling parseNomadUrl).
+ *
+ * Returns an object similar to the one returned by parseNomadUrl, but with the following additional
+ * attributes:
+ *  originalBaseUrl
+ *    The original base url, used for the normalization.
+ *  normalizedUrl
+ *    The normalized url is always absolute, and always uses "/archive/<entryId>" to identify
+ *    entries, rather than the mainfile path.
+ *  isExternal
+ *    If the normalizedUrl points to a resource in an external nomad installation.
+ *
+ * If the normalization fails, an error is thrown.
+ */
+export function normalizeNomadUrl(url, baseUrl) {
+  const parsedUrl = typeof url === 'object' ? url : parseNomadUrl(url)
+  parsedUrl.originalBaseUrl = baseUrl?.originalUrl || baseUrl
+  const prefix = `Could not normalize url "${url}" with baseUrl "${parsedUrl.originalBaseUrl}": `
+
+  if (parsedUrl.originalUrlRelativeTo) {
+    // Url is relative.
+    if (!baseUrl) throw new Error(prefix + 'a baseUrl is required.')
+    const parsedBaseUrl = typeof baseUrl === 'object' ? baseUrl : parseNomadUrl(baseUrl)
+    if (!parsedBaseUrl.installationUrl) throw new Error(prefix + 'baseUrl is not absolute')
+    // Copy data from parsedBaseUrl
+    parsedUrl.installationUrl = parsedBaseUrl.installationUrl // Should always be copied
+    if (parsedUrl.originalUrlRelativeTo === refType.upload) {
+      if (!parsedBaseUrl.uploadId) throw new Error(prefix + 'missing information about uploadId')
+      parsedUrl.uploadId = parsedBaseUrl.uploadId
+      if (parsedUrl.mainfile) {
+        parsedUrl.entryId = generateEntryId(parsedUrl.uploadId, parsedUrl.mainfile)
+      }
+    } else if (parsedUrl.originalUrlRelativeTo === refType.archive) {
+      if (!parsedBaseUrl.entryId || !parsedBaseUrl.uploadId) throw new Error(prefix + 'missing information about entryId')
+      parsedUrl.uploadId = parsedBaseUrl.uploadId
+      parsedUrl.entryId = parsedBaseUrl.entryId
+    }
+  }
+
+  parsedUrl.isExternal = !!parsedUrl.installationUrl && parsedUrl.installationUrl !== apiBase
+
+  // Construct the normalizedUrl
+  switch (parsedUrl.type) {
+    case refType.installaion:
+      parsedUrl.normalizedUrl = parsedUrl.installationUrl
+      break
+    case refType.upload:
+      parsedUrl.normalizedUrl = `${parsedUrl.installationUrl}/uploads/${parsedUrl.uploadId}`
+      if (parsedUrl.path) parsedUrl.normalizedUrl += '/raw/' + parsedUrl.path
+      break
+    case refType.archive:
+    case refType.customSchema:
+      parsedUrl.normalizedUrl = `${parsedUrl.installationUrl}/uploads/${parsedUrl.uploadId}/archive/${parsedUrl.entryId}`
+      if (parsedUrl.path) parsedUrl.normalizedUrl += '#' + parsedUrl.path
+      break
+    case refType.globalSchema:
+      parsedUrl.normalizedUrl = parsedUrl.path
+      break
+    default:
+      throw new Error(prefix + `unexpected type "${parsedUrl.type}"`)
+  }
+  return parsedUrl
 }

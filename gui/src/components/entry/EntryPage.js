@@ -24,7 +24,7 @@ import ArchiveLogView from './ArchiveLogView'
 import BrowseEntryFilesView from './BrowseEntryFilesView'
 import { useRouteMatch, useHistory, matchPath, Redirect } from 'react-router-dom'
 import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
-import EntryContext from './EntryContext'
+import EntryPageContext from './EntryPageContext'
 
 export const help = `
 The *overview* tab gives you an insightful overview about the most prominent
@@ -75,7 +75,7 @@ const EntryPage = React.memo(() => {
     }
   }, [entryId, defaultUrls, urls])
 
-  return <EntryContext entryId={entryId}>
+  return <EntryPageContext entryId={entryId}>
     <Tabs
       value={tab}
       onChange={handleChange}
@@ -95,7 +95,7 @@ const EntryPage = React.memo(() => {
       <CacheRoute path={`${path}/logs`} render={() => <ArchiveLogView />} />
       <Redirect strict from={`${path}/overview`} to={`${path}`} />
     </CacheSwitch>
-  </EntryContext>
+  </EntryPageContext>
 })
 
 export default EntryPage

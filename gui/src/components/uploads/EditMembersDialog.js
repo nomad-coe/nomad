@@ -32,7 +32,7 @@ import {useErrors} from '../errors'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import DeleteIcon from '@material-ui/icons/Delete'
 import { useDataStore } from '../DataStore'
-import { useUploadContext } from './UploadContext'
+import { useUploadPageContext } from './UploadPageContext'
 
 export const editMembersDialogContext = React.createContext()
 
@@ -333,7 +333,7 @@ function EditMembersDialog({...props}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const dataStore = useDataStore()
-  const {uploadId, upload} = useUploadContext()
+  const {uploadId, upload} = useUploadPageContext()
   const [open, setOpen] = useState(false)
   const [members, setMembers] = useState([])
   const [isChanged, setIsChanged] = useState(false)
