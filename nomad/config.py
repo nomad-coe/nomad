@@ -374,6 +374,11 @@ reprocess = NomadConfig(
 )
 
 process = NomadConfig(
+    # Configures if to store the corresponding package definition in mongodb.
+    store_package_definition_in_mongo=False,
+    # Configures if to attach definition id to `m_def`, note it is different from `m_def_id`.
+    # The `m_def_id` will be exported with the `with_def_id=True` via `m_to_dict`.
+    add_definition_id_to_reference=False,
     index_materials=True,
     reuse_parser=True,
     metadata_file_name='nomad',

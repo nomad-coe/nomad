@@ -413,10 +413,10 @@ def test_archive_with_id_in_reference(json_dict, m_def, m_def_id, monkeypatch):
     Patch Context to return proper section definition to test if the archive is correctly created.
     '''
 
-    def resolve_definition_as_section(self, definition: str, definition_id: str):  # pylint: disable=unused-argument
+    def resolve_section_definition(self, definition: str, definition_id: str):  # pylint: disable=unused-argument
         return EntryArchive
 
-    monkeypatch.setattr('nomad.metainfo.Context.resolve_definition_as_section', resolve_definition_as_section)
+    monkeypatch.setattr('nomad.metainfo.Context.resolve_section_definition', resolve_section_definition)
 
     if m_def is not None:
         json_dict['m_def'] = m_def

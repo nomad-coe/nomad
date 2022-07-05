@@ -26,8 +26,7 @@ import orjson
 from nomad import config, utils
 
 from .common import root_path
-from .routers import users, entries, materials, auth, info, datasets, uploads, suggestions
-
+from .routers import users, entries, materials, auth, info, datasets, uploads, suggestions, metainfo
 
 logger = utils.get_logger(__name__)
 
@@ -91,5 +90,6 @@ app.include_router(materials.router, prefix='/materials')
 app.include_router(entries.router, prefix='/entries')
 app.include_router(datasets.router, prefix='/datasets')
 app.include_router(uploads.router, prefix='/uploads')
+app.include_router(metainfo.router, prefix='/metainfo')
 app.include_router(users.router, prefix='/users')
 app.include_router(suggestions.router, prefix='/suggestions')
