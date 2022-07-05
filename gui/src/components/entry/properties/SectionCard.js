@@ -19,7 +19,7 @@ import React, {useCallback, useMemo, useRef, useState} from 'react'
 import PropTypes from 'prop-types'
 import {PropertyCard} from './PropertyCard'
 import SectionEditor from '../../archive/SectionEditor'
-import { useEntryContext } from '../EntryContext'
+import { useEntryPageContext } from '../EntryPageContext'
 import {Box, IconButton, Typography, makeStyles} from '@material-ui/core'
 import CodeIcon from '@material-ui/icons/Code'
 import MoreIcon from '@material-ui/icons/MoreVert'
@@ -50,7 +50,7 @@ const useStyles = makeStyles(theme => ({
 
 const PropertyPreview = React.memo(({quantityDef, section}) => {
   const classes = useStyles()
-  const {entryId, uploadId} = useEntryContext()
+  const {entryId, uploadId} = useEntryPageContext()
   const maxPreviewLength = 5
   if (!quantityDef.type) {
     return ''
@@ -169,7 +169,7 @@ SectionPreview.propTypes = {
 }
 
 const SectionCard = React.memo(({archivePath, sectionDef, section, readOnly, ...props}) => {
-  const {entryId, uploadId} = useEntryContext()
+  const {entryId, uploadId} = useEntryPageContext()
   const [showJson, setShowJson] = useState(false)
 
   const actions = <React.Fragment>

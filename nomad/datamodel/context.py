@@ -285,6 +285,33 @@ class ServerContext(Context):
     def raw_file(self, *args, **kwargs):
         return self.upload_files.raw_file(*args, **kwargs)
 
+    def retrieve_package_by_section_definition_id(self, definition_reference: str, definition_id: str) -> dict:
+        if '://' not in definition_reference:
+            # not a valid url, may be just a plain python name or reference name
+            # use information on the current server
+            from nomad.app.v1.routers.metainfo import get_package_by_section_definition_id
+            return get_package_by_section_definition_id(definition_id)
+
+        try:
+            url_parts = urlsplit(definition_reference)
+        except ValueError:
+            raise MetainfoReferenceError(f'cannot retrieve section {definition_id} from {definition_reference}')
+
+        # appears to be a valid url
+        # build the corresponding request to retrieve the definition
+        # important: here we assume the original reference url has the following form:
+        #     https://example.nomad.site/some/prefix?possible=query#<definition_contains_id>
+        # The definition_id is extracted from the url and used to build the request.
+        # The target endpoint is assumed to be
+        #     https://example.nomad.site/some/prefix/metainfo/<definition_id>
+        response = requests.get(
+            urlunsplit((url_parts.scheme, url_parts.netloc, url_parts.path, f'metainfo/{definition_id}', '',)))
+
+        if response.status_code >= 400:
+            raise MetainfoReferenceError(f'cannot retrieve section {definition_id} from {definition_reference}')
+
+        return response.json()['data']
+
 
 def _validate_url(url):
     return config.api_url(api='api/v1') if url is None else url
@@ -359,3 +386,18 @@ class ClientContext(Context):
             return super().create_reference(section, quantity_def, value)
         except AssertionError:
             return f'<unavailable url>/#{value.m_path()}'
+
+    def retrieve_package_by_section_definition_id(self, definition_reference: str, definition_id: str) -> dict:
+        try:
+            url_parts = urlsplit(definition_reference)
+
+            url = urlunsplit((url_parts.scheme, url_parts.netloc, url_parts.path, f'metainfo/{definition_id}', '',))
+        except ValueError:
+            url = f'{self.installation_url}/metainfo/{definition_id}'
+
+        response = requests.get(url)
+
+        if response.status_code >= 400:
+            raise MetainfoReferenceError(f'cannot retrieve section {definition_id} from {definition_reference}')
+
+        return response.json()['data']

@@ -301,14 +301,14 @@ function Markdown(props) {
   const newProps = {
     ...moreProps,
     children: content,
-    plugins: [
+    remarkPlugins: [
       RemarkMathPlugin
     ],
-    renderers: {
-      ...moreProps.renderer,
+    components: {
+      ...moreProps.components,
       math: math,
       inlineMath: inlineMath,
-      link: props => <MarkdownLink {...props} />
+      a: props => <MarkdownLink {...props} />
     }
   }
   const md = (

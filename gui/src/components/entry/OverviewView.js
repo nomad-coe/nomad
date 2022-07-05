@@ -21,6 +21,7 @@ import { Typography, makeStyles, Box, Grid, Divider } from '@material-ui/core'
 import Quantity from '../Quantity'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
 import MaterialCard from '../entry/properties/MaterialCard'
+import MaterialCardTopology from '../entry/properties/MaterialCardTopology'
 import NexusCard from './properties/NexusCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
 import MechanicalPropertiesCard from '../entry/properties/MechanicalPropertiesCard'
@@ -30,10 +31,12 @@ import SpectroscopyCard from './properties/SpectroscopyCard'
 import { MethodMetadata } from './EntryDetails'
 import Page from '../Page'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
-import { useEntryContext } from './EntryContext'
+import { useEntryPageContext } from './EntryPageContext'
 import SectionCard from './properties/SectionCard'
 import { createMetainfo, traverse } from '../archive/metainfo'
-import { ArchiveSaveButton, ArchiveDeleteButton, ArchiveReUploadButton, useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
+import {
+  ArchiveSaveButton, ArchiveDeleteButton, useBrowserAdaptorContext, ArchiveReloadButton, ArchiveReUploadButton
+} from '../archive/ArchiveBrowser'
 import { useErrors } from '../errors'
 import DefinitionsCard from './properties/DefinitionsCard'
 
@@ -84,7 +87,7 @@ const useStyles = makeStyles(theme => ({
  * Shows an informative overview about the selected entry.
  */
 const OverviewView = React.memo((props) => {
-  const {metadata, metadataApiData, exists, editable, archiveApiData} = useEntryContext()
+  const {metadata, metadataApiData, exists, editable, archiveApiData} = useEntryPageContext()
   const archive = useMemo(() => archiveApiData?.response?.data?.archive, [archiveApiData])
   const index = metadata
   const [sections, setSections] = useState([])
@@ -181,6 +184,7 @@ const OverviewView = React.memo((props) => {
       <Grid item xs={8} className={classes.rightColumn}>
         {editable && (
           <Box textAlign="right" className={classes.editActions} display={'flex'} justifyContent={'flex-end'}>
+            <ArchiveReloadButton />
             <ArchiveSaveButton />
             <ArchiveReUploadButton />
             <ArchiveDeleteButton />
@@ -197,7 +201,10 @@ const OverviewView = React.memo((props) => {
         }
         <DefinitionsCard index={index} archive={archive}/>
         <NexusCard index={index}/>
-        <MaterialCard index={index} archive={archive} properties={properties}/>
+        {index?.results?.material?.topology
+          ? <MaterialCardTopology index={index} archive={archive} properties={properties}/>
+          : <MaterialCard index={index} archive={archive} properties={properties}/>
+        }
         <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
         <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
         <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>

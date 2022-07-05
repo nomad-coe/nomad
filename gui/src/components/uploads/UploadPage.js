@@ -22,7 +22,7 @@ import { useRouteMatch, useHistory, matchPath, Redirect } from 'react-router-dom
 import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
 import UploadOverview from './UploadOverview'
 import UploadFilesView from './UploadFilesView'
-import UploadContext from './UploadContext'
+import UploadPageContext from './UploadPageContext'
 import UploadProcessingStatus from './UploadProcessingStatus'
 import PropTypes from 'prop-types'
 
@@ -51,7 +51,7 @@ const UploadPage = React.memo((props) => {
   // TODO I removed the UploadOverview view from the cache, because
   // processing in the UploadFile (Browser) view do not update the
   // upload context and do not refresh the UploadOverview data,
-  return <UploadContext uploadId={uploadId}>
+  return <UploadPageContext uploadId={uploadId}>
     <UploadProcessingStatus />
     <Tabs
       value={tab}
@@ -70,7 +70,7 @@ const UploadPage = React.memo((props) => {
       <CacheRoute when="always" path={`${path}/files`} render={() => <UploadFilesView />} />
       <Redirect strict from={`${path}/overview`} to={`${path}`} />
     </CacheSwitch>
-  </UploadContext>
+  </UploadPageContext>
 })
 UploadPage.propTypes = {
   uploadId: PropTypes.string

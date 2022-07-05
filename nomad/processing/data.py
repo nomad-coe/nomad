@@ -61,6 +61,7 @@ from nomad.archive import (
 from nomad.app.v1.models import (
     MetadataEditRequest, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired,
     restrict_query_to_upload)
+from nomad.app.v1.routers.metainfo import store_package_definition
 from nomad.search import update_metadata as es_update_metadata
 
 section_metadata = datamodel.EntryArchive.metadata.name
@@ -1180,6 +1181,9 @@ class Entry(Proc):
             archive.m_add_sub_section(datamodel.EntryArchive.metadata, self._entry_metadata)
 
         archive.processing_logs = filter_processing_logs(self._proc_logs)
+
+        if config.process.store_package_definition_in_mongo and archive.definitions is not None:
+            store_package_definition(archive.definitions, upload_id=archive.metadata.upload_id)
 
         # save the archive msg-pack
         try:

@@ -20,6 +20,7 @@ import pytest
 import numpy as np
 import yaml
 
+from nomad.app.v1.routers.metainfo import get_package_by_section_definition_id, store_package_definition
 from nomad.metainfo import (
     MSection, MCategory, Quantity, SubSection)
 from nomad.metainfo.metainfo import Datetime, Package
@@ -96,8 +97,22 @@ def test_m_from_dict(example):
         ]
     }, id='python')
 ])
-def test_from_dict(metainfo_data):
+def test_from_dict(metainfo_data, monkeypatch, mongo_infra):
     assert MSection.from_dict(metainfo_data).m_to_dict(with_root_def=True, with_out_meta=True) == metainfo_data
+
+    monkeypatch.setattr('nomad.config.process.add_definition_id_to_reference', True)
+
+    metainfo_data['m_def'] += f'@{Package.m_def.definition_id}'
+
+    package = MSection.from_dict(metainfo_data)
+
+    assert package.m_to_dict(with_root_def=True, with_out_meta=True) == metainfo_data
+
+    store_package_definition(package, with_root_def=True, with_out_meta=True)
+
+    section_id = package.section_definitions[0].definition_id
+
+    assert get_package_by_section_definition_id(section_id) == metainfo_data
 
 
 def test_with_meta(example):

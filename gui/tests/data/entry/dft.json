@@ -24,9 +24,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2022-05-12T09:26:39.346776",
+            "upload_create_time": "2022-07-01T13:24:55.613693+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2022-05-12T09:26:39.349776",
+            "publish_time": "2022-07-01T13:24:55.616693+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -174,7 +174,7 @@
                 }
               }
             },
-            "last_processing_time": "2021-03-17T15:47:32.899000",
+            "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
             "parser_name": "parsers/vasp",
             "calc_id": "dft_bulk",
             "published": true,
@@ -196,7 +196,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2022-05-12T09:26:39.350776",
+            "entry_create_time": "2022-07-01T13:24:55.617693+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -212,7 +212,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5344",
+          "content-length": "5368",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -227,6 +227,7 @@
         "body": {
           "required": {
             "resolve-inplace": false,
+            "metadata": "*",
             "data": "*",
             "definitions": "*",
             "results": {
@@ -257,6 +258,7 @@
         "body": {
           "required": {
             "resolve-inplace": false,
+            "metadata": "*",
             "data": "*",
             "definitions": "*",
             "results": {
@@ -443,6 +445,30 @@
                   }
                 }
               ],
+              "metadata": {
+                "upload_id": "dft_upload",
+                "upload_create_time": "2022-07-01T13:24:55.613693+00:00",
+                "entry_id": "dft_bulk",
+                "entry_hash": "dummy_hash_dft_bulk",
+                "entry_create_time": "2022-07-01T13:24:55.617693+00:00",
+                "parser_name": "parsers/vasp",
+                "mainfile": "vasp.xml",
+                "published": true,
+                "publish_time": "2022-07-01T13:24:55.616693+00:00",
+                "with_embargo": false,
+                "embargo_length": 0,
+                "license": "CC BY 4.0",
+                "processed": true,
+                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
+                "nomad_version": "0.10.0",
+                "nomad_commit": "bf3c06fa",
+                "comment": "Mocked",
+                "references": [
+                  "doi"
+                ],
+                "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "domain": "dft"
+              },
               "results": {
                 "material": {
                   "material_id": "bulk_material",
@@ -628,13 +654,14 @@
                     ]
                   }
                 }
-              }
+              },
+              "m_ref_archives": {}
             }
           }
         },
         "headers": {
           "connection": "close",
-          "content-length": "10561",
+          "content-length": "11465",
           "content-type": "application/json",
           "server": "uvicorn"
         }

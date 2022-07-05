@@ -42,10 +42,10 @@ export default function ResolvePID() {
     const pidMatch = matchPath(location.pathname, {
       path: `${match.path}/:pid/:handle?`
     })
-    let { pid, handle } = pidMatch.params
-    pid = handle ? pid + '/' + handle : pid
+    const { pid, handle } = pidMatch.params
+    const pidWithHandle = handle ? pid + '/' + handle : pid
 
-    api.post('/entries/query', {owner: 'all', query: {pid: pid}})
+    api.post('/entries/query', {owner: 'all', query: {pid: pidWithHandle}})
       .then(response => {
         if (response.pagination.total >= 1) {
           const entry = response.data[0]

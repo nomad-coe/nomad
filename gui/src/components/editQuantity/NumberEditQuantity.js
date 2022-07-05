@@ -25,13 +25,20 @@ import {TextFieldWithHelp, getFieldProps} from './StringEditQuantity'
 import {useErrors} from '../errors'
 
 export const NumberField = React.memo((props) => {
-  const {onChange, dimension, value, dataType, minValue, unit, maxValue, displayUnit, convertInPlace, debounceTime, ...otherProps} = props
+  const {onChange, onInputChange, dimension, value, dataType, minValue, unit, maxValue, displayUnit, convertInPlace, debounceTime, ...otherProps} = props
   const [error, setError] = useState('')
   const previousValue = useRef('')
   const previousNumber = useRef()
   const previousUnitLabel = useRef(displayUnit?.label())
   const previousNumberPart = useRef('')
   const [inputValue, setInputValue] = useState('')
+
+  const fixDigits = useCallback((value) => {
+    return value.toPrecision(15)
+      .replace(/0+(e|$)/, '$1')
+      .replace(/\.$/, '')
+      .replace(/\.e/, 'e')
+  }, [])
 
   // Whenever a new value arrives or the units change, change the text
   // accordingly. If the field is associated with a unit and the same numerical
@@ -52,16 +59,18 @@ export const NumberField = React.memo((props) => {
         previousUnitLabel.current = displayUnit?.label()
         previousNumber.current = value
         previousNumberPart.current = newVal
-        setInputValue(String(newVal))
+        const inputValue = newVal && fixDigits(Number(newVal))
+        setInputValue(inputValue)
+        onInputChange(inputValue)
       }
     } else {
       setInputValue((isNil(value) || isNaN(value)) ? '' : String(value))
     }
-  }, [value, displayUnit, unit, convertInPlace])
+  }, [value, displayUnit, unit, convertInPlace, onInputChange, fixDigits])
 
   // Given the text input, returns a the extracted number, unit and possible
   // errors.
-  const deserialize = useCallback((input) => {
+  const parseInput = useCallback((input) => {
     if (isNil(input) || input === '') {
       previousNumberPart.current = ''
       return {}
@@ -115,23 +124,27 @@ export const NumberField = React.memo((props) => {
 
     // Try to interpret the value, if a meaningful value was returned, send the
     // new value in a normalized form to the handler.
-    let {value: number, unit: newUnit, error} = deserialize(trimmed)
-    newUnit = newUnit || displayUnit
+    const parsedInput = parseInput(trimmed)
+    const {value: number, error} = parsedInput
+    const newUnit = parsedInput.unit || displayUnit
+
     if (error) {
       setError(error)
     } else {
       if (!convertInPlace) {
         setInputValue(previousNumberPart.current)
+        onInputChange(previousNumberPart.current)
       }
       if (onChange) {
-        number = (isNil(number) || isNil(unit))
+        previousNumber.current = (isNil(number) || isNil(unit))
           ? number
           : new Quantity(number, newUnit).to(unit).value()
-        previousNumber.current = number
-        onChange(number, newUnit)
+        const storedValue = previousNumber.current && fixDigits(Number(previousNumber.current))
+        onChange(Number(storedValue), newUnit)
+        onInputChange(number)
       }
     }
-  }, [convertInPlace, deserialize, displayUnit, onChange, unit])
+  }, [parseInput, displayUnit, convertInPlace, onChange, onInputChange, unit, fixDigits])
 
   // Routes text field changes to a handler after a debounce time
   const debouncedHandleChange = useMemo(() => debounce(handleChange, 500), [handleChange])
@@ -164,6 +177,7 @@ export const NumberField = React.memo((props) => {
 })
 NumberField.propTypes = {
   onChange: PropTypes.func.isRequired,
+  onInputChange: PropTypes.func.isRequired,
   maxValue: PropTypes.number,
   minValue: PropTypes.number,
   dataType: PropTypes.string,
@@ -182,6 +196,7 @@ export const NumberEditQuantity = React.memo((props) => {
   const defaultUnit = useMemo(() => quantityDef.unit && new Unit(quantityDef.unit), [quantityDef])
   const dimension = defaultUnit && defaultUnit.dimension(false)
   const [checked, setChecked] = useState(true)
+  const [displayedValue, setDisplayedValue] = useState(true)
   const {defaultDisplayUnit, ...fieldProps} = getFieldProps(quantityDef)
 
   // Try to parse defaultDisplayUnit
@@ -221,20 +236,26 @@ export const NumberEditQuantity = React.memo((props) => {
     setUnit(unit)
   }, [onChange])
 
+  // Handle a change in NumberField input
+  const handleInputChange = useCallback((displayedValue) => {
+    setDisplayedValue(displayedValue)
+  }, [])
+
   // Handle a change in the unit dialog
   const handleUnitChange = useCallback((newUnit) => {
     if (!checked && quantityDef.unit && newUnit && !isNil(value)) {
-      const displayedValue = new Quantity(value, quantityDef.unit).to(unit).value()
-      const storedValue = new Quantity(displayedValue, newUnit).to(quantityDef.unit).value()
+      // const displayedValue = new Quantity(value, quantityDef.unit).to(unit).value()
+      const storedValue = new Quantity(Number(displayedValue), newUnit).to(quantityDef.unit).value()
       onChange(storedValue)
     }
     setUnit(new Unit(newUnit))
-  }, [checked, onChange, quantityDef.unit, unit, value])
+  }, [checked, displayedValue, onChange, quantityDef.unit, value])
 
   return <Box display='flex'>
     <NumberField
       value={value}
       onChange={handleChange}
+      onInputChange={handleInputChange}
       dimension={dimension}
       convertInPlace={checked}
       unit={quantityDef?.unit}

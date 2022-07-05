@@ -46,7 +46,7 @@ import DialogActions from '@material-ui/core/DialogActions'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import CreateEntry from './CreateEntry'
 import { useDataStore } from '../DataStore'
-import { useUploadContext } from './UploadContext'
+import { useUploadPageContext } from './UploadPageContext'
 import { useApi } from '../api'
 import ReloadIcon from '@material-ui/icons/Replay'
 
@@ -306,7 +306,7 @@ function UploadOverview(props) {
   const dataStore = useDataStore()
   const {
     uploadId, upload, entries, apiData, hasUpload, isProcessing, error,
-    isWriter, pagination, deleteRequested} = useUploadContext()
+    isWriter, pagination, deleteRequested} = useUploadPageContext()
   const [uploading, setUploading] = useState(null)
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)

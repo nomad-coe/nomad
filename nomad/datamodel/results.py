@@ -46,7 +46,7 @@ from nomad.metainfo import (
 
 m_package = Package()
 
-from nomad.datamodel.optimade import Species  # noqa
+from nomad.datamodel.optimade import Species as OptimadeSpecies  # noqa
 from nomad.datamodel.metainfo.simulation.calculation import (
     Dos,
     BandStructure as BandStructureCalculation,
@@ -59,7 +59,7 @@ from nomad.datamodel.metainfo.simulation.method import (
 from nomad.datamodel.metainfo.workflow import (
     GeometryOptimization as MGeometryOptimization,
     MolecularDynamics as MMolecularDynamics,
-    Thermodynamics
+    Thermodynamics, IntegrationParameters
 )  # noqa
 
 
@@ -189,52 +189,6 @@ class BandGap(MSection):
     )
 
 
-class WyckoffSet(MSection):
-    m_def = Section(
-        description='''
-        Section for storing Wyckoff set information. Only available for
-        conventional cells that have undergone symmetry analysis.
-        '''
-    )
-    wyckoff_letter = Quantity(
-        type=str,
-        description='''
-        The Wyckoff letter for this set.
-        '''
-    )
-    indices = Quantity(
-        type=np.dtype('i4'),
-        shape=['1..*'],
-        description='''
-        Indices of the atoms belonging to this group.
-        '''
-    )
-    element = Quantity(
-        type=str,
-        description='''
-        Chemical element at this Wyckoff position.
-        '''
-    )
-    x = Quantity(
-        type=np.dtype(np.float64),
-        description='''
-        The free parameter x if present.
-        '''
-    )
-    y = Quantity(
-        type=np.dtype(np.float64),
-        description='''
-        The free parameter y if present.
-        '''
-    )
-    z = Quantity(
-        type=np.dtype(np.float64),
-        description='''
-        The free parameter z if present.
-        '''
-    )
-
-
 class LatticeParameters(MSection):
     m_def = Section(
         description='''
@@ -288,6 +242,52 @@ class LatticeParameters(MSection):
         Angle between first and second basis vector.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+
+class WyckoffSet(MSection):
+    m_def = Section(
+        description='''
+        Section for storing Wyckoff set information. Only available for
+        conventional cells that have undergone symmetry analysis.
+        '''
+    )
+    wyckoff_letter = Quantity(
+        type=str,
+        description='''
+        The Wyckoff letter for this set.
+        '''
+    )
+    indices = Quantity(
+        type=np.dtype('i4'),
+        shape=['1..*'],
+        description='''
+        Indices of the atoms belonging to this group.
+        '''
+    )
+    element = Quantity(
+        type=str,
+        description='''
+        Chemical element at this Wyckoff position.
+        '''
+    )
+    x = Quantity(
+        type=np.dtype(np.float64),
+        description='''
+        The free parameter x if present.
+        '''
+    )
+    y = Quantity(
+        type=np.dtype(np.float64),
+        description='''
+        The free parameter y if present.
+        '''
+    )
+    z = Quantity(
+        type=np.dtype(np.float64),
+        description='''
+        The free parameter z if present.
+        '''
     )
 
 
@@ -378,7 +378,7 @@ class Structure(MSection):
         Mass density of the material.
         '''
     )
-    species = SubSection(sub_section=Species.m_def, repeats=True)
+    species = SubSection(sub_section=OptimadeSpecies.m_def, repeats=True)
     lattice_parameters = SubSection(sub_section=LatticeParameters.m_def)
 
 
@@ -571,6 +571,641 @@ class Symmetry(MSection):
     )
 
 
+# =============================================================================
+# New topological data
+class Cell(MSection):
+    m_def = Section(
+        description='''
+        Properties of a unit cell.
+        ''',
+    )
+    a = Quantity(
+        type=np.dtype(np.float64),
+        unit='m',
+        description='''
+        Length of the first basis vector.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    b = Quantity(
+        type=np.dtype(np.float64),
+        unit='m',
+        description='''
+        Length of the second basis vector.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    c = Quantity(
+        type=np.dtype(np.float64),
+        unit='m',
+        description='''
+        Length of the third basis vector.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    alpha = Quantity(
+        type=np.dtype(np.float64),
+        unit='radian',
+        description='''
+        Angle between second and third basis vector.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    beta = Quantity(
+        type=np.dtype(np.float64),
+        unit='radian',
+        description='''
+        Angle between first and third basis vector.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    gamma = Quantity(
+        type=np.dtype(np.float64),
+        unit='radian',
+        description='''
+        Angle between first and second basis vector.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    volume = Quantity(
+        type=np.dtype(np.float64),
+        unit='m ** 3',
+        description='''
+        Volume of the cell.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    atomic_density = Quantity(
+        type=np.dtype(np.float64),
+        unit='1 / m ** 3',
+        description='''
+        Atomic density of the material (atoms/volume).'
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    mass_density = Quantity(
+        type=np.dtype(np.float64),
+        unit='kg / m ** 3',
+        description='''
+        Mass density of the material.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+
+class Prototype(MSection):
+    '''
+    Information on the prototype corresponding to the current section.
+    '''
+    m_def = Section(validate=False)
+
+    aflow_id = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        AFLOW id of the prototype (see
+        http://aflowlib.org/CrystalDatabase/prototype_index.html) identified on the basis
+        of the space_group and normalized_wyckoff.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='simple')
+        ]
+    )
+    assignment_method = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Method used to identify the prototype.
+        '''
+    )
+    label = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Label of the prototype identified on the basis of the space_group and
+        normalized_wyckoff. The label is in the same format as in the read_prototypes
+        function: <space_group_number>-<prototype_name>-<Pearson's symbol>).
+        '''
+    )
+    name = Quantity(
+        type=str,
+        description='''
+        A common name for this prototypical structure, e.g. fcc, bcc.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    formula = Quantity(
+        type=str,
+        description='''
+        The formula of the prototypical material for this structure.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+
+
+class SymmetryNew(MSection):
+    m_def = Section(
+        description='''
+        Section containing information about the symmetry properties of a
+        conventional cell related to a system.
+        '''
+    )
+    bravais_lattice = Quantity(
+        type=MEnum(bravais_lattices),
+        shape=[],
+        description='''
+        Identifier for the Bravais lattice in Pearson notation. The first lowercase letter
+        identifies the crystal family and can be one of the following: a (triclinic), b
+        (monoclinic), o (orthorhombic), t (tetragonal), h (hexagonal) or c (cubic). The
+        second uppercase letter identifies the centring and can be one of the following: P
+        (primitive), S (face centred), I (body centred), R (rhombohedral centring) or F
+        (all faces centred).
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='simple')
+        ],
+    )
+    crystal_system = Quantity(
+        type=MEnum(crystal_systems),
+        shape=[],
+        description='''
+        Name of the crystal system.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='simple')
+        ],
+    )
+    hall_number = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        The Hall number for this system.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+    hall_symbol = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The Hall symbol for this system.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='simple')
+        ],
+    )
+    point_group = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Symbol of the crystallographic point group in the Hermann-Mauguin notation.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='simple')
+        ],
+    )
+    space_group_number = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Specifies the International Union of Crystallography (IUC) number of the 3D space
+        group of this system.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+    space_group_symbol = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The International Union of Crystallography (IUC) short symbol of the 3D
+        space group of this system.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='simple')
+        ],
+    )
+    choice = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        String that specifies the centering, origin and basis vector settings of the 3D
+        space group that defines the symmetry group of the simulated physical system (see
+        section system). Values are as defined by spglib.
+        ''')
+    strukturbericht_designation = Quantity(
+        type=str,
+        description='''
+        Classification of the material according to the historically grown
+        'strukturbericht'.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='simple')
+        ],
+    )
+    symmetry_method = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Identifies the source of the symmetry information contained within this
+        section. If equal to 'spg_normalized' the information comes from a
+        normalization step.
+        '''
+    )
+    origin_shift = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        description='''
+        Vector $\\mathbf{p}$ from the origin of the standardized system to the origin of
+        the original system. Together with the matrix $\\mathbf{P}$, found in
+        space_group_3D_transformation_matrix, the transformation between the standardized
+        coordinates $\\mathbf{x}_s$ and original coordinates $\\mathbf{x}$ is then given
+        by $\\mathbf{x}_s = \\mathbf{P} \\mathbf{x} + \\mathbf{p}$.
+        '''
+    )
+    transformation_matrix = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        description='''
+        Matrix $\\mathbf{P}$ that is used to transform the standardized coordinates to the
+        original coordinates. Together with the vector $\\mathbf{p}$, found in
+        space_group_3D_origin_shift, the transformation between the standardized
+        coordinates $\\mathbf{x}_s$ and original coordinates $\\mathbf{x}$ is then given by
+        $\\mathbf{x}_s = \\mathbf{P} \\mathbf{x} + \\mathbf{p}$.
+        '''
+    )
+    symmorphic = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Specifies if the space group is symmorphic. Set to True if all
+        translations are zero.
+        '''
+    )
+
+
+class Species(MSection):
+    '''
+    Contains information about a particle species. Note that the particle can
+    also be something else than atoms, e.g. coarse-grained particle, isotopes,
+    etc.
+    '''
+    m_def = Section(validate=False)
+    name = Quantity(
+        type=str,
+        description='''
+        Name that uniquely identifies this species within a system.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type)
+    )
+    mass = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='kilogram',
+        description='''
+        Mass of the species.
+        '''
+    )
+    atomic_number = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        The atomic number of the species if available.
+        '''
+    )
+
+
+class Atoms(MSection):
+    '''
+    Describes the atomic structure of the physical system. This includes the atom
+    positions, lattice vectors, etc.
+    '''
+    m_def = Section(validate=False)
+
+    concentrations = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_atoms'],
+        description='''
+        Concentrations of the species defined by labels which can be assigned for systems
+        with variable compositions.
+        '''
+    )
+    labels = Quantity(
+        type=str,
+        shape=['n_atoms'],
+        description='''
+        List containing the labels of the atoms. In the usual case, these correspond to
+        the chemical symbols of the atoms. One can also append an index if there is a
+        need to distinguish between species with the same symbol, e.g., atoms of the
+        same species assigned to different atom-centered basis sets or pseudo-potentials,
+        or simply atoms in different locations in the structure such as those in the bulk
+        and on the surface. In the case where a species is not an atom, and therefore
+        cannot be representated by a chemical symbol, the label can simply be the name of
+        the particles.
+        '''
+    )
+    positions = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_atoms', 3],
+        unit='meter',
+        description='''
+        Positions of all the species, in cartesian coordinates. This metadata defines a
+        configuration and is therefore required. For alloys where concentrations of
+        species are given for each site in the unit cell, it stores the position of the
+        sites.
+        '''
+    )
+    velocities = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_atoms', 3],
+        unit='meter / second',
+        description='''
+        Velocities of the nuclei, defined as the change in cartesian coordinates of the
+        nuclei with respect to time.
+        '''
+    )
+    lattice_vectors = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        unit='meter',
+        description='''
+        Lattice vectors in cartesian coordinates of the simulation cell. The
+        last (fastest) index runs over the $x,y,z$ Cartesian coordinates, and the first
+        index runs over the 3 lattice vectors.
+        '''
+    )
+    lattice_vectors_reciprocal = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        unit='1/meter',
+        description='''
+        Reciprocal lattice vectors in cartesian coordinates of the simulation cell. The
+        first index runs over the $x,y,z$ Cartesian coordinates, and the second index runs
+        over the 3 lattice vectors.
+        '''
+    )
+    local_rotations = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_atoms', 3, 3],
+        description='''
+        A rotation matrix defining the orientation of each atom. If the rotation matrix
+        cannot be specified for an atom, the remaining atoms should set it to
+        the zero matrix (not the identity!)
+        '''
+    )
+    periodic = Quantity(
+        type=bool,
+        shape=[3],
+        description='''
+        Denotes if periodic boundary condition is applied to each of the lattice vectors.'
+        '''
+    )
+    supercell_matrix = Quantity(
+        type=np.dtype(np.int32),
+        shape=[3, 3],
+        description='''
+        Specifies the matrix that transforms the unit-cell into the super-cell in which
+        the actual calculation is performed.
+        '''
+    )
+    species = SubSection(sub_section=Species.m_def, repeats=False)
+    wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
+
+
+class Relation(MSection):
+    '''
+    Contains information about the relation between two different systems.
+    '''
+    m_def = Section(validate=False)
+    type = Quantity(
+        type=MEnum('subsystem', 'idealization'),
+        description='''
+        The type of relation.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+
+
+class System(MSection):
+    '''Describes a physical structure as identified in an entry. Can be a part
+    of a larger structural hierarchy, i.e. the topology.
+    '''
+    m_def = Section(
+        description='''
+        Describes a a structural part that has been identified within the entry.
+        May be related to other systems.
+        '''
+    )
+    system_id = Quantity(
+        type=str,
+        description='''
+        That path of this section within the metainfo that is used as a unique
+        identifier.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type)
+    )
+    label = Quantity(
+        type=str,
+        description='''
+        Descriptive label that identifies this structural part.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type)
+    )
+    method = Quantity(
+        type=MEnum('parser', 'user', 'matid'),
+        description='''
+        The method used for identifying this system.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type)
+    )
+    description = Quantity(
+        type=str,
+        description='''
+        A short description about this part of the topology.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type)
+    )
+    material_id = Quantity(
+        type=str,
+        description='''
+        A fixed length, unique material identifier in the form of a hash
+        digest.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type)
+    )
+    material_name = Quantity(
+        type=str,
+        description='''
+        Meaningful names for this a material if any can be assigned.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    structural_type = Quantity(
+        type=MEnum(structure_classes + ['group', 'molecule', 'monomer']),
+        description='''
+        The structural classification for this system.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    functional_type = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='''
+        Classification based on the functional properties.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type, default_aggregation_size=20),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    compound_type = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='''
+        Classification based on the chemical formula.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type, default_aggregation_size=20),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    elements = Quantity(
+        type=MEnum(chemical_symbols),
+        shape=['0..*'],
+        default=[],
+        description='''
+        Names of the different elements present in the structure.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type, many_all=True),
+            Elasticsearch(suggestion='simple')
+        ]
+    )
+    n_elements = Quantity(
+        type=int,
+        default=0,
+        derived=lambda s: len(s.elements),
+        description='''
+        Number of different elements in the structure as an integer.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+    elements_exclusive = Quantity(
+        type=str,
+        derived=lambda s: ' '.join(sorted(s.elements)),
+        description='''
+        String containing the chemical elements in alphabetical order and
+        separated by a single whitespace. This quantity can be used for
+        exclusive element searches where you want to find entries/materials
+        with only certain given elements.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type)
+    )
+    formula_hill = Quantity(
+        type=str,
+        description='''
+            The chemical formula for a structure in Hill form with element symbols followed by
+            integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type, normalizer=atomutils.get_formula_hill),
+            Elasticsearch(suggestion=tokenizer_formula, variants=variants_formula)
+        ],
+    )
+    formula_reduced = Quantity(
+        type=str,
+        description='''
+            The reduced chemical formula for a structure as a string with element symbols and
+            integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion=tokenizer_formula)
+        ],
+    )
+    formula_anonymous = Quantity(
+        type=str,
+        description='''
+            The anonymous formula is the chemical_formula_reduced, but where the elements are
+            instead first ordered by their chemical proportion number, and then, in order left to
+            right, replaced by anonymous symbols A, B, C, ..., Z, Aa, Ba, ..., Za, Ab, Bb, ... and
+            so on.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion=tokenizer_formula)
+        ],
+    )
+    formula_reduced_fragments = Quantity(
+        type=str,
+        shape=['*'],
+        description='''
+        The reduced formula separated into individual terms containing both the atom
+        type and count. Used for searching parts of a formula.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type, mapping=Text(multi=True)),
+    )
+    parent_system = Quantity(
+        type=str,
+        description='''
+        Reference to the parent system.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type)
+    )
+    child_systems = Quantity(
+        type=str,
+        shape=['*'],
+        description='''
+        References to the child systems.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type)
+    )
+    atoms = Quantity(
+        type=Structure,
+        description='''
+        Reference to an atomistic structure that is associated with this
+        system'.
+        ''',
+    )
+    n_atoms = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        The total number of species (atoms, particles) in the system.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type)
+    )
+    indices = Quantity(
+        type=np.dtype(np.int64),
+        shape=['*', '*'],
+        description='''
+        Indices of the atoms belonging to this group. These indices refer to
+        the original system. Each row represents a new instance.
+        '''
+    )
+    system_relation = SubSection(sub_section=Relation.m_def, repeats=False)
+    cell = SubSection(sub_section=Cell.m_def, repeats=False)
+    symmetry = SubSection(sub_section=SymmetryNew.m_def, repeats=False)
+    prototype = SubSection(sub_section=Prototype.m_def, repeats=False)
+
+
+# =============================================================================
+
+
 class Material(MSection):
     m_def = Section(
         description='''
@@ -715,6 +1350,11 @@ class Material(MSection):
         a_elasticsearch=Elasticsearch(material_type, mapping=Text(multi=True)),
     )
     symmetry = SubSection(sub_section=Symmetry.m_def, repeats=False)
+    topology = SubSection(
+        sub_section=System.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_type, nested=True)
+    )
 
 
 class DFT(MSection):
@@ -922,9 +1562,9 @@ class MolecularDynamics(MSection):
         Methodology for molecular dynamics.
         """,
     )
-    time_step = MMolecularDynamics.time_step.m_copy()
+    time_step = IntegrationParameters.integration_timestep.m_copy()
     time_step.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
-    ensemble_type = MMolecularDynamics.ensemble_type.m_copy()
+    ensemble_type = MMolecularDynamics.thermodynamic_ensemble.m_copy()
     ensemble_type.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
 
 

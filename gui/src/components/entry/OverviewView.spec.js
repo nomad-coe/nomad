@@ -19,7 +19,7 @@
 import React from 'react'
 import 'regenerator-runtime/runtime'
 import { waitFor, within } from '@testing-library/dom'
-import {render, screen, expectQuantity, readArchive, startAPI, closeAPI} from '../conftest.spec'
+import { render, screen, expectQuantity, readArchive, startAPI, closeAPI, waitForGUI } from '../conftest.spec'
 import { expectPlotButtons } from '../visualization/conftest.spec'
 import {
   expectComposition,
@@ -27,13 +27,15 @@ import {
   expectLatticeParameters
 } from './conftest.spec'
 import OverviewView from './OverviewView'
-import EntryContext from './EntryContext'
+import EntryPageContext from './EntryPageContext'
+import {fireEvent} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 test('correctly renders metadata and all properties', async () => {
   await startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
-  render(<EntryContext entryId={'dft_bulk'}>
+  render(<EntryPageContext entryId={'dft_bulk'}>
     <OverviewView />
-  </EntryContext>)
+  </EntryPageContext>)
 
   // Wait to load the entry metadata, i.e. wait for some of the text to appear
   await screen.findByText('VASP')
@@ -150,9 +152,9 @@ function expectQuantityToBe(name, label, value, root = screen) {
 
 test('eln overview as a reviewer', async () => {
   await startAPI('tests.states.entry.eln', 'tests/data/entry/eln-reviewer', 'ttester', 'password')
-  render(<EntryContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
+  render(<EntryPageContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
     <OverviewView />
-  </EntryContext>)
+  </EntryPageContext>)
 
   await screen.findByText('HotplateAnnealing')
 
@@ -180,7 +182,6 @@ test('eln overview as a reviewer', async () => {
 
   expect(within(cardPvdEvaporation).getByText('PvdEvaporation')).toBeVisible()
   expectQuantityToBe('instrument', 'instrument', '../upload/raw/PVD-P.archive.json#data', within(cardPvdEvaporation))
-  expectQuantityToBe('row_refs', 'row refs', undefined, within(cardPvdEvaporation))
   expectQuantityToBe('data_file', 'data file', 'PVDProcess.csv', within(cardPvdEvaporation))
   expectQuantityToBe('time', 'time', ['0', '1', '2', '3', '4', 'and 9642 more items'], within(cardPvdEvaporation))
   expectQuantityToBe('chamber_pressure', 'chamber pressure', ['0.00313', '0.00315', '0.00313', '0.00313', '0.00314', 'and 9642 more items'], within(cardPvdEvaporation))
@@ -194,7 +195,6 @@ test('eln overview as a reviewer', async () => {
   expect(within(cardHotplateAnnealing).getByText('HotplateAnnealing')).toBeVisible()
   expectQuantityToBe('instrument', 'instrument', undefined, within(cardHotplateAnnealing))
   expectQuantityToBe('method', 'method', undefined, within(cardHotplateAnnealing))
-  expectQuantityToBe('row_refs', 'row refs', undefined, within(cardHotplateAnnealing))
   expectQuantityToBe('set_temperature', 'set temperature', '373.15', within(cardHotplateAnnealing))
   expectQuantityToBe('duration', 'duration', '60', within(cardHotplateAnnealing))
 
@@ -226,9 +226,9 @@ test.each([
   ]
 ])('eln overview as %s', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  render(<EntryContext entryId={entryId}>
+  render(<EntryPageContext entryId={entryId}>
     <OverviewView />
-  </EntryContext>)
+  </EntryPageContext>)
 
   await screen.findByText('HotplateAnnealing')
 
@@ -265,5 +265,60 @@ test.each([
   numberFieldUnit = within(cardHotplateAnnealing).queryAllByTestId('number-edit-quantity-unit')
   expectNumberEditQuantity(numberFieldValue[0], numberFieldUnit[0], '373.15', 'K')
 
+  closeAPI()
+})
+
+test.each([
+  [
+    'an author',
+    'tests.states.entry.eln',
+    'tests/data/entry/eln-concurrent',
+    'bC7byHvWJp62Sn9uiuJUB38MT5j-',
+    'test',
+    'password'
+  ]
+])('eln concurrent editing', async (name, state, snapshot, entryId, username, password) => {
+  await startAPI(state, snapshot, username, password)
+  const screen1 = await render(<EntryPageContext entryId={entryId}>
+    <OverviewView />
+  </EntryPageContext>)
+
+  await screen1.findByText('HotplateAnnealing')
+
+  const saveButton1 = screen1.queryByTitle('Save archive').closest('button')
+  expect(saveButton1).toBeInTheDocument()
+  expect(saveButton1).toBeDisabled()
+
+  const deleteButton1 = screen1.queryByTitle('Delete archive').closest('button')
+  expect(deleteButton1).toBeEnabled()
+  fireEvent.click(deleteButton1)
+  await waitForGUI()
+  const deleteButtons = screen1.queryAllByText(/delete mainfile/i)
+  const deleteButton = deleteButtons[0]
+
+  const screen2 = await render(<EntryPageContext entryId={entryId}>
+    <OverviewView />
+  </EntryPageContext>)
+
+  await screen2.findByText('HotplateAnnealing')
+
+  const saveButton2 = screen2.queryByTitle('Save archive').closest('button')
+  expect(saveButton2).toBeInTheDocument()
+  expect(saveButton2).toBeDisabled()
+
+  const sectionCards2 = screen2.queryAllByTestId('property-card')
+  expect(sectionCards2.length).toBe(3)
+  const cardSample2 = sectionCards2[0]
+  const inputTextField2 = within(cardSample2).queryAllByRole('textbox', { hidden: true })
+  fireEvent.change(inputTextField2[0], { target: { value: 'new text 2' } })
+
+  userEvent.click(deleteButton)
+  await waitForGUI()
+
+  expect(saveButton2).toBeEnabled()
+  fireEvent.click(saveButton2)
+
+  await waitForGUI()
+  expect(await screen2.queryByText('The changes cannot be saved. The content has been modified by someone else.')).toBeInTheDocument()
   closeAPI()
 })

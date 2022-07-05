@@ -32,10 +32,11 @@ from nomad.datamodel.metainfo.simulation.method import (
     Method, BasisSet, Electronic, DFT, XCFunctional, Functional,
     Electronic, Smearing, Scf, XCFunctional, Functional, GW)
 from nomad.datamodel.metainfo.simulation.system import (
-    System, Atoms as AtomsMethod)
+    AtomsGroup, System, Atoms as AtomsMethod)
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies)
 from nomad.datamodel.metainfo.workflow import (
+    IntegrationParameters,
     Workflow,
     GeometryOptimization,
     Elastic,
@@ -594,9 +595,82 @@ def molecular_dynamics() -> EntryArchive:
     workflow.calculation_result_ref = calcs[-1]
     workflow.calculations_ref = calcs
     workflow.molecular_dynamics = MolecularDynamics(
-        time_step=0.5 * ureg('fs'),
-        ensemble_type='NVT'
+        thermodynamic_ensemble='NVT',
+        integration_parameters=IntegrationParameters(
+            integration_timestep=0.5 * ureg('fs'),
+        )
     )
+
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def topology_calculation() -> EntryArchive:
+    template = get_template_dft()
+    run = template.run[0]
+    del run.system[0]
+
+    # System
+    water1 = ase.build.molecule('H2O')
+    water2 = ase.build.molecule('H2O')
+    water2.translate([5, 0, 0])
+    sys = water1 + water2
+    sys.set_cell([10, 10, 10])
+    sys.set_pbc(True)
+    system = get_section_system(water1 + water2)
+    run.m_add_sub_section(Run.system, system)
+
+    # Topology
+    molecule_group = AtomsGroup(
+        label="MOL_GROUP",
+        type="molecule_group",
+        index=0,
+        composition_formula="H(4)O(2)",
+        n_atoms=6,
+        atom_indices=[0, 1, 2, 3, 4, 5]
+    )
+    system.m_add_sub_section(System.atoms_group, molecule_group)
+    molecule1 = AtomsGroup(
+        label="MOL",
+        type="molecule",
+        index=0,
+        composition_formula="H(2)O(1)",
+        n_atoms=3,
+        atom_indices=[0, 1, 2]
+    )
+    molecule_group.m_add_sub_section(AtomsGroup.atoms_group, molecule1)
+    molecule2 = AtomsGroup(
+        label="MOL",
+        type="molecule",
+        index=0,
+        composition_formula="H(2)O(1)",
+        n_atoms=3,
+        atom_indices=[3, 4, 5]
+    )
+    molecule_group.m_add_sub_section(AtomsGroup.atoms_group, molecule2)
+    monomer_group = AtomsGroup(
+        label="MON_GROUP",
+        type="monomer_group",
+        index=0,
+        composition_formula="H(2)",
+        n_atoms=2,
+        atom_indices=[0, 1]
+    )
+    molecule1.m_add_sub_section(AtomsGroup.atoms_group, monomer_group)
+    monomer = AtomsGroup(
+        label="MON",
+        type="monomer",
+        index=0,
+        composition_formula="H(2)",
+        n_atoms=2,
+        atom_indices=[0, 1]
+    )
+    monomer_group.m_add_sub_section(AtomsGroup.atoms_group, monomer)
+
+    # Calculation
+    calc = Calculation()
+    calc.system_ref = system
+    run.m_add_sub_section(Run.calculation, calc)
 
     return run_normalize(template)
 

@@ -24,6 +24,7 @@ import DialogContentText from '@material-ui/core/DialogContentText'
 import MembersIcon from '@material-ui/icons/People'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
+import { debounce } from 'lodash'
 import {Datatable, DatatableTable} from '../datatable/Datatable'
 import PropTypes from 'prop-types'
 import {useApi} from '../api'
@@ -31,7 +32,7 @@ import {useErrors} from '../errors'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import DeleteIcon from '@material-ui/icons/Delete'
 import { useDataStore } from '../DataStore'
-import { useUploadContext } from './UploadContext'
+import { useUploadPageContext } from './UploadPageContext'
 
 export const editMembersDialogContext = React.createContext()
 
@@ -227,14 +228,9 @@ function AddMember({...props}) {
     setQuery(newQuery)
   }, [api, raiseError, query, suggestions])
 
-  let timeout = null
-
-  const handleInputChange = useCallback((event, value) => {
-    clearTimeout(timeout)
-    timeout = setTimeout(() => {
-      fetchUsers(event, value)
-    }, 700)
-  }, [])
+  const handleInputChange = useMemo(() => (
+    debounce(fetchUsers, 700)
+  ), [fetchUsers])
 
   const handleChange = useCallback((event, value) => {
     if (value && value?.user_id) {
@@ -337,7 +333,7 @@ function EditMembersDialog({...props}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const dataStore = useDataStore()
-  const {uploadId, upload} = useUploadContext()
+  const {uploadId, upload} = useUploadPageContext()
   const [open, setOpen] = useState(false)
   const [members, setMembers] = useState([])
   const [isChanged, setIsChanged] = useState(false)

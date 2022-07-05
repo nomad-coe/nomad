@@ -144,6 +144,7 @@ export const TextFieldWithHelp = React.memo(React.forwardRef((props, ref) => {
     label={label}
     data-testid={TestId}
     {...otherProps}
+    value={otherProps.value || ''}
   />
 }))
 TextFieldWithHelp.propTypes = {

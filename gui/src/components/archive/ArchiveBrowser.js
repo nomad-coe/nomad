@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useContext, useEffect, useMemo, useState} from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import {
@@ -45,30 +45,31 @@ import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '..
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
 import SectionEditor from './SectionEditor'
-import { useEntryContext } from '../entry/EntryContext'
+import { useEntryPageContext } from '../entry/EntryPageContext'
 import SaveIcon from '@material-ui/icons/Save'
 import AddIcon from '@material-ui/icons/AddCircle'
 import CodeIcon from '@material-ui/icons/Code'
 import DeleteIcon from '@material-ui/icons/Delete'
 import {getLineStyles, titleCase} from '../../utils'
 import Plot from '../visualization/Plot'
-import { useUploadContext } from '../uploads/UploadContext'
+import { useUploadPageContext } from '../uploads/UploadPageContext'
 import {EntryButton} from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import {ErrorHandler} from '../ErrorHandler'
 import Alert from '@material-ui/lab/Alert'
 import _ from 'lodash'
+import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 
 export function useBrowserAdaptorContext(data) {
-  const entryContext = useEntryContext()
-  const uploadContext = useUploadContext()
+  const entryPageContext = useEntryPageContext()
+  const uploadPageContext = useUploadPageContext()
   const metainfo = useMetainfo(data)
   const {api} = useApi()
 
-  const entryId = entryContext?.entryId
-  const uploadId = entryContext?.uploadId || uploadContext?.uploadId
-  const mainfile = entryContext?.metadata?.mainfile
+  const entryId = entryPageContext?.entryId
+  const uploadId = entryPageContext?.uploadId || uploadPageContext?.uploadId
+  const mainfile = entryPageContext?.metadata?.mainfile
 
   const context = useMemo(() => ({
     api: api,
@@ -129,24 +130,70 @@ ArchiveBrowser.propTypes = ({
 export default ArchiveBrowser
 
 export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
-  const {editable, archiveHasChanges, saveArchive} = useEntryContext()
+  const {editable, archiveHasChanges, saveArchive, reload} = useEntryPageContext()
+  const [openErrorDialog, setOpenErrorDialog] = useState(false)
+  const [disabled, setDisabled] = useState(false)
+
+  const handleClick = useCallback(() => {
+    saveArchive().catch(error => {
+      if (error?.status === 409) {
+        setOpenErrorDialog(true)
+        setDisabled(true)
+      }
+    })
+  }, [saveArchive])
+
+  const handleReload = useCallback(() => {
+    reload()
+    setOpenErrorDialog(false)
+  }, [reload])
+
   return <React.Fragment>
     {editable &&
       <IconButton
-        disabled={!archiveHasChanges} color="primary"
-        onClick={saveArchive}
+        disabled={!archiveHasChanges || disabled} color="primary"
+        onClick={handleClick}
       >
         <Tooltip title="Save archive">
           <SaveIcon/>
         </Tooltip>
       </IconButton>
     }
+    <Dialog
+      open={openErrorDialog}
+      aria-describedby="alert-dialog-description"
+    >
+      <DialogContent>
+        <DialogContentText>
+          The changes cannot be saved. The content has been modified by someone else.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenErrorDialog(false)}>OK</Button>
+        <Button onClick={handleReload} autoFocus>Reload</Button>
+      </DialogActions>
+    </Dialog>
+  </React.Fragment>
+})
+
+export const ArchiveReloadButton = React.memo(function ArchiveSaveButton(props) {
+  const {reload} = useEntryPageContext()
+
+  return <React.Fragment>
+    <IconButton
+      color="primary"
+      onClick={reload}
+    >
+      <Tooltip title="Reload archive">
+        <ReloadIcon/>
+      </Tooltip>
+    </IconButton>
   </React.Fragment>
 })
 
 export const ArchiveDeleteButton = React.memo(function ArchiveDeleteButton(props) {
   const history = useHistory()
-  const {editable, uploadId, entryId} = useEntryContext()
+  const {editable, uploadId, entryId} = useEntryPageContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
@@ -278,6 +325,7 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
         <SourceApiDialogButton maxWidth="lg" fullWidth>
           <SourceApiCall />
         </SourceApiDialogButton>
+        <ArchiveReloadButton />
         <ArchiveSaveButton/>
       </FormGroup>
     </Box>
@@ -289,19 +337,19 @@ ArchiveConfigForm.propTypes = ({
 })
 
 export const ArchiveReUploadButton = React.memo((props) => {
-  const {uploadId, metadata, reload} = useEntryContext()
+  const {uploadId, metadata, reload} = useEntryPageContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
 
   const handleClick = useCallback((files) => {
-    let input = document.createElement('input')
+    const input = document.createElement('input')
     input.type = 'file'
     input.onchange = (event) => {
       const file = event.target.files[0]
       if (!file) {
         return
       }
-      let formData = new FormData() // eslint-disable-line no-undef
+      const formData = new FormData() // eslint-disable-line no-undef
       formData.set('file', file, metadata.entry_name)
       api.put(`uploads/${uploadId}/raw/?wait_for_processing=true`, formData)
         .then(() => {
@@ -627,7 +675,7 @@ QuantityValue.propTypes = ({
 })
 
 function Section({section, def, parentRelation}) {
-  const {editable, handleArchiveChanged} = useEntryContext() || {}
+  const {editable, handleArchiveChanged} = useEntryPageContext() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
   const lane = useLane()
@@ -797,7 +845,7 @@ Section.propTypes = ({
 })
 
 function SubSection({subSectionDef, section, editable}) {
-  const {handleArchiveChanged} = useEntryContext() || {}
+  const {handleArchiveChanged} = useEntryPageContext() || {}
   const lane = useLane()
   const history = useHistory()
   const { label, getItemLabel } = useMemo(() => {

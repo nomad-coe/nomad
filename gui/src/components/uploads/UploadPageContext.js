@@ -23,13 +23,13 @@ import { useDataStore } from '../DataStore'
 import { useHistory } from 'react-router-dom'
 import { getUrl } from '../nav/Routes'
 
-export const uploadContext = React.createContext()
+export const uploadPageContext = React.createContext()
 
-export function useUploadContext() {
-  return useContext(uploadContext)
+export function useUploadPageContext() {
+  return useContext(uploadPageContext)
 }
 
-const UploadContext = React.memo(function UploadContext({uploadId, children}) {
+const UploadPageContext = React.memo(function UploadPageContext({uploadId, children}) {
   const dataStore = useDataStore()
   const [uploadStoreObj, setUploadStoreObj] = useState(dataStore.getUpload(uploadId))
 
@@ -51,11 +51,11 @@ const UploadContext = React.memo(function UploadContext({uploadId, children}) {
 
   const contextValue = useMemo(() => { return uploadStoreObj }, [uploadStoreObj])
 
-  return <uploadContext.Provider value={contextValue}>
+  return <uploadPageContext.Provider value={contextValue}>
     {children}
-  </uploadContext.Provider>
+  </uploadPageContext.Provider>
 })
-UploadContext.propTypes = {
+UploadPageContext.propTypes = {
   uploadId: PropTypes.string.isRequired,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
@@ -63,4 +63,4 @@ UploadContext.propTypes = {
   ])
 }
 
-export default UploadContext
+export default UploadPageContext

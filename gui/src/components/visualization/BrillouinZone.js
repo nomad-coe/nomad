@@ -36,6 +36,8 @@ import { Actions, Action } from '../Actions'
 /**
  * Interactive 3D Brillouin zone viewer based on the 'materia'-library.
  */
+
+const fitMargin = 0.06
 const useStyles = makeStyles((theme) => {
   return {
     root: {},
@@ -62,8 +64,6 @@ const useStyles = makeStyles((theme) => {
 const BrillouinZone = React.memo(({
   className,
   classes,
-  options,
-  viewer,
   data,
   captureName,
   'data-testid': testID
@@ -84,77 +84,15 @@ const BrillouinZone = React.memo(({
     if (refViewer.current === null) {
       return
     }
-    refViewer.current.changeHostElement(node, true, true)
-    refCanvas.current = node
+    refViewer.current.changeHostElement(node)
+    refViewer.current.fit(fitMargin)
+    refViewer.current.render()
   }, [])
 
-  // Run only on first render to initialize the viewer. See the viewer
-  // documentation for details on the meaning of different options:
-  // https://nomad-coe.github.io/materia/viewers/brillouinzoneviewer
+  // Run only on first render to initialize the viewer.
   const theme = useTheme()
   useEffect(() => {
-    let viewerOptions
-    if (options === undefined) {
-      viewerOptions = {
-        view: {
-          autoResize: false,
-          autoFit: true,
-          fitMargin: 0.06
-        },
-        layout: {
-          viewRotation: {
-            alignments: [
-              ['up', 'a'],
-              ['front', 'segments']
-            ],
-            rotations: [
-              [0, 1, 0, 45],
-              [1, 0, 0, 25]
-            ]
-          }
-        },
-        basis: {
-          font: 'Titillium Web,sans-serif',
-          offset: 0.025,
-          size: 0.04,
-          a: { color: '#f44336' },
-          b: { color: '#4caf50' },
-          c: { color: '#5c6bc0' }
-        },
-        segments: {
-          color: theme.palette.primary.main
-        },
-        faces: {
-          outline: {
-            width: 0.002
-          }
-        },
-        kpoints: {
-          label: {
-            color: theme.palette.primary.main,
-            font: 'Titillium Web,sans-serif',
-            size: 0.035
-          },
-          point: {
-            color: theme.palette.primary.main,
-            size: 0.01
-          }
-        }
-      }
-    } else {
-      viewerOptions = options
-    }
-
-    if (viewer === undefined) {
-      refViewer.current = new BrillouinZoneViewer(undefined, viewerOptions)
-    } else {
-      refViewer.current = viewer
-      refViewer.current.setOptions(viewerOptions, false, false)
-    }
-    if (refCanvas.current !== null) {
-      refViewer.current.changeHostElement(refCanvas.current, false, false)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    refViewer.current = new BrillouinZoneViewer(undefined)
   }, [])
 
   // Called only on first render to load the given structure.
@@ -199,13 +137,53 @@ const BrillouinZone = React.memo(({
     // Push last segment
     segments.push(segment)
 
+    const options = {
+      basis: {
+        font: 'Titillium Web,sans-serif',
+        offset: 0.025,
+        size: 0.04,
+        a: { color: '#f44336' },
+        b: { color: '#4caf50' },
+        c: { color: '#5c6bc0' }
+      },
+      segments: {
+        color: theme.palette.primary.main
+      },
+      faces: {
+        outline: {
+          width: 0.002
+        }
+      },
+      kpoints: {
+        label: {
+          color: theme.palette.primary.main,
+          font: 'Titillium Web,sans-serif',
+          size: 0.035
+        },
+        point: {
+          color: theme.palette.primary.main,
+          size: 0.01
+        }
+      }
+    }
+
     // Load data into viewer
-    refViewer.current.load(finalData)
-    refViewer.current.fitToCanvas()
-    refViewer.current.saveReset()
-    refViewer.current.reset()
+    refViewer.current.load(finalData, options)
+    refViewer.current.setRotation([1, 0, 0, 0])
+    refViewer.current.align([
+      ['up', 'a'],
+      ['front', 'segments']
+    ])
+    refViewer.current.rotate([
+      [0, 1, 0, 45],
+      [1, 0, 0, 25]
+    ])
+    refViewer.current.controls({resetOnDoubleClick: false, pan: {enabled: false}})
+    refViewer.current.fit(fitMargin)
+    refViewer.current.render()
+    refViewer.current.saveCameraReset()
     setLoading(false)
-  }, [data])
+  }, [data, theme])
 
   const toggleFullscreen = useCallback(() => {
     setFullscreen(!fullscreen)
@@ -216,8 +194,8 @@ const BrillouinZone = React.memo(({
   }, [captureName])
 
   const handleReset = useCallback(() => {
-    refViewer.current.reset()
-    refViewer.current.fitToCanvas()
+    refViewer.current.resetCamera()
+    refViewer.current.fit(fitMargin)
     refViewer.current.render()
   }, [])
 
@@ -255,12 +233,10 @@ const BrillouinZone = React.memo(({
 })
 
 BrillouinZone.propTypes = {
-  viewer: PropTypes.object, // Optional shared viewer instance.
   data: PropTypes.shape({
     reciprocal_cell: PropTypes.array.isRequired, // Reciprocal cell in SI units
     segment: PropTypes.array.isRequired // Array of section_k_band_segments in SI units
   }),
-  options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
   classes: PropTypes.object,
   className: PropTypes.string,

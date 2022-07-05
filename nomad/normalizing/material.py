@@ -18,13 +18,14 @@
 
 from typing import Union, Dict, List
 from nptyping import NDArray
+from collections import defaultdict
 import re
 import ase.data
 from ase import Atoms
 import numpy as np
 import matid.geometry
 
-from nomad.datamodel.results import Symmetry, Material
+from nomad.datamodel.results import Symmetry, Material, System, Cell, Relation
 from nomad import atomutils
 from nomad.utils import hash
 
@@ -38,6 +39,7 @@ class MaterialNormalizer():
             spg_number,
             conv_atoms,
             wyckoff_sets,
+            properties,
             optimade,
             logger):
         self.entry_archive = entry_archive
@@ -46,6 +48,7 @@ class MaterialNormalizer():
         self.spg_number = spg_number
         self.conv_atoms = conv_atoms
         self.wyckoff_sets = wyckoff_sets
+        self.properties = properties
         self.optimade = optimade
         self.repr_symmetry = repr_symmetry
         self.structural_type = None
@@ -83,6 +86,8 @@ class MaterialNormalizer():
             material.material_id = self.material_id_2d(self.spg_number, self.wyckoff_sets)
         elif self.structural_type == "1D":
             material.material_id = self.material_id_1d(self.conv_atoms)
+
+        material.topology = self.topology(material)
 
         return material
 
@@ -393,3 +398,173 @@ class MaterialNormalizer():
         if filled:
             return result
         return None
+
+    def topology(self, material) -> List[System]:
+        """Extracts the system topology if one is available
+        """
+        # Use the calculation topology primarily
+        topology_calc = self.topology_calculation(material)
+        if topology_calc:
+            return topology_calc
+
+        return []
+
+    def topology_calculation(self, material) -> List[System]:
+        """Extracts the system topology as defined in the original calculation.
+        This topology typically comes from e.g. classical force fields that
+        require a specific topology for the system.
+        """
+        # Topology is currently created only for simulations that provide
+        # AtomsGroups. TODO: Also other entries should get a topology: all of
+        # the symmetry analysis and additional system partitioning through MatID
+        # should be stored in the topology.
+        topology: Dict[str, System] = {}
+        try:
+            groups = self.entry_archive.run[0].system[0].atoms_group
+        except Exception:
+            return []
+        if not groups:
+            return []
+
+        # Add the original system topology as root
+        top_id = 0
+        top_id_original = f'/results/material/topology/{top_id}'
+        original = System(
+            system_id=top_id_original,
+            method='parser',
+            label='original',
+            description='A representative system chosen from the original simulation.',
+            material_id=material.material_id,
+            material_name=material.material_name,
+            structural_type=material.structural_type,
+            functional_type=material.functional_type,
+            compound_type=material.compound_type,
+            formula_hill=material.chemical_formula_hill,
+            formula_anonymous=material.chemical_formula_anonymous,
+            formula_reduced=material.chemical_formula_reduced,
+            elements=material.elements,
+        )
+        try:
+            structure_original = self.properties.structures.structure_original
+        except Exception:
+            structure_original = None
+        if structure_original:
+            cell = Cell(
+                a=structure_original.lattice_parameters.a,
+                b=structure_original.lattice_parameters.b,
+                c=structure_original.lattice_parameters.c,
+                alpha=structure_original.lattice_parameters.alpha,
+                beta=structure_original.lattice_parameters.beta,
+                gamma=structure_original.lattice_parameters.gamma,
+                volume=structure_original.cell_volume,
+                atomic_density=structure_original.atomic_density,
+                mass_density=structure_original.mass_density,
+            )
+            original.cell = cell
+            original.atoms = structure_original
+            original.n_atoms = structure_original.n_sites
+
+        topology[top_id_original] = original
+        top_id += 1
+        if groups:
+            label_to_instances: Dict[str, List] = defaultdict(list)
+            label_to_id: Dict[str, str] = {}
+
+            def add_group(groups, parent=None, parent_id=None):
+                nonlocal top_id
+                if groups:
+                    for group in groups:
+                        label = group.label
+                        if label not in label_to_instances:
+                            try:
+                                formula = atomutils.Formula(group.composition_formula)
+                            except Exception:
+                                formula_hill = None
+                                formula_anonymous = None
+                                formula_reduced = None
+                                elements = None
+                            else:
+                                formula_hill = formula.format('hill')
+                                formula_anonymous = formula.format('anonymous')
+                                formula_reduced = formula.format('reduce')
+                                elements = formula.elements()
+                            description_map = {
+                                'molecule': 'Molecule extracted from the calculation topology.',
+                                'molecule_group': 'Group of molecules extracted from the calculation topology.',
+                                'monomer_group': 'Group of monomers extracted from the calculation topology.',
+                                'monomer': 'Monomer extracted from the calculation topology.'
+                            }
+                            structural_type_map = {
+                                'molecule': 'molecule',
+                                'molecule_group': 'group',
+                                'monomer': 'monomer',
+                                'monomer_group': 'group',
+                            }
+                            top_id_str = f'/results/material/topology/{top_id}'
+                            description = description_map.get(group.type, None)
+                            structural_type = structural_type_map.get(group.type, None)
+
+                            system = System(
+                                system_id=top_id_str,
+                                method='parser',
+                                description=description,
+                                label=group.label,
+                                formula_hill=formula_hill,
+                                formula_anonymous=formula_anonymous,
+                                formula_reduced=formula_reduced,
+                                elements=elements,
+                                structural_type=structural_type,
+                                n_atoms=group.n_atoms,
+                                system_relation=Relation(type='subsystem'),
+                                parent_system=None if not parent_id else parent_id
+                            )
+
+                            topology[top_id_str] = system
+                            label_to_id[label] = top_id_str
+                            if parent:
+                                parent_children = parent.child_systems if parent.child_systems else []
+                                parent_children.append(top_id_str)
+                                parent.child_systems = parent_children
+                            top_id += 1
+                            add_group(group.atoms_group, system, top_id_str)
+
+                        # Add the instance indices to the topology. Only added
+                        # if the length matches, otherwise log an error
+                        # (instances with the same label should have the same
+                        # atoms)
+                        old_instances = label_to_instances[label]
+                        save = False
+                        if len(old_instances) == 0:
+                            save = True
+                        else:
+                            if len(old_instances[0]) == len(group.atom_indices):
+                                save = True
+                            else:
+                                self.logger.warn((
+                                    "the topology contains entries with the same "
+                                    "label but with different number of atoms"
+                                ))
+                        if save:
+                            label_to_instances[label].append(group.atom_indices)
+            add_group(groups, original, top_id_original)
+
+            # Add the gathered instance information and formula information if
+            # not yet present
+            for label, value in label_to_instances.items():
+                top_id_str = label_to_id[label]
+                top = topology[top_id_str]
+                indices = np.array(value)
+                top.indices = indices
+                if structure_original and top.formula_hill is None:
+                    symbols = "".join(np.array(structure_original.species_at_sites)[indices.flatten()])
+                    try:
+                        formula = atomutils.Formula(symbols)
+                    except Exception:
+                        pass
+                    else:
+                        top.formula_hill = formula.format('hill')
+                        top.formula_anonymous = formula.format('anonymous')
+                        top.formula_reduced = formula.format('reduce')
+                        top.elements = formula.elements()
+
+        return list(topology.values())

@@ -20,13 +20,13 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import PropTypes from 'prop-types'
 import { useDataStore } from '../DataStore'
 
-const entryContext = React.createContext()
+const entryPageContext = React.createContext()
 
-export const useEntryContext = () => {
-  return useContext(entryContext)
+export const useEntryPageContext = () => {
+  return useContext(entryPageContext)
 }
 
-const EntryContext = React.memo(function EntryContext({entryId, children}) {
+const EntryPageContext = React.memo(function EntryContext({entryId, children}) {
   const dataStore = useDataStore()
   const [entryStoreObj, setEntryStoreObj] = useState(dataStore.getEntry(entryId))
 
@@ -40,11 +40,11 @@ const EntryContext = React.memo(function EntryContext({entryId, children}) {
 
   const contextValue = useMemo(() => { return entryStoreObj }, [entryStoreObj])
 
-  return <entryContext.Provider value={contextValue}>
+  return <entryPageContext.Provider value={contextValue}>
     {children}
-  </entryContext.Provider>
+  </entryPageContext.Provider>
 })
-EntryContext.propTypes = {
+EntryPageContext.propTypes = {
   entryId: PropTypes.string.isRequired,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
@@ -52,4 +52,4 @@ EntryContext.propTypes = {
   ])
 }
 
-export default EntryContext
+export default EntryPageContext

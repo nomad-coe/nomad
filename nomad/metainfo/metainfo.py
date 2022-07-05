@@ -40,6 +40,7 @@ import importlib
 import email.utils
 from urllib.parse import urlsplit, urlunsplit, SplitResult
 
+from nomad.config import process
 from nomad.units import ureg as units
 
 m_package: 'Package' = None
@@ -635,7 +636,7 @@ class Reference(DataType):
             if '@' in url.fragment:
                 # It's a reference to a section definition
                 definition, definition_id = f'{url.archive_url}#{url.fragment}'.split('@')
-                return context.resolve_definition_as_section(definition, definition_id).m_def
+                return context.resolve_section_definition(definition, definition_id).m_def
 
             context_section = context.resolve_archive_url(url.archive_url)
 
@@ -1060,11 +1061,11 @@ class Context():
     def cache_archive(self, url: str, archive):
         raise NotImplementedError()
 
-    def resolve_definition(self, definition: str, definition_id: str) -> dict:
+    def retrieve_package_by_section_definition_id(self, definition_reference: str, definition_id: str) -> dict:
         raise NotImplementedError()
 
-    def resolve_definition_as_section(self, definition: str, definition_id: str) -> Type[MSectionBound]:
-        pkg = Package.m_from_dict(self.resolve_definition(definition, definition_id))
+    def resolve_section_definition(self, definition_reference: str, definition_id: str) -> Type[MSectionBound]:
+        pkg = Package.m_from_dict(self.retrieve_package_by_section_definition_id(definition_reference, definition_id))
         pkg.init_metainfo()
         for section in pkg.section_definitions:
             if section.definition_id == definition_id:
@@ -1884,12 +1885,15 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 return str(annotation)
 
         def m_def_reference():
-            qualified_name = self.m_def.qualified_name()
-            if qualified_name.startswith('entry_id:'):
+            definition_name = self.m_def.qualified_name()
+            if definition_name.startswith('entry_id:'):
                 # This is not from a python module, use archive reference instead
-                return self.m_def.m_root().m_context.create_reference(self, None, self.m_def)
+                definition_name = self.m_def.m_root().m_context.create_reference(self, None, self.m_def)
 
-            return qualified_name
+            if process.add_definition_id_to_reference:
+                definition_name += '@' + self.m_def.definition_id
+
+            return definition_name
 
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
@@ -2065,7 +2069,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if cls is None or cls.m_def is None or dct['m_def_id'] != cls.m_def.definition_id:
                 if not isinstance(m_context, Context):
                     raise MetainfoError(f"A context object is needed to resolve definition {dct['m_def_id']}")
-                cls = m_context.resolve_definition_as_section(dct.get('m_def', None), dct['m_def_id'])
+                cls = m_context.resolve_section_definition(dct.get('m_def', None), dct['m_def_id'])
 
         assert cls is not None, 'Section definition or cls needs to be known'
 
