@@ -5727,19 +5727,19 @@ class EQE(MSection):
                     """)
 
     def normalize(self, archive, logger):
-        from nomad.datamodel.metainfo.eln.perovskite_database.importers.eqe_importer import read_eqe
+        from nomad.datamodel.metainfo.eln.perovskite_database.importers.eqe_importer_2 import EQEAnalyzer
         if (self.eqe_data_file):
             with archive.m_context.raw_file(self.eqe_data_file) as f:
-                eqe_dict = read_eqe(f.name, header_lines=self.header_lines)
+                eqe_dict = EQEAnalyzer(f.name, header_lines=self.header_lines).eqe_dict()
                 self.measured = True
-                self.bandgap_eqe = eqe_dict['bandgap_eqe']
-                self.integrated_Jsc = eqe_dict['integrated_Jsc'] * ureg('A/m**2')
-                self.integrated_J0rad = eqe_dict['integrated_J_0_rad'] * ureg('A/m**2')
-                self.voc_rad = eqe_dict['voc_rad']
+                self.bandgap_eqe = eqe_dict['bandgap']
+                self.integrated_Jsc = eqe_dict['jsc'] * ureg('A/m**2')
+                self.integrated_J0rad = eqe_dict['j0rad'] * ureg('A/m**2') if 'j0rad' in eqe_dict else logger.warning('The j0rad could not be calculated.')
+                self.voc_rad = eqe_dict['voc_rad'] if 'voc_rad' in eqe_dict else logger.warning('The voc_rad could not be calculated.')
                 self.urbach_energy = eqe_dict['urbach_e']
-                self.photon_energy_array = np.array(eqe_dict['photon_energy_array'])
+                self.photon_energy_array = np.array(eqe_dict['interpolated_photon_energy'])
                 self.raw_photon_energy_array = np.array(eqe_dict['photon_energy_raw'])
-                self.eqe_array = np.array(eqe_dict['eqe_array'])
+                self.eqe_array = np.array(eqe_dict['interpolated_eqe'])
                 self.raw_eqe_array = np.array(eqe_dict['eqe_raw'])
                 if archive.data.perovskite is None:
                     archive.data.perovskite = Perovskite()
