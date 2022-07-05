@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "nomad.fullname" . }}-gui
+  name: {{ include "nomad.fullname" . }}-proxy
   labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-gui
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-proxy
     helm.sh/chart: {{ include "nomad.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
@@ -22,5 +22,5 @@ spec:
       nodePort: {{ .Values.proxy.nodePort }}
       {{ end }}
   selector:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-gui
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-proxy
     app.kubernetes.io/instance: {{ .Release.Name }}
