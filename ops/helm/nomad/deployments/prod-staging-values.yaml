@@ -40,7 +40,7 @@ elastic:
   port: 9200
 
 mongo:
-  host: rs0/mongodb-0.mongo.mongodb.svc.cluster.local,mongodb-1.mongo.mongodb.svc.cluster.local,mongodb-2.mongo.mongodb.svc.cluster.local
+  host: mongodb://mongodb-0.mongo.mongodb.svc.cluster.local,mongodb-1.mongo.mongodb.svc.cluster.local,mongodb-2.mongo.mongodb.svc.cluster.local/?replicaSet=rs0
 
 logstash:
   host: logstash.elk.svc.cluster.local
