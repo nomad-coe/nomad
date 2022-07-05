@@ -240,7 +240,6 @@ def read_table_data(path, file_or_path=None, **kwargs):
     if path.endswith('.xls') or path.endswith('.xlsx'):
         return pd.read_excel(
             file_or_path if isinstance(file_or_path, str) else file_or_path.name,
-            engine='openpyxl',
             **kwargs
         )
     else:
@@ -327,7 +326,7 @@ class TabularDataParser(MatchingParser):
             logger.error('Schema for tabular data must inherit from TableRow.')
             return
 
-        tabular_parser_annotation = section_def.m_annotations.get('eln').get('tabular-parser', None)
+        tabular_parser_annotation = section_def.m_annotations.get('tabular-parser', None)
         if tabular_parser_annotation:
             data = read_table_data(mainfile, **tabular_parser_annotation)
         else:
