@@ -5727,7 +5727,7 @@ class EQE(MSection):
                     """)
 
     def normalize(self, archive, logger):
-        from nomad.datamodel.metainfo.eln.perovskite_database.importers.eqe_importer_2 import EQEAnalyzer
+        from nomad.datamodel.metainfo.eln.perovskite_database.importers.eqe_importer import EQEAnalyzer
         if (self.eqe_data_file):
             with archive.m_context.raw_file(self.eqe_data_file) as f:
                 eqe_dict = EQEAnalyzer(f.name, header_lines=self.header_lines).eqe_dict()
