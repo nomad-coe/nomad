@@ -31,10 +31,10 @@ const OptoelectronicPropertiesCard = React.memo(({index, properties, archive}) =
   }
 
   // Resolve band gap data
-  let bandGap = index?.results?.properties?.optoelectronic?.band_gap || false
+  const bandGap = index?.results?.properties?.optoelectronic?.band_gap || false
 
   // Resolve solar cell data
-  let solarCell = index?.results?.properties?.optoelectronic?.solar_cell || false
+  const solarCell = index?.results?.properties?.optoelectronic?.solar_cell || false
 
   return <PropertyCard title="Optoelectronic properties">
     <OptoelectronicProperties bandGap={bandGap} solarCell={solarCell}/>
