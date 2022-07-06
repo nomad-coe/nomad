@@ -1576,9 +1576,11 @@ Ozone
                 archive.results.material.chemical_formula_reduced = final_formula[0]
                 chemical_formula_reduced = archive.results.material.chemical_formula_reduced
                 archive.results.material.elements = final_formula[1]
-                if archive.results.material.chemical_formula_hill is None:
+                try:
                     archive.results.material.chemical_formula_hill = Formula(chemical_formula_reduced).format('hill')
-
+                    archive.results.material.chemical_formula_descriptive = self.composition_long_form
+                except Exception as e:
+                    logger.warn('could not analyse chemical formula', exc_info=e)
 
 class PerovskiteDeposition(MSection):
 
