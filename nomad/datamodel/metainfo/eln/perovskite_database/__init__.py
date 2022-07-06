@@ -169,6 +169,7 @@ Unpublished
                 if self.ID_temp is not None:
                     archive.metadata.references.append('https://doi.org/10.1038/s41560-021-00941-3')
                     archive.metadata.references.append('https://www.perovskitedatabase.com/')
+                    archive.metadata.external_db = 'The Perovskite Database Project'
 
 
 class Cell(MSection):
