@@ -75,7 +75,7 @@ def run_hub():
         os.environ['JUPYTERHUB_CRYPT_KEY'] = crypt_key
 
     config.meta.service = 'hub'
-    sys.exit(main(argv=['-f', 'nomad/jupyterhub_config.py', '--debug']))
+    sys.exit(main(argv=['-f', 'nomad/jupyterhub_config.py', '--Application.log_level=INFO']))
 
 
 @run.command(help='Run both app and worker.')
