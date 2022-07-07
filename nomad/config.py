@@ -148,8 +148,8 @@ elastic = NomadConfig(
 )
 
 keycloak = NomadConfig(
-    public_server_url=None,
     server_url='https://nomad-lab.eu/fairdi/keycloak/auth/',
+    public_server_url=None,
     realm_name='fairdi_nomad_prod',
     username='admin',
     password='password',
@@ -418,7 +418,7 @@ bundle_import = NomadConfig(
 )
 
 north = NomadConfig(
-    hub_ip_connect='172.17.0.1',  # Set this to host.docker.internal on windows/macos.
+    hub_connect_ip=None,  # Set this to host.docker.internal on windows/macos.
     hub_connect_url=None,
     hub_ip='0.0.0.0',
     docker_network=None,

@@ -17,65 +17,58 @@
 # limitations under the License.
 #
 
-version: '3.4'
-
-x-common-variables: &nomad_backend_env
-    NOMAD_RABBITMQ_HOST: rabbitmq
-    NOMAD_LOGSTASH_HOST: elk
-    NOMAD_ELASTIC_HOST: elastic
-    NOMAD_MONGO_HOST: mongo
-    NOMAD_KEYCLOAK_HOST: keycloak
+version: "3"
 
 services:
-    # broker for celery
-    rabbitmq:
-        restart: 'no'
-        image: rabbitmq:3.9.13
-        container_name: nomad_rabbitmq
-        environment:
-            - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
-            - RABBITMQ_DEFAULT_USER=rabbitmq
-            - RABBITMQ_DEFAULT_PASS=rabbitmq
-            - RABBITMQ_DEFAULT_VHOST=/
-        ports:
-            - 5672:5672
-        volumes:
-            - nomad_rabbitmq:/var/lib/rabbitmq
+  # broker for celery
+  rabbitmq:
+    restart: "no"
+    image: rabbitmq:3.9.13
+    container_name: nomad_rabbitmq
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
+      - RABBITMQ_DEFAULT_USER=rabbitmq
+      - RABBITMQ_DEFAULT_PASS=rabbitmq
+      - RABBITMQ_DEFAULT_VHOST=/
+    ports:
+      - 5672:5672
+    volumes:
+      - nomad_rabbitmq:/var/lib/rabbitmq
 
-    # the search engine
-    elastic:
-        restart: 'no'
-        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
-        container_name: nomad_elastic
-        environment:
-            - ES_JAVA_OPTS=-Xms512m -Xmx512m
-            - cluster.routing.allocation.disk.threshold_enabled=true
-            - cluster.routing.allocation.disk.watermark.flood_stage=1gb
-            - cluster.routing.allocation.disk.watermark.low=4gb
-            - cluster.routing.allocation.disk.watermark.high=2gb
-            - discovery.type=single-node
-            - xpack.security.enabled=false
-        ports:
-            - 9200:9200
-        volumes:
-            - nomad_elastic:/usr/share/elasticsearch/data
+  # the search engine
+  elastic:
+    restart: "no"
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
+    container_name: nomad_elastic
+    environment:
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.flood_stage=1gb
+      - cluster.routing.allocation.disk.watermark.low=4gb
+      - cluster.routing.allocation.disk.watermark.high=2gb
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - 9200:9200
+    volumes:
+      - nomad_elastic:/usr/share/elasticsearch/data
 
-    # the user data db
-    mongo:
-        restart: 'no'
-        image: mongo:5.0.6
-        container_name: nomad_mongo
-        environment:
-            - MONGO_DATA_DIR=/data/db
-            - MONGO_LOG_DIR=/dev/null
-        ports:
-            - 27017:27017
-        volumes:
-            - nomad_mongo:/data/db
-        command: mongod
-        # --logpath=/dev/null # --quiet
+  # the user data db
+  mongo:
+    restart: "no"
+    image: mongo:5.0.6
+    container_name: nomad_mongo
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    ports:
+      - 27017:27017
+    volumes:
+      - nomad_mongo:/data/db
+    command: mongod
+    # --logpath=/dev/null # --quiet
 
 volumes:
-    nomad_mongo:
-    nomad_elastic:
-    nomad_rabbitmq:
+  nomad_mongo:
+  nomad_elastic:
+  nomad_rabbitmq:

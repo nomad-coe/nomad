@@ -151,32 +151,43 @@ class NomadAuthenticator(GenericOAuthenticator):
 
 c = get_config()  # type: ignore  # pylint: disable=undefined-variable
 
-nomad_keycloak = f'{config.keycloak.server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
-
+# Allow named single-user servers per user (Default: False)
 c.JupyterHub.allow_named_servers = True
+
+# If named servers are enabled, default name of server to spawn or open, e.g. by
+# user-redirect. (Default: '')
+c.JupyterHub.default_server_name = 'jupyter'
+
+# TODO: This is temporary.  Place everything behind a single origin aka nginx proxy
 c.JupyterHub.tornado_settings = {
     'headers': {
-        'Access-Control-Allow-Origin': '*',  # This is temporary. TODO: Place everything behind a single origin aka nginx proxy
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': '*',
         'Access-Control-Allow-Methods': '*'
     },
 }
 
-c.JupyterHub.port = 9000
-c.JupyterHub.base_url = f'{config.services.api_base_path.rstrip("/")}/north'
+# The public facing URL of the whole JupyterHub application. This is the address on which
+# the proxy will bind. (Default: 'http://:8000')
+c.JupyterHub.bind_url = f'http://:9000/{config.services.api_base_path.strip("/")}/north'
+
+nomad_public_keycloak = f'{config.keycloak.public_server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
+nomad_keycloak = f'{config.keycloak.server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
+
 c.JupyterHub.authenticator_class = NomadAuthenticator
-c.Authenticator.enable_auth_state = True
+
 c.GenericOAuthenticator.login_service = 'keycloak'
 c.GenericOAuthenticator.client_id = 'nomad_public'
-c.GenericOAuthenticator.authorize_url = f'{nomad_keycloak}/protocol/openid-connect/auth'
+c.GenericOAuthenticator.authorize_url = f'{nomad_public_keycloak}/protocol/openid-connect/auth'
 c.GenericOAuthenticator.token_url = f'{nomad_keycloak}/protocol/openid-connect/token'
 c.GenericOAuthenticator.userdata_url = f'{nomad_keycloak}/protocol/openid-connect/userinfo'
 c.GenericOAuthenticator.userdata_params = {'state': 'state'}
 c.GenericOAuthenticator.username_key = 'preferred_username'
-c.GenericOAuthenticator.userdata_method = 'GET'
+# c.GenericOAuthenticator.userdata_method = 'GET'
 c.GenericOAuthenticator.scope = ['openid', 'profile']
 
 c.Authenticator.auto_login = True
+c.Authenticator.enable_auth_state = True
 
 
 class NomadDockerSpawner(DockerSpawner):
@@ -216,17 +227,22 @@ class NomadDockerSpawner(DockerSpawner):
 c.JupyterHub.spawner_class = NomadDockerSpawner
 c.DockerSpawner.image = 'jupyter/base-notebook'
 c.DockerSpawner.remove = True
+
+# Prefix for container names. See name_template for full container name for a particular
+# user's server. (Default: 'jupyter')
+c.DockerSpawner.prefix = 'noamd_oasis_north'
+
 if config.north.docker_network:
     c.DockerSpawner.network_name = config.north.docker_network
-c.JupyterHub.hub_ip_connect = config.north.hub_ip_connect
+
 if config.north.hub_ip:
     c.JupyterHub.hub_ip = config.north.hub_ip
+
+if config.north.hub_connect_ip:
+    c.JupyterHub.hub_connect_ip = config.north.hub_connect_ip
+
 if config.north.hub_connect_url:
     c.DockerSpawner.hub_connect_url = config.north.hub_connect_url
-
-
-def configure_default(spawner: DockerSpawner):
-    spawner.image = 'jupyter/base-notebook'
 
 
 def create_configure_from_tool_json(tool_json):

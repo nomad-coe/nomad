@@ -268,21 +268,21 @@ notebooks).
 To run the JupyterHUB, some additional configuration might be necessary.
 ```sh
 north:
-    hub_ip_connect: 'host.docker.internal'
+    hub_connect_ip: 'host.docker.internal'
     jupyterhub_crypt_key: '<crypt key>'
 ```
 
 On Windows system, you might have to activate further specific functionality:
 ```sh
 north:
-    hub_ip_connect: 'host.docker.internal'
+    hub_connect_ip: 'host.docker.internal'
     hub_connect_url: 'http://host.docker.internal:8081'
     windows: true
     jupyterhub_crypt_key: '<crypt key>'
 ```
 
 - If you are not on Linux, you need to configure how JupyterHUB can reach your host network from
-docker containers. For Windows and MacOS you need to set `hub_ip_connect` to `host.docker.internal`. For linux you can leave it out and use the default `172.17.0.1`, unless you changed your
+docker containers. For Windows and MacOS you need to set `hub_connect_ip` to `host.docker.internal`. For linux you can leave it out and use the default `172.17.0.1`, unless you changed your
 docker configuration.
 - You have to generate a `crypt key` with `openssl rand -hex 32`.
 - You might need to install [configurable-http-proxy](https://github.com/jupyterhub/configurable-http-proxy).
