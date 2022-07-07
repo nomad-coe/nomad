@@ -21,10 +21,13 @@ import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import {
   Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip,
   IconButton, useTheme, Grid, Dialog, DialogContent, DialogContentText, DialogActions,
-  Button, MenuItem } from '@material-ui/core'
-import {useRouteMatch, useHistory} from 'react-router-dom'
+  Button,
+  FormControl,
+  MenuItem,
+  FormHelperText} from '@material-ui/core'
+import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane } from './Browser'
+import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane, browserContext } from './Browser'
 import { RawFileAdaptor } from './FileBrowser'
 import {
   isEditable, PackageMDef, QuantityMDef, removeSubSection, resolveRef, resolveRefAsync, SectionMDef, SubSectionMDef,
@@ -674,11 +677,54 @@ QuantityValue.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
+const InheritingSections = React.memo(function InheritingSections({def, section, lane}) {
+  const browser = useContext(browserContext)
+  const selection = useMemo(() => {
+    return section?.m_def || null
+  }, [section])
+  const handleInheritingSectionsChange = useCallback((e) => {
+    section.m_def = e.target.value
+    browser.invalidateLanesFromIndex(lane.index)
+  }, [section, browser, lane])
+
+  return (def._allInheritingSections?.length > 0 &&
+    <Box sx={{minWidth: 120}}>
+      <FormControl fullWidth >
+        <FormHelperText>Select an m_def from the list</FormHelperText>
+        <TextField
+          variant='outlined'
+          data-testid={`inheriting:${def.name}`}
+          value={selection || def._url || def._qualifiedName}
+          onChange={handleInheritingSectionsChange}
+          select
+        >
+          <MenuItem data-testid='select-options' key={0} value={def._url || def._qualifiedName}>
+            {def.name}
+          </MenuItem>
+          {def._allInheritingSections.map((inheritingSection, i) => {
+            const val = inheritingSection._url || inheritingSection._qualifiedName
+            return (
+              <MenuItem key={i + 1} value={val} data-testid='select-options'>
+                {inheritingSection.name}
+              </MenuItem>
+            )
+          })}
+        </TextField>
+      </FormControl>
+    </Box>
+  )
+})
+InheritingSections.propTypes = ({
+  section: PropTypes.object.isRequired,
+  def: PropTypes.object.isRequired,
+  lane: PropTypes.object
+})
+
 function Section({section, def, parentRelation}) {
   const {editable, handleArchiveChanged} = useEntryPageContext() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
-  const lane = useLane()
+  const lane = useContext(laneContext)
   const history = useHistory()
 
   const navEntryId = useMemo(() => {
@@ -826,16 +872,18 @@ function Section({section, def, parentRelation}) {
       {def.m_annotations?.plot && <SectionPlots sectionDef={def} section={section}/>}
     </React.Fragment>
   }
-
   const eln = def?.m_annotations?.eln
   const laneWidth = (eln && eln.length > 0 ? eln[0].lane_width : undefined)
   const otherProps = (laneWidth ? {minWidth: laneWidth, maxWidth: laneWidth} : undefined)
-  return <Content {...otherProps}>
-    <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions} />
-    <Overview section={section} def={def}/>
-    {contents}
-    <Meta def={def} />
-  </Content>
+  return (
+    <Content {...otherProps}>
+      <InheritingSections def={def} section={section} lane={lane}/>
+      <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions} />
+      <Overview section={section} def={def}/>
+      {contents}
+      <Meta def={def} />
+    </Content>
+  )
 }
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
@@ -897,7 +945,7 @@ function SubSection({subSectionDef, section, editable}) {
   const showList = subSectionDef.repeats && values && values.length > 1
   const actions = editable && (subSectionDef.repeats || !values) && (
     <Box marginRight={!showList && values ? -1 : 2}>
-      <IconButton onClick={handleAdd} size="small">
+      <IconButton data-testid={`subsection:${subSectionDef.name}`} onClick={handleAdd} size="small">
         <AddIcon style={{fontSize: 20}} />
       </IconButton>
     </Box>

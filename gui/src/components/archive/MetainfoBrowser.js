@@ -318,20 +318,22 @@ const Metainfo = React.memo(function Metainfo(props) {
 
 export class SectionDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {
-    if (key.startsWith('_baseSection')) {
-      let index = 0
-      if (key.includes('@')) {
-        index = parseInt(key.split('@')[1])
-      }
-      return metainfoAdaptorFactory(this.context, this.def.base_sections[index])
-    }
-
     if (key.includes('@')) {
       const [type, name] = key.split('@')
-      if (type === 'innerSectionDef') {
+      if (type === '_innerSectionDef') {
         const innerSectionDef = this.def.inner_section_definitions.find(def => def.name === name)
         if (innerSectionDef) {
           return metainfoAdaptorFactory(this.context, innerSectionDef)
+        }
+      } else if (type === '_inheritingSectionDef') {
+        const inheritingSectionDef = this.def._allInheritingSections.find(inheritingSection => inheritingSection.name === name)
+        if (inheritingSectionDef) {
+          return metainfoAdaptorFactory(this.context, inheritingSectionDef)
+        }
+      } else if (type === '_baseSectionDef') {
+        const baseSectionDef = this.def.base_sections[parseInt(name)]
+        if (baseSectionDef) {
+          return metainfoAdaptorFactory(this.context, baseSectionDef)
         }
       }
     }
@@ -403,11 +405,38 @@ function SectionDefContent({def}) {
     <DefinitionProperties def={def} />
     {def.base_sections.length > 0 &&
       <Compartment title="base section">
-        {def.base_sections.map((baseSection, index) => (
-          <Item key={index} itemKey={`_baseSection@${index}`}>
-            <Typography>{baseSection.name}</Typography>
+        {def.base_sections.map((baseSection, index) => {
+          const key = `_baseSectionDef@${index}`
+          const categories = baseSection.categories
+          const unused = categories?.find(c => c.name === 'Unused')
+          return <Item key={key} itemKey={key}>
+            <Box component="span" whiteSpace="nowrap">
+              <Typography component="span" color={unused && 'error'}>
+                <Box fontWeight="bold" component="span">
+                  {baseSection.name}
+                </Box>
+              </Typography>
+            </Box>
           </Item>
-        ))}
+        })}
+      </Compartment>
+    }
+    {def._allInheritingSections?.length > 0 &&
+      <Compartment title="all inheriting sections">
+        {def._allInheritingSections.map((inheritingSection, index) => {
+          const key = `_inheritingSectionDef@${inheritingSection.name}`
+          const categories = inheritingSection.categories
+          const unused = categories?.find(c => c.name === 'Unused')
+          return <Item key={index} itemKey={key}>
+            <Box component="span" whiteSpace="nowrap">
+              <Typography component="span" color={unused && 'error'}>
+                <Box fontWeight="bold" component="span">
+                  {inheritingSection.name}
+                </Box>
+              </Typography>
+            </Box>
+          </Item>
+        })}
       </Compartment>
     }
     <Compartment title="sub section definitions">
@@ -447,7 +476,7 @@ function SectionDefContent({def}) {
     {showInnerSectionDefinitions && <Compartment title="inner section definitions">
       {def.inner_section_definitions.filter(filter)
         .map(innerSectionDef => {
-          const key = `innerSectionDef@${innerSectionDef.name}`
+          const key = `_innerSectionDef@${innerSectionDef.name}`
           const categories = innerSectionDef.categories
           const unused = categories?.find(c => c.name === 'Unused')
           return <Item key={key} itemKey={key}>

@@ -1,0 +1,60 @@
+definitions:  # The schema goes here.
+  name: 'Inheriting Schema'
+  sections:  # Schemas consist of (inheriting) section definitions
+    SubSectionDescendant1:
+      quantities:
+        nameDesc1:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+    SubSectionBase1:
+      section:
+        m_def: label_quantity='nameBase1'
+        quantities:
+          nameBase1:
+            type: str
+            m_annotations:
+              eln:
+                component: StringEditQuantity
+        sub_sections:
+          desc1:
+            section: SubSectionDescendant1
+    SubSectionDescendant2:
+      base_section: SubSectionBase1
+      quantities:
+        nameDesc2:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+      sub_sections:
+        desc2:
+          section: SubSectionDescendant1
+    SubSectionDescendant3:
+      base_section: SubSectionBase1
+      quantities:
+        nameDesc3:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+    Root:
+      base_section: nomad.datamodel.data.EntryData
+      quantities:
+        Root1:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+      sub_sections:
+        C1:
+          section: SubSectionBase1
+          quantities:
+            C1Q:
+              type: str
+              m_annotations:
+                eln:
+                  component: StringEditQuantity
+data:
+  m_def: Root

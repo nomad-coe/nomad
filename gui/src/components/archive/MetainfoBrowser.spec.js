@@ -30,6 +30,11 @@ function metainfoItemFilter(parentPath, items) {
     // Root - filter nothing
     return Object.keys(items)
   }
+  const segments = parentPath.split('/')
+  if (segments[segments.length - 1].includes('_inheritingSectionDef@') || segments[segments.length - 1].includes('_baseSectionDef@')) {
+    // Never step into allInheritingSections
+    return []
+  }
   const rv = []
   const encounteredPrefixes = {}
   let countKeysWithoutPrefixes = 0
@@ -69,4 +74,4 @@ test('Browse metainfo reursively', async () => {
   const lane = await navigateTo(path)
   const laneIndex = path ? path.split('/').length : 0
   await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), metainfoItemFilter, 2)
-}, 20 * minutes)
+}, 30 * minutes)

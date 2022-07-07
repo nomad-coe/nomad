@@ -126,7 +126,10 @@ export async function createMetainfo(data, parentMetainfo, context) {
   }
   if (data.definitions) {
     const entryId = data?.metadata?.entry_id
-    await metainfo._addPackages([data.definitions], entryId ? `entry_id:${entryId}` : null)
+    const mainfile = data?.metadata?.mainfile
+    const uploadId = data?.metadata?.upload_id
+    const url = mainfile && uploadId && `../uploads/${uploadId}/raw/${mainfile}#definitions`
+    await metainfo._addPackages([data.definitions], entryId ? `entry_id:${entryId}` : null, url)
   }
   data._metainfo = metainfo
   return metainfo
@@ -308,6 +311,9 @@ class Metainfo {
     pkg._sections[sectionDef.name] = sectionDef
     await this._initSection(sectionDef)
     sectionDef._qualifiedName = parentDef ? `${parentDef._qualifiedName || parentDef._unique_id || parentDef.name}.${sectionDef.name}` : sectionDef.name
+    if (parentDef?._url) {
+      sectionDef._url = `${parentDef._url}/section_definitions/${parentIndex}`
+    }
     sectionDef._package = pkg
 
     let index = 0
@@ -365,12 +371,13 @@ class Metainfo {
     }
   }
 
-  async _addPackage(pkg, unique_id) {
+  async _addPackage(pkg, unique_id, url) {
     this._packagePrefixCache = null
     pkg.m_def = PackageMDef
     if (unique_id) {
       pkg._unique_id = unique_id
     }
+    pkg._url = url
     const packageName = pkg.name || '*'
     this._packageDefs[packageName] = pkg
     await this._addDef(pkg)
@@ -391,9 +398,9 @@ class Metainfo {
     }
   }
 
-  async _addPackages(packages, unique_id) {
+  async _addPackages(packages, unique_id, url) {
     for (const pkg of packages) {
-      await this._addPackage(pkg, unique_id)
+      await this._addPackage(pkg, unique_id, url)
     }
   }
 

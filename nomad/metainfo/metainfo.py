@@ -1976,6 +1976,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         '''
         section_def = self.m_def
         section = self
+        m_context = self.m_context if self.m_context else self
 
         for name, property_def in section_def.all_aliases.items():
             if name not in dct:
@@ -1989,11 +1990,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         if sub_section_dct is None:
                             sub_section = None
                         else:
-                            sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_dct, m_context=self)
+                            sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_dct, m_parent=self, m_context=m_context)
                         section.m_add_sub_section(sub_section_def, sub_section)
 
                 else:
-                    sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_value, m_context=self)
+                    sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_value, m_parent=self, m_context=m_context)
                     section.m_add_sub_section(sub_section_def, sub_section)
 
             if isinstance(property_def, Quantity):
@@ -2032,7 +2033,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     def from_dict(
         dct: Dict[str, Any],
         cls: Type[MSectionBound] = None,
-        m_context: Union['MSection', Context] = None,
+        m_parent: 'MSection' = None,
+        m_context: 'Context' = None,
         **kwargs
     ) -> MSectionBound:
         ''' Creates a section from the given serializable data dictionary.
@@ -2045,22 +2047,20 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if 'm_ref_archives' in dct and isinstance(m_context, Context):
             # dct['m_ref_archives'] guarantees that 'm_def' exists
             for entry_url, archive_json in dct['m_ref_archives'].items():
-                m_context.cache_archive(entry_url, MSection.from_dict(archive_json, m_context=m_context))
+                m_context.cache_archive(entry_url, MSection.from_dict(archive_json, m_parent=m_parent, m_context=m_context))
             del dct['m_ref_archives']
 
         # first try to find a m_def in the data
         if 'm_def' in dct:
             # We re-use the _SectionReference implementation for m_def
             m_def = dct['m_def']
-            context_section = None
-            if isinstance(m_context, MSection):
-                context_section = m_context
-                definitions = getattr(context_section, 'definitions', None)
+            context_section = m_parent
+            if m_parent:
+                definitions = getattr(m_parent, 'definitions', None)
                 if isinstance(definitions, Package):
                     context_section = definitions
             m_def_proxy = SectionReference.deserialize(context_section, None, m_def)
-            if isinstance(m_context, Context):
-                m_def_proxy.m_proxy_context = m_context
+            m_def_proxy.m_proxy_context = m_context
             cls = m_def_proxy.section_cls
 
         # if 'm_def_id' exist, check if id matches
