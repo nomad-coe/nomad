@@ -17,8 +17,9 @@
  */
 import React from 'react'
 import { join } from 'path'
+import { waitFor } from '@testing-library/dom'
 import userEvent from '@testing-library/user-event'
-import { render, screen, within, startAPI, closeAPI, blockConsoleOutput, unblockConsoleOutput } from '../conftest.spec'
+import { render, screen, within, startAPI, closeAPI, blockConsoleOutput, unblockConsoleOutput, waitForGUI } from '../conftest.spec'
 import { getLane, navigateTo, browseRecursively } from '../archive/conftest.spec'
 import EntryPageContext from './EntryPageContext'
 import ArchiveEntryView from './ArchiveEntryView'
@@ -40,8 +41,9 @@ function archiveItemFilter(parentPath, items) {
     // Root - filter nothing
     return Object.keys(items)
   }
-  if (segments[segments.length - 2] === '_metainfo') {
+  if (segments[segments.length - 2] === '_metainfo' || segments[segments.length - 2] === '_baseSectionDef@0') {
     // Never step deeper than one level into metainfo definitions, these are tested elsewhere
+    // Never step deeper than one level into all inheriting secitons, the rest is tested seperately at the end
     return []
   }
   const rv = []
@@ -76,7 +78,9 @@ test.each([
   ['Chemical', '8mYi1m21s3k2LdjIUt0EnLyQ-_-c', '', false, false, 2],
   ['Schema', 'EdNTmfG89xq927d5Zcq-hMlLWaa2', '', false, false, 2],
   ['MySection-inter-entry', 'QoV6GTCH0lT4ArliEfO6ytXa9ihg', '', false, false, 2],
-  ['MySection-intra-entry', 'oqOTEw8ZzGt4Z763KE2IUv9iY1M5', '', false, false, 2]
+  ['MySection-intra-entry', 'oqOTEw8ZzGt4Z763KE2IUv9iY1M5', '', false, false, 2],
+  ['With-inheriting-sections', 'Z0mBq-MtZ0B2IFveOhFCFJMPCZgO', '', false, false, 2],
+  ['With-inheriting-sections with definitions', 'Z0mBq-MtZ0B2IFveOhFCFJMPCZgO', '', true, false, 2]
 ])('Browse archive recursively: %s', async (name, entryId, path, withDefinition, withAll, filterKeyLength) => {
   await startAPI(
     'tests.states.uploads.archive_browser_test',
@@ -100,3 +104,24 @@ test.each([
   const laneIndex = path ? path.split('/').length : 0
   await browseRecursively(lane, laneIndex, join(`*ArchiveBrowser ${name}*`, path), archiveItemFilter, filterKeyLength)
 }, 20 * minutes)
+
+test('inheriting sections', async () => {
+  await startAPI('tests.states.uploads.archive_browser_test', 'tests/data/uploads/archive_browser_test_inheriting_sectins', 'test', 'password')
+
+  render(<EntryPageContext entryId={'Z0mBq-MtZ0B2IFveOhFCFJMPCZgO'}><ArchiveEntryView /></EntryPageContext>)
+  expect(await screen.findByText('Entry')).toBeVisible()
+
+  const path = 'data'
+  const sectionName = '../uploads/archive_browser_test/raw/inheriting-schema.archive.yaml#definitions/section_definitions/1'
+  await navigateTo(path)
+
+  userEvent.click(await screen.findByTestId('subsection:C1'))
+  expect(await screen.findByText('Select an m_def from the list')).toBeInTheDocument()
+
+  const dropDown = await screen.findByTestId(`inheriting:SubSectionBase1`)
+  expect(dropDown).toBeInTheDocument()
+  const selectInput = within(dropDown).getByRole('textbox', { hidden: true })
+
+  await waitForGUI()
+  await waitFor(() => expect(selectInput.value).toEqual(`${sectionName}`))
+})
