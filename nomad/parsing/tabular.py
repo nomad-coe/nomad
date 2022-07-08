@@ -30,7 +30,6 @@ from nomad.metainfo import Section, Quantity, Package, Reference, SectionProxy, 
 from nomad.metainfo.metainfo import MetainfoError, SubSection
 from nomad.parsing.parser import MatchingParser
 
-
 # We define a simple base schema for tabular data. The parser will then generate more
 # specialized sections based on the table headers. These specialized defintions will use
 # this as base section definition.
@@ -73,29 +72,6 @@ class TableData(ArchiveSection):
             data = read_table_data(self.data_file, f, **kwargs)
 
         parse_columns(data, self)
-
-
-class XLSOnlyTableData(ArchiveSection):
-    def normalize(self, archive, logger):
-        super(XLSOnlyTableData, self).normalize(archive, logger)
-
-        for quantity in self.m_def.all_quantities.values():
-            tabular_parser_annotation = quantity.m_annotations.get('tabular_parser', None)
-            if tabular_parser_annotation:
-                self.tabular_parser(quantity, archive, logger)
-
-    def tabular_parser(self, quantity_def: Quantity, archive, logger):
-        if not quantity_def.is_scalar:
-            raise NotImplementedError('CSV parser is only implemented for single files.')
-
-        value = self.m_get(quantity_def)
-        if not value:
-            return
-
-        with archive.m_context.raw_file(self.data_file) as f:
-            exlFile = XLSOnly_read_table_data(self.data_file, f)
-
-        XLSOnly_parse_columns(exlFile, self)
 
 
 m_package.__init_metainfo__()
@@ -178,30 +154,21 @@ def parse_columns(pd_dataframe, section: MSection):
     data: pd.DataFrame = pd_dataframe
 
     mapping = _create_column_to_quantity_mapping(section.m_def)  # type: ignore
-    for column in data:
-        if column in mapping:
-            mapping[column](section, data.loc[:, column])
-
-
-def XLSOnly_parse_columns(pd_exlFile, section: MSection):
-    '''
-    Parses the given pandas dataframe and adds columns (all values as array) to
-    the given section.
-    '''
-    import pandas as pd
-    exlFile: pd.ExcelFile = pd_exlFile
-
-    mapping = _create_column_to_quantity_mapping(section.m_def)  # type: ignore
     for column in mapping:
         if '/' in column:
+            # extract the sheet & col names if there is a '/' in the 'name'
             sheet_name, col_name = column.split('/')
-            data = pd.read_excel(exlFile, sheet_name=sheet_name, comment='#')
-            if col_name in data:
-                mapping[column](section, data.loc[:, col_name])
+            if sheet_name not in list(data):
+                raise ValueError(
+                    'The sheet name {sheet_name} doesn''t exist in the excel file')
+
+            df2 = pd.DataFrame.from_dict(data.loc[0, sheet_name])
+            mapping[column](section, df2.loc[:, col_name])
         else:
-            data = pd.read_excel(exlFile, sheet_name=0, comment='#')
-            if column in data:
-                mapping[column](section, data.loc[:, column])
+            # Otherwise, assume the sheet_name is the first sheet of excel/csv
+            df2 = pd.DataFrame.from_dict(data.iloc[0, 0])
+            if column in df2:
+                mapping[column](section, df2.loc[:, column])
 
 
 def parse_table(pd_dataframe, section_def: Section, logger):
@@ -238,20 +205,18 @@ def read_table_data(path, file_or_path=None, **kwargs):
     if file_or_path is None:
         file_or_path = path
     if path.endswith('.xls') or path.endswith('.xlsx'):
-        return pd.read_excel(
-            file_or_path if isinstance(file_or_path, str) else file_or_path.name,
-            **kwargs
-        )
+        excel_file: pd.ExcelFile = pd.ExcelFile(
+            file_or_path if isinstance(file_or_path, str) else file_or_path.name)
+        df = pd.DataFrame()
+        for sheet_name in excel_file.sheet_names:
+            df.loc[0, sheet_name] = [
+                pd.read_excel(excel_file, sheet_name=sheet_name, **kwargs)
+                .to_dict()]
+        return df
     else:
-        return pd.read_csv(file_or_path, engine='python', **kwargs)
-
-
-def XLSOnly_read_table_data(path, file_or_path=None, **kwargs):
-    import pandas as pd
-    if file_or_path is None:
-        file_or_path = path
-    if path.endswith('.xls') or path.endswith('.xlsx'):
-        return pd.ExcelFile(file_or_path if isinstance(file_or_path, str) else file_or_path.name)
+        df = pd.DataFrame()
+        df.loc[0, 0] = [pd.read_csv(file_or_path, engine='python', **kwargs).to_dict()]
+        return df
 
 
 class TabularDataParser(MatchingParser):
