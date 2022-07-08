@@ -99,11 +99,15 @@ RUN yarn run build
 
 # Third, create a slim final image
 FROM final
-RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && apt-get install -y libmagic-dev curl vim zip unzip
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libgomp1 \
+ && apt-get install -y libmagic-dev curl vim zip unzip
+
 # Install the proxy used by north
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-RUN apt-get install -y nodejs=16.15.1-deb-1nodesource1
-RUN npm install -g configurable-http-proxy
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
+ && apt-get install -y nodejs \
+ && npm install -g configurable-http-proxy
 
 # copy the sources for tests, coverage, qa, etc.
 COPY . /app
