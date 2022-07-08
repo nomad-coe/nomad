@@ -125,7 +125,9 @@ gui tests:
     reports:
       junit:
         - gui/junit.xml
-      cobertura: gui/coverage/cobertura-coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: gui/coverage/cobertura-coverage.xml
   except:
     refs:
       - tags
