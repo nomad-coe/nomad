@@ -105,6 +105,8 @@ python tests:
 
 gui tests:
   stage: test
+  variables:
+      NODE_OPTIONS: --max_old_space_size=4096
   before_script:
     - git submodule sync
     - git submodule update --init -- gui/materia gui/crystcif-parse
