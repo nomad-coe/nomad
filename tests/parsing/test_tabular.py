@@ -17,6 +17,7 @@
 #
 
 import pytest
+import os
 import os.path
 import pandas as pd
 
@@ -25,6 +26,8 @@ from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
 from nomad.datamodel.context import ClientContext
 from nomad.utils import generate_entry_id, strip
 from nomad.parsing.tabular import TabularDataParser
+from nomad.parsing.parser import ArchiveParser
+from tests.normalizing.conftest import run_normalize
 
 
 @pytest.mark.parametrize('schema,content', [
@@ -141,3 +144,22 @@ def test_tabular(raw_files, monkeypatch, schema, content):
     # print('# main: ', json.dumps(main_archive.m_to_dict(), indent=2))
     # for key in keys:
     #     print(f'# {key}: ', json.dumps(child_archives[key].m_to_dict(), indent=2))
+
+
+def test_xlsx_tabular():
+    excel_file = os.path.join(os.path.dirname(__file__),
+                            '../../tests/data/parsers/tabular/Test.xlsx')
+    schema_file = os.path.join(os.path.dirname(__file__),
+                            '../../tests/data/parsers/tabular/Excel_Parser.archive.yaml')
+
+    class MyContext(ClientContext):
+        def raw_file(self, path, *args, **kwargs):
+            return open(excel_file, *args, **kwargs)
+    context = MyContext(local_dir='')
+    main_archive = EntryArchive(m_context=context, metadata=EntryMetadata(
+        upload_id=None,
+        mainfile=schema_file,
+        entry_id=generate_entry_id('test_upload', schema_file)))
+    ArchiveParser().parse(schema_file, main_archive)
+    entry_archive = run_normalize(main_archive)
+    assert main_archive.data is not None
