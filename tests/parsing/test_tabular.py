@@ -147,10 +147,8 @@ def test_tabular(raw_files, monkeypatch, schema, content):
 
 
 def test_xlsx_tabular():
-    excel_file = os.path.join(os.path.dirname(__file__),
-                            '../../tests/data/parsers/tabular/Test.xlsx')
-    schema_file = os.path.join(os.path.dirname(__file__),
-                            '../../tests/data/parsers/tabular/Excel_Parser.archive.yaml')
+    excel_file = os.path.join(os.path.dirname(__file__), '../../tests/data/parsers/tabular/Test.xlsx')
+    schema_file = os.path.join(os.path.dirname(__file__), '../../tests/data/parsers/tabular/Excel_Parser.archive.yaml')
 
     class MyContext(ClientContext):
         def raw_file(self, path, *args, **kwargs):
@@ -161,5 +159,4 @@ def test_xlsx_tabular():
         mainfile=schema_file,
         entry_id=generate_entry_id('test_upload', schema_file)))
     ArchiveParser().parse(schema_file, main_archive)
-    entry_archive = run_normalize(main_archive)
     assert main_archive.data is not None
