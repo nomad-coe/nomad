@@ -159,4 +159,5 @@ def test_xlsx_tabular():
         mainfile=schema_file,
         entry_id=generate_entry_id('test_upload', schema_file)))
     ArchiveParser().parse(schema_file, main_archive)
+    run_normalize(main_archive)
     assert main_archive.data is not None
