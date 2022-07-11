@@ -120,7 +120,7 @@ gui tests:
   script:
     - cd gui
     - yarn --network-timeout 1200000
-    - yarn test --ci --collectCoverage --reporters=default --reporters=jest-junit
+    - yarn test --ci --collectCoverage --reporters=default --reporters=jest-junit --silent
   coverage: /Lines\s*:\s*(\d+.?\d*)%/
   artifacts:
     when: always

@@ -21,6 +21,7 @@ import { screen, within, expectNoConsoleOutput } from '../conftest.spec'
 import userEvent from '@testing-library/user-event'
 import { laneErrorBoundryMessage } from './Browser'
 import { isWaitingForUpdateTestId } from '../../utils'
+const crypto = require('crypto')
 
 /*****************************************************************************************
  * Utilities for testing browser functionality.
@@ -196,6 +197,9 @@ export async function navigateTo(path, browserConfig) {
  * verify that the browser renders all (or at least a lot of) paths correctly.
  */
 export async function browseRecursively(lane, laneIndex, path, itemFilter, filterKeyLength = 2, filterMemory = null) {
+  let count = 0
+  const hash = crypto.createHash('sha512')
+
   if (filterMemory === null) {
     filterMemory = {}
   }
@@ -215,6 +219,7 @@ export async function browseRecursively(lane, laneIndex, path, itemFilter, filte
   for (const item of within(lane).queryAllByTestId(/^item:/)) {
     const itemKey = getItemKey(item)
     items[itemKey] = item
+    hash.update(itemKey)
   }
   const itemKeys = itemFilter ? itemFilter(path, items) : Object.keys(items)
   for (const itemKey of itemKeys) {
@@ -225,6 +230,8 @@ export async function browseRecursively(lane, laneIndex, path, itemFilter, filte
       filterMemory[filterKey] = true
       const item = items[itemKey]
       const nextPath = `${path}/${itemKey}`
+      // Uncomment line below if you want to show the paths visited.
+      // process.stdout.write(`next path: ${nextPath}\n`)
       let nextLane
       try {
         nextLane = await selectItemAndWaitForRender(lane, laneIndex, itemKey, item)
@@ -234,9 +241,13 @@ export async function browseRecursively(lane, laneIndex, path, itemFilter, filte
         throw error
       }
       // new lane rendered successfully
-      await browseRecursively(nextLane, laneIndex + 1, nextPath, itemFilter, filterKeyLength, filterMemory)
+      count++
+      const rv = await browseRecursively(nextLane, laneIndex + 1, nextPath, itemFilter, filterKeyLength, filterMemory)
+      count += rv.count
+      hash.update(rv.hash)
     }
   }
+  return {count, hash: hash.digest('base64').slice(0, 28)}
 }
 
 /*****************************************************************************************
