@@ -173,8 +173,9 @@ class PerovskiteFormulaNormalizer():
         '''
         Takes a formula and formats it into a nomad `chemical_formula_reduced`
 
-        :return: It returns a list containing the `reduced_formula`,
-        and the `elements`.
+        Returns:
+            chemical_formula_reduced: A string of the formatted *reduced* formula
+            elements: A list of the elements in the formula
         '''
         replaced_formula = self.replace_formula()
         if replaced_formula is not None:
