@@ -250,6 +250,7 @@ class TabularDataParser(MatchingParser):
     ) -> Union[bool, Iterable[str]]:
         # We use the main file regex capabilities of the superclass to check if this is a
         # .csv file
+        import pandas as pd
         is_tabular = super().is_mainfile(filename, mime, buffer, decoded_buffer, compression)
         if not is_tabular:
             return False
@@ -259,13 +260,14 @@ class TabularDataParser(MatchingParser):
         except Exception:
             # If this cannot be parsed as a .csv file, we don't match with this file
             return False
-
+        data = pd.DataFrame.from_dict(data.iloc[0, 0])
         return [str(item) for item in range(0, data.shape[0])]
 
     def parse(
         self, mainfile: str, archive: EntryArchive, logger=None,
         child_archives: Dict[str, EntryArchive] = None
     ):
+        import pandas as pd
         if logger is None:
             logger = utils.get_logger(__name__)
 
@@ -296,7 +298,7 @@ class TabularDataParser(MatchingParser):
             data = read_table_data(mainfile, **tabular_parser_annotation)
         else:
             data = read_table_data(mainfile)
-
+        data = pd.DataFrame.from_dict(data.iloc[0, 0])
         child_sections = parse_table(data, section_def, logger=logger)
         assert len(child_archives) == len(child_sections)
 
