@@ -20,7 +20,7 @@ from tests.normalizing.conftest import run_processing
 
 
 def test_processing(raw_files, no_warn):
-    directory = 'tests/data/datamodel/metainfo/eln/perovskite_database'
+    directory = 'tests/data/datamodel/metainfo/eln/perovskite_solar_cell_database'
     mainfile = 'example.archive.json'
     test_archive = run_processing(directory, mainfile)
 

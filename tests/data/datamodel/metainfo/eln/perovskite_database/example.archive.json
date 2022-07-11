@@ -1,6 +1,6 @@
 {
     "data": {
-        "m_def": "nomad.datamodel.metainfo.eln.perovskite_database.PerovskiteSolarCell",
+        "m_def": "nomad.datamodel.metainfo.eln.perovskite_solar_cell_database.PerovskiteSolarCell",
         "ref": {
             "ID": 36709,
             "ID_temp": 36709,
