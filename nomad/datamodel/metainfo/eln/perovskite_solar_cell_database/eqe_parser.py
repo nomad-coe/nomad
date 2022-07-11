@@ -89,8 +89,10 @@ class EQEAnalyzer():
         and `eqe_raw` array with values of the photon energy values in *eV* and
         the eqe (values between 0 and 1) respectively.
         It finds if the eqe data comes in nm or eV and converts it to eV.
-        :return: photon_energy_raw, eqe_raw
-        :rtype: numpy.array, numpy.array
+
+        Returns:
+            photon_energy_raw: array of photon energy values in eV
+            eqe_raw: array of eqe values
         """
         df = self.read_file()
         if 'Calculated' in list(df.columns):  # for files from the hzb
@@ -144,8 +146,12 @@ class EQEAnalyzer():
         by going down a factor of 8 in eqe values from this reference point and up a factor of 2.
         This is unfortunately only a quick fix, but it works well enough based a few empirical tests
         with eqe data of perovskite solar cells.
-        :return: urbach_e, m, fit_min, fit_max
-        :rtype: float, float, float, float
+
+        Returns:
+            urbach_e: urnach energy in eV
+            m:
+            fit_min: photon energy of the minimum of the fitted range
+            fit_max: photon energy of the maximum of the fitted range
         '''
         x, y = self.interpolate_eqe()
         y = savgol_filter(y, 51, 4, mode='mirror')  # apply Savitzky-Golay filter to smooth the data
@@ -182,8 +188,10 @@ class EQEAnalyzer():
     def extrapolate_eqe(self):
         '''
         Extrapolates the EQE data with the fitted Urbach tail.
-        :return: photon_energy_extrapolated, eqe_extrapolated
-        :rtype: numpy.array, numpy.array
+
+        Returns:
+            photon_energy_extrapolated: array of the extrapolated photon energy values in eV
+            eqe_extrapolated: array of the extrapolated eqe values
         '''
         x, y = self.interpolate_eqe()
         urbach_e = self.fit_urbach_tail()[0]
@@ -203,8 +211,9 @@ class EQEAnalyzer():
     def calculate_jsc(self):
         '''
         Calculates the short circuit current (jsc) from the extrapolated eqe.
-        :return: jsc
-        :rtype: float
+
+        Returns:
+            jsc: short circuit current density in A m**(-2)
         '''
         x, y = self.interpolate_eqe()
         dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -215,15 +224,15 @@ class EQEAnalyzer():
         spectrum_AM15G_interp = np.interp(x, energy_AM15, spectrum_AM15)
         jsc_calc = integrate.cumtrapz(y * spectrum_AM15G_interp, x)
         jsc = max(jsc_calc * q * 1e4)
-        # print('Short circuit current: ' + str(jsc) + ' A / m^2')
         return jsc
 
     # Calculates the bandgap from the inflection point of the eqe.
     def calculate_bandgap(self):
         '''
         calculates the bandgap from the inflection point of the eqe.
-        :return: bandgap
-        :rtype: float
+
+        Returns:
+            bandgap: bandgap in eV calculated from in the inflection point of the eqe
         '''
         x, y = self.interpolate_eqe()
         y = savgol_filter(y, 51, 4, mode='nearest')
@@ -236,7 +245,10 @@ class EQEAnalyzer():
         '''
         Calculates the radiative saturation current (j0rad) and the calculated electroluminescence (EL)
         spectrum (Rau's reciprocity) from the extrapolated eqe.
-        :return: j0rad, EL
+
+        Returns:
+            j0rad: radiative saturation current density in A m**(-2)
+            EL: EL spectrum
         '''
         urbach_e = self.fit_urbach_tail()[0]
         # try to calculate the j0rad and EL spectrum except if the urbach energy is larger than 0.026
@@ -256,7 +268,9 @@ class EQEAnalyzer():
         '''
         Calculates the radiative open circuit voltage (voc_rad) with the calculted j0rad
         and j_sc.
-        :return: voc_rad
+
+        Returns:
+            voc_rad: radiative open circuit voltage in V
         '''
         try:
             j0rad = self.calculate_j0rad()[0]
