@@ -139,11 +139,3 @@ class MyEncoder(json.JSONEncoder):
             return obj.tolist()
         else:
             return super(MyEncoder, self).default(obj)
-
-
-if __name__ == "__main__":
-
-    database_file_input = '/home/pepe_marquez/NOMAD/nomad/nomad/datamodel/metainfo/eln/perovskite_database/utilities/Perovskite_database_content_all_data.csv'
-    target_dir = '/mnt/c/Users/pepem/Perovskite_database/json_folder_pero_test/'
-    database_reader = PerovskiteEntryWriter(database_file_input)
-    database_reader.entry_writer(target_dir)
