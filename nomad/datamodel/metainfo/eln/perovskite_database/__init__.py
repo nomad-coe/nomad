@@ -1531,7 +1531,7 @@ Ozone
             component='EnumEditQuantity', props=dict(suggestions=['', 'UV', 'Ar plasma'])))
 
     def normalize(self, archive, logger):
-        from nomad.datamodel.metainfo.eln.perovskite_database.quantity_converters.formula_converter import PerovskiteFormulaCleaner
+        from nomad.datamodel.metainfo.eln.perovskite_database.formula_normalizer import PerovskiteFormulaNormalizer
         from ase.formula import Formula
 
         addSolarCell(archive)
@@ -1571,7 +1571,7 @@ Ozone
                 archive.results.material.functional_type = ['semiconductor', 'solar cell']
 
             if archive.results.material.chemical_formula_reduced is None:
-                formula_cleaner = PerovskiteFormulaCleaner(self.composition_long_form)
+                formula_cleaner = PerovskiteFormulaNormalizer(self.composition_long_form)
                 final_formula = formula_cleaner.clean_formula()
                 archive.results.material.chemical_formula_reduced = final_formula[0]
                 chemical_formula_reduced = archive.results.material.chemical_formula_reduced
@@ -5391,7 +5391,7 @@ Potential biasing
     jv_curve = SubSection(section_def=JVcurve, repeats=True)
 
     def normalize(self, archive, logger):
-        from nomad.datamodel.metainfo.eln.perovskite_database.importers.jv_parser import jv_dict_generator
+        from nomad.datamodel.metainfo.eln.perovskite_database.jv_parser import jv_dict_generator
         if (self.data_file):
             with archive.m_context.raw_file(self.data_file) as f:
                 jv_dict = jv_dict_generator(f.name)
@@ -5731,7 +5731,7 @@ class EQE(MSection):
                     """)
 
     def normalize(self, archive, logger):
-        from nomad.datamodel.metainfo.eln.perovskite_database.importers.eqe_importer import EQEAnalyzer
+        from nomad.datamodel.metainfo.eln.perovskite_database.eqe_parser import EQEAnalyzer
         if (self.eqe_data_file):
             with archive.m_context.raw_file(self.eqe_data_file) as f:
                 eqe_dict = EQEAnalyzer(f.name, header_lines=self.header_lines).eqe_dict()
