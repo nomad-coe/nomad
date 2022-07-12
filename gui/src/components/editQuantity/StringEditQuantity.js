@@ -210,7 +210,7 @@ export const TextFieldWithLinkButton = React.memo(React.forwardRef((props, ref) 
   }, [])
 
   return <TextField
-    value={value}
+    defaultValue={value}
     error={value !== undefined && !validateURL(value)}
     helperText={value === undefined || validateURL(value) ? '' : 'Invalid URL string!'}
     inputRef={ref}
@@ -224,14 +224,14 @@ export const TextFieldWithLinkButton = React.memo(React.forwardRef((props, ref) 
         }
         {
           validateURL(value) &&
-          <IconButton aria-label="delete" onClick={() => window.open(value, '_blank')}>
+          <IconButton aria-label="open_link" onClick={() => window.open(value, '_blank')}>
             <LaunchIcon />
           </IconButton>
         }
       </>
     }}
     label={label}
-    data-testid={TestId}
+    data-testid={'URLEditQuantity'}
     {...otherProps}
   />
 }))

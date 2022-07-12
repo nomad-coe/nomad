@@ -99,4 +99,21 @@ test('correctly renders edit quantities', async () => {
   await waitFor(() => expect(numberFieldValueInputInMeter.value).toEqual('1.5'))
   await waitFor(() => expect(numberFieldUnitInputInMeter.value).toEqual('Å'))
   await waitFor(() => expect(screen.queryByText(/"float_with_bounds": 1\.5e-10/i)).toBeInTheDocument())
+
+  // Test for the URLEditQuantity
+  const UrlComponent = screen.getByTestId('URLEditQuantity')
+  const invalidUrlMsg = () => within(UrlComponent).queryByText(/invalid url string!/i)
+  const UrlTextbox = () => within(UrlComponent).getByRole('textbox')
+  const redirectButton = () => within(UrlComponent).queryByRole('button', { name: /open_link/i })
+
+  expect(invalidUrlMsg()).not.toBeInTheDocument()
+  expect(redirectButton()).not.toBeInTheDocument()
+  fireEvent.change(UrlTextbox(), { target: { value: 'a' } })
+  await wait(undefined, 100)
+  await waitFor(() => expect(invalidUrlMsg()).toBeInTheDocument())
+
+  fireEvent.change(UrlTextbox(), { target: { value: 'https://nomad-lab.eu/' } })
+  await wait(undefined, 100)
+  await waitFor(() => expect(invalidUrlMsg()).not.toBeInTheDocument())
+  await waitFor(() => expect(redirectButton()).toBeInTheDocument())
 })
