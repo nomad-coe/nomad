@@ -255,13 +255,13 @@ class EQEAnalyzer():
         if urbach_e >= 0.026:
             raise ValueError('''Urbach energy is > 0.026 eV (~kB*T for T = 300K).
                            The `j0rad` could not be calculated.''')
-        else:
-            x, y = self.extrapolate_eqe()
-            phi_BB = (2 * 3.14159265 * q**3 * (x)**2) / (h_Js**3 * c**2 * (np.exp(x / VT) - 1))
-            el = phi_BB * y
-            j0rad = np.trapz(el, x)
-            j0rad = j0rad * q
-            # print('Radiative saturation current: ' + str(j0rad) + ' A / m^2')
+
+        x, y = self.extrapolate_eqe()
+        phi_BB = (2 * 3.14159265 * q**3 * (x)**2) / (h_Js**3 * c**2 * (np.exp(x / VT) - 1))
+        el = phi_BB * y
+        j0rad = np.trapz(el, x)
+        j0rad = j0rad * q
+        # print('Radiative saturation current: ' + str(j0rad) + ' A / m^2')
         return j0rad, el
 
     def calculate_voc_rad(self):
