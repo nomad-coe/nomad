@@ -23,48 +23,66 @@ import { navigateTo, browseRecursively } from './conftest.spec'
 import MetainfoBrowser from './MetainfoBrowser'
 import { minutes } from '../../setupTests'
 
+/**
+ * A simple pseudo-random number generator
+ */
+let seed // Seed, set to get a predictable sequence of pseudo-random numbers
+
+function rand() {
+  seed += 0x6D2B79F5
+  let t = seed
+  t = Math.imul(t ^ t >>> 15, t | 1)
+  t ^= t + Math.imul(t ^ t >>> 7, t | 61)
+  return ((t ^ t >>> 14) >>> 0) / 4294967296
+}
+
+/**
+ * Lower values -> visits fewer locations.
+ */
+const visitProbabilityDecayFactor = 0.5
+
 function metainfoItemFilter(parentPath, items) {
   // The metainfo tree is very big, so we need to limit the crawling. This method is used
   // to make the selection.
-  if (parentPath.split('/').length === 1) {
+  const parentSegments = parentPath.split('/').length - 1
+  if (parentSegments === 0) {
     // Root - filter nothing
     return Object.keys(items)
   }
-  const segments = parentPath.split('/')
-  if (segments[segments.length - 1].includes('_inheritingSectionDef@') || segments[segments.length - 1].includes('_baseSectionDef@')) {
-    // Never step into allInheritingSections
-    return []
-  }
   const rv = []
-  const encounteredPrefixes = {}
-  let countKeysWithoutPrefixes = 0
+  const categoryCache = {}
   for (const itemKey of Object.keys(items)) {
-    let include = false
-    const parts = itemKey.split(/[.@]/)
-    const prefixes = parts.slice(0, parts.length - 1)
-    if (prefixes.length === 0) {
-      countKeysWithoutPrefixes++
-      include = countKeysWithoutPrefixes < 3
-    } else {
-      // We have some number of prefixes. Include only if at least one of the prefixes is new.
-      for (const prefix of prefixes) {
-        if (!encounteredPrefixes[prefix]) {
-          include = true
-          encounteredPrefixes[prefix] = true
-        }
-      }
+    // Compute a "category" for the item, which is a string based on certain properties of
+    // the itemKey. When selecting items to visit, we try to cover as many categories as possible
+    let category = itemKey.startsWith('_') ? '1' : '0'
+    category += itemKey.includes('_') ? '1' : '0'
+    category += itemKey.includes('@') ? '1' : '0'
+    category += itemKey.match(/A-Z/) ? '1' : '0'
+    category += itemKey.startsWith('section_definitions') ? '1' : '0'
+    category += itemKey.startsWith('category_definitions') ? '1' : '0'
+    let cache = categoryCache[category]
+    if (!cache) {
+      cache = []
+      categoryCache[category] = cache
     }
-    if (include) {
-      rv.push(itemKey)
+    cache.push(itemKey)
+  }
+  const visitProbability = visitProbabilityDecayFactor ** (parentSegments - 1)
+  for (const category of Object.keys(categoryCache).sort()) {
+    if (rand() < visitProbability) {
+      // Include one of the itemKeys in this category, selected at random
+      const categoryItems = categoryCache[category]
+      rv.push(categoryItems[Math.floor(rand() * categoryItems.length)])
     }
   }
-  return rv
+  return rv.sort()
 }
 
 beforeEach(() => blockConsoleOutput())
 afterEach(() => unblockConsoleOutput())
 
-test('Browse metainfo reursively', async () => {
+test('Browse metainfo pseudorandomly', async () => {
+  seed = 7
   render(<MetainfoBrowser />)
   await waitFor(() => {
     expect(screen.getByText(/archive root section/i)).toBeVisible()
@@ -73,5 +91,14 @@ test('Browse metainfo reursively', async () => {
   const path = ''
   const lane = await navigateTo(path)
   const laneIndex = path ? path.split('/').length : 0
-  await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), metainfoItemFilter, 2)
-}, 30 * minutes)
+  const {count, hash} = await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), metainfoItemFilter, 2)
+
+  // Check that the tested number of paths is enough, but also not too high. Adjust
+  // visitProbabilityDecayFactor if the number is not in this range.
+  expect(count).toBeGreaterThan(500)
+  expect(count).toBeLessThan(700)
+
+  // Check the "tree hash". If the metainfo tree changes, the hash will change, and we normally don't
+  // want the tree to change. If you DO expect the tree to change, update the expected hash accordingly.
+  expect(hash).toBe('suP5eGW1XusxRdDhdTpKJ/JezVaA')
+}, 20 * minutes) // NOTE!!! Do not increase this timeout! Rather, adjust the visitProbabilityDecayFactor
