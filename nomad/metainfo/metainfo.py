@@ -448,10 +448,6 @@ class _QuantityType(DataType):
         if isinstance(value, np.dtype):
             return value
 
-        if isinstance(value, (pd.core.frame.DataFrame, pd.DataFrame)):
-            value = self.__to_np(quantity_def, value)
-            return value
-
         if isinstance(value, Section):
             return value
 
