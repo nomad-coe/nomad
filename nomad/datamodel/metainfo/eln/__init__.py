@@ -261,7 +261,7 @@ class SampleID(ArchiveSection):
             archive.results.eln = ELN()
 
         if self.sample_id:
-            if archive.results.eln.lab_ids is None:
+            if not archive.results.eln.lab_ids:
                 archive.results.eln.lab_ids = []
             archive.results.eln.lab_ids.append(self.sample_id)
 
