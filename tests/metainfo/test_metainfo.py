@@ -21,6 +21,7 @@
 
 import pytest
 import numpy as np
+import pandas as pd
 import pint.quantity
 
 from nomad.metainfo.metainfo import (
@@ -491,6 +492,12 @@ class TestM1:
         system.atom_positions = [[1, 2, 3]]
         assert isinstance(system.atom_positions, pint.quantity._Quantity)
 
+    def test_pd_dataframe(self):
+        system = System()
+        system.atom_positions = pd.DataFrame([[1, 2], [3, 4]])
+        assert isinstance(system.atom_positions, pint.quantity._Quantity)
+        assert np.all(system.atom_positions.m == [[1, 2], [3, 4]])
+
     def test_np_scalar(self):
         class TestSection(MSection):
             test_quantity = Quantity(type=np.dtype('int16'))
@@ -499,6 +506,14 @@ class TestM1:
         test_section.test_quantity = 12
         assert test_section.test_quantity == 12
         assert type(test_section.test_quantity) == np.int16
+
+    def test_pd_dataframe_quantity(self):
+        class TestSection(MSection):
+            test_quantity = Quantity(type=np.dtype('int16'))
+
+        test_section = TestSection()
+        test_section.test_quantity = pd.DataFrame([[1, 2]])
+        assert np.all(test_section.test_quantity == [1, 2])
 
     def test_unit_conversion(self):
         system = System()

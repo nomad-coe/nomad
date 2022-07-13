@@ -27,6 +27,7 @@ import inspect
 import re
 import json
 import numpy as np
+import pandas as pd
 import pint
 import pint.unit
 import pint.quantity
@@ -445,6 +446,10 @@ class _QuantityType(DataType):
             return value
 
         if isinstance(value, np.dtype):
+            return value
+
+        if isinstance(value, (pd.core.frame.DataFrame, pd.DataFrame)):
+            value = self.__to_np(quantity_def, value)
             return value
 
         if isinstance(value, Section):
@@ -1412,6 +1417,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             value = value.to(quantity_def.unit).magnitude
 
+        if isinstance(value, pd.DataFrame):
+            try:
+                value = value.to_numpy()
+            except TypeError:
+                raise TypeError(
+                    'Could not convert value %s of type pandas.Dataframe to a numpy array' %
+                    (value))
+
         if type(value) != np.ndarray:
             if len(quantity_def.shape) > 0:
                 try:
@@ -1446,6 +1459,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if isinstance(quantity_def.type, np.dtype):
             value = self.__to_np(quantity_def, value)
 
+        elif isinstance(quantity_def.type, pd.DataFrame):
+            value = self.__to_np(quantity_def, value)
         else:
             dimensions = len(quantity_def.shape)
             if dimensions == 0:
