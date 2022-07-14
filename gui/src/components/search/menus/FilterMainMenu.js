@@ -43,6 +43,7 @@ import FilterSubMenuAccess from './FilterSubMenuAccess'
 import FilterSubMenuDataset from './FilterSubMenuDataset'
 import FilterSubMenuIDs from './FilterSubMenuIDs'
 import FilterSubMenuArchive from './FilterSubMenuArchive'
+import FilterSubMenuOptimade from './FilterSubMenuOptimade'
 import {
   labelMaterial,
   labelElements,
@@ -65,7 +66,8 @@ import {
   labelSpectroscopy,
   labelThermodynamic,
   labelArchive,
-  labelGeometryOptimization
+  labelGeometryOptimization,
+  labelOptimade
 } from '../FilterRegistry'
 import { useSearchContext } from '../SearchContext'
 import InputCheckbox from '../input/InputCheckbox'
@@ -129,6 +131,7 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelAccess} depth={0}/>
       <FilterMenuItem value={labelIDs} depth={0}/>
       <FilterMenuItem value={labelArchive} depth={0}/>
+      <FilterMenuItem value={labelOptimade} depth={0}/>
       {resource === 'materials' &&
         <InputCheckbox
           quantity="combine"
@@ -162,6 +165,7 @@ const FilterMainMenu = React.memo(({
         <FilterSubMenuAccess value={labelAccess}/>
         <FilterSubMenuIDs value={labelIDs}/>
         <FilterSubMenuArchive value={labelArchive} size="medium"/>
+        <FilterSubMenuOptimade value={labelOptimade} size="medium"/>
       </>}
     </FilterSubMenus>
   </FilterMenu>

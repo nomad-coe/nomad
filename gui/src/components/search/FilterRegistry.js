@@ -55,7 +55,7 @@ export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
 export const labelArchive = 'Processed data quantities'
-
+export const labelOptimade = 'Optimade'
 /**
  * Used to gather a list of fixed filter options from the metainfo.
  * @param {string} quantity Metainfo name
@@ -331,6 +331,7 @@ registerFilter('upload_id', labelIDs, termQuantity)
 registerFilter('quantities', labelArchive, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
 registerFilter('results.material.material_id', labelIDs, termQuantity)
 registerFilter('datasets.dataset_id', labelIDs, termQuantity)
+registerFilter('optimade_filter', labelOptimade, {multiple: true, queryMode: 'all'})
 registerFilter(
   'results.properties.spectroscopy.eels',
   labelSpectroscopy,
