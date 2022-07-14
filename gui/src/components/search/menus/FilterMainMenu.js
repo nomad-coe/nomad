@@ -33,6 +33,7 @@ import FilterSubMenuDFT from './FilterSubMenuDFT'
 import FilterSubMenuGW from './FilterSubMenuGW'
 import FilterSubMenuEELS from './FilterSubMenuEELS'
 import FilterSubMenuElectronic from './FilterSubMenuElectronic'
+import FilterSubMenuOptoElectronic from './FilterSubMenuOptoelectronic'
 import FilterSubMenuVibrational from './FilterSubMenuVibrational'
 import FilterSubMenuMechanical from './FilterSubMenuMechanical'
 import FilterSubMenuThermodynamic from './FilterSubMenuThermodynamic'
@@ -56,6 +57,7 @@ import {
   labelEELS,
   labelProperties,
   labelElectronic,
+  labelOptoelectronic,
   labelVibrational,
   labelMechanical,
   labelELN,
@@ -120,6 +122,7 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelEELS} depth={2}/>
       <FilterMenuItem value={labelProperties} depth={0} disableButton/>
       <FilterMenuItem value={labelElectronic} depth={1}/>
+      <FilterMenuItem value={labelOptoelectronic} depth={1}/>
       <FilterMenuItem value={labelVibrational} depth={1}/>
       <FilterMenuItem value={labelMechanical} depth={1}/>
       <FilterMenuItem value={labelSpectroscopy} depth={1}/>
@@ -154,6 +157,7 @@ const FilterMainMenu = React.memo(({
         <FilterSubMenuGW value={labelGW}/>
         <FilterSubMenuEELS value={labelEELS}/>
         <FilterSubMenuElectronic value={labelElectronic}/>
+        <FilterSubMenuOptoElectronic value={labelOptoelectronic}/>
         <FilterSubMenuVibrational value={labelVibrational}/>
         <FilterSubMenuMechanical value={labelMechanical}/>
         <FilterSubMenuThermodynamic value={labelThermodynamic}/>

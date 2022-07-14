@@ -44,6 +44,7 @@ export const labelExperiment = 'Experiment'
 export const labelEELS = 'EELS'
 export const labelProperties = 'Properties'
 export const labelElectronic = 'Electronic'
+export const labelOptoelectronic = 'Optoelectronic'
 export const labelVibrational = 'Vibrational'
 export const labelMechanical = 'Mechanical'
 export const labelSpectroscopy = 'Spectroscopy'
@@ -283,6 +284,7 @@ const termQuantityBool = {
 }
 const termQuantityNonExclusive = {aggs: {terms: {size: 5}}, exclusive: false}
 const termQuantityAll = {aggs: {terms: {size: 5}}, exclusive: false, multiple: true, queryMode: 'all'}
+const termQuantityAllNonExclusive = {...termQuantityNonExclusive, queryMode: 'all'}
 const noAggQuantity = {}
 const nestedQuantity = {}
 const noQueryQuantity = {guiOnly: true, multiple: false}
@@ -366,6 +368,36 @@ registerFilter(
   [
     {name: 'type', ...termQuantity},
     {name: 'value', ...numberHistogramQuantity, scale: '1/4'}
+  ]
+)
+registerFilter(
+  'results.properties.optoelectronic.band_gap',
+  labelOptoelectronic,
+  nestedQuantity,
+  [
+    {name: 'type', ...termQuantity},
+    {name: 'value', ...numberHistogramQuantity, scale: '1/4'}
+  ]
+)
+registerFilter(
+  'results.properties.optoelectronic.solar_cell',
+  labelOptoelectronic,
+  nestedQuantity,
+  [
+    {name: 'efficiency', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'fill_factor', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'open_circuit_voltage', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'short_circuit_current_density', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'illumination_intensity', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'device_area', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'device_architecture', ...termQuantity},
+    {name: 'absorber_fabrication', ...termQuantity},
+    {name: 'device_stack', ...termQuantityAllNonExclusive},
+    {name: 'absorber', ...termQuantityAllNonExclusive},
+    {name: 'electron_transport_layer', ...termQuantityAllNonExclusive},
+    {name: 'hole_transport_layer', ...termQuantityAllNonExclusive},
+    {name: 'substrate', ...termQuantityAllNonExclusive},
+    {name: 'back_contact', ...termQuantityAllNonExclusive}
   ]
 )
 registerFilter(
@@ -471,6 +503,19 @@ registerFilterOptions(
     'electronic.band_structure_electronic.band_gap': {label: 'Band gap'},
     band_structure_electronic: {label: 'Band structure'},
     dos_electronic: {label: 'Density of states'}
+  }
+)
+
+// Optoelectronic properties: subset of results.properties.available_properties
+registerFilterOptions(
+  'optoelectronic_properties',
+  labelOptoelectronic,
+  'results.properties.available_properties',
+  'Optoelectronic properties',
+  'The optoelectronic properties that are present in an entry.',
+  {
+    'optoelectronic.band_gap': {label: 'Band gap'},
+    'solar_cell': {label: 'Solar cell'}
   }
 )
 

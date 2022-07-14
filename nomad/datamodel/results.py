@@ -1930,15 +1930,6 @@ class ElectronicProperties(MSection):
     dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=False)
 
 
-class SpectroscopyProperties(MSection):
-    m_def = Section(
-        description='''
-        Spectroscopic properties.
-        ''',
-    )
-    spectrum = Quantity(type=Spectrum)
-
-
 class QuantityDynamic(MSection):
     m_def = Section(
         description="""
@@ -2072,6 +2063,184 @@ class ThermodynamicProperties(MSection):
     )
 
 
+class SolarCell(MSection):
+    m_def = Section(
+        description='''
+        Properties of solar cells.
+        '''
+    )
+    efficiency = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Power conversion effciency of a solar cell in percentage %.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    fill_factor = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Fill factor of a solar cell in absolute values (from 0 to 1).
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    open_circuit_voltage = Quantity(
+        type=np.dtype(np.float64),
+        unit='V',
+        shape=[],
+        description='''
+        Open circuit voltage of a solar cell.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    short_circuit_current_density = Quantity(
+        type=np.dtype(np.float64),
+        unit='A / m**2',
+        shape=[],
+        description='''
+        Short circuit current density of a solar cell.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    illumination_intensity = Quantity(
+        type=np.dtype(np.float64),
+        unit=('W/m**2'),
+        shape=[],
+        description='''
+        The light intensity during the IV measurement.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    device_area = Quantity(
+        type=np.dtype(np.float64),
+        unit=('m**2'),
+        shape=[],
+        description='''
+        The total area of the cell during IV and stability measurements under illumination.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    device_architecture = Quantity(
+        type=str,
+        description='''
+        Device architecture of the solar cell. Examples are:
+        `pn-Heterojunction`, `pin`, `nip`, ...
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    device_stack = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='''
+        Layers of the entire device.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    absorber = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='''
+        Absorber layers used in the solar cell.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    absorber_fabrication = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='''
+        Technique describing the fabrication of the absorber layer. Examples are:
+        `Spin-coating`, `Evaporation`, `Doctor blading`, ...
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    electron_transport_layer = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='''
+        Electron selective contact layers used in the solar cell.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    hole_transport_layer = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='''
+        Hole selective contact layers used in the solar cell.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    substrate = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='''
+        Substrate layers used in the solar cell.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    back_contact = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='''
+        Back contact layers used in the solar cell.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+
+
+class OptoelectronicProperties(MSection):
+    m_def = Section(
+        description='''
+        Optoelectronic properties.
+        '''
+    )
+    band_gap = SubSection(
+        description='''
+        Band gap.
+        ''',
+        sub_section=BandGap.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+    solar_cell = SubSection(
+        sub_section=SolarCell.m_def,
+        repeats=False
+    )
+
+
+class SpectroscopyProperties(MSection):
+    m_def = Section(
+        description='''
+        Spectroscopic properties.
+        ''',
+    )
+    spectrum = Quantity(type=Spectrum)
+
+
 class Properties(MSection):
     m_def = Section(
         description='''
@@ -2082,6 +2251,7 @@ class Properties(MSection):
     structures = SubSection(sub_section=Structures.m_def, repeats=False)
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False)
+    optoelectronic = SubSection(sub_section=OptoelectronicProperties.m_def, repeats=False)
     mechanical = SubSection(sub_section=MechanicalProperties.m_def, repeats=False)
     thermodynamic = SubSection(sub_section=ThermodynamicProperties.m_def, repeats=False)
     spectroscopy = SubSection(sub_section=SpectroscopyProperties.m_def, repeats=False)
@@ -2169,6 +2339,7 @@ class Results(MSection):
     method = SubSection(sub_section=Method.m_def, repeats=False)
     properties = SubSection(sub_section=Properties.m_def, repeats=False)
     eln = SubSection(sub_section=ELN.m_def, repeats=False)
+    solarcell = SubSection(sub_section=SolarCell.m_def, repeats=False)
 
 
 m_package.__init_metainfo__()
