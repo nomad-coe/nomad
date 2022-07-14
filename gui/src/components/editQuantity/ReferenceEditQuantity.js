@@ -42,8 +42,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const lane = useLane()
   const browserAdaptorContext = useBrowserAdaptorContext(archive)
   const context = lane?.adaptor?.context || browserAdaptorContext
-  const referencedSectionQualifiedName = useMemo(() => {
-    return quantityDef.type._referencedSection._qualifiedName
+  const referencedSectionQualifiedNames = useMemo(() => {
+    return [...quantityDef.type._referencedSection._allInheritingSections.map(section => section._qualifiedName), quantityDef.type._referencedSection._qualifiedName]
   }, [quantityDef])
   const fetchSuggestions = useCallback(input => {
     if (fetchedSuggestionsFor.current === input) {
@@ -55,10 +55,11 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     if (input !== '') {
       query['entry_name.prefix'] = input
     }
+    const sections = referencedSectionQualifiedNames?.map(qualifiedName => ({'sections': qualifiedName}))
     api.post('entries/query', {
       'owner': 'visible',
       'query': {
-        'sections': referencedSectionQualifiedName,
+        'or': sections,
         ...query
       },
       'required': {
@@ -73,7 +74,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     }).then(response => {
       setSuggestions(response.data)
     }).catch(raiseError)
-  }, [api, raiseError, fetchedSuggestionsFor, setSuggestions, referencedSectionQualifiedName])
+  }, [api, raiseError, fetchedSuggestionsFor, setSuggestions, referencedSectionQualifiedNames])
   const fetchSuggestionsDebounced = useMemo(() => debounce(fetchSuggestions, 500), [fetchSuggestions])
 
   useEffect(() => {
