@@ -2154,7 +2154,9 @@ class ELN(MSection):
         description='''
             The laboratory specific id for any item, e.g. sample, chemical, instrument.
         ''',
-        a_elasticsearch=Elasticsearch(search_entry_type))
+        a_elasticsearch=[
+            Elasticsearch(search_entry_type),
+            Elasticsearch(suggestion='default')])
 
 
 class Results(MSection):

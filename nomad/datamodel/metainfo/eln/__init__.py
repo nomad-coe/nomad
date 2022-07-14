@@ -263,7 +263,7 @@ class SampleID(ArchiveSection):
         if self.sample_id:
             if not archive.results.eln.lab_ids:
                 archive.results.eln.lab_ids = []
-            archive.results.eln.lab_ids.append(self.sample_id)
+            archive.results.eln.lab_ids.append(self.sample_id.replace('_', ' '))
 
         if not archive.results.eln.sections:
             archive.results.eln.sections = []
