@@ -150,115 +150,115 @@ def test_tabular(raw_files, monkeypatch, schema, content):
     pytest.param(
         strip('''
             definitions:
-              name: 'A test schema for excel file parsing'
-              sections:  
-                MovpeSto_schema:  
-                  base_section: nomad.datamodel.data.EntryData
-                  sub_sections:
-                    process:
-                      section:
-                        base_section: nomad.parsing.tabular.TableData
-                        quantities:
-                          data_file:
-                            type: str
-                            description: |
-                              A reference to an uploaded .xlsx
-                            m_annotations:
-                              tabular_parser:
-                                comment: '#'
-                              browser:
-                                adaptor: RawFileAdaptor 
-                              eln:
-                                component: FileEditQuantity  
-                          experiment_identifier:
-                            type: str
-                            m_annotations:
-                              tabular:
-                                name: Experiment Identifier
-                              eln:
-                                component: StringEditQuantity
-            data:  
-              m_def: MovpeSto_schema  
-              process:
-                data_file: Test.xlsx
+                name: 'A test schema for excel file parsing'
+                sections:
+                    MovpeSto_schema:
+                        base_section: nomad.datamodel.data.EntryData
+                        sub_sections:
+                            process:
+                                section:
+                                    base_section: nomad.parsing.tabular.TableData
+                                    quantities:
+                                        data_file:
+                                            type: str
+                                            description: |
+                                                A reference to an uploaded .xlsx
+                                            m_annotations:
+                                                tabular_parser:
+                                                    comment: '#'
+                                                browser:
+                                                    adaptor: RawFileAdaptor
+                                                eln:
+                                                    component: FileEditQuantity
+                                        experiment_identifier:
+                                            type: str
+                                            m_annotations:
+                                                tabular:
+                                                    name: Experiment Identifier
+                                                eln:
+                                                    component: StringEditQuantity
+            data:
+                m_def: MovpeSto_schema
+                process:
+                    data_file: Test.xlsx
         '''), id='w/o_sheetName_rowMode'),
     pytest.param(
         strip('''
             definitions:
-              name: 'A test schema for excel file parsing'
-              sections:  
-                MovpeSto_schema:  
-                  base_section: nomad.datamodel.data.EntryData
-                  sub_sections:
-                    process:
-                      section:
-                        base_section: nomad.parsing.tabular.TableData
-                        quantities:
-                          data_file:
-                            type: str
-                            description: |
-                              A reference to an uploaded .xlsx
-                            m_annotations:
-                              tabular_parser:
-                                comment: '#'
-                              browser:
-                                adaptor: RawFileAdaptor 
-                              eln:
-                                component: FileEditQuantity  
-                          experiment_identifier:
-                            type: str
-                            m_annotations:
-                              tabular:
-                                name: Overview/Experiment Identifier
-                              eln:
-                                component: StringEditQuantity
-            data:  
-              m_def: MovpeSto_schema  
-              process:
-                data_file: Test.xlsx
+                name: 'A test schema for excel file parsing'
+                sections:
+                    MovpeSto_schema:
+                        base_section: nomad.datamodel.data.EntryData
+                        sub_sections:
+                            process:
+                                section:
+                                    base_section: nomad.parsing.tabular.TableData
+                                    quantities:
+                                        data_file:
+                                            type: str
+                                            description: |
+                                                A reference to an uploaded .xlsx
+                                            m_annotations:
+                                                tabular_parser:
+                                                    comment: '#'
+                                                browser:
+                                                    adaptor: RawFileAdaptor
+                                                eln:
+                                                    component: FileEditQuantity
+                                        experiment_identifier:
+                                            type: str
+                                            m_annotations:
+                                                tabular:
+                                                    name: Overview/Experiment Identifier
+                                                eln:
+                                                    component: StringEditQuantity
+            data:
+                m_def: MovpeSto_schema
+                process:
+                    data_file: Test.xlsx
         '''), id='w_sheetName_rowMode'),
     pytest.param(
         strip('''
             definitions:
-              name: 'A test schema for excel file parsing'
-              sections:  
-                MovpeSto_schema:  
-                  base_section: nomad.datamodel.data.EntryData
-                  sub_sections:
-                    process:
-                      section:
-                        base_section: nomad.parsing.tabular.TableData
-                        quantities:
-                          data_file:
-                            type: str
-                            description: |
-                              A reference to an uploaded .xlsx
-                            m_annotations:
-                              tabular_parser:
-                                comment: '#'
-                              browser:
-                                adaptor: RawFileAdaptor 
-                              eln:
-                                component: FileEditQuantity  
-                          experiment_identifier:
-                            type: str
-                            m_annotations:
-                              tabular:
-                                name: Overview/Experiment Identifier
-                              eln:
-                                component: StringEditQuantity
-                          pyrotemperature:
-                            type: np.float64
-                            shape: ['*']
-                            unit: K
-                            description: My test description here
-                            m_annotations:
-                              tabular:
-                                name: Deposition Control/Pyrotemperature
-            data:  
-              m_def: MovpeSto_schema  
-              process:
-                data_file: Test.xlsx
+                name: 'A test schema for excel file parsing'
+                sections:
+                    MovpeSto_schema:
+                        base_section: nomad.datamodel.data.EntryData
+                        sub_sections:
+                            process:
+                                section:
+                                    base_section: nomad.parsing.tabular.TableData
+                                    quantities:
+                                        data_file:
+                                            type: str
+                                            description: |
+                                                A reference to an uploaded .xlsx
+                                            m_annotations:
+                                                tabular_parser:
+                                                    comment: '#'
+                                                browser:
+                                                    adaptor: RawFileAdaptor
+                                                eln:
+                                                    component: FileEditQuantity
+                                        experiment_identifier:
+                                            type: str
+                                            m_annotations:
+                                                tabular:
+                                                    name: Overview/Experiment Identifier
+                                                eln:
+                                                    component: StringEditQuantity
+                                        pyrotemperature:
+                                            type: np.float64
+                                            shape: ['*']
+                                            unit: K
+                                            description: My test description here
+                                            m_annotations:
+                                                tabular:
+                                                    name: Deposition Control/Pyrotemperature
+            data:
+                m_def: MovpeSto_schema
+                process:
+                    data_file: Test.xlsx
         '''), id='w_sheetName_colMode')
 ])
 def test_xlsx_tabular(raw_files, monkeypatch, schema):
