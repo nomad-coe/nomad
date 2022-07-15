@@ -100,5 +100,5 @@ test('Browse metainfo pseudorandomly', async () => {
 
   // Check the "tree hash". If the metainfo tree changes, the hash will change, and we normally don't
   // want the tree to change. If you DO expect the tree to change, update the expected hash accordingly.
-  expect(hash).toBe('WPZzv91XLjvZCeuyrd6HJ+Qo6k7W')
+  expect(hash).toBe('6AS1sTOwh+g1ujJRrDq2nBrmZG6g')
 }, 20 * minutes) // NOTE!!! Do not increase this timeout! Rather, adjust the visitProbabilityDecayFactor
