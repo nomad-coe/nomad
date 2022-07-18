@@ -499,6 +499,10 @@ class _QuantityType(DataType):
             else:
                 type_data = value.target_section_def.m_path()
 
+            from nomad import config
+            if config.process.store_package_definition_in_mongo:
+                type_data += f'@{value.target_section_def.definition_id}'
+
             return dict(type_kind='reference', type_data=type_data)
 
         if isinstance(value, DataType):
@@ -760,6 +764,13 @@ class _SectionReference(Reference):
         return super().set_normalize(section, quantity_def, value)
 
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        from nomad import config
+
+        def _append_definition_id(section_name) -> str:
+            if config.process.store_package_definition_in_mongo:
+                return f'{section_name}@{value.definition_id}'
+            return section_name
+
         # First we try to use a potentially available Python name to serialize
         if isinstance(value, Section):
             pkg: MSection = value.m_root()
@@ -767,7 +778,7 @@ class _SectionReference(Reference):
                 return f'{pkg.name}.{value.name}'
 
         # Default back to URL
-        return super().serialize(section, quantity_def, value)
+        return _append_definition_id(super().serialize(section, quantity_def, value))
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         proxy_type = quantity_def.type if quantity_def else SectionReference
@@ -1065,8 +1076,17 @@ class Context():
         raise NotImplementedError()
 
     def resolve_section_definition(self, definition_reference: str, definition_id: str) -> Type[MSectionBound]:
-        pkg = Package.m_from_dict(self.retrieve_package_by_section_definition_id(definition_reference, definition_id))
+        pkg_definition = self.retrieve_package_by_section_definition_id(definition_reference, definition_id)
+
+        entry_id_based_name = pkg_definition['entry_id_based_name']
+        del pkg_definition['entry_id_based_name']
+        pkg = Package.m_from_dict(pkg_definition)
+        if entry_id_based_name != '*':
+            pkg.entry_id_based_name = entry_id_based_name
+
+        pkg.m_context = self
         pkg.init_metainfo()
+
         for section in pkg.section_definitions:
             if section.definition_id == definition_id:
                 return section.section_cls
@@ -1888,9 +1908,17 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             definition_name = self.m_def.qualified_name()
             if definition_name.startswith('entry_id:'):
                 # This is not from a python module, use archive reference instead
-                definition_name = self.m_def.m_root().m_context.create_reference(self, None, self.m_def)
+                # two cases:
+                # 1. loaded from file so archive.definitions.archive is set by parser
+                # 2. loaded from versioned mongo so entry_id_based_name is set by mongo
+                # second one has no metadata, so do not create reference
+                context = self.m_def.m_root().m_context
+                if context:
+                    relative_name = context.create_reference(self, None, self.m_def)
+                    if relative_name:
+                        definition_name = relative_name
 
-            if process.add_definition_id_to_reference:
+            if process.add_definition_id_to_reference and '@' not in definition_name:
                 definition_name += '@' + self.m_def.definition_id
 
             return definition_name
@@ -3627,6 +3655,7 @@ class Package(Definition):
         super().__init__(*args, **kwargs)
         self.errors, self.warnings = [], []
         self.archive = None
+        self.entry_id_based_name = None
 
     def __init_metainfo__(self):
         super().__init_metainfo__()
@@ -3683,13 +3712,22 @@ class Package(Definition):
         return super(Package, cls).m_from_dict(data, **kwargs)
 
     def qualified_name(self):
+        # packages loaded from files have a hot qualified name based on entry id
+        # this name is not serialized which causes '*' name when reloaded from cold
+        # we store this name in a `str` and it will be reloaded from cold
+        # see Context.resolve_section_definition()
+        if self.entry_id_based_name:
+            return self.entry_id_based_name
+
         if self.archive:
             # If the package was defined within a regular uploaded archive file, we
             # use its id, which is a globally unique identifier for the package.
             if self.archive.metadata and self.archive.metadata.entry_id:
-                return f'entry_id:{self.archive.metadata.entry_id}'
+                self.entry_id_based_name = f'entry_id:{self.archive.metadata.entry_id}'
             else:
-                return f'entry_id:*'
+                self.entry_id_based_name = f'entry_id:*'
+
+            return self.entry_id_based_name
 
         return super().qualified_name()
 

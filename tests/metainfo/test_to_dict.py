@@ -112,7 +112,9 @@ def test_from_dict(metainfo_data, monkeypatch, mongo_infra):
 
     section_id = package.section_definitions[0].definition_id
 
-    assert get_package_by_section_definition_id(section_id) == metainfo_data
+    pkg_definition = get_package_by_section_definition_id(section_id)
+    del pkg_definition['entry_id_based_name']
+    assert pkg_definition == metainfo_data
 
 
 def test_with_meta(example):

@@ -379,6 +379,8 @@ process = NomadConfig(
     # Configures if to attach definition id to `m_def`, note it is different from `m_def_id`.
     # The `m_def_id` will be exported with the `with_def_id=True` via `m_to_dict`.
     add_definition_id_to_reference=False,
+    # write `m_def_id` to the archive
+    write_definition_id_to_archive=False,
     index_materials=True,
     reuse_parser=True,
     metadata_file_name='nomad',

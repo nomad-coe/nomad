@@ -1182,12 +1182,18 @@ class Entry(Proc):
 
         archive.processing_logs = filter_processing_logs(self._proc_logs)
 
-        if config.process.store_package_definition_in_mongo and archive.definitions is not None:
-            store_package_definition(archive.definitions, upload_id=archive.metadata.upload_id)
+        if config.process.store_package_definition_in_mongo:
+            if archive.definitions is not None:
+                store_package_definition(archive.definitions, upload_id=archive.metadata.upload_id)
+            if archive.data is not None:
+                pkg_definitions = getattr(archive.data.m_def.m_root(), 'definitions', None)
+                if pkg_definitions is not None:
+                    store_package_definition(pkg_definitions, upload_id=archive.metadata.upload_id)
 
         # save the archive msg-pack
         try:
-            return self.upload_files.write_archive(self.entry_id, archive.m_to_dict())
+            return self.upload_files.write_archive(
+                self.entry_id, archive.m_to_dict(with_def_id=config.process.write_definition_id_to_archive))
         except Exception as e:
             # most likely failed due to domain data, try to write metadata and processing logs
             archive = datamodel.EntryArchive(m_context=self.upload.archive_context)
