@@ -36,10 +36,9 @@ import RecognizedFileIcon from '@material-ui/icons/InsertChartOutlinedTwoTone'
 import Dropzone from 'react-dropzone'
 import Download from '../entry/Download'
 import Quantity from '../Quantity'
-import FilePreview from './FilePreview'
+import FilePreview, {viewers} from './FilePreview'
 import { archiveAdaptorFactory, useBrowserAdaptorContext } from './ArchiveBrowser'
 import { createMetainfo } from './metainfo'
-import H5Web from '../visualization/H5Web'
 import NorthLaunchButton from '../north/NorthLaunchButton'
 import { useTools } from '../north/NorthPage'
 import { EntryButton } from '../nav/Routes'
@@ -364,8 +363,8 @@ export class RawFileAdaptor extends Adaptor {
         archive: this.data.archive
       }
       return archiveAdaptorFactory(childContext, this.data.archive)
-    } else if (key === 'h5web') {
-      return new H5WebAdaptor(this.context, this.uploadId, this.path)
+    } else if (key === 'preview') {
+      return new FilePreviewAdaptor(this.context, this.uploadId, this.path, this.data)
     }
   }
   render() {
@@ -375,15 +374,16 @@ export class RawFileAdaptor extends Adaptor {
   }
 }
 
-class H5WebAdaptor extends Adaptor {
-  constructor(context, uploadId, path) {
+class FilePreviewAdaptor extends Adaptor {
+  constructor(context, uploadId, path, data) {
     super(context)
     this.uploadId = uploadId
     this.path = path
+    this.data = data
   }
   render() {
-    return <Box width="80vw" height="100%">
-      <H5Web upload_id={this.uploadId} filename={this.path}/>
+    return <Box minWidth={'300px'} maxWidth={'1200px'} width="100%">
+      <FilePreview uploadId={this.uploadId} path={this.path} size={this.data?.size}/>
     </Box>
   }
 }
@@ -446,6 +446,9 @@ function RawFileContent({uploadId, path, data, editable}) {
     // Unit = bytes
     niceSize = `${data.size} bytes`
   }
+
+  const fileExtension = path.split('.').pop().toLowerCase()
+  const isExtensionSupported = viewers.map(viewer => viewer.fileExtensions).flat().includes(fileExtension)
 
   return (
     <Content
@@ -517,10 +520,9 @@ function RawFileContent({uploadId, path, data, editable}) {
           <NorthLaunchButton uploadId={uploadId} path={path} tools={applicableNorthTools} />
         </Compartment>
       )}
-      <Compartment title="preview">
-        <FilePreview uploadId={uploadId} path={path} size={data.size}/>
-      </Compartment>
-
+      {isExtensionSupported && <Item itemKey="preview">
+        {'preview'}
+      </Item>}
     </Content>)
 }
 RawFileContent.propTypes = {

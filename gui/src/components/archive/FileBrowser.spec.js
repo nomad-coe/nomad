@@ -32,16 +32,25 @@ const fileBrowserTree = {
   'deepdir/subdir1/subdir2': {cb: checkDirectoryLane},
   'deepdir/subdir1/subdir2/dir special chars ~!?*\\()[]{}<>,.;:\'"`&@#$%=|': {cb: checkDirectoryLane},
   'deepdir/subdir1/subdir2/dir special chars ~!?*\\()[]{}<>,.;:\'"`&@#$%=|/f.txt': {cb: checkFileLane},
+  'deepdir/subdir1/subdir2/dir special chars ~!?*\\()[]{}<>,.;:\'"`&@#$%=|/f.txt/preview': {cb: () => {}},
   'filetypes': {cb: checkDirectoryLane},
   'filetypes/image.png': {cb: checkFileLane},
+  'filetypes/image.png/preview': {cb: () => {}},
   'filetypes/not an image.png': {cb: checkFileLane},
+  'filetypes/not an image.png/preview': {cb: () => {}},
   'filetypes/doc.json': {cb: checkFileLane},
+  'filetypes/doc.json/preview': {cb: () => {}},
   'test_entry': {cb: checkDirectoryLane},
   'test_entry/1.aux': {cb: checkFileLane},
+  'test_entry/1.aux/preview': {cb: () => {}},
   'test_entry/2.aux': {cb: checkFileLane},
+  'test_entry/2.aux/preview': {cb: () => {}},
   'test_entry/3.aux': {cb: checkFileLane},
+  'test_entry/3.aux/preview': {cb: () => {}},
   'test_entry/4.aux': {cb: checkFileLane},
-  'test_entry/vasp.xml': {cb: checkFileLane, extra: {entryId: 'dft_bulk', parserName: 'parsers/vasp'}}
+  'test_entry/4.aux/preview': {cb: () => {}},
+  'test_entry/vasp.xml': {cb: checkFileLane, extra: {entryId: 'dft_bulk', parserName: 'parsers/vasp'}},
+  'test_entry/vasp.xml/preview': {cb: () => {}}
 }
 
 afterEach(() => closeAPI())
@@ -61,32 +70,49 @@ async function testBrowseAround(editable) {
 
   // Navigate around
   await navigateTo(`deepdir/subdir1/subdir2/${dirSpecialChars}/f.txt`, browserConfig)
-  await within(getLane(5)).findByText('content of f.txt') // auto-previewing .txt files with text viewer
+  await within(getLane(5)).findByText(/preview/i) // auto-previewing .txt files with text viewer
+
+  // Navigate to preview
+  await navigateTo(`deepdir/subdir1/subdir2/${dirSpecialChars}/f.txt/preview`, browserConfig)
+  await within(getLane(6)).findByText('content of f.txt') // auto-previewing .txt files with text viewer
 
   // Check file types
 
   // image: ok -> just check if there is an img tag
   await navigateTo('filetypes/image.png', browserConfig)
-  expect(within(getLane(2)).getByRole('img')).toBeVisible()
+  await within(getLane(2)).findByText(/preview/i) // auto-previewing .txt files with text viewer
+
+  await navigateTo('filetypes/image.png/preview', browserConfig)
+  expect(within(getLane(3)).getByRole('img')).toBeVisible()
 
   // image: bad
   await navigateTo('filetypes/not an image.png', browserConfig)
+  await within(getLane(2)).findByText(/preview/i) // auto-previewing .txt files with text viewer
+
   // Simulate a load error on the image (images are not actually loaded during testing, for efficiency reasons)
-  fireEvent.error(within(getLane(2)).getByRole('img'))
-  await within(getLane(2)).findByText('Failed to open with image viewer. Bad file format?')
-  expect(within(getLane(2)).getByButtonText('Open with text viewer')).toBeEnabled()
-  userEvent.click(within(getLane(2)).getByButtonText('Open with text viewer'))
-  await within(getLane(2)).findByText('this is not an image!') // text content of the file
+  await navigateTo('filetypes/not an image.png/preview', browserConfig)
+  fireEvent.error(within(getLane(3)).getByRole('img'))
+  await within(getLane(3)).findByText('Failed to open with image viewer. Bad file format?')
+  expect(within(getLane(3)).getByButtonText('Open with text viewer')).toBeEnabled()
+  userEvent.click(within(getLane(3)).getByButtonText('Open with text viewer'))
+  await within(getLane(3)).findByText('this is not an image!') // text content of the file
 
   // json
   await navigateTo('filetypes/doc.json', browserConfig)
-  await within(getLane(2)).findByText('root')
-  await within(getLane(2)).findByText(/"this is a json string value"/)
+  await within(getLane(2)).findByText(/preview/i)
+
+  // json preview
+  await navigateTo('filetypes/doc.json/preview', browserConfig)
+  await within(getLane(3)).findByText('root')
+  await within(getLane(3)).findByText(/"this is a json string value"/)
 
   // Check folder with an entry
   await navigateTo('test_entry/1.aux', browserConfig)
   await navigateTo('test_entry/vasp.xml', browserConfig)
-  await within(getLane(2)).findByText(/GGA_X_PBE/) // This text should occur in the file preview
+  await within(getLane(2)).findByText(/preview/i)
+
+  await navigateTo('test_entry/vasp.xml/preview', browserConfig)
+  await within(getLane(3)).findByText(/GGA_X_PBE/) // This text should occur in the file preview
 }
 
 test.each([
@@ -147,7 +173,10 @@ test('starting in entry dir', async () => {
 
   await navigateTo('1.aux', browserConfig)
   await navigateTo('vasp.xml', browserConfig)
-  await within(getLane(1)).findByText(/GGA_X_PBE/) // This text should occur in the file preview
+  await within(getLane(1)).findByText(/preview/i) // This text should occur in the file preview
+
+  await navigateTo('vasp.xml/preview', browserConfig)
+  await within(getLane(2)).findByText(/GGA_X_PBE/) // This text should occur in the file preview
 })
 
 test('delete files', async () => {
