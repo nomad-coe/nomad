@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import copy
 import datetime
 from typing import Any, Dict
 
@@ -68,22 +69,24 @@ class PackageDefinition(MSection):
 
     def __init__(self, package: Package, **kwargs):
         super().__init__()
-        self.definition_id = package.m_def.definition_id
+        self.definition_id = package.definition_id
         if 'upload_id' in kwargs:
             self.upload_id = kwargs['upload_id']
             del kwargs['upload_id']
-        self.qualified_name = package.m_def.qualified_name()
+        self.qualified_name = package.qualified_name()
         self.date_created = datetime.datetime.utcnow()
         self.package_definition = package.m_to_dict(**kwargs)
         self.section_definition_ids = [section.definition_id for section in package.section_definitions]
+        self.quantity_definition_ids = [
+            quantity.definition_id for section in package.section_definitions for quantity in section.quantities]
 
 
 def store_package_definition(package: Package, **kwargs):
     if package is None:
         return
 
-    if PackageDefinition.m_def.a_mongo.objects(definition_id=package.m_def.definition_id).count() > 0:
-        logger.info(f'Package {package.m_def.definition_id} already exists. Skipping.')
+    if PackageDefinition.m_def.a_mongo.objects(definition_id=package.definition_id).count() > 0:
+        logger.info(f'Package {package.definition_id} already exists. Skipping.')
         return
 
     mongo_package = PackageDefinition(package, **kwargs)
@@ -124,7 +127,13 @@ def get_package_by_section_definition_id(section_definition_id: str) -> dict:
             detail='Package not found. The given section definition is not contained in any packages.'
         )
 
-    return packages.first().package_definition
+    result = packages.first()
+
+    pkg_definition = result.package_definition
+    # add entry_id_based_name as a field which will be later used as the package name
+    pkg_definition['entry_id_based_name'] = str(result.qualified_name)
+
+    return copy.deepcopy(pkg_definition)
 
 
 @router.get(

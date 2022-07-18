@@ -142,6 +142,11 @@ class Context(MetainfoContext):
         if target_root in self.urls:
             return f'{self.urls[target_root]}#{fragment}'
 
+        # when the package is loaded from mongo, there is no metadata
+        # and since it is versioned, it is not ideal to create a reference based on processed data
+        if getattr(target_root, 'metadata', None) is None:
+            return None  # type: ignore
+
         upload_id, entry_id = self._get_ids(target_root)
         assert entry_id is not None, 'Only archives with entry_id can be referenced'
         assert upload_id is not None, 'Only archives with upload_id can be referenced'
@@ -353,7 +358,7 @@ class ClientContext(Context):
         # TODO currently upload_id might be None
         if upload_id is None:
             # try to find a local file, useful when the context is used for local parsing
-            file_path = os.path.join(self.local_dir, path)
+            file_path = os.path.join(self.local_dir, path) if self.local_dir else path
             if os.path.exists(file_path):
                 from nomad.parsing.parser import ArchiveParser
                 with open(file_path, 'rt') as f:
@@ -388,11 +393,17 @@ class ClientContext(Context):
             return f'<unavailable url>/#{value.m_path()}'
 
     def retrieve_package_by_section_definition_id(self, definition_reference: str, definition_id: str) -> dict:
-        try:
-            url_parts = urlsplit(definition_reference)
-
-            url = urlunsplit((url_parts.scheme, url_parts.netloc, url_parts.path, f'metainfo/{definition_id}', '',))
-        except ValueError:
+        if definition_reference.startswith('http'):
+            try:
+                url_parts = urlsplit(definition_reference)
+                # it appears to be a valid remote url
+                # we assume the netloc is the installation_url
+                url = urlunsplit((url_parts.scheme, url_parts.netloc, f'api/v1/metainfo/{definition_id}', '', '',))
+            except ValueError:
+                # falls back to default installation_url
+                url = f'{self.installation_url}/metainfo/{definition_id}'
+        else:
+            # falls back to default installation_url
             url = f'{self.installation_url}/metainfo/{definition_id}'
 
         response = requests.get(url)
