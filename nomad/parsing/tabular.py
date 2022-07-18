@@ -30,7 +30,6 @@ from nomad.metainfo import Section, Quantity, Package, Reference, SectionProxy, 
 from nomad.metainfo.metainfo import MetainfoError, SubSection
 from nomad.parsing.parser import MatchingParser
 
-
 # We define a simple base schema for tabular data. The parser will then generate more
 # specialized sections based on the table headers. These specialized defintions will use
 # this as base section definition.
@@ -104,6 +103,7 @@ def _create_column_to_quantity_mapping(section_def: Section):
                     f'Column names must be unique, to be used for tabular parsing.')
 
             def set_value(section: MSection, value, path=path, quantity=quantity, tabular_annotation=tabular_annotation):
+                import numpy as np
                 for sub_section, section_def in path:
                     next_section = section.m_get_sub_section(sub_section, -1)
                     if not next_section:
@@ -113,6 +113,9 @@ def _create_column_to_quantity_mapping(section_def: Section):
 
                 if tabular_annotation and 'unit' in tabular_annotation:
                     value *= ureg(tabular_annotation['unit'])
+
+                if isinstance(value, (int, float, str)):
+                    value = np.array(value)
 
                 if len(value.shape) == 1 and len(quantity.shape) == 0:
                     if len(value) == 1:
@@ -151,9 +154,21 @@ def parse_columns(pd_dataframe, section: MSection):
     data: pd.DataFrame = pd_dataframe
 
     mapping = _create_column_to_quantity_mapping(section.m_def)  # type: ignore
-    for column in data:
-        if column in mapping:
-            mapping[column](section, data.loc[:, column])
+    for column in mapping:
+        if '/' in column:
+            # extract the sheet & col names if there is a '/' in the 'name'
+            sheet_name, col_name = column.split('/')
+            if sheet_name not in list(data):
+                raise ValueError(
+                    'The sheet name {sheet_name} doesn''t exist in the excel file')
+
+            df2 = pd.DataFrame.from_dict(data.loc[0, sheet_name])
+            mapping[column](section, df2.loc[:, col_name])
+        else:
+            # Otherwise, assume the sheet_name is the first sheet of excel/csv
+            df2 = pd.DataFrame.from_dict(data.iloc[0, 0])
+            if column in df2:
+                mapping[column](section, df2.loc[:, column])
 
 
 def parse_table(pd_dataframe, section_def: Section, logger):
@@ -190,9 +205,18 @@ def read_table_data(path, file_or_path=None, **kwargs):
     if file_or_path is None:
         file_or_path = path
     if path.endswith('.xls') or path.endswith('.xlsx'):
-        return pd.read_excel(file_or_path, engine='openpyxl', **kwargs)
+        excel_file: pd.ExcelFile = pd.ExcelFile(
+            file_or_path if isinstance(file_or_path, str) else file_or_path.name)
+        df = pd.DataFrame()
+        for sheet_name in excel_file.sheet_names:
+            df.loc[0, sheet_name] = [
+                pd.read_excel(excel_file, sheet_name=sheet_name, **kwargs)
+                .to_dict()]
+        return df
     else:
-        return pd.read_csv(file_or_path, engine='python', **kwargs)
+        df = pd.DataFrame()
+        df.loc[0, 0] = [pd.read_csv(file_or_path, engine='python', **kwargs).to_dict()]
+        return df
 
 
 class TabularDataParser(MatchingParser):
@@ -226,6 +250,7 @@ class TabularDataParser(MatchingParser):
     ) -> Union[bool, Iterable[str]]:
         # We use the main file regex capabilities of the superclass to check if this is a
         # .csv file
+        import pandas as pd
         is_tabular = super().is_mainfile(filename, mime, buffer, decoded_buffer, compression)
         if not is_tabular:
             return False
@@ -235,17 +260,16 @@ class TabularDataParser(MatchingParser):
         except Exception:
             # If this cannot be parsed as a .csv file, we don't match with this file
             return False
-
+        data = pd.DataFrame.from_dict(data.iloc[0, 0])
         return [str(item) for item in range(0, data.shape[0])]
 
     def parse(
         self, mainfile: str, archive: EntryArchive, logger=None,
         child_archives: Dict[str, EntryArchive] = None
     ):
+        import pandas as pd
         if logger is None:
             logger = utils.get_logger(__name__)
-
-        data = read_table_data(mainfile)
 
         # We use mainfile to check the files existence in the overall fs,
         # and archive.metadata.mainfile to get an upload/raw relative schema_file
@@ -269,6 +293,12 @@ class TabularDataParser(MatchingParser):
             logger.error('Schema for tabular data must inherit from TableRow.')
             return
 
+        tabular_parser_annotation = section_def.m_annotations.get('tabular-parser', None)
+        if tabular_parser_annotation:
+            data = read_table_data(mainfile, **tabular_parser_annotation)
+        else:
+            data = read_table_data(mainfile)
+        data = pd.DataFrame.from_dict(data.iloc[0, 0])
         child_sections = parse_table(data, section_def, logger=logger)
         assert len(child_archives) == len(child_sections)
 
