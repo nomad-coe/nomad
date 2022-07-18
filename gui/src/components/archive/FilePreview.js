@@ -24,10 +24,10 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import InfiniteScroll from 'react-infinite-scroller'
 import { useApi } from '../api'
 import { apiBase } from '../../config'
-import { Item } from './Browser'
 import { parseCifStructures } from 'crystcif-parse'
 import Structure from '../visualization/Structure'
 import { isWaitingForUpdateTestId } from '../../utils'
+import H5Web from '../visualization/H5Web'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
 
@@ -47,7 +47,7 @@ const useFilePreviewStyles = makeStyles(theme => ({
 /* Viewer definitions */
 const viewerText = {
   name: 'text',
-  fileExtensions: ['txt', 'yaml', 'yml', 'csv', 'xml'],
+  fileExtensions: ['txt', 'yaml', 'yml', 'csv', 'xml', 'dat', 'cdf'],
   maxSizePreview: 1e10, // Effectively infinite
   maxSizeAutoPreview: 1e10, // Effectively infinite
   width: 700,
@@ -71,6 +71,7 @@ const viewerJSON = {
   fileExtensions: ['json'],
   maxSizeAutoPreview: 10e6,
   requiresLoadedData: true,
+  width: 'fit-content',
   render: ({classes, data}) => {
     if (typeof data.current === 'string') {
       data.current = JSON.parse(data.current)
@@ -101,9 +102,8 @@ const viewerHDF5 = {
   name: 'hdf5',
   fileExtensions: ['hdf5', 'hd5', 'nxs'],
   maxSizeAutoPreview: 10e6,
-  render: () => {
-    return <Item itemKey="h5web"><Typography>H5Web</Typography></Item>
-  }
+  width: 'fit-content',
+  render: ({uploadId, path}) => <H5Web upload_id={uploadId} filename={path}/>
 }
 const viewerCif = {
   name: 'cif',
@@ -130,7 +130,7 @@ const viewerCif = {
     )
   }
 }
-const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHDF5, viewerCif]
+export const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHDF5, viewerCif]
 
 const FilePreview = React.memo(({uploadId, path, size}) => {
   const classes = useFilePreviewStyles()
