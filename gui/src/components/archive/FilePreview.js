@@ -47,7 +47,7 @@ const useFilePreviewStyles = makeStyles(theme => ({
 /* Viewer definitions */
 const viewerText = {
   name: 'text',
-  fileExtensions: ['txt', 'yaml', 'yml', 'csv', 'xml', 'dat', 'cdf'],
+  fileExtensions: ['txt', 'yaml', 'yml', 'csv', 'xml', 'dat'],
   maxSizePreview: 1e10, // Effectively infinite
   maxSizeAutoPreview: 1e10, // Effectively infinite
   width: 700,
