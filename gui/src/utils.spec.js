@@ -16,7 +16,16 @@
  * limitations under the License.
  */
 
-import { authorList, nameList, titleCase, parseNomadUrl, normalizeNomadUrl, refType } from './utils'
+import {
+  authorList,
+  nameList,
+  titleCase,
+  parseNomadUrl,
+  resolveNomadUrl,
+  normalizeNomadUrl,
+  refType,
+  refRelativeTo
+} from './utils'
 import { apiBase } from './config'
 
 describe('titleCase', () => {
@@ -65,15 +74,20 @@ test.each([
   ['bad type, expected string, got object', {}],
   ['bad type, expected string, got number', 7],
   ['absolute nomad installation url does not contain "/api"', 'https://my.nomad.oasis.com/prod'],
-  ['expected "/uploads/<uploadId>" in absolute url', 'https://my.nomad.oasis.com/prod/api/silly/continuation#more/silly'],
-  ['bad start sequence', 'gibberish'],
+  ['expected "/uploads/<uploadId>" in absolute url', 'https://my.nomad.oasis.com/prod/api/silly/continuation#/more/silly'],
+  ['bad url', 'a.b.0c'],
   ['expected "/uploads/<uploadId>" in url', '../uploads'],
   ['expected "/upload" or "/uploads" in url', '../silly/ref'],
   ['archive" must be followed by entry id or "mainfile"', '../upload/archive'],
-  ['"mainfile" must be followed by a mainfile path', 'https://my.nomad.oasis.com/prod/api/uploads/SomeUploadID/archive/mainfile#arch/path'],
+  ['"mainfile" must be followed by a mainfile path', 'https://my.nomad.oasis.com/prod/api/uploads/SomeUploadID/archive/mainfile#/arch/path'],
   ['unexpected path element after entry id', '../upload/archive/SomeEntryID/silly'],
   ['expected "raw" or "archive" after upload ref', '../upload/silly'],
-  ['Unexpected "#" without entry reference', '../uploads/SomeUploadId/raw#silly/arch/path']
+  ['Unexpected "#" without entry reference', '../uploads/SomeUploadId/raw#/silly/arch/path'],
+  ['# should always be followed by a "/"', '../uploads/SomeUploadId/raw/main/file#bad/arch/path'],
+  ['versionHash can only be specified for metainfo urls.', '../uploads/SomeUploadID/archive/SomeArchID#/arch/path@SomeHash'],
+  ['cannot specify versionHash for url that is data-relative.', '#/packages/some/path@SomeVersionHash'],
+  ['bad versionHash provided', '../uploads/SomeUploadID/archive/SomeArchID#/definitions/some/path@*']
+
 ])('parseNomadUrl fails: %s', (errorSubstring, url) => {
   expect(() => {
     parseNomadUrl(url)
@@ -82,234 +96,373 @@ test.each([
 
 test.each([
   ['https://my.nomad.oasis.com/prod/api', {
-    originalUrlRelativeTo: null,
+    relativeTo: null,
     type: refType.installation,
     installationUrl: 'https://my.nomad.oasis.com/prod/api',
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
-    path: undefined
+    path: undefined,
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: true,
+    isExternal: true
   }],
   [`${apiBase}/uploads/SomeUploadID`, {
-    originalUrlRelativeTo: null,
+    relativeTo: null,
     type: refType.upload,
     installationUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: undefined,
     mainfile: undefined,
-    path: undefined
+    path: undefined,
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: true,
+    isExternal: false
   }],
   [`${apiBase}/uploads/SomeUploadID/raw`, {
-    originalUrlRelativeTo: null,
+    relativeTo: null,
     type: refType.upload,
     installationUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: undefined,
     mainfile: undefined,
-    path: ''
+    path: '',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: true,
+    isExternal: false
   }],
-  [`${apiBase}/uploads/SomeUploadID/raw/some/path#arch/path`, {
-    originalUrlRelativeTo: null,
+  [`${apiBase}/uploads/SomeUploadID/raw/some/path#/arch/path`, {
+    relativeTo: null,
     type: refType.archive,
     installationUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
-    path: 'arch/path'
+    path: '/arch/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: true,
+    isExternal: false
   }],
   [`${apiBase}/uploads/SomeUploadID/archive/SomeArchID`, {
-    originalUrlRelativeTo: null,
+    relativeTo: null,
     type: refType.archive,
     installationUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: 'SomeArchID',
     mainfile: undefined,
-    path: undefined
+    path: undefined,
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: true,
+    isExternal: false
   }],
-  [`${apiBase}/uploads/SomeUploadID/archive/SomeArchID#arch/path`, {
-    originalUrlRelativeTo: null,
+  [`${apiBase}/uploads/SomeUploadID/archive/SomeArchID#/arch/path`, {
+    relativeTo: null,
     type: refType.archive,
     installationUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: 'SomeArchID',
     mainfile: undefined,
-    path: 'arch/path'
+    path: '/arch/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: true,
+    isExternal: false
   }],
   [`${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path`, {
-    originalUrlRelativeTo: null,
+    relativeTo: null,
     type: refType.archive,
     installationUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
-    path: undefined
+    path: undefined,
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: true,
+    isExternal: false
   }],
-  [`${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path#arch/path`, {
-    originalUrlRelativeTo: null,
+  [`${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path#/arch/path`, {
+    relativeTo: null,
     type: refType.archive,
     installationUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
-    path: 'arch/path'
+    path: '/arch/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: true,
+    isExternal: false
   }],
   [`../uploads/SomeUploadID`, {
-    originalUrlRelativeTo: refType.installation,
+    relativeTo: refRelativeTo.installation,
     type: refType.upload,
     installationUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: undefined,
     mainfile: undefined,
-    path: undefined
+    path: undefined,
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
   [`../uploads/SomeUploadID/raw/some/path`, {
-    originalUrlRelativeTo: refType.installation,
+    relativeTo: refRelativeTo.installation,
     type: refType.upload,
     installationUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: undefined,
     mainfile: undefined,
-    path: 'some/path'
+    path: 'some/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
-  [`../uploads/SomeUploadID/raw/some/path#definitions/some/schema/path`, {
-    originalUrlRelativeTo: refType.installation,
-    type: refType.customSchema,
+  [`../uploads/SomeUploadID/raw/some/path#/definitions/some/schema/path`, {
+    relativeTo: refRelativeTo.installation,
+    type: refType.metainfo,
     installationUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
-    path: 'definitions/some/schema/path'
+    path: '/definitions/some/schema/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
+  }],
+  [`../uploads/SomeUploadID/raw/some/path#/definitions/some/schema/path@SomeVersionHash`, {
+    relativeTo: refRelativeTo.installation,
+    type: refType.metainfo,
+    installationUrl: undefined,
+    uploadId: 'SomeUploadID',
+    entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
+    mainfile: 'some/path',
+    path: '/definitions/some/schema/path',
+    qualifiedName: undefined,
+    versionHash: 'SomeVersionHash',
+    isResolved: false,
+    isExternal: undefined
   }],
   [`../uploads/SomeUploadID/archive/SomeArchID`, {
-    originalUrlRelativeTo: refType.installation,
+    relativeTo: refRelativeTo.installation,
     type: refType.archive,
     installationUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'SomeArchID',
     mainfile: undefined,
-    path: undefined
+    path: undefined,
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
-  [`../uploads/SomeUploadID/archive/SomeArchID#arch/path`, {
-    originalUrlRelativeTo: refType.installation,
+  [`../uploads/SomeUploadID/archive/SomeArchID#/arch/path`, {
+    relativeTo: refRelativeTo.installation,
     type: refType.archive,
     installationUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'SomeArchID',
     mainfile: undefined,
-    path: 'arch/path'
+    path: '/arch/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
   [`../uploads/SomeUploadID/archive/mainfile/some/path`, {
-    originalUrlRelativeTo: refType.installation,
+    relativeTo: refRelativeTo.installation,
     type: refType.archive,
     installationUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
-    path: undefined
+    path: undefined,
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
-  [`../uploads/SomeUploadID/archive/mainfile/some/path#definitions/some/schema/path`, {
-    originalUrlRelativeTo: refType.installation,
-    type: refType.customSchema,
+  [`../uploads/SomeUploadID/archive/mainfile/some/path#/definitions/some/schema/path`, {
+    relativeTo: refRelativeTo.installation,
+    type: refType.metainfo,
     installationUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
-    path: 'definitions/some/schema/path'
+    path: '/definitions/some/schema/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
+  }],
+  [`../uploads/SomeUploadID/archive/mainfile/some/path#/definitions/some/schema/path@SomeVersionHash`, {
+    relativeTo: refRelativeTo.installation,
+    type: refType.metainfo,
+    installationUrl: undefined,
+    uploadId: 'SomeUploadID',
+    entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
+    mainfile: 'some/path',
+    path: '/definitions/some/schema/path',
+    qualifiedName: undefined,
+    versionHash: 'SomeVersionHash',
+    isResolved: false,
+    isExternal: undefined
   }],
   [`../upload`, {
-    originalUrlRelativeTo: refType.upload,
+    relativeTo: refRelativeTo.upload,
     type: refType.upload,
     installationUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
-    path: undefined
+    path: undefined,
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
   [`../upload/raw/some/path`, {
-    originalUrlRelativeTo: refType.upload,
+    relativeTo: refRelativeTo.upload,
     type: refType.upload,
     installationUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
-    path: 'some/path'
+    path: 'some/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
-  [`../upload/raw/some/path#arch/path`, {
-    originalUrlRelativeTo: refType.upload,
+  [`../upload/raw/some/path#/arch/path`, {
+    relativeTo: refRelativeTo.upload,
     type: refType.archive,
     installationUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: 'some/path',
-    path: 'arch/path'
+    path: '/arch/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
   [`../upload/archive/SomeArchID`, {
-    originalUrlRelativeTo: refType.upload,
+    relativeTo: refRelativeTo.upload,
     type: refType.archive,
     installationUrl: undefined,
     uploadId: undefined,
     entryId: 'SomeArchID',
     mainfile: undefined,
-    path: undefined
+    path: undefined,
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
-  [`../upload/archive/SomeArchID#definitions/path`, {
-    originalUrlRelativeTo: refType.upload,
-    type: refType.customSchema,
+  [`../upload/archive/SomeArchID#/definitions/path`, {
+    relativeTo: refRelativeTo.upload,
+    type: refType.metainfo,
     installationUrl: undefined,
     uploadId: undefined,
     entryId: 'SomeArchID',
     mainfile: undefined,
-    path: 'definitions/path'
+    path: '/definitions/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
+  }],
+  [`../upload/archive/SomeArchID#/definitions/path@SomeVersionHash`, {
+    relativeTo: refRelativeTo.upload,
+    type: refType.metainfo,
+    installationUrl: undefined,
+    uploadId: undefined,
+    entryId: 'SomeArchID',
+    mainfile: undefined,
+    path: '/definitions/path',
+    qualifiedName: undefined,
+    versionHash: 'SomeVersionHash',
+    isResolved: false,
+    isExternal: undefined
   }],
   [`../upload/archive/mainfile/some/path`, {
-    originalUrlRelativeTo: refType.upload,
+    relativeTo: refRelativeTo.upload,
     type: refType.archive,
     installationUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: 'some/path',
-    path: undefined
+    path: undefined,
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
-  [`../upload/archive/mainfile/some/path#arch/path`, {
-    originalUrlRelativeTo: refType.upload,
+  [`../upload/archive/mainfile/some/path#/arch/path`, {
+    relativeTo: refRelativeTo.upload,
     type: refType.archive,
     installationUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: 'some/path',
-    path: 'arch/path'
+    path: '/arch/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
-  [`#arch/path`, {
-    originalUrlRelativeTo: refType.archive,
+  [`#/arch/path`, {
+    relativeTo: refRelativeTo.data,
     type: refType.archive,
     installationUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
-    path: 'arch/path'
+    path: '/arch/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
-  [`#definitions/def/path`, {
-    originalUrlRelativeTo: refType.archive,
-    type: refType.customSchema,
+  [`#/definitions/def/path`, {
+    relativeTo: refRelativeTo.data,
+    type: refType.metainfo,
     installationUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
-    path: 'definitions/def/path'
+    path: '/definitions/def/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
   }],
   [`nomad.datamodel.some.path`, {
-    originalUrlRelativeTo: null,
-    type: refType.globalSchema,
-    installationUrl: undefined,
+    relativeTo: null,
+    type: refType.metainfo,
+    installationUrl: apiBase,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
-    path: 'nomad.datamodel.some.path'
+    path: undefined,
+    qualifiedName: 'nomad.datamodel.some.path',
+    versionHash: undefined,
+    isResolved: true,
+    isExternal: false
   }]
 ])('parseNomadUrl: %s', (url, expectedResult) => {
   const result = parseNomadUrl(url)
-  expect(result.originalUrl).toBe(url)
-  for (const key of ['originalUrlRelativeTo', 'type', 'installationUrl', 'uploadId', 'entryId', 'mainfile', 'path']) {
+  expect(result.url).toBe(url)
+  for (const key of ['relativeTo', 'type', 'installationUrl', 'uploadId', 'entryId', 'mainfile', 'path']) {
     expect(key in result).toBe(true)
     expect(result[key]).toBe(expectedResult[key])
   }
@@ -317,56 +470,56 @@ test.each([
 
 test.each([
   ['a baseUrl is required', '../upload', undefined],
-  ['baseUrl is not absolute', '../upload', '../uploads/SomeUploadID'],
+  ['unresolved baseUrl', '../upload', '../uploads/SomeUploadID'],
   ['missing information about uploadId', '../upload/raw/some/path', apiBase],
-  ['missing information about entryId', '#some/path', `${apiBase}/uploads/SomeUploadID`]
+  ['missing information about entryId', '#/some/path', `${apiBase}/uploads/SomeUploadID`]
 ])('normalizeNomadUrl fails: %s', (errorSubstring, url, baseUrl) => {
   expect(() => {
-    normalizeNomadUrl(url, baseUrl)
+    resolveNomadUrl(url, baseUrl)
   }).toThrow(errorSubstring)
 })
 
 test.each([
-  ['../uploads/SomeUploadID/archive/SomeArchID#x/y/z', apiBase, {
-    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/SomeArchID#x/y/z`
+  ['../uploads/SomeUploadID/archive/SomeArchID#/x/y/z', apiBase, {
+    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/SomeArchID#/x/y/z`
   }],
   ['../uploads/SomeUploadID/raw/some/path', `${apiBase}/uploads/SomeOtherUploadID/raw/other/path`, {
     normalizedUrl: `${apiBase}/uploads/SomeUploadID/raw/some/path`
   }],
-  ['../uploads/SomeUploadID/raw/some/path#arch/path', `${apiBase}/uploads/SomeOtherUploadID/raw/other/path`, {
-    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/TbJz7EfLcUdPBJ_iSAXrm5cy7G1v#arch/path`
+  ['../uploads/SomeUploadID/raw/some/path#/arch/path', `${apiBase}/uploads/SomeOtherUploadID/raw/other/path`, {
+    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/TbJz7EfLcUdPBJ_iSAXrm5cy7G1v#/arch/path`
   }],
-  ['../uploads/SomeUploadID/archive/SomeArchID#x/y/z', `${apiBase}/uploads/SomeOtherUploadID/archive/SomeOtherArchID`, {
-    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/SomeArchID#x/y/z`
+  ['../uploads/SomeUploadID/archive/SomeArchID#/x/y/z', `${apiBase}/uploads/SomeOtherUploadID/archive/SomeOtherArchID`, {
+    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/SomeArchID#/x/y/z`
   }],
   ['../upload/raw/some/path', `${apiBase}/uploads/SomeUploadID/archive/SomeArchID`, {
     normalizedUrl: `${apiBase}/uploads/SomeUploadID/raw/some/path`
   }],
-  ['../upload/raw/some/path#arch/path', `${apiBase}/uploads/SomeUploadID/archive/SomeArchID`, {
-    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/TbJz7EfLcUdPBJ_iSAXrm5cy7G1v#arch/path`
+  ['../upload/raw/some/path#/arch/path', `${apiBase}/uploads/SomeUploadID/archive/SomeArchID`, {
+    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/TbJz7EfLcUdPBJ_iSAXrm5cy7G1v#/arch/path`
   }],
   ['../upload/raw/some/path', `https://other.nomad.com/nomd/api/uploads/SomeUploadID/archive/SomeArchID`, {
     normalizedUrl: `https://other.nomad.com/nomd/api/uploads/SomeUploadID/raw/some/path`,
     isExternal: true
   }],
-  ['../upload/archive/SomeArchID#definitions/x/y/z', `${apiBase}/uploads/SomeUploadID/archive/SomeOtherArchID`, {
-    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/SomeArchID#definitions/x/y/z`
+  ['../upload/archive/SomeArchID#/definitions/x/y/z', `${apiBase}/uploads/SomeUploadID/archive/SomeOtherArchID`, {
+    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/SomeArchID#/definitions/x/y/z`
   }],
-  ['#x/y/z', `${apiBase}/uploads/SomeUploadID/archive/SomeOtherArchID#a/b/c`, {
-    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/SomeOtherArchID#x/y/z`
+  ['#/x/y/z', `${apiBase}/uploads/SomeUploadID/archive/SomeOtherArchID#/a/b/c`, {
+    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/SomeOtherArchID#/x/y/z`
   }],
-  ['#x/y/z', `${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path#a/b/c`, {
-    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/TbJz7EfLcUdPBJ_iSAXrm5cy7G1v#x/y/z`
+  ['#/x/y/z', `${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path#/a/b/c`, {
+    normalizedUrl: `${apiBase}/uploads/SomeUploadID/archive/TbJz7EfLcUdPBJ_iSAXrm5cy7G1v#/x/y/z`
   }],
-  ['nomad.datamodel.some.path', `${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path#a/b/c`, {
+  ['nomad.datamodel.some.path', `${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path#/a/b/c`, {
     normalizedUrl: `nomad.datamodel.some.path`
   }],
-  ['https://other.nomad.com/nomd/api/uploads/SomeUploadID/raw/x/y/z', `${apiBase}/uploads/SomeOtherUploadID/archive/mainfile/some/path#a/b/c`, {
+  ['https://other.nomad.com/nomd/api/uploads/SomeUploadID/raw/x/y/z', `${apiBase}/uploads/SomeOtherUploadID/archive/mainfile/some/path#/a/b/c`, {
     normalizedUrl: `https://other.nomad.com/nomd/api/uploads/SomeUploadID/raw/x/y/z`,
     isExternal: true
   }]
 ])('normalizeNomadUrl url = "%s", baseUrl = "%s"', (url, baseUrl, expectedResult) => {
-  const result = normalizeNomadUrl(url, baseUrl)
-  expect(result.normalizedUrl).toBe(expectedResult.normalizedUrl)
-  expect(result.isExternal).toBe(expectedResult.isExternal || false)
+  const resolvedUrl = resolveNomadUrl(url, baseUrl)
+  expect(resolvedUrl.isExternal).toBe(expectedResult.isExternal || false)
+  expect(normalizeNomadUrl(resolvedUrl)).toBe(expectedResult.normalizedUrl)
 })
