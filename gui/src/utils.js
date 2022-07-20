@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, startCase } from 'lodash'
+import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, isPlainObject, startCase } from 'lodash'
 import { Quantity } from './units'
 import { format } from 'date-fns'
 import { dateFormat, guiBase, apiBase } from './config'
@@ -705,85 +705,130 @@ export function getLocation() {
 }
 
 /**
- * Utilities parse and analyze *nomad urls*. A nomad url identifies some *nomad resource*,
+ * Utilities parse and analyze *nomad urls*. A nomad url identifies some *base resource*,
  * which can be:
  *  1) a nomad installation,
  *  2) an upload,
  *  3) an archive, or
- *  4) a schema (the global schema or a custom schema)
- * Upload, archive and schema urls can, in addition, contain a path segment which specifies
- * a location *within* the resource (a raw file or folder if the resource is an upload, or
- * a location in the json-structure if the resource is an archive or a custom schema). Note, custom
- * schemas are stored in entries, therefore "archive-urls" and "custom schema-urls" are very
- * similar. A url is identified as a custom schema-url if it has a path where the first element
- * is "definitions" (the key reserved for custom schema specifications).
+ *  4) a metainfo schema.
+ *
+ * A *metainfo schema* is a json data structure, which is either
+ *  A) the system metainfo, generated from the python classes,
+ *  B) provided in an entry uploaded by a user, or
+ *  C) a *frozen* metainfo schema.
+ * A frozen metainfo schema is a historical "snapshot" of a metainfo schema provided using
+ * method A or B. The only difference between the frozen version and the original version is that
+ * in the frozen version, references to other metainfo schemas are replaced with references to
+ * frozen versions of these schemas. The purpose of this is to allow us to handle changing
+ * metainfo schemas.
+ *
+ * In addition to specifying the base resource, a nomad url can specify a location *within*
+ * this resource (identifying a raw file or folder in an upload, a location in an archive, or
+ * a section in a metainfo schema). For urls identifying sections in a metainfo schema,
+ * it is generally also possible to specify a versionHash, which uniquely identifies a frozen
+ * version of this section definition.
  *
  * Nomad urls can be absolute or relative. Absolute urls contain all information needed to
  * locate the resource, including the nomad installation url. Relative urls can only be resolved
- * when given a *base url* (which must be an absolute nomad url), which defines our "point of origin".
+ * when given a *base url*, which defines our "point of origin".
  *
  * Possible formats (expressions in [brackets] are optional):
+ * ----------------------------------------------------------
  *  Installation urls
  *    A normal url, starting with "http://" or "https://", locating the api of the nomad installation.
  *    Should always end with "/api".
  *    Example:
  *      https://nomad-lab.eu/prod/rae/api
  *  Urls relative to the current installation:
- *    ../uploads/<uploadId> [ /raw/<rawPath> [ #archPath ] ]
- *    ../uploads/<uploadId>/archive/<entryid> [ #<archPath> ]
- *    ../uploads/<uploadId>/archive/mainfile/<mainfile> [ #<archPath> ]
+ *    ../uploads/<uploadId> [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
+ *    ../uploads/<uploadId>/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
+ *    ../uploads/<uploadId>/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
  *  Urls relative to the current upload:
- *    ../upload [ /raw/<rawPath> [ #archPath ] ]
- *    ../upload/archive/<entryid> [ #<archPath> ]
- *    ../upload/archive/mainfile/<mainfile> [ #archPath ]
- *  Urls relative to the current archive/custom schema:
- *    #<archPath>
+ *    ../upload [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
+ *    ../upload/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
+ *    ../upload/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
+ *  Urls relative to the current data (i.e. current archive or metainfo schema json):
+ *    #<dataPath>
  *  Absolute urls:
- *    1) Urls to the global schema:
- *      nomad.datamodel [ .<more path elements> ]
- *    2) Urls to an upload/archive/custom schema located in some installation: just like
- *      urls relative to the current installation, but with an actual installation url instead
- *      of the initial '..'
+ *    <installationUrl>/uploads/<uploadId> [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
+ *    <installationUrl>/uploads/<uploadId>/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
+ *    <installationUrl>/uploads/<uploadId>/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
+ *    <qualifiedName> (TODO: how to handle versions,  etc)
+ * Note:
+ *  - The dataPath, if provided, should start with a '/' (i.e. it must start from the
+ *    root node of the data).
+ *  - If the first segment in dataPath is 'definitions' or 'packages', the url is recognized
+ *    as a reference to a metainfo schema.
+ *  - Metainfo sections defined in python can be referred using the qualifiedName, which
+ *    is a "python style" name of alphanumerics separated by dots.
+ *  - If no versionHash is specified for a url identifying a metainfo schema, it means
+ *    we refer to the version defined by the base url (if the url is schema-relative), otherwise
+ *    the latest version found in the installation.
  */
 
-export const refType = {
+/**
+ * Enum for the `type` attribute of parsed/resolved url objects
+ */
+export const refType = Object.freeze({
   installation: 'installation',
   upload: 'upload',
   archive: 'archive',
-  globalSchema: 'global-schema',
-  customSchema: 'custom-schema'
-}
+  metainfo: 'metainfo'
+})
+
+/**
+ * Enum for the `relativeTo` attribute of parsed/resolved url objects
+ */
+export const refRelativeTo = Object.freeze({
+  installation: 'installation',
+  upload: 'upload',
+  data: 'data',
+  nothing: null
+})
 
 /**
  * Parses a nomad url and returns an object with the following attributes:
- *  originalUrl
+ *  url
  *    the original url string.
- *  originalUrlRelativeTo
- *    One of: refType.installation | refType.upload | refType.archive | null (for absolute urls)
  *  type
- *    One of: refType.installation | refType.upload | refType.archive | refType.globalSchema | refType.customSchema
+ *    One of: refType.installation | refType.upload | refType.archive | refType.metainfo
+ *  relativeTo
+ *    One of: refRelativeTo.installation | refRelativeTo.upload | refRelativeTo.data | refRelativeTo.nothing (null)
  *  installationUrl
- *    The nomad installation url (if specified in the url).
+ *    The nomad installation url, if it can be determined.
  *  uploadId
  *    The uploadId, if it can be determined.
  *  entryId
  *    The entryId, if it can be determined.
  *  mainfile
- *    The mainfile path, if specified in the url.
+ *    The mainfile path, if it can be determined.
  *  path
- *    The path within the upload/archive/schema
+ *    The path within the base resource (dataPath | rawPath), if specified
+ *  qualifiedName
+ *    The qualifiedName, if specified.
+ *  versionHash
+ *    The versionHash, if specified.
+ *  isResolved
+ *    True if the url is fully resolved, i.e. we have everything we need to fetch the data.
+ *  isExternal
+ *    If the url refers to a resource in an external nomad installation. Note, for relative
+ *    urls the value will be undefined, which means we don't know.
  *
  * If the url cannot be parsed, an error is thrown.
+ *
+ * @param {*} url either a string, or an object. If an object, it is expected to be parsed already,
+ *    and we will return the object "as is" directly, without any parsing.
  */
 export function parseNomadUrl(url) {
+  if (isPlainObject(url) && url.url && url.type) return url // already parsed, pass through.
   const prefix = `Could not parse nomad url "${url}": `
   if (!url) throw new Error(prefix + 'empty value')
   if (typeof url !== 'string') throw new Error(prefix + 'bad type, expected string, got ' + typeof url)
-  let originalUrlRelativeTo, type, installationUrl, uploadId, entryId, mainfile, path
+  let relativeTo, type, installationUrl, uploadId, entryId, mainfile, path, qualifiedName, versionHash
 
-  const archPathPos = url.indexOf('#')
-  const archPath = archPathPos !== -1 ? url.slice(archPathPos + 1) : undefined
-  let rest = archPathPos !== -1 ? url.slice(0, archPathPos) : url
+  const dataPathPos = url.indexOf('#')
+  let dataPath = dataPathPos !== -1 ? url.slice(dataPathPos + 1) : undefined
+  let rest = dataPathPos !== -1 ? url.slice(0, dataPathPos) : url
   let rawPath
 
   if (rest.startsWith('http://') || rest.startsWith('https://')) {
@@ -794,30 +839,32 @@ export function parseNomadUrl(url) {
     installationUrl = url.slice(0, apiPos + 4)
     rest = rest.slice(apiPos + 5)
     if (rest && !rest.startsWith('uploads/')) throw new Error(prefix + 'expected "/uploads/<uploadId>" in absolute url')
-    originalUrlRelativeTo = null
+    relativeTo = null
   } else if (url.startsWith('../')) {
     rest = rest.slice(3)
   } else if (url.startsWith('#')) {
-    originalUrlRelativeTo = refType.archive
-  } else if (url.startsWith('nomad.datamodel.' || url === 'nomad.datamodel')) {
-    originalUrlRelativeTo = null
+    relativeTo = refRelativeTo.data
+  } else if (url.match(/^([a-zA-Z]\w*\.)*[a-zA-Z]\w*$/)) {
+    qualifiedName = url
+    installationUrl = apiBase // This probably needs to change to support different versions
+    relativeTo = null
   } else {
-    throw new Error(prefix + 'bad start sequence')
+    throw new Error(prefix + 'bad url')
   }
   const restParts = rest.split('/')
-  if ((installationUrl && rest) || url.startsWith('../')) {
+  if ((installationUrl && rest && !qualifiedName) || url.startsWith('../')) {
     // Expect upload ref
     if (restParts[0] === 'uploads') {
       // Ref with upload id
       if (!installationUrl) {
-        originalUrlRelativeTo = refType.installation
+        relativeTo = refRelativeTo.installation
       }
       if (restParts.length === 1) throw new Error(prefix + 'expected "/uploads/<uploadId>" in url')
       uploadId = restParts[1]
       restParts.splice(0, 2)
     } else if (restParts[0] === 'upload') {
       // Relative ref
-      originalUrlRelativeTo = refType.upload
+      relativeTo = refRelativeTo.upload
       restParts.splice(0, 1)
     } else {
       throw new Error(prefix + 'expected "/upload" or "/uploads" in url')
@@ -840,26 +887,37 @@ export function parseNomadUrl(url) {
       }
     }
   }
-  if (url.startsWith('nomad.datamodel')) {
+  if (qualifiedName) {
     // Refers to the global schema
-    type = refType.globalSchema
-    path = url
+    type = refType.metainfo
   } else if (installationUrl && !uploadId) {
     // Pure installation url
     type = refType.installation
-  } else if (archPath !== undefined) {
-    // Refers to an archive, and has archPath
+  } else if (dataPath !== undefined) {
+    // Has dataPath
     if (!url.startsWith('#') && !entryId && !mainfile && !rawPath) throw new Error(prefix + 'Unexpected "#" without entry reference')
+    if (!dataPath.startsWith('/')) throw new Error(prefix + '# should always be followed by a "/"')
     mainfile = mainfile || rawPath
-    type = (archPath === 'definitions' || archPath.startsWith('definitions/')) ? refType.customSchema : refType.archive
-    path = archPath
+    const firstDataPathSegment = dataPath.split('/')[1]
+    type = (firstDataPathSegment === 'definitions' || firstDataPathSegment === 'packages') ? refType.metainfo : refType.archive
+    const atPos = dataPath.indexOf('@')
+    if (atPos !== -1) {
+      versionHash = dataPath.slice(atPos + 1)
+      dataPath = dataPath.slice(0, atPos)
+    }
+    path = dataPath
   } else if (entryId || mainfile) {
-    // Refers to an archive, but has no archPath
+    // Refers to an archive, but has no dataPath
     type = refType.archive
   } else {
     // Refers to an upload
     type = refType.upload
     path = rawPath
+  }
+  if (versionHash !== undefined) {
+    if (type !== refType.metainfo) throw new Error(prefix + 'versionHash can only be specified for metainfo urls.')
+    if (relativeTo === refRelativeTo.data) throw new Error(prefix + 'cannot specify versionHash for url that is data-relative.')
+    if (!versionHash.match(/\w+/)) throw new Error(prefix + 'bad versionHash provided')
   }
 
   if (uploadId && mainfile) {
@@ -867,53 +925,59 @@ export function parseNomadUrl(url) {
   }
 
   return {
-    originalUrl: url,
-    originalUrlRelativeTo,
+    url,
+    relativeTo,
     type,
     installationUrl,
     uploadId,
     entryId,
     mainfile,
-    path
+    path,
+    qualifiedName,
+    versionHash,
+    isResolved: !relativeTo,
+    isExternal: installationUrl ? (installationUrl !== apiBase) : undefined
   }
 }
 
 /**
- * Normalizes the url, with respect to the given baseUrl. A baseUrl is required if the url
- * is relative. Each of the two urls can be either a string or a parsed nomad url (i.e. an
- * object returned by calling parseNomadUrl).
+ * Resolves the url with respect to the given baseUrl. Each of the two url arguments can
+ * be either a string or a parsed/resolved nomad url object (i.e. an object returned by calling
+ * parseNomadUrl or resolveNomadUrl). If the url is absolute, no baseUrl is required and the argument
+ * is ignored. If url is relative, however, baseUrl is required, and it needs to be either a string
+ * which is an absolute url, or a resolved nomad url object.
  *
- * Returns an object similar to the one returned by parseNomadUrl, but with the following additional
- * attributes:
- *  originalBaseUrl
- *    The original base url, used for the normalization.
- *  normalizedUrl
- *    The normalized url is always absolute, and always uses "/archive/<entryId>" to identify
- *    entries, rather than the mainfile path.
- *  isExternal
- *    If the normalizedUrl points to a resource in an external nomad installation.
+ * If succesful, returns an resolved nomad url object, which is similar to the one returned
+ * by parseNomadUrl, but
+ *  1) It additionally has the attribute baseUrl, which stores the baseUrl argument,
+ *  2) the isResolved flag should be guaranteed to be true, and
+ *  3) all applicable attributes (like installationUrl, uploadId, entryId, etc) are set
+ *     to the resolved valules.
  *
- * If the normalization fails, an error is thrown.
+ * NOTE, if you pass an object as the url argument, and it is not already resolved, the
+ * original object will be modified by this call, and the modified version is also the
+ * object that will be returned by the function.
  */
-export function normalizeNomadUrl(url, baseUrl) {
-  const parsedUrl = typeof url === 'object' ? url : parseNomadUrl(url)
-  parsedUrl.originalBaseUrl = baseUrl?.originalUrl || baseUrl
-  const prefix = `Could not normalize url "${url}" with baseUrl "${parsedUrl.originalBaseUrl}": `
+export function resolveNomadUrl(url, baseUrl) {
+  const parsedUrl = parseNomadUrl(url)
+  if (parsedUrl.isResolved) return parsedUrl
+  parsedUrl.baseUrl = baseUrl
+  const prefix = `Could not normalize url "${parsedUrl.url}" with baseUrl "${baseUrl?.url || baseUrl}": `
 
-  if (parsedUrl.originalUrlRelativeTo) {
+  if (parsedUrl.relativeTo) {
     // Url is relative.
     if (!baseUrl) throw new Error(prefix + 'a baseUrl is required.')
-    const parsedBaseUrl = typeof baseUrl === 'object' ? baseUrl : parseNomadUrl(baseUrl)
-    if (!parsedBaseUrl.installationUrl) throw new Error(prefix + 'baseUrl is not absolute')
+    const parsedBaseUrl = parseNomadUrl(baseUrl)
+    if (!parsedBaseUrl.isResolved) throw new Error(prefix + 'unresolved baseUrl')
     // Copy data from parsedBaseUrl
     parsedUrl.installationUrl = parsedBaseUrl.installationUrl // Should always be copied
-    if (parsedUrl.originalUrlRelativeTo === refType.upload) {
+    if (parsedUrl.relativeTo === refRelativeTo.upload) {
       if (!parsedBaseUrl.uploadId) throw new Error(prefix + 'missing information about uploadId')
       parsedUrl.uploadId = parsedBaseUrl.uploadId
       if (parsedUrl.mainfile) {
         parsedUrl.entryId = generateEntryId(parsedUrl.uploadId, parsedUrl.mainfile)
       }
-    } else if (parsedUrl.originalUrlRelativeTo === refType.archive) {
+    } else if (parsedUrl.relativeTo === refRelativeTo.data) {
       if (!parsedBaseUrl.entryId || !parsedBaseUrl.uploadId) throw new Error(prefix + 'missing information about entryId')
       parsedUrl.uploadId = parsedBaseUrl.uploadId
       parsedUrl.entryId = parsedBaseUrl.entryId
@@ -921,26 +985,28 @@ export function normalizeNomadUrl(url, baseUrl) {
   }
 
   parsedUrl.isExternal = !!parsedUrl.installationUrl && parsedUrl.installationUrl !== apiBase
-
-  // Construct the normalizedUrl
-  switch (parsedUrl.type) {
-    case refType.installaion:
-      parsedUrl.normalizedUrl = parsedUrl.installationUrl
-      break
-    case refType.upload:
-      parsedUrl.normalizedUrl = `${parsedUrl.installationUrl}/uploads/${parsedUrl.uploadId}`
-      if (parsedUrl.path) parsedUrl.normalizedUrl += '/raw/' + parsedUrl.path
-      break
-    case refType.archive:
-    case refType.customSchema:
-      parsedUrl.normalizedUrl = `${parsedUrl.installationUrl}/uploads/${parsedUrl.uploadId}/archive/${parsedUrl.entryId}`
-      if (parsedUrl.path) parsedUrl.normalizedUrl += '#' + parsedUrl.path
-      break
-    case refType.globalSchema:
-      parsedUrl.normalizedUrl = parsedUrl.path
-      break
-    default:
-      throw new Error(prefix + `unexpected type "${parsedUrl.type}"`)
-  }
+  parsedUrl.isResolved = true
   return parsedUrl
+}
+
+/**
+ * Returns a url string which is "normalized", i.e. it is absolute and have the preferred
+ * url form for referencing the resource/data. Normalized urls always prefer identifying
+ * entries with entryId rather than by specifying a mainfile.
+ * @param {*} url A string or resolved nomad url object.
+ */
+export function normalizeNomadUrl(url) {
+  const parsedUrl = parseNomadUrl(url)
+  if (!parsedUrl.isResolved) throw new Error(`Failed to normalize url ${url.url}: provided url is unresolved`)
+  if (parsedUrl.type === refType.installation) {
+    return parsedUrl.installationUrl
+  } else if (parsedUrl.type === refType.upload) {
+    return `${parsedUrl.installationUrl}/uploads/${parsedUrl.uploadId}` + (parsedUrl.path ? '/raw/' + parsedUrl.path : '')
+  } else if (parsedUrl.entryId) {
+    return `${parsedUrl.installationUrl}/uploads/${parsedUrl.uploadId}/archive/${parsedUrl.entryId}` + (
+      parsedUrl.path ? '#' + parsedUrl.path + (parsedUrl.versionHash ? '@' + parsedUrl.versionHash : '') : '')
+  } else if (parsedUrl.qualifiedName) {
+    return parsedUrl.qualifiedName
+  }
+  throw new Error(`Failed to normalize url ${url.url}: unhandled url format`) // Should not happen
 }
