@@ -17,9 +17,9 @@
 #
 
 import click
-
 from nomad import config
 from .admin import admin
+from nomad import utils
 
 
 @admin.group(help='Run a nomad service locally (outside docker).')
@@ -78,6 +78,22 @@ def run_hub():
     sys.exit(main(argv=['-f', 'nomad/jupyterhub_config.py', '--Application.log_level=INFO']))
 
 
+def task_app():
+    logger = utils.get_logger('app')
+    try:
+        run_app()
+    except Exception as error:
+        logger.exception(error)
+
+
+def task_worker():
+    logger = utils.get_logger('worker')
+    try:
+        run_worker()
+    except Exception as error:
+        logger.exception(error)
+
+
 @run.command(help='Run both app and worker.')
 def appworker():
     from concurrent import futures as concurrent_futures
@@ -85,5 +101,5 @@ def appworker():
 
     executor = concurrent_futures.ProcessPoolExecutor(2)
     loop = asyncio.get_event_loop()
-    loop.run_in_executor(executor, run_app)
-    loop.run_in_executor(executor, run_worker)
+    loop.run_in_executor(executor, task_app)
+    loop.run_in_executor(executor, task_worker)
