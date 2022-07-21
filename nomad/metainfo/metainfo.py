@@ -1416,8 +1416,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if isinstance(value, pd.DataFrame):
             try:
                 value = value.to_numpy()
-            except TypeError:
-                raise TypeError(
+            except AttributeError:
+                raise AttributeError(
                     'Could not convert value %s of type pandas.Dataframe to a numpy array' %
                     (value))
 

@@ -146,9 +146,6 @@ install tests:
     - git submodule update --init --recursive --jobs=4
   script:
     - pip install --upgrade pip
-    - pip install fastentrypoints
-    - pip install pyyaml
-    - pip install numpy
     - python setup.py compile
     - python setup.py sdist
     - pip install dist/nomad-lab-*.tar.gz
