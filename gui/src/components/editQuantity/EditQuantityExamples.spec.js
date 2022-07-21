@@ -109,11 +109,9 @@ test('correctly renders edit quantities', async () => {
   expect(invalidUrlMsg()).not.toBeInTheDocument()
   expect(redirectButton()).not.toBeInTheDocument()
   fireEvent.change(UrlTextbox(), { target: { value: 'a' } })
-  await wait(undefined, 100)
   await waitFor(() => expect(invalidUrlMsg()).toBeInTheDocument())
 
   fireEvent.change(UrlTextbox(), { target: { value: 'https://nomad-lab.eu/' } })
-  await wait(undefined, 100)
   await waitFor(() => expect(invalidUrlMsg()).not.toBeInTheDocument())
   await waitFor(() => expect(redirectButton()).toBeInTheDocument())
 })

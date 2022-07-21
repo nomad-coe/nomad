@@ -33,7 +33,7 @@ from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Dat
     pytest.param(Dimension, '*', id='Dimension-*'),
     pytest.param(Dimension, 1, id='Dimension-1'),
     pytest.param(Dimension, 'quantity', id='Dimension-quantity'),
-    pytest.param(URL, 'http://google.com', id='Dimension-quantity'),
+    pytest.param(URL, 'http://google.com', id='Url-link'),
     pytest.param(Datetime, datetime.datetime.now(datetime.timezone.utc), id='Datetime'),
     pytest.param(Datetime, datetime.datetime.now(pytz.timezone('America/Los_Angeles')), id='Datetime'),
     pytest.param(Datetime, datetime.date.today(), id='Date'),
