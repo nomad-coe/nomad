@@ -23,6 +23,8 @@ import { render, screen, within, startAPI, closeAPI } from '../conftest.spec'
 import FileBrowser from './FileBrowser'
 import { purgeTreePath, getLane, checkLanes, navigateTo, checkDirectoryLane, checkFileLane } from './conftest.spec'
 import { minutes } from '../../setupTests'
+import { createUploadUrl } from '../../utils'
+import { apiBase } from '../../config'
 
 const dirSpecialChars = 'dir special chars ~!?*\\()[]{}<>,.;:\'"`&@#$%=|'
 const fileBrowserTree = {
@@ -62,7 +64,7 @@ async function testBrowseAround(editable) {
     browserTree: fileBrowserTree,
     editable
   }
-  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle}/>)
+  render(<FileBrowser uploadUrl={createUploadUrl(apiBase, 'browser_test', '')} rootTitle={browserConfig.rootTitle}/>)
   await waitFor(() => {
     expect(screen.getByText('Root Title')).toBeVisible()
   })
@@ -165,7 +167,7 @@ test('starting in entry dir', async () => {
     browserTree: fileBrowserTreeModified,
     editable: true
   }
-  render(<FileBrowser uploadId="browser_test" path={entryDir} rootTitle={browserConfig.rootTitle}/>)
+  render(<FileBrowser uploadUrl={createUploadUrl(apiBase, 'browser_test', entryDir)} rootTitle={browserConfig.rootTitle}/>)
   await waitFor(() => {
     expect(screen.getByText('Root Title')).toBeVisible()
   })
@@ -187,7 +189,7 @@ test('delete files', async () => {
     browserTree: fileBrowserTreeCopy,
     editable: true
   }
-  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle}/>)
+  render(<FileBrowser uploadUrl={createUploadUrl(apiBase, 'browser_test', '')} rootTitle={browserConfig.rootTitle}/>)
   await waitFor(() => {
     expect(screen.getByText('Root Title')).toBeVisible()
   })
@@ -215,7 +217,7 @@ test('delete folder', async () => {
     browserTree: fileBrowserTreeCopy,
     editable: true
   }
-  render(<FileBrowser uploadId="browser_test" path="" rootTitle={browserConfig.rootTitle}/>)
+  render(<FileBrowser uploadUrl={createUploadUrl(apiBase, 'browser_test', '')} rootTitle={browserConfig.rootTitle}/>)
   await waitFor(() => {
     expect(screen.getByText('Root Title')).toBeVisible()
   })

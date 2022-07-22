@@ -35,7 +35,6 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import OpenInNewIcon from '@material-ui/icons/OpenInNew'
 import Quantity from '../Quantity'
 import {DOI} from '../dataset/DOI'
-import { useDataStore } from '../DataStore'
 import { useUploadPageContext } from './UploadPageContext'
 
 function EditComments(props) {
@@ -308,8 +307,7 @@ function EditMetaDataDialog({...props}) {
   const classes = useEditMetaDataDialogStyles()
   const {api, user} = useApi()
   const {raiseError} = useErrors()
-  const dataStore = useDataStore()
-  const {uploadId, upload, entries} = useUploadPageContext()
+  const {uploadId, upload, entries, updateUpload} = useUploadPageContext()
   const [open, setOpen] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const isProcessing = upload?.process_running
@@ -391,7 +389,7 @@ function EditMetaDataDialog({...props}) {
         edit(metadata, false)
           .then(results => {
             setActions([])
-            dataStore.updateUpload(uploadId, {upload: results.data})
+            updateUpload({upload: results.data})
           }).catch(err => {
             raiseError(err)
           })
@@ -402,7 +400,7 @@ function EditMetaDataDialog({...props}) {
           if (error.loc.includes('datasets')) setActions(oldActions => [...oldActions, {'error_dataset': error.msg}])
         })
       })
-  }, [edit, uploadId, dataStore, raiseError])
+  }, [edit, updateUpload, raiseError])
 
   const isCommentChanged = useMemo(() => !!actions.find(action => 'set_comment' in action), [actions])
   const isReferencesChanged = useMemo(() => !!actions.find(action => 'add_reference' in action || 'remove_reference' in action), [actions])

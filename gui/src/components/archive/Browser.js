@@ -82,7 +82,7 @@ export class Adaptor {
    * Renders the contents of the current lane (the lane that this adaptor represents).
    */
   render() {
-    return ''
+    return null
   }
 }
 
@@ -253,7 +253,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   if (url === undefined) {
     // Can happen when navigating to another tab, possibly with the browser's back/forward buttons
     // We want to keep the cached lanes, in case the user goes back to this tab, so return immediately.
-    return
+    return null
   }
 
   return <browserContext.Provider value={contextValue}>
@@ -317,7 +317,7 @@ function Lane({lane}) {
       </div>
     }
     if (!adaptor || !initialized) {
-      return ''
+      return null
     }
     return <div className={classes.root} key={`lane:${lane.path}`} data-testid={`lane${lane.index}:${lane.key}`}>
       <div className={classes.container} ref={containerRef}>
@@ -401,7 +401,7 @@ export const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, 
     />
   } else {
     // If this is used in a non Browser context
-    return ''
+    return null
   }
 })
 ItemLink.propTypes = {
@@ -503,7 +503,7 @@ export function Content(props) {
 
 export function Compartment({title, children, color}) {
   if (!React.Children.count(children)) {
-    return ''
+    return null
   }
   return <React.Fragment>
     <Box paddingTop={1} whiteSpace="nowrap">

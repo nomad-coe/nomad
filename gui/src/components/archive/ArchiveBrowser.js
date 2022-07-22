@@ -53,7 +53,7 @@ import SaveIcon from '@material-ui/icons/Save'
 import AddIcon from '@material-ui/icons/AddCircle'
 import CodeIcon from '@material-ui/icons/Code'
 import DeleteIcon from '@material-ui/icons/Delete'
-import {getLineStyles, titleCase} from '../../utils'
+import {getLineStyles, titleCase, createUploadUrl} from '../../utils'
 import Plot from '../visualization/Plot'
 import { useUploadPageContext } from '../uploads/UploadPageContext'
 import {EntryButton} from '../nav/Routes'
@@ -63,6 +63,7 @@ import Alert from '@material-ui/lab/Alert'
 import _ from 'lodash'
 import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
+import { apiBase } from '../../config'
 
 export function useBrowserAdaptorContext(data) {
   const entryPageContext = useEntryPageContext()
@@ -530,8 +531,9 @@ class SectionAdaptor extends ArchiveAdaptor {
         if (property.m_annotations.browser[0].adaptor === 'RawFileAdaptor') {
           const uploadId = this.context.archive.metadata.upload_id
           const path = this.obj[property.name]
+          const uploadUrl = createUploadUrl(apiBase, uploadId, path) // TODO: installationUrl should be fetched from adaptor when archive adaptors refactored to use urls
           const response = await this.context.api.get(`uploads/${uploadId}/rawdir/${path}`)
-          return new RawFileAdaptor(this.context, uploadId, path, response.file_metadata, false)
+          return new RawFileAdaptor(this.context, uploadUrl, response.file_metadata, false)
         }
       }
       return this.adaptorFactory(value, property, this.obj)

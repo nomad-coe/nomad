@@ -20,13 +20,13 @@ import PropTypes from 'prop-types'
 import FileBrowser from '../archive/FileBrowser'
 import Page from '../Page'
 import { useUploadPageContext } from './UploadPageContext'
+import { createUploadUrl } from '../../utils'
 
 const UploadFilesView = React.memo(function UploadFilesView() {
-  const {uploadId} = useUploadPageContext()
+  const {installationUrl, uploadId} = useUploadPageContext()
   return <Page>
     <FileBrowser
-      uploadId={uploadId}
-      path=""
+      uploadUrl={createUploadUrl(installationUrl, uploadId, '')}
       rootTitle="Upload files"
     />
   </Page>

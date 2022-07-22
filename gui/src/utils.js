@@ -755,6 +755,8 @@ export function getLocation() {
  *    <installationUrl>/uploads/<uploadId>/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
  *    <qualifiedName> (TODO: how to handle versions,  etc)
  * Note:
+ *  - The rawPath and mainFile paths need to be escaped with urlEncodePath to ensure a valid url.
+ *    (i.e. each segment needs to individually be escaped using encodeURIComponent)
  *  - The dataPath, if provided, should start with a '/' (i.e. it must start from the
  *    root node of the data).
  *  - If the first segment in dataPath is 'definitions' or 'packages', the url is recognized
@@ -801,9 +803,9 @@ export const refRelativeTo = Object.freeze({
  *  entryId
  *    The entryId, if it can be determined.
  *  mainfile
- *    The mainfile path, if it can be determined.
+ *    The mainfile path, if it can be determined (unescaped!).
  *  path
- *    The path within the base resource (dataPath | rawPath), if specified
+ *    The path within the base resource (dataPath | rawPath (unescaped!)), if specified
  *  qualifiedName
  *    The qualifiedName, if specified.
  *  versionHash
@@ -872,12 +874,12 @@ export function parseNomadUrl(url) {
     if (restParts.length) {
       // There is more. Expect "raw" or "archive"
       if (restParts[0] === 'raw') {
-        rawPath = restParts.slice(1).join('/')
+        rawPath = restParts.slice(1).map(decodeURIComponent).join('/')
       } else if (restParts[0] === 'archive') {
         if (restParts.length === 1) throw new Error(prefix + '"archive" must be followed by entry id or "mainfile"')
         if (restParts[1] === 'mainfile') {
           if (restParts.length === 2) throw new Error(prefix + '"mainfile" must be followed by a mainfile path')
-          mainfile = restParts.slice(2).join('/')
+          mainfile = restParts.slice(2).map(decodeURIComponent).join('/')
         } else {
           if (restParts.length !== 2) throw new Error(prefix + 'unexpected path element after entry id')
           entryId = restParts[1]
@@ -1009,4 +1011,49 @@ export function normalizeNomadUrl(url) {
     return parsedUrl.qualifiedName
   }
   throw new Error(`Failed to normalize url ${url.url}: unhandled url format`) // Should not happen
+}
+
+/**
+ * Utility for creating an upload url, given installationUrl, uploadId and an UNESCAPED rawPath
+ */
+export function createUploadUrl(installationUrl, uploadId, rawPathUnescaped) {
+  const rawPathEscaped = urlEncodePath(rawPathUnescaped || '')
+  return `${installationUrl}/uploads/${uploadId}/raw/${rawPathEscaped}`
+}
+
+/**
+ * A simple method for joining url components. The componenst should be strings, and the return
+ * value is also a string. A '/' is inserted between all components, if needed (i.e. if the preceding
+ * component does not end with a '/').
+ *
+ * Note that the standard join method defined in the path library does not quite work like
+ * this, it reduces all occurances of '//' to '/' in the returned value, and we don't want this
+ * for urls (we want to keep the double slash in expressions like 'http://' etc).
+ */
+export function urlJoin(...components) {
+  let rv = ''
+  for (const component of components) {
+    if (component) {
+      if (rv && !rv.endsWith('/')) {
+        rv += '/'
+      }
+      rv += component
+    }
+  }
+  return rv
+}
+
+/**
+ * Encodes a file system path (which may include various characters not allowed in urls, or that
+ * have special meanings in urls, like ' ' and '#' and '?') into a path that is url safe.
+ */
+export function urlEncodePath(path) {
+  return path.split('/').map(encodeURIComponent).join('/')
+}
+
+/**
+ * Decodes a url encoded file system path (the inverse of urlEncodePath)
+ */
+export function urlDecodePath(urlPath) {
+  return urlPath.split('/').map(decodeURIComponent).join('/')
 }

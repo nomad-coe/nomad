@@ -22,6 +22,8 @@ import FileBrowser from '../archive/FileBrowser'
 import { useApi } from '../api'
 import Page from '../Page'
 import { useEntryPageContext } from './EntryPageContext'
+import { createUploadUrl } from '../../utils'
+import { apiBase } from '../../config'
 
 const useStyles = makeStyles(theme => ({
   error: {
@@ -66,8 +68,7 @@ const BrowseEntryFilesView = React.memo((props) => {
     const mainfileBasename = data.mainfile.split('/').pop()
     return <Page>
       <FileBrowser
-        uploadId={data.upload_id}
-        path={mainfileDirname}
+        uploadUrl={createUploadUrl(apiBase, data.upload_id, mainfileDirname)} // TODO: installationUrl should come from entry context
         rootTitle="Entry files"
         highlightedItem={mainfileBasename}
       />
