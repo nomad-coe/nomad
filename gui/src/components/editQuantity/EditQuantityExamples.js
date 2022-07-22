@@ -19,7 +19,7 @@ import React, {useRef, useState} from 'react'
 import PropTypes from 'prop-types'
 import {Card, Box, Typography, Grid, CardContent} from '@material-ui/core'
 import {NumberEditQuantity} from './NumberEditQuantity'
-import {StringEditQuantity} from './StringEditQuantity'
+import {StringEditQuantity, URLEditQuantity} from './StringEditQuantity'
 import {EnumEditQuantity} from './EnumEditQuantity'
 import {AutocompleteEditQuantity} from './AutocompleteEditQuantity'
 import {RadioEnumEditQuantity} from './RadioEnumEditQuantity'
@@ -114,6 +114,18 @@ export function EditQuantityExamples() {
                           component: StringEditQuantity`}
                   >
                     <StringEditQuantity {...createDefaultProps('string')} />
+                  </Example>
+                </Grid>
+                <Grid item>
+                  <Example
+                    code={`
+                    url_link:
+                      type: string
+                      m_annotations:
+                        eln:
+                          component: URLEditQuantity`}
+                  >
+                    <URLEditQuantity {...createDefaultProps('url')}/>
                   </Example>
                 </Grid>
                 <Grid item>

@@ -851,6 +851,40 @@ class _File(DataType):
         return value
 
 
+class _URL(DataType):
+    def _validate_web_url(self, url_str: str):
+        urlRegex = re.compile(
+            r'^(?:http|ftp)s?://'
+            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
+            r'localhost|'
+            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+            r'(?::\d+)?'
+            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+        return (re.match(urlRegex, url_str) is not None)
+
+    def _test(self, url_str: str) -> str:
+        if url_str is None:
+            return None
+
+        if not isinstance(url_str, str):
+            raise TypeError('Links need to be given as URL strings')
+        if not self._validate_web_url(url_str):
+            raise ValueError('The given URL is not valid')
+
+        return url_str
+
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        return self._test(value)
+
+    def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if value is None:
+            return None
+        return self._test(value)
+
+    def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        return self._test(value)
+
+
 class _Datetime(DataType):
 
     def _parse(self, datetime_str: str) -> datetime:
@@ -965,10 +999,11 @@ JSON = _JSON()
 Capitalized = _Capitalized()
 Bytes = _Bytes()
 File = _File()
+URL = _URL()
 
 predefined_datatypes = {
     'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
-    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File}
+    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File, 'URL': URL}
 
 
 # Metainfo data storage and reflection interface

@@ -31,6 +31,7 @@ import HelpOutlineIcon from '@material-ui/icons/HelpOutline'
 import Markdown from '../Markdown'
 import DialogActions from '@material-ui/core/DialogActions'
 import Button from '@material-ui/core/Button'
+import LaunchIcon from '@material-ui/icons/Launch'
 
 const HelpDialog = React.memo(({title, description}) => {
   const [open, setOpen] = useState(false)
@@ -193,5 +194,73 @@ export const StringField = React.memo((props) => {
   />
 })
 StringField.propTypes = {
+  onChange: PropTypes.func
+}
+
+export const TextFieldWithLinkButton = React.memo(React.forwardRef((props, ref) => {
+  const {withOtherAdornment, label, value, helpDescription, 'data-testid': TestId, ...otherProps} = props
+  const classes = useWithHelpStyles()
+
+  const validateURL = useCallback((value) => {
+    try {
+      return Boolean(new URL(value))
+    } catch (e) {
+      return false
+    }
+  }, [])
+
+  return <TextField
+    defaultValue={value}
+    error={value !== undefined && !validateURL(value)}
+    helperText={value === undefined || validateURL(value) ? '' : 'Invalid URL string!'}
+    inputRef={ref}
+    className={classes.root}
+    InputProps={{endAdornment:
+      <>
+        { helpDescription &&
+        <div id="help">
+          <HelpAdornment title={label} description={helpDescription} withOtherAdornment={withOtherAdornment}/>
+        </div>
+        }
+        {
+          validateURL(value) &&
+          <IconButton aria-label="open_link" onClick={() => window.open(value, '_blank')}>
+            <LaunchIcon />
+          </IconButton>
+        }
+      </>
+    }}
+    label={label}
+    data-testid={'URLEditQuantity'}
+    {...otherProps}
+  />
+}))
+TextFieldWithLinkButton.propTypes = {
+  withOtherAdornment: PropTypes.bool,
+  label: PropTypes.string,
+  value: PropTypes.string,
+  helpDescription: PropTypes.string,
+  'data-testid': PropTypes.string
+}
+
+export const URLEditQuantity = React.memo((props) => {
+  const {quantityDef, onChange, ...otherProps} = props
+
+  const handleChange = useCallback((value) => {
+    if (onChange) {
+      onChange(value === '' ? undefined : value)
+    }
+  }, [onChange])
+
+  return <TextFieldWithLinkButton
+    fullWidth variant='filled' size='small'
+    onChange={event => handleChange(event.target.value)}
+    {...getFieldProps(quantityDef)}
+    {...otherProps}
+  />
+})
+URLEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  value: PropTypes.string,
   onChange: PropTypes.func
 }
