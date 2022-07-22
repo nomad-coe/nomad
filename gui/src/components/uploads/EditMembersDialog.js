@@ -31,7 +31,6 @@ import {useApi} from '../api'
 import {useErrors} from '../errors'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import DeleteIcon from '@material-ui/icons/Delete'
-import { useDataStore } from '../DataStore'
 import { useUploadPageContext } from './UploadPageContext'
 
 export const editMembersDialogContext = React.createContext()
@@ -332,8 +331,7 @@ function EditMembersDialog({...props}) {
   const {disabled} = props
   const {api} = useApi()
   const {raiseError} = useErrors()
-  const dataStore = useDataStore()
-  const {uploadId, upload} = useUploadPageContext()
+  const {uploadId, upload, updateUpload} = useUploadPageContext()
   const [open, setOpen] = useState(false)
   const [members, setMembers] = useState([])
   const [isChanged, setIsChanged] = useState(false)
@@ -383,7 +381,7 @@ function EditMembersDialog({...props}) {
           'reviewers': newReviewers
         }
       }).then(results => {
-        dataStore.updateUpload(uploadId, {upload: results.data})
+        updateUpload({upload: results.data})
         setOpen(false)
       }).catch(err => raiseError(err))
     } else {

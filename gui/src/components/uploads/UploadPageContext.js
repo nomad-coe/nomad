@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-import React, { useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import React, { useContext, useEffect, useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { DoesNotExist } from '../api'
 import { useDataStore } from '../DataStore'
 import { useHistory } from 'react-router-dom'
 import { getUrl } from '../nav/Routes'
+import { apiBase } from '../../config'
 
 export const uploadPageContext = React.createContext()
 
@@ -31,14 +32,14 @@ export function useUploadPageContext() {
 
 const UploadPageContext = React.memo(function UploadPageContext({uploadId, children}) {
   const dataStore = useDataStore()
-  const [uploadStoreObj, setUploadStoreObj] = useState(dataStore.getUpload(uploadId))
+  const [uploadStoreObj, setUploadStoreObj] = useState(dataStore.getUpload(apiBase, uploadId))
 
   const onUploadStoreUpdated = useCallback((oldStoreObj, newStoreObj) => {
     setUploadStoreObj(newStoreObj)
   }, [setUploadStoreObj])
 
   useEffect(() => {
-    return dataStore.subscribeToUpload(uploadId, onUploadStoreUpdated, true, true)
+    return dataStore.subscribeToUpload(apiBase, uploadId, onUploadStoreUpdated, true, true)
   }, [dataStore, uploadId, onUploadStoreUpdated])
 
   const history = useHistory()
@@ -49,9 +50,7 @@ const UploadPageContext = React.memo(function UploadPageContext({uploadId, child
     }
   })
 
-  const contextValue = useMemo(() => { return uploadStoreObj }, [uploadStoreObj])
-
-  return <uploadPageContext.Provider value={contextValue}>
+  return <uploadPageContext.Provider value={uploadStoreObj}>
     {children}
   </uploadPageContext.Provider>
 })

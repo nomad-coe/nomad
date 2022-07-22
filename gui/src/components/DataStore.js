@@ -19,6 +19,7 @@ import React, { useContext, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { useApi, DoesNotExist } from './api'
 import { useErrors } from './errors'
+import { apiBase } from '../config'
 
 function addSubscription(storeObj, cb, options) {
   storeObj.subscriptions.push({cb, ...options})
@@ -62,13 +63,16 @@ const DataStore = React.memo(({children}) => {
    * an object with default values, mostly undefined or nulls, will be returned). Note, it
    * does not cause the store to fetch any data; for that, a subscription is necessary.
    */
-  function getUpload(uploadId) {
+  function getUpload(installationUrl, uploadId) {
     if (!uploadId) return undefined
+    if (installationUrl !== apiBase) throw new Error('Fetching uploads from external installations is not yet supported')
     let uploadStoreObj = uploadStore.current[uploadId]
     if (!uploadStoreObj) {
       // Creates an initial, empty upload store object.
       uploadStoreObj = {
-        uploadId: uploadId, // ReadOnly
+        installationUrl, // ReadOnly
+        uploadId, // ReadOnly
+        isExternal: installationUrl !== apiBase, // ReadOnly
         deletionRequested: false, // Writable - If this upload has been sent for deletion
         upload: undefined, // Writeable - The last upload proc data fetched.
         entries: undefined, // ReadOnly - The last list of entries fetched by the store (when subscribing to an entry page).
@@ -88,7 +92,11 @@ const DataStore = React.memo(({children}) => {
         error: undefined, // If we had an api error from the last store refresh
         subscriptions: [],
         isRefreshing: false,
-        refreshOptions: null // The options used at the last store refresh
+        refreshOptions: null, // The options used at the last store refresh
+
+        // Convenience methods
+        updateUpload: (dataToUpdate) => { updateUpload(installationUrl, uploadId, dataToUpdate) },
+        requestRefreshUpload: () => { requestRefreshUpload(installationUrl, uploadId) }
       }
       uploadStore.current[uploadId] = uploadStoreObj
     }
@@ -101,9 +109,9 @@ const DataStore = React.memo(({children}) => {
    * will be removed when finished. Note that to keep the object in the store and watch it
    * also after this call has ended, you need to set up a subscription.
    */
-  async function getUploadAsync(uploadId, requireUpload, requireEntriesPage) {
+  async function getUploadAsync(installationUrl, uploadId, requireUpload, requireEntriesPage) {
     if (!uploadId) return undefined
-    const uploadStoreObj = getUpload(uploadId)
+    const uploadStoreObj = getUpload(installationUrl, uploadId)
     if (uploadRefreshSatisfiesOptions(uploadStoreObj, requireUpload, requireEntriesPage)) {
       return uploadStoreObj // Store has already been refreshed with the required options
     }
@@ -115,7 +123,7 @@ const DataStore = React.memo(({children}) => {
           resolve(newStoreObj)
         }
       }
-      subscribeToUpload(uploadId, cb, requireUpload, requireEntriesPage)
+      subscribeToUpload(installationUrl, uploadId, cb, requireUpload, requireEntriesPage)
     })
   }
 
@@ -123,22 +131,23 @@ const DataStore = React.memo(({children}) => {
    * Subscribes the callback cb to an upload, and returns a function to be called to unsubscribe.
    * Typically used in useEffect. The callback will be called when the store value changes.
    */
-  function subscribeToUpload(uploadId, cb, requireUpload, requireEntriesPage) {
+  function subscribeToUpload(installationUrl, uploadId, cb, requireUpload, requireEntriesPage) {
     if (!uploadId) return undefined
     if (requireUpload === undefined || requireEntriesPage === undefined) {
       throw Error('Store error: missing upload subscription parameter')
     }
-    const uploadStoreObj = getUpload(uploadId)
+    const uploadStoreObj = getUpload(installationUrl, uploadId)
     addSubscription(uploadStoreObj, cb, {requireUpload, requireEntriesPage})
-    initiateUploadRefreshIfNeeded(uploadId)
+    initiateUploadRefreshIfNeeded(installationUrl, uploadId)
     return function unsubscriber() { removeSubscription(uploadStore.current, uploadId, cb) }
   }
 
   /**
    * Updates the store upload with the specified data and notifies all subscribers.
    */
-  function updateUpload(uploadId, dataToUpdate) {
-    const oldStoreObj = getUpload(uploadId)
+  function updateUpload(installationUrl, uploadId, dataToUpdate) {
+    if (installationUrl !== apiBase) throw new Error('Cannot update external upload')
+    const oldStoreObj = getUpload(installationUrl, uploadId)
     const newStoreObj = {...oldStoreObj, ...dataToUpdate}
     // Compute derived values
     const user = userRef.current
@@ -174,7 +183,7 @@ const DataStore = React.memo(({children}) => {
       }
     }
     // Possibly, start a refresh job
-    initiateUploadRefreshIfNeeded(uploadId)
+    initiateUploadRefreshIfNeeded(installationUrl, uploadId)
   }
 
   function uploadOptions(uploadStoreObj) {
@@ -197,9 +206,9 @@ const DataStore = React.memo(({children}) => {
     return false
   }
 
-  async function refreshUpload(uploadId) {
+  async function refreshUpload(installationUrl, uploadId) {
     // Internal use: refresh an upload store obj with data from the API.
-    const uploadStoreObj = getUpload(uploadId)
+    const uploadStoreObj = getUpload(installationUrl, uploadId)
     const refreshOptions = uploadOptions(uploadStoreObj)
     const {requireUpload, requireEntriesPage} = refreshOptions
     if (!requireUpload && !requireEntriesPage) return
@@ -215,42 +224,42 @@ const DataStore = React.memo(({children}) => {
       const dataToUpdate = requireEntriesPage
         ? {error: undefined, isRefreshing: false, upload: apiData.response?.upload, entries: apiData.response?.data, apiData, pagination: currentPagination, refreshOptions}
         : {error: undefined, isRefreshing: false, upload: apiData.data, entries: undefined, apiData: undefined, refreshOptions}
-      updateUpload(uploadId, dataToUpdate)
+      updateUpload(installationUrl, uploadId, dataToUpdate)
     }).catch((error) => {
       if (requireEntriesPage && error.apiMessage === 'Page out of range requested.') {
         // Special case: can happen if entries have been deleted and the page we were on is no longer in range
         if (currentPagination && currentPagination.page !== 1) {
           // Rather than sending an update to all subscribers with an error, we first try
           // jumping to page 1 (will probably solve the problem)
-          getUpload(uploadId).pagination.page = 1
-          refreshUpload(uploadId)
+          getUpload(installationUrl, uploadId).pagination.page = 1
+          refreshUpload(installationUrl, uploadId)
           return
         }
       }
-      updateUpload(uploadId, {error: error, isRefreshing: false, refreshOptions})
+      updateUpload(installationUrl, uploadId, {error: error, isRefreshing: false, refreshOptions})
     })
   }
 
   /**
    * Use to nicely request a refresh of the upload store object.
    */
-  function requestRefreshUpload(uploadId) {
-    const uploadStoreObj = getUpload(uploadId)
+  function requestRefreshUpload(installationUrl, uploadId) {
+    const uploadStoreObj = getUpload(installationUrl, uploadId)
     if (!uploadStoreObj.isRefreshing) {
       // Refresh is not already in progress
-      refreshUpload(uploadId)
+      refreshUpload(installationUrl, uploadId)
     }
   }
 
-  async function initiateUploadRefreshIfNeeded(uploadId) {
+  async function initiateUploadRefreshIfNeeded(installationUrl, uploadId) {
     // Internal use: check if a refresh of the store is needed, and if so, initiate it.
-    let uploadStoreObj = getUpload(uploadId)
+    let uploadStoreObj = getUpload(installationUrl, uploadId)
     if (uploadStoreObj.isRefreshing) return // refresh already in progress
     if (uploadStoreObj.isProcessing) {
       // Upload is processing
       uploadStoreObj.isRefreshing = true // Signal start of a refresh
       await new Promise(resolve => setTimeout(resolve, 1000)) // wait one sec
-      uploadStoreObj = getUpload(uploadId)
+      uploadStoreObj = getUpload(installationUrl, uploadId)
     }
     // Determine if a refresh is needed or not
     const {requireUpload, requireEntriesPage} = uploadOptions(uploadStoreObj)
@@ -261,7 +270,7 @@ const DataStore = React.memo(({children}) => {
     const wrongPagination = requireEntriesPage && (pagIs?.page !== pag?.page || pagIs?.page_size !== pag.page_size)
     if (!uploadStoreObj.error && (uploadDataMissing || entryDataMissing || wrongPagination || uploadStoreObj.isProcessing)) {
       // Need to fetch data from the api
-      refreshUpload(uploadId)
+      refreshUpload(installationUrl, uploadId)
     } else {
       uploadStoreObj.isRefreshing = false
     }
