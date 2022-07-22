@@ -1,0 +1,149 @@
+{
+  "2a8cbe65e9653c6c7b814d5314109d60": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/users?user_id=undefined",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "16",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "4fb167ea4a236fd22afec9242e306b2f": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/users?prefix=schei",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "name": "Admin Administrator",
+              "first_name": "Admin",
+              "last_name": "Administrator",
+              "user_id": "c97facc2-92ec-4fa6-80cf-a08ed957255b",
+              "username": "admin",
+              "created": "2020-01-17T12:39:45.509000+00:00",
+              "is_admin": false,
+              "is_oasis_admin": false
+            },
+            {
+              "name": "Markus Scheidgen",
+              "first_name": "Markus",
+              "last_name": "Scheidgen",
+              "affiliation": "FHI",
+              "affiliation_address": "Berlin",
+              "user_id": "20bb9766-d338-4314-be43-7906042a5086",
+              "username": "mscheidg",
+              "created": "2019-08-28T14:00:32.403000+00:00",
+              "is_admin": false,
+              "is_oasis_admin": false
+            },
+            {
+              "name": "Markus Scheidgen",
+              "first_name": "Markus",
+              "last_name": "Scheidgen",
+              "affiliation": "dsl@2982ä`242",
+              "affiliation_address": "",
+              "user_id": "b225ca5d-b50d-486b-859a-fbab7d41da15",
+              "username": "mscheidgen",
+              "created": "2021-09-17T08:51:28.940000+00:00",
+              "repo_user_id": "null",
+              "is_admin": false,
+              "is_oasis_admin": false
+            },
+            {
+              "name": "Markus Scheidgen",
+              "first_name": "Markus",
+              "last_name": "Scheidgen",
+              "affiliation": "Affiliation",
+              "affiliation_address": "",
+              "user_id": "774fb559-4588-4148-8bb2-c9b1a72240a1",
+              "username": "mscheidgen1",
+              "created": "2022-01-28T11:25:52.286000+00:00",
+              "repo_user_id": "null",
+              "is_admin": false,
+              "is_oasis_admin": false
+            },
+            {
+              "name": "Markus Scheidgen",
+              "first_name": "Markus",
+              "last_name": "Scheidgen",
+              "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "username": "test",
+              "created": "2021-09-21T12:00:27.257000+00:00",
+              "is_admin": false,
+              "is_oasis_admin": false
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1810",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "13f25438d310781bc2b34b2f13009dca": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/users?user_id=20bb9766-d338-4314-be43-7906042a5086",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "name": "Markus Scheidgen",
+              "first_name": "Markus",
+              "last_name": "Scheidgen",
+              "affiliation": "FHI",
+              "affiliation_address": "Berlin",
+              "user_id": "20bb9766-d338-4314-be43-7906042a5086",
+              "username": "mscheidg",
+              "created": "2019-08-28T14:00:32.403000+00:00",
+              "is_admin": false,
+              "is_oasis_admin": false
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "389",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

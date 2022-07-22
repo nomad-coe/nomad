@@ -18,8 +18,9 @@
 
 import React from 'react'
 import {
+  closeAPI,
   render,
-  screen, wait
+  screen, startAPI, wait, waitForGUI
 } from '../conftest.spec'
 import {EditQuantityExamples} from './EditQuantityExamples'
 import {within} from '@testing-library/dom'
@@ -99,4 +100,27 @@ test('correctly renders edit quantities', async () => {
   await waitFor(() => expect(numberFieldValueInputInMeter.value).toEqual('1.5'))
   await waitFor(() => expect(numberFieldUnitInputInMeter.value).toEqual('Å'))
   await waitFor(() => expect(screen.queryByText(/"float_with_bounds": 1\.5e-10/i)).toBeInTheDocument())
+})
+
+test('Test UserEditQuantity', async () => {
+  await startAPI('tests.states.uploads.empty', 'tests/data/editquantity/user')
+  render(<EditQuantityExamples />)
+
+  // Wait to load the entry metadata, i.e. wait for some texts to appear
+  await screen.findByText('User')
+
+  const userField = screen.getByTestId('user-edit-quantity')
+  const userFieldInput = within(userField).getByRole('textbox')
+  userField.focus()
+  // assign an incomplete value to the input field
+  fireEvent.change(userFieldInput, { target: { value: 'schei' } })
+  await waitForGUI()
+  await waitFor(() => expect(userFieldInput.value).toEqual('schei'))
+  await waitForGUI()
+  fireEvent.keyDown(userField, { key: 'ArrowDown' })
+  fireEvent.keyDown(userField, { key: 'Enter' })
+  await waitForGUI()
+  await waitFor(() => expect(userFieldInput.value).toEqual('Markus Scheidgen (FHI)'))
+
+  closeAPI()
 })

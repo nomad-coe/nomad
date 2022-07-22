@@ -30,6 +30,8 @@ import RichTextEditQuantity from './RichTextEditQuantity'
 import ListEditQuantity from './ListEditQuantity'
 import { Code } from '../buttons/SourceDialogButton'
 import { stripIndent } from '../../utils'
+import UserEditQuantity from './UserEditQuantity'
+import AuthorEditQuantity from './AuthorEditQuantity'
 
 const enumValues = [
   'Vapor deposition', 'Chemical vapor deposition', 'Metalorganic vapour phase epitaxy', 'Electrostatic spray assisted vapour deposition (ESAVD)', 'Sherardizing',
@@ -395,6 +397,30 @@ export function EditQuantityExamples() {
                       component={StringEditQuantity}
                       {...createDefaultProps('list_fixed', {shape: [3]})}
                     />
+                  </Example>
+                </Grid>
+                <Grid item>
+                  <Example
+                    code={`
+                    string:
+                      type: User
+                      m_annotations:
+                        eln:
+                          component: UserEditQuantity`}
+                  >
+                    <UserEditQuantity {...createDefaultProps('User')} />
+                  </Example>
+                </Grid>
+                <Grid item>
+                  <Example
+                    code={`
+                    string:
+                      type: Author
+                      m_annotations:
+                        eln:
+                          component: AuthorEditQuantity`}
+                  >
+                    <AuthorEditQuantity {...createDefaultProps('Author')} />
                   </Example>
                 </Grid>
               </Grid>

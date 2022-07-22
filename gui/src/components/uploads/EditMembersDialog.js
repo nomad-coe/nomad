@@ -191,6 +191,30 @@ function MembersTable() {
   </Datatable>
 }
 
+export const fetchUsers = (api, previousQuery, newQuery) => {
+  return new Promise((resolve, reject) => {
+    api.getUsers(newQuery)
+      .then(users => {
+        const withQueryInName = users.filter(user => user.name.toLowerCase().indexOf(newQuery) !== -1)
+        withQueryInName.sort((a, b) => {
+          const aValue = a.name.toLowerCase()
+          const bValue = b.name.toLowerCase()
+          if (aValue.startsWith(newQuery)) {
+            return -1
+          } else if (bValue.startsWith(newQuery)) {
+            return 1
+          } else {
+            return 0
+          }
+        })
+        resolve(withQueryInName.slice(0, 5))
+      })
+      .catch(err => {
+        reject(err)
+      })
+  })
+}
+
 function AddMember({...props}) {
   const {api, raiseError} = props
   const [role, setRole] = useState('Co-author')
@@ -201,36 +225,22 @@ function AddMember({...props}) {
   const [isValid, setIsValid] = useState(false)
   const [query, setQuery] = useState('')
 
-  const fetchUsers = useCallback((event, value) => {
+  const handleInputChange = useCallback((event, value) => {
     const newQuery = value.toLowerCase()
     if (!(newQuery.startsWith(query) && suggestions.length === 0) || query === '') {
-      api.getUsers(newQuery)
-        .then(users => {
-          const withQueryInName = users.filter(user => user.name.toLowerCase().indexOf(newQuery) !== -1)
-          withQueryInName.sort((a, b) => {
-            const aValue = a.name.toLowerCase()
-            const bValue = b.name.toLowerCase()
-            if (aValue.startsWith(newQuery)) {
-              return -1
-            } else if (bValue.startsWith(newQuery)) {
-              return 1
-            } else {
-              return 0
-            }
-          })
-          setSuggestions(withQueryInName.slice(0, 5))
-        })
+      fetchUsers(api, query, newQuery)
+        .then(setSuggestions)
         .catch(err => {
           setSuggestions([])
           raiseError(err)
         })
     }
     setQuery(newQuery)
-  }, [api, raiseError, query, suggestions])
+  }, [api, query, raiseError, suggestions.length])
 
-  const handleInputChange = useMemo(() => (
-    debounce(fetchUsers, 700)
-  ), [fetchUsers])
+  const debouncedHandleInputChange = useMemo(() => (
+    debounce(handleInputChange, 700)
+  ), [handleInputChange])
 
   const handleChange = useCallback((event, value) => {
     if (value && value?.user_id) {
@@ -260,7 +270,7 @@ function AddMember({...props}) {
       options={suggestions}
       getOptionLabel={option => (option.affiliation ? `${option.name} (${option.affiliation})` : option.name)}
       getOptionSelected={(option, value) => value ? option.user_id === value.user_id : false}
-      onInputChange={handleInputChange}
+      onInputChange={debouncedHandleInputChange}
       onChange={handleChange}
       renderInput={params => (
         <TextField
