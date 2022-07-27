@@ -91,14 +91,16 @@ test('Browse metainfo pseudorandomly', async () => {
   const path = ''
   const lane = await navigateTo(path)
   const laneIndex = path ? path.split('/').length : 0
-  const {count, hash} = await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), metainfoItemFilter, 2)
+  const {count} = await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), metainfoItemFilter, 2)
+
+  // Currently we do not test that the visited items are the same using the hash
+  // returned by browseRecursively. This is because any change in the metainfo
+  // schema may modify the traversal order, thus changing the hash. If a fixed
+  // traversal would be required, the list of traversed items should be given
+  // explicitly, but that then can break if any of the items is removed/renamed.
 
   // Check that the tested number of paths is enough, but also not too high. Adjust
   // visitProbabilityDecayFactor if the number is not in this range.
   expect(count).toBeGreaterThan(500)
   expect(count).toBeLessThan(700)
-
-  // Check the "tree hash". If the metainfo tree changes, the hash will change, and we normally don't
-  // want the tree to change. If you DO expect the tree to change, update the expected hash accordingly.
-  expect(hash).toBe('6AS1sTOwh+g1ujJRrDq2nBrmZG6g')
 }, 20 * minutes) // NOTE!!! Do not increase this timeout! Rather, adjust the visitProbabilityDecayFactor
