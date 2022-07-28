@@ -963,6 +963,22 @@ class StagingUploadFiles(UploadFiles):
             # Special case - deleting everything, i.e. the entire raw folder. Need to recreate.
             os.makedirs(os_path)
 
+    def rename_rawfiles(self, path, filename, updated_files: Set[str] = None):
+        assert is_safe_relative_path(path)
+        raw_os_path = os.path.join(self.os_path, 'raw')
+        os_path = path
+        if not os.path.exists(os_path):
+            return
+        if os.path.isfile(os_path):
+            # Deleting a file
+            if updated_files is not None:
+                updated_files.add(path)
+            directory = os.path.dirname(os_path)
+            os.rename(os_path, os.path.join(directory, filename))
+        if path == '':
+            # Special case - deleting everything, i.e. the entire raw folder. Need to recreate.
+            os.makedirs(os_path)
+
     @lru_cache()
     def metadata_file_cached(self, path_dir: str = ''):
         '''

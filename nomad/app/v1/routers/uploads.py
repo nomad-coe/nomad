@@ -1023,6 +1023,220 @@ async def put_upload_raw_path(
     return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
 
 
+@router.post(
+    '/{upload_id}/raw/{path:path}', tags=[raw_tag],
+    summary='Upload a raw file to the specified path (directory) in the specified upload.',
+    response_class=StreamingResponse,
+    responses=create_responses(
+        _put_raw_file_response, _upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def put_upload_raw_path(
+        request: Request,
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        file: List[UploadFile] = File(None),
+        local_path: str = FastApiQuery(
+            None,
+            description=strip('''
+            Internal/Admin use only.''')),
+        file_name: str = FastApiQuery(
+            None,
+            description=strip('''
+            Specifies the name of the file, when using method 2.''')),
+        file_path: str = FastApiQuery(
+            None,
+            description=strip('''
+            Path to which a file stored on local machine.''')),
+        move: bool = FastApiQuery(
+            False,
+            description=strip('''
+            True if the copied files/dir is to be deleted (**USE WITH CARE**).''')),
+        wait_for_processing: bool = FastApiQuery(
+            False,
+            description=strip('''
+            Waits for the processing to complete and return information about the outcome
+            in the response (**USE WITH CARE**).''')),
+        include_archive: bool = FastApiQuery(
+            False,
+            description=strip('''
+            If the archive data should be included in the response when using
+            `wait_for_processing` (**USE WITH CARE**).''')),
+        entry_hash: str = FastApiQuery(
+            None,
+            description=strip('''
+            The hash code of the not modified entry.''')),
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
+    '''
+    Upload one or more files to the directory specified by `path` in the the upload specified by `upload_id`.
+
+    When uploading a zip or tar archive, it will first be extracted, and the content will be
+    *merged* with the existing content, i.e. new files are added, and if there is a collision
+    (an old file with the same path and name as one of the new files), the old file will
+    be overwritten, but the rest of the old files will remain untouched. If the file is not
+    a zip or tar archive, the file will just be uploaded as it is, overwriting the existing
+    file if there is one.
+
+    The `path` should denote a directory. The empty string gives the "root" directory.
+
+    If a single file is uploaded (and it is not a zip or tar archive), it is possible to specify
+    `wait_for_processing`. This means that the file (and only this file) will be matched and
+    processed, and information about the outcome will be returned with the response. **NOTE**:
+    this should be used with caution! When this option is set, the call will block until
+    processing is complete, which may take some time. Also note, that just processing the
+    new/modified file may not be enough in some cases (since adding/modifying a file somewhere
+    in the directory structure may affect other entries). Also note that
+    processing.entry.entry_metadata will not be populated in the response.
+
+    There are two basic ways to upload files: in the multipart-formdata or streaming the
+    file data in the http body. Both are supported. Note, however, that the second method
+    only allows the upload of a single file, and that it does not transfer a filename. If a
+    transfer is made using method 2, you can specify the query argument `file_name` to name it.
+    This *needs* to be specified when using method 2, unless you are uploading a zip/tar file
+    (for zip/tar files the names don't matter since they are extracted). See the POST `uploads`
+    endpoint for examples of curl commands for uploading files.
+    '''
+    if include_archive and not wait_for_processing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='`include_archive` requires `wait_for_processing`.')
+
+    upload = _get_upload_with_write_access(upload_id, user, include_published=False)
+
+    if not is_safe_relative_path(path):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Bad path provided.')
+
+    upload_paths, method = await _get_files_if_provided(
+        upload_id, request, file, local_path, file_name, user)
+
+    if entry_hash:
+        upload_path = upload_paths[0]
+        full_path = os.path.join(path, os.path.basename(upload_path))
+        entry_id = utils.generate_entry_id(upload_id, full_path)
+        entry = upload.get_entry(entry_id)
+        if entry and entry_hash != entry.entry_hash or not entry:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail='The provided hash did not match the current file.')
+
+    for upload_path in upload_paths:
+        decompress = files.auto_decompress(upload_path)
+        if decompress == 'error':
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Cannot extract file. Bad file format or file extension?')
+
+    if not wait_for_processing:
+        # Process on worker (normal case)
+
+        upload_files = StagingUploadFiles(upload_id)
+        if not upload_files.raw_path_exists(path):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='No file or folder with that path found.')
+
+        try:
+            upload_path = upload_files.external_os_path + '/raw/' + file_path
+            upload.process_upload(
+                file_operations=[
+                    dict(op='ADD', path=upload_path, target_dir=path, temporary=move)],
+                only_updated_files=True)
+            new_file_path = upload_files.external_os_path + '/raw/' + path + '/' + os.path.basename(file_path)
+            upload.process_upload(
+                file_operations=[
+                    dict(op='RENAME', path=new_file_path, newFileName=file_name, target_dir=path, temporary=move)],
+                only_updated_files=True)
+
+        except ProcessAlreadyRunning:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='The upload is currently blocked by another process.')
+
+        if request.headers.get('Accept') == 'application/json':
+            response = PutRawFileResponse(
+                upload_id=upload_id,
+                data=_upload_to_pydantic(upload))
+            response_text = response.json()
+            media_type = 'application/json'
+        else:
+            response_text = _thank_you_message
+            media_type = 'text/plain'
+    else:
+        # Process locally
+        if len(upload_paths) != 1 or decompress:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='`wait_for_processing` can only be used with single files, and not with compressed files.')
+
+        upload_path = upload_paths[0]
+        full_path = os.path.join(path, os.path.basename(upload_path))
+        try:
+            reprocess_settings = dict(
+                index_invidiual_entries=True, reprocess_existing_entries=True)
+            entry = upload.put_file_and_process_local(
+                upload_path, path, reprocess_settings=reprocess_settings)
+            if upload.process_status == ProcessStatus.FAILURE:
+                # Should only happen if we fail to put the file, match the file, or to *initiate*
+                # entry processing - i.e. normally, this shouldn't happen, not even with
+                # a badly formatted/unparsable mainfile.
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f'Failed to put and process: {upload.errors[0]}')
+
+            search_refresh()
+
+            archive = None
+            if entry and entry.process_status == ProcessStatus.SUCCESS and include_archive:
+                # NOTE: We can't rely on ES to get the metadata for the entry, since it may
+                # not have hade enough time to update its index etc. For now, we will just
+                # ignore this, as we do not need it.
+                entry_metadata = dict(
+                    upload_id=upload_id,
+                    entry_id=entry.entry_id,
+                    parser_name=entry.parser_name)
+                archive = answer_entry_archive_request(
+                    dict(upload_id=upload_id, mainfile=full_path),
+                    required='*', user=user,
+                    entry_metadata=entry_metadata)['data']['archive']
+
+            response = PutRawFileResponse(
+                upload_id=upload_id,
+                data=_upload_to_pydantic(upload),
+                processing=ProcessingData(
+                    upload_id=upload_id,
+                    path=full_path,
+                    entry_id=entry.entry_id if entry else None,
+                    parser_name=entry.parser_name if entry else None,
+                    entry=_entry_to_pydantic(entry) if entry else None,
+                    archive=archive))
+            response_text = response.json()
+            media_type = 'application/json'
+
+        except HTTPException:
+            raise
+        except ProcessAlreadyRunning:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='The upload is currently being processed, operation not allowed.')
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f'Unexpected exception occurred: {e}')
+        finally:
+            try:
+                shutil.rmtree(os.path.dirname(upload_path))
+            except Exception:
+                pass
+
+    return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
+
+
 @router.delete(
     '/{upload_id}/raw/{path:path}', tags=[raw_tag],
     summary='Delete the raw file or folder located at the specified path in the specified upload.',

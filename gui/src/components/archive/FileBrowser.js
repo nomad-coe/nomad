@@ -145,6 +145,9 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
   const { api } = useApi()
   const [openConfirmDeleteDirDialog, setOpenConfirmDeleteDirDialog] = useState(false)
   const [openCreateDirDialog, setOpenCreateDirDialog] = useState(false)
+  const [openCopyMoveDialog, setOpenCopyMoveDialog] = useState(false)
+  const [fileName, setFileName] = useState('')
+  const copyFileName = useRef()
   const createDirName = useRef()
   const { raiseError } = useErrors()
 
@@ -170,15 +173,26 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     return dataStore.subscribeToUpload(installationUrl, uploadId, refreshIfNeeded, true, false)
   }, [dataStore, installationUrl, uploadId, refreshIfNeeded])
 
-  const handleDrop = (files) => {
-    if (!files[0]?.name) {
-      return // Not dropping a file, but something else. Ignore.
+  const handleDrop = (e) => {
+    const files = e.dataTransfer.files
+    const _filePath = e.dataTransfer.getData('URL')
+    if (files.length) { // files are being transferred
+      const formData = new FormData() // eslint-disable-line no-undef
+      for (const file of files) {
+        formData.append('file', file)
+      }
+      api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData)
+        .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
+        .catch(error => raiseError(error))
+    } else if (_filePath) {
+      setFileName(_filePath.slice(_filePath.indexOf('files')).split('/').slice(1).join('/'))
+      setOpenCopyMoveDialog(true)
     }
-    const formData = new FormData() // eslint-disable-line no-undef
-    for (const file of files) {
-      formData.append('file', file)
-    }
-    api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData)
+  }
+
+  const handleCopyMoveFile = (e) => {
+    setOpenCopyMoveDialog(false)
+    api.post(`/uploads/${uploadId}/raw/${encodedPath}?move=${e.moveFile}&file_path=${fileName}&file_name=${copyFileName.current.value}`)
       .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
       .catch(error => raiseError(error))
   }
@@ -217,11 +231,12 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     // Data loaded
     const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?compress=true` // TODO: installationUrl need to be considered for external uploads
     return (
-      <Dropzone
+      <div
         disabled={!editable}
         className={classes.dropzoneLane}
-        activeClassName={classes.dropzoneActive}
-        onDrop={handleDrop} disableClick
+        onDrop={handleDrop}
+        // onMouseOver={e => (e.target.style.backgroundColor = 'grey')}
+        // onMouseOut={e => (e.target.style.backgroundColor = 'white')}
       >
         <Content key={path}>
           <Title
@@ -293,6 +308,29 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
                 }
                 {
                   editable &&
+                    <Dialog
+                      open={openCopyMoveDialog}
+                      onClose={() => setOpenCopyMoveDialog(false)}
+                    >
+                      <DialogContent>
+                        <DialogContentText>Copy/move <b>{fileName}</b>:</DialogContentText>
+                        <TextField
+                          fullWidth
+                          placeholder='Provide a name'
+                          autoFocus
+                          inputRef={copyFileName}
+                          defaultValue={fileName.split('/').splice(-1)}
+                        />
+                      </DialogContent>
+                      <DialogActions>
+                        <Button onClick={() => setOpenCopyMoveDialog(false)}>Cancel</Button>
+                        <Button onClick={(e) => handleCopyMoveFile({...e, moveFile: false})}>Copy</Button>
+                        <Button onClick={(e) => handleCopyMoveFile({...e, moveFile: true})}>Move</Button>
+                      </DialogActions>
+                    </Dialog>
+                }
+                {
+                  editable &&
                     <Grid item>
                       <IconButton size="small" onClick={() => setOpenConfirmDeleteDirDialog(true)}>
                         <Tooltip title="delete this folder">
@@ -335,7 +373,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
             }
           </Compartment>
         </Content>
-      </Dropzone>)
+      </div>)
   }
 }
 RawDirectoryContent.propTypes = {

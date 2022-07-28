@@ -1673,6 +1673,12 @@ class Upload(Proc):
                     self.set_last_status_message('Deleting files')
                     with utils.timer(logger, 'Deleting files or folders from upload'):
                         staging_upload_files.delete_rawfiles(file_operation['path'], updated_files)
+                elif op == 'RENAME':
+                    self.set_last_status_message('Renaming files')
+                    with utils.timer(logger, 'Renaming files from upload'):
+                        staging_upload_files.rename_rawfiles(file_operation['path'],
+                                                             file_operation['newFileName'],
+                                                             updated_files)
                 else:
                     raise ValueError(f'Unknown operation {op}')
         return updated_files
