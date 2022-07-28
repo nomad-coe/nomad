@@ -185,6 +185,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
         .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
         .catch(error => raiseError(error))
     } else if (_filePath) {
+      if (!_filePath.includes('nomad/latest/gui/user/uploads/upload')) return
       setFileName(_filePath.slice(_filePath.indexOf('files')).split('/').slice(1).join('/'))
       setOpenCopyMoveDialog(true)
     }

@@ -965,7 +965,6 @@ class StagingUploadFiles(UploadFiles):
 
     def rename_rawfiles(self, path, filename, updated_files: Set[str] = None):
         assert is_safe_relative_path(path)
-        raw_os_path = os.path.join(self.os_path, 'raw')
         os_path = path
         if not os.path.exists(os_path):
             return

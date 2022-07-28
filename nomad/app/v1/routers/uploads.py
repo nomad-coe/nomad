@@ -1031,7 +1031,7 @@ async def put_upload_raw_path(
         _put_raw_file_response, _upload_not_found, _not_authorized_to_upload, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def put_upload_raw_path(
+async def post_upload_raw_path(
         request: Request,
         upload_id: str = Path(
             ...,
@@ -1112,7 +1112,7 @@ async def put_upload_raw_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Bad path provided.')
 
-    upload_paths, method = await _get_files_if_provided(
+    upload_paths = await _get_files_if_provided(
         upload_id, request, file, local_path, file_name, user)
 
     if entry_hash:
@@ -1147,7 +1147,7 @@ async def put_upload_raw_path(
                 file_operations=[
                     dict(op='ADD', path=upload_path, target_dir=path, temporary=move)],
                 only_updated_files=True)
-            new_file_path = upload_files.external_os_path + '/raw/' + path + '/' + os.path.basename(file_path)
+            new_file_path = upload_files.external_os_path + '/raw/' + (path if (path == '') else (path + '/')) + os.path.basename(file_path)
             upload.process_upload(
                 file_operations=[
                     dict(op='RENAME', path=new_file_path, newFileName=file_name, target_dir=path, temporary=move)],
