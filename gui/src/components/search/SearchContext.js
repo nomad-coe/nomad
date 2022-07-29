@@ -36,7 +36,8 @@ import {
   isSet,
   isFunction,
   size,
-  isEqual
+  isEqual,
+  merge
 } from 'lodash'
 import qs from 'qs'
 import PropTypes from 'prop-types'
@@ -103,6 +104,7 @@ export const SearchContext = React.memo(({
   resource,
   filtersLocked,
   initialPagination,
+  initialStatistics,
   children
 }) => {
   const {api} = useApi()
@@ -134,7 +136,7 @@ export const SearchContext = React.memo(({
 
   // Initialize the search context state: any parameters in the URL are read and
   // default values as specified in filter registry are loaded
-  const [initialQuery, initialAggs, initialStatistics, filterDefaults] = useMemo(() => {
+  const [initialQuery, initialAggs, finalStatistics, filterDefaults] = useMemo(() => {
     const filterDefaults = {}
     for (const [key, value] of Object.entries(filterData)) {
       if (!isNil(value.default)) {
@@ -150,6 +152,9 @@ export const SearchContext = React.memo(({
       [queryURL, statisticsURL] = qsToSearch(qs)
     }
 
+    // Any statistics given in the URL override the initial statistics
+    const finalStatistics = merge(initialStatistics || {}, statisticsURL)
+
     const initialAggs = {}
     for (const key of filters) {
       initialAggs[key] = {
@@ -159,10 +164,10 @@ export const SearchContext = React.memo(({
     return [
       {...queryURL, ...toGUIFilter(filtersLocked)},
       initialAggs,
-      statisticsURL,
+      finalStatistics,
       filterDefaults
     ]
-  }, [filterData, filters, filtersLocked])
+  }, [filterData, filters, filtersLocked, initialStatistics])
 
   // Initialize a bunch of Recoil.js states and hooks. Notice how we are not using a set
   // of global states, but instead each SearchContext gets it's own states. This
@@ -293,7 +298,7 @@ export const SearchContext = React.memo(({
 
     const statisticFamily = atomFamily({
       key: `statisticFamily_${indexContext}`,
-      default: (name) => initialStatistics[name]
+      default: (name) => finalStatistics[name]
     })
 
     // Used to get/set the the statistics configuration of all filters
@@ -737,7 +742,7 @@ export const SearchContext = React.memo(({
       useAgg,
       useSetFilters
     ]
-  }, [initialQuery, filters, filtersLocked, initialStatistics, initialAggs, initialPagination, resource, filterData])
+  }, [initialQuery, filters, filtersLocked, finalStatistics, initialAggs, initialPagination, resource, filterData])
 
   const setResults = useSetRecoilState(resultsState)
   const setApiData = useSetRecoilState(apiDataState)
@@ -1067,6 +1072,7 @@ SearchContext.propTypes = {
   resource: PropTypes.string,
   filtersLocked: PropTypes.object,
   initialPagination: PropTypes.object,
+  initialStatistics: PropTypes.object,
   children: PropTypes.node
 }
 
@@ -1092,7 +1098,7 @@ function qsToSearch(queryString) {
   const stats = queryObj.statistics
   if (stats) {
     const statsArray = isArray(stats) ? stats : [stats]
-    statsArray.forEach((name, i) => { statistics[name] = {index: i} })
+    statsArray.forEach((name, i) => { statistics[name] = {index: Date.now() + i} })
     delete queryObj.statistics
   }
 

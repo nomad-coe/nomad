@@ -19,6 +19,7 @@ import React from 'react'
 import { Router, Route } from 'react-router-dom'
 import { QueryParamProvider } from 'use-query-params'
 import { RecoilRoot } from 'recoil'
+import CssBaseline from '@material-ui/core/CssBaseline'
 import history from '../history'
 import DateFnsUtils from '@date-io/date-fns'
 import { MuiPickersUtilsProvider } from '@material-ui/pickers'
@@ -49,6 +50,7 @@ export default function App() {
               <Router history={history}>
                 <QueryParamProvider ReactRouterRoute={Route}>
                   <MuiThemeProvider theme={nomadTheme}>
+                    <CssBaseline />
                     <ErrorSnacks>
                       <ErrorBoundary>
                         <GlobalLoginRequired>

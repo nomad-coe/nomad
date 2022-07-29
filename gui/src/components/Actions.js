@@ -113,7 +113,8 @@ export const Action = React.memo(({
   TooltipProps,
   className,
   classes,
-  children
+  children,
+  'data-testid': testID
 }) => {
   const styles = useActionStyles({classes: classes})
 
@@ -129,6 +130,7 @@ export const Action = React.memo(({
         disabled={disabled}
         href={href}
         aria-label={tooltip}
+        data-testid={testID}
       >
         {children}
       </IconButton>
@@ -143,6 +145,7 @@ export const Action = React.memo(({
         disabled={disabled}
         href={href}
         aria-label={tooltip}
+        data-testid={testID}
       >
         {children}
       </Button>
@@ -163,7 +166,8 @@ Action.propTypes = {
   TooltipProps: PropTypes.object,
   className: PropTypes.string,
   classes: PropTypes.object,
-  children: PropTypes.node
+  children: PropTypes.node,
+  'data-testid': PropTypes.string
 }
 
 Action.defaultProps = {

@@ -20,7 +20,7 @@ import { fireEvent } from '@testing-library/dom'
 import userEvent from '@testing-library/user-event'
 import { format } from 'date-fns'
 import { startAPI, closeAPI, screen } from '../../conftest.spec'
-import { renderSearchEntry, expectInputHeader } from '../conftest.spec'
+import { renderSearchEntry, expectInputRange } from '../conftest.spec'
 import InputRange from './InputRange'
 import { filterData } from '../FilterRegistry'
 import { DType, formatNumber } from '../../../utils'
@@ -47,29 +47,7 @@ describe('test initial state', () => {
     time_histogram
   ])('quantity: %s, histogram: %s', async (quantity, histogram, min, max) => {
     renderSearchEntry(<InputRange visible quantity={quantity} disableHistogram={!histogram}/>)
-
-    // Test immediately displayed elements
-    expectInputHeader(quantity, true)
-    const data = filterData[quantity]
-    const dtype = data.dtype
-    if (dtype === DType.Timestamp) {
-      expect(screen.getByText('Start time')).toBeInTheDocument()
-      expect(screen.getByText('End time')).toBeInTheDocument()
-    } else {
-      expect(screen.getByText('min')).toBeInTheDocument()
-      expect(screen.getByText('max')).toBeInTheDocument()
-    }
-
-    // Get the formatted datetime in current timezone (timezones differ, so the
-    // local timezone must be used in order to prevent tests from breaking).
-    if (dtype === DType.Timestamp) {
-      min = format(min, 'dd/MM/yyyy kk:mm')
-      max = format(max, 'dd/MM/yyyy kk:mm')
-    }
-
-    // Test elements that are displayed after API response
-    expect(await screen.findByDisplayValue(min)).toBeInTheDocument()
-    expect(await screen.findByDisplayValue(max)).toBeInTheDocument()
+    await expectInputRange(quantity, false, histogram, false, min, max)
   })
 })
 

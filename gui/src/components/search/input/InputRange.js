@@ -669,6 +669,7 @@ const InputRange = React.memo(({
               handleRangeChange(event, value, false)
               handleRangeCommit(event, value)
             }}
+            data-testid={`${testID}-histogram`}
           />
         }
         {!anchored && <div className={styles.row}>
@@ -724,7 +725,8 @@ InputRange.propTypes = {
 InputRange.defaultProps = {
   nSteps: 20,
   nBins: 30,
-  aggId: 'default'
+  aggId: 'default',
+  'data-testid': 'inputrange'
 }
 
 export default InputRange

@@ -225,10 +225,10 @@ function registerFilterOptions(name, group, target, label, description, options)
 /**
  * Tries to automatically create a suitable statistics component for the given
  * quantity.
- * @param {string} quantity
- * @param {bool} nested
- * @param {DType} dtype
- * @returns A statistics setup.
+ *
+ * @param {string} parent Parent quantity
+ * @param {DType} dtype Datatype of the quantity
+ * @returns A statistics setup including the component and a layout.
  */
 const getStatsComponent = (parent, dtype) => {
   const section = filterData?.[parent]?.section
@@ -249,16 +249,16 @@ const getStatsComponent = (parent, dtype) => {
     return {
       component: wrap(InputRange),
       layout: {
-        width: 'medium',
-        ratio: 3 / 1
+        width: 8,
+        height: 3
       }
     }
   } else {
     return {
       component: wrap(InputList),
       layout: {
-        width: 'small',
-        ratio: 3 / 4
+        width: 6,
+        height: 8
       }
     }
   }
@@ -267,8 +267,8 @@ const getStatsComponent = (parent, dtype) => {
 const ptStatConfig = {
   component: InputPeriodicTable,
   layout: {
-    width: 'large',
-    ratio: 3 / 2
+    width: 12,
+    height: 8
   }
 }
 

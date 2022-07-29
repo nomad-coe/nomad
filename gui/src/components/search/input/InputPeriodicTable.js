@@ -27,7 +27,6 @@ import {
 } from '@material-ui/core'
 import InputHeader from './InputHeader'
 import InputCheckbox from './InputCheckbox'
-import AspectRatio from '../../visualization/AspectRatio'
 import { makeStyles } from '@material-ui/core/styles'
 import { useSearchContext } from '../SearchContext'
 import { approxInteger } from '../../../utils'
@@ -243,10 +242,13 @@ Element.propTypes = {
  * Represents a single element in the periodic table.
 */
 const useTableStyles = makeStyles(theme => ({
-  root: {},
+  root: {
+    display: 'flex',
+    flexDirection: 'column'
+  },
   container: {
-    position: 'relative',
-    margin: -1
+    flex: '1 1 100%',
+    position: 'relative'
   },
   table: {
     width: '100%',
@@ -280,7 +282,8 @@ const InputPeriodicTable = React.memo(({
   initialScale,
   anchored,
   disableStatistics,
-  aggId
+  aggId,
+  className
 }) => {
   const styles = useTableStyles()
   const {filterData, useFilterState, useAgg, useIsStatisticsEnabled} = useSearchContext()
@@ -331,7 +334,7 @@ const InputPeriodicTable = React.memo(({
     })
   }, [setFilter])
 
-  const table = useMemo(() => (<div className={styles.root}>
+  const table = useMemo(() => (<div className={clsx(styles.root, className)}>
     <InputHeader
       quantity={quantity}
       label={labelFinal}
@@ -340,45 +343,41 @@ const InputPeriodicTable = React.memo(({
       onChangeScale={setScale}
       disableStatistics={disableStatistics}
       disableAggSize
-      draggable={anchored}
+      anchored={anchored}
     />
     <div className={styles.container}>
-      <AspectRatio
-        aspectRatio={17 / 10}
-      >
-        <table className={styles.table}>
-          <tbody>
-            {elements.map((row, i) => (
-              <tr key={i}>
-                {row.map((element, j) => (
-                  <td key={j} className={styles.td}>
-                    {element
-                      ? <Element
-                        element={element}
-                        disabled={!availableValues[element.symbol]}
-                        onClick={() => onElementClicked(element.symbol)}
-                        selected={localFilter.current.has(element.symbol)}
-                        // The colors are normalized with respect to the maximum
-                        // aggregation size for an unselected element.
-                        max={agg
-                          ? Math.max(...agg.data
-                            .filter(option => !localFilter.current.has(option.value))
-                            .map(option => option.count))
-                          : 0
-                        }
-                        count={availableValues[element.symbol]}
-                        localFilter={localFilter.current}
-                        scale={scale}
-                        disableStatistics={disableStatistics}
-                      />
-                      : ''}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </AspectRatio>
+      <table className={styles.table}>
+        <tbody>
+          {elements.map((row, i) => (
+            <tr key={i}>
+              {row.map((element, j) => (
+                <td key={j} className={styles.td}>
+                  {element
+                    ? <Element
+                      element={element}
+                      disabled={!availableValues[element.symbol]}
+                      onClick={() => onElementClicked(element.symbol)}
+                      selected={localFilter.current.has(element.symbol)}
+                      // The colors are normalized with respect to the maximum
+                      // aggregation size for an unselected element.
+                      max={agg
+                        ? Math.max(...agg.data
+                          .filter(option => !localFilter.current.has(option.value))
+                          .map(option => option.count))
+                        : 0
+                      }
+                      count={availableValues[element.symbol]}
+                      localFilter={localFilter.current}
+                      scale={scale}
+                      disableStatistics={disableStatistics}
+                    />
+                    : ''}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
       <div className={styles.formContainer}>
         <InputCheckbox
           quantity="exclusive"
@@ -402,7 +401,8 @@ InputPeriodicTable.propTypes = {
   initialScale: PropTypes.string,
   anchored: PropTypes.bool,
   disableStatistics: PropTypes.bool,
-  aggId: PropTypes.string
+  aggId: PropTypes.string,
+  className: PropTypes.string
 }
 
 InputPeriodicTable.defaultProps = {

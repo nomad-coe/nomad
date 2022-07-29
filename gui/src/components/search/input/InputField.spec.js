@@ -48,7 +48,7 @@ describe('', () => {
   test('initial state is loaded correctly for quantity with fixed options', async () => {
     // Test immediately displayed elements
     const allOptions = getAllOptions(quantity)
-    expectInputHeader(quantity)
+    await expectInputHeader(quantity)
     for (const option of allOptions) {
       expect(await screen.findByText(option)).toBeInTheDocument()
     }
@@ -71,15 +71,15 @@ describe('', () => {
   afterEach(() => closeAPI())
 
   test('initial state is loaded correctly for quantity with dynamically loaded options', async () => {
-    // Test immediately displayed elements
-    expectInputHeader(quantity)
-
     // Test that placeholder is shown while loading
     const placeholder = screen.queryByTestId('inputfield-placeholder')
     expect(placeholder).toBeInTheDocument()
 
     // Check that placeholder disappears
     await waitForElementToBeRemoved(() => screen.queryByTestId('inputfield-placeholder'))
+
+    // Test header
+    await expectInputHeader(quantity)
 
     // Test that options become selectable after API call finishes
     await expectOptions(['VASP', 'exciting'], optionsProgramName)
@@ -108,7 +108,7 @@ describe('', () => {
 
     // Select 'bulk' and test that all options are still available.
     const checkbox = queryByInputItemName('bulk')
-    userEvent.click(checkbox)
+    await userEvent.click(checkbox)
     await expectOptions(optionsStructural, optionsStructural)
   })
 })
@@ -132,7 +132,7 @@ describe('', () => {
     // Select PBE exchange and test that only PBE correlation is shown
     // afterwards
     const checkbox = queryByInputItemName('GGA_C_PBE_SOL')
-    userEvent.click(checkbox)
+    await userEvent.click(checkbox)
     await expectOptions(['GGA_C_PBE_SOL', 'GGA_X_PBE_SOL'], optionsXC, false)
   })
 })
@@ -160,7 +160,7 @@ describe('', () => {
 
     // Start typing a value, it is expected that a list of suggestions will be
     // shown shortly afterwards
-    userEvent.type(input, 'SOL')
+    await userEvent.type(input, 'SOL')
     const suggestions = ['GGA_C_PBE_SOL', 'GGA_X_PBE_SOL']
     for (const suggestion of suggestions) {
       await screen.findByMenuItem(suggestion)
@@ -168,7 +168,7 @@ describe('', () => {
 
     // Select a suggested option by clicking it. This should update the list.
     const suggestion = screen.getByMenuItem('GGA_C_PBE_SOL')
-    userEvent.click(suggestion)
+    await userEvent.click(suggestion)
     await expectOptions(suggestions, suggestions, false)
   })
 })
