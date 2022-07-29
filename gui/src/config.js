@@ -67,6 +67,21 @@ export const nomadTheme = createTheme({
     secondary: nomadSecondaryColor
   },
   overrides: {
+    // This is used to inject global css styles through the CssBaseline
+    // component, see: https://v4.mui.com/customization/globals/#global-css
+    MuiCssBaseline: {
+      '@global': {
+        '.react-grid-item.react-grid-placeholder': {
+            backgroundColor: nomadSecondaryColor.main
+        },
+        // This rule is overwritten. The normalization was added quite late into
+        // the app and the 'box-sizing: inherit' -rule would mess up the layout
+        // quite a bit.
+        '*, *::before, *::after': {
+          boxSizing: 'revert'
+        }
+      }
+    },
     MuiTooltip: {
       tooltip: {
         fontWeight: 'normal',

@@ -31,7 +31,6 @@ import { atom, atomFamily, useRecoilState, useRecoilCallback, useRecoilValue } f
 
 const presets = {
   new: {
-    align: 'right',
     icon: 'filled',
     iconSize: 'small',
     menu: 'visible',
@@ -41,7 +40,6 @@ const presets = {
     aggCollapse: 'off'
   },
   old: {
-    align: 'right',
     icon: 'plain',
     iconSize: 'medium',
     menu: 'hidden',
@@ -100,7 +98,6 @@ const useStyles = makeStyles(theme => ({
 const GUIMenu = React.memo(() => {
   const styles = useStyles()
   const [visible, setVisible] = useState(false)
-  const [align, setAlign] = useRecoilState(guiState('align'))
   const [icon, setIcon] = useRecoilState(guiState('icon'))
   const [iconSize, setIconSize] = useRecoilState(guiState('iconSize'))
   const [menu, setMenu] = useRecoilState(guiState('menu'))
@@ -190,13 +187,6 @@ const GUIMenu = React.memo(() => {
           onChange={setMenu}
           tooltip="Controls the display style for filter settings that include e.g. statistics scaling."
           options={['hidden', 'visible']}
-        />
-        <GUIMenuItem
-          title="Statistics icon alignment"
-          value={align}
-          onChange={setAlign}
-          tooltip="Controls the alignment of the icon that is used to add/remove a filter from the statistics grid."
-          options={['left', 'right']}
         />
         <GUIMenuItem
           title="Statistics icon style"

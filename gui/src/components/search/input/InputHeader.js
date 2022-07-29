@@ -30,16 +30,10 @@ import {
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { useRecoilValue } from 'recoil'
-import MUIAddIcon from '@material-ui/icons/Add'
-import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline'
-import CloseIcon from '@material-ui/icons/Close'
-import HighlightOffIcon from '@material-ui/icons/HighlightOff'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
-import AddCircleIcon from '@material-ui/icons/AddCircle'
-import CancelIcon from '@material-ui/icons/Cancel'
 import InputTitle from './InputTitle'
-import { useSearchContext } from '../SearchContext'
 import { Actions, ActionHeader, Action } from '../../Actions'
+import StatisticsToggle from '../statistics/StatisticsToggle'
 import { scales } from '../../plotting/common'
 import { guiState } from '../../GUIMenu'
 import { useBoolState } from '../../../hooks'
@@ -85,17 +79,12 @@ const InputHeader = React.memo(({
   anchored,
   classes
 }) => {
-  const { useStatisticState } = useSearchContext()
   const styles = useStyles({classes: classes})
-  const [statistic, setStatistic] = useStatisticState(quantity)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const isSettingsOpen = Boolean(anchorEl)
   const [isStatsTooltipOpen, openStatsTooltip, closeStatsTooltip] = useBoolState(false)
   const [isDragging, setDragging, setNotDragging] = useBoolState(false)
   const [isTooltipOpen, openTooltip, closeTooltip] = useBoolState(false)
-  const align = useRecoilValue(guiState('align'))
-  const icon = useRecoilValue(guiState('icon'))
-  const iconSize = useRecoilValue(guiState('iconSize'))
   const menu = useRecoilValue(guiState('menu'))
 
   const openMenu = useCallback((event) => {
@@ -116,26 +105,6 @@ const InputHeader = React.memo(({
     onClose: closeTooltip,
     onOpen: () => !isDragging && openTooltip()
   }), [isTooltipOpen, closeTooltip, isDragging, openTooltip])
-
-  let RemoveIcon, AddIcon
-  if (icon === 'plain') {
-    RemoveIcon = CloseIcon
-    AddIcon = MUIAddIcon
-  } else if (icon === 'outlined') {
-    RemoveIcon = HighlightOffIcon
-    AddIcon = AddCircleOutlineIcon
-  } else if (icon === 'filled') {
-    RemoveIcon = CancelIcon
-    AddIcon = AddCircleIcon
-  }
-
-  const control = <Action
-    tooltip={statistic ? 'Remove statistics from the results panel.' : 'Display statistics for this filter in the results panel.'}
-    disabled={disableAnchoring}
-    onClick={() => setStatistic(old => !old)}
-  >
-    {statistic ? <RemoveIcon fontSize={iconSize}/> : <AddIcon fontSize={iconSize}/>}
-  </Action>
 
   // Dedice the menu component. The tooltip of scale dropdown needs to be
   // controlled, otherwise it won't close as we open the select menu.
@@ -187,11 +156,10 @@ const InputHeader = React.memo(({
     </Action>
 
   return <Actions className={clsx(styles.root, className)}>
-    {align === 'left' && !disableAnchoring && control}
     <ActionHeader disableSpacer>
       <div
         className={clsx(styles.row, anchored ? 'dragHandle' : undefined)}
-        style={{cursor: anchored ? (isDragging ? 'grabbing' : 'grab') : undefined}}
+        style={{cursor: anchored ? 'grabbing' : 'unset'}}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >
@@ -207,7 +175,7 @@ const InputHeader = React.memo(({
     </ActionHeader>
     {actionsAlign === 'left' && actions}
     {!disableStatistics && menuComp}
-    {align === 'right' && !disableAnchoring && control}
+    {!disableAnchoring && <StatisticsToggle quantity={quantity} disabled={disableAnchoring} />}
     {actionsAlign === 'right' && actions}
   </Actions>
 })

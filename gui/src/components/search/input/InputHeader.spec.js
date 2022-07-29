@@ -22,5 +22,5 @@ import InputHeader from './InputHeader'
 test('initial state is loaded correctly', async () => {
   const quantity = 'results.material.n_elements'
   renderSearchEntry(<InputHeader quantity={quantity}/>)
-  expectInputHeader(quantity)
+  await expectInputHeader(quantity)
 })

@@ -99,7 +99,8 @@ const InputList = React.memo(({
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
   const { height, ref } = useResizeDetector()
-  const aggSize = useMemo(() => Math.floor(height / inputItemHeight), [height])
+  // The terms aggregations need to request at least 1 item or an API error is thrown
+  const aggSize = useMemo(() => Math.max(Math.floor(height / inputItemHeight), 1), [height])
   const aggConfig = useMemo(() => ({type: 'terms', size: aggSize}), [aggSize])
   const agg = useAgg(quantity, !isNil(height) && visible, aggId, aggConfig)
   const max = agg ? Math.max(...agg.data.map(option => option.count)) : 0
@@ -157,6 +158,8 @@ const InputList = React.memo(({
     return [aggComp, nShown]
   }, [agg, aggIndicator, aggConfig, filter, handleChange, locked, max, scale, styles, testID])
 
+  const count = pluralize('item', nShown, true)
+
   return <InputTooltip locked={locked}>
     <div className={clsx(className, styles.root)}>
       <InputHeader
@@ -173,11 +176,11 @@ const InputList = React.memo(({
       </div>
       {nShown !== 0 && <div className={styles.count}>
         <Typography variant="overline">
-          {nShown === 1
-            ? 'Showing the only item'
-            : agg.data.length <= aggConfig.size
-              ? `Showing all ${pluralize('item', nShown, true)}`
-              : `Showing top ${pluralize('item', nShown, true)}`
+          {nShown < aggConfig.size
+            ? nShown === 1
+              ? 'Showing the only item'
+              : `Showing all ${count}`
+            : `Showing top ${count}`
           }
         </Typography>
       </div>}
@@ -199,7 +202,8 @@ InputList.propTypes = {
 }
 
 InputList.defaultProps = {
-  aggId: 'default'
+  aggId: 'default',
+  'data-testid': 'inputlist'
 }
 
 export default InputList

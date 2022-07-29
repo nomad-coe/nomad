@@ -432,6 +432,8 @@ export const Routes = React.memo(function Routes() {
           component={route.component}
           render={route.render}
           when={route.cache}
+          unmount={false}
+          saveScrollPosition={false}
           className={route.cache && styles.wrapper}
         >
           {route.children || undefined}

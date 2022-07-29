@@ -16,55 +16,58 @@
  * limitations under the License.
  */
 import React from 'react'
-import { waitForElementToBeRemoved } from '@testing-library/dom'
-import { startAPI, closeAPI, screen } from '../../conftest.spec'
-import { renderSearchEntry, expectInputHeader } from '../conftest.spec'
+import { startAPI, closeAPI } from '../../conftest.spec'
+import { renderSearchEntry, expectInputList } from '../conftest.spec'
 import InputList from './InputList'
 
 // Mock the useResizeObserver hook. The test environment does not provide any
 // resize events on it's own.
 jest.mock('react-resize-detector', () => {
   return {useResizeDetector: () => {
-    return {height: 300, ref: undefined}
+    // Size is adjusted so that 3 items can fit.
+    return {height: 120, ref: undefined}
   }}
 })
 
-const quantity = 'results.material.structural_type'
-const stateName = 'tests.states.search.search'
+describe('initial state is loaded correctly', () => {
+  beforeAll(async () => {
+    await startAPI('tests.states.search.search', 'tests/data/search/inputlist')
+  })
+  afterAll(() => closeAPI())
 
-describe('', () => {
-  beforeEach(async () => {
-    // API state with single terms aggregation result
-    await startAPI(stateName, 'tests/data/search/inputlist')
-
-    // Render InputList within an entry search context. The component is wrapped
-    // inside a div that controls the final size.
+  test.each([
+    [
+      'show all',
+      'results.method.simulation.program_name',
+      ['VASP', 'exciting'],
+      'all'
+    ],
+    [
+      'show n first',
+      'results.method.simulation.dft.xc_functional_names',
+      ['GGA_C_PBE_SOL', 'GGA_X_PBE_SOL', 'LDA_C_PZ'],
+      'top'
+    ],
+    [
+      'show only item',
+      'results.method.simulation.dft.xc_functional_type',
+      ['not processed'],
+      'single'
+    ],
+    [
+      'no results',
+      'results.material.functional_type',
+      [],
+      undefined
+    ]
+  ])('%s', async (name, quantity, items, prompt) => {
     renderSearchEntry(<InputList
       quantity={quantity}
       visible
       draggable
       aggId="statistics"
-      data-testid="inputlist"
     />
     )
-  })
-  afterEach(() => closeAPI())
-
-  test('initial state is loaded correctly', async () => {
-    // Test immediately displayed elements
-    expectInputHeader(quantity)
-
-    // Test that placeholder is shown while loading
-    const placeholder = screen.getByTestId('inputlist-placeholder')
-    expect(placeholder).toBeInTheDocument()
-
-    // Check that placeholder disappears
-    await waitForElementToBeRemoved(() => screen.getByTestId('inputlist-placeholder'))
-
-    // Test elements that are displayed after API response
-    expect(await screen.findByText('molecule / cluster')).toBeInTheDocument()
-    expect(await screen.findByText('2D')).toBeInTheDocument()
-    expect(await screen.findByText('bulk')).toBeInTheDocument()
-    expect(screen.getByText('Showing all 3 items')).toBeInTheDocument()
+    await expectInputList(quantity, false, items, prompt)
   })
 })

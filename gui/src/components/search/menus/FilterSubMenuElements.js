@@ -27,6 +27,9 @@ import InputRange from '../input/InputRange'
 const useStyles = makeStyles(theme => ({
   grid: {
     marginTop: theme.spacing(2)
+  },
+  periodicTable: {
+    height: '30rem'
   }
 }))
 
@@ -44,6 +47,7 @@ const FilterSubMenuElements = React.memo(({
         <InputPeriodicTable
           quantity="results.material.elements"
           visible={visible}
+          className={styles.periodicTable}
         />
       </InputGridItem>
       <InputGridItem xs={6}>
