@@ -1112,7 +1112,7 @@ async def post_upload_raw_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Bad path provided.')
 
-    upload_paths = await _get_files_if_provided(
+    upload_paths, method = await _get_files_if_provided(
         upload_id, request, file, local_path, file_name, user)
 
     if entry_hash:
