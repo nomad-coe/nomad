@@ -20,10 +20,9 @@
 
 from typing import List, Any
 from enum import Enum
-from cachetools import cached, TTLCache
 from elasticsearch_dsl import analyzer, tokenizer
 
-from nomad import metainfo, config
+from nomad import metainfo
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
@@ -31,6 +30,8 @@ from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requireing the m_package already, this would be too late.
+from ..metainfo.metainfo import User, Author
+
 m_package = metainfo.Package()
 
 from .results import Results  # noqa
@@ -81,76 +82,6 @@ def QuantitySearch():
             material_entry_type,
             mapping=dict(type='text', analyzer=path_analyzer.to_dict()),
             field='path', _es_field='')]
-
-
-class Author(metainfo.MSection):
-    ''' A person that is author of data in NOMAD or references by NOMAD. '''
-    name = metainfo.Quantity(
-        type=str,
-        derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
-        a_elasticsearch=[
-            Elasticsearch(material_entry_type, _es_field='keyword'),
-            Elasticsearch(material_entry_type, mapping='text', field='text', _es_field=''),
-            Elasticsearch(suggestion="default")
-        ])
-
-    first_name = metainfo.Quantity(type=metainfo.Capitalized)
-    last_name = metainfo.Quantity(type=metainfo.Capitalized)
-    email = metainfo.Quantity(type=str)
-
-    affiliation = metainfo.Quantity(type=str)
-    affiliation_address = metainfo.Quantity(type=str)
-
-
-class User(Author):
-    ''' A NOMAD user.
-
-    Typically a NOMAD user has a NOMAD account. The user related data is managed by
-    NOMAD keycloak user-management system. Users are used to denote authors,
-    reviewers, and owners of datasets.
-
-    Args:
-        user_id: The unique, persistent keycloak UUID
-        username: The unique, persistent, user chosen username
-        first_name: The users first name (including all other given names)
-        last_name: The users last name
-        affiliation: The name of the company and institutes the user identifies with
-        affiliation_address: The address of the given affiliation
-        created: The time the account was created
-        repo_user_id: The id that was used to identify this user in the NOMAD CoE Repository
-        is_admin: Bool that indicated, iff the user the use admin user
-    '''
-
-    m_def = metainfo.Section(a_pydantic=PydanticModel())
-
-    user_id = metainfo.Quantity(
-        type=str,
-        a_elasticsearch=Elasticsearch(material_entry_type))
-
-    username = metainfo.Quantity(type=str)
-
-    created = metainfo.Quantity(type=metainfo.Datetime)
-
-    repo_user_id = metainfo.Quantity(
-        type=str,
-        description='Optional, legacy user id from the old NOMAD CoE repository.')
-
-    is_admin = metainfo.Quantity(
-        type=bool, derived=lambda user: user.user_id == config.services.admin_user_id)
-
-    is_oasis_admin = metainfo.Quantity(type=bool, default=False)
-
-    @staticmethod
-    @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
-    def get(*args, **kwargs) -> 'User':
-        from nomad import infrastructure
-        return infrastructure.user_management.get_user(*args, **kwargs)  # type: ignore
-
-    def full_user(self) -> 'User':
-        ''' Returns a User object with all attributes loaded from the user management system. '''
-        from nomad import infrastructure
-        assert self.user_id is not None
-        return infrastructure.user_management.get_user(user_id=self.user_id)  # type: ignore
 
 
 class UserReference(metainfo.Reference):
