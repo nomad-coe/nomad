@@ -41,8 +41,10 @@ import importlib
 import email.utils
 from urllib.parse import urlsplit, urlunsplit, SplitResult
 
+from nomad import config
 from nomad.config import process
 from nomad.units import ureg as units
+from cachetools import cached, TTLCache
 
 m_package: 'Package' = None
 
@@ -52,6 +54,28 @@ MSectionBound = TypeVar('MSectionBound', bound='MSection')
 SectionDefOrCls = Union['Section', 'SectionProxy', Type['MSection']]
 T = TypeVar('T')
 _hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
+
+validElnTypes = {
+    'str': ['str'],
+    'bool': ['bool'],
+    'number': ['int', 'float', 'np.int', 'np.int32', 'np.int64', 'np.float', 'np.float32', 'np.float64'],
+    'datetime': ['Datetime'],
+    'enum': ['{type_kind: Enum, type_data: [Operator, Responsible_person]}'],
+    'user': ['User'],
+    'author': ['Author'],
+    'reference': ['']
+}
+
+validElnComponents = {
+    'str': ['StringEditQuantity', 'FileEditQuantity', 'RichTextEditQuantity', 'EnumEditQuantity'],
+    'bool': ['BoolEditQuantity'],
+    'number': ['NumberEditQuantity', 'SliderEditQuantity'],
+    'datetime': ['DateTimeEditQuantity'],
+    'enum': ['EnumEditQuantity', 'AutocompleteEditQuantity', 'RadioEnumEditQuantity'],
+    'user': ['UserEditQuantity'],
+    'author': ['AuthorEditQuantity'],
+    'reference': ['ReferenceEditQuantity']
+}
 
 
 def _default_hash():
@@ -1001,10 +1025,6 @@ Capitalized = _Capitalized()
 Bytes = _Bytes()
 File = _File()
 URL = _URL()
-
-predefined_datatypes = {
-    'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
-    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File, 'URL': URL}
 
 
 # Metainfo data storage and reflection interface
@@ -3594,6 +3614,78 @@ class Section(Definition):
                     names.add(alias)
 
     @constraint
+    def compatible_eln_annotation(self):
+        def assert_component(component_name, quantity_name, quantity_type, accepted_components):
+            assert component_name in accepted_components, \
+                'The component `%s` is not compatible with the quantity `%s` of the type `%s`. Accepted components: %s.' \
+                % (component_name, quantity_name, quantity_type, ', '.join(accepted_components))
+
+        for def_list in [self.quantities, self.sub_sections]:
+            for definition in def_list:
+                if bool(definition.m_annotations) and 'eln' in definition.m_annotations and 'component' in definition.m_annotations['eln']:
+                    component = definition.m_annotations['eln']['component']
+                    if component:
+                        if isinstance(definition.type, type):
+                            if definition.type.__name__ == 'str':
+                                assert_component(
+                                    component, definition.name, definition.type.__name__,
+                                    validElnComponents['str']
+                                )
+                            elif definition.type.__name__ == 'bool':
+                                assert_component(
+                                    component, definition.name, definition.type.__name__, validElnComponents['bool']
+                                )
+                            elif definition.type.__name__ in ['float', 'int']:
+                                assert_component(
+                                    component, definition.name, definition.type.__name__,
+                                    validElnComponents['number']
+                                )
+                            elif definition.type.__name__ == 'User':
+                                assert_component(
+                                    component, definition.name, definition.type.__name__,
+                                    validElnComponents['user']
+                                )
+                            elif definition.type.__name__ == 'Author':
+                                assert_component(
+                                    component, definition.name, definition.type.__name__,
+                                    validElnComponents['author']
+                                )
+                        elif definition.type in [np.float64, np.float32, np.float,
+                                                 np.uint64, np.uint32, np.uint,
+                                                 np.int64, np.int32, np.int]:
+                            assert_component(
+                                component, definition.name, type(definition.type).__name__,
+                                validElnComponents['number']
+                            )
+                        elif isinstance(definition.type, _Datetime):
+                            assert_component(
+                                component, definition.name, type(definition.type).__name__,
+                                validElnComponents['datetime']
+                            )
+                        elif isinstance(definition.type, MEnum):
+                            assert_component(
+                                component, definition.name, type(definition.type).__name__,
+                                validElnComponents['enum']
+                            )
+                        elif isinstance(definition.type, Reference):
+                            target_class = definition.type.target_section_def.section_cls
+                            if target_class.__name__ == 'User':
+                                assert_component(
+                                    component, definition.name, target_class.__name__,
+                                    validElnComponents['user']
+                                )
+                            elif target_class.__name__ == 'Author':
+                                assert_component(
+                                    component, definition.name, target_class.__name__,
+                                    validElnComponents['author']
+                                )
+                            else:
+                                assert_component(
+                                    component, definition.name, type(definition.type).__name__,
+                                    validElnComponents['reference']
+                                )
+
+    @constraint
     def resolved_base_sections(self):
         for base_section in self.base_sections:
             try:
@@ -4180,3 +4272,84 @@ class Environment(MSection):
             raise KeyError('Could not uniquely identify %s, candidates are %s' % (name, defs))
         else:
             raise KeyError('Could not resolve %s' % name)
+
+
+class Author(MSection):
+    from nomad.metainfo.elasticsearch_extension import material_entry_type, Elasticsearch as ElasticSearch
+
+    ''' A person that is author of data in NOMAD or references by NOMAD. '''
+    name = Quantity(
+        type=str,
+        derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
+        a_elasticsearch=[
+            ElasticSearch(material_entry_type, _es_field='keyword'),  # type: ignore
+            ElasticSearch(material_entry_type, mapping='text', field='text', _es_field=''),  # type: ignore
+            ElasticSearch(suggestion="default")
+        ])
+
+    first_name = Quantity(type=Capitalized)
+    last_name = Quantity(type=Capitalized)
+    email = Quantity(type=str)
+
+    affiliation = Quantity(type=str)
+    affiliation_address = Quantity(type=str)
+
+
+class User(Author):
+    from nomad.metainfo.pydantic_extension import PydanticModel
+    from nomad.metainfo.elasticsearch_extension import material_entry_type, Elasticsearch as ElasticSearch
+    ''' A NOMAD user.
+
+    Typically a NOMAD user has a NOMAD account. The user related data is managed by
+    NOMAD keycloak user-management system. Users are used to denote authors,
+    reviewers, and owners of datasets.
+
+    Args:
+        user_id: The unique, persistent keycloak UUID
+        username: The unique, persistent, user chosen username
+        first_name: The users first name (including all other given names)
+        last_name: The users last name
+        affiliation: The name of the company and institutes the user identifies with
+        affiliation_address: The address of the given affiliation
+        created: The time the account was created
+        repo_user_id: The id that was used to identify this user in the NOMAD CoE Repository
+        is_admin: Bool that indicated, iff the user the use admin user
+    '''
+
+    m_def = Section(a_pydantic=PydanticModel())
+
+    user_id = Quantity(
+        type=str,
+        a_elasticsearch=ElasticSearch(material_entry_type))  # type: ignore
+
+    username = Quantity(type=str)
+
+    created = Quantity(type=Datetime)
+
+    repo_user_id = Quantity(
+        type=str,
+        description='Optional, legacy user id from the old NOMAD CoE repository.')
+
+    is_admin = Quantity(
+        type=bool, derived=lambda user: user.user_id == config.services.admin_user_id)
+
+    is_oasis_admin = Quantity(type=bool, default=False)
+
+    @staticmethod
+    @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
+    def get(*args, **kwargs) -> 'User':
+        from nomad import infrastructure
+        return infrastructure.user_management.get_user(*args, **kwargs)  # type: ignore
+
+    def full_user(self) -> 'User':
+        ''' Returns a User object with all attributes loaded from the user management system. '''
+        from nomad import infrastructure
+        assert self.user_id is not None
+        return infrastructure.user_management.get_user(user_id=self.user_id)  # type: ignore
+
+
+predefined_datatypes = {
+    'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
+    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File,
+    'URL': URL, 'User': User, 'Author': Author
+}
