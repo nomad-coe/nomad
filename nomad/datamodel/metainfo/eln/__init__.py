@@ -16,11 +16,13 @@
 # limitations under the License.
 #
 
+import numpy as np
 from nomad import utils
 from nomad.datamodel.data import EntryData, ArchiveSection
 from nomad.metainfo.metainfo import SectionProxy
-from nomad.datamodel.results import ELN, Results, Material
-from nomad.metainfo import Package, Quantity, Datetime, Reference
+from nomad.datamodel.results import ELN, Results, Material, BandGap
+from nomad.metainfo import Package, Quantity, Datetime, Reference, Section
+from nomad.datamodel.metainfo.eln.perovskite_solar_cell_database import addSolarCell
 
 m_package = Package(name='material_library')
 
@@ -139,6 +141,7 @@ class ElnWithFormulaBaseSection(ElnBaseSection):
         if logger is None:
             logger = utils.get_logger(__name__)
         from ase import Atoms
+        from pymatgen.core import Composition
         if self.chemical_formula:
             if not archive.results:
                 archive.results = Results()
@@ -147,7 +150,8 @@ class ElnWithFormulaBaseSection(ElnBaseSection):
             material = archive.results.material
 
             try:
-                atoms = Atoms(self.chemical_formula)
+                pycom = Composition(self.chemical_formula).get_integer_formula_and_factor()[0]
+                atoms = Atoms(pycom)
                 material.elements = list(set(atoms.get_chemical_symbols()))
                 material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
                 material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
@@ -268,6 +272,437 @@ class SampleID(ArchiveSection):
         if not archive.results.eln.sections:
             archive.results.eln.sections = []
         archive.results.eln.sections.append(self.m_def.name)
+
+
+class PublicationReference(ArchiveSection):
+    ''' A ELN base section that can be used for references.'''
+
+    DOI_number = Quantity(
+        type=str,
+        shape=[],
+        description="""
+            The DOI number referring to the published paper or dataset where the data can be found.
+            Examples:
+            10.1021/jp5126624
+            10.1016/j.electacta.2017.06.032
+        """,
+        a_eln=dict(
+            component='EnumEditQuantity', props=dict(suggestions=[])))
+
+    lead_author = Quantity(
+        type=str,
+        shape=[],
+        description="""
+            The surname of the first author.
+            If several authors, end with et al. If the DOI number is given correctly,
+            this will be extracted automatically from www.crossref.org
+        """)
+
+    publication_date = Quantity(
+        type=Datetime,
+        shape=[],
+        description="""
+            Publication date.
+            If the DOI number is given correctly,
+            this will be extracted automatically from www.crossref.org
+        """)
+
+    journal = Quantity(
+        type=str,
+        shape=[],
+        description="""
+            Name of the journal where the data is published.
+            If the DOI number is given correctly,
+            this will be extracted automatically from www.crossref.org
+        """)
+
+    def normalize(self, archive, logger):
+        from nomad.datamodel.datamodel import EntryMetadata
+        import requests
+        import dateutil.parser
+
+        # Parse journal name, lead author and publication date from crossref
+        if self.DOI_number:
+            try:
+                r = requests.get(f'https://api.crossref.org/works/{self.DOI_number}')
+                temp_dict = r.json()
+                given_name = temp_dict['message']['author'][0]['given']
+                family_name = temp_dict['message']['author'][0]['family']
+                self.journal = temp_dict['message']['container-title'][0]
+                self.publication_date = dateutil.parser.parse(temp_dict['message']['created']['date-time'])
+                self.lead_author = f'{given_name} {family_name}'
+                if not archive.metadata:
+                    archive.metadata = EntryMetadata()
+                if not archive.metadata.references:
+                    archive.metadata.references = []
+                    archive.metadata.references.append(self.DOI_number)
+            except Exception as e:
+                logger.warning(f'Could not parse crossref for {self.DOI_number}')
+                logger.warning(e)
+
+
+class SolarCellDefinition(ArchiveSection):
+
+    stack_sequence = Quantity(
+        type=str,
+        shape=['*'],
+        description="""
+            The stack sequence describing the cell. Use the following formatting guidelines
+            - Start with the substrate to the left and list the materials in each layer of the device
+            - If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
+            - The absorber layer in other databases is commonly stated with a generaic name as “Perovskite”, regardless of composition, mixtures, dimensionality etc.
+                There are other fields to describe in depth the absorber layer.
+        """,
+        a_eln=dict(
+            component='EnumEditQuantity', props=dict(suggestions=sorted([]))))
+
+    solar_cell_area = Quantity(
+        type=np.dtype(np.float64),
+        unit='cm**2',
+        shape=[],
+        description="""
+            The total cell area in cm^2.
+            The total area is defined as the area that would provide photovoltaic performance.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    architecture = Quantity(
+        type=str,
+        shape=[],
+        description="""
+            The cell architecture with respect to the direction of current flow and
+            the order in which layers are deposited.
+            The two most common are nip (also referred to as normal) and pin (also referred to as inverted)
+            but there are also a few others, e.g. Back contacted.
+            - *nip* architecture means that the electrons are collected at the substrate side.
+            The typical example is in perovskite solar cells when a TiO2 electron selective contact is deposited
+            between the perovskite and the substrate (e.g. SLG | FTO | TiO2-c | Perovskite | …)
+            - *pin* architecture means that it instead is the holes that are collected at the substrate side. The typical example is when a PEDOT:PSS hole selective contact is deposited between the perovskite and the substrate (e.g. SLG | FTO | PEDOT:PSS |Perovskite | …)
+        """,
+        a_eln=dict(
+            component='EnumEditQuantity',
+            props=dict(
+                suggestions=['Unknown', 'Pn-Heterojunction', 'Front contacted', 'Back contacted', 'pin', 'nip', 'Schottky'])))
+
+    def normalize(self, archive, logger):
+        addSolarCell(archive)
+        if self.stack_sequence:
+            if '/' in self.stack_sequence:
+                archive.results.properties.optoelectronic.solar_cell.device_stack = self.stack_sequence.split('/')
+            elif '|' in self.stack_sequence:
+                archive.results.properties.optoelectronic.solar_cell.device_stack = self.stack_sequence.split(' | ')
+            else:
+                archive.results.properties.optoelectronic.solar_cell.device_stack = self.stack_sequence
+
+        if self.architecture:
+            archive.results.properties.optoelectronic.solar_cell.device_architecture = self.architecture
+        if self.solar_cell_area:
+            archive.results.properties.optoelectronic.solar_cell.device_area = self.solar_cell_area
+        if not archive.results.material:
+            archive.results.material = Material()
+        material = archive.results.material
+        if material.functional_type is None:
+            material.functional_type = ['semiconductor', 'solar cell']
+
+
+class SolarCellLayer(ArchiveSection):
+
+    solar_cell_layer_type = Quantity(
+        type=str,
+        shape=[],
+        description='type of the layer',
+        a_eln=dict(component='EnumEditQuantity',
+                   props=dict(suggestions=[
+                    'Substrate',
+                    'Absorber',
+                    'Hole Transport Layer',
+                    'Electron Transport Layer',
+                    'Contact',
+                    'Buffer',
+                    'p-type contact',
+                    'n-type contact',
+                    'other'])))
+
+    layer_name = Quantity(
+        type=str,
+        shape=[],
+        description="""
+            The name of the layer.
+        """,
+        a_eln=dict(
+            component='EnumEditQuantity',
+            props=dict(suggestions=[])))
+
+    layer_thickness = Quantity(
+        type=np.dtype(np.float64),
+        unit=('nm'),
+        shape=[],
+        description="""
+            The thickness of the layer in nm.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    def normalize(self, archive, logger):
+        addSolarCell(archive)
+        if self.solar_cell_layer_type == 'Absorber':
+            archive.results.properties.optoelectronic.solar_cell.absorber = self.layer_name
+        elif self.solar_cell_layer_type == 'Substrate':
+            archive.results.properties.optoelectronic.solar_cell.substrate = self.layer_name
+        elif self.solar_cell_layer_type == 'Hole Transport Layer':
+            archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = self.layer_name
+        elif self.solar_cell_layer_type == 'Electron Transport Layer':
+            archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = self.layer_name
+        elif self.solar_cell_layer_type == 'Contact':
+            archive.results.properties.optoelectronic.solar_cell.back_contact = self.layer_name
+
+
+class SolarCellBaseSectionWithOptoelectronicProperties(ArchiveSection):
+
+    bandgap = Quantity(
+        type=np.dtype(np.float64),
+        unit=('eV'),
+        shape=[],
+        description="""
+            The bandgap of the solar cell.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+        addSolarCell(archive)
+        if self.bandgap is not None:
+            band_gap = BandGap()
+            band_gap.value = self.bandgap
+            if band_gap.value is None:
+                band_gap.value = 0
+            archive.results.properties.optoelectronic.band_gap = [band_gap]
+            props = archive.results.properties.available_properties
+            if not props:
+                props = []
+            props.append('optoelectronic.band_gap')
+            archive.results.properties.available_properties = props
+
+
+class SolarCellJV(ArchiveSection):
+
+    m_def = Section(label_quantity='cell_name')
+
+    data_file = Quantity(
+        type=str,
+        a_eln=dict(component='FileEditQuantity'),
+        a_browser=dict(adaptor='RawFileAdaptor'))
+
+    certified_values = Quantity(
+        type=bool,
+        shape=[],
+        description="""
+            TRUE if the IV data is measured by an independent and certification institute.
+            If your solar simulator is calibrated by a calibrated reference diode,
+            that does not count as a certified result.
+        """,
+        a_eln=dict(
+            component='BoolEditQuantity'))
+
+    certification_institute = Quantity(
+        type=str,
+        shape=[],
+        description="""
+            The name of the certification institute that has measured the certified device.
+            Example:
+            Newport
+            NIM, National Institute of Metrology of China
+            KIER, Korea Institute of Energy Research
+        """,
+        a_eln=dict(
+            component='EnumEditQuantity', props=dict(suggestions=sorted([
+                'National Institute ofMetrology, China',
+                'Quality supervision＆Testing Center of Chemical＆Physical Power Sources of Information Industry',
+                'CREST, Photovoltaic Meaasurement and calibration Laboratory at Universit of Loughborough',
+                'Photovoltaic and Wind Power Systems Quality Test Center, Chinese Academy of Sciences',
+                'NREL', 'Institute of Metrology (NIM) of China',
+                'PVEVL, National Central University, Taiwan',
+                'NIM, National Institute of Metrology of China',
+                'Fraunhofer ISE',
+                'SIMIT, Shanghai Institute of Microsystem and Information Technology',
+                'Newport',
+                'CSIRO, PV Performance Lab at Monash University',
+                'AIST, National Institute of Advanced Industrial Science and Technology',
+                'CPVT, National Center of Supervision and Inspection on Solar Photovoltaic Products Quality of China',
+                'KIER, Korea Institute of Energy Research',
+                'Newport Corporation',
+                'Solar Power Lab at Arizona State University']))))
+
+    light_intensity = Quantity(
+        type=np.dtype(np.float64),
+        unit=('mW/cm**2'),
+        shape=[],
+        default=100.0,
+        description="""
+            The light intensity during the IV measurement
+            - If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+            - Standard AM 1.5 illumination correspond to 100 mW/cm2
+            - If you need to convert from illumination given in lux; at 550 nm, 1 mW/cm2 corresponds to 6830 lux. Be aware that the conversion change with the spectrum used. As a rule of thumb for general fluorescent/LED light sources, around 0.31mW corresponded to 1000 lux. If your light intensity is measured in lux, it probably means that your light spectra deviates quite a lot from AM 1.5, wherefore it is very important that you also specify the light spectra in the next column.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    open_circuit_voltage = Quantity(
+        type=np.dtype(np.float64),
+        unit='V',
+        shape=[],
+        description="""
+            Open circuit voltage.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    short_circuit_current_density = Quantity(
+        type=np.dtype(np.float64),
+        unit='mA / cm**2',
+        shape=[],
+        description="""
+            Short circuit current density.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    fill_factor = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description="""
+            Fill factor.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    efficiency = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description="""
+            Power conversion efficiency.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    potential_at_maximum_power_point = Quantity(
+        type=np.dtype(np.float64),
+        unit='V',
+        shape=[],
+        description="""
+            The potential at the maximum power point, Vmp.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    current_density_at_maximun_power_point = Quantity(
+        type=np.dtype(np.float64),
+        unit='mA / cm**2',
+        shape=[],
+        description="""
+            The current density at the maximum power point, *Jmp*.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    series_resistance = Quantity(
+        type=np.dtype(np.float64),
+        unit='ohm*cm**2',
+        shape=[],
+        description="""
+            The series resistance as extracted from the *J-V* curve.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    shunt_resistance = Quantity(
+        type=np.dtype(np.float64),
+        unit='ohm*cm**2',
+        shape=[],
+        description="""
+            The shunt resistance as extracted from the *J-V* curve.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    def derive_n_values(self):
+        if self.current_density is not None:
+            return len(self.current_density)
+        if self.voltage is not None:
+            return len(self.voltage)
+        else:
+            return 0
+
+    n_values = Quantity(type=int, derived=derive_n_values)
+
+    def normalize(self, archive, logger):
+
+        addSolarCell(archive)
+        if self.open_circuit_voltage is not None:
+            archive.results.properties.optoelectronic.solar_cell.open_circuit_voltage = self.open_circuit_voltage
+        if self.short_circuit_current_density is not None:
+            archive.results.properties.optoelectronic.solar_cell.short_circuit_current_density = self.short_circuit_current_density
+        if self.fill_factor is not None:
+            archive.results.properties.optoelectronic.solar_cell.fill_factor = self.fill_factor
+        if self.efficiency is not None:
+            archive.results.properties.optoelectronic.solar_cell.efficiency = self.efficiency
+        if self.light_intensity is not None:
+            archive.results.properties.optoelectronic.solar_cell.illumination_intensity = self.light_intensity
+
+
+class SolarCellJVCurve(SolarCellJV):
+
+    def cell_params(self):
+        """
+        Calculates basic solar cell parametes form a current density (mA/cm**2)
+        voltage (V) curve.
+
+        Returns:
+            Voc (V) open circuit voltage
+            Jsc (mA/cm**2) short circuit current density
+            FF fill factor in absolute values (0-1)
+            efficiency power conversion efficiency in percentage (0-100)
+        """
+        Voc = np.interp(0, -self.current_density, self.voltage)
+        Isc = np.interp(0, self.voltage, self.current_density)
+        idx = np.argmax(self.voltage * self.current_density)
+        Vmp = self.voltage[idx]
+        Imp = self.current_density[idx]
+        FF = Vmp * Imp / (Voc * Isc)
+        efficiency = Voc * FF * Isc
+        return Voc, Isc, FF, efficiency
+
+    cell_name = Quantity(
+        type=str,
+        shape=[],
+        description='Cell identification name.',
+        a_eln=dict(component='StringEditQuantity'))
+
+    current_density = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='mA/cm^2',
+        description='Current density array of the *JV* curve.',
+        a_plot={
+            'x': 'voltage', 'y': 'current_density'
+        })
+
+    voltage = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='V',
+        description='Voltage array of the of the *JV* curve.',
+        a_plot={
+            'x': 'voltage', 'y': 'current_density'
+        })
+
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+        if self.current_density is not None:
+            if self.voltage is not None:
+                self.open_circuit_voltage, self.short_circuit_current_density, self.fill_factor, self.efficiency = self.cell_params()
 
 
 m_package.__init_metainfo__()
