@@ -193,7 +193,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
 
   const handleCopyMoveFile = (e) => {
     setOpenCopyMoveDialog(false)
-    api.post(`/uploads/${uploadId}/raw/${encodedPath}?move=${e.moveFile}&file_path=${fileName}&file_name=${copyFileName.current.value}`)
+    api.put(`/uploads/${uploadId}/raw/${encodedPath}?move=${e.moveFile}&file_path=${fileName}&file_name=${copyFileName.current.value}`)
       .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
       .catch(error => raiseError(error))
   }

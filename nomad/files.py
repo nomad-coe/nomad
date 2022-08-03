@@ -969,14 +969,13 @@ class StagingUploadFiles(UploadFiles):
         if not os.path.exists(os_path):
             return
         if os.path.isfile(os_path):
-            # Deleting a file
+            # renaming a file
             if updated_files is not None:
-                updated_files.add(path)
+                updated_files.add(os_path)
             directory = os.path.dirname(os_path)
             os.rename(os_path, os.path.join(directory, filename))
-        if path == '':
-            # Special case - deleting everything, i.e. the entire raw folder. Need to recreate.
-            os.makedirs(os_path)
+        elif os.path.isdir(os_path):
+            raise TypeError('Unable to move/copy any directory/folder.')
 
     @lru_cache()
     def metadata_file_cached(self, path_dir: str = ''):
