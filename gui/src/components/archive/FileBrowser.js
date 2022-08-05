@@ -121,6 +121,32 @@ class RawDirectoryAdaptor extends Adaptor {
   }
 }
 
+export const CustomDropZone = React.memo((props) => {
+  const {children, onBackgroundColorChange, ...otherProps} = props
+  const classes = useRawDirectoryContentStyles()
+
+  const handleMouseEnter = useCallback(e => {
+    onBackgroundColorChange('grey')
+  }, [onBackgroundColorChange])
+  const handleMouseOut = useCallback(e => {
+    onBackgroundColorChange('white')
+  }, [onBackgroundColorChange])
+
+  return <div
+    className={classes.dropzoneLane}
+    onDragEnter={handleMouseEnter}
+    onDragEnd={handleMouseOut}
+    onDragLeave={handleMouseOut}
+    {...otherProps}
+  >
+    {children}
+  </div>
+})
+CustomDropZone.propTypes = {
+  children: PropTypes.any,
+  onBackgroundColorChange: PropTypes.func
+}
+
 const useRawDirectoryContentStyles = makeStyles(theme => ({
   dropzoneLane: {
     width: '100%',
@@ -147,6 +173,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
   const [openCreateDirDialog, setOpenCreateDirDialog] = useState(false)
   const [openCopyMoveDialog, setOpenCopyMoveDialog] = useState(false)
   const [fileName, setFileName] = useState('')
+  const [mamad, setMamad] = useState('white')
   const copyFileName = useRef()
   const createDirName = useRef()
   const { raiseError } = useErrors()
@@ -177,6 +204,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     const files = e.dataTransfer.files
     const _filePath = e.dataTransfer.getData('URL')
     if (files.length) { // files are being transferred
+      e.target.style.backgroundColor = 'white'
       const formData = new FormData() // eslint-disable-line no-undef
       for (const file of files) {
         formData.append('file', file)
@@ -185,6 +213,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
         .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
         .catch(error => raiseError(error))
     } else if (_filePath) {
+      e.target.style.backgroundColor = 'white'
       if (!_filePath.includes('nomad/latest/gui/user/uploads/upload')) return
       setFileName(_filePath.slice(_filePath.indexOf('files')).split('/').slice(1).join('/'))
       setOpenCopyMoveDialog(true)
@@ -232,14 +261,9 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     // Data loaded
     const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?compress=true` // TODO: installationUrl need to be considered for external uploads
     return (
-      <div
-        disabled={!editable}
-        className={classes.dropzoneLane}
-        onDrop={handleDrop}
-        // onMouseOver={e => (e.target.style.backgroundColor = 'grey')}
-        // onMouseOut={e => (e.target.style.backgroundColor = 'white')}
-      >
-        <Content key={path}>
+      <CustomDropZone onDrop={handleDrop} onBackgroundColorChange={color => setMamad(color)}
+      style={{background: mamad}}>
+        <Content key={path} style={{background: 'white'}}>
           <Title
             title={title}
             label="folder"
@@ -374,7 +398,8 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
             }
           </Compartment>
         </Content>
-      </div>)
+      </CustomDropZone>
+      )
   }
 }
 RawDirectoryContent.propTypes = {

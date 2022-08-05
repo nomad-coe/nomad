@@ -1033,6 +1033,10 @@ def test_get_upload_entry_archive(
         'multipart', 'test_user', 'examples_template', example_file_aux, '', {},
         True, False, 200, ['examples_template/template.json'], id='multipart'),
     pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_aux, '',
+        {'file_name': 'template_2.json', "file_path": 'examples_template/template.json', "move": False},
+        True, False, 200, {'examples_template/template.json': True}, id='copy-file-to-subfolder'),
+    pytest.param(
         'stream', 'test_user', 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
         True, False, 200, ['examples_template/template.json'], id='stream'),
     pytest.param(
