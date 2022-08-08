@@ -444,6 +444,11 @@ parsers = [
         mainfile_contents_re=(r'Build.+\s+http://www\.yambo-code\.org')
     ),
     MatchingParserInterface(
+        'electronicparsers.ABACUSParser',
+        name='parsers/abacus', code_name='ABACUS', code_homepage='http://abacus.ustc.edu.cn/',
+        mainfile_contents_re=(r'\s*\n\s*WELCOME TO ABACUS')
+    ),
+    MatchingParserInterface(
         'atomisticparsers.AmberParser',
         name='parsers/amber', code_name='Amber', domain='dft',
         mainfile_contents_re=r'\s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+'
