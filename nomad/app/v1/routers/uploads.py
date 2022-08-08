@@ -947,7 +947,7 @@ async def put_upload_raw_path(
 
     if not wait_for_processing:
         # Process on worker (normal case)
-        if file_name and file_path:  # the case for move/copy an exsiting file
+        if file_name and file_path:  # the case for move/copy an existing file
             upload_files = StagingUploadFiles(upload_id)
             if not upload_files.raw_path_exists(path):
                 raise HTTPException(
@@ -955,12 +955,12 @@ async def put_upload_raw_path(
                     detail='No file or folder with that path found.')
 
             try:
-                upload_path = upload_files.external_os_path + '/raw/' + file_path
+                upload_path = upload_files.os_path + '/raw/' + file_path
                 upload.process_upload(
                     file_operations=[
                         dict(op='ADD', path=upload_path, target_dir=path, temporary=move)],
                     only_updated_files=True)
-                new_file_path = upload_files.external_os_path + '/raw/' + (path if (path == '') else (path + '/')) + os.path.basename(file_path)
+                new_file_path = upload_files.os_path + '/raw/' + (path if (path == '') else (path + '/')) + os.path.basename(file_path)
                 upload.process_upload(
                     file_operations=[
                         dict(op='RENAME', path=new_file_path, newFileName=file_name, target_dir=path, temporary=move)],
@@ -1004,9 +1004,10 @@ async def put_upload_raw_path(
                 media_type = 'text/plain'
     else:
         # Process locally
-        if file_name and file_path:  # case for move/copy an exsiting file
-            upload_files = StagingUploadFiles(upload_id)
-            upload_paths = [upload_files.external_os_path + '/raw/' + file_path]
+        if file_name and file_path:  # case for move/copy an existing file
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Cannot move/copy the file while a processing session is active.')
 
         if len(upload_paths) != 1 or decompress:
             raise HTTPException(

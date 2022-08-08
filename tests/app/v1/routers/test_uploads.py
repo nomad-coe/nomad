@@ -27,7 +27,7 @@ from typing import List, Dict, Any, Iterable
 from tests.utils import build_url, set_upload_entry_metadata
 
 from tests.test_files import (
-    example_file_mainfile_different_atoms, example_file_vasp_with_binary, example_file_aux,
+    example_file_mainfile_different_atoms, example_file_vasp_with_binary, example_file_aux, example_file_mainfile,
     example_file_unparsable, example_file_corrupt_zip, empty_file,
     assert_upload_files)
 from tests.test_search import assert_search_upload
@@ -252,6 +252,7 @@ def assert_processing(
     response_entries_json = response_entries.json()
     response_entries_data = response_entries_json['data']
     all_entries_succesful = True
+
     for entry in response_entries_data:
         entry_succeeded = entry['process_status'] == ProcessStatus.SUCCESS
         if not entry_succeeded:
@@ -1032,10 +1033,18 @@ def test_get_upload_entry_archive(
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_aux, '', {},
         True, False, 200, ['examples_template/template.json'], id='multipart'),
+    # pytest.param(
+    #     'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+    #     {'file_name': 'template.json', "file_path": 'examples_template/', "move": False},
+    #     True, False, 400, {'template.json': True, 'examples_template/template.json': True}, id='copy-folder-to-rawdir'),
     pytest.param(
-        'stream', 'test_user', 'examples_template', example_file_aux, '',
-        {'file_name': 'template_2.json', "file_path": 'examples_template/template.json', "move": False},
-        True, False, 200, {'examples_template/template.json': True}, id='copy-file-to-subfolder'),
+        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        {'file_name': 'template.json', "file_path": 'examples_template/template.json', "move": False},
+        True, False, 200, {'template.json': True, 'examples_template/template.json': True}, id='copy-file-to-rawdir'),
+    # pytest.param(
+    #     'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+    #     {'file_name': 'template.json', "file_path": 'examples_template/template.json', "move": True},
+    #     True, False, 200, {'template.json': True, 'examples_template/template.json': None}, id='move-file-to-rawdir'),
     pytest.param(
         'stream', 'test_user', 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
         True, False, 200, ['examples_template/template.json'], id='stream'),
