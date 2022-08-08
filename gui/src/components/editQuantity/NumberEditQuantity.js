@@ -40,6 +40,13 @@ export const NumberField = React.memo((props) => {
       .replace(/\.e/, 'e')
   }, [])
 
+  const getStoredValue = useCallback((value, displayUnit) => {
+    const valueInBaseUnit = (isNil(value) || isNil(unit))
+      ? value
+      : new Quantity(value, displayUnit).to(unit).value()
+    return valueInBaseUnit && fixDigits(Number(valueInBaseUnit))
+  }, [fixDigits, unit])
+
   // Whenever a new value arrives or the units change, change the text
   // accordingly. If the field is associated with a unit and the same numerical
   // value as set previously comes back with the same unit, preserve the
@@ -77,10 +84,10 @@ export const NumberField = React.memo((props) => {
     }
 
     // Try to parse the quantity. Value is required, unit is optional.
-    const {unit, value, valueString, error} = parseQuantity(input, true, false, dimension)
+    const {unit: parsedUnit, value, valueString, error} = parseQuantity(input, true, false, dimension)
     previousNumberPart.current = valueString
-    if (unit) {
-      previousUnitLabel.current = unit.label()
+    if (parsedUnit) {
+      previousUnitLabel.current = parsedUnit.label()
     }
     if (error) {
       return {error}
@@ -100,15 +107,18 @@ export const NumberField = React.memo((props) => {
     }
 
     // Validate number range
-    if (!isNaN(maxValue) && maxValue < value) {
-      return {error: `Enter a value that is equal or smaller than ${maxValue}`}
-    }
-    if (!isNaN(minValue) && minValue > value) {
-      return {error: `Enter a value that is equal or larger than ${minValue}`}
+    const storingValue = Number(getStoredValue(value, parsedUnit || displayUnit))
+    if (!isNaN(storingValue)) {
+      if (!isNaN(maxValue) && maxValue < storingValue) {
+        return {error: `Enter a value that is equal or smaller than ${maxValue} (${unit})`}
+      }
+      if (!isNaN(minValue) && minValue > storingValue) {
+        return {error: `Enter a value that is equal or larger than ${minValue} (${unit})`}
+      }
     }
 
-    return {value, unit}
-  }, [dataType, dimension, maxValue, minValue])
+    return {value: value, unit: parsedUnit}
+  }, [dataType, dimension, displayUnit, getStoredValue, maxValue, minValue, unit])
 
   // The final handler for text input change
   const handleChange = useCallback((inputValue) => {
@@ -136,15 +146,13 @@ export const NumberField = React.memo((props) => {
         onInputChange(previousNumberPart.current)
       }
       if (onChange) {
-        previousNumber.current = (isNil(number) || isNil(unit))
-          ? number
-          : new Quantity(number, newUnit).to(unit).value()
-        const storedValue = previousNumber.current && fixDigits(Number(previousNumber.current))
+        const storedValue = getStoredValue(number, newUnit)
+        previousNumber.current = storedValue
         onChange(Number(storedValue), newUnit)
         onInputChange(number)
       }
     }
-  }, [parseInput, displayUnit, convertInPlace, onChange, onInputChange, unit, fixDigits])
+  }, [parseInput, displayUnit, convertInPlace, onChange, onInputChange, getStoredValue])
 
   // Routes text field changes to a handler after a debounce time
   const debouncedHandleChange = useMemo(() => debounce(handleChange, 500), [handleChange])
