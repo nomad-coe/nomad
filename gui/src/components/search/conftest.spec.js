@@ -179,9 +179,6 @@ export async function expectInputRange(quantity, loaded, histogram, anchored, mi
  * @param {object} root The root element to perform the search on.
  */
 export async function expectInputPeriodicTable(quantity, loaded, elements, root = screen) {
-    // Test header
-    await expectInputHeader(quantity)
-
     // Test that all elements are displayed
     elementData.elements.forEach(element => {
       const name = root.getByText(element.symbol)
@@ -193,6 +190,9 @@ export async function expectInputPeriodicTable(quantity, loaded, elements, root 
       }
     })
     expect(screen.getByRole('checkbox')).toBeInTheDocument()
+
+    // Test header
+    await expectInputHeader(quantity)
 
     // Test that only available elements are clickable after API response.
     await expectInputPeriodicTableItems(elements)
