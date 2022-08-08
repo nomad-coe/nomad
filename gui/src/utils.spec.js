@@ -24,7 +24,8 @@ import {
   resolveNomadUrl,
   normalizeNomadUrl,
   refType,
-  refRelativeTo
+  refRelativeTo,
+  urlAbs
 } from './utils'
 import { apiBase } from './config'
 
@@ -522,4 +523,14 @@ test.each([
   const resolvedUrl = resolveNomadUrl(url, baseUrl)
   expect(resolvedUrl.isExternal).toBe(expectedResult.isExternal || false)
   expect(normalizeNomadUrl(resolvedUrl)).toBe(expectedResult.normalizedUrl)
+})
+
+test.each([
+  ['already absolute', 'https://nomad-lab.eu/test', 'https://nomad-lab.eu/test', 'https://nomad-lab.eu'],
+  ['root path', '/test', 'https://nomad-lab.eu/test', 'https://nomad-lab.eu'],
+  ['relative path', '../test', 'https://nomad-lab.eu/test', 'https://nomad-lab.eu/folder'],
+  ['protocol change', '/test', 'http://nomad-lab.eu/test', 'https://nomad-lab.eu', 'http:'],
+  ['non-http protocol', 'ssh://nomad-lab.eu/test', 'ssh://nomad-lab.eu/test', 'ssh://nomad-lab.eu']
+])('absolute url creation: %s ', (id, input, output, base, protocol = undefined) => {
+  expect(urlAbs(input, base, protocol)).toBe(output)
 })
