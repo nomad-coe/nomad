@@ -1004,6 +1004,9 @@ def test_get_upload_entry_archive(
         'stream', None, 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
         True, False, 401, None, id='no-credentials'),
     pytest.param(
+        'stream', None, 'examples_template', example_file_aux, '', {'file_name': 1},
+        True, False, 401, None, id='filename-not-str'),
+    pytest.param(
         'stream', 'invalid', 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
         True, False, 401, None, id='invalid-credentials'),
     pytest.param(
@@ -1033,18 +1036,22 @@ def test_get_upload_entry_archive(
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_aux, '', {},
         True, False, 200, ['examples_template/template.json'], id='multipart'),
-    # pytest.param(
-    #     'stream', 'test_user', 'examples_template', example_file_mainfile, '',
-    #     {'file_name': 'template.json', "file_path": 'examples_template/', "move": False},
-    #     True, False, 400, {'template.json': True, 'examples_template/template.json': True}, id='copy-folder-to-rawdir'),
     pytest.param(
         'stream', 'test_user', 'examples_template', example_file_mainfile, '',
         {'file_name': 'template.json', "file_path": 'examples_template/template.json', "move": False},
         True, False, 200, {'template.json': True, 'examples_template/template.json': True}, id='copy-file-to-rawdir'),
-    # pytest.param(
-    #     'stream', 'test_user', 'examples_template', example_file_mainfile, '',
-    #     {'file_name': 'template.json', "file_path": 'examples_template/template.json', "move": True},
-    #     True, False, 200, {'template.json': True, 'examples_template/template.json': None}, id='move-file-to-rawdir'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        {'file_name': 'template_2.json', "file_path": 'examples_template/template.json', "move": False},
+        True, False, 200, {'examples_template/template.json': True}, id='copy-with-rename-file-to-rawdir'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        {'file_name': 'template.json', "file_path": 'examples_template/template.json', "move": True},
+        True, False, 200, {'template.json': True}, id='move-file-to-rawdir'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        {'file_name': 'template_2.json', "file_path": 'examples_template/template.json', "move": True},
+        True, False, 200, None, id='move-with-rename-file-to-rawdir'),
     pytest.param(
         'stream', 'test_user', 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
         True, False, 200, ['examples_template/template.json'], id='stream'),
@@ -1108,10 +1115,10 @@ def test_get_upload_entry_archive(
         True, False, 200, [
             'examples_template/template.json',
             'dir1/examples_vasp/xml/Si.xml',
-            'dir1/examples_vasp/xml/perovskite.xml.gz'], id='uplod-multiple-vasp-and-aux'),
+            'dir1/examples_vasp/xml/perovskite.xml.gz'], id='upload-multiple-vasp-and-aux'),
     pytest.param(
         'multipart', 'test_user', 'examples_template', [example_file_aux, example_file_corrupt_zip], 'dir1', {'file_name': 'tmp.zip'},
-        True, False, 400, ['examples_template/template.json'], id='uplod-multiple-one-corrupted-zip')])
+        True, False, 400, ['examples_template/template.json'], id='upload-multiple-one-corrupted-zip')])
 def test_put_upload_raw_path(
         client, proc_infra, non_empty_processed, example_data_writeable, test_auth_dict,
         mode, user, upload_id, source_paths, target_path, query_args, accept_json, use_upload_token,

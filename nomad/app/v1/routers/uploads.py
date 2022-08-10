@@ -958,12 +958,17 @@ async def put_upload_raw_path(
                 upload_path = upload_files.os_path + '/raw/' + file_path
                 upload.process_upload(
                     file_operations=[
-                        dict(op='ADD', path=upload_path, target_dir=path, temporary=move)],
+                        dict(op='ADD', path=upload_path, target_dir=path, temporary=False)],
                     only_updated_files=True)
+                if move:
+                    upload.process_upload(
+                        file_operations=[
+                            dict(op='DELETE', path=file_path)],
+                        only_updated_files=True)
                 new_file_path = upload_files.os_path + '/raw/' + (path if (path == '') else (path + '/')) + os.path.basename(file_path)
                 upload.process_upload(
                     file_operations=[
-                        dict(op='RENAME', path=new_file_path, newFileName=file_name, target_dir=path, temporary=move)],
+                        dict(op='RENAME', path=new_file_path, newFileName=file_name, target_dir=path)],
                     only_updated_files=True)
 
             except ProcessAlreadyRunning:

@@ -1519,9 +1519,9 @@ class Upload(Proc):
         if config.celery.routing == config.CELERY_WORKER_ROUTING:
             if self.worker_hostname is None:
                 self.worker_hostname = worker_hostname
-            Entry._get_collection().update_many(
-                {'upload_id': self.upload_id},
-                {'$set': {'worker_hostname': self.worker_hostname}})
+                Entry._get_collection().update_many(
+                    {'upload_id': self.upload_id},
+                    {'$set': {'worker_hostname': self.worker_hostname}})
 
         # All looks ok, process
         updated_files = self.update_files(file_operations, only_updated_files)
