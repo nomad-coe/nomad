@@ -485,7 +485,7 @@ tested, formatted, and documented. To help you meet these guidelines, we recomme
 use a proper IDE for development and ditch any VIM/Emacs (mal-)practices.
 
 We strongly recommend that all developers use *visual studio code*, or *vscode* for short,
-(this is a completely different producs than *visual studio*). It is available for free
+(this is a completely different product than *visual studio*). It is available for free
 for all major platforms [here](https://code.visualstudio.com/download).
 
 You should launch and run vscode directly from the projects root directory. The source
@@ -499,6 +499,24 @@ your own launch configs in `.vscode/launch.json` (also in .gitignore).
 
 The settings expect that you have installed a python environment at `.pyenv` as
 described in this tutorial (see above).
+
+We also provide developers a vscode extension which is designed to support nomad schema language.
+One can generate the extension using the following command after nomad installation
+
+```sh
+  nomad dev vscode-extension -o <path to output>
+```
+
+this command generate an up-to-date extension folder namely `nomad-vscode`. You can either copy
+this folder into vscode extensions folder `~/.vscode/extensions/` or create an installable package as follows
+
+```sh
+  sudo npm install -g vsce # if vsce is not installed
+  cd ./nomad-vscode
+  vsce package
+```
+
+then install the extension by drag the file `nomad-0.0.x.vsix` and drop it into the extension panel of the vscode.   
 
 ## Code guidelines
 

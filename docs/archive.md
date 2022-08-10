@@ -181,15 +181,31 @@ This is what a custom schema can look like:
 --8<-- "examples/data/custom-schema/simple-schema.archive.yaml"
 ```
 
-### Annotations (for ELNs)
+### Annotations
 
 Schema elements can have annotations. These annotations provide additional information
-that NOMAD can use to alter its behavior around these definitions. A reference for
-these annotations will be added here soon.
+that NOMAD can use to alter its behavior around these definitions.
 
 Many annotations control the representation of data in the GUI. This can be for plots
 or data entry/editing capabilities. As part of the GUI, you'll find an overview about all
 ELN edit annotations and components [here]({{ nomad_url() }}/../gui/dev/editquantity).
+
+The following annotations are supported:
+
+{{ get_schema_doc('m_annotations') }}
+
+#### ELN Annotations
+The eln annotation includes the following keys:
+
+{{ get_schema_doc('eln') }}
+
+The eln component can be one of the following components:
+
+{{ get_schema_doc('component') }}
+
+The supported types are listed here:
+
+{{ get_schema_doc('type') }}
 
 The ELN example upload, that you can create from the upload page, contains a schema that
 uses and demonstrates all our current annotations:
@@ -197,6 +213,18 @@ uses and demonstrates all our current annotations:
 ```yaml
 --8<-- "examples/data/eln/schema.archive.yaml"
 ```
+
+#### Tabular Annotations
+Tabular annotation accepts the following keys:
+
+{{ get_schema_doc('tabular') }}
+
+#### Plot Annotations
+Plot annotation is a wrapper for [plotly](https://plotly.com) library. One can use the following keys for plot annotation:
+
+{{ get_schema_doc('plot') }}
+
+which can be customized by using plotly commands. See [plot examples]({{ nomad_url() }}/../gui/dev/plot).
 
 ### Custom normalizers
 
