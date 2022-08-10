@@ -25,6 +25,7 @@ from nomad.app.v1.models import (
     owner_documentation)
 from nomad.app.v1.routers.entries import archive_required_documentation
 from nomad import utils
+import yaml
 
 doc_snippets = {
     'query': query_documentation,
@@ -50,3 +51,20 @@ def define_env(env):
             You can browse the [NOMAD metainfo schema](../gui/analyze/metainfo)
             or the archive of each entry (e.g. [a VASP example](../gui/search/entries/entry/id/d5OYC0SJTDevHMPk7YHd4A/-7j8ojKkna2NLXdytv_OjV4zsBXw/archive))
             in the web-interface.''')
+
+    @env.macro
+    def get_schema_doc(key):  # pylint: disable=unused-variable
+        schema_yaml = './docs/schema/suggestions.yaml'
+        with open(schema_yaml, "r") as yaml_file:
+            try:
+                schema = yaml.safe_load(yaml_file)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        items = schema[key]
+        md_table = ['|Key|Description|', '|---|---|']
+        for item, description in items.items():
+            if key == 'type' and (item == 'log' or item == 'scatter'):
+                continue
+            md_table.append('|{}|{}|'.format(str(item), str(description)))
+        return utils.strip('\n'.join(md_table))

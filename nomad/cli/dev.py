@@ -538,3 +538,319 @@ def units(ctx):
     json_string = json_string.replace("\"", "'")
     output += json_string
     print(output)
+
+
+@dev.command(help='Generate vscode extension for nomad schema.')
+@click.option('--output', '-o', type=str, help='Output path for extension.')
+def vscode_extension(output: str):
+    import shutil
+    import yaml
+    import json
+
+    extension_path = os.path.normpath(output) + "/nomad-vscode" if output else "./nomad-vscode"
+    snippets_path = os.path.join(extension_path, "snippets")
+    syntaxes_path = os.path.join(extension_path, "syntaxes")
+    if os.path.exists(extension_path):
+        shutil.rmtree(extension_path)
+    os.makedirs(extension_path)
+    os.makedirs(snippets_path)
+    os.makedirs(syntaxes_path)
+
+    schemaYaml = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs/schema/suggestions.yaml'))
+    metainfoJson = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../gui/src/metainfo.json'))
+    outputJson = os.path.join(snippets_path, "./nomad.code-snippets")
+    outputLanguage = os.path.join(syntaxes_path, "./nomad.tmlanguage.json")
+    output_config = os.path.join(extension_path, "./language-configuration.json")
+    output_package = os.path.join(extension_path, "./package.json")
+
+    shutil.copyfile(os.path.join(os.path.dirname(__file__), '../../LICENSE'), os.path.join(extension_path, "./LICENSE"))
+
+    with open(schemaYaml, "r") as yaml_file:
+        try:
+            schema = yaml.safe_load(yaml_file)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    with open(metainfoJson, "r") as json_file:
+        try:
+            metainfo = json.load(json_file)
+        except json.JSONDecodeError as exc:
+            print(exc)
+
+    nomadLanguage = {
+        "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+        "name": "Nomad",
+        "patterns": [{"include": "#comments"},
+                     {"include": "#strings"},
+                     {"include": "#keywords"},
+                     {"include": "#metainfos"},
+                     {"include": "#suggestions"},
+                     {"include": "#keys"}
+                     ],
+        "repository": {
+            "comments": {
+                "patterns": [
+                    {
+                        "name": "comment.line.number-sign.nomad",
+                        "match": "#.*"
+                    }
+                ]
+            },
+            "strings": {
+                "patterns": [
+                    {
+                        "name": "string.quoted.double.nomad",
+                        "match": "\".*\""
+                    },
+                    {
+                        "name": "string.quoted.double.nomad",
+                        "match": "'.*'"
+                    }
+                ]
+            },
+            "metainfos": {
+                "patterns": [
+                    {
+                        "name": "keyword.control.nomad",
+                        "match": "nomad..*"
+                    }
+                ]
+            },
+            "suggestions": {
+                "patterns": [
+                    {
+                        "name": "invalid.illegal.nomad",
+                        "match": "<.*>"
+                    }
+                ]
+            },
+            "keys": {
+                "patterns": [
+                    {
+                        "name": "entity.name.type.nomad",
+                        "match": "(?!.*[#<>].*).*:"
+                    },
+                    {
+                        "include": "#strings"
+                    }
+                ]
+            },
+            "keywords": {}  # it would be added automatically
+        },
+        "scopeName": "source.schema.archive.yaml"
+    }
+
+    snippets = {
+        "Nomad definitions": {
+            "scope": "nomad",
+            "prefix": "definitions:",
+            "body": [
+                "definitions:",
+                "  name: '${1:schema name}'",
+                "  sections:"
+            ],
+            "description": "Nomad schema definitions"
+        },
+        "Nomad sections": {
+            "scope": "nomad",
+            "prefix": "sections:",
+            "body": [
+                "sections:",
+                "  ${1:<section name>}:",
+                "    base_section: ${2:nomad.datamodel.data.EntryData}",
+                "    quantities:"
+            ],
+            "description": "Nomad schema sections"
+        },
+        "Nomad quantities": {
+            "scope": "nomad",
+            "prefix": "quantities:",
+            "body": [
+                "quantities:",
+                "  ${1:<quantity name>}:",
+                "    type:$2",
+                "    shape:$3",
+                "    description:$4",
+                "    m_annotations:"
+            ],
+            "description": "Nomad schema quantities"
+        },
+        "Nomad m_annotations": {
+            "scope": "nomad",
+            "prefix": "m_annotations:",
+            "body": [
+                "m_annotations:",
+                "  template:",
+                "  eln:$1"
+            ],
+            "description": "Nomad schema m_annotations"
+        },
+        "Nomad eln": {
+            "scope": "nomad",
+            "prefix": "eln:",
+            "body": [
+                "eln:",
+                "  component:$1",
+                "  hide: ${2:[]}"
+            ],
+            "description": "Nomad schema eln"
+        },
+        "Nomad base_section": {
+            "scope": "nomad",
+            "prefix": "base_section:",
+            "body": [
+                "base_section:",
+                "  - '${1:nomad.datamodel.data.EntryData}'",
+                "quantities:",
+                "sub_sections:"
+            ],
+            "description": "Nomad schema base_section"
+        },
+        "Nomad sub_sections": {
+            "scope": "nomad",
+            "prefix": "sub_sections:",
+            "body": [
+                "sub_sections:",
+                "  ${1:<section name>}:",
+                "    section:"
+            ],
+            "description": "Nomad schema sub_sections"
+        },
+        "Nomad section": {
+            "scope": "nomad",
+            "prefix": "section:",
+            "body": [
+                "section:",
+                "  base_sections:",
+                "  m_annotations:"
+            ],
+            "description": "Nomad schema section"
+        },
+        "Nomad components": {
+            "scope": "nomad",
+            "prefix": "components:",
+            "body": [
+                "components:",
+                "  repeats: {1:false}",
+                "  m_annotations:",
+                "  section:"
+            ],
+            "description": "Nomad schema components"
+        }
+    }
+
+    keywords = []
+    for key, value in schema.items():
+        if key in ['m_annotations', 'tabular', 'eln', 'plot', 'lines',
+                   'line', 'marker', 'layout', 'xaxis', 'yaxis', 'config']:
+            snippets["Nomad {}".format(key)] = {
+                'scope': "nomad",
+                'prefix': "{}:".format(key),
+                'body': ["{}:".format(key)] + [("  {}" if key == 'eln' and k == 'dict()' else "  {}:").format(k) for k
+                                               in schema[key]],
+                'description': value
+            }
+        else:
+            for item, description in schema[key].items():
+                if key == 'type' and (item == 'type_kind' or item == 'type_data'):
+                    snippets["Nomad {} {}: ".format(key, item)] = {
+                        'scope': "nomad",
+                        'prefix': "{}:".format(key),
+                        'body': ["{}:".format(key)] + ["  {}:".format(item)],
+                        'description': description
+                    }
+                else:
+                    snippets["Nomad {} {}".format(key, item)] = {
+                        'scope': "nomad",
+                        'prefix': "{}: {}".format(key, item),
+                        'body': [
+                            "{}: {}".format(key, item)
+                        ],
+                        'description': description
+                    }
+                    if not ('{' in str(item) or '[' in str(item) or '}' in str(item) or ']' in str(item)):
+                        keywords.append(str(item))
+
+    allPackages = []
+    for package in metainfo['packages']:
+        name = package['name']
+        allPackages.append(name)
+        if 'section_definitions' in package:
+            for section in package['section_definitions']:
+                section_name = '{}.{}'.format(name, section['name'])
+                allPackages.append(section_name)
+
+    for package in list(set(allPackages)):
+        snippets["Section {}".format(package)] = {
+            'scope': "nomad",
+            'prefix': package,
+            'body': [
+                package
+            ],
+            'description': 'Nomad package {}'.format(package)
+        }
+        keywords.append(package)
+
+    keywords = list(set(keywords))
+    keywords.sort(reverse=True)
+    patterns = []
+    for keyword in keywords:
+        pattern = {
+            "name": "constant.language.nomad",
+            "match": "\\b{}\\b".format(keyword)
+        }
+        patterns.append(pattern)
+    nomadLanguage['repository']['keywords']['patterns'] = patterns  # type: ignore
+
+    with open(outputJson, 'w') as f:
+        json.dump(snippets, f, indent=4)
+
+    with open(outputLanguage, 'w') as f:
+        json.dump(nomadLanguage, f, indent=4)
+
+    package_contents = {
+        "name": "nomad",
+        "displayName": "Nomad schema",
+        "description": "Nomad schema language support for vscode.",
+        "version": "0.0.1",
+        "engines": {
+            "vscode": "^1.63.0"
+        },
+        "repository": {
+            "private": "true"
+        },
+        "categories": [
+            "Programming Languages"
+        ],
+        "contributes": {
+            "languages": [{
+                "id": "nomad",
+                "aliases": ["Nomad", "nomad"],
+                "extensions": [".schema.archive.yaml"],
+                "configuration": "./language-configuration.json"
+            }],
+            "grammars": [{
+                "language": "nomad",
+                "scopeName": "source.schema.archive.yaml",
+                "path": "./syntaxes/nomad.tmlanguage.json"
+            }],
+            "snippets": [{
+                "language": "nomad",
+                "path": "./snippets/nomad.code-snippets"
+            }]
+        }
+    }
+
+    config_contents = {
+        "brackets": [["{", "}"], ["[", "]"]],
+        "autoClosingPairs": [["{", "}"], ["[", "]"], ["'", "'"], ["\"", "\""]],
+        "surroundingPairs": [["{", "}"], ["[", "]"]]
+    }
+
+    with open(output_package, 'w') as f:
+        json.dump(package_contents, f, indent=4)
+
+    with open(output_config, 'w') as f:
+        json.dump(config_contents, f, indent=4)
+
+    return 0
