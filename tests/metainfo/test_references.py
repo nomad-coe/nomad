@@ -308,22 +308,64 @@ def test_def_reference():
         ]
     })
 
+    multiple_definitions = MetainfoPackage.m_from_dict({
+        'section_definitions': [
+            {
+                'name': 'TestSection',
+                'quantities': [
+                    {
+                        'name': 'test_quantity',
+                        'type': 'str'
+                    }
+                ]
+            },
+            {
+                'name': 'TestSection',
+                'quantities': [
+                    {
+                        'name': 'test_quantity',
+                        'type': 'str'
+                    }
+                ]
+            }
+        ]
+    })
+
     class TestContext(Context):
 
         def resolve_archive_url(self, url):
             assert url == 'definitions'
             return definitions
 
-    data = {
+    class TestContextMulti(Context):
+
+        def resolve_archive_url(self, url):
+            assert url == 'definitions'
+            return multiple_definitions
+
+    data_with_section_index = {
         'm_def': 'definitions#section_definitions/0',
         'test_quantity': 'TestValue'
     }
 
-    result = MSection.from_dict(data, m_context=TestContext())
-
-    assert result.m_to_dict() == {
+    data_with_section_name = {
+        'm_def': 'definitions#section_definitions/TestSection',
         'test_quantity': 'TestValue'
     }
+
+    result_with_section_index = MSection.from_dict(data_with_section_index, m_context=TestContext())
+    result_with_section_name = MSection.from_dict(data_with_section_name, m_context=TestContext())
+
+    assert result_with_section_index.m_to_dict() == {
+        'test_quantity': 'TestValue'
+    }
+
+    assert result_with_section_name.m_to_dict() == {
+        'test_quantity': 'TestValue'
+    }
+
+    with pytest.raises(MetainfoReferenceError):
+        MSection.from_dict(data_with_section_name, m_context=TestContextMulti())
 
 
 @pytest.mark.parametrize('mainfile', [

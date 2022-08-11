@@ -1633,10 +1633,23 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             del(self.__dict__[sub_section_def.name])
             self._on_remove_sub_section(sub_section_def, sub_section)
 
-    def m_get_sub_section(self, sub_section_def: 'SubSection', index: int) -> 'MSection':
+    def m_get_sub_section(self, sub_section_def: 'SubSection', index: Any) -> 'MSection':
         ''' Retrieves a single sub section of the given sub section definition. '''
         if sub_section_def.repeats:
-            return self.__dict__[sub_section_def.name][index]
+            if isinstance(index, int):
+                return self.__dict__[sub_section_def.name][index]
+            elif isinstance(index, str):
+                try:
+                    sub_sections: List['MSection'] = [section for section in self.__dict__[sub_section_def.name] if index == section.name]
+                    if len(sub_sections) > 1:
+                        raise MetainfoReferenceError(
+                            f'multiple sections with this section id were found.')
+                    if len(sub_sections) == 1:
+                        return sub_sections[0]
+                except KeyError:
+                    raise MetainfoReferenceError(
+                        f'{index} is not a valid subsection.')
+            return None
 
         else:
             return self.__dict__.get(sub_section_def.name, None)
@@ -2342,7 +2355,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         return _check_definition_id(target_id, section.m_get_sub_sections(prop_def))  # type: ignore
 
                     try:
-                        index = int(path_stack.pop())
+                        sub_section: str = path_stack.pop()
+                        index: Any = int(sub_section) if sub_section.isnumeric() else sub_section
                     except ValueError:
                         raise MetainfoReferenceError(
                             f'Could not resolve {path}, {prop_name} repeats but there is no '
