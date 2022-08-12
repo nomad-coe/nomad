@@ -17,21 +17,29 @@
  */
 import React, { useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { isNil } from 'lodash'
+import assert from 'assert'
+import { isNil, isArray } from 'lodash'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { QuantityTable, QuantityRow, QuantityCell } from '../Quantity'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 import { diffTotal } from '../../utils'
-import { Quantity, Unit } from '../../units'
+import { Quantity, Unit, useUnits } from '../../units'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 
 const energyUnit = new Unit('joule')
 /**
  * Component for visualizing the results of a geometry optimization workflow.
  */
-const GeometryOptimization = React.memo(({energies, convergence, className, classes, units}) => {
-  const [finalData, setFinalData] = useState(energies)
+const GeometryOptimization = React.memo(({
+  energies,
+  convergence,
+  className,
+  classes,
+  'data-testid': testID
+}) => {
+  const [finalData, setFinalData] = useState(!energies ? energies : undefined)
+  const units = useUnits()
   const theme = useTheme()
 
   // Side effect that runs when the data that is displayed should change. By
@@ -40,10 +48,15 @@ const GeometryOptimization = React.memo(({energies, convergence, className, clas
   // possible.
   useEffect(() => {
     if (!energies) {
+      setFinalData(energies)
       return
     }
 
     // Convert energies into the correct units and calculate the total difference
+    assert(
+      isArray(energies),
+      `Geometry optimization was expecting an array of energies, but instead got: ${energies}`
+    )
     const energyDiffTotal = new Quantity(diffTotal(energies), energyUnit).toSystem(units).value()
     const convergenceCriteria = isNil(convergence?.convergence_tolerance_energy_difference)
       ? undefined
@@ -160,6 +173,7 @@ const GeometryOptimization = React.memo(({energies, convergence, className, clas
           data={finalData}
           layout={plotLayout}
           floatTitle="Energy convergence"
+          data-testid={`${testID}-plot`}
         />
       </ErrorHandler>
     </PropertyItem>
@@ -201,7 +215,11 @@ GeometryOptimization.propTypes = {
   ]),
   className: PropTypes.string,
   classes: PropTypes.object,
-  units: PropTypes.object
+  'data-testid': PropTypes.string
+}
+
+GeometryOptimization.defaultProps = {
+  'data-testid': 'geometry-optimization'
 }
 
 export default withErrorHandler(GeometryOptimization, 'Could not load geometry optimization data.')

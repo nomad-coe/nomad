@@ -33,7 +33,7 @@ const BandStructure = React.memo(({
   type,
   ...other
 }) => {
-  const [finalData, setFinalData] = useState(data === false ? data : undefined)
+  const [finalData, setFinalData] = useState(!data ? data : undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
   const energyUnit = useMemo(() => new Unit('joule'), [])
   const theme = useTheme()
@@ -59,6 +59,7 @@ const BandStructure = React.memo(({
   // the placeholders etc. can be done as fast as possible.
   useEffect(() => {
     if (!data) {
+      setFinalData(data)
       return
     }
 

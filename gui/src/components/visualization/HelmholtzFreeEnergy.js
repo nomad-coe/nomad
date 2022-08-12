@@ -54,7 +54,7 @@ const HelmholtzFreeEnergy = React.memo(({
     return mergeObjects(layout, defaultLayout)
   }, [layout, units, energyUnit, tempUnit])
 
-  const [finalData, setFinalData] = useState(data === false ? data : undefined)
+  const [finalData, setFinalData] = useState(!data ? data : undefined)
   const theme = useTheme()
 
   // Side effect that runs when the data that is displayed should change. By
@@ -63,6 +63,7 @@ const HelmholtzFreeEnergy = React.memo(({
   // possible.
   useEffect(() => {
     if (!data) {
+      setFinalData(data)
       return
     }
 

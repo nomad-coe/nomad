@@ -34,7 +34,7 @@ const HeatCapacity = React.memo(({
 }) => {
   const tempUnit = useMemo(() => new Unit('kelvin'), [])
   const capacityUnit = useMemo(() => new Unit('joule / kelvin'), [])
-  const [finalData, setFinalData] = useState(data === false ? data : undefined)
+  const [finalData, setFinalData] = useState(!data ? data : undefined)
   const theme = useTheme()
 
   // Merge custom layout with default layout
@@ -62,6 +62,7 @@ const HeatCapacity = React.memo(({
   // possible.
   useEffect(() => {
     if (!data) {
+      setFinalData(data)
       return
     }
 

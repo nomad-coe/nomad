@@ -29,7 +29,7 @@ const energyUnit = new Unit('joule')
  * Graph for EELS (electron energy loss specroscopy) data.
  */
 function EELS({data, layout, className, units, ...other}) {
-  const [finalData, setFinalData] = useState(undefined)
+  const [finalData, setFinalData] = useState(!data ? data : undefined)
   const theme = useTheme()
 
   // Merge custom layout with default layout
@@ -64,7 +64,8 @@ function EELS({data, layout, className, units, ...other}) {
   // The plotted data is loaded only after the first render as a side effect to
   // avoid freezing the UI
   useEffect(() => {
-    if (data === undefined) {
+    if (!data) {
+      setFinalData(data)
       return
     }
     const plotData = []

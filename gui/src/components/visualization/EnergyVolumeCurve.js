@@ -36,7 +36,7 @@ const EnergyVolumeCurve = React.memo(({
   units,
   'data-testid': testID
 }) => {
-  const [finalData, setFinalData] = useState(data)
+  const [finalData, setFinalData] = useState(!data ? data : undefined)
   const theme = useTheme()
 
   // Calculate indices that sort the data
@@ -62,6 +62,7 @@ const EnergyVolumeCurve = React.memo(({
   // possible.
   useEffect(() => {
     if (!data) {
+      setFinalData(data)
       return
     }
 
