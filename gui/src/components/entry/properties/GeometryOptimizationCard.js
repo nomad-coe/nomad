@@ -18,12 +18,10 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
-import { useUnits } from '../../../units'
 import { resolveRef } from '../../archive/metainfo'
 import GeometryOptimization from '../../visualization/GeometryOptimization'
 
 export default function GeometryOptimizationCard({index, archive, properties}) {
-  const units = useUnits()
   const geoOptProps = index?.results?.properties?.geometry_optimization
 
   // Find out which properties are present. If only one step is calculated
@@ -57,7 +55,6 @@ export default function GeometryOptimizationCard({index, archive, properties}) {
     <GeometryOptimization
       energies={energies}
       convergence={convergence}
-      units={units}
     />
   </PropertyCard>
 }

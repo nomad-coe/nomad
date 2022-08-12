@@ -62,7 +62,7 @@ const DOS = React.memo(({
     return mergeObjects(layout, defaultLayout)
   }, [layout, units, type])
 
-  const [finalData, setFinalData] = useState(data === false ? data : undefined)
+  const [finalData, setFinalData] = useState(!data ? data : undefined)
   const [finalLayout, setFinalLayout] = useState(initialLayout)
   const [normalizedToHOE, setNormalizedToHOE] = useState(true)
   const theme = useTheme()
@@ -73,6 +73,7 @@ const DOS = React.memo(({
   // possible.
   useEffect(() => {
     if (!data) {
+      setFinalData(data)
       return
     }
 
