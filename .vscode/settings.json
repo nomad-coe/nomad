@@ -15,7 +15,7 @@
     "python.linting.pycodestylePath": "pycodestyle",
     "python.linting.pycodestyleEnabled": true,
     "python.linting.pycodestyleArgs": [
-        "--ignore=E501,E701,E731"
+        "--config=${workspaceFolder}/pycodestyle.ini"
     ],
     "python.linting.mypyEnabled": true,
     "python.linting.mypyArgs": [

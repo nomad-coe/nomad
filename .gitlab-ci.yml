@@ -33,7 +33,7 @@ python linting:
   image: $TEST_IMAGE
   script:
     - cd /app
-    - python -m pycodestyle --ignore=E501,E701,E731 nomad tests
+    - python -m pycodestyle --config=pycodestyle.ini nomad tests
     - python -m pylint --load-plugins=pylint_mongoengine,nomad.metainfo.pylint_plugin nomad tests
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
   except:
