@@ -1077,8 +1077,11 @@ class StagingUploadFiles(UploadFiles):
             with zipfile.ZipFile(raw_zip_file_object.os_path, mode='w') as raw_zip:
                 for path_info in self.raw_directory_list(recursive=True):
                     basename = os.path.basename(path_info.path)
-                    if basename.startswith('POTCAR') and not basename.endswith('.stripped'):
-                        continue  # Skip POTCAR files when publishing
+                    if basename.startswith('POTCAR'):
+                        if not basename.endswith('.stripped'):
+                            continue  # Skip the unstripped POTCAR files when publishing
+                        if basename.endswith('.stripped.stripped'):
+                            continue  # Skip redundantly stripped POTCAR files (created due to bug #979) when publishing
                     raw_zip.write(self._raw_dir.join_file(path_info.path).os_path, path_info.path)
             # Remove the zip file with the opposite access, if it exists
             other_raw_zip_file_object = PublicUploadFiles._create_raw_zip_file_object(target_dir, other_access)

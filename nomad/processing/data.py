@@ -1682,7 +1682,8 @@ class Upload(Proc):
         Some files need preprocessing. Currently we need to add a stripped POTCAR version
         and always restrict/embargo the original.
         '''
-        if os.path.basename(path).startswith('POTCAR'):
+        if os.path.basename(path).startswith('POTCAR') and not os.path.basename(path).endswith('.stripped'):
+            # Unstripped POTCAR file found
             # create checksum
             hash = hashlib.sha224()
             with open(self.staging_upload_files.raw_file_object(path).os_path, 'rb') as orig_f:
