@@ -9,7 +9,7 @@ image:
   pullPolicy: "Always"
 
 proxy:
-  nodePort: 30017
+  nodePort: 30019
   nodeIP: "130.183.207.81"
   external:
     host: "nomad-lab.eu"
