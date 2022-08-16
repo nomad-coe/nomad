@@ -19,6 +19,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useDataStore } from '../DataStore'
+import { apiBase } from '../../config'
 
 const entryPageContext = React.createContext()
 
@@ -28,14 +29,14 @@ export const useEntryPageContext = () => {
 
 const EntryPageContext = React.memo(function EntryContext({entryId, children}) {
   const dataStore = useDataStore()
-  const [entryStoreObj, setEntryStoreObj] = useState(dataStore.getEntry(entryId))
+  const [entryStoreObj, setEntryStoreObj] = useState(dataStore.getEntry(apiBase, entryId))
 
   const onEntryStoreUpdated = useCallback((oldStoreObj, newStoreObj) => {
     setEntryStoreObj(newStoreObj)
   }, [setEntryStoreObj])
 
   useEffect(() => {
-    return dataStore.subscribeToEntry(entryId, onEntryStoreUpdated, true, true, true)
+    return dataStore.subscribeToEntry(apiBase, entryId, onEntryStoreUpdated, true, true, true)
   }, [dataStore, entryId, onEntryStoreUpdated])
 
   const contextValue = useMemo(() => { return entryStoreObj }, [entryStoreObj])

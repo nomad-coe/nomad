@@ -281,12 +281,14 @@ const DataStore = React.memo(({children}) => {
    * an object with default values, mostly undefined or nulls, will be returned). Note, it
    * does not cause the store to fetch any data; for that, a subscription is necessary.
    */
-  function getEntry(entryId) {
+  function getEntry(installationUrl, entryId) {
     if (!entryId) return undefined
+    if (installationUrl !== apiBase) throw new Error('Fetching entries from external installations is not yet supported')
     let entryStoreObj = entryStore.current[entryId]
     if (!entryStoreObj) {
       // Creates an initial, empty entry store object.
       entryStoreObj = {
+        installationUrl, // ReadOnly
         entryId: entryId, // ReadOnly
         uploadId: undefined, // ReadOnly - fetched by the store
         metadata: undefined, // ReadOnly - fetched by the store
@@ -308,9 +310,9 @@ const DataStore = React.memo(({children}) => {
         refreshOptions: null, // The options used at the last store refresh
 
         // Convenience methods
-        handleArchiveChanged: () => { handleArchiveChanged(entryId) },
-        saveArchive: () => { return saveArchive(entryId) },
-        reload: () => { requestRefreshEntry(entryId) }
+        handleArchiveChanged: () => { handleArchiveChanged(installationUrl, entryId) },
+        saveArchive: () => { return saveArchive(installationUrl, entryId) },
+        reload: () => { requestRefreshEntry(installationUrl, entryId) }
       }
       entryStore.current[entryId] = entryStoreObj
     }
@@ -323,9 +325,9 @@ const DataStore = React.memo(({children}) => {
    * will be removed when finished. Note that to keep the object in the store and watch it
    * also after this call has ended, you need to set up a subscription.
    */
-  async function getEntryAsync(entryId, requireMetadata, requireArchive) {
+  async function getEntryAsync(installationUrl, entryId, requireMetadata, requireArchive) {
     if (!entryId) return undefined
-    const entryStoreObj = getEntry(entryId)
+    const entryStoreObj = getEntry(installationUrl, entryId)
     if (entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArchive)) {
       return entryStoreObj // Store has already been refreshed with the required options
     }
@@ -337,7 +339,7 @@ const DataStore = React.memo(({children}) => {
           resolve(newStoreObj)
         }
       }
-      subscribeToEntry(entryId, cb, requireMetadata, requireArchive, false)
+      subscribeToEntry(installationUrl, entryId, cb, requireMetadata, requireArchive, false)
     })
   }
 
@@ -345,22 +347,22 @@ const DataStore = React.memo(({children}) => {
    * Subscribes the callback cb to an entry, and returns a function to be called to unsubscribe.
    * Typically used in useEffect. The callback will be called when the store value changes.
    */
-  function subscribeToEntry(entryId, cb, requireMetadata, requireArchive, editableIfPossible) {
+  function subscribeToEntry(installationUrl, entryId, cb, requireMetadata, requireArchive, editableIfPossible) {
     if (!entryId) return undefined
     if (requireMetadata === undefined || requireArchive === undefined || editableIfPossible === undefined) {
       throw Error('Store error: missing entry subscription parameter')
     }
-    const entryStoreObj = getEntry(entryId)
+    const entryStoreObj = getEntry(installationUrl, entryId)
     addSubscription(entryStoreObj, cb, {requireMetadata, requireArchive, editableIfPossible})
-    initiateEntryRefreshIfNeeded(entryId)
+    initiateEntryRefreshIfNeeded(installationUrl, entryId)
     return function unsubscriber() { removeSubscription(entryStore.current, entryId, cb) }
   }
 
   /**
    * Updates the store entry with the specified data and notifies all subscribers.
    */
-  function updateEntry(entryId, dataToUpdate) {
-    const oldStoreObj = getEntry(entryId)
+  function updateEntry(installationUrl, entryId, dataToUpdate) {
+    const oldStoreObj = getEntry(installationUrl, entryId)
     const newStoreObj = {...oldStoreObj, ...dataToUpdate}
     // Compute derived values not set by the refreshEntry method
     newStoreObj.exists = newStoreObj?.error?.name !== 'DoesNotExist'
@@ -383,7 +385,7 @@ const DataStore = React.memo(({children}) => {
       raiseError(newStoreObj.error)
     }
     // Possibly, start a refresh job
-    initiateEntryRefreshIfNeeded(entryId)
+    initiateEntryRefreshIfNeeded(installationUrl, entryId)
   }
 
   function entryOptions(entryStoreObj) {
@@ -408,9 +410,9 @@ const DataStore = React.memo(({children}) => {
     return false
   }
 
-  async function refreshEntry(entryId) {
+  async function refreshEntry(installationUrl, entryId) {
     // Internal use: refresh an entry store obj with data from the API.
-    const entryStoreObj = getEntry(entryId)
+    const entryStoreObj = getEntry(installationUrl, entryId)
     const {requireMetadata, requireArchive, editableIfPossible} = entryOptions(entryStoreObj)
     if (!requireMetadata && !requireArchive) return
     // There's something that can be refreshed
@@ -465,29 +467,29 @@ const DataStore = React.memo(({children}) => {
       dataToUpdate.error = error
     }
     dataToUpdate.isRefreshing = false
-    updateEntry(entryId, dataToUpdate)
+    updateEntry(installationUrl, entryId, dataToUpdate)
   }
 
   /**
    * Use to nicely request a refresh of the entry store object.
    */
-  function requestRefreshEntry(entryId) {
-    const entryStoreObj = getEntry(entryId)
+  function requestRefreshEntry(installationUrl, entryId) {
+    const entryStoreObj = getEntry(installationUrl, entryId)
     if (!entryStoreObj.isRefreshing) {
       // Refresh is not already in progress
-      refreshEntry(entryId)
+      refreshEntry(installationUrl, entryId)
     }
   }
 
-  async function initiateEntryRefreshIfNeeded(entryId) {
+  async function initiateEntryRefreshIfNeeded(installationUrl, entryId) {
     // Internal use: check if a refresh of the store is needed, and if so, initiate it.
-    let entryStoreObj = getEntry(entryId)
+    let entryStoreObj = getEntry(installationUrl, entryId)
     if (entryStoreObj.isRefreshing) return // refresh already in progress
     if (entryStoreObj.isProcessing) {
       // Entry is processing
       entryStoreObj.isRefreshing = true // Signal start of a refresh
       await new Promise(resolve => setTimeout(resolve, 1000)) // wait one sec
-      entryStoreObj = getEntry(entryId)
+      entryStoreObj = getEntry(installationUrl, entryId)
     }
     // Determine if a refresh is needed or not
     const {requireMetadata, requireArchive} = entryOptions(entryStoreObj)
@@ -495,7 +497,7 @@ const DataStore = React.memo(({children}) => {
     const archiveMissing = requireArchive && !entryStoreObj.archive
     if (!entryStoreObj.error && (metadataMissing || archiveMissing || entryStoreObj.isProcessing)) {
       // Need to fetch data from the api
-      refreshEntry(entryId)
+      refreshEntry(installationUrl, entryId)
     } else {
       entryStoreObj.isRefreshing = false
     }
@@ -504,8 +506,8 @@ const DataStore = React.memo(({children}) => {
   /**
    * Used to save the archive and trigger a store refresh.
    */
-  function saveArchive(entryId) {
-    const {uploadId, metadata, archive, archiveVersion} = getEntry(entryId)
+  function saveArchive(installationUrl, entryId) {
+    const {uploadId, metadata, archive, archiveVersion} = getEntry(installationUrl, entryId)
     const {mainfile} = metadata
     if (uploadId) {
       const separatorIndex = mainfile.lastIndexOf('/')
@@ -518,7 +520,7 @@ const DataStore = React.memo(({children}) => {
       return new Promise((resolve, reject) => {
         api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}&wait_for_processing=true&entry_hash=${archive.metadata.entry_hash}`, newArchive)
           .then(response => {
-            requestRefreshEntry(entryId)
+            requestRefreshEntry(installationUrl, entryId)
           })
           .catch(error => {
             if (error?.status === 409) {
@@ -527,7 +529,7 @@ const DataStore = React.memo(({children}) => {
               raiseError(error)
             }
           })
-        updateEntry(entryId, {savedArchiveVersion: archiveVersion})
+        updateEntry(installationUrl, entryId, {savedArchiveVersion: archiveVersion})
       })
     }
   }
@@ -535,9 +537,9 @@ const DataStore = React.memo(({children}) => {
   /**
    * Call to signal that the archive has been manually edited.
    */
-  function handleArchiveChanged(entryId) {
-    const {archiveVersion} = getEntry(entryId)
-    updateEntry(entryId, {archiveVersion: archiveVersion + 1})
+  function handleArchiveChanged(installationUrl, entryId) {
+    const {archiveVersion} = getEntry(installationUrl, entryId)
+    updateEntry(installationUrl, entryId, {archiveVersion: archiveVersion + 1})
   }
 
   const contextValue = {
