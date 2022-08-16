@@ -563,8 +563,8 @@ parsers = [
         mainfile_contents_re=(r'^LOBSTER\s*v[\d\.]+.*'),
     ),
     MatchingParserInterface(
-        'workflowparsers.MPParser',
-        name='parsers/mp', code_name='MaterialsProject',
+        'workflowparsers.AtomateParser',
+        name='parsers/atomate', code_name='Atomate',
         code_homepage='https://materialsproject.org',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=r'.*mp.+materials\.json',
@@ -581,6 +581,13 @@ parsers = [
         domain='ems',
         mainfile_mime_re=r'application/json',
         mainfile_contents_re=(r'https://eelsdb.eu/spectra')
+    ),
+    MatchingParserInterface(
+        'workflowparsers.MOFStructuresParser',
+        name='parsers/mofstructures', code_name='MOF Structures',
+        mainfile_mime_re=r'(application/json)|(text/.*)',
+        mainfile_name_re=r'.*mof_.*\.json',
+        mainfile_contents_re=r'MOF Structures'
     ),
     NexusParser(),
     TabularDataParser(),
