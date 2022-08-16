@@ -71,13 +71,13 @@ services:
     enabled: false
 
 jupyterhub:
-  fullnameOverride: "nomad-test-v1-north"
+  fullnameOverride: "nomad-v1-test-north"
   hub:
     baseUrl: "/prod/v1/test/"
     db:
       type: sqlite-pvc
       pvc:
-        storageClassName: manual-test-north-hub-db
+        storageClassName: nomad-v1-test-north-hub-db
     config:
       GenericOAuthenticator:
         client_id: nomad_public
@@ -102,5 +102,5 @@ jupyterhub:
       type: static
       homeMountPath: /home/jovyan/work
       static:
-        pvcName: test-north-home
+        pvcName: nomad-v1-test-north-home
         subPath: "{username}"

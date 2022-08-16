@@ -1,0 +1,117 @@
+version:
+  label: "1.1.2"
+  isBeta: true
+  usesBetaData: false
+  officialUrl: "https://nomad-lab.eu/prod/v1/develop/gui"
+
+image:
+  tag: "latest"
+  pullPolicy: "Always"
+
+proxy:
+  nodePort: 30017
+  nodeIP: "130.183.207.81"
+  external:
+    host: "nomad-lab.eu"
+    path: "/prod/v1/develop"
+
+gui:
+  debug: true
+  matomoEnabled: false
+  matomoSiteId: 2
+  encyclopediaBase: "https://nomad-lab.eu/prod/rae/encyclopedia/#"
+  aitoolkitEnabled: false
+
+app:
+  replicas: 1
+  worker: 2
+  nomadNodeType: "public"
+
+worker:
+  replicas: 1
+  routing: "queue"
+  processes: 12
+  nomadNodeType: "prod-worker"
+
+elastic:
+  host: elasticsearch.elasticsearch-7.svc.cluster.local
+  port: 9200
+
+mongo:
+  host: mongodb://mongodb-0.mongo.mongodb.svc.cluster.local,mongodb-1.mongo.mongodb.svc.cluster.local,mongodb-2.mongo.mongodb.svc.cluster.local/?replicaSet=rs0
+
+logstash:
+  host: logstash.elk.svc.cluster.local
+
+dbname: nomad_prod_v1
+
+uploadurl: "https://nomad-lab.eu/prod/v1/develop/api/uploads"
+
+client:
+  passwordSecret: "nomad-keycloak-password"
+
+keycloak:
+  serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
+  serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
+  passwordSecret: "nomad-keycloak-password"
+  realmName: "fairdi_nomad_prod"
+  clientId: "nomad_public"
+  admin_user_id: "82efac55-6187-408c-8027-b98580c0e1c5"
+
+volumes:
+  prefixSize: 1
+  public: /nomad/fairdi/prod/fs/public
+  staging: /scratch/fairdi/prod/fs/staging
+  tmp: /nomad/fairdi/prod/fs/tmp
+  nomad: /nomad
+  archiveVersionSuffix: v1
+
+mail:
+  enabled: false
+  host: "mailrelay.mpcdf.mpg.de"
+  port: 25
+  from: "support@nomad-lab.eu"
+
+datacite:
+  secret: "nomad-datacite"
+  enabled: false
+
+
+# services:
+#   jupyterhub:
+#     enabled: true
+#
+# jupyterhub:
+#   fullnameOverride: "nomad-v1-develop-north"
+#   hub:
+#     baseUrl: "/prod/v1/develop/north"
+#     db:
+#       type: sqlite-pvc
+#       pvc:
+#         storageClassName: nomad-v1-develop-north-hub-db
+#     config:
+#       GenericOAuthenticator:
+#         client_id: nomad_public
+#         oauth_callback_url: https://nomad-lab.eu/prod/v1/develop/north/hub/oauth_callback
+#         authorize_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
+#         token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
+#         userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
+#   singleuser:
+#     podNameTemplate: "nomad-v1-develop-north-{username}--{servername}"
+#     initContainers:
+#       - name: fix-permissions
+#         image: busybox
+#         imagePullPolicy: IfNotPresent
+#         securityContext:
+#           runAsUser: 0
+#         command: ["/bin/sh", "-c", "chown 1000:1000 /home/jovyan"]
+#         volumeMounts:
+#           - mountPath: /home/jovyan
+#             name: home
+#             subPath: "{username}"
+#     storage:
+#       type: static
+#       homeMountPath: /home/jovyan/work
+#       static:
+#         pvcName: nomad-v1-develop-north-home
+#         subPath: "{username}"
