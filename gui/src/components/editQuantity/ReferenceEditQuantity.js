@@ -20,17 +20,25 @@ import PropTypes from 'prop-types'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { debounce } from 'lodash'
-import { Autocomplete } from '@material-ui/lab'
-import { TextField } from '@material-ui/core'
+import { Autocomplete, createFilterOptions } from '@material-ui/lab'
+import { makeStyles, TextField } from '@material-ui/core'
 import { useEntryPageContext } from '../entry/EntryPageContext'
 import { resolveRefAsync } from '../archive/metainfo'
 import { ItemButton, useLane } from '../archive/Browser'
 import { useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
 import { getFieldProps } from './StringEditQuantity'
 import { isWaitingForUpdateTestId } from '../../utils'
+import AddIcon from '@material-ui/icons/AddCircle'
+
+const filter = createFilterOptions()
+
+const useStyles = makeStyles(theme => ({
+  icon: {marginRight: theme.spacing(0.5)}
+}))
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
-  const {archive} = useEntryPageContext()
+  const styles = useStyles()
+  const {uploadId, archive} = useEntryPageContext()
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const {api} = useApi()
@@ -84,23 +92,35 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       return
     }
     const resolved = resolveRefAsync(value, archive, context, archive => {
-      setEntry(archive.metadata)
-      setInputValue(archive.metadata.entry_name)
-      setError(null)
+      const entry = archive.metadata
+      if (entry?.processing_errors.length === 0) {
+        setEntry(entry)
+        setSuggestions([{entry_name: entry.entry_name, upload_id: entry.upload_id, entry_id: entry.entry_id}])
+        setInputValue(archive.metadata.entry_name)
+        setError(null)
+      } else {
+        setEntry(null)
+        setSuggestions([{entry_name: archive.metadata.mainfile, upload_id: entry.upload_id, entry_id: entry.entry_id}])
+        setInputValue(archive.metadata.mainfile)
+      }
     })
     resolved.then(resolved => {
       if (!resolved) {
         setEntry(null)
-        setInputValue(value)
         setError('the referenced value does not exist anymore')
       }
     })
   }, [value, api, raiseError, archive, context, setError])
 
   const getOptionLabel = useCallback(option => option.entry_name, [])
-  const getOptionSelected = useCallback((option, value) => option.entry_name === value.entry_name, [])
+  const getOptionSelected = useCallback((option, value) => {
+    if (value?.createNewEntry) {
+      return true
+    }
+    return option.entry_name === value.entry_name
+  }, [])
 
-  const handleValueChange = useCallback((event, value) => {
+  const changeValue = useCallback((value) => {
     if (value?.entry_id && value?.upload_id) {
       value = `../uploads/${value.upload_id}/archive/${value.entry_id}#data`
     } else if (value?.entry_id) {
@@ -112,6 +132,52 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       onChange(value)
     }
   }, [onChange])
+
+  const createNewEntry = useCallback((uploadId, fileName) => {
+    const template = {name: 'noname'}
+    const archive = {
+      data: {
+        m_def: quantityDef.type._referencedSection._url || quantityDef.type._referencedSection._qualifiedName,
+      ...template
+      }
+    }
+    return new Promise((resolve, reject) => {
+      api.put(`uploads/${uploadId}/raw/?file_name=${fileName}.archive.json&wait_for_processing=true`, archive)
+        .then(response => {
+          // TODO handle processing errors
+          if (response?.processing?.entry?.process_status !== 'SUCCESS') {
+            let error = 'Failed to create the reference.'
+            if (response?.processing?.entry?.errors) {
+              error = `${error} Details: ${response?.processing?.entry?.errors}`
+            }
+            reject(new Error(error))
+          } else {
+            resolve(response)
+          }
+        })
+        .catch(error => {
+          reject(new Error(error))
+        })
+    })
+  }, [api, quantityDef.type._referencedSection._qualifiedName, quantityDef.type._referencedSection._url])
+
+  const handleValueChange = useCallback((event, value) => {
+    if (value?.createNewEntry) {
+      value.entry_name = `${value.createNewEntry}.archive.json`
+      createNewEntry(value.upload_id, value.createNewEntry)
+        .then(response => {
+          setInputValue(response.processing.entry.mainfile)
+          changeValue({
+            entry_name: response.processing.entry.mainfile,
+            upload_id: response.processing.upload_id,
+            entry_id: response.processing.entry_id
+          })
+        })
+        .catch(raiseError)
+      return
+    }
+    changeValue(value)
+  }, [changeValue, createNewEntry, raiseError])
 
   const handleInputValueChange = useCallback((event, value) => {
     value = value || event.target.value
@@ -129,6 +195,36 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     }
   }, [fetchSuggestionsDebounced, inputValue])
 
+  const renderOption = useCallback(option => {
+    return <>
+      {option?.createNewEntry && <AddIcon fontSize="small" color="action" className={styles.icon}/>}
+      {option.entry_name}
+    </>
+  }, [styles])
+
+  const filterOptions = useCallback((options, params) => {
+    const filtered = filter(suggestions, params)
+    let fileName = params.inputValue
+    if (params.inputValue !== '') {
+      if (params.inputValue.endsWith('.archive.json')) {
+        fileName = params.inputValue
+      } else if (params.inputValue.endsWith('.archive')) {
+        fileName = `${params.inputValue}.json`
+      } else {
+        fileName = `${params.inputValue}.archive.json`
+      }
+    }
+    if (params.inputValue !== '' && !filtered.map(suggestion => suggestion['entry_name']).includes(fileName)) {
+      filtered.push({
+        entry_name: `Create "${fileName}" in the current upload`,
+        upload_id: uploadId,
+        entry_id: '',
+        createNewEntry: params.inputValue
+      })
+    }
+    return filtered
+  }, [suggestions, uploadId])
+
   const itemKey = useMemo(() => {
     if (!isNaN(index)) {
       return `${quantityDef.name}:${index}`
@@ -145,6 +241,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     inputValue={inputValue}
     getOptionLabel={getOptionLabel}
     getOptionSelected={getOptionSelected}
+    filterOptions={filterOptions}
+    renderOption={renderOption}
     renderInput={params => {
       return (
         <TextField
