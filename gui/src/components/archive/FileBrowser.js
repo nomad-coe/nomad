@@ -173,7 +173,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
   const [openCreateDirDialog, setOpenCreateDirDialog] = useState(false)
   const [openCopyMoveDialog, setOpenCopyMoveDialog] = useState(false)
   const [fileName, setFileName] = useState('')
-  const [mamad, setMamad] = useState('white')
+  const [backgroundColor, setBackgroundColor] = useState('white')
   const copyFileName = useRef()
   const createDirName = useRef()
   const { raiseError } = useErrors()
@@ -213,10 +213,16 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
         .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
         .catch(error => raiseError(error))
     } else if (_filePath) {
-      e.target.style.backgroundColor = 'white'
-      if (!_filePath.includes('nomad/latest/gui/user/uploads/upload')) return
-      setFileName(_filePath.slice(_filePath.indexOf('files')).split('/').slice(1).join('/'))
-      setOpenCopyMoveDialog(true)
+      if (_filePath.includes('/files/') &&
+      _filePath.includes(history.location.pathname.split('files')[0])) {
+        e.target.style.backgroundColor = 'white'
+        setFileName(_filePath.slice(_filePath.indexOf('files')).split('/').slice(1).join('/'))
+        setOpenCopyMoveDialog(true)
+      }
+      // e.target.style.backgroundColor = 'white'
+      // if (!_filePath.includes('nomad/latest/gui/user/uploads/upload')) return
+      // setFileName(_filePath.slice(_filePath.indexOf('files')).split('/').slice(1).join('/'))
+      // setOpenCopyMoveDialog(true)
     }
   }
 
@@ -261,8 +267,8 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     // Data loaded
     const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?compress=true` // TODO: installationUrl need to be considered for external uploads
     return (
-      <CustomDropZone onDrop={handleDrop} onBackgroundColorChange={color => setMamad(color)}
-      style={{background: mamad}}>
+      <CustomDropZone onDrop={handleDrop} onBackgroundColorChange={color => setBackgroundColor(color)}
+      style={{background: backgroundColor}}>
         <Content key={path} style={{background: 'white'}}>
           <Title
             title={title}
