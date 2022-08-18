@@ -850,12 +850,12 @@ async def put_upload_raw_path(
             None,
             description=strip('''
             Specifies the name of the file, when using method 2.''')),
-        file_path: str = FastApiQuery(
+        move_or_copy_source_path: str = FastApiQuery(
             None,
             description=strip('''
             Path to which a file stored on local machine.''')),
-        move: bool = FastApiQuery(
-            False,
+        move_or_copy: str = FastApiQuery(
+            None,
             description=strip('''
             True if the copied file is to be deleted (**USE WITH CARE**).''')),
         wait_for_processing: bool = FastApiQuery(
@@ -874,7 +874,7 @@ async def put_upload_raw_path(
             The hash code of the not modified entry.''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
-    Upload one or more files to the directory specified by `path` in the the upload specified by `upload_id`.
+    Upload one or more files to the directory specified by `path` in the upload specified by `upload_id`.
 
     When uploading a zip or tar archive, it will first be extracted, and the content will be
     *merged* with the existing content, i.e. new files are added, and if there is a collision
@@ -903,10 +903,10 @@ async def put_upload_raw_path(
     endpoint for examples of curl commands for uploading files.
 
     Also, this path can be used to copy/move a file from one directory to another. Three
-    query parameters are required for a successful operation: 1) boolean `move` param to specify
+    query parameters are required for a successful operation: 1) boolean `move_or_copy` param to specify
     if the file needs to be moved (if set to true then the original file will be removed), 2)
-    `file_name` param that contains the new name for the file moved/copied file and 3) `file_path`
-    param that contains the path of the original file to be copied or moved.
+    `file_name` param that contains the new name for the file moved/copied file and 3) `move_or_copy_source_path`
+    param that contains the path of the original/existing local file to be copied or moved.
     '''
     if include_archive and not wait_for_processing:
         raise HTTPException(
@@ -923,10 +923,10 @@ async def put_upload_raw_path(
     upload_paths, method = await _get_files_if_provided(
         upload_id, request, file, local_path, file_name, user)
 
-    if not upload_paths and not file_name and not file_path:
+    if not upload_paths and not (move_or_copy and move_or_copy_source_path and file_name):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='No upload file provided.')
+            detail='Either an upload file or the query parameters for moving/copying a file should be provided.')
 
     if entry_hash:
         upload_path = upload_paths[0]
@@ -947,7 +947,7 @@ async def put_upload_raw_path(
 
     if not wait_for_processing:
         # Process on worker (normal case)
-        if file_name and file_path:  # the case for move/copy an existing file
+        if file_name and move_or_copy_source_path:  # the case for move/copy an existing file
             upload_files = StagingUploadFiles(upload_id)
             if not upload_files.raw_path_exists(path):
                 raise HTTPException(
@@ -955,36 +955,29 @@ async def put_upload_raw_path(
                     detail='No file or folder with that path found.')
 
             try:
-                upload_path = upload_files.os_path + '/raw/' + file_path
+                upload_path = os.path.join(upload_files.os_path, 'raw', move_or_copy_source_path)
                 upload.process_upload(
                     file_operations=[
                         dict(op='ADD', path=upload_path, target_dir=path, temporary=False)],
                     only_updated_files=True)
-                if move:
+                if move_or_copy == 'move':
                     upload.process_upload(
                         file_operations=[
-                            dict(op='DELETE', path=file_path)],
+                            dict(op='DELETE', path=move_or_copy_source_path)],
                         only_updated_files=True)
-                new_file_path = upload_files.os_path + '/raw/' + (path if (path == '') else (path + '/')) + os.path.basename(file_path)
+                new_file_path = os.path.join(
+                    (path if (path == '') else (path + '/')),
+                    os.path.basename(move_or_copy_source_path)
+                )
                 upload.process_upload(
                     file_operations=[
-                        dict(op='RENAME', path=new_file_path, newFileName=file_name, target_dir=path)],
+                        dict(op='RENAME', path=new_file_path, new_file_name=file_name, target_dir=path)],
                     only_updated_files=True)
 
             except ProcessAlreadyRunning:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail='The upload is currently blocked by another process.')
-
-            if request.headers.get('Accept') == 'application/json':
-                response = PutRawFileResponse(
-                    upload_id=upload_id,
-                    data=_upload_to_pydantic(upload))
-                response_text = response.json()
-                media_type = 'application/json'
-            else:
-                response_text = _thank_you_message
-                media_type = 'text/plain'
 
         else:
             try:
@@ -998,18 +991,18 @@ async def put_upload_raw_path(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail='The upload is currently blocked by another process.')
 
-            if request.headers.get('Accept') == 'application/json':
-                response = PutRawFileResponse(
-                    upload_id=upload_id,
-                    data=_upload_to_pydantic(upload))
-                response_text = response.json()
-                media_type = 'application/json'
-            else:
-                response_text = _thank_you_message
-                media_type = 'text/plain'
+        if request.headers.get('Accept') == 'application/json':
+            response = PutRawFileResponse(
+                upload_id=upload_id,
+                data=_upload_to_pydantic(upload))
+            response_text = response.json()
+            media_type = 'application/json'
+        else:
+            response_text = _thank_you_message
+            media_type = 'text/plain'
     else:
         # Process locally
-        if file_name and file_path:  # case for move/copy an existing file
+        if file_name and move_or_copy_source_path:  # case for move/copy an existing file
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Cannot move/copy the file while a processing session is active.')

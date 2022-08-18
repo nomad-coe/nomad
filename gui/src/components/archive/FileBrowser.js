@@ -228,7 +228,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
 
   const handleCopyMoveFile = (e) => {
     setOpenCopyMoveDialog(false)
-    api.put(`/uploads/${uploadId}/raw/${encodedPath}?move=${e.moveFile}&file_path=${fileName}&file_name=${copyFileName.current.value}`)
+    api.put(`/uploads/${uploadId}/raw/${encodedPath}?move_or_copy=${e.moveFile}&move_or_copy_source_path=${fileName}&file_name=${copyFileName.current.value}`)
       .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
       .catch(error => raiseError(error))
   }
@@ -355,8 +355,8 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
                       </DialogContent>
                       <DialogActions>
                         <Button onClick={() => setOpenCopyMoveDialog(false)}>Cancel</Button>
-                        <Button onClick={(e) => handleCopyMoveFile({...e, moveFile: false})}>Copy</Button>
-                        <Button onClick={(e) => handleCopyMoveFile({...e, moveFile: true})}>Move</Button>
+                        <Button onClick={(e) => handleCopyMoveFile({...e, moveFile: 'copy'})}>Copy</Button>
+                        <Button onClick={(e) => handleCopyMoveFile({...e, moveFile: 'move'})}>Move</Button>
                       </DialogActions>
                     </Dialog>
                 }

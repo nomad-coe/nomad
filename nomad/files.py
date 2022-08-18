@@ -963,21 +963,25 @@ class StagingUploadFiles(UploadFiles):
             # Special case - deleting everything, i.e. the entire raw folder. Need to recreate.
             os.makedirs(os_path)
 
-    def rename_rawfiles(self, path, filename, updated_files: Set[str] = None):
+    def rename_rawfiles(self, path, new_file_name, updated_files: Set[str] = None):
         assert is_safe_relative_path(path)
-        os_path = path
-        renamed_os_path = path.split('/')[:-1]
-        renamed_os_path.append(filename)
-        renamed_file_path = '/'.join(renamed_os_path)
+        raw_os_path = os.path.join(self.os_path, 'raw')
+        os_path = os.path.join(raw_os_path, path)
+        rel_old_file_path = path
+        rel_new_file_path = os.path.join(os.path.dirname(path), new_file_name)
         if not os.path.exists(os_path):
             return
         if os.path.isfile(os_path):
             # renaming a file
             if updated_files is not None:
-                updated_files.add(renamed_file_path.split('raw/')[1])
-                updated_files.add(path.split('raw/')[1])
+                updated_files.add(rel_new_file_path)
+                # if both the new and old name are the same then no new entry will be
+                # added to the set. but if different, we add the old one so that later on
+                # when self.matchall is called in data.py, the old filename is removed
+                # from mongo
+                updated_files.add(rel_old_file_path)
             directory = os.path.dirname(os_path)
-            os.rename(os_path, os.path.join(directory, filename))
+            os.rename(os_path, os.path.join(directory, new_file_name))
         elif os.path.isdir(os_path):
             raise TypeError('Unable to move/copy any directory/folder.')
 
