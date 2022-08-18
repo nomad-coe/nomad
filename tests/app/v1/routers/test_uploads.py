@@ -1050,7 +1050,7 @@ def test_get_upload_entry_archive(
             'file_name': 'template_2.json',
             "move_or_copy_source_path": 'examples_template/template.json',
             "move_or_copy": 'copy'
-         },
+        },
         True, False, 200, {'examples_template/template.json': True}, id='copy-with-rename-file-to-rawdir'),
     pytest.param(
         'stream', 'test_user', 'examples_template', example_file_mainfile, '',
