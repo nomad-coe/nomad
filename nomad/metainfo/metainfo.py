@@ -3636,7 +3636,8 @@ class Section(Definition):
 
         for def_list in [self.quantities, self.sub_sections]:
             for definition in def_list:
-                if bool(definition.m_annotations) and 'eln' in definition.m_annotations and 'component' in definition.m_annotations['eln']:
+                if definition.m_annotations and 'eln' in definition.m_annotations \
+                        and definition.m_annotations['eln'] and 'component' in definition.m_annotations['eln']:
                     component = definition.m_annotations['eln']['component']
                     if component:
                         if isinstance(definition.type, type):
