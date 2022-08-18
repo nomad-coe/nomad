@@ -83,13 +83,13 @@ services:
     enabled: true
 
 jupyterhub:
-  fullnameOverride: "nomad-v1-staging-north"
+  fullnameOverride: "nomad-staging-v1-north"
   hub:
     baseUrl: "/prod/v1/staging/north"
     db:
       type: sqlite-pvc
       pvc:
-        storageClassName: nomad-v1-staging-north-hub-db
+        storageClassName: nomad-staging-v1-north-hub-db
     config:
       GenericOAuthenticator:
         client_id: nomad_public
@@ -98,7 +98,7 @@ jupyterhub:
         token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
         userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
   singleuser:
-    podNameTemplate: "nomad-v1-staging-north-{username}--{servername}"
+    podNameTemplate: "nomad-staging-v1-north-{username}--{servername}"
     initContainers:
       - name: fix-permissions
         image: busybox
@@ -114,6 +114,6 @@ jupyterhub:
       type: static
       homeMountPath: /home/jovyan/work
       static:
-        pvcName: nomad-v1-staging-north-home
+        pvcName: nomad-staging-v1-north-home
         subPath: "{username}"
 

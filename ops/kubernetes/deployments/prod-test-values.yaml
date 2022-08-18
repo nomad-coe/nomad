@@ -70,37 +70,37 @@ services:
   jupyterhub:
     enabled: false
 
-jupyterhub:
-  fullnameOverride: "nomad-v1-test-north"
-  hub:
-    baseUrl: "/prod/v1/test/"
-    db:
-      type: sqlite-pvc
-      pvc:
-        storageClassName: nomad-v1-test-north-hub-db
-    config:
-      GenericOAuthenticator:
-        client_id: nomad_public
-        oauth_callback_url: https://nomad-lab.eu/prod/v1/test/north/hub/oauth_callback
-        authorize_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
-        token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
-        userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
-  singleuser:
-    podNameTemplate: "nomad-test-v1-north-{username}--{servername}"
-    initContainers:
-      - name: fix-permissions
-        image: busybox
-        imagePullPolicy: IfNotPresent
-        securityContext:
-          runAsUser: 0
-        command: ["/bin/sh", "-c", "chown 1000:1000 /home/jovyan"]
-        volumeMounts:
-          - mountPath: /home/jovyan
-            name: home
-            subPath: "{username}"
-    storage:
-      type: static
-      homeMountPath: /home/jovyan/work
-      static:
-        pvcName: nomad-v1-test-north-home
-        subPath: "{username}"
+# jupyterhub:
+#   fullnameOverride: "nomad-test-v1-north"
+#   hub:
+#     baseUrl: "/prod/v1/test/"
+#     db:
+#       type: sqlite-pvc
+#       pvc:
+#         storageClassName: nomad-test-v1-north-hub-db
+#     config:
+#       GenericOAuthenticator:
+#         client_id: nomad_public
+#         oauth_callback_url: https://nomad-lab.eu/prod/v1/test/north/hub/oauth_callback
+#         authorize_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
+#         token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
+#         userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
+#   singleuser:
+#     podNameTemplate: "nomad-test-v1-north-{username}--{servername}"
+#     initContainers:
+#       - name: fix-permissions
+#         image: busybox
+#         imagePullPolicy: IfNotPresent
+#         securityContext:
+#           runAsUser: 0
+#         command: ["/bin/sh", "-c", "chown 1000:1000 /home/jovyan"]
+#         volumeMounts:
+#           - mountPath: /home/jovyan
+#             name: home
+#             subPath: "{username}"
+#     storage:
+#       type: static
+#       homeMountPath: /home/jovyan/work
+#       static:
+#         pvcName: nomad-test-v1-north-home
+#         subPath: "{username}"
