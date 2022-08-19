@@ -938,7 +938,8 @@ export function parseNomadUrl(url) {
     qualifiedName,
     versionHash,
     isResolved: !relativeTo,
-    isExternal: installationUrl ? (installationUrl !== apiBase) : undefined
+    isExternal: installationUrl ? (installationUrl !== apiBase) : undefined,
+    toString: () => { return url + ' (parsed)' }
   }
 }
 
