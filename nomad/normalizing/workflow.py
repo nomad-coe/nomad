@@ -198,7 +198,7 @@ class GeometryOptimizationNormalizer(TaskNormalizer):
             if (atom_pos_init.magnitude == atom_pos_final.magnitude).all():
                 return 'static'
 
-            return 'ionic'
+            return 'atomic'
 
     def normalize(self):
         super().normalize()

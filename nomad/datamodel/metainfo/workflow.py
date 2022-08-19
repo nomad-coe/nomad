@@ -533,17 +533,33 @@ class GeometryOptimization(MSection):
         validate=False)
 
     type = Quantity(
-        type=str,
+        type=MEnum('static', 'atomic', 'cell_shape', 'cell_volume'),
         shape=[],
         description='''
-        The type of geometry optimization can either be ionic, cell_shape, cell_volume.
+        The type of geometry optimization, which denotes what is being optimized.
+
+        Allowed values are:
+
+        | Type                   | Description                               |
+
+        | ---------------------- | ----------------------------------------- |
+
+        | `"static"`             | no optimization |
+
+        | `"atomic"`             | the atomic coordinates alone are updated |
+
+        | `"cell_volume"`         | `"atomic"` + cell lattice paramters are updated isotropically |
+
+        | `"cell_shape"`        | `"cell_volume"` but without the isotropic constraint: all cell parameters are updated |
+
         ''')
 
     method = Quantity(
         type=str,
         shape=[],
         description='''
-        The method used for geometry optimization.
+        The method used for geometry optimization. Some known possible values are:
+        `"steepest_descent"`, `"conjugant_gradient"`, `"low_memory_broyden_fletcher_goldfarb_shanno"`.
         ''')
 
     convergence_tolerance_energy_difference = Quantity(
@@ -595,11 +611,18 @@ class GeometryOptimization(MSection):
         The maximum displacement in the last optimization step with respect to previous.
         ''')
 
+    optimization_steps_maximum = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Maximum number of optimization steps.
+        ''')
+
     optimization_steps = Quantity(
         type=int,
         shape=[],
         description='''
-        Number of optimization steps.
+        Number of saved optimization steps.
         ''')
 
     energies = Quantity(
@@ -609,6 +632,13 @@ class GeometryOptimization(MSection):
         description='''
         List of energy_total values gathered from the single configuration
         calculations that are a part of the optimization trajectory.
+        ''')
+
+    steps = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        The step index corresponding to each saved configuration.
         ''')
 
     is_converged_geometry = Quantity(
@@ -1458,21 +1488,15 @@ class IntegrationParameters(MSection):
     integrator_type = Quantity(
         type=MEnum(
             'brownian', 'conjugant_gradient', 'langevin_goga',
-            'langevin_schneider', 'leap_frog',
-            'low_memory_broyden_fletcher_goldfarb_shanno',
-            'rRESPA_multitimescale', 'steepest_descent', 'velocity_verlet'
+            'langevin_schneider', 'leap_frog', 'rRESPA_multitimescale', 'velocity_verlet'
         ),
         shape=[],
         description='''
-        Name of the integrator. This can be...
-        main categories: velocity verlet, langevin, e-minimization (steepest descent / conjugant gradients)
-
-        The name of the barostat used for temperature control. If skipped or an empty string is used, it
-        means no barostat was applied.
+        Name of the integrator.
 
         Allowed values are:
 
-        | Barostat Name          | Description                               |
+        | Integrator Name          | Description                               |
 
         | ---------------------- | ----------------------------------------- |
 
@@ -1620,6 +1644,20 @@ class EnsemblePropertyValues(MSection):
         shape=[],
         description='''
         Describes the atoms or molecule types involved in determining the property.
+        ''')
+
+    frame_start = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        The starting frame along the trajectory for performing the average.
+        ''')
+
+    frame_end = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        The average is performed up to this frame.
         ''')
 
 

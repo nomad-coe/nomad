@@ -306,7 +306,7 @@ def test_geometry_optimization(geometry_optimization):
     assert n_frames > 0
     assert n_frames == n_energies
     assert geo_opt_prop.final_energy_difference > 0
-    assert geo_opt_prop.type == "ionic"
+    assert geo_opt_prop.type == "atomic"
 
 
 def test_trajectory(molecular_dynamics):
