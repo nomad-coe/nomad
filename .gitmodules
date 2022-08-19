@@ -30,3 +30,6 @@
 [submodule "dependencies/parsers/workflow"]
 	path = dependencies/parsers/workflow
 	url = https://github.com/nomad-coe/workflow-parsers.git
+[submodule "dependencies/parsers/database"]
+	path = dependencies/parsers/database
+	url = https://github.com/nomad-coe/database-parsers.git

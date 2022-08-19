@@ -511,7 +511,7 @@ parsers = [
         mainfile_mime_re=r'text/.*',
     ),
     MatchingParserInterface(
-        'atomisticparsers.OpenKIMParser',
+        'databaseparsers.OpenKIMParser',
         name='parsers/openkim', code_name='OpenKIM', domain='dft',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_contents_re=r'openkim|OPENKIM|OpenKIM'
