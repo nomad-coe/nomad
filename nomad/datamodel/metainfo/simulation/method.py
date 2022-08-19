@@ -960,7 +960,7 @@ class ForceCalculations(MSection):
         Cutoff for calculating VDW forces.
         ''')
 
-    Coulomb_type = Quantity(
+    coulomb_type = Quantity(
         type=MEnum('cutoff', 'ewald', 'multilevel_summation', 'particle_mesh_ewald',
                    'particle_particle_particle_mesh', 'reaction_field'),
         shape=[],
@@ -992,7 +992,7 @@ class ForceCalculations(MSection):
         [Mol. Phys. **26**, 789 (1973)](https://doi.org/10.1080/00268977300102101)|
         ''')
 
-    Coulomb_cutoff = Quantity(
+    coulomb_cutoff = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         unit='m',
