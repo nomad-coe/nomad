@@ -18,8 +18,10 @@
 
 import numpy as np
 import pytest
-import ase.build
+from json import load
 from ase import Atoms
+import ase.build
+from ase.formula import Formula
 from matid.symmetry.wyckoffset import WyckoffSet
 
 from nomad.units import ureg
@@ -566,7 +568,6 @@ def test_topology_calculation(topology_calculation):
     """
     topology = topology_calculation.results.material.topology
     assert len(topology) == 5
-
     # Test the original structure
     original = topology[0]
     assert original.structural_type == "unavailable"
@@ -634,3 +635,108 @@ def test_topology_calculation(topology_calculation):
     assert mon.n_atoms == 2
     assert mon.parent_system == '/results/material/topology/3'
     assert mon.child_systems is None
+
+
+@pytest.mark.parametrize('fixture', [
+    pytest.param('atom', id='atom'),
+    pytest.param('molecule', id='molecule'),
+    pytest.param('one_d', id='1D'),
+    pytest.param('bulk', id='bulk'),
+    pytest.param('two_d', id='2D'),
+    pytest.param('surface', id='surface'),
+])
+def test_no_topology(fixture, request):
+    # Test that some entries don't get a topology. This will change later, but
+    # for now we only create topologies for a subset of systems.
+    entry = request.getfixturevalue(fixture)
+    assert not entry.results.material.topology
+
+
+@pytest.mark.parametrize('entry_id', [
+    pytest.param('heterostructure_2d_1', id='heterostructure-three-2D'),
+    pytest.param('heterostructure_surface_1', id='heterostructure-surface-1'),
+    pytest.param('heterostructure_surface_2', id='heterostructure-surface-2'),
+])
+def test_topology_matid(entry_id):
+    # Load test data
+    with open(f'tests/data/normalizers/topology/{entry_id}.json', 'r') as f:
+        test_data = load(f)
+
+    # Get system values
+    ref_topology = test_data['topology']
+    ref_labels = np.array(ref_topology[0]['atoms']['labels'])
+    ref_positions = np.array(ref_topology[0]['atoms']['positions'])
+    ref_lattice_vectors = ref_topology[0]['atoms']['lattice_vectors']
+    ref_pbc = ref_topology[0]['atoms']['periodic']
+
+    # Create ase.atoms
+    atoms = Atoms(
+        symbols=ref_labels,
+        positions=ref_positions,
+        cell=ref_lattice_vectors,
+        pbc=ref_pbc
+    )
+    # Parse ase.atoms and get calculated topology
+    entry_archive = get_template_for_structure(atoms)
+    topology = entry_archive.results.material.topology
+    assert len(topology) == len(ref_topology)
+    outlier_threshold = 1
+
+    # Compare topology with reference system topology. topology[0] is the original system
+    for cluster in topology[1:]:
+        elements = cluster['elements']
+        formula_hill = cluster['formula_hill']
+        indices = cluster['indices']
+        system_type = cluster['structural_type']
+        if len(indices[0]) <= outlier_threshold:
+            continue
+        max_similarity = []
+        similarity_value = []
+        for ref_cluster in ref_topology[1:]:
+
+            # Load reference cluster. Pass if system type is not a surface or 2D.
+            ref_system_type = ref_cluster['structural_type']
+            assert ref_system_type in {'2D', 'surface'}
+
+            ref_elements = ref_cluster['elements']
+            ref_formula_hill = ref_cluster['formula_hill']
+            ref_indices = ref_cluster['indices']
+
+            # Similarity calculation
+            indices_overlap = set(
+                ref_indices).intersection(set(indices[0]))
+            indices_similarity = len(
+                indices_overlap) / len(ref_indices) > 0.90
+            element_similarity = set(ref_elements) == set(elements)
+            formula_hill_similarity = ref_formula_hill == formula_hill
+            system_type_similarity = ref_system_type == system_type
+
+            similarity_value += [indices_similarity + element_similarity
+                                 + formula_hill_similarity + system_type_similarity]
+
+        # Get most similar reference cluster. +1 because 0 is the original system
+        max_similarity = similarity_value.index(max(similarity_value)) + 1
+        topology_max_similarity = ref_topology[max_similarity]
+
+        # Indices: passes if the index overlapp is great enough
+        ref_indices_most_similar = topology_max_similarity['indices']
+        indices_overlap_most_similar = set(
+            ref_indices_most_similar).intersection(set(indices[0]))
+        assert len(indices_overlap_most_similar) / \
+            len(ref_indices_most_similar) > 0.85
+
+        # Elements
+        assert set(topology_max_similarity['elements']) == set(elements)
+
+        # Formula hill: passes if the deviation is smaller than 10%
+        if topology_max_similarity['formula_hill'] != formula_hill:
+            ref_element_quantity = Formula(topology_max_similarity['formula_hill']).count()
+            element_quantity = Formula(formula_hill).count()
+            diff = 0
+            for element in ref_element_quantity.keys():
+                diff += abs(ref_element_quantity[element] - element_quantity[element])
+            deviation = diff / sum(ref_element_quantity.values())
+            assert deviation < 0.15
+
+        # System type
+        assert topology_max_similarity['structural_type'] == system_type
