@@ -1,0 +1,51 @@
+{
+  "topology": [
+    {
+      "atoms": {
+        "labels": ["N","N","C","C","B","B"],
+        "species": [7,7,6,6,5,5],
+        "positions": [[0,0,0],[0,0,6.207700540042802],[-7.734710224832942e-18,1.4385198970702378,3.103314831178906],[7.734710224832942e-18,2.8770398372960724,3.1044161012110054],[-7.734710224832942e-18,1.4385198970702378,0.0009248229259962613],[7.734710224832942e-18,2.8770398372960724,6.206744562579172]],
+        "lattice_vectors":[[1.24579479260285,2.157779867183155,0],[-1.24579479260285,2.157779867183155,0],[0,0,15]],
+        "periodic": [true,true,true]
+      },
+      "description": "A representative system chosen from the original simulation.",
+      "id": "0",
+      "method": "parser",
+      "label": "original",
+      "structural_type": "unavailable",
+      "elements": ["B","C","N"],
+      "formula_hill": "C2B2N2",
+      "children": [1,2,3]
+    }, {
+      "description": "Automatically detected subsystem.",
+      "id": "1",
+      "method": "matid",
+      "label": "subsystem",
+      "elements": ["B","N"],
+      "formula_hill": "BN",
+      "parent": "0",
+      "indices": [1,5],
+      "structural_type": "2D"
+    }, {
+      "description": "Automatically detected subsystem.",
+      "id": "2",
+      "method": "matid",
+      "label": "subsystem", 
+      "elements": ["C"], 
+      "formula_hill": "C2", 
+      "parent": "0", 
+      "indices": [2,3], 
+      "structural_type": "2D" 
+    }, {
+      "description": "Automatically detected subsystem.",
+      "id": "3",
+      "method": "matid",
+      "label": "subsystem",
+      "elements": ["B","N"],
+      "formula_hill": "BN",
+      "parent": "0",
+      "indices": [0,4],
+      "structural_type": "2D"
+    }
+  ]
+}

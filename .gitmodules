@@ -33,3 +33,6 @@
 [submodule "dependencies/parsers/database"]
 	path = dependencies/parsers/database
 	url = https://github.com/nomad-coe/database-parsers.git
+[submodule "dependencies/matid"]
+	path = dependencies/matid
+	url = https://github.com/SINGROUP/matid.git
