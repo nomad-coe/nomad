@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useRef } from 'react'
+import React, { useContext, useRef, useState, useCallback, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { useApi, DoesNotExist } from './api'
 import { useErrors } from './errors'
@@ -54,6 +54,7 @@ const DataStore = React.memo(({children}) => {
   const {api, user} = useApi()
   const userRef = useRef()
   userRef.current = user // The logged in user may change during component lifecycle
+  const selectedEntry = useRef() // stores identity of the selected entry (used to determine if editable)
 
   const uploadStore = useRef({}) // The upload store objects
   const entryStore = useRef({}) // The entry store objects
@@ -184,26 +185,6 @@ const DataStore = React.memo(({children}) => {
     }
     // Possibly, start a refresh job
     initiateUploadRefreshIfNeeded(installationUrl, uploadId)
-  }
-
-  function uploadOptions(uploadStoreObj) {
-    // Internal use: Determine the options of the upload, based on the subscriptions
-    let requireUpload = false
-    let requireEntriesPage = false
-    for (const subscription of uploadStoreObj.subscriptions) {
-      requireUpload = requireUpload || subscription.requireUpload
-      requireEntriesPage = requireEntriesPage || subscription.requireEntriesPage
-    }
-    return {requireUpload, requireEntriesPage}
-  }
-
-  function uploadRefreshSatisfiesOptions(uploadStoreObj, requireUpload, requireEntriesPage) {
-    // Internal use: Determine if the last store refresh satisfies the given options.
-    const refreshOptions = uploadStoreObj?.refreshOptions
-    if (refreshOptions) {
-      return (refreshOptions.requireUpload || !requireUpload) || (refreshOptions.requireEntriesPage || !requireEntriesPage)
-    }
-    return false
   }
 
   async function refreshUpload(installationUrl, uploadId) {
@@ -339,7 +320,7 @@ const DataStore = React.memo(({children}) => {
           resolve(newStoreObj)
         }
       }
-      subscribeToEntry(installationUrl, entryId, cb, requireMetadata, requireArchive, false)
+      subscribeToEntry(installationUrl, entryId, cb, requireMetadata, requireArchive)
     })
   }
 
@@ -347,13 +328,13 @@ const DataStore = React.memo(({children}) => {
    * Subscribes the callback cb to an entry, and returns a function to be called to unsubscribe.
    * Typically used in useEffect. The callback will be called when the store value changes.
    */
-  function subscribeToEntry(installationUrl, entryId, cb, requireMetadata, requireArchive, editableIfPossible) {
+  function subscribeToEntry(installationUrl, entryId, cb, requireMetadata, requireArchive) {
     if (!entryId) return undefined
-    if (requireMetadata === undefined || requireArchive === undefined || editableIfPossible === undefined) {
-      throw Error('Store error: missing entry subscription parameter')
+    if (requireMetadata === undefined || !(requireArchive === undefined || requireArchive === '*' || typeof requireArchive === 'object')) {
+      throw Error('Store error: bad subscription parameter supplied')
     }
     const entryStoreObj = getEntry(installationUrl, entryId)
-    addSubscription(entryStoreObj, cb, {requireMetadata, requireArchive, editableIfPossible})
+    addSubscription(entryStoreObj, cb, {requireMetadata, requireArchive})
     initiateEntryRefreshIfNeeded(installationUrl, entryId)
     return function unsubscriber() { removeSubscription(entryStore.current, entryId, cb) }
   }
@@ -388,77 +369,42 @@ const DataStore = React.memo(({children}) => {
     initiateEntryRefreshIfNeeded(installationUrl, entryId)
   }
 
-  function entryOptions(entryStoreObj) {
-    // Internal use: Determine the options of the entry, based on the subscriptions
-    let requireMetadata = false
-    let requireArchive = false
-    let editableIfPossible = false
-    for (const subscription of entryStoreObj.subscriptions) {
-      requireMetadata = requireMetadata || subscription.requireMetadata
-      requireArchive = requireArchive || subscription.requireArchive
-      editableIfPossible = editableIfPossible || subscription.editableIfPossible
-    }
-    return {requireMetadata, requireArchive, editableIfPossible}
-  }
-
-  function entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArchive) {
-    // Internal use: Determine if the last store refresh satisfies the given options.
-    const refreshOptions = entryStoreObj?.refreshOptions
-    if (refreshOptions) {
-      return (refreshOptions.requireMetadata || !requireMetadata) || (refreshOptions.requireArchive || !requireArchive)
-    }
-    return false
-  }
-
   async function refreshEntry(installationUrl, entryId) {
     // Internal use: refresh an entry store obj with data from the API.
-    const entryStoreObj = getEntry(installationUrl, entryId)
-    const {requireMetadata, requireArchive, editableIfPossible} = entryOptions(entryStoreObj)
+    let entryStoreObj = getEntry(installationUrl, entryId)
+    let refreshOptions = entryOptions(entryStoreObj)
+    let {requireMetadata, requireArchive} = refreshOptions
     if (!requireMetadata && !requireArchive) return
     // There's something that can be refreshed
     entryStoreObj.isRefreshing = true
-    let dataToUpdate = {}
+    const dataToUpdate = {refreshOptions}
     try {
-      const metadataApiData = await api.get(`/entries/${entryId}`, null, {returnRequest: true})
-      const metadata = metadataApiData?.response?.data
-      const uploadId = metadata?.upload_id
-      const user = userRef.current
-      const isWriter = user && metadata?.writers && metadata.writers.find(u => u.user_id === user.sub)
-      const isEditableArchive = metadata && !metadata.published && metadata.quantities && metadata.quantities.includes('data')
-      const editable = editableIfPossible && isWriter && isEditableArchive
-      const isProcessing = !!metadata?.process_running
-      dataToUpdate = {metadataApiData, metadata, uploadId, editable, isProcessing, error: undefined}
+      if (requireMetadata) {
+        const metadataApiData = await api.get(`/entries/${entryId}`, null, {returnRequest: true})
+        const metadata = metadataApiData?.response?.data
+        const uploadId = metadata?.upload_id
+        const user = userRef.current
+        const isWriter = user && metadata?.writers && metadata.writers.find(u => u.user_id === user.sub)
+        const isEditableArchive = metadata && !metadata.published && metadata.quantities && metadata.quantities.includes('data')
+        const editable = isWriter && isEditableArchive && selectedEntry.current === `${installationUrl}:${entryId}`
+        const isProcessing = !!metadata?.process_running
+        Object.assign(dataToUpdate, {metadataApiData, metadata, uploadId, editable, isProcessing, error: undefined})
+        // Fetch the options again, in case some subscriptions were added while waiting for the api call
+        entryStoreObj = getEntry(installationUrl, entryId)
+        refreshOptions = entryOptions(entryStoreObj)
+        requireArchive = refreshOptions.requireArchive
+        dataToUpdate.refreshOptions.requireArchive = requireArchive
+      }
       if (requireArchive) {
-        const required = editable
-          ? '*'
-          : {
-            'resolve-inplace': false,
-            metadata: '*',
-            data: '*',
-            definitions: '*',
-            results: {
-              material: '*',
-              method: '*',
-              properties: {
-                structures: '*',
-                electronic: 'include-resolved',
-                mechanical: 'include-resolved',
-                spectroscopy: 'include-resolved',
-                vibrational: 'include-resolved',
-                thermodynamic: 'include-resolved',
-                // For geometry optimizations we require only the energies.
-                // Trajectory, optimized structure, etc. are unnecessary.
-                geometry_optimization: {
-                  energies: 'include-resolved'
-                }
-              }
-            }
-          }
+        const required = requireArchive === '*' ? '*' : {...requireArchive, 'resolve-inplace': false}
         const archiveApiData = await api.post(
           `/entries/${entryId}/archive/query`, {required}, {returnRequest: true, jsonResponse: true})
         const archive = archiveApiData?.response?.data?.archive
         if (archive) {
           archive.processing_logs = undefined
+          if (archive.metadata?.upload_id) {
+            dataToUpdate.uploadId = archive.metadata.upload_id
+          }
         }
         dataToUpdate.archiveApiData = archiveApiData
         dataToUpdate.archive = archive
@@ -493,9 +439,8 @@ const DataStore = React.memo(({children}) => {
     }
     // Determine if a refresh is needed or not
     const {requireMetadata, requireArchive} = entryOptions(entryStoreObj)
-    const metadataMissing = requireMetadata && !entryStoreObj.metadata
-    const archiveMissing = requireArchive && !entryStoreObj.archive
-    if (!entryStoreObj.error && (metadataMissing || archiveMissing || entryStoreObj.isProcessing)) {
+    const lastRefreshSatisfiesOptions = entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArchive)
+    if (!entryStoreObj.error && (!lastRefreshSatisfiesOptions || entryStoreObj.isProcessing)) {
       // Need to fetch data from the api
       refreshEntry(installationUrl, entryId)
     } else {
@@ -550,7 +495,8 @@ const DataStore = React.memo(({children}) => {
     requestRefreshUpload,
     getEntry,
     getEntryAsync,
-    subscribeToEntry
+    subscribeToEntry,
+    selectedEntry
   }
 
   return <dataStoreContext.Provider value={contextValue}>
@@ -564,3 +510,164 @@ DataStore.propTypes = {
   ])
 }
 export default DataStore
+
+/**
+ * React function for getting an entry from the store with certain subscription options.
+ * If the store already has fetched the entry and all the required data, it will be returned
+ * immediately from the cache. If the store has loaded the entry, but it has not yet fetched
+ * all data required by the subscription options, the function will return a copy of the store
+ * object without the following fields: metadata, metadataApiData, archive, archiveApiData.
+ * This is to signal to the component that all data requested is not yet available in the store.
+ *
+ * Subscription options:
+ * @param {*} requireMetadata If we require the store to fetch the entry metadata
+ * @param {*} requireArchive If we require the store to fetch the archive, and if so, what
+ *    parts of it. Should be one of:
+ *      a) undefined (no archive data required)
+ *      b) '*' (load entire archive), or
+ *      c) an object specifying a simple archive data filter (see the doc for mergeArchiveFilter).
+ */
+export function useEntryStoreObj(installationUrl, entryId, requireMetadata, requireArchive) {
+  const dataStore = useDataStore()
+  const [entryStoreObj, setEntryStoreObj] = useState(
+    () => installationUrl && entryId
+      ? filteredEntryStoreObj(dataStore.getEntry(installationUrl, entryId), requireMetadata, requireArchive)
+      : null)
+
+  const onEntryStoreUpdated = useCallback((oldStoreObj, newStoreObj) => {
+    setEntryStoreObj(filteredEntryStoreObj(newStoreObj, requireMetadata, requireArchive))
+  }, [setEntryStoreObj, requireMetadata, requireArchive])
+
+  useEffect(() => {
+    if (installationUrl && entryId) {
+      return dataStore.subscribeToEntry(installationUrl, entryId, onEntryStoreUpdated, requireMetadata, requireArchive)
+    }
+  }, [installationUrl, entryId, requireMetadata, requireArchive, dataStore, onEntryStoreUpdated])
+
+  return entryStoreObj
+}
+
+/**
+ * Misc internal helper funcions
+ */
+
+function filteredEntryStoreObj(entryStoreObj, requireMetadata, requireArchive) {
+  // Returns a filtered entry store obj if all data is not yet available.
+  if (!entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArchive)) {
+    const rv = {...entryStoreObj}
+    delete rv.metadata
+    delete rv.metadataApiData
+    delete rv.archive
+    delete rv.archiveApiData
+    return rv
+  }
+  return entryStoreObj
+}
+
+function uploadOptions(uploadStoreObj) {
+  // Internal use: Determine the options of the upload, based on the subscriptions
+  let requireUpload = false
+  let requireEntriesPage = false
+  for (const subscription of uploadStoreObj.subscriptions) {
+    requireUpload = requireUpload || subscription.requireUpload
+    requireEntriesPage = requireEntriesPage || subscription.requireEntriesPage
+  }
+  return {requireUpload, requireEntriesPage}
+}
+
+function uploadRefreshSatisfiesOptions(uploadStoreObj, requireUpload, requireEntriesPage) {
+  // Internal use: Determine if the last store refresh satisfies the given options.
+  const refreshOptions = uploadStoreObj?.refreshOptions
+  if (refreshOptions) {
+    return (refreshOptions.requireUpload || !requireUpload) || (refreshOptions.requireEntriesPage || !requireEntriesPage)
+  }
+  return false
+}
+
+function entryOptions(entryStoreObj) {
+  // Internal use: Determine the options of the entry, based on the subscriptions
+  let requireMetadata = false
+  let requireArchive
+  for (const subscription of entryStoreObj.subscriptions) {
+    requireMetadata = requireMetadata || subscription.requireMetadata
+    requireArchive = mergeArchiveFilter(requireArchive, subscription.requireArchive)
+  }
+  return {requireMetadata, requireArchive}
+}
+
+function entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArchive) {
+  // Internal use: Determine if the last store refresh satisfies the given options.
+  const refreshOptions = entryStoreObj?.refreshOptions
+  if (refreshOptions) {
+    return (refreshOptions.requireMetadata || !requireMetadata) && archiveFilterExtends(refreshOptions.requireArchive, requireArchive)
+  }
+  return false
+}
+
+/**
+ * Merges two archive data filters f1, f2, returning a filter which will fetch all data
+ * fetched by either f1 or f2.
+ * Note, this method only handles certain simple types of filters, used by the gui.
+ * Each filter can either have the value
+ *  1) undefined (meaning include nothing)
+ *  2) '*' (meaning include everything, but do not add resolved data)
+ *  3) 'include-resolved' (include everything and add resolved data)
+ *  4) an object with subkeys (will be treated recursively)
+ * The `resolve-inplace` option should not be specified (it will be implicitly set to false).
+ */
+function mergeArchiveFilter(f1, f2, level = 0) {
+  if (f1 === f2) return f1
+  if (f1 === undefined) return f2
+  if (f2 === undefined) return f1
+  if (f1 === 'include-resolved' || f2 === 'include-resolved') return 'include-resolved'
+  const obj1 = typeof f1 === 'object'
+  const obj2 = typeof f2 === 'object'
+  if (f1 === '*' && obj2) return level !== 0 && hasIncludeResolved(f2) ? 'include-resolved' : '*'
+  if (f2 === '*' && obj1) return level !== 0 && hasIncludeResolved(f1) ? 'include-resolved' : '*'
+  if (!obj1 || !obj2) throw new Error('Cannot merge filters: bad values')
+
+  // Two objects. Inspect recursively.
+  const rv = {}
+  for (const key in {...f1, ...f2}) {
+    const v1 = f1[key]
+    const v2 = f2[key]
+    rv[key] = mergeArchiveFilter(v1, v2, level + 1)
+  }
+  return rv
+}
+
+/**
+ * True if the archive filter f1 *extends* the filter f2, i.e. if all data passing
+ * f2 will also pass f1.
+ * Note, this method only handles certain simple types of filters, used by the gui.
+ */
+function archiveFilterExtends(f1, f2, level = 0) {
+  if (f1 === f2) return true
+  if (f2 === undefined) return true
+  if (f1 === undefined) return false
+  if (f1 === 'include-resolved') return true
+  if (f2 === 'include-resolved') return false
+  const obj1 = typeof f1 === 'object'
+  const obj2 = typeof f2 === 'object'
+  if (f1 === '*' && obj2) return level === 0 || !hasIncludeResolved(f2)
+  if (f2 === '*' && obj1) return false
+  if (!obj1 || !obj2) throw new Error('Cannot compare filters: bad values')
+  // Two objects. Inspect recursively.
+  for (const key in f2) {
+    const v1 = f1[key]
+    const v2 = f2[key]
+    if (!archiveFilterExtends(v1, v2, level + 1)) return false
+  }
+  return true
+}
+
+function hasIncludeResolved(f) {
+  for (const key in f) {
+    const v = f[key]
+    if (v === 'include-resolved') return true
+    if (typeof v === 'object') {
+      if (hasIncludeResolved(v)) return true
+    }
+  }
+  return false
+}

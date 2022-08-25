@@ -24,9 +24,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2022-07-01T13:24:55.613693+00:00",
+            "upload_create_time": "2022-08-26T08:00:13.499909+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2022-07-01T13:24:55.616693+00:00",
+            "publish_time": "2022-08-26T08:00:13.502909+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -196,7 +196,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2022-07-01T13:24:55.617693+00:00",
+            "entry_create_time": "2022-08-26T08:00:13.503909+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -226,7 +226,6 @@
         "method": "POST",
         "body": {
           "required": {
-            "resolve-inplace": false,
             "metadata": "*",
             "data": "*",
             "definitions": "*",
@@ -244,7 +243,8 @@
                   "energies": "include-resolved"
                 }
               }
-            }
+            },
+            "resolve-inplace": false
           }
         },
         "headers": {
@@ -257,7 +257,6 @@
         "status": 200,
         "body": {
           "required": {
-            "resolve-inplace": false,
             "metadata": "*",
             "data": "*",
             "definitions": "*",
@@ -275,7 +274,8 @@
                   "energies": "include-resolved"
                 }
               }
-            }
+            },
+            "resolve-inplace": false
           },
           "entry_id": "dft_bulk",
           "data": {
@@ -447,14 +447,14 @@
               ],
               "metadata": {
                 "upload_id": "dft_upload",
-                "upload_create_time": "2022-07-01T13:24:55.613693+00:00",
+                "upload_create_time": "2022-08-26T08:00:13.499909+00:00",
                 "entry_id": "dft_bulk",
                 "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2022-07-01T13:24:55.617693+00:00",
+                "entry_create_time": "2022-08-26T08:00:13.503909+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "vasp.xml",
                 "published": true,
-                "publish_time": "2022-07-01T13:24:55.616693+00:00",
+                "publish_time": "2022-08-26T08:00:13.502909+00:00",
                 "with_embargo": false,
                 "embargo_length": 0,
                 "license": "CC BY 4.0",

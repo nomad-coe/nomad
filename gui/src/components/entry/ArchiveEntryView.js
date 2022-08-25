@@ -49,7 +49,7 @@ const useStyles = makeStyles(theme => ({
 
 export default function ArchiveEntryView(props) {
   const classes = useStyles()
-  const {archive, archiveApiData, exists} = useEntryPageContext()
+  const {archive, archiveApiData, exists} = useEntryPageContext('*')
 
   if (!exists) {
     return (

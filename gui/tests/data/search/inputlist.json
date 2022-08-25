@@ -51,7 +51,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 15
+            "total": 3
           },
           "required": {
             "include": [
@@ -67,14 +67,18 @@
                 "size": 3,
                 "data": [
                   {
-                    "count": 10,
-                    "nested_count": 10,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "VASP"
                   },
                   {
-                    "count": 5,
-                    "nested_count": 5,
+                    "count": 1,
+                    "nested_count": 1,
                     "value": "exciting"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ABACUS"
                   },
                   {
                     "count": 0,
@@ -95,6 +99,10 @@
                   {
                     "count": 0,
                     "value": "ASR"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Atomate"
                   },
                   {
                     "count": 0,
@@ -202,7 +210,7 @@
                   },
                   {
                     "count": 0,
-                    "value": "MaterialsProject"
+                    "value": "MOF Structures"
                   },
                   {
                     "count": 0,
@@ -304,7 +312,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5102",
+          "content-length": "5256",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -361,7 +369,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 15
+            "total": 3
           },
           "required": {
             "include": [
@@ -377,18 +385,18 @@
                 "size": 3,
                 "data": [
                   {
-                    "count": 10,
-                    "nested_count": 10,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "GGA_C_PBE_SOL"
                   },
                   {
-                    "count": 10,
-                    "nested_count": 10,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "GGA_X_PBE_SOL"
                   },
                   {
-                    "count": 5,
-                    "nested_count": 5,
+                    "count": 1,
+                    "nested_count": 1,
                     "value": "LDA_C_PZ"
                   }
                 ]
@@ -399,7 +407,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "877",
+          "content-length": "872",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -456,7 +464,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 15
+            "total": 3
           },
           "required": {
             "include": [
@@ -472,8 +480,8 @@
                 "size": 3,
                 "data": [
                   {
-                    "count": 15,
-                    "nested_count": 15,
+                    "count": 3,
+                    "nested_count": 3,
                     "value": "not processed"
                   }
                 ]
@@ -484,7 +492,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "643",
+          "content-length": "640",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -541,7 +549,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 15
+            "total": 3
           },
           "required": {
             "include": [
@@ -563,7 +571,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "485",
+          "content-length": "484",
           "content-type": "application/json",
           "server": "uvicorn"
         }
