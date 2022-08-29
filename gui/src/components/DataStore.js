@@ -605,8 +605,8 @@ function entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArc
 }
 
 /**
- * Merges two archive data filters f1, f2, returning a filter which will fetch all data
- * fetched by either f1 or f2.
+ * Merges two archive data filters, filter1 and filter2, returning a filter which will fetch all data
+ * fetched by either filter1 or filter2.
  * Note, this method only handles certain simple types of filters, used by the gui.
  * Each filter can either have the value
  *  1) undefined (meaning include nothing)
@@ -615,48 +615,48 @@ function entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArc
  *  4) an object with subkeys (will be treated recursively)
  * The `resolve-inplace` option should not be specified (it will be implicitly set to false).
  */
-function mergeArchiveFilter(f1, f2, level = 0) {
-  if (f1 === f2) return f1
-  if (f1 === undefined) return f2
-  if (f2 === undefined) return f1
-  if (f1 === 'include-resolved' || f2 === 'include-resolved') return 'include-resolved'
-  const obj1 = typeof f1 === 'object'
-  const obj2 = typeof f2 === 'object'
-  if (f1 === '*' && obj2) return level !== 0 && hasIncludeResolved(f2) ? 'include-resolved' : '*'
-  if (f2 === '*' && obj1) return level !== 0 && hasIncludeResolved(f1) ? 'include-resolved' : '*'
+function mergeArchiveFilter(filter1, filter2, level = 0) {
+  if (filter1 === filter2) return filter1
+  if (filter1 === undefined) return filter2
+  if (filter2 === undefined) return filter1
+  if (filter1 === 'include-resolved' || filter2 === 'include-resolved') return 'include-resolved'
+  const obj1 = typeof filter1 === 'object'
+  const obj2 = typeof filter2 === 'object'
+  if (filter1 === '*' && obj2) return level !== 0 && hasIncludeResolved(filter2) ? 'include-resolved' : '*'
+  if (filter2 === '*' && obj1) return level !== 0 && hasIncludeResolved(filter1) ? 'include-resolved' : '*'
   if (!obj1 || !obj2) throw new Error('Cannot merge filters: bad values')
 
   // Two objects. Inspect recursively.
   const rv = {}
-  for (const key in {...f1, ...f2}) {
-    const v1 = f1[key]
-    const v2 = f2[key]
-    rv[key] = mergeArchiveFilter(v1, v2, level + 1)
+  for (const key in {...filter1, ...filter2}) {
+    const value1 = filter1[key]
+    const value2 = filter2[key]
+    rv[key] = mergeArchiveFilter(value1, value2, level + 1)
   }
   return rv
 }
 
 /**
- * True if the archive filter f1 *extends* the filter f2, i.e. if all data passing
- * f2 will also pass f1.
+ * True if the archive filter filter1 *extends* the filter filter2, i.e. if all data passing
+ * filter2 will also pass filter1.
  * Note, this method only handles certain simple types of filters, used by the gui.
  */
-function archiveFilterExtends(f1, f2, level = 0) {
-  if (f1 === f2) return true
-  if (f2 === undefined) return true
-  if (f1 === undefined) return false
-  if (f1 === 'include-resolved') return true
-  if (f2 === 'include-resolved') return false
-  const obj1 = typeof f1 === 'object'
-  const obj2 = typeof f2 === 'object'
-  if (f1 === '*' && obj2) return level === 0 || !hasIncludeResolved(f2)
-  if (f2 === '*' && obj1) return false
+function archiveFilterExtends(filter1, filter2, level = 0) {
+  if (filter1 === filter2) return true
+  if (filter2 === undefined) return true
+  if (filter1 === undefined) return false
+  if (filter1 === 'include-resolved') return true
+  if (filter2 === 'include-resolved') return false
+  const obj1 = typeof filter1 === 'object'
+  const obj2 = typeof filter2 === 'object'
+  if (filter1 === '*' && obj2) return level === 0 || !hasIncludeResolved(filter2)
+  if (filter2 === '*' && obj1) return false
   if (!obj1 || !obj2) throw new Error('Cannot compare filters: bad values')
   // Two objects. Inspect recursively.
-  for (const key in f2) {
-    const v1 = f1[key]
-    const v2 = f2[key]
-    if (!archiveFilterExtends(v1, v2, level + 1)) return false
+  for (const key in filter2) {
+    const value1 = filter1[key]
+    const value2 = filter2[key]
+    if (!archiveFilterExtends(value1, value2, level + 1)) return false
   }
   return true
 }
