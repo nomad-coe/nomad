@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI3ZjYzZWEwNC0wMTMwLTQ4NWItYTc3OS00MTZlM2U1YjljNjQiLCJleHAiOjE2NTEyNjcxNzUsIm5iZiI6MCwiaWF0IjoxNjUxMjMxMTgyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjNiNGJlNzgxLWU0NjctNGViNC05NzhlLTVkNTQ0N2I4YzliZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.T08d5x-BA4EGX1B5qCcEQOblcW2F8kFf212xrkdrTxbfSoLqpHsT-TGba_avZiltu64JR29PtxwNlEGhNuSFBjYEV_wDjrso7XQk-cqfZt1Xijk-J_DEGVIPqrd0eV3CNrpAemDnWrkiwu8NRt5qi0ZZyCJeSlO57xMa3DU5SN_fb6YyYhH_sZKsfZr6AhNlMeROgfx2tmFmVfqUPWQlFYO0QSczHKNAIGvo8oOL3WMmiuZdMgs90pWHWpQzttoeU2nTDpiZm30aOtOHqAyOEw4yJqChJFeatZf3JQuW6KaxzcnwheDHKeRAYL7x6z9nno81qd2-zSfl9Yo7wdLfDA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1ZDMyMmU3MC04OTRmLTQzNjQtYmIyOS0yMzYzMWI1YzdkNzciLCJleHAiOjE2NjE1MzQyMTEsIm5iZiI6MCwiaWF0IjoxNjYxNDk4MjI0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImIwNTMwOGY5LTdkZjgtNDJkZC05MmQzLWIwMTlmOWI1Mzk4MCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.bTBCtr_ZneiLGvJsp3gpajTEDy-iyS3o5PdR9kZw3tEEcnIGJZ61NolksZG9hZMWuaH3nWDdYFpZSl4bEy_o0Ri_W7KM_y9tglTzBR2LmA6bE8vqJbiOljABYlwbXv-idB_JyQvN1gpnrSfgDJwsvgHz_Xax5d7K9eWgSlFg94hbG5Y9uims22LMA2PpvoQmguz5SZk8_xxSBdS3zXSfN0lWqHLb4efVen-9LQJDDxX5acmL0zCyEnOWd-g8ygCNbYAAaJSUKEXU9a-s187mINoyd89tD4mu51bnydJHiO-iazJ3oW820itVwj1Uk7y_-nVLG6tGo89YCJScAhreAw",
           "cookie": null
         }
       },
@@ -22,10 +22,6 @@
             "origin": "Markus Scheidgen",
             "quantities": [
               "",
-              ".metadata",
-              ".results",
-              ".run",
-              ".workflow",
               "metadata",
               "metadata.coauthors",
               "metadata.datasets",
@@ -35,6 +31,8 @@
               "metadata.entry_create_time",
               "metadata.entry_hash",
               "metadata.entry_id",
+              "metadata.entry_name",
+              "metadata.entry_type",
               "metadata.files",
               "metadata.last_processing_time",
               "metadata.license",
@@ -76,9 +74,7 @@
               "results.material.chemical_formula_hill",
               "results.material.chemical_formula_reduced",
               "results.material.chemical_formula_reduced_fragments",
-              "results.material.compound_type",
               "results.material.elements",
-              "results.material.functional_type",
               "results.material.material_id",
               "results.material.material_name",
               "results.material.structural_type",
@@ -251,12 +247,6 @@
               "run.system.prototype.aflow_url",
               "run.system.prototype.assignment_method",
               "run.system.prototype.label",
-              "run.system.springer_material",
-              "run.system.springer_material.alphabetical_formula",
-              "run.system.springer_material.classification",
-              "run.system.springer_material.compound_class",
-              "run.system.springer_material.id",
-              "run.system.springer_material.url",
               "run.system.symmetry",
               "run.system.symmetry.bravais_lattice",
               "run.system.symmetry.crystal_system",
@@ -305,24 +295,13 @@
               "workflow.type"
             ],
             "datasets": [],
-            "n_quantities": 954,
-            "nomad_version": "1.1.0",
-            "upload_create_time": "2022-04-29T11:19:39.807000",
-            "nomad_commit": "e7d8d8f9",
+            "n_quantities": 408,
+            "nomad_version": "1.1.2",
+            "upload_create_time": "2022-08-26T07:17:01.107000+00:00",
+            "nomad_commit": "d0778d6a",
             "processing_errors": [],
             "results": {
               "material": {
-                "compound_type": [
-                  "chemical element"
-                ],
-                "functional_type": [
-                  "metal",
-                  "nonmetal",
-                  "semiconductor"
-                ],
-                "structural_type": "bulk",
-                "chemical_formula_descriptive": "Si16",
-                "chemical_formula_hill": "Si16",
                 "symmetry": {
                   "bravais_lattice": "cF",
                   "space_group_symbol": "Fd-3m",
@@ -342,12 +321,15 @@
                 "elements_exclusive": "Si",
                 "chemical_formula_anonymous": "A16",
                 "material_id": "fh3UBjhUVm4nxzeRd2JJuqw5oXYa",
+                "structural_type": "bulk",
                 "chemical_formula_reduced": "Si16",
                 "n_elements": 1,
+                "chemical_formula_descriptive": "Si16",
                 "material_name": "Silicon",
                 "chemical_formula_reduced_fragments": [
                   "Si"
-                ]
+                ],
+                "chemical_formula_hill": "Si16"
               },
               "method": {
                 "method_name": "DFT",
@@ -415,7 +397,8 @@
                 }
               }
             },
-            "last_processing_time": "2022-04-29T11:19:39.991000",
+            "entry_name": "Si16 VASP simulation",
+            "last_processing_time": "2022-08-26T07:17:01.692000+00:00",
             "optimade": {
               "nperiodic_dimensions": 3,
               "species_at_sites": [
@@ -493,7 +476,6 @@
               "nomad.datamodel.metainfo.simulation.run.Run",
               "nomad.datamodel.metainfo.simulation.system.Atoms",
               "nomad.datamodel.metainfo.simulation.system.Prototype",
-              "nomad.datamodel.metainfo.simulation.system.SpringerMaterial",
               "nomad.datamodel.metainfo.simulation.system.Symmetry",
               "nomad.datamodel.metainfo.simulation.system.System",
               "nomad.datamodel.metainfo.workflow.SinglePoint",
@@ -535,13 +517,14 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2022-04-29T11:19:39.923000",
+            "entry_create_time": "2022-08-26T07:17:01.445000+00:00",
             "with_embargo": false,
             "domain": "dft",
             "files": [
               "examples_vasp/xml/Si.xml",
               "examples_vasp/xml/perovskite.xml"
             ],
+            "entry_type": "VASP",
             "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
             "authors": [
               {
@@ -558,7 +541,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "22400",
+          "content-length": "21863",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -576,7 +559,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJlNjEwNDc5MC03MDdhLTQ0MWItOGQ2Mi02MzcwNzAwYjdkYmIiLCJleHAiOjE2NTEyNjcxNzUsIm5iZiI6MCwiaWF0IjoxNjUxMjMxMTgyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjNiNGJlNzgxLWU0NjctNGViNC05NzhlLTVkNTQ0N2I4YzliZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.bm-Rn_qgdfN7oQNJ3OsbhZpxAdLrBOSG1icG9o-27CuAIJG03PJZI13pg7izb3OFDy8o07Wx9yMv_3ZHv4tWBxrj2g4ysr3uOiBBo-kOf4f3S4cMnA27efzcwbpkHHGY1AY7SZkN8F7P5ymHsnRa5EkhbteACRyrqApO6nAYwBKSTA1GvQD5gpOC2OPLMzTmtdd-NIf_6KX7rHoBMXauhqQx_pR1tCye9TnGnCrMTP6kWwV0ZZBtaKCblbw8M6dOhJl9mzD-BCPlhw7YrbI9d7vgzRRU6iOnUhmHWCe_n44TcEDSGgJP4-0j2hTSNEQ4mOLPKieGvmw60v6cYni48w",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5OTBlNWMyYy02ODJmLTQwYjMtYTAxOC0yNjA1NzBkODQ1ZmUiLCJleHAiOjE2NjE1MzQyMTEsIm5iZiI6MCwiaWF0IjoxNjYxNDk4MjI0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImIwNTMwOGY5LTdkZjgtNDJkZC05MmQzLWIwMTlmOWI1Mzk4MCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.MpF5Hs3P3eqbYym79I5P7ZFkKQIFR58Fk_hSGpqkT2NrxPNfUp7d_7U9DSxSOdn7alX_GwEMEeLhIPTtlt3BOz2yBRith3Y1LYt5HaSbBuHv8MQiBSJHef9jaMxsvAfYRzWrgBajOx3LYJk00X_qRH9wdCC-Wbu3D-2z05YEzBKst3ufqlySegkYKbpiLLgPdsXOb2pAVMjJheJ43NUfw7sCkMCHYGAcgdWsODAgAY4mY_xz_jJ3IYOX-kodvm5Wt5KGnlH7iOo47OsIcnnLjqcqMrGFnYQhsgwbTI9T-48nbUnii-fMntTd--5duodzIY8pddjVynDorvy71EvIbQ",
           "cookie": null
         }
       },
@@ -595,23 +578,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.39",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.03773188591003418",
+                  "exec_time": "0.14533209800720215",
                   "input_size": "61197",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "step": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
@@ -619,135 +602,39 @@
                   "event": "chose \"representative\" section system",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.06696677207946777",
+                  "exec_time": "0.07355237007141113",
                   "system_size": "16",
                   "event": "system classification executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "event": "Mismatch in Springer classification or compounds",
-                  "proc": "Entry",
-                  "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
-                  "parser": "parsers/vasp",
-                  "step": "SystemNormalizer",
-                  "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
-                  "level": "INFO"
-                },
-                {
-                  "normalizer": "SystemNormalizer",
-                  "event": "Mismatch in Springer classification or compounds",
-                  "proc": "Entry",
-                  "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
-                  "parser": "parsers/vasp",
-                  "step": "SystemNormalizer",
-                  "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
-                  "level": "INFO"
-                },
-                {
-                  "normalizer": "SystemNormalizer",
-                  "event": "Mismatch in Springer classification or compounds",
-                  "proc": "Entry",
-                  "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
-                  "parser": "parsers/vasp",
-                  "step": "SystemNormalizer",
-                  "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
-                  "level": "INFO"
-                },
-                {
-                  "normalizer": "SystemNormalizer",
-                  "event": "Mismatch in Springer classification or compounds",
-                  "proc": "Entry",
-                  "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
-                  "parser": "parsers/vasp",
-                  "step": "SystemNormalizer",
-                  "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
-                  "level": "INFO"
-                },
-                {
-                  "normalizer": "SystemNormalizer",
-                  "event": "Mismatch in Springer classification or compounds",
-                  "proc": "Entry",
-                  "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
-                  "parser": "parsers/vasp",
-                  "step": "SystemNormalizer",
-                  "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
-                  "level": "INFO"
-                },
-                {
-                  "normalizer": "SystemNormalizer",
-                  "event": "Mismatch in Springer classification or compounds",
-                  "proc": "Entry",
-                  "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
-                  "parser": "parsers/vasp",
-                  "step": "SystemNormalizer",
-                  "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
-                  "level": "INFO"
-                },
-                {
-                  "normalizer": "SystemNormalizer",
-                  "event": "Mismatch in Springer classification or compounds",
-                  "proc": "Entry",
-                  "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
-                  "parser": "parsers/vasp",
-                  "step": "SystemNormalizer",
-                  "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
-                  "level": "INFO"
-                },
-                {
-                  "normalizer": "SystemNormalizer",
-                  "event": "Mismatch in Springer classification or compounds",
-                  "proc": "Entry",
-                  "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
-                  "parser": "parsers/vasp",
-                  "step": "SystemNormalizer",
-                  "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
-                  "level": "INFO"
-                },
-                {
-                  "normalizer": "SystemNormalizer",
-                  "exec_time": "0.09188079833984375",
+                  "exec_time": "0.026535511016845703",
                   "system_size": "16",
                   "event": "symmetry analysis executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
@@ -756,24 +643,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.1601872444152832",
+                  "exec_time": "0.11256241798400879",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "normalizer": "SystemNormalizer",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
@@ -781,11 +668,11 @@
                   "event": "chose \"representative\" section system",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
@@ -794,24 +681,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0018095970153808594",
+                  "exec_time": "0.0031991004943847656",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "normalizer": "OptimadeNormalizer",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
@@ -820,24 +707,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0003342628479003906",
+                  "exec_time": "0.003335714340209961",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "normalizer": "DosNormalizer",
                   "step": "DosNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
@@ -846,24 +733,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.00029397010803222656",
+                  "exec_time": "0.0012559890747070312",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "normalizer": "BandStructureNormalizer",
                   "step": "BandStructureNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
@@ -872,24 +759,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0066912174224853516",
+                  "exec_time": "0.005095481872558594",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "normalizer": "WorkflowNormalizer",
                   "step": "WorkflowNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.01",
                   "level": "INFO"
                 },
                 {
@@ -898,24 +785,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.02",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.022966384887695312",
+                  "exec_time": "0.022933483123779297",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.02",
                   "level": "INFO"
                 },
                 {
@@ -924,46 +811,46 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.02",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.00018548965454101562",
+                  "exec_time": "0.0007688999176025391",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.02",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0009329319000244141",
+                  "exec_time": "0.002067089080810547",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.02",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.038758277893066406",
+                  "exec_time": "0.0924522876739502",
                   "event": "entry metadata indexed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "0DYJ3eSMRcK6DBt9w2Vlzg",
+                  "process_worker_id": "AIRO7HsESLuddtska7l-Aw",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-04-29 13:19.40",
+                  "timestamp": "2022-08-26 09:17.02",
                   "level": "INFO"
                 }
               ],
@@ -1175,1023 +1062,6 @@
                           "aflow_url": "http://www.aflowlib.org/CrystalDatabase/A_cF8_227_a.html",
                           "assignment_method": "normalized-wyckoff",
                           "label": "227-C-cF8"
-                        }
-                      ],
-                      "springer_material": [
-                        {
-                          "id": "sd_1413707",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1413707",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0304951",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0304951",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1622696",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1622696",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1716045",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1716045",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0555836",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0555836",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1822280",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1822280",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1401250",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1401250",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1719937",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1719937",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0558521",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0558521",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1126014",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1126014",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1521661",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1521661",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1521348",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1521348",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0452128",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0452128",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1140138",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1140138",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1903714",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1903714",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0530557",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0530557",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1021274",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1021274",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1231690",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1231690",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0454342",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0454342",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0454343",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0454343",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1602690",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1602690",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0532590",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0532590",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1629301",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1629301",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1825473",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1825473",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0455927",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0455927",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1640543",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1640543",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0549825",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0549825",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0310242",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0310242",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1603279",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1603279",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1906288",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1906288",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0311290",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0311290",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1210773",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1210773",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1210749",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1210749",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1817142",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1817142",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1817094",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1817094",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1605704",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1605704",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1605300",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1605300",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1908155",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1908155",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0313961",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0313961",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1937283",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1937283",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1120453",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1120453",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1921581",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1921581",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1921569",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1921569",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1500920",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1500920",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1939109",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1939109",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1200512",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1200512",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1925041",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1925041",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1939376",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1939376",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1923885",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1923885",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0553633",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0553633",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0553634",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0553634",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_0553566",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0553566",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "sd_1938073",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1938073",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": [
-                            "metal",
-                            "nonmetal",
-                            "semiconductor"
-                          ]
-                        },
-                        {
-                          "id": "ppp_486cfa523ede731d2a3ea4c9102884a5",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_486cfa523ede731d2a3ea4c9102884a5",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_0c1efdde9f0919ae8d00c028a8d90900",
-                          "alphabetical_formula": "Si hyp",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_0c1efdde9f0919ae8d00c028a8d90900",
-                          "compound_class": [],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_ff70b8446fffa3847d929f31dc42629b",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_ff70b8446fffa3847d929f31dc42629b",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_829ae19e90c2cbf6de4ee3723d684741",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_829ae19e90c2cbf6de4ee3723d684741",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_52373de73fa75cb990fbff8f1cfeb495",
-                          "alphabetical_formula": "Si hyp",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_52373de73fa75cb990fbff8f1cfeb495",
-                          "compound_class": [],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_3396b325c23b5010aff3ea89f2ca1d45",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_3396b325c23b5010aff3ea89f2ca1d45",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_6299cae533ef5c5ce00837fcb86f4b77",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_6299cae533ef5c5ce00837fcb86f4b77",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_1e411b7518aea58f1f3a7eeae62a7fc3",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_1e411b7518aea58f1f3a7eeae62a7fc3",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_547e83af94689addaf6f49f67dd6d528",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_547e83af94689addaf6f49f67dd6d528",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_b7ff27073c6dd35bbcbd734a908aef6e",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_b7ff27073c6dd35bbcbd734a908aef6e",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_69595a398b69fa217b43b0fc4e11c7fc",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_69595a398b69fa217b43b0fc4e11c7fc",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_8c883e344ee6e2c351ccdf2721e5f37c",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_8c883e344ee6e2c351ccdf2721e5f37c",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_2caf154e06508fa6428ee858daeb71f2",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_2caf154e06508fa6428ee858daeb71f2",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_aee2f02902345ebe64c1ee2458961c93",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_aee2f02902345ebe64c1ee2458961c93",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_f2ab60fde40e384e2210be8602bfcec0",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_f2ab60fde40e384e2210be8602bfcec0",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_f9d554bbb1e5448463d71de5bd092a34",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_f9d554bbb1e5448463d71de5bd092a34",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_af58bfbb06c9ae9f3fadd9642df5dea8",
-                          "alphabetical_formula": "Si hyp",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_af58bfbb06c9ae9f3fadd9642df5dea8",
-                          "compound_class": [],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_bed91998f5742229308e6189505fed5e",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_bed91998f5742229308e6189505fed5e",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_89619b6157837283e856a847da80181d",
-                          "alphabetical_formula": "Si hyp",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_89619b6157837283e856a847da80181d",
-                          "compound_class": [],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_48a7af18bcbdd7284c9b624125a40af9",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_48a7af18bcbdd7284c9b624125a40af9",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_6009c7667698a17831c480963e3fdba4",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_6009c7667698a17831c480963e3fdba4",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_c94138d2d28be25fac203e891306f1d8",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_c94138d2d28be25fac203e891306f1d8",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_b0b56681de41ce54d830cd70831d01a0",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_b0b56681de41ce54d830cd70831d01a0",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_f3caa1f27b113dd86ceff73e8cdcb485",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_f3caa1f27b113dd86ceff73e8cdcb485",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_7816b1cbbb1bbd466151ff22fb1a1846",
-                          "alphabetical_formula": "Si hyp",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_7816b1cbbb1bbd466151ff22fb1a1846",
-                          "compound_class": [],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_53d104b68cb11e6b80658d366cefe91d",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_53d104b68cb11e6b80658d366cefe91d",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_2e2edf6cce0d3af669826203bcdc2bb7",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_2e2edf6cce0d3af669826203bcdc2bb7",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_55c99ac10482b1b1cd3611d358bef8f8",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_55c99ac10482b1b1cd3611d358bef8f8",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_6c770a19763c3ced2849ac6b1db3b8f0",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_6c770a19763c3ced2849ac6b1db3b8f0",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_43ac537a6bbb022c6fbba2709b22b615",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_43ac537a6bbb022c6fbba2709b22b615",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_a138ea6f448bc5f1157b49a5af42bb6d",
-                          "alphabetical_formula": "Si hyp",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_a138ea6f448bc5f1157b49a5af42bb6d",
-                          "compound_class": [],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_49d06da4328a59c0671d537e38ddf689",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_49d06da4328a59c0671d537e38ddf689",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_7f344c97e59696b1f2e5f575e96da874",
-                          "alphabetical_formula": "Si hyp",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_7f344c97e59696b1f2e5f575e96da874",
-                          "compound_class": [],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_7a3252e661e8af5a79060557822334a9",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_7a3252e661e8af5a79060557822334a9",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_0b268ce79b399f25a3ea7c4465205173",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_0b268ce79b399f25a3ea7c4465205173",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_5eac339246de013604934088e5026762",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_5eac339246de013604934088e5026762",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_c217521c2391dba46ddb62c51a6b20ca",
-                          "alphabetical_formula": "Si hyp",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_c217521c2391dba46ddb62c51a6b20ca",
-                          "compound_class": [],
-                          "classification": []
-                        },
-                        {
-                          "id": "ppp_48a88d3adfe3840cd8d00146374443b5",
-                          "alphabetical_formula": "Si",
-                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_48a88d3adfe3840cd8d00146374443b5",
-                          "compound_class": [
-                            "chemical element"
-                          ],
-                          "classification": []
                         }
                       ],
                       "symmetry": [
@@ -5343,10 +4213,12 @@
               ],
               "metadata": {
                 "upload_id": "archive_browser_test",
-                "upload_create_time": "2022-04-29T11:19:39.807000",
+                "upload_create_time": "2022-08-26T07:17:01.107000+00:00",
                 "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
+                "entry_name": "Si16 VASP simulation",
+                "entry_type": "VASP",
                 "entry_hash": "PGjkHV-ALEhA8eiWps243e9kxhmF",
-                "entry_create_time": "2022-04-29T11:19:39.923000",
+                "entry_create_time": "2022-08-26T07:17:01.445000+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "examples_vasp/xml/Si.xml",
                 "files": [
@@ -5358,10 +4230,10 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-04-29T11:19:39.991859",
+                "last_processing_time": "2022-08-26T07:17:01.692979+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.1.0",
-                "nomad_commit": "e7d8d8f9",
+                "nomad_version": "1.1.2",
+                "nomad_commit": "d0778d6a",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                 "coauthors": [
@@ -5373,13 +4245,9 @@
                 ],
                 "datasets": [],
                 "domain": "dft",
-                "n_quantities": 954,
+                "n_quantities": 408,
                 "quantities": [
                   "",
-                  ".metadata",
-                  ".results",
-                  ".run",
-                  ".workflow",
                   "metadata",
                   "metadata.coauthors",
                   "metadata.datasets",
@@ -5389,6 +4257,8 @@
                   "metadata.entry_create_time",
                   "metadata.entry_hash",
                   "metadata.entry_id",
+                  "metadata.entry_name",
+                  "metadata.entry_type",
                   "metadata.files",
                   "metadata.last_processing_time",
                   "metadata.license",
@@ -5430,9 +4300,7 @@
                   "results.material.chemical_formula_hill",
                   "results.material.chemical_formula_reduced",
                   "results.material.chemical_formula_reduced_fragments",
-                  "results.material.compound_type",
                   "results.material.elements",
-                  "results.material.functional_type",
                   "results.material.material_id",
                   "results.material.material_name",
                   "results.material.structural_type",
@@ -5605,12 +4473,6 @@
                   "run.system.prototype.aflow_url",
                   "run.system.prototype.assignment_method",
                   "run.system.prototype.label",
-                  "run.system.springer_material",
-                  "run.system.springer_material.alphabetical_formula",
-                  "run.system.springer_material.classification",
-                  "run.system.springer_material.compound_class",
-                  "run.system.springer_material.id",
-                  "run.system.springer_material.url",
                   "run.system.symmetry",
                   "run.system.symmetry.bravais_lattice",
                   "run.system.symmetry.crystal_system",
@@ -5683,7 +4545,6 @@
                   "nomad.datamodel.metainfo.simulation.run.Run",
                   "nomad.datamodel.metainfo.simulation.system.Atoms",
                   "nomad.datamodel.metainfo.simulation.system.Prototype",
-                  "nomad.datamodel.metainfo.simulation.system.SpringerMaterial",
                   "nomad.datamodel.metainfo.simulation.system.Symmetry",
                   "nomad.datamodel.metainfo.simulation.system.System",
                   "nomad.datamodel.metainfo.workflow.SinglePoint",
@@ -5859,14 +4720,6 @@
                   "material_id": "fh3UBjhUVm4nxzeRd2JJuqw5oXYa",
                   "material_name": "Silicon",
                   "structural_type": "bulk",
-                  "functional_type": [
-                    "metal",
-                    "nonmetal",
-                    "semiconductor"
-                  ],
-                  "compound_type": [
-                    "chemical element"
-                  ],
                   "elements": [
                     "Si"
                   ],
@@ -6240,13 +5093,14 @@
                     }
                   }
                 }
-              }
+              },
+              "m_ref_archives": {}
             }
           }
         },
         "headers": {
           "connection": "close",
-          "content-length": "205644",
+          "content-length": "161438",
           "content-type": "application/json",
           "server": "uvicorn"
         }

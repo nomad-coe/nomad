@@ -84,11 +84,35 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
+const overviewArchiveFilter = Object.freeze({
+  // Optimization: for the overview page, we only need to fetch some of the archive data
+  metadata: '*',
+  data: '*',
+  definitions: '*',
+  results: {
+    material: '*',
+    method: '*',
+    properties: {
+      structures: '*',
+      electronic: 'include-resolved',
+      mechanical: 'include-resolved',
+      spectroscopy: 'include-resolved',
+      vibrational: 'include-resolved',
+      thermodynamic: 'include-resolved',
+      // For geometry optimizations we require only the energies.
+      // Trajectory, optimized structure, etc. are unnecessary.
+      geometry_optimization: {
+        energies: 'include-resolved'
+      }
+    }
+  }
+})
+
 /**
  * Shows an informative overview about the selected entry.
  */
 const OverviewView = React.memo((props) => {
-  const {metadata, metadataApiData, exists, editable, archiveApiData} = useEntryPageContext()
+  const {metadata, metadataApiData, exists, editable, archiveApiData} = useEntryPageContext(overviewArchiveFilter)
   const archive = useMemo(() => archiveApiData?.response?.data?.archive, [archiveApiData])
   const index = metadata
   const [sections, setSections] = useState([])

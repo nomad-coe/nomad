@@ -125,3 +125,21 @@ test('inheriting sections', async () => {
   await waitForGUI()
   await waitFor(() => expect(selectInput.value).toEqual(`${sectionName}`))
 })
+
+test.each([
+  ['vasp', '1WGSYo1RrGFEIcM17Re4kjHC7k6p', [
+    'metadata/last_processing_time',
+    'results/material/elements',
+    'run/calculation/stress/total']]
+])('specific paths %s', async (name, entryId, paths) => {
+  // Test some paths that we expect to exist
+  await startAPI(
+    'tests.states.uploads.archive_browser_test',
+    'tests/data/uploads/archive_browser_test_paths_' + name.replace(/ /g, '_'),
+    'test', 'password')
+  render(<EntryPageContext entryId={entryId}><ArchiveEntryView /></EntryPageContext>)
+  expect(await screen.findByText('Entry')).toBeVisible()
+  for (const path of paths) {
+    await navigateTo(path)
+  }
+}, 5 * minutes)
