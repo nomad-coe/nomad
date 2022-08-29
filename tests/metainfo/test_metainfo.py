@@ -182,6 +182,16 @@ class TestM2:
     def test_unit(self):
         assert System.lattice_vectors.unit is not None
 
+    def test_unit_explicit_delta(self):
+        with pytest.raises(TypeError):
+            Quantity(type=np.dtype(np.float64), unit='delta_degC / hr')
+        with pytest.raises(TypeError):
+            Quantity(type=np.dtype(np.float64), unit='ΔdegC / hr')
+        Quantity(type=np.dtype(np.float64), unit='degC / hr')
+        with pytest.raises(TypeError):
+            Quantity(type=np.dtype(np.float64), unit=ureg.delta_degC / ureg.hour)
+        Quantity(type=np.dtype(np.float64), unit=ureg.degC / ureg.hour)
+
     def test_extension(self):
         assert getattr(Run, 'x_vasp_raw_format', None) is not None
         assert 'x_vasp_raw_format' in Run.m_def.all_quantities

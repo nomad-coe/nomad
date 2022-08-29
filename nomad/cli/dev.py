@@ -380,6 +380,19 @@ def units(ctx):
             aliases[unit_long_name].append(unit_name)
 
     # For each defined dimension, get the available units if there are any.
+    def get_unit_data(unit, dimension):
+        unit_long_name = ureg.get_name(unit_name)
+        unit_abbreviation = ureg.get_symbol(unit_name)
+        unit_label = unit_long_name.replace('_', ' ')
+        unit_label = unit_label[0].upper() + unit_label[1:]
+
+        return {
+            'name': unit_long_name,
+            'dimension': dimension[1:-1],
+            'label': unit_label,
+            'abbreviation': unit_abbreviation,
+            'aliases': aliases[unit_long_name]
+        }
     dimensions = list(ureg._dimensions.keys())
     unit_list = []
     for dimension in dimensions:
@@ -389,19 +402,8 @@ def units(ctx):
             continue
         else:
             for unit in units:
-                key = str(unit)
-                unit_long_name = ureg.get_name(key)
-                unit_abbreviation = ureg.get_symbol(key)
-                unit_label = unit_long_name.replace('_', ' ')
-                unit_label = unit_label[0].upper() + unit_label[1:]
-
-                unit_list.append({
-                    'name': unit_long_name,
-                    'dimension': dimension[1:-1],
-                    'label': unit_label,
-                    'abbreviation': unit_abbreviation,
-                    'aliases': aliases[unit_long_name]
-                })
+                unit_name = str(unit)
+                unit_list.append(get_unit_data(unit_name, dimension))
 
     # Some units need to be added manually.
     unit_list.extend([
@@ -503,8 +505,16 @@ def units(ctx):
                             is_number = False
                         if not is_operator and not is_number:
                             units.add(part)
-    # for unit in units:
-    #     assert unit in unit_names, 'The unit "{}" is not defined in the unit definitions.'.format(unit)
+
+    # Check that the defined units do not contain 'delta_' or 'Δ' in them. This is
+    # reserved to indicate that a quantity should be treated without offset.
+    # MathJS does not have explicit support for these delta-units, but instead
+    # uses them implicitly when non-multiplicative units appear in expressions.
+    for unit in unit_names:
+        assert 'delta_' not in unit and 'Δ' not in unit, (
+            f'Invalid unit name {unit}. "delta_" and "Δ" are reserved for unit variants '
+            'with no offset, but MathJS does not have support for these units.'
+        )
 
     # Print unit conversion table and unit systems as a Javascript source file
     output = '''/*

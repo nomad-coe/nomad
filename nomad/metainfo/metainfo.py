@@ -423,10 +423,20 @@ class _Dimension(DataType):
 
 class _Unit(DataType):
     def set_normalize(self, section, quantity_def: 'Quantity', value):
-        if isinstance(value, str):
-            value = units.parse_units(value)
+        # Explicitly providing a Pint delta-unit is not currently allowed.
+        # Implicit conversions are fine as MathJS on the frontend supports them.
+        def has_delta(unit_string):
+            return 'delta_' in unit_string or 'Δ' in unit_string
 
-        elif not isinstance(value, pint.unit._Unit):
+        delta_error = TypeError('Explicit Pint "delta"-units are not yet supported.')
+        if isinstance(value, str):
+            if has_delta(value):
+                raise delta_error
+            value = units.parse_units(value)
+        elif isinstance(value, pint.unit._Unit):
+            if has_delta(str(value)):
+                raise delta_error
+        else:
             raise TypeError('Units must be given as str or pint Unit instances.')
 
         return value
