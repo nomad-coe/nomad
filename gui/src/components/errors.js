@@ -19,7 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { SnackbarContent, IconButton, Snackbar, withStyles, Typography, Box } from '@material-ui/core'
 import CloseIcon from '@material-ui/icons/Close'
-import { serviceWorkerRegistrationRef } from '../serviceWorker'
+import { pwaRegistrationRef } from './PWA'
 import Markdown from './Markdown'
 
 export class VersionMismatch extends Error {
@@ -148,11 +148,11 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.log('cought error in boundary', error, errorInfo, serviceWorkerRegistrationRef)
+    console.log('cought error in boundary', error, errorInfo, pwaRegistrationRef)
     // check for a newer version of the app
-    if (serviceWorkerRegistrationRef.current) {
+    if (pwaRegistrationRef.current) {
       console.log('try service worker update')
-      serviceWorkerRegistrationRef.current.update()
+      pwaRegistrationRef.current.update()
     }
     if (this.context) {
       this.context.raiseError('There has been a Javascript error.')
