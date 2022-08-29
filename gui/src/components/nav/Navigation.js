@@ -26,44 +26,28 @@ import { amber } from '@material-ui/core/colors'
 import AppBar, { appBarHeight } from './AppBar'
 import { guiBase, version } from '../../config'
 import { Routes } from './Routes'
-import { serviceWorkerUpdateHandlerRef } from '../../serviceWorker'
+import { usePWA } from '../PWA'
 import { ErrorBoundary } from '../errors'
 import { useCookies } from 'react-cookie'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
 function ReloadSnack() {
-  const waitingServiceWorker = useRef(null)
-  const [reload, setReload] = useState(false)
-  useEffect(() => {
-    serviceWorkerUpdateHandlerRef.current = registration => {
-      waitingServiceWorker.current = registration.waiting
-      setReload(true)
-    }
-  }, [setReload, waitingServiceWorker])
+  const {showReload, reloadPage} = usePWA()
 
   return <Snackbar
     anchorOrigin={{
       vertical: 'bottom',
       horizontal: 'left'
     }}
-    open={reload}
+    open={showReload}
   >
     <SnackbarContent
       message={<span>There is a new NOMAD version. Please reload the app.</span>}
       action={[
         <Button
           key={0} color="inherit" startIcon={<ReloadIcon/>}
-          onClick={() => {
-            if (waitingServiceWorker.current) {
-              waitingServiceWorker.current.onstatechange = () => {
-                if (waitingServiceWorker.current.state === 'activated') {
-                  window.location.reload()
-                }
-              }
-              waitingServiceWorker.current.postMessage({type: 'SKIP_WAITING'})
-            }
-          }}
+          onClick={() => reloadPage()}
         >
           reload
         </Button>
