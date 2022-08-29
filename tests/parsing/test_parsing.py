@@ -45,7 +45,7 @@ parser_examples = [
     ('parsers/nwchem', 'tests/data/parsers/nwchem/single_point/output.out'),
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
     ('parsers/wien2k', 'tests/data/parsers/wien2k/AlN/AlN_ZB.scf'),
-    ('parsers/band', 'tests/data/parsers/band_adf.out'),
+    ('parsers/ams', 'tests/data/parsers/band_adf.out'),
     ('parsers/gaussian', 'tests/data/parsers/gaussian/aniline.out'),
     ('parsers/abinit', 'tests/data/parsers/abinit/Fe.out'),
     ('parsers/quantumespresso', 'tests/data/parsers/quantum-espresso/benchmark.out'),
