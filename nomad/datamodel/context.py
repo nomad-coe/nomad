@@ -35,7 +35,7 @@ _regex_form_a = re.compile(r'^(?:\.\.)?/entries/([^?]+)/(archive|raw)#([^?]+?)$'
 # ../upload/<upload_id>/archive/<entry_id>#<path>
 # /uploads/<upload_id>/archive/<entry_id>#<path>
 # <installation>/uploads/<upload_id>/archive/<entry_id>#<path>
-_regex_form_b = re.compile(r'^([^?]+?)?/uploads?/(\w*)/?(archive|raw)/([^?]+?)#([^?]+?)$')
+_regex_form_b = re.compile(r'^([^?]+?)?/uploads?/([\w=-]*)/?(archive|raw)/([^?]+?)#([^?]+?)$')
 
 
 def parse_path(url: str, upload_id: str = None):
