@@ -103,8 +103,6 @@ python tests:
 
 gui tests:
   stage: test
-  variables:
-    NODE_OPTIONS: "--max_old_space_size=3072"
   before_script:
     - git submodule sync
     - git submodule update --init -- gui/materia gui/crystcif-parse
@@ -118,7 +116,9 @@ gui tests:
   script:
     - cd gui
     - yarn --network-timeout 1200000
+    - export NODE_OPTIONS=--max_old_space_size=3072
     - yarn test --ci --collectCoverage --reporters=default --reporters=jest-junit --silent
+  timeout: 1h 30m
   coverage: /Lines\s*:\s*(\d+.?\d*)%/
   artifacts:
     when: always
