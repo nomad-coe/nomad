@@ -70,7 +70,7 @@ services:
   # nomad worker (processing)
   worker:
     restart: unless-stopped
-    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:develop
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.2
     container_name: nomad_oasis_worker
     environment:
       NOMAD_SERVICE: nomad_oasis_worker
@@ -92,7 +92,7 @@ services:
   # nomad app (api + proxy)
   app:
     restart: unless-stopped
-    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:develop
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.2
     container_name: nomad_oasis_app
     environment:
       NOMAD_SERVICE: nomad_oasis_app
@@ -127,7 +127,7 @@ services:
   # nomad remote tools hub (JupyterHUB, e.g. for AI Toolkit)
   north:
     restart: unless-stopped
-    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:develop
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.2
     container_name: nomad_oasis_north
     environment:
       NOMAD_SERVICE: nomad_oasis_north
