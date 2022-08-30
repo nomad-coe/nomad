@@ -24,9 +24,9 @@ build:
   script:
     - docker build -t $TEST_IMAGE .
     - docker push $TEST_IMAGE
-  except:
-    - /^dev-.*$/
-    - tags
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
 
 python linting:
   stage: test
@@ -36,12 +36,9 @@ python linting:
     - python -m pycodestyle --config=pycodestyle.ini nomad tests
     - python -m pylint --load-plugins=pylint_mongoengine,nomad.metainfo.pylint_plugin nomad tests
     - python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests
-  except:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
 
 gui linting:
   stage: test
@@ -59,12 +56,9 @@ gui linting:
     - cd gui
     - yarn --network-timeout 1200000
     - yarn run lint
-  except:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
 
 python tests:
   stage: test
@@ -96,12 +90,9 @@ python tests:
     - cd /app
     - ls /builds
     - python -m pytest --cov=nomad -sv tests
-  except:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
 
 gui tests:
   stage: test
@@ -130,12 +121,9 @@ gui tests:
       coverage_report:
         coverage_format: cobertura
         path: gui/coverage/cobertura-coverage.xml
-  except:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
 
 install tests:
   stage: test
@@ -158,12 +146,9 @@ install tests:
     - git clone --branch v1.0.0 https://github.com/nomad-coe/nomad-parser-example.git example-parser
     - cd example-parser
     - python exampleparser/__main__.py tests/data/example.out
-  except:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
 
 dev setup tests:
   stage: test
@@ -174,12 +159,9 @@ dev setup tests:
     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
     - python -c "import nomad.app"
     - python -c "import nomad.processing"
-  except:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
-      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
 
 deploy dev:
   stage: deploy
@@ -207,8 +189,11 @@ deploy dev:
       --set roll=true
       --timeout=15m
       --wait
-  when: manual
   needs: ["build"]
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: manual
 
 stop deploy dev:
   stage: deploy
@@ -220,8 +205,9 @@ stop deploy dev:
     - echo ${CI_K8S_CONFIG} | base64 -d > ~/.kube/config
   script:
     - helm uninstall ${CI_ENVIRONMENT_SLUG} --namespace nomad
-  when: manual
   needs: ["build"]
+  rules:
+    - when: manual
 
 
 deploy prod staging:
@@ -244,9 +230,8 @@ deploy prod staging:
       --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/staging/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
-  except:
-    - /^dev-.*$/
-  when: manual
+  rules:
+    - when: manual
 
 deploy prod test:
   stage: deploy
@@ -268,9 +253,8 @@ deploy prod test:
       --wait
     - docker pull $TEST_IMAGE
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/test/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
-  except:
-    - /^dev-.*$/
-  when: manual
+  rules:
+    - when: manual
 
 deploy prod util:
   stage: deploy
@@ -286,9 +270,8 @@ deploy prod util:
       --set roll=true
       --timeout=15m
       --wait
-  except:
-    - /^dev-.*$/
-  when: manual
+  rules:
+    - when: manual
 
 deploy prod develop:
   stage: deploy
@@ -314,8 +297,9 @@ deploy prod develop:
       -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod
       $TEST_IMAGE
       python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/develop/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
-  when: manual
   needs: ["build"]
+  rules:
+    - when: manual
 
 release latest image:
   stage: release
@@ -324,9 +308,8 @@ release latest image:
     - docker pull $TEST_IMAGE
     - docker tag $TEST_IMAGE $LATEST_IMAGE
     - docker push $LATEST_IMAGE
-  except:
-    - /^dev-.*$/
-  when: manual
+  rules:
+    - when: manual
 
 release stable image:
   stage: release
@@ -337,9 +320,10 @@ release stable image:
     - docker push $LATEST_IMAGE
     - docker tag $TEST_IMAGE $STABLE_IMAGE
     - docker push $STABLE_IMAGE
-  when: manual
-  only:
-    - tags
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+    - when: never
 
 python package:
   stage: release
@@ -347,9 +331,8 @@ python package:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker pull $TEST_IMAGE
     - docker run --rm $TEST_IMAGE python -m twine upload -u gitlab-ci-token -p ${CI_JOB_TOKEN} --repository-url https://gitlab.mpcdf.mpg.de/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/nomad-lab-*.tar.gz
-  except:
-    - /^dev-.*$/
-  when: manual
+  rules:
+    - when: manual
 
 pypi package:
   stage: release
@@ -357,6 +340,5 @@ pypi package:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker pull $TEST_IMAGE
     - docker run --rm $TEST_IMAGE bash -c "python -m twine upload -u $CI_TWINE_USER -p $CI_TWINE_PASSWORD dist/nomad-lab-*.tar.gz"
-  except:
-    - /^dev-.*$/
-  when: manual
+  rules:
+    - when: manual
