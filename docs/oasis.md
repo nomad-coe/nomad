@@ -9,16 +9,18 @@ central NOMAD installation.
 ## Quick-start
 
 - Find a linux computer.
-- Make sure you have [docker](https://docs.docker.com/engine/install/) and [docker-compose](https://docs.docker.com/compose/install/) installed.
+- Make sure you have [docker](https://docs.docker.com/engine/install/) installed.
+Docker nowadays comes with `docker compose` build in. Prior, you needed to
+install the stand alone [docker-compose](https://docs.docker.com/compose/install/).
 - Download our basic configuration files [nomad-oasis.zip](assets/nomad-oasis.zip)
-- Run the following commands
+- Run the following commands (skip `chown` on MacOS and Windows computers)
 
 ```sh
 unzip nomad-oasis.zip
 cd nomad-oasis
 sudo chown -R 1000 .volumes
-docker-compose pull
-docker-compose up -d
+docker compose pull
+docker compose up -d
 curl localhost/nomad-oasis/alive
 ```
 
@@ -72,16 +74,16 @@ from `localhost` (e.g. for initial testing). The central user management system 
 communicating with your OASIS directly. Therefore, you can run your OASIS without
 exposing it to the public internet.
 
-There are two requirements. First, your users must be able to reach the OASIS. If a use is
+There are two requirements. First, your users must be able to reach the OASIS. If a user is
 logging in, she/he is redirected to the central user management server and after login,
-she/he is redirected back to the OASIS. These redirects are executed by your users browser
-and do not require a direct communication.
+she/he is redirected back to the OASIS. These redirects are executed by your user's browser
+and do not require direct communication.
 
 Second, your OASIS must be able to request (via HTTP) the central user management and central NOMAD
 installation. This is necessary for non JWT-based authentication methods and to
 retrieve existing users for data-sharing features.
 
-The central user management will make future synchronizing data between NOMAD installations easer
+The central user management will make future synchronizing data between NOMAD installations easier
 and generally recommend to use the central system.
 But in principle, you can also run your own user management. See the section on
 [your own user management](#provide-and-connect-your-own-user-management).
@@ -89,18 +91,18 @@ But in principle, you can also run your own user management. See the section on
 ## Docker and docker compose
 
 We recommend the installation via docker and docker-compose. It is the most documented, simplest,
-easiest to update, and generally most frequently chosen option.
+easiest to update, and generally the most frequently chosen option.
 
 ### Pre-requisites
 
 NOMAD software is distributed as a set of docker containers and there are also other services required that can be run with docker.
-Further, we use docker-compose to setup all necessary container in the simplest way possible.
+Further, we use docker-compose to setup all necessary containers in the simplest way possible.
 
 You will need a single computer, with **docker** and **docker-compose** installed. Refer
-to the official [docker](https://docs.docker.com/engine/install/) and [docker-compose](https://docs.docker.com/compose/install/)
+to the official [docker](https://docs.docker.com/engine/install/) (and [docker-compose](https://docs.docker.com/compose/install/))
 documentation for installation instructions. Newer version of docker have a re-implementation
 of docker-compose integrated as the `docker compose` sub-command. This should be fully
-compatible and you might chose to can replace `docker-compos` with `docker compose` in this tutorial.
+compatible and you might chose to can replace `docker compose` with `docker-compose` in this tutorial.
 
 The following will run all necessary services with docker. These comprise: a **mongo**
 database, an **elasticsearch**, a **rabbitmq** distributed task queue, the NOMAD **app**,
@@ -109,14 +111,14 @@ you will learn what each service does and why it is necessary.
 
 ### Configuration
 
-All docker container are configured via docker-compose and the respective `docker-compose.yaml` file.
+All docker containers are configured via docker-compose and the respective `docker-compose.yaml` file.
 Further, we will need to mount some configuration files to configure the NOMAD services within their respective containers.
 
 There are three files to configure:
 
 - `docker-compose.yaml`
-- `nomad.yaml`
-- `nginx.conf`
+- `configs/nomad.yaml`
+- `configs/nginx.conf`
 
 In this example, we have all files in the same directory (the directory we are also working in).
 You can download minimal example files [here](assets/nomad-oasis.zip).
@@ -130,8 +132,11 @@ The most basic `docker-compose.yaml` to run an OASIS looks like this:
 ```
 
 Changes necessary:
+
 - The group in the value of the hub's user parameter needs to match the docker group
-on the host. This should ensure that the user which runs the hub, has the rights to access the hosts docker.
+on the host. This should ensure that the user which runs the hub, has the rights to access the host's docker.
+
+- On Windows or MacOS computers you have to run the `app` and `worker` container without `user: '1000:1000'` and the `north` container with `user: root`.
 
 A few things to notice:
 
@@ -140,14 +145,11 @@ A few things to notice:
 - The only exposed port is `80` (proxy service). This could be changed to a desired port if necessary.
 - The NOMAD images are pulled from our gitlab at MPCDF, the other services use images from a public registry (*dockerhub*).
 - The NOMAD images tag determines the image version or `stable`, `latest`, or specific development branches of NOMAD.
-- All container will be named `nomad_oasis_*`. These names can be used later to reference the container with the `docker` cmd.
+- All containers will be named `nomad_oasis_*`. These names can be used later to reference the container with the `docker` cmd.
 - The services are setup to restart `always`, you might want to change this to `no` while debugging errors to prevent indefinite restarts.
 - Make sure that the `PWD` environment variable is set. NORTH needs to create bind mounts that require absolute paths and we need to pass the current working directory to the configuration from the PWD variable (see hub service in the `docker-compose.yaml`).
-- The `hub` serves needs to run docker containers. We have to use the systems docker group as a group. You might need to replace `991` with your
+- The `hub` service needs to run docker containers. We have to use the systems docker group as a group. You might need to replace `991` with your
 systems docker group id.
-- The `hub` and all containers it starts are connected to the `nomad_oasis_north_network` docker network.
-By default the docker [bridge network driver](https://docs.docker.com/network/) is used. NORTH tools
-(and their users) will have access to this network.
 
 
 #### nomad.yaml
@@ -155,17 +157,17 @@ By default the docker [bridge network driver](https://docs.docker.com/network/) 
 NOMAD app and worker read a `nomad.yaml` for configuration.
 
 ```yaml
---8<-- "ops/docker-compose/nomad-oasis/nomad.yaml"
+--8<-- "ops/docker-compose/nomad-oasis/configs/nomad.yaml"
 ```
 
 You should change the following:
 
-- Replace `localhost` with the hostname of your server. I user-management will redirect your uses back to this host. Make sure this is the hostname, your users can use.
+- Replace `localhost` with the hostname of your server. I user-management will redirect your users back to this host. Make sure this is the hostname, your users can use.
 - Replace `deployment`, `deployment_id`, and `maintainer_email` with representative values. The `deployment_id` should be the public hostname if you have any of your oasis.
 - You can change `api_base_path` to run NOMAD under a different path prefix.
-- You should generate you own `north.jupyterhub_crypt_key`. You can generate one
+- You should generate your own `north.jupyterhub_crypt_key`. You can generate one
 with `openssl rand -hex 32`.
-- On Windows or MacOS, you have to change `172.17.0.1` with `host.docker.internal`.
+- On Windows or MacOS, you have to add `hub_connect_ip: 'host.docker.internal'` to the `north` section.
 
 A few things to notice:
 
@@ -175,11 +177,11 @@ be useful, if you need to run multiple NOMADs with the same databases.
 
 #### nginx.conf
 
-The GUI container serves as a proxy that forwards request to the app container. The
+The GUI container serves as a proxy that forwards requests to the app container. The
 proxy is an nginx server and needs a configuration similar to this:
 
 ```none
---8<-- "ops/docker-compose/nomad-oasis/nginx.conf"
+--8<-- "ops/docker-compose/nomad-oasis/configs/nginx.conf"
 ```
 
 A few things to notice:
@@ -193,7 +195,7 @@ to [support https](http://nginx.org/en/docs/http/configuring_https_servers.html)
 If you operate the GUI container behind another proxy, keep in mind that your proxy should
 not buffer requests/responses to allow streaming of large requests/responses for `api/v1/uploads` and `api/v1/.*/download`.
 An nginx reverse proxy location on an additional reverse proxy, could have these directives
-to ensure the correct http headers and allows download and upload of large files:
+to ensure the correct http headers and allows the download and upload of large files:
 ```nginx
 client_max_body_size 35g;
 proxy_set_header Host $host;
@@ -207,23 +209,27 @@ proxy_pass http://<your-oasis-host>/nomad-oasis;
 
 ### Running NOMAD
 
-If you prepared the above files, simply use the usual `docker-compose` commands to start everything.
+If you prepared the above files, simply use the usual `docker compose` commands to start everything.
 
 To make sure you have the latest docker images for everything, run this first:
 ```sh
-docker-compose pull
+docker compose pull
 ```
 
 In the beginning and to simplify debugging, it is recommended to start the services separately:
 ```sh
-docker-compose up -d mongo elastic rabbitmq
-docker-compose up app worker gui
+docker compose up -d mongo elastic rabbitmq
+docker compose up app worker gui
 ```
 
 The `-d` option runs container in the background as *daemons*. Later you can run all at once:
 ```sh
-docker-compose up -d
+docker compose up -d
 ```
+
+Running all services also contains NORTH. When you use a tool in NORTH for the first time,
+your docker needs to pull the image that contains this tool. Be aware that this might take longer
+than timeouts allow and starting a tool for the very first time might fail.
 
 You can also use docker to stop and remove faulty containers that run as *daemons*:
 ```sh
@@ -241,7 +247,7 @@ If everything works, the gui should be available under:
 http://<your host>/nomad-oasis/gui/
 ```
 
-If you run into problems, use the dev-tools of you browser to check the javascript logs
+If you run into problems, use the dev-tools of your browser to check the javascript logs
 or monitor the network traffic for HTTP 500/400/404/401 responses.
 
 To see if at least the api works, check
@@ -270,12 +276,12 @@ If you want to report problems with your OASIS. Please provide the logs for
 ### Provide and connect your own user management
 
 NOMAD uses [keycloak](https://www.keycloak.org/) for its user management. NOMAD uses
-keycloak in two way. First, the user authentication uses the OpenID Connect/OAuth interfaces provided by keycloak.
+keycloak in two ways. First, the user authentication uses the OpenID Connect/OAuth interfaces provided by keycloak.
 Second, NOMD uses the keycloak realm-management API to get a list of existing users.
 Keycloak is highly customizable and numerous options to connect keycloak to existing
 identity providers exist.
 
-This tutorial assumes that you have a some understanding about what keycloak is and
+This tutorial assumes that you have some understanding of what keycloak is and
 how it works.
 
 Start with the regular docker-compose installation above. Now you need to modify the
@@ -284,19 +290,19 @@ another location for keycloak. You need to modify the `nomad.yaml` to tell nomad
 use your and not the official NOMAD keycloak.
 
 ```yaml
---8<-- "ops/docker-compose/nomad-oasis/docker-compose-with-keycloak.yaml"
+--8<-- "ops/docker-compose/nomad-oasis-with-keycloak/docker-compose.yaml"
 ```
 
 A few notes:
 
-- You have to change the `KEYCLOAK_FRONTEND_URL` variable to match you host and set a path prefix.
+- You have to change the `KEYCLOAK_FRONTEND_URL` variable to match your host and set a path prefix.
 - The environment variables on the keycloak service allow to use keycloak behind the nginx proxy with a path prefix, e.g. `keycloak`.
 - By default, keycloak will use a simple H2 file database stored in the given volume. Keycloak offers many other options to connect SQL databases.
 - We will use keycloak with our nginx proxy here, but you can also host-bind the port `8080` to access keycloak directly.
 
 Second, we add a keycloak location to the nginx config:
 ```nginx
---8<-- "ops/docker-compose/nomad-oasis/nginx-with-keycloak.conf"
+--8<-- "ops/docker-compose/nomad-oasis-with-keycloak/configs/nginx.conf"
 ```
 
 A few notes:
@@ -306,38 +312,26 @@ keycloak to pick up the rewritten url.
 
 Third, we modify the keycloak configuration in the `nomad.yaml`:
 ```yaml
---8<-- "ops/docker-compose/nomad-oasis/nomad-with-keycloak.yaml"
+--8<-- "ops/docker-compose/nomad-oasis-with-keycloak/configs/nomad.yaml"
 ```
 
-A few notes:
+You should change the following:
 
 - There are two urls to configure for keycloak. The `server_url` is used by the nomad
 services to directly communicate with keycloak within the docker network. The `public_server_url`
-is used by the UI for perform the authentication flow.
+is used by the UI to perform the authentication flow. You need to replace `localhost`
+in `public_server_url` with `<yourhost>`.
+
+A few notes:
+
 - The particular `admin_user_id` is the Oasis admin user in the provided example realm
 configuration. See below.
 
-As a last step, we need to configure keycloak. First, run the keycloak service and
-update nginx with the new config.
-```sh
-docker-compose up keycloak
-docker exec nomad_oasis_gui nginx -s reload
-```
+If you open `http://<yourhost>/keycloak/auth` in a browser, you can access the admin
+console. The default user and password are `admin` and `password`.
 
-If you open `http://<yourhost>/keycloak/auth` in a browser, you will see that there is no
-admin users. Second, we need to create a keycloak admin account:
-```sh
-docker exec nomad_oasis_keycloak /opt/jboss/keycloak/bin/add-user-keycloak.sh -u admin -p password
-docker restart nomad_oasis_keycloak
-```
-
-Give it a second to restart. After, you can login to the admin console at `http://<yourhost>/keycloak/auth`.
-
-Keycloak uses `realms` to manage users and clients. We need to create a realm that NOMAD
-can use. We prepared an example realm with the necessary NOMAD client, an Oasis admin,
-and a test user. You can create a new realm through the admin console. Click "add" realm and
-select the realm file that you can find [in this .zip](assets/nomad-oasis-with-keycloak.zip).
-to import our example configuration.
+Keycloak uses `realms` to manage users and clients. A default NOMAD compatible realm
+is imported by default. The realm comes with a test user and password `test` and `password`.
 
 A few notes on the realm configuration:
 
@@ -349,6 +343,8 @@ users for managing co-authors and reviewers on NOMAD uploads.
 - The realm has one client `nomad_public`. This has a basic configuration. You might
 want to adapt this to your own policies. In particular you can alter the valid redirect URIs to
 your own host.
+- We disabled the https requirement on the default realm for simplicity. You should change
+this for a production system.
 
 ### Backups
 
@@ -524,28 +520,28 @@ work for data based on NOMAD >0.8.0 and <= 0.10.x.
 The overall strategy is to create a new mongo database, copy all information, and then
 reprocess all data for the new version.
 
-First, shutdown the OASIS and remove all old container.
+First, shutdown the OASIS and remove all old containers.
 ```sh
-docker-compose stop
-docker-compose rm -f
+docker compose stop
+docker compose rm -f
 ```
 
-Update you config files (`docker-compose.yaml`, `nomad.yaml`, `nginx.conf`) according
+Update your config files (`docker-compose.yaml`, `nomad.yaml`, `nginx.conf`) according
 to the latest documentation (see above). Make sure to use index and database names that
 are different. The default values contain a version number in those names, if you don't
-overwrite those defaults, you should be save.
+overwrite those defaults, you should be safe.
 
 Make sure you get the latest images and start the OASIS with the new version of NOMAD:
 ```sh
-docker-compose pull
-docker-compose up -d
+docker compose pull
+docker compose up -d
 ```
 
 If you go to the GUI of your OASIS, it should now show the new version and appear empty,
 because we are using a different database and search index now.
 
 To migrate the data, we created a command that you can run within your OASIS' NOMAD
-application container. This command takes the old database name as argument, it will copy
+application container. This command takes the old database name as an argument, it will copy
 all data from the old mongodb to the current one. The default v8.x database name
 was `nomad_fairdi`, but you might have changed this to `nomad_v0_8` as recommended by
 our old Oasis documentation.
@@ -618,7 +614,7 @@ See also the [celery documentation](https://docs.celeryproject.org/en/stable/use
 #### Limiting the use of threads
 
 You can also reduce the usable threads that Python packages based on OpenMP could use to
-reduce the threads that might be spawed by a single worker process. Simply set the `OMP_NUM_THREADS`
+reduce the threads that might be spawned by a single worker process. Simply set the `OMP_NUM_THREADS`
 environment variable in the worker container in your `docker-compose.yml`:
 
 ```
@@ -665,7 +661,7 @@ Currently, NOMAD supports the following mechanism to organize data:
 - Data always belongs to one upload, which has a main author, and is assigned various metadata, like the time the upload was created, a custom human friendly upload name, etc.
 - Data can be assigned to multiple independent datasets.
 - Data can hold a proprietary id called “external_id”.
-- Data can be assigned multiple coauthors in addition to the main author.
+- Data can be assigned to multiple coauthors in addition to the main author.
 - Data can be filtered and searched in various ways.
 
 #####  Is there some rights-based visibility?
@@ -691,7 +687,7 @@ We will probably provide functionality in the API of the central NOMAD to upload
 Follow our guide: https://nomad-lab.eu/prod/v1/docs/ops.html#operating-a-nomad-oasis
 
 ##### How do version numbers work?
-There are still a lot of thing in NOMAD that are subject to change. Currently, changes in the minor version number (0.x.0) designate major changes that require data migration. Changes in the patch version number (0.7.x) just contain minor changes and fixes and do not require data migration. Once we reach 1.0.0, NOMAD will use the regular semantic versioning conventions.
+There are still a lot of things in NOMAD that are subject to change. Currently, changes in the minor version number (0.x.0) designate major changes that require data migration. Changes in the patch version number (0.7.x) just contain minor changes and fixes and do not require data migration. Once we reach 1.0.0, NOMAD will use the regular semantic versioning conventions.
 
 ##### How to upgrade a NOMAD Oasis?
 When we release a new version of the NOMAD software, it will be available as a new Docker image with an increased version number. You simply change the version number in your docker-compose.yaml and restart.
