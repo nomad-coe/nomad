@@ -70,7 +70,7 @@ services:
   # nomad worker (processing)
   worker:
     restart: unless-stopped
-    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.2
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:develop
     container_name: nomad_oasis_worker
     environment:
       NOMAD_SERVICE: nomad_oasis_worker
@@ -92,7 +92,7 @@ services:
   # nomad app (api + proxy)
   app:
     restart: unless-stopped
-    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.2
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:develop
     container_name: nomad_oasis_app
     environment:
       NOMAD_SERVICE: nomad_oasis_app
@@ -127,7 +127,7 @@ services:
   # nomad remote tools hub (JupyterHUB, e.g. for AI Toolkit)
   north:
     restart: unless-stopped
-    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.2
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:develop
     container_name: nomad_oasis_north
     environment:
       NOMAD_SERVICE: nomad_oasis_north
@@ -147,9 +147,8 @@ services:
       - ./configs/nomad.yaml:/app/nomad.yaml
       - ./.volumes/fs:/app/.volumes/fs
       - /var/run/docker.sock:/var/run/docker.sock
-    # networks: ["defautl", "north"]
+    user: '1000:991'
     command: python -m nomad.cli admin run hub
-    user: root # 1000:991
     healthcheck:
       test:
         - "CMD"
@@ -193,5 +192,3 @@ volumes:
 networks:
   default:
     name: nomad_oasis_network
-#   north:
-#     name: nomad_oasis_north_network

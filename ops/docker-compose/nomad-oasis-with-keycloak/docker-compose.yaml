@@ -11,7 +11,7 @@ services:
       - KEYCLOAK_USER=admin
       - KEYCLOAK_PASSWORD=password
       - KEYCLOAK_FRONTEND_URL=http://localhost/keycloak/auth
-      # - KEYCLOAK_IMPORT="/tmp/nomad-realm.json"
+      - KEYCLOAK_IMPORT="/tmp/nomad-realm.json"
     command:
       - "-Dkeycloak.import=/tmp/nomad-realm.json -Dkeycloak.migration.strategy=IGNORE_EXISTING"
     volumes:
@@ -98,7 +98,7 @@ services:
   # nomad worker (processing)
   worker:
     restart: unless-stopped
-    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.2
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:develop
     container_name: nomad_oasis_worker
     environment:
       NOMAD_SERVICE: nomad_oasis_worker
@@ -112,23 +112,15 @@ services:
         condition: service_healthy
       mongo:
         condition: service_healthy
-      keycloak:
-        condition: service_healthy
     volumes:
       - ./configs/nomad.yaml:/app/nomad.yaml
       - ./.volumes/fs:/app/.volumes/fs
     command: python -m celery worker -l info -A nomad.processing -Q celery
-    # healthcheck:
-    #   test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:9990/health/live"]
-    #   interval: 10s
-    #   timeout: 10s
-    #   retries: 30
-    #   start_period: 10s
 
   # nomad app (api + proxy)
   app:
     restart: unless-stopped
-    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.2
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:develop
     container_name: nomad_oasis_app
     environment:
       NOMAD_SERVICE: nomad_oasis_app
@@ -165,7 +157,7 @@ services:
   # nomad remote tools hub (JupyterHUB, e.g. for AI Toolkit)
   north:
     restart: unless-stopped
-    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:v1.1.2
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:develop
     container_name: nomad_oasis_north
     environment:
       NOMAD_SERVICE: nomad_oasis_north
@@ -187,8 +179,8 @@ services:
       - ./configs/nomad.yaml:/app/nomad.yaml
       - ./.volumes/fs:/app/.volumes/fs
       - /var/run/docker.sock:/var/run/docker.sock
+    user: '1000:991'
     command: python -m nomad.cli admin run hub
-    user: root
     healthcheck:
       test:
         - "CMD"

@@ -157,7 +157,9 @@ the tests. See below.
 ## Run the infrastructure
 
 ### Install docker
-You need to install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/).
+You need to install [docker](https://docs.docker.com/engine/install/).
+Docker nowadays comes with `docker compose` build in. Prior, you needed to
+install the standalone [docker-compose](https://docs.docker.com/compose/install/).
 
 ### Run required 3rd party services
 
@@ -180,7 +182,7 @@ sysctl -w vm.max_map_count=262144
 To set this value permanently, see [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html). Then, you can run all services with:
 ```sh
 cd ops/docker-compose/infrastructure
-docker-compose up -d mongo elastic rabbitmq
+docker compose up -d mongo elastic rabbitmq
 cd ../../..
 ```
 
@@ -199,7 +201,7 @@ virtual memory limits as shown [here](https://www.elastic.co/guide/en/elasticsea
 To shut down everything, just `ctrl-c` the running output. If you started everything
 in *deamon* mode (`-d`) use:
 ```sh
-docker-compose down
+docker compose down
 ```
 
 Usually these services are used only by NOMAD, but sometimes you also
@@ -325,7 +327,7 @@ The rest should be mocked or provided by the tests. Make sure that you do no run
 worker, as they will fight for tasks in the queue.
 ```sh
 cd ops/docker-compose/infrastructure
-docker-compose up -d elastic rabbitmq
+docker compose up -d elastic rabbitmq
 cd ../..
 pytest -svx tests
 ```
@@ -469,7 +471,7 @@ for running the test suite, as configured in `package.json`:
     test-record`), you need to boot up the infrastructure and ensure that the
     nomad package is available with the correct test configuration:
 
-    1. Have the docker infrastructure running: `docker-compose up`
+    1. Have the docker infrastructure running: `docker compose up`
 
     2. Have the `nomad appworker` running with the config found in
        nomad-FAIR/nomad-test.yaml. This can be achieved e.g. with the command: `export
@@ -516,7 +518,7 @@ this folder into vscode extensions folder `~/.vscode/extensions/` or create an i
   vsce package
 ```
 
-then install the extension by drag the file `nomad-0.0.x.vsix` and drop it into the extension panel of the vscode.   
+then install the extension by drag the file `nomad-0.0.x.vsix` and drop it into the extension panel of the vscode.
 
 ## Code guidelines
 
