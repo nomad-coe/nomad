@@ -316,6 +316,15 @@ class PublicationReference(ArchiveSection):
             this will be extracted automatically from www.crossref.org
         """)
 
+    publication_title = Quantity(
+        type=str,
+        shape=[],
+        description="""
+            Title of the publication.
+            If the DOI number is given correctly,
+            this will be extracted automatically from www.crossref.org
+        """)
+
     def normalize(self, archive, logger):
         super(PublicationReference, self).normalize(archive, logger)
         from nomad.datamodel.datamodel import EntryMetadata
@@ -330,6 +339,7 @@ class PublicationReference(ArchiveSection):
                 given_name = temp_dict['message']['author'][0]['given']
                 family_name = temp_dict['message']['author'][0]['family']
                 self.journal = temp_dict['message']['container-title'][0]
+                self.publication_title = temp_dict['message']['title'][0]
                 self.publication_date = dateutil.parser.parse(temp_dict['message']['created']['date-time'])
                 self.lead_author = f'{given_name} {family_name}'
                 if not archive.metadata:
