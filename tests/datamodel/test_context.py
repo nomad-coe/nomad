@@ -119,6 +119,10 @@ def test_create_reference(context, source, target_archive, target_path, result):
             (None, 'sample_upload', 'sample_entry', 'archive', '/seg1/22'),
             id='local-another-upload-04'),
         pytest.param(
+            '../uploads/GrP11O7pSJCb8Tu-FD0z1g/raw/template-schema.archive.yaml#/definitions/section_definitions/0',
+            (None, 'GrP11O7pSJCb8Tu-FD0z1g', 'template-schema.archive.yaml', 'raw', '/definitions/section_definitions/0'),
+            id='local-another-upload-05'),
+        pytest.param(
             'https://myoasis.de/uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
             ('https://myoasis.de', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
             id='remote-upload-01'),
