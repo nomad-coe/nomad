@@ -219,16 +219,12 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
         setFileName(_filePath.slice(_filePath.indexOf('files')).split('/').slice(1).join('/'))
         setOpenCopyMoveDialog(true)
       }
-      // e.target.style.backgroundColor = 'white'
-      // if (!_filePath.includes('nomad/latest/gui/user/uploads/upload')) return
-      // setFileName(_filePath.slice(_filePath.indexOf('files')).split('/').slice(1).join('/'))
-      // setOpenCopyMoveDialog(true)
     }
   }
 
   const handleCopyMoveFile = (e) => {
     setOpenCopyMoveDialog(false)
-    api.put(`/uploads/${uploadId}/raw/${encodedPath}?move_or_copy=${e.moveFile}&move_or_copy_source_path=${fileName}&file_name=${copyFileName.current.value}`)
+    api.put(`/uploads/${uploadId}/raw/${encodedPath}?copy_or_move=${e.moveFile}&copy_or_move_source_path=${fileName}&file_name=${copyFileName.current.value}`)
       .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
       .catch(error => raiseError(error))
   }

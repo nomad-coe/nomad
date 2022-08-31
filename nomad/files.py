@@ -963,27 +963,59 @@ class StagingUploadFiles(UploadFiles):
             # Special case - deleting everything, i.e. the entire raw folder. Need to recreate.
             os.makedirs(os_path)
 
-    def rename_rawfiles(self, path, new_file_name, updated_files: Set[str] = None):
-        assert is_safe_relative_path(path)
-        raw_os_path = os.path.join(self.os_path, 'raw')
-        os_path = os.path.join(raw_os_path, path)
-        rel_old_file_path = path
-        rel_new_file_path = os.path.join(os.path.dirname(path), new_file_name)
-        if not os.path.exists(os_path):
+    def move_rawfile(self, path_to_existing_file, path_to_target_file, new_file_name, updated_files: Set[str] = None):
+        assert is_safe_relative_path(path_to_existing_file)
+        assert is_safe_relative_path(path_to_target_file)
+        assert is_safe_basename(new_file_name)
+        os_path_exisitng = os.path.join(self._raw_dir.os_path, path_to_existing_file)
+        os_path_target = os.path.join(self._raw_dir.os_path, path_to_target_file)
+        rel_old_file_path = path_to_target_file
+        rel_new_file_path = os.path.join(os.path.dirname(path_to_target_file), new_file_name)
+        if not os.path.exists(os_path_exisitng):
             return
-        if os.path.isfile(os_path):
-            # renaming a file
+        if os.path.isfile(os_path_exisitng):
+            # moving a file
+            directory = os.path.dirname(os_path_target)
+            if os.path.exists(os.path.join(directory, new_file_name)):
+                raise ValueError('A file with the same name already exists.')
+            shutil.move(os_path_exisitng, os.path.join(directory, new_file_name))
             if updated_files is not None:
                 updated_files.add(rel_new_file_path)
                 # if both the new and old name are the same then no new entry will be
                 # added to the set. but if different, we add the old one so that later on
                 # when self.matchall is called in data.py, the old filename is removed
-                # from mongo
+                # from mongo database
                 updated_files.add(rel_old_file_path)
-            directory = os.path.dirname(os_path)
-            os.rename(os_path, os.path.join(directory, new_file_name))
-        elif os.path.isdir(os_path):
-            raise TypeError('Unable to move/copy any directory/folder.')
+                updated_files.add(path_to_existing_file)
+
+        elif os.path.isdir(os_path_target):
+            raise ValueError('Moving a directory is not possible.')
+
+    def copy_rawfile(self, path_to_existing_file, path_to_target_file, new_file_name, updated_files: Set[str] = None):
+        assert is_safe_relative_path(path_to_existing_file)
+        assert is_safe_relative_path(path_to_target_file)
+        assert is_safe_basename(new_file_name)
+        os_path_exisitng = os.path.join(self._raw_dir.os_path, path_to_existing_file)
+        os_path_target = os.path.join(self._raw_dir.os_path, path_to_target_file)
+        rel_old_file_path = path_to_target_file
+        rel_new_file_path = os.path.join(os.path.dirname(path_to_target_file), new_file_name)
+        if not os.path.exists(os_path_exisitng):
+            return
+        if os.path.isfile(os_path_exisitng):
+            # copying a file
+            directory = os.path.dirname(os_path_target)
+            if os.path.exists(os.path.join(directory, new_file_name)):
+                raise ValueError('A file with the same name already exists.')
+            shutil.copyfile(os_path_exisitng, os.path.join(directory, new_file_name))
+            if updated_files is not None:
+                updated_files.add(rel_new_file_path)
+                # if both the new and old name are the same then no new entry will be
+                # added to the set. but if different, we add the old one so that later on
+                # when self.matchall is called in data.py, the old filename is removed
+                # from mongo database
+                updated_files.add(rel_old_file_path)
+        elif os.path.isdir(os_path_target):
+            raise ValueError('Copying a directory is not possible.')
 
     @lru_cache()
     def metadata_file_cached(self, path_dir: str = ''):
