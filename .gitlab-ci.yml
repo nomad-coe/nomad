@@ -32,7 +32,6 @@ build:
     # create the version information
     - ./gitinfo.sh
     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY --username $CI_REGISTRY_USER --password-stdin
-
   script:
     - docker build -t $TEST_IMAGE .
     - docker push $TEST_IMAGE
@@ -336,9 +335,10 @@ deploy prod develop:
 
 release latest image:
   stage: release
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY --username $CI_REGISTRY_USER --password-stdin
     - docker pull $TEST_IMAGE
+  script:
     - docker tag $TEST_IMAGE $LATEST_IMAGE
     - docker push $LATEST_IMAGE
   rules:
@@ -348,9 +348,10 @@ release latest image:
 
 release stable image:
   stage: release
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY --username $CI_REGISTRY_USER --password-stdin
     - docker pull $TEST_IMAGE
+  script:
     - docker tag $TEST_IMAGE $LATEST_IMAGE
     - docker push $LATEST_IMAGE
     - docker tag $TEST_IMAGE $STABLE_IMAGE
@@ -362,18 +363,20 @@ release stable image:
 
 python package:
   stage: release
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY --username $CI_REGISTRY_USER --password-stdin
     - docker pull $TEST_IMAGE
+  script:
     - docker run --rm $TEST_IMAGE python -m twine upload -u gitlab-ci-token -p ${CI_JOB_TOKEN} --repository-url https://gitlab.mpcdf.mpg.de/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/nomad-lab-*.tar.gz
   rules:
     - when: manual
 
 pypi package:
   stage: release
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY --username $CI_REGISTRY_USER --password-stdin
     - docker pull $TEST_IMAGE
+  script:
     - docker run --rm $TEST_IMAGE bash -c "python -m twine upload -u $CI_TWINE_USER -p $CI_TWINE_PASSWORD dist/nomad-lab-*.tar.gz"
   rules:
     - when: manual
