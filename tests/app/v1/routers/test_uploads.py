@@ -1041,7 +1041,7 @@ def test_get_upload_entry_archive(
         {
             'file_name': 'template.json',
             "copy_or_move_source_path": 'examples_template/template.json',
-            "copy_pr_move": 'copy'
+            "copy_or_move": 'copy'
         },
         True, False, 200, {'template.json': True, 'examples_template/template.json': True}, id='copy-file-to-rawdir'),
     pytest.param(
@@ -1049,7 +1049,7 @@ def test_get_upload_entry_archive(
         {
             'file_name': 'template_2.json',
             "copy_or_move_source_path": 'examples_template/template.json',
-            "copy_pr_move": 'copy'
+            "copy_or_move": 'copy'
         },
         True, False, 200, {'examples_template/template.json': True}, id='copy-with-rename-file-to-rawdir'),
     pytest.param(
@@ -1057,7 +1057,7 @@ def test_get_upload_entry_archive(
         {
             'file_name': 'template.json',
             "copy_or_move_source_path": 'examples_template/template.json',
-            "copy_pr_move": 'move'
+            "copy_or_move": 'move'
         },
         True, False, 200, {'template.json': True}, id='move-file-to-rawdir'),
     pytest.param(
@@ -1065,7 +1065,7 @@ def test_get_upload_entry_archive(
         {
             'file_name': 'template_2.json',
             "copy_or_move_source_path": 'examples_template/template.json',
-            "copy_pr_move": 'move'
+            "copy_or_move": 'move'
         },
         True, False, 200, None, id='move-with-rename-file-to-rawdir'),
     pytest.param(
