@@ -905,8 +905,8 @@ async def put_upload_raw_path(
     endpoint for examples of curl commands for uploading files.
 
     Also, this path can be used to copy/move a file from one directory to another. Three
-    query parameters are required for a successful operation: 1) boolean `copy_or_move` param to specify
-    if the file needs to be moved (if set to true then the original file will be removed), 2)
+    query parameters are required for a successful operation: 1) `copy_or_move` param to specify
+    if the file needs to be moved (if set to move then the original file will be removed), 2)
     `file_name` param that contains the new name for the file moved/copied file and 3) `copy_or_move_source_path`
     param that contains the path of the original/existing local file to be copied or moved.
     '''
@@ -937,7 +937,12 @@ async def put_upload_raw_path(
         if not is_safe_basename(file_name):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Bad file_name provided')
+                detail='Bad file name provided')
+
+        if copy_or_move_source_path is not None and not is_safe_relative_path(copy_or_move_source_path):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Bad source path provided.')
 
     upload_paths, method = await _get_files_if_provided(
         upload_id, request, file, local_path, file_name, user)
@@ -974,28 +979,17 @@ async def put_upload_raw_path(
                     detail='No file or folder with that path found.')
 
             try:
-                upload_path = os.path.join(upload_files.os_path, 'raw', copy_or_move_source_path)
-                new_file_path = os.path.join(path, os.path.basename(copy_or_move_source_path))
-
-                if copy_or_move == 'move':
-                    upload.process_upload(
-                        file_operations=[
-                            dict(
-                                op='MOVE',
-                                path_to_existing_file=copy_or_move_source_path,
-                                path_to_target_file=new_file_path,
-                                new_file_name=file_name)],
-                        only_updated_files=True)
-
-                elif copy_or_move == 'copy':
-                    upload.process_upload(
-                        file_operations=[
-                            dict(
-                                op='COPY',
-                                path_to_existing_file=copy_or_move_source_path,
-                                path_to_target_file=new_file_path,
-                                new_file_name=file_name)],
-                        only_updated_files=True)
+                new_file_path = os.path.join(path, file_name)
+                # If the flag copy_or_move is set to copy, this operation emulates a copy functionality
+                # and if the flag is set to move, this operation emulates a move functionality
+                upload.process_upload(
+                    file_operations=[
+                        dict(
+                            op='COPY',
+                            path_to_existing_file=copy_or_move_source_path,
+                            path_to_target_file=new_file_path,
+                            copy_or_move=copy_or_move)],
+                    only_updated_files=True)
 
             except ProcessAlreadyRunning:
                 raise HTTPException(

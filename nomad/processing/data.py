@@ -1673,21 +1673,13 @@ class Upload(Proc):
                     self.set_last_status_message('Deleting files')
                     with utils.timer(logger, 'Deleting files or folders from upload'):
                         staging_upload_files.delete_rawfiles(file_operation['path'], updated_files)
-                elif op == 'MOVE':
-                    self.set_last_status_message('Moving the file')
-                    with utils.timer(logger, 'Moving a file within the upload'):
-                        staging_upload_files.move_rawfile(
-                            file_operation['path_to_existing_file'],
-                            file_operation['path_to_target_file'],
-                            file_operation['new_file_name'],
-                            updated_files)
                 elif op == 'COPY':
                     self.set_last_status_message('Copying the file')
                     with utils.timer(logger, 'Copying the file within the upload'):
-                        staging_upload_files.copy_rawfile(
+                        staging_upload_files.copy_or_move_rawfile(
                             file_operation['path_to_existing_file'],
                             file_operation['path_to_target_file'],
-                            file_operation['new_file_name'],
+                            file_operation['copy_or_move'],
                             updated_files)
                 else:
                     raise ValueError(f'Unknown operation {op}')

@@ -963,57 +963,30 @@ class StagingUploadFiles(UploadFiles):
             # Special case - deleting everything, i.e. the entire raw folder. Need to recreate.
             os.makedirs(os_path)
 
-    def move_rawfile(self, path_to_existing_file, path_to_target_file, new_file_name, updated_files: Set[str] = None):
+    def copy_or_move_rawfile(self, path_to_existing_file, path_to_target_file, copy_or_move, updated_files: Set[str] = None):
         assert is_safe_relative_path(path_to_existing_file)
         assert is_safe_relative_path(path_to_target_file)
-        assert is_safe_basename(new_file_name)
         os_path_exisitng = os.path.join(self._raw_dir.os_path, path_to_existing_file)
         os_path_target = os.path.join(self._raw_dir.os_path, path_to_target_file)
-        rel_old_file_path = path_to_target_file
-        rel_new_file_path = os.path.join(os.path.dirname(path_to_target_file), new_file_name)
         if not os.path.exists(os_path_exisitng):
             return
         if os.path.isfile(os_path_exisitng):
-            # moving a file
-            directory = os.path.dirname(os_path_target)
-            if os.path.exists(os.path.join(directory, new_file_name)):
+            # copying or moving a file
+            if os.path.exists(os_path_target):
                 raise ValueError('A file with the same name already exists.')
-            shutil.move(os_path_exisitng, os.path.join(directory, new_file_name))
+            if copy_or_move == 'copy':
+                shutil.copyfile(os_path_exisitng, os_path_target)
+            elif copy_or_move == 'move':
+                shutil.move(os_path_exisitng, os_path_target)
+
             if updated_files is not None:
-                updated_files.add(rel_new_file_path)
+                updated_files.add(path_to_target_file)
                 # if both the new and old name are the same then no new entry will be
                 # added to the set. but if different, we add the old one so that later on
                 # when self.matchall is called in data.py, the old filename is removed
                 # from mongo database
-                updated_files.add(rel_old_file_path)
                 updated_files.add(path_to_existing_file)
 
-        elif os.path.isdir(os_path_target):
-            raise ValueError('Moving a directory is not possible.')
-
-    def copy_rawfile(self, path_to_existing_file, path_to_target_file, new_file_name, updated_files: Set[str] = None):
-        assert is_safe_relative_path(path_to_existing_file)
-        assert is_safe_relative_path(path_to_target_file)
-        assert is_safe_basename(new_file_name)
-        os_path_exisitng = os.path.join(self._raw_dir.os_path, path_to_existing_file)
-        os_path_target = os.path.join(self._raw_dir.os_path, path_to_target_file)
-        rel_old_file_path = path_to_target_file
-        rel_new_file_path = os.path.join(os.path.dirname(path_to_target_file), new_file_name)
-        if not os.path.exists(os_path_exisitng):
-            return
-        if os.path.isfile(os_path_exisitng):
-            # copying a file
-            directory = os.path.dirname(os_path_target)
-            if os.path.exists(os.path.join(directory, new_file_name)):
-                raise ValueError('A file with the same name already exists.')
-            shutil.copyfile(os_path_exisitng, os.path.join(directory, new_file_name))
-            if updated_files is not None:
-                updated_files.add(rel_new_file_path)
-                # if both the new and old name are the same then no new entry will be
-                # added to the set. but if different, we add the old one so that later on
-                # when self.matchall is called in data.py, the old filename is removed
-                # from mongo database
-                updated_files.add(rel_old_file_path)
         elif os.path.isdir(os_path_target):
             raise ValueError('Copying a directory is not possible.')
 
