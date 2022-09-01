@@ -78,6 +78,10 @@
                   },
                   {
                     "count": 0,
+                    "value": "ABACUS"
+                  },
+                  {
+                    "count": 0,
                     "value": "ABINIT"
                   },
                   {
@@ -95,6 +99,10 @@
                   {
                     "count": 0,
                     "value": "ASR"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Atomate"
                   },
                   {
                     "count": 0,
@@ -202,7 +210,7 @@
                   },
                   {
                     "count": 0,
-                    "value": "MaterialsProject"
+                    "value": "MOF Structures"
                   },
                   {
                     "count": 0,
@@ -238,6 +246,10 @@
                   },
                   {
                     "count": 0,
+                    "value": "OpenMX"
+                  },
+                  {
+                    "count": 0,
                     "value": "ORCA"
                   },
                   {
@@ -263,6 +275,10 @@
                   {
                     "count": 0,
                     "value": "Siesta"
+                  },
+                  {
+                    "count": 0,
+                    "value": "tabular data"
                   },
                   {
                     "count": 0,
@@ -296,7 +312,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "4931",
+          "content-length": "5252",
           "content-type": "application/json",
           "server": "uvicorn"
         }

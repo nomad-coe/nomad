@@ -236,15 +236,25 @@ export class Unit {
 
   /**
    * Normalizes the given expression into a format that can be parsed by MathJS.
+   *
+   * This function will replace the Pint power symbol of '**' with the symbol
+   * '^' used by MathJS. In addition, we convert any 'delta'-units (see:
+   * https://pint.readthedocs.io/en/stable/nonmult.html) into their regular
+   * counterparts: MathJS will automatically ignore the offset when using
+   * non-multiplicative units in expressions.
+   *
    * @param {str} expression Expression
    * @returns string Expression in normalized form
    */
   normalizeExpression(expression) {
-    return expression.replace('**', '^')
+    let normalized = expression.replace(/\*\*/g, '^')
+    normalized = normalized.replace(/delta_/g, '')
+    normalized = normalized.replace(/Δ/g, '')
+    return normalized
   }
 
   /**
-   * Checks if the given unit has the same based dimensions as this one.
+   * Checks if the given unit has the same base dimensions as this one.
    * @param {str | Unit} unit Unit to compare to
    * @returns boolean Whether the units have the same base dimensions.
    */
@@ -385,7 +395,7 @@ export class Unit {
    * Gets the dimension of this unit as a string. The order of the dimensions is
    * fixed (determined at unit registration time).
    *
-   * @param {boolean} base Whether to return dimension in base units. Othwerwise
+   * @param {boolean} base Whether to return dimension in base units. Otherwise
    * the original unit dimensions are used.
    * @returns The dimensionality as a string, e.g. 'time^2 energy mass^-2'
    */

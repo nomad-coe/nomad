@@ -246,7 +246,7 @@ class SampleID(ArchiveSection):
         a_eln=dict(component='ReferenceEditQuantity'))
 
     def normalize(self, archive, logger):
-        super().normalize(archive, logger)
+        super(SampleID, self).normalize(archive, logger)
 
         if self.institute and self.sample_short_name and self.sample_owner and self.creation_datetime:
             creation_date = self.creation_datetime.strftime('%Y%m%d')
@@ -317,6 +317,7 @@ class PublicationReference(ArchiveSection):
         """)
 
     def normalize(self, archive, logger):
+        super(PublicationReference, self).normalize(archive, logger)
         from nomad.datamodel.datamodel import EntryMetadata
         import requests
         import dateutil.parser
@@ -386,6 +387,7 @@ class SolarCellDefinition(ArchiveSection):
                 suggestions=['Unknown', 'Pn-Heterojunction', 'Front contacted', 'Back contacted', 'pin', 'nip', 'Schottky'])))
 
     def normalize(self, archive, logger):
+        super(SolarCellDefinition, self).normalize(archive, logger)
         addSolarCell(archive)
         if self.stack_sequence:
             if '/' in self.stack_sequence:
@@ -445,6 +447,7 @@ class SolarCellLayer(ArchiveSection):
             component='NumberEditQuantity'))
 
     def normalize(self, archive, logger):
+        super(SolarCellLayer, self).normalize(archive, logger)
         addSolarCell(archive)
         if self.solar_cell_layer_type == 'Absorber':
             archive.results.properties.optoelectronic.solar_cell.absorber = self.layer_name
@@ -471,7 +474,7 @@ class SolarCellBaseSectionWithOptoelectronicProperties(ArchiveSection):
             component='NumberEditQuantity'))
 
     def normalize(self, archive, logger):
-        super().normalize(archive, logger)
+        super(SolarCellBaseSectionWithOptoelectronicProperties, self).normalize(archive, logger)
         addSolarCell(archive)
         if self.bandgap is not None:
             band_gap = BandGap()
@@ -638,6 +641,7 @@ class SolarCellJV(ArchiveSection):
     n_values = Quantity(type=int, derived=derive_n_values)
 
     def normalize(self, archive, logger):
+        super(SolarCellJV, self).normalize(archive, logger)
 
         addSolarCell(archive)
         if self.open_circuit_voltage is not None:
@@ -699,7 +703,7 @@ class SolarCellJVCurve(SolarCellJV):
         })
 
     def normalize(self, archive, logger):
-        super().normalize(archive, logger)
+        super(SolarCellJVCurve, self).normalize(archive, logger)
         if self.current_density is not None:
             if self.voltage is not None:
                 self.open_circuit_voltage, self.short_circuit_current_density, self.fill_factor, self.efficiency = self.cell_params()

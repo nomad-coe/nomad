@@ -28,6 +28,7 @@ import Keycloak from 'keycloak-js'
 import { ReactKeycloakProvider } from '@react-keycloak/web'
 import { MuiThemeProvider } from '@material-ui/core/styles'
 import { ErrorSnacks, ErrorBoundary } from './errors'
+import { PWAProvider } from './PWA'
 import Navigation from './nav/Navigation'
 import GUIMenu from './GUIMenu'
 import { APIProvider, GlobalLoginRequired, onKeycloakEvent } from './api'
@@ -42,30 +43,37 @@ const keycloak = new Keycloak({
 
 export default function App() {
   return (
-    <ReactKeycloakProvider authClient={keycloak} onEvent={onKeycloakEvent(keycloak)} initOptions={{ onLoad: 'check-sso', 'checkLoginIframe': false, promiseType: 'native' }} LoadingComponent={<div />}>
+    <ReactKeycloakProvider
+      authClient={keycloak}
+      onEvent={onKeycloakEvent(keycloak)}
+      initOptions={{ onLoad: 'check-sso', 'checkLoginIframe': false, promiseType: 'native' }}
+      LoadingComponent={<div />}
+    >
       <RecoilRoot>
         <APIProvider>
-          <MuiPickersUtilsProvider utils={DateFnsUtils}>
-            <GlobalMetainfo>
-              <Router history={history}>
-                <QueryParamProvider ReactRouterRoute={Route}>
-                  <MuiThemeProvider theme={nomadTheme}>
-                    <CssBaseline />
-                    <ErrorSnacks>
-                      <ErrorBoundary>
-                        <GlobalLoginRequired>
-                          <DataStore>
-                            <Navigation />
-                            <GUIMenu/>
-                          </DataStore>
-                        </GlobalLoginRequired>
-                      </ErrorBoundary>
-                    </ErrorSnacks>
-                  </MuiThemeProvider>
-                </QueryParamProvider>
-              </Router>
-            </GlobalMetainfo>
-          </MuiPickersUtilsProvider>
+          <PWAProvider>
+            <MuiPickersUtilsProvider utils={DateFnsUtils}>
+              <GlobalMetainfo>
+                <Router history={history}>
+                  <QueryParamProvider ReactRouterRoute={Route}>
+                    <MuiThemeProvider theme={nomadTheme}>
+                      <CssBaseline />
+                      <ErrorSnacks>
+                        <ErrorBoundary>
+                          <GlobalLoginRequired>
+                            <DataStore>
+                              <Navigation />
+                              <GUIMenu/>
+                            </DataStore>
+                          </GlobalLoginRequired>
+                        </ErrorBoundary>
+                      </ErrorSnacks>
+                    </MuiThemeProvider>
+                  </QueryParamProvider>
+                </Router>
+              </GlobalMetainfo>
+            </MuiPickersUtilsProvider>
+          </PWAProvider>
         </APIProvider>
       </RecoilRoot>
     </ReactKeycloakProvider>

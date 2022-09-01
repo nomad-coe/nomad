@@ -89,7 +89,12 @@ test.each([
   ['division', 'm/s', 'angstrom/femtosecond', 'Å / fs'],
   ['multiplication', 'm*s', 'angstrom*femtosecond', 'Å fs'],
   ['power with hat', 'm^2', 'angstrom^2', 'Å^2'],
-  ['power with double asterisk', 'm**2', 'angstrom**2', 'Å^2'],
+  ['power with double asterisk (single)', 'm**2', 'angstrom**2', 'Å^2'],
+  ['power with double asterisk (multiple)', 'm**2 / s**2', 'angstrom**2 / ms**2', 'Å^2 / ms^2'],
+  ['explicit delta (single)', 'delta_celsius', 'delta_K', 'K'],
+  ['explicit delta (multiple)', 'delta_celsius / delta_celsius', 'delta_K / delta_K', 'K / K'],
+  ['explicit delta symbol (single)', 'Δcelsius', 'ΔK', 'K'],
+  ['explicit delta symbol (multiple)', 'Δcelsius / Δcelsius', 'ΔK / ΔK', 'K / K'],
   ['combined', 'm*m/s^2', 'angstrom^2/femtosecond^2', 'Å^2 / fs^2'],
   ['negative exponent', 's^-2', 'femtosecond^-2', 'fs^-2'],
   ['simple to complex with one unit', 'N', 'kg*m/s^2', '(kg m) / s^2'],
@@ -137,7 +142,8 @@ test.each([
   ['celsius to kelvin', 'celsius', 'kelvin', 5, 278.15],
   ['fahrenheit to kelvin', 'fahrenheit', 'kelvin', 5, 258.15],
   ['celsius to fahrenheit', 'celsius', 'fahrenheit', 5, 41],
-  ['celsius to kelvin: derived unit (offset not applied)', 'joule/celsius', 'joule/kelvin', 5, 5],
+  ['celsius to kelvin: derived unit (implicit delta)', 'joule/celsius', 'joule/kelvin', 5, 5],
+  ['celsius to kelvin: derived unit (explicit delta)', 'joule/delta_celsius', 'joule/kelvin', 5, 5],
   ['fahrenheit to kelvin: derived unit (offset not applied)', 'joule/fahrenheit', 'joule/kelvin', 5, 9 / 5 * 5],
   ['celsius to fahrenheit: derived unit (offset not applied)', 'joule/celsius', 'joule/fahrenheit', 5, 5 / 9 * 5]
 ]

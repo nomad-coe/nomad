@@ -212,10 +212,10 @@ parsers = [
         mainfile_name_re=r'^.*\.nc', mainfile_mime_re=r'application/octet-stream'
     ),
     MatchingParserInterface(
-        'electronicparsers.BandParser',
-        name='parsers/band', code_name='BAND',
-        code_homepage='https://www.scm.com/product/band_periodicdft/',
-        mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'
+        'electronicparsers.AMSParser',
+        name='parsers/ams', code_name='AMS',
+        code_homepage='https://www.scm.com',
+        mainfile_contents_re=r'\* +\| +A M S +\| +\*'
     ),
     MatchingParserInterface(
         'electronicparsers.BigDFTParser',

@@ -25,7 +25,7 @@ import userEvent from '@testing-library/user-event'
 
 const stateName = 'tests.states.search.search'
 const optionsStructural = ['bulk', '2D', 'molecule / cluster']
-const optionsProgramName = ['VASP', 'exciting', 'ABINIT', 'AFlow', 'Amber']
+const optionsProgramName = ['VASP', 'exciting', 'ABACUS', 'ABINIT', 'AFlow']
 const optionsXC = [
   'GGA_C_PBE_SOL',
   'GGA_X_PBE_SOL',

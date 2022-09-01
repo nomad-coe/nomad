@@ -15,35 +15,79 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// This optional code is used to register a service worker.
-// register() is not called by default.
 
-// This lets the app load faster on subsequent visits in production, and gives
-// it offline capabilities. However, it also means that developers (and users)
-// will only see deployed updates on subsequent visits to a page, after all the
-// existing tabs open on the page have been closed, since previously cached
-// resources are updated in the background.
+import React, { useState, useEffect, useCallback, useMemo, useContext } from "react"
+import PropTypes from 'prop-types'
 
-// To learn more about the benefits of this model and instructions on how to
-// opt-in, read https://bit.ly/CRA-PWA
+// A reference used by class components that cannot use hooks or multiple
+// contexts.
+export const pwaRegistrationRef = {current: null}
+
+/**
+ * React context that provides access to the PWA (Progressive Web App) service
+ * worker and its status. Only one singleton instance should be used.
+ */
+export const pwaContext = React.createContext()
+export const PWAProvider = React.memo(({
+  children
+}) => {
+  const [waitingWorker, setWaitingWorker] = useState()
+  const [showReload, setShowReload] = useState(false)
+
+  // Callback for service worker updates
+  const onUpdate = useCallback((registration) => {
+    setShowReload(true)
+    setWaitingWorker(registration.waiting)
+  }, [setShowReload, setWaitingWorker])
+
+  // Callback for service worker registration
+  const onSuccess = useCallback((registration) => {
+    pwaRegistrationRef.current = registration
+    setInterval(() => {
+      registration.update()
+      console.log('Periodic check for service worker update...')
+    }, (1000 * 60) * 30)
+  }, [])
+
+  // Register the service worker once
+  useEffect(() => {
+    register({onUpdate, onSuccess})
+  }, [onUpdate, onSuccess])
+
+  // Tells the service worker to skip the waiting phase and then reloads the
+  // page.
+  const reloadPage = useCallback(() => {
+    waitingWorker?.postMessage({ type: "SKIP_WAITING" })
+    setShowReload(false)
+    window.location.reload()
+  }, [setShowReload, waitingWorker])
+
+  const value = useMemo(() => ({
+    showReload, reloadPage
+  }), [reloadPage, showReload])
+
+  return <pwaContext.Provider value={value}>
+    {children}
+  </pwaContext.Provider>
+})
+PWAProvider.propTypes = {
+  children: PropTypes.node
+}
+
+/**
+ * Hook for using the PWA context.
+*/
+export function usePWA() {
+  return useContext(pwaContext)
+}
 
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
     // [::1] is the IPv6 localhost address.
     window.location.hostname === '[::1]' ||
     // 127.0.0.0/8 are considered localhost for IPv4.
-    window.location.hostname.match(
-      /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
-    )
+    window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
 )
-
-export const serviceWorkerUpdateHandlerRef = {
-  current: null
-}
-
-export const serviceWorkerRegistrationRef = {
-  current: null
-}
 
 export function register(config) {
   if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
@@ -53,6 +97,9 @@ export function register(config) {
       // Our service worker won't work if PUBLIC_URL is on a different origin
       // from what our page is served on. This might happen if a CDN is used to
       // serve assets; see https://github.com/facebook/create-react-app/issues/2374
+      console.log(
+        'Service worker disabled due to mismatch in public url and the site origin.'
+      )
       return
     }
 
@@ -68,7 +115,7 @@ export function register(config) {
         navigator.serviceWorker.ready.then(() => {
           console.log(
             'This web app is being served cache-first by a service ' +
-              'worker. To learn more, visit https://bit.ly/CRA-PWA'
+              'worker. To learn more, visit https://cra.link/PWA'
           )
         })
       } else {
@@ -82,7 +129,7 @@ export function register(config) {
 function registerValidSW(swUrl, config) {
   navigator.serviceWorker
     .register(swUrl)
-    .then(registration => {
+    .then((registration) => {
       registration.onupdatefound = () => {
         const installingWorker = registration.installing
         if (installingWorker == null) {
@@ -96,7 +143,7 @@ function registerValidSW(swUrl, config) {
               // content until all client tabs are closed.
               console.log(
                 'New content is available and will be used when all ' +
-                  'tabs for this page are closed. See https://bit.ly/CRA-PWA.'
+                  'tabs for this page are closed. See https://cra.link/PWA.'
               )
 
               // Execute callback
@@ -118,7 +165,7 @@ function registerValidSW(swUrl, config) {
         }
       }
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('Error during service worker registration:', error)
     })
 }
@@ -128,7 +175,7 @@ function checkValidServiceWorker(swUrl, config) {
   fetch(swUrl, {
     headers: { 'Service-Worker': 'script' }
   })
-    .then(response => {
+    .then((response) => {
       // Ensure service worker exists, and that we really are getting a JS file.
       const contentType = response.headers.get('content-type')
       if (
@@ -136,7 +183,7 @@ function checkValidServiceWorker(swUrl, config) {
         (contentType != null && contentType.indexOf('javascript') === -1)
       ) {
         // No service worker found. Probably a different app. Reload the page.
-        navigator.serviceWorker.ready.then(registration => {
+        navigator.serviceWorker.ready.then((registration) => {
           registration.unregister().then(() => {
             window.location.reload()
           })
@@ -147,19 +194,17 @@ function checkValidServiceWorker(swUrl, config) {
       }
     })
     .catch(() => {
-      console.log(
-        'No internet connection found. App is running in offline mode.'
-      )
+      console.log('No internet connection found. App is running in offline mode.')
     })
 }
 
 export function unregister() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.ready
-      .then(registration => {
+      .then((registration) => {
         registration.unregister()
       })
-      .catch(error => {
+      .catch((error) => {
         console.error(error.message)
       })
   }

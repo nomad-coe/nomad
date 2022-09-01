@@ -389,13 +389,12 @@ $RECYCLE.BIN/
 
 
 # Nomad
+.*env/
+.pyenv*/
+.pytest/
 
-# .*env/
-# .pyenv*/
-# .pytest/
-
-# .coverage_html/
-# .coverage*
+.coverage_html/
+.coverage*
 
 /data/
 /.volumes
@@ -408,6 +407,7 @@ local/
 
 nomad.yaml
 !tests/nomad.yaml
+!ops/docker-compose/nomad-oasis/configs/nomad.yaml
 !ops/docker-compose/nomad-oasis-with-keycloak/configs/nomad.yaml
 
 *.log.conf

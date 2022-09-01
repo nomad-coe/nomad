@@ -16,32 +16,28 @@
  * limitations under the License.
  */
 
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { useDataStore } from '../DataStore'
+import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { apiBase } from '../../config'
 
 const entryPageContext = React.createContext()
 
-export const useEntryPageContext = () => {
-  return useContext(entryPageContext)
+export const useEntryPageContext = (requireArchive) => {
+  const entryId = useContext(entryPageContext)
+  return useEntryStoreObj(apiBase, entryId, true, requireArchive)
 }
 
 const EntryPageContext = React.memo(function EntryContext({entryId, children}) {
-  const dataStore = useDataStore()
-  const [entryStoreObj, setEntryStoreObj] = useState(dataStore.getEntry(apiBase, entryId))
-
-  const onEntryStoreUpdated = useCallback((oldStoreObj, newStoreObj) => {
-    setEntryStoreObj(newStoreObj)
-  }, [setEntryStoreObj])
+  const {selectedEntry} = useDataStore()
 
   useEffect(() => {
-    return dataStore.subscribeToEntry(apiBase, entryId, onEntryStoreUpdated, true, true, true)
-  }, [dataStore, entryId, onEntryStoreUpdated])
+    // Inform the Store of the selected entry
+    selectedEntry.current = `${apiBase}:${entryId}`
+    return () => { selectedEntry.current = undefined }
+  }, [selectedEntry, entryId])
 
-  const contextValue = useMemo(() => { return entryStoreObj }, [entryStoreObj])
-
-  return <entryPageContext.Provider value={contextValue}>
+  return <entryPageContext.Provider value={entryId}>
     {children}
   </entryPageContext.Provider>
 })

@@ -271,7 +271,7 @@ test('Delete selected entries from table', async () => {
 
   // Go to the next page in the entry table
   const nextPage = screen.getByButtonText(/next page/i)
-  userEvent.click(nextPage)
+  await userEvent.click(nextPage)
   await waitFor(() => {
     const table = screen.getByTestId('datatable-body')
     expect(within(table).getByText('vasp_6.xml')).toBeVisible()
@@ -282,15 +282,15 @@ test('Delete selected entries from table', async () => {
 
   // Select the last entry
   rows = screen.queryAllByTestId('datatable-row')
-  userEvent.click(within(rows[0]).getByRole('checkbox'))
+  await userEvent.click(within(rows[0]).getByRole('checkbox'))
 
   // Wait for delete entries button to appear
   let deleteButton = await screen.findByButtonText('Delete selected entries')
 
   // Delete the entry
-  userEvent.click(deleteButton)
+  await userEvent.click(deleteButton)
   let deleteConfirmButton = await screen.findByButtonText('Delete mainfiles')
-  userEvent.click(deleteConfirmButton)
+  await userEvent.click(deleteConfirmButton)
   // Should delete and go back to the first page
   await waitFor(() => {
     expect(screen.queryByText('5 entries')).toBeInTheDocument()
@@ -302,16 +302,16 @@ test('Delete selected entries from table', async () => {
 
   // Select two entries (#3 and #5)
   rows = screen.queryAllByTestId('datatable-row')
-  userEvent.click(within(rows[2]).getByRole('checkbox'))
-  userEvent.click(within(rows[4]).getByRole('checkbox'))
+  await userEvent.click(within(rows[2]).getByRole('checkbox'))
+  await userEvent.click(within(rows[4]).getByRole('checkbox'))
 
   // Wait for delete entries button to appear
   deleteButton = await screen.findByButtonText('Delete selected entries')
 
   // Delete the entries
-  userEvent.click(deleteButton)
+  await userEvent.click(deleteButton)
   deleteConfirmButton = await screen.findByButtonText('Delete mainfiles')
-  userEvent.click(deleteConfirmButton)
+  await userEvent.click(deleteConfirmButton)
   await waitFor(() => {
     expect(screen.queryByText('3 entries')).toBeInTheDocument()
     expect(screen.queryAllByTestId('datatable-row').length).toBe(3)

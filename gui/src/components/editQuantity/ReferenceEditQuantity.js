@@ -38,7 +38,7 @@ const useStyles = makeStyles(theme => ({
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const styles = useStyles()
-  const {uploadId, archive} = useEntryPageContext()
+  const {uploadId, archive} = useEntryPageContext('*')
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const {api} = useApi()

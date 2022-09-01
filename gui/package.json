@@ -67,17 +67,28 @@
     "swagger-client": "^3.8.22",
     "tinymce": "^6.0.3",
     "url-parse": "^1.4.3",
-    "use-query-params": "^0.6.0"
+    "use-query-params": "^0.6.0",
+    "workbox-background-sync": "^6.5.4",
+    "workbox-broadcast-update": "^6.5.4",
+    "workbox-cacheable-response": "^6.5.4",
+    "workbox-core": "^6.5.4",
+    "workbox-expiration": "^6.5.4",
+    "workbox-navigation-preload": "^6.5.4",
+    "workbox-precaching": "^6.5.4",
+    "workbox-range-requests": "^6.5.4",
+    "workbox-routing": "^6.5.4",
+    "workbox-strategies": "^6.5.4",
+    "workbox-streams": "^6.5.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --maxWorkers=4",
-    "watch-test": "react-scripts test --testPathIgnorePatterns=.*/conftest.spec.js --maxWorkers=4",
-    "test-integration": "export READ_MODE=api WRITE_MODE=none && react-scripts test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --runInBand",
-    "test-record": "export READ_MODE=api WRITE_MODE=snapshot && react-scripts test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --runInBand",
+    "start": "craco start",
+    "build": "export CI=true && craco build",
+    "test": "craco test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --maxWorkers=4",
+    "watch-test": "craco test --testPathIgnorePatterns=.*/conftest.spec.js --maxWorkers=4",
+    "test-integration": "export READ_MODE=api WRITE_MODE=none && craco test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --runInBand",
+    "test-record": "export READ_MODE=api WRITE_MODE=snapshot && craco test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --runInBand",
     "lint": "eslint 'src/**/*.js'",
-    "eject": "react-scripts eject"
+    "eject": "craco eject"
   },
   "devDependencies": {
     "@material-ui/codemod": "^4.5.0",
@@ -86,6 +97,8 @@
     "@testing-library/user-event": "^14.2.0",
     "@welldone-software/why-did-you-render": "^7.0.1",
     "babel-eslint": "^10.1.0",
+    "craco": "^0.0.3",
+    "craco-workbox": "^0.2.0",
     "eslint": "^7.11.0",
     "eslint-config-standard": "^17.0.0",
     "eslint-plugin-import": "^2.14.0",
@@ -131,7 +144,8 @@
     }
   },
   "resolutions": {
-    "//": "See https://github.com/facebook/create-react-app/issues/11773",
-    "react-error-overlay": "6.0.11"
+    "//": "See https://github.com/facebook/create-react-app/issues/11773 and https://github.com/jsdom/jsdom/issues/3419",
+    "react-error-overlay": "6.0.11",
+    "tough-cookie": "4.0.0"
   }
 }
