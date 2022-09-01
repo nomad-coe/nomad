@@ -389,13 +389,12 @@ $RECYCLE.BIN/
 
 
 # Nomad
+.*env/
+.pyenv*/
+.pytest/
 
-# .*env/
-# .pyenv*/
-# .pytest/
-
-# .coverage_html/
-# .coverage*
+.coverage_html/
+.coverage*
 
 /data/
 /.volumes
