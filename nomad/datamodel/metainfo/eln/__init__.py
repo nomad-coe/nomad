@@ -886,9 +886,9 @@ class SolarCellEQE(ArchiveSection):
             self.raw_wavelength_array = self.raw_photon_energy_array.to('nm', 'sp')  # pylint: disable=E1101
 
         addSolarCell(archive)
-        if self.bandgap is not None:
+        if self.bandgap_eqe is not None:
             band_gap = BandGap()
-            band_gap.value = self.bandgap
+            band_gap.value = self.bandgap_eqe
             if band_gap.value is None:
                 band_gap.value = 0
             archive.results.properties.optoelectronic.band_gap = [band_gap]
