@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import React, {createRef, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react'
+import React, {useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Card, CardContent, Box, Typography, Grid, Chip, Tooltip, IconButton } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
@@ -296,6 +296,7 @@ const useLaneStyles = makeStyles(theme => ({
   container: {
     display: 'inline-block',
     height: '100%',
+    overflowX: 'clip',
     overflowY: 'scroll'
   },
   error: {
@@ -305,9 +306,24 @@ const useLaneStyles = makeStyles(theme => ({
 }))
 function Lane({lane}) {
   const classes = useLaneStyles()
-  const containerRef = createRef()
+  const containerRef = useRef(null)
   const { key, adaptor, next, initialized, error } = lane
+  const oldScrollValue = useRef(0)
   lane.containerRef = containerRef
+  const [internalUpdate, setInternalRender] = useState(0)
+  const updateLane = useCallback(() => {
+    setInternalRender(current => current + 1)
+  }, [setInternalRender])
+
+  const handleScroll = useCallback((e) => {
+    if (adaptor.onScrollToEnd) {
+      const threshold = (e.target.scrollHeight - e.target.clientHeight) * 95 / 100
+      if (e.target.scrollTop >= threshold && oldScrollValue.current < threshold) {
+        adaptor.onScrollToEnd(e, updateLane)
+      }
+      oldScrollValue.current = e.target.scrollTop
+    }
+  }, [adaptor, updateLane])
 
   const content = useMemo(() => {
     if (error) {
@@ -320,7 +336,7 @@ function Lane({lane}) {
       return null
     }
     return <div className={classes.root} key={`lane:${lane.path}`} data-testid={`lane${lane.index}:${lane.key}`}>
-      <div className={classes.container} ref={containerRef}>
+      <div className={classes.container} ref={containerRef} onScroll={handleScroll}>
         <laneContext.Provider value={lane}>
           <ErrorHandler message={laneErrorBoundryMessage} className={classes.error}>
             {adaptor.render()}
@@ -331,7 +347,14 @@ function Lane({lane}) {
     // We deliberetly break the React rules here. The goal is to only update if the
     // lanes contents change and not the lane object.
     // eslint-disable-next-line
-  }, [lane, key, adaptor, initialized, next?.key, classes, error])
+  }, [lane, key, adaptor, initialized, next?.key, classes, error, internalUpdate])
+
+  useEffect(() => {
+    if (adaptor && initialized && containerRef.current && adaptor.onRendered) {
+      adaptor.onRendered({target: containerRef.current}, updateLane)
+    }
+    // eslint-disable-next-line
+  }, [key, adaptor, internalUpdate, updateLane])
 
   return content
 }

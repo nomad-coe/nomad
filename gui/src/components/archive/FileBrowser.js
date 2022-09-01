@@ -83,27 +83,43 @@ class RawDirectoryAdaptor extends Adaptor {
     this.timestamp = undefined
     this.initialized = false
     this.dependencies = new Set([this.uploadId])
+    this.api = undefined
+    this.page_size = 40
+    this.lastPage = undefined
   }
   depends() {
     return this.dependencies
   }
   async initialize(api, dataStore) {
+    this.api = api
+    this.lastPage = 1
     const uploadStoreObj = await dataStore.getUploadAsync(this.installationUrl, this.uploadId, true, false)
     this.timestamp = uploadStoreObj.upload?.complete_time
     this.editable = uploadStoreObj.isEditable
+    await this.fetchData()
+  }
+  async fetchData() {
     const encodedPath = urlEncodePath(this.path)
     if (this.installationUrl !== apiBase) throw new Error('Fetching directory data from external source is not yet supported')
-    const response = await api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
-    const elementsByName = {}
+    const response = await this.api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=${this.page_size}&page=${this.lastPage}`)
+    const elementsByName = this.data?.elementsByName || {}
     response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
-    this.data = {response, elementsByName}
+    const directory_metadata = this.data?.directory_metadata
+      ? this?.data?.directory_metadata.concat(response.directory_metadata.content)
+      : response.directory_metadata.content
+    const total = response.pagination.total
+    this.data = {directory_metadata, elementsByName, total}
   }
-  itemAdaptor(key) {
+  async itemAdaptor(key) {
     if (key === '_mainfile') {
       key = this.highlightedItem
     }
     const extendedUrl = urlJoin(this.uploadUrl, encodeURIComponent(key))
-    const element = this.data.elementsByName[key]
+    let element = this.data?.elementsByName[key]
+    while (!element && this.lastPage * this.page_size < this.data.total) {
+      const data = await this.scrollToNextPage()
+      element = data?.elementsByName[key]
+    }
     if (element) {
       if (element.is_file) {
         return new RawFileAdaptor(this.context, extendedUrl, element, this.editable)
@@ -113,6 +129,31 @@ class RawDirectoryAdaptor extends Adaptor {
     }
     throw new Error('Bad path: ' + key)
   }
+
+  async scrollToNextPage() {
+    if (this.lastPage * this.page_size < this.data.total) {
+      this.lastPage = this.lastPage + 1
+      await this.fetchData()
+      return this.data
+    }
+  }
+
+  async onScrollToEnd(event, updateLane) {
+    const data = await this.scrollToNextPage()
+    if (data) {
+      updateLane()
+    }
+  }
+
+  async onRendered(event, updateLane) {
+    if (event.target.scrollHeight * 95 / 100 <= event.target.clientHeight) {
+      const data = await this.scrollToNextPage()
+      if (data) {
+        updateLane()
+      }
+    }
+  }
+
   render() {
     return <RawDirectoryContent
       installationUrl={this.installationUrl} uploadId={this.uploadId} path={this.path}
@@ -318,7 +359,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
           />
           <Compartment>
             {
-              lane.adaptor.data.response.directory_metadata.content.map(element => (
+              lane.adaptor.data.directory_metadata.map(element => (
                 <Item
                   icon={element.is_file ? (element.parser_name ? RecognizedFileIcon : FileIcon) : FolderIcon}
                   itemKey={element.name} key={urlJoin(path, element.name)}
@@ -328,10 +369,6 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
                   {element.name}
                 </Item>
               ))
-            }
-            {
-              lane.adaptor.data.response.pagination.total > 500 &&
-                <Typography color="error">Only showing the first 500 rows</Typography>
             }
           </Compartment>
         </Content>
