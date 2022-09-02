@@ -1519,9 +1519,9 @@ class Upload(Proc):
         if config.celery.routing == config.CELERY_WORKER_ROUTING:
             if self.worker_hostname is None:
                 self.worker_hostname = worker_hostname
-            Entry._get_collection().update_many(
-                {'upload_id': self.upload_id},
-                {'$set': {'worker_hostname': self.worker_hostname}})
+                Entry._get_collection().update_many(
+                    {'upload_id': self.upload_id},
+                    {'$set': {'worker_hostname': self.worker_hostname}})
 
         # All looks ok, process
         updated_files = self.update_files(file_operations, only_updated_files)
@@ -1673,6 +1673,14 @@ class Upload(Proc):
                     self.set_last_status_message('Deleting files')
                     with utils.timer(logger, 'Deleting files or folders from upload'):
                         staging_upload_files.delete_rawfiles(file_operation['path'], updated_files)
+                elif op == 'COPY':
+                    self.set_last_status_message('Copying the file')
+                    with utils.timer(logger, 'Copying the file within the upload'):
+                        staging_upload_files.copy_or_move_rawfile(
+                            file_operation['path_to_existing_file'],
+                            file_operation['path_to_target_file'],
+                            file_operation['copy_or_move'],
+                            updated_files)
                 else:
                     raise ValueError(f'Unknown operation {op}')
         return updated_files

@@ -162,6 +162,32 @@ class RawDirectoryAdaptor extends Adaptor {
   }
 }
 
+export const CustomDropZone = React.memo((props) => {
+  const {children, onBackgroundColorChange, ...otherProps} = props
+  const classes = useRawDirectoryContentStyles()
+
+  const handleMouseEnter = useCallback(e => {
+    onBackgroundColorChange('grey')
+  }, [onBackgroundColorChange])
+  const handleMouseOut = useCallback(e => {
+    onBackgroundColorChange('white')
+  }, [onBackgroundColorChange])
+
+  return <div
+    className={classes.dropzoneLane}
+    onDragEnter={handleMouseEnter}
+    onDragEnd={handleMouseOut}
+    onDragLeave={handleMouseOut}
+    {...otherProps}
+  >
+    {children}
+  </div>
+})
+CustomDropZone.propTypes = {
+  children: PropTypes.any,
+  onBackgroundColorChange: PropTypes.func
+}
+
 const useRawDirectoryContentStyles = makeStyles(theme => ({
   dropzoneLane: {
     width: '100%',
@@ -186,6 +212,10 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
   const { api } = useApi()
   const [openConfirmDeleteDirDialog, setOpenConfirmDeleteDirDialog] = useState(false)
   const [openCreateDirDialog, setOpenCreateDirDialog] = useState(false)
+  const [openCopyMoveDialog, setOpenCopyMoveDialog] = useState(false)
+  const [fileName, setFileName] = useState('')
+  const [backgroundColor, setBackgroundColor] = useState('white')
+  const copyFileName = useRef()
   const createDirName = useRef()
   const { raiseError } = useErrors()
 
@@ -211,15 +241,31 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     return dataStore.subscribeToUpload(installationUrl, uploadId, refreshIfNeeded, true, false)
   }, [dataStore, installationUrl, uploadId, refreshIfNeeded])
 
-  const handleDrop = (files) => {
-    if (!files[0]?.name) {
-      return // Not dropping a file, but something else. Ignore.
+  const handleDrop = (e) => {
+    const files = e.dataTransfer.files
+    const _filePath = e.dataTransfer.getData('URL')
+    if (files.length) { // files are being transferred
+      e.target.style.backgroundColor = 'white'
+      const formData = new FormData() // eslint-disable-line no-undef
+      for (const file of files) {
+        formData.append('file', file)
+      }
+      api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData)
+        .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
+        .catch(error => raiseError(error))
+    } else if (_filePath) {
+      if (_filePath.includes('/files/') &&
+      _filePath.includes(history.location.pathname.split('files')[0])) {
+        e.target.style.backgroundColor = 'white'
+        setFileName(_filePath.slice(_filePath.indexOf('files')).split('/').slice(1).join('/'))
+        setOpenCopyMoveDialog(true)
+      }
     }
-    const formData = new FormData() // eslint-disable-line no-undef
-    for (const file of files) {
-      formData.append('file', file)
-    }
-    api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData)
+  }
+
+  const handleCopyMoveFile = (e) => {
+    setOpenCopyMoveDialog(false)
+    api.put(`/uploads/${uploadId}/raw/${encodedPath}?copy_or_move=${e.moveFile}&copy_or_move_source_path=${fileName}&file_name=${copyFileName.current.value}`)
       .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
       .catch(error => raiseError(error))
   }
@@ -258,13 +304,9 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     // Data loaded
     const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?compress=true` // TODO: installationUrl need to be considered for external uploads
     return (
-      <Dropzone
-        disabled={!editable}
-        className={classes.dropzoneLane}
-        activeClassName={classes.dropzoneActive}
-        onDrop={handleDrop} disableClick
-      >
-        <Content key={path}>
+      <CustomDropZone onDrop={handleDrop} onBackgroundColorChange={color => setBackgroundColor(color)}
+      style={{background: backgroundColor}}>
+        <Content key={path} style={{background: 'white'}}>
           <Title
             title={title}
             label="folder"
@@ -334,6 +376,29 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
                 }
                 {
                   editable &&
+                    <Dialog
+                      open={openCopyMoveDialog}
+                      onClose={() => setOpenCopyMoveDialog(false)}
+                    >
+                      <DialogContent>
+                        <DialogContentText>Copy/move <b>{fileName}</b>:</DialogContentText>
+                        <TextField
+                          fullWidth
+                          placeholder='Provide a name'
+                          autoFocus
+                          inputRef={copyFileName}
+                          defaultValue={fileName.split('/').splice(-1)}
+                        />
+                      </DialogContent>
+                      <DialogActions>
+                        <Button onClick={() => setOpenCopyMoveDialog(false)}>Cancel</Button>
+                        <Button onClick={(e) => handleCopyMoveFile({...e, moveFile: 'copy'})}>Copy</Button>
+                        <Button onClick={(e) => handleCopyMoveFile({...e, moveFile: 'move'})}>Move</Button>
+                      </DialogActions>
+                    </Dialog>
+                }
+                {
+                  editable &&
                     <Grid item>
                       <IconButton size="small" onClick={() => setOpenConfirmDeleteDirDialog(true)}>
                         <Tooltip title="delete this folder">
@@ -372,7 +437,8 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
             }
           </Compartment>
         </Content>
-      </Dropzone>)
+      </CustomDropZone>
+      )
   }
 }
 RawDirectoryContent.propTypes = {
