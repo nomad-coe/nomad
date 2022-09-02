@@ -439,7 +439,7 @@ class SolarCellLayer(ArchiveSection):
 
     layer_name = Quantity(
         type=str,
-        shape=[],
+        shape=['0..*'],
         description="""
             The name of the layer.
         """,
@@ -460,16 +460,17 @@ class SolarCellLayer(ArchiveSection):
     def normalize(self, archive, logger):
         super(SolarCellLayer, self).normalize(archive, logger)
         addSolarCell(archive)
-        if self.solar_cell_layer_type == 'Absorber':
-            archive.results.properties.optoelectronic.solar_cell.absorber = self.layer_name
-        elif self.solar_cell_layer_type == 'Substrate':
-            archive.results.properties.optoelectronic.solar_cell.substrate = self.layer_name
-        elif self.solar_cell_layer_type == 'Hole Transport Layer':
-            archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = self.layer_name
-        elif self.solar_cell_layer_type == 'Electron Transport Layer':
-            archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = self.layer_name
-        elif self.solar_cell_layer_type == 'Contact':
-            archive.results.properties.optoelectronic.solar_cell.back_contact = self.layer_name
+        if self.layer_name:
+            if self.solar_cell_layer_type == 'Absorber':
+                archive.results.properties.optoelectronic.solar_cell.absorber = [self.layer_name]
+            elif self.solar_cell_layer_type == 'Substrate':
+                archive.results.properties.optoelectronic.solar_cell.substrate = [self.layer_name]
+            elif self.solar_cell_layer_type == 'Hole Transport Layer':
+                archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = [self.layer_name]
+            elif self.solar_cell_layer_type == 'Electron Transport Layer':
+                archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = [self.layer_name]
+            elif self.solar_cell_layer_type == 'Contact':
+                archive.results.properties.optoelectronic.solar_cell.back_contact = [self.layer_name]
 
 
 class SolarCellBaseSectionWithOptoelectronicProperties(ArchiveSection):
