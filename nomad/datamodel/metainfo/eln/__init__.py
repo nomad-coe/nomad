@@ -681,13 +681,20 @@ class SolarCellJVCurve(SolarCellJV):
             FF fill factor in absolute values (0-1)
             efficiency power conversion efficiency in percentage (0-100)
         """
-        Voc = np.interp(0, -self.current_density, self.voltage)
-        Isc = abs(np.interp(0, self.voltage, self.current_density))
-        idx = np.argmax(self.voltage * abs(self.current_density))
+        from scipy import interpolate
+        j_v_interpolated = interpolate.interp1d(self.current_density, self.voltage)
+        Voc = j_v_interpolated(0)
+        v_j_interpolated = interpolate.interp1d(self.voltage, self.current_density)
+        Isc = v_j_interpolated(0)
+        if Isc >= 0:
+            idx = np.argmax(self.voltage * self.current_density)
+        else:
+            idx = np.argmin(self.voltage * self.current_density)
         Vmp = self.voltage[idx]
         Imp = self.current_density[idx]
-        FF = abs(Vmp.magnitude * Imp.magnitude / (Voc.magnitude * Isc.magnitude))
-        efficiency = Voc.magnitude * FF * Isc.magnitude
+        Isc = abs(Isc)
+        FF = abs(Vmp.magnitude * Imp.magnitude / (Voc * Isc))
+        efficiency = Voc * FF * Isc
         return Voc, Isc, FF, efficiency
 
     cell_name = Quantity(
