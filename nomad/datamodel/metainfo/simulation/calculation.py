@@ -998,7 +998,7 @@ class DosFingerprint(MSection):
         ''')
 
     indices = Quantity(
-        type=np.dtype(np.int16),
+        type=np.dtype(np.int32),
         shape=[2],
         description='''
         Indices used to compare DOS fingerprints of different energy ranges.

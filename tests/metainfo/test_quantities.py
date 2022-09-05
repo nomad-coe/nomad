@@ -20,7 +20,20 @@ import pytest
 import json
 import datetime
 import pytz
-from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Datetime, Capitalized, Bytes, URL
+from nomad.metainfo.metainfo import (
+    MSection,
+    Quantity,
+    Unit,
+    units,
+    JSON,
+    Dimension,
+    Datetime,
+    Capitalized,
+    Bytes,
+    URL,
+    _types_float,
+    _types_int,
+)
 
 
 @pytest.mark.parametrize('def_type, value', [
@@ -82,7 +95,7 @@ def test_basic_types(def_type, value):
     pytest.param(Capitalized, 'hello', 'Hello', id='Capitalize'),
     pytest.param(URL, 'http://google.com', 'http://google.com', id='URL')
 ])
-def test_value_normalization(def_type, orig_value, normalized_value):
+def test_normalization_string(def_type, orig_value, normalized_value):
     class TestSection(MSection):
         quantity = Quantity(type=def_type)
 
@@ -90,3 +103,33 @@ def test_value_normalization(def_type, orig_value, normalized_value):
     assert section.quantity is None
     section.quantity = orig_value
     assert normalized_value is None or section.quantity == normalized_value
+
+
+@pytest.mark.parametrize(
+    'def_type, unit, shape, input, output, valid',
+    [pytest.param(x, None, [], 1, 1, True, id=f'0D type without unit: {x.__name__}') for x in _types_int]
+    + [pytest.param(x, None, [], 1.0, 1.0, True, id=f'0D type without unit: {x.__name__}') for x in _types_float]
+    + [pytest.param(x, 'm', [], 100 * units('cm'), 1 * units('m'), True, id=f'0D type with unit: {x.__name__}') for x in _types_int - {int}]
+    + [pytest.param(int, 'm', [], 100 * units('m'), 100 * units('m'), False, id="precision loss: 0D int to int with unit")]
+    + [pytest.param(x, 'm', [], 100.0 * units('cm'), 1.0 * units('m'), True, id=f'0D type with unit: {x.__name__}') for x in _types_float]
+)
+def test_normalization_number(def_type, unit, shape, input, output, valid):
+    '''Numeric quantities with a unit should always return a full pint.Quantity
+    that contains both the magnitude and the unit. This way the unit information
+    is not lost when using these values in e.g. assignments between two fields.
+    '''
+    def define():
+
+        class TestSection(MSection):
+            quantity = Quantity(type=def_type, unit=unit, shape=shape)
+
+        section = TestSection()
+        assert section.quantity is None
+        section.quantity = input
+        assert section.quantity == output
+
+    if not valid:
+        with pytest.raises(Exception):
+            define()
+    else:
+        define()
