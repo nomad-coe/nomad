@@ -18,6 +18,7 @@
 
 import numpy as np
 from nomad import utils
+from nomad.units import ureg
 from nomad.datamodel.data import EntryData, ArchiveSection
 from nomad.metainfo.metainfo import SectionProxy
 from nomad.datamodel.results import ELN, Results, Material, BandGap
@@ -316,6 +317,15 @@ class PublicationReference(ArchiveSection):
             this will be extracted automatically from www.crossref.org
         """)
 
+    publication_title = Quantity(
+        type=str,
+        shape=[],
+        description="""
+            Title of the publication.
+            If the DOI number is given correctly,
+            this will be extracted automatically from www.crossref.org
+        """)
+
     def normalize(self, archive, logger):
         super(PublicationReference, self).normalize(archive, logger)
         from nomad.datamodel.datamodel import EntryMetadata
@@ -330,6 +340,7 @@ class PublicationReference(ArchiveSection):
                 given_name = temp_dict['message']['author'][0]['given']
                 family_name = temp_dict['message']['author'][0]['family']
                 self.journal = temp_dict['message']['container-title'][0]
+                self.publication_title = temp_dict['message']['title'][0]
                 self.publication_date = dateutil.parser.parse(temp_dict['message']['created']['date-time'])
                 self.lead_author = f'{given_name} {family_name}'
                 if not archive.metadata:
@@ -428,7 +439,7 @@ class SolarCellLayer(ArchiveSection):
 
     layer_name = Quantity(
         type=str,
-        shape=[],
+        shape=['0..*'],
         description="""
             The name of the layer.
         """,
@@ -449,16 +460,17 @@ class SolarCellLayer(ArchiveSection):
     def normalize(self, archive, logger):
         super(SolarCellLayer, self).normalize(archive, logger)
         addSolarCell(archive)
-        if self.solar_cell_layer_type == 'Absorber':
-            archive.results.properties.optoelectronic.solar_cell.absorber = self.layer_name
-        elif self.solar_cell_layer_type == 'Substrate':
-            archive.results.properties.optoelectronic.solar_cell.substrate = self.layer_name
-        elif self.solar_cell_layer_type == 'Hole Transport Layer':
-            archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = self.layer_name
-        elif self.solar_cell_layer_type == 'Electron Transport Layer':
-            archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = self.layer_name
-        elif self.solar_cell_layer_type == 'Contact':
-            archive.results.properties.optoelectronic.solar_cell.back_contact = self.layer_name
+        if self.layer_name:
+            if self.solar_cell_layer_type == 'Absorber':
+                archive.results.properties.optoelectronic.solar_cell.absorber = [self.layer_name]
+            elif self.solar_cell_layer_type == 'Substrate':
+                archive.results.properties.optoelectronic.solar_cell.substrate = [self.layer_name]
+            elif self.solar_cell_layer_type == 'Hole Transport Layer':
+                archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = [self.layer_name]
+            elif self.solar_cell_layer_type == 'Electron Transport Layer':
+                archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = [self.layer_name]
+            elif self.solar_cell_layer_type == 'Contact':
+                archive.results.properties.optoelectronic.solar_cell.back_contact = [self.layer_name]
 
 
 class SolarCellBaseSectionWithOptoelectronicProperties(ArchiveSection):
@@ -669,12 +681,19 @@ class SolarCellJVCurve(SolarCellJV):
             FF fill factor in absolute values (0-1)
             efficiency power conversion efficiency in percentage (0-100)
         """
-        Voc = np.interp(0, -self.current_density, self.voltage)
-        Isc = np.interp(0, self.voltage, self.current_density)
-        idx = np.argmax(self.voltage * self.current_density)
+        from scipy import interpolate
+        j_v_interpolated = interpolate.interp1d(self.current_density, self.voltage)
+        Voc = j_v_interpolated(0)
+        v_j_interpolated = interpolate.interp1d(self.voltage, self.current_density)
+        Isc = v_j_interpolated(0)
+        if Isc >= 0:
+            idx = np.argmax(self.voltage * self.current_density)
+        else:
+            idx = np.argmin(self.voltage * self.current_density)
         Vmp = self.voltage[idx]
         Imp = self.current_density[idx]
-        FF = Vmp * Imp / (Voc * Isc)
+        Isc = abs(Isc)
+        FF = abs(Vmp.magnitude * Imp.magnitude / (Voc * Isc))
         efficiency = Voc * FF * Isc
         return Voc, Isc, FF, efficiency
 
@@ -707,6 +726,185 @@ class SolarCellJVCurve(SolarCellJV):
         if self.current_density is not None:
             if self.voltage is not None:
                 self.open_circuit_voltage, self.short_circuit_current_density, self.fill_factor, self.efficiency = self.cell_params()
+
+
+class SolarCellEQE(ArchiveSection):
+
+    m_def = Section(
+        a_eln=dict(lane_width='600px'))
+
+    eqe_data_file = Quantity(
+        type=str,
+        description="""
+                    Drop here your eqe file and click save for processing.
+                    """,
+        a_eln=dict(component='FileEditQuantity'),
+        a_browser=dict(adaptor='RawFileAdaptor'))
+
+    header_lines = Quantity(
+        type=np.dtype(np.int64),
+        default=0,
+        description="""
+        Number of header lines in the file. Edit in case your file has a header.
+        """,
+        a_eln=dict(component='NumberEditQuantity'))
+
+    light_bias = Quantity(
+        type=np.dtype(np.float64),
+        unit=('mW/cm**2'),
+        shape=[],
+        description="""
+        The light intensity of any bias light during the EQE measurement.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    bandgap_eqe = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='eV',
+        description="""
+        Bandgap derived from the EQE spectrum.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    integrated_jsc = Quantity(
+        type=np.dtype(np.float64),
+        unit='mA / cm**2',
+        shape=[],
+        description="""
+        The integrated short circuit current density $J_{SC}$ from the product of the EQE spectrum
+        with the *AM 1.5G* sun spectrum.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    integrated_j0rad = Quantity(
+        type=np.dtype(np.float64),
+        unit='mA / cm**2',
+        shape=[],
+        description="""
+        The integrated $J_{0, Rad}$ derived from the EQE data.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    voc_rad = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='V',
+        description="""
+        Radiative $V_{OC}$ derived from the EQE data in V.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    urbach_energy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='eV',
+        description="""
+        Urbach energy fitted from the eqe in eV.
+        """,
+        a_eln=dict(
+            component='NumberEditQuantity'))
+
+    def derive_n_values(self):
+        if self.eqe_array is not None:
+            return len(self.eqe_array)
+        if self.photon_energy_array is not None:
+            return len(self.photon_energy_array)
+        else:
+            return 0
+
+    n_values = Quantity(type=int, derived=derive_n_values)
+
+    def derive_n_raw_values(self):
+        if self.raw_eqe_array is not None:
+            return len(self.raw_eqe_array)
+        if self.raw_photon_energy_array is not None:
+            return len(self.raw_photon_energy_array)
+        else:
+            return 0
+
+    n_raw_values = Quantity(type=int, derived=derive_n_raw_values)
+
+    raw_eqe_array = Quantity(
+        type=np.dtype(np.float64), shape=['n_raw_values'],
+        description='EQE array of the spectrum',
+        a_plot={
+            'x': 'photon_energy_array', 'y': 'raw_eqe_array'
+        })
+
+    raw_photon_energy_array = Quantity(
+        type=np.dtype(np.float64), shape=['n_raw_values'], unit='eV',
+        description='Raw Photon energy array of the eqe spectrum',
+        a_plot={
+            'x': 'raw_photon_energy_array', 'y': 'raw_eqe_array'
+        })
+
+    raw_wavelength_array = Quantity(
+        type=np.dtype(np.float64), shape=['n_raw_values'], unit='nanometer',
+        description='Raw wavelength array of the eqe spectrum',
+        a_plot={
+            'x': 'raw_wavelength_array', 'y': 'raw_eqe_array'
+        })
+
+    eqe_array = Quantity(
+        type=np.dtype(np.float64), shape=['n_values'],
+        description='EQE array of the spectrum',
+        a_plot={
+            'x': 'photon_energy_array', 'y': 'eqe_array'
+        })
+
+    wavelength_array = Quantity(
+        type=np.dtype(np.float64), shape=['n_values'], unit='nanometer',
+        description='Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum ',
+        a_plot={
+            'x': 'wavelength_array', 'y': 'eqe_array'
+        })
+
+    photon_energy_array = Quantity(
+        type=np.dtype(np.float64), shape=['n_values'], unit='eV',
+        description='Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum',
+        a_plot={
+            'x': 'photon_energy_array', 'y': 'eqe_array'
+        })
+
+    def normalize(self, archive, logger):
+        super(SolarCellEQE, self).normalize(archive, logger)
+        from .perovskite_solar_cell_database.eqe_parser import EQEAnalyzer
+        if (self.eqe_data_file):
+            with archive.m_context.raw_file(self.eqe_data_file) as f:
+                eqe_dict = EQEAnalyzer(f.name, header_lines=self.header_lines).eqe_dict()
+                self.measured = True
+                self.bandgap_eqe = eqe_dict['bandgap']
+                self.integrated_jsc = eqe_dict['jsc'] * ureg('A/m**2')
+                self.integrated_j0rad = eqe_dict['j0rad'] * ureg('A/m**2') if 'j0rad' in eqe_dict else logger.warning('The j0rad could not be calculated.')
+                self.voc_rad = eqe_dict['voc_rad'] if 'voc_rad' in eqe_dict else logger.warning('The voc_rad could not be calculated.')
+                self.urbach_energy = eqe_dict['urbach_e']
+                self.photon_energy_array = np.array(eqe_dict['interpolated_photon_energy'])
+                self.raw_photon_energy_array = np.array(eqe_dict['photon_energy_raw'])
+                self.eqe_array = np.array(eqe_dict['interpolated_eqe'])
+                self.raw_eqe_array = np.array(eqe_dict['eqe_raw'])
+
+        if self.photon_energy_array is not None:
+            self.wavelength_array = self.photon_energy_array.to('nm', 'sp')  # pylint: disable=E1101
+            self.raw_wavelength_array = self.raw_photon_energy_array.to('nm', 'sp')  # pylint: disable=E1101
+
+        addSolarCell(archive)
+        if self.bandgap_eqe is not None:
+            band_gap = BandGap()
+            band_gap.value = self.bandgap_eqe
+            if band_gap.value is None:
+                band_gap.value = 0
+            archive.results.properties.optoelectronic.band_gap = [band_gap]
+            props = archive.results.properties.available_properties
+            if not props:
+                props = []
+            props.append('optoelectronic.band_gap')
+            archive.results.properties.available_properties = props
 
 
 m_package.__init_metainfo__()
