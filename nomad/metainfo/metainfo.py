@@ -55,10 +55,36 @@ SectionDefOrCls = Union['Section', 'SectionProxy', Type['MSection']]
 T = TypeVar('T')
 _hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
 
+_primitive_types = {
+    str: lambda v: None if v is None else str(v),
+    # TODO it is more complicated than that, because bytes cannot be naturally serialized to JSON
+    # bytes: lambda v: None if v is None else bytes(v),
+    int: int,
+    float: lambda v: None if v is None else float(v),
+    bool: bool,
+    np.bool_: bool}
+
+
+_primitive_type_names = {
+    primitive_type.__name__: primitive_type for primitive_type in _primitive_types}
+
+_types_int_numpy = {np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64}
+_types_int_python = {int}
+_types_int = _types_int_python | _types_int_numpy
+_types_float_numpy = {np.float16, np.float32, np.float64}
+_types_float_python = {float}
+_types_float = _types_float_python | _types_float_numpy
+_types_num_numpy = _types_int_numpy | _types_float_numpy
+_types_num_python = _types_int_python | _types_float_python
+_types_num = _types_num_python | _types_num_numpy
+_types_str_numpy = {np.str_}
+_types_bool_numpy = {np.bool_}
+_types_numpy = _types_num_numpy | _types_str_numpy | _types_bool_numpy
+
 validElnTypes = {
     'str': ['str'],
     'bool': ['bool'],
-    'number': ['int', 'float', 'np.int', 'np.int32', 'np.int64', 'np.float', 'np.float32', 'np.float64'],
+    'number': [x.__name__ for x in _types_num_python] + [f'np.{x.__name__}' for x in _types_num_numpy],
     'datetime': ['Datetime'],
     'enum': ['{type_kind: Enum, type_data: [Operator, Responsible_person]}'],
     'user': ['User'],
@@ -122,19 +148,6 @@ def to_section_def(section_def: SectionDefOrCls):
 _placeholder_quantity: 'Quantity' = property()  # type: ignore
 if True:
     _placeholder_quantity: 'Quantity' = None  # type: ignore
-
-_primitive_types = {
-    str: lambda v: None if v is None else str(v),
-    # TODO it is more complicated than that, because bytes cannot be naturally serialized to JSON
-    # bytes: lambda v: None if v is None else bytes(v),
-    int: int,
-    float: lambda v: None if v is None else float(v),
-    bool: bool,
-    np.bool_: bool}
-
-
-_primitive_type_names = {
-    primitive_type.__name__: primitive_type for primitive_type in _primitive_types}
 
 
 # Metainfo errors
@@ -462,7 +475,7 @@ class _QuantityType(DataType):
     A metainfo quantity type can be one of
 
     - python build-in primitives: int, float, bool, str
-    - numpy dtypes, e.g. f, int32
+    - numpy dtypes, e.g. np.int32
     - a section definition to define references
     - an MEnum instance to use it's values as possible str values
     - a custom datatype, i.e. instance of :class:`DataType`
@@ -470,6 +483,7 @@ class _QuantityType(DataType):
     '''
 
     def set_normalize(self, section, quantity_def, value):
+
         if value in _primitive_types:
             return value
 
@@ -480,6 +494,8 @@ class _QuantityType(DataType):
             return value
 
         if isinstance(value, np.dtype):
+            value = value.type
+        if value in _types_numpy:
             return value
 
         if isinstance(value, Section):
@@ -522,7 +538,9 @@ class _QuantityType(DataType):
             return dict(type_kind='Enum', type_data=list(value))
 
         if isinstance(value, np.dtype):
-            return dict(type_kind='numpy', type_data=str(value))
+            value = value.type
+        if value in _types_numpy:
+            return dict(type_kind='numpy', type_data=str(value.__name__))
 
         if isinstance(value, Reference):
             if isinstance(value, QuantityReference):
@@ -583,7 +601,7 @@ class _QuantityType(DataType):
                         f'Could not load python implementation of custom datatype {type_data}')
             if type_kind == 'numpy':
                 try:
-                    return np.dtype(type_data)
+                    return np.dtype(type_data).type
                 except Exception:
                     raise MetainfoError(f'{type_data} is not a valid numpy type.')
             if type_kind in ['numpy', 'custom']:
@@ -596,7 +614,7 @@ class _QuantityType(DataType):
         if isinstance(value, str):
             if value.startswith('np.') or value.startswith('numpy.'):
                 try:
-                    resolved = np.dtype(getattr(np, value.split('.', 1)[1]))
+                    resolved = getattr(np, value.split('.', 1)[1])
                 except Exception:
                     raise MetainfoError(f'{value.split(".", 1)[1]} is not a valid numpy type.')
                 if resolved:
@@ -1514,9 +1532,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     raise TypeError(
                         'Could not convert value %s of %s to a numpy array' %
                         (value, quantity_def))
-            elif type(value) != quantity_def.type.type:
+            elif type(value) != quantity_def.type:
                 try:
-                    value = quantity_def.type.type(value)
+                    value = quantity_def.type(value)
                 except TypeError:
                     raise TypeError(
                         'Could not convert value %s of %s to a numpy scalar' %
@@ -1537,10 +1555,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             self.__dict__.pop(quantity_def.name, None)
             return
 
-        if isinstance(quantity_def.type, np.dtype):
+        # If the quantity has an explicit numpy dtype, numpy arrays are used.
+        dtype = quantity_def.type
+        if dtype in _types_numpy:
             value = self.__to_np(quantity_def, value)
 
-        elif isinstance(quantity_def.type, pd.DataFrame):
+        elif isinstance(dtype, pd.DataFrame):
             value = self.__to_np(quantity_def, value)
         else:
             dimensions = len(quantity_def.shape)
@@ -1893,7 +1913,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             elif quantity_type in _primitive_types:
                 serialize = _primitive_types[quantity_type]
 
-            elif isinstance(quantity_type, np.dtype):
+            elif quantity_type in _types_numpy:
                 is_scalar = quantity.is_scalar
 
                 def serialize_dtype(value):
@@ -1966,8 +1986,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
                 serialize = serialize_and_transform
 
-            if isinstance(quantity_type, np.dtype):
+            if quantity_type in _types_numpy:
                 return serialize(value)
+
             elif len(quantity.shape) == 0:
                 if is_ref:
                     return serialize(value, path)
@@ -2118,7 +2139,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 quantity_def = property_def
                 quantity_value = dct[name]
 
-                if isinstance(quantity_def.type, np.dtype):
+                if quantity_def.type in _types_numpy:
                     quantity_value = np.asarray(quantity_value)
 
                 if isinstance(quantity_def.type, DataType):
@@ -2923,7 +2944,7 @@ class Quantity(Property):
             - an instance of :class:`MEnum`, e.g. ``MEnum('one', 'two', 'three')``
             - a section to define references to other sections as quantity values
             - a custom meta-info :class:`DataType`, see :ref:`metainfo-custom-types`
-            - a numpy `dtype`, e.g. ``np.dtype('float32')``
+            - a numpy `dtype`, e.g. ``np.float32``
             - ``typing.Any`` to support any value
 
             If set to `dtype`, this quantity will use a numpy array or scalar to store values
@@ -3024,7 +3045,7 @@ class Quantity(Property):
         is_primitive = not self.derived
         is_primitive = is_primitive and len(self.shape) <= 1
         is_primitive = is_primitive and self.type in [str, bool, float, int]
-        is_primitive = is_primitive and not isinstance(self.type, np.dtype)
+        is_primitive = is_primitive and self.type not in _types_num_numpy
         if is_primitive:
             self._default = self.default
             self._name = self.name
@@ -3074,9 +3095,8 @@ class Quantity(Property):
                     'Only numpy arrays and dtypes can be used for higher dimensional '
                     'quantities.')
 
-        elif isinstance(self.type, np.dtype):
-            if self.unit is not None:
-                value = value * self.unit
+        if self.unit is not None and self.type in _types_num:
+            value = value * self.unit
 
         return value
 
@@ -3124,9 +3144,9 @@ class Quantity(Property):
     @constraint(warning=True)
     def higher_shapes_require_dtype(self):
         if len(self.shape) > 1:
-            assert isinstance(self.type, np.dtype), \
-                'Higher dimensional quantities (%s) need a dtype and will be treated as ' \
-                'numpy arrays.' % self
+            assert self.type in _types_numpy, \
+                'Higher dimensional quantities (%s) need a numpy dtype and will be ' \
+                'treated as numpy arrays.' % self
 
     def _hash_seed(self) -> str:
         '''
@@ -3209,11 +3229,14 @@ class PrimitiveQuantity(Quantity):
     ''' An optimized replacement for Quantity suitable for primitive properties. '''
     def __get__(self, obj, cls):
         try:
-            return obj.__dict__[self._name]
+            value = obj.__dict__[self._name]
         except KeyError:
-            return self._default
+            value = self._default
         except AttributeError:
             return self
+        if value is not None and self.unit is not None and self.type in _types_num:
+            value = value * self.unit
+        return value
 
     def __set__(self, obj, value):
         obj.m_mod_count += 1
@@ -3222,25 +3245,40 @@ class PrimitiveQuantity(Quantity):
             obj.__dict__.pop(self.name, None)
             return
 
+        # Handle pint quantities. Conversion is done automatically between
+        # units. Notice that currently converting from float to int or vice
+        # versa is not allowed for primitive types.
+        if isinstance(value, pint.quantity._Quantity):
+            if self.unit is None:
+                raise TypeError(
+                    f'The quantity {self} does not have a unit, but value {value} has.'
+                )
+            if self.type in _types_int:
+                raise TypeError(
+                    f'Cannot save data with unit conversion into the quantity {self} '
+                    'with integer data type due to possible precision loss.'
+                )
+            value = value.to(self.unit).magnitude
+
         if self._list:
             if not isinstance(value, list):
                 if hasattr(value, 'tolist'):
                     value = value.tolist()
-
                 else:
                     raise TypeError(
-                        'The value %s for quantity %s has not shape %s' %
-                        (value, self, self.shape))
+                        f'The value {value} for quantity {self} has not shape {self.shape}'
+                    )
 
             if any(v is not None and type(v) != self._type for v in value):
                 raise TypeError(
-                    'The value %s with type %s for quantity %s is not of type %s' %
-                    (value, type(value), self, self.type))
-
+                    f'The value {value} with type {type(value)} for quantity {self} is '
+                    f'not of type {self.type}'
+                )
         elif type(value) != self._type:
             raise TypeError(
-                'The value %s with type %s for quantity %s is not of type %s' %
-                (value, type(value), self, self.type))
+                f'The value {value} with type {type(value)} for quantity {self} '
+                f'is not of type {self.type}'
+            )
 
         try:
             obj.__dict__[self._name] = value
@@ -3660,9 +3698,14 @@ class Section(Definition):
                                 assert_component(
                                     component, definition.name, definition.type.__name__, validElnComponents['bool']
                                 )
-                            elif definition.type.__name__ in ['float', 'int']:
+                            elif definition.type in _types_num_python:
                                 assert_component(
                                     component, definition.name, definition.type.__name__,
+                                    validElnComponents['number']
+                                )
+                            elif definition.type in _types_num_numpy:
+                                assert_component(
+                                    component, definition.name, f'np.{definition.type.__name__}',
                                     validElnComponents['number']
                                 )
                             elif definition.type.__name__ == 'User':
@@ -3675,13 +3718,6 @@ class Section(Definition):
                                     component, definition.name, definition.type.__name__,
                                     validElnComponents['author']
                                 )
-                        elif definition.type in [np.float64, np.float32, np.float,
-                                                 np.uint64, np.uint32, np.uint,
-                                                 np.int64, np.int32, np.int]:
-                            assert_component(
-                                component, definition.name, type(definition.type).__name__,
-                                validElnComponents['number']
-                            )
                         elif isinstance(definition.type, _Datetime):
                             assert_component(
                                 component, definition.name, type(definition.type).__name__,

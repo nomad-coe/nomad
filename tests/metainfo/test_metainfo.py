@@ -192,6 +192,16 @@ class TestM2:
             Quantity(type=np.dtype(np.float64), unit=ureg.delta_degC / ureg.hour)
         Quantity(type=np.dtype(np.float64), unit=ureg.degC / ureg.hour)
 
+    @pytest.mark.parametrize('dtype', [
+        pytest.param(np.longlong),
+        pytest.param(np.ulonglong),
+        pytest.param(np.float128),
+        pytest.param(np.complex128),
+    ])
+    def test_unsupported_type(self, dtype):
+        with pytest.raises(MetainfoError):
+            Quantity(type=dtype)
+
     def test_extension(self):
         assert getattr(Run, 'x_vasp_raw_format', None) is not None
         assert 'x_vasp_raw_format' in Run.m_def.all_quantities
@@ -510,16 +520,16 @@ class TestM1:
 
     def test_np_scalar(self):
         class TestSection(MSection):
-            test_quantity = Quantity(type=np.dtype('int16'))
+            test_quantity = Quantity(type=np.dtype('int32'))
 
         test_section = TestSection()
         test_section.test_quantity = 12
         assert test_section.test_quantity == 12
-        assert type(test_section.test_quantity) == np.int16
+        assert type(test_section.test_quantity) == np.int32
 
     def test_pd_dataframe_quantity(self):
         class TestSection(MSection):
-            test_quantity = Quantity(type=np.dtype('int16'))
+            test_quantity = Quantity(type=np.dtype('int32'))
 
         test_section = TestSection()
         test_section.test_quantity = pd.DataFrame([[1, 2]])
