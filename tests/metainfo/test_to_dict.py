@@ -23,7 +23,7 @@ import yaml
 from nomad.app.v1.routers.metainfo import get_package_by_section_definition_id, store_package_definition
 from nomad.metainfo import (
     MSection, MCategory, Quantity, SubSection)
-from nomad.metainfo.metainfo import Datetime, Package
+from nomad.metainfo.metainfo import Datetime, Package, MEnum, Reference, Definition
 
 # resolve_references are tested in .test_references
 # type specific serialization is tested in .test_quantities
@@ -163,6 +163,27 @@ def test_categories(example):
     del(root['matrix'])
 
     assert example.m_to_dict(categories=[Category]) == root
+
+
+@pytest.mark.parametrize('type, serialized_type', [
+    pytest.param(str, dict(type_kind='python', type_data='str'), id='primitive'),
+    pytest.param(
+        Reference(Definition),
+        dict(type_kind='reference', type_data='/section_definitions/0'), id='reference'),
+    pytest.param(
+        MEnum('A', 'B', m_descriptions=dict(A='a', B='b')),
+        dict(
+            type_kind='Enum',
+            type_data=['A', 'B'],
+            type_descriptions=dict(A='a', B='b')
+        ), id='enum'),
+    pytest.param(np.float64, dict(type_kind='numpy', type_data='float64'), id='numpy')
+])
+def test_quantity_type(type, serialized_type):
+    class MySection(MSection):
+        my_quantity = Quantity(type=type)
+
+    assert MySection.m_def.m_to_dict()['quantities'][0]['type'] == serialized_type
 
 
 def test_transform(example):
