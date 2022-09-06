@@ -524,20 +524,27 @@ export function Content(props) {
   return <Box minWidth={300} maxWidth={600} padding={1} {...props} />
 }
 
-export function Compartment({title, children, color}) {
+export function Compartment({title, children, color, startCollapsed}) {
+  const [collapsed, setCollapsed] = useState(startCollapsed)
+  const handleClick = useCallback(() => {
+    setCollapsed(value => !value)
+  }, [setCollapsed])
   if (!React.Children.count(children)) {
     return null
   }
+
   return <React.Fragment>
-    <Box paddingTop={1} whiteSpace="nowrap">
+    <Box paddingTop={1} whiteSpace="nowrap" onClick={(handleClick)} style={{cursor: 'pointer'}}>
       {title && <Typography color={color} variant="overline">{title}</Typography>}
+      {collapsed && <ItemChip label="closed" color="primary" />}
     </Box>
-    {children}
+    {(!collapsed) && children}
   </React.Fragment>
 }
 Compartment.propTypes = ({
   title: PropTypes.string,
   color: PropTypes.string,
+  startCollapsed: PropTypes.bool,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
@@ -587,3 +594,7 @@ Title.propTypes = ({
     PropTypes.node
   ])
 })
+
+export function ItemChip(props) {
+  return <Chip style={{marginLeft: 8, marginBottom: 3, height: 18}} size="small" {...props} />
+}
