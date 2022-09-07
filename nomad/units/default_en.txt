@@ -104,6 +104,7 @@ mole = [substance] = mol
 kelvin = [temperature]; offset: 0 = K = degK = °K = degree_Kelvin = degreeK  # older names supported for compatibility
 radian = [angle] = rad
 bit = [information]
+pixel = [digital_image_resolution] = px = pel
 
 
 #### CONSTANTS ####
@@ -400,6 +401,10 @@ buckingham = debye * angstrom
 bohr_magneton = e * h_bar / (2 * m_e) = µ_B = mu_B
 nuclear_magneton = e * h_bar / (2 * m_p) = µ_N = mu_N
 
+# Pixel density
+[pixel_density] = [digital_image_resolution] / [length]
+pixels_per_inch = px / inch = PPI = ppi
+pixels_per_centimeter = px / cm = PPCM = ppcm
 
 #### UNIT GROUPS ####
 # Mostly for length, area, volume, mass, force
