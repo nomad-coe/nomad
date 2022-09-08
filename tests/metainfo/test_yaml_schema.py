@@ -2,7 +2,7 @@ import numpy as np            # pylint: disable=unused-import
 import pytest
 import yaml
 
-from nomad.metainfo.metainfo import validElnComponents, validElnTypes
+from nomad.metainfo.metainfo import MTypes
 from nomad.utils import strip
 
 from nomad.metainfo import Package, MSection, Quantity, Reference, SubSection, Section, MProxy, MetainfoError
@@ -190,8 +190,8 @@ def test_sub_section_tree():
     assert yaml.m_to_dict() == reference.m_to_dict()
 
 
-@pytest.mark.parametrize("eln_type", validElnTypes.keys())
-@pytest.mark.parametrize("eln_component", sum(validElnComponents.values(), []))
+@pytest.mark.parametrize("eln_type", MTypes.eln.keys())
+@pytest.mark.parametrize("eln_component", sum(MTypes.eln_component.values(), []))
 def test_datatype_component_annotations(eln_type, eln_component):
     base_schema = '''
               m_def: 'nomad.metainfo.metainfo.Package'
@@ -213,22 +213,23 @@ def test_datatype_component_annotations(eln_type, eln_component):
                           component: eln_component
             '''
 
-    for quantity_type in validElnTypes[eln_type]:
+    for quantity_type in MTypes.eln[eln_type]:
         if eln_type == 'reference':
             yaml_schema = base_schema.replace("quantity_type", "'#/Sample'").replace("eln_component", eln_component)
         else:
             yaml_schema = base_schema.replace("quantity_type", quantity_type).replace("eln_component", eln_component)
 
-        if eln_component not in validElnComponents[eln_type]:
+        if eln_component not in MTypes.eln_component[eln_type]:
             with pytest.raises(Exception) as exception:
                 package = yaml_to_package(yaml_schema)
                 type_name = quantity_type
                 if eln_type == 'number' or eln_type == 'datetime' or eln_type == 'enum' or eln_type == 'reference':
-                    process = next(filter(lambda section: section['name'] == 'Process', package['section_definitions']), None)
+                    process = next(filter(lambda section: section['name'] == 'Process', package['section_definitions']),
+                                   None)
                     quantity = process['quantities'][0]
                     if type(quantity.type).__name__ != 'type':
                         type_name = type(quantity.type).__name__
                 package.__init_metainfo__()
             assert isinstance(exception.value, MetainfoError)
             assert exception.value.args[0] == 'One constraint was violated: The component `%s` is not compatible with the quantity `%s` of the type `%s`. Accepted components: %s (there are 0 more violations)' \
-                % (eln_component, 'quantity_name', type_name, ', '.join(validElnComponents[eln_type]))
+                   % (eln_component, 'quantity_name', type_name, ', '.join(MTypes.eln_component[eln_type]))
