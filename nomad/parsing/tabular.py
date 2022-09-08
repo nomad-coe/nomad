@@ -20,7 +20,7 @@ from typing import Union, List, Iterable, Dict, Callable, Set, Any, Tuple, cast
 from memoization import cached
 import os.path
 import re
-
+import math
 
 from nomad import utils
 from nomad.units import ureg
@@ -31,7 +31,7 @@ from nomad.metainfo.metainfo import MetainfoError, SubSection
 from nomad.parsing.parser import MatchingParser
 
 # We define a simple base schema for tabular data. The parser will then generate more
-# specialized sections based on the table headers. These specialized defintions will use
+# specialized sections based on the table headers. These specialized definitions will use
 # this as base section definition.
 # TODO maybe this should be moved to nomad.datamodel.metainfo
 m_package = Package()
@@ -56,7 +56,7 @@ class TableData(ArchiveSection):
         super(TableData, self).normalize(archive, logger)
 
         for quantity in self.m_def.all_quantities.values():
-            tabular_parser_annotation = quantity.m_annotations.get('tabular_parser', None)
+            tabular_parser_annotation = quantity.m_annotations.get('tabular_parser', {})
             if tabular_parser_annotation:
                 self.tabular_parser(quantity, archive, logger, **tabular_parser_annotation)
 
@@ -114,20 +114,26 @@ def _create_column_to_quantity_mapping(section_def: Section):
                 if tabular_annotation and 'unit' in tabular_annotation:
                     value *= ureg(tabular_annotation['unit'])
 
+                # NaN values are not supported in the metainfo. Set as None
+                # which means that they are not stored.
+                if isinstance(value, float) and math.isnan(value):
+                    value = None
+
                 if isinstance(value, (int, float, str)):
                     value = np.array(value)
 
-                if len(value.shape) == 1 and len(quantity.shape) == 0:
-                    if len(value) == 1:
-                        value = value[0]
-                    elif len(value) == 0:
-                        value = None
-                    else:
+                if value is not None:
+                    if len(value.shape) == 1 and len(quantity.shape) == 0:
+                        if len(value) == 1:
+                            value = value[0]
+                        elif len(value) == 0:
+                            value = None
+                        else:
+                            raise MetainfoError(
+                                'The shape of {quantity.name} does not match the given data.')
+                    elif len(value.shape) != len(quantity.shape):
                         raise MetainfoError(
                             'The shape of {quantity.name} does not match the given data.')
-                elif len(value.shape) != len(quantity.shape):
-                    raise MetainfoError(
-                        'The shape of {quantity.name} does not match the given data.')
 
                 section.m_set(quantity, value)
 
@@ -162,13 +168,13 @@ def parse_columns(pd_dataframe, section: MSection):
                 raise ValueError(
                     'The sheet name {sheet_name} doesn''t exist in the excel file')
 
-            df2 = pd.DataFrame.from_dict(data.loc[0, sheet_name])
-            mapping[column](section, df2.loc[:, col_name])
+            df = pd.DataFrame.from_dict(data.loc[0, sheet_name])
+            mapping[column](section, df.loc[:, col_name])
         else:
             # Otherwise, assume the sheet_name is the first sheet of excel/csv
-            df2 = pd.DataFrame.from_dict(data.iloc[0, 0])
-            if column in df2:
-                mapping[column](section, df2.loc[:, column])
+            df = pd.DataFrame.from_dict(data.iloc[0, 0])
+            if column in df:
+                mapping[column](section, df.loc[:, column])
 
 
 def parse_table(pd_dataframe, section_def: Section, logger):
@@ -202,6 +208,7 @@ def parse_table(pd_dataframe, section_def: Section, logger):
 
 def read_table_data(path, file_or_path=None, **kwargs):
     import pandas as pd
+
     if file_or_path is None:
         file_or_path = path
     if path.endswith('.xls') or path.endswith('.xlsx'):
@@ -212,11 +219,13 @@ def read_table_data(path, file_or_path=None, **kwargs):
             df.loc[0, sheet_name] = [
                 pd.read_excel(excel_file, sheet_name=sheet_name, **kwargs)
                 .to_dict()]
-        return df
     else:
         df = pd.DataFrame()
-        df.loc[0, 0] = [pd.read_csv(file_or_path, engine='python', **kwargs).to_dict()]
-        return df
+        df.loc[0, 0] = [
+            pd.read_csv(file_or_path, engine='python', **kwargs).to_dict()
+        ]
+
+    return df
 
 
 class TabularDataParser(MatchingParser):
@@ -293,11 +302,8 @@ class TabularDataParser(MatchingParser):
             logger.error('Schema for tabular data must inherit from TableRow.')
             return
 
-        tabular_parser_annotation = section_def.m_annotations.get('tabular-parser', None)
-        if tabular_parser_annotation:
-            data = read_table_data(mainfile, **tabular_parser_annotation)
-        else:
-            data = read_table_data(mainfile)
+        tabular_parser_annotation = section_def.m_annotations.get('tabular-parser', {})
+        data = read_table_data(mainfile, **tabular_parser_annotation)
         data = pd.DataFrame.from_dict(data.iloc[0, 0])
         child_sections = parse_table(data, section_def, logger=logger)
         assert len(child_archives) == len(child_sections)

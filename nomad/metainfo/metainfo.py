@@ -18,8 +18,9 @@
 
 import hashlib
 import itertools
+from difflib import SequenceMatcher
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, \
-    Callable as TypingCallable, cast
+    Callable as TypingCallable, cast, Optional
 from dataclasses import dataclass
 from collections.abc import Iterable as IterableABC, Sequence
 import sys
@@ -29,8 +30,6 @@ import json
 import numpy as np
 import pandas as pd
 import pint
-import pint.unit
-import pint.quantity
 import aniso8601
 from datetime import datetime, date
 import pytz
@@ -54,11 +53,38 @@ MSectionBound = TypeVar('MSectionBound', bound='MSection')
 SectionDefOrCls = Union['Section', 'SectionProxy', Type['MSection']]
 T = TypeVar('T')
 _hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
+reserved_name_re = re.compile(r'^(m_|a_|_+).*$')
+
+_primitive_types = {
+    str: lambda v: None if v is None else str(v),
+    # TODO it is more complicated than that, because bytes cannot be naturally serialized to JSON
+    # bytes: lambda v: None if v is None else bytes(v),
+    int: int,
+    float: lambda v: None if v is None else float(v),
+    bool: bool,
+    np.bool_: bool}
+
+
+_primitive_type_names = {
+    primitive_type.__name__: primitive_type for primitive_type in _primitive_types}
+
+_types_int_numpy = {np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64}
+_types_int_python = {int}
+_types_int = _types_int_python | _types_int_numpy
+_types_float_numpy = {np.float16, np.float32, np.float64}
+_types_float_python = {float}
+_types_float = _types_float_python | _types_float_numpy
+_types_num_numpy = _types_int_numpy | _types_float_numpy
+_types_num_python = _types_int_python | _types_float_python
+_types_num = _types_num_python | _types_num_numpy
+_types_str_numpy = {np.str_}
+_types_bool_numpy = {np.bool_}
+_types_numpy = _types_num_numpy | _types_str_numpy | _types_bool_numpy
 
 validElnTypes = {
     'str': ['str'],
     'bool': ['bool'],
-    'number': ['int', 'float', 'np.int', 'np.int32', 'np.int64', 'np.float', 'np.float32', 'np.float64'],
+    'number': [x.__name__ for x in _types_num_python] + [f'np.{x.__name__}' for x in _types_num_numpy],
     'datetime': ['Datetime'],
     'enum': ['{type_kind: Enum, type_data: [Operator, Responsible_person]}'],
     'user': ['User'],
@@ -112,7 +138,7 @@ def to_section_def(section_def: SectionDefOrCls):
     section definition.
     '''
     if isinstance(section_def, type):
-        return section_def.section_cls  # type: ignore
+        return section_def.m_def  # type: ignore
 
     return section_def
 
@@ -122,19 +148,6 @@ def to_section_def(section_def: SectionDefOrCls):
 _placeholder_quantity: 'Quantity' = property()  # type: ignore
 if True:
     _placeholder_quantity: 'Quantity' = None  # type: ignore
-
-_primitive_types = {
-    str: lambda v: None if v is None else str(v),
-    # TODO it is more complicated than that, because bytes cannot be naturally serialized to JSON
-    # bytes: lambda v: None if v is None else bytes(v),
-    int: int,
-    float: lambda v: None if v is None else float(v),
-    bool: bool,
-    np.bool_: bool}
-
-
-_primitive_type_names = {
-    primitive_type.__name__: primitive_type for primitive_type in _primitive_types}
 
 
 # Metainfo errors
@@ -157,23 +170,70 @@ class MetainfoReferenceError(MetainfoError):
 # Metainfo quantity data types
 
 class MEnum(Sequence):
-    '''Allows to define str types with values limited to a pre-set list of possible values.'''
+    '''
+    Allows to define str types with values limited to a pre-set list of possible values.
+
+    The allowed values can be provided as a list of strings, the keys of which will be identical to values.
+    Alternatively, they can be provided as key-value pairs.
+
+    Example:
+        some_variable = MEnum(['a', 'b', 'c'])
+        some_variable = MEnum(a='a', b='b', c='c')
+
+    The values are stored in __dict__ and can be accessed as attributes:
+        some_variable.a # gives 'a'
+
+    For description of each possible value, it can be organized into a dictionary.
+
+    Example:
+        some_variable = MEnum(['a', 'b', 'c'], m_descriptions={'a': 'first', 'b': 'second', 'c': 'third'})
+    '''
+
     def __init__(self, *args, **kwargs):
         # Supports one big list in place of args
         if len(args) == 1 and isinstance(args[0], list):
             args = args[0]
+
+        self._descriptions: Dict[str, str] = {}
+        if 'm_descriptions' in kwargs:
+            self._descriptions = kwargs.pop('m_descriptions')
 
         # If non-named arguments are given, the default is to have them placed
         # into a dictionary with their string value as both the enum name and
         # the value.
         for arg in args:
             if arg in kwargs:
-                raise ValueError("Duplicate value '{}' provided for enum".format(arg))
+                raise ValueError(f"Duplicate value '{arg}' provided for enum")
             kwargs[arg] = arg
 
         self._list = list(kwargs.values())
         self._values = set(kwargs.values())  # For allowing constant time member check
+
+        for enum_value in self._values:
+            if not isinstance(enum_value, str):
+                raise TypeError(f'MEnum value {enum_value} is not a string.')
+
         self.__dict__.update(kwargs)
+
+    def set_description(self, value: str, description: str):
+        if value not in self._values:
+            raise ValueError(f'{value} is not a value of this MEnum')
+        self._descriptions[value] = description
+
+    def get_description(self, value: str) -> str:
+        if value not in self._values:
+            raise ValueError(f'{value} is not a value of this MEnum')
+        return self._descriptions.get(value, '')
+
+    def get_all_descriptions(self) -> Dict[str, str]:
+        return self._descriptions
+
+    def get_all_values(self) -> set:
+        return self._values
+
+    # no need to implement __getattr__ as all attributes are stored in the __dict__
+    # def __getattr__(self, attr):
+    #     pass
 
     def __getitem__(self, index):
         return self._list[index]
@@ -261,7 +321,7 @@ class MProxy:
         if self.m_proxy_resolve() is not None:
             return getattr(self.m_proxy_resolved, key)
 
-        raise MetainfoReferenceError('could not resolve %s' % self.m_proxy_value)
+        raise MetainfoReferenceError(f'could not resolve {self.m_proxy_value}')
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.m_proxy_value})'
@@ -352,14 +412,14 @@ class DataType:
     '''
     Allows to define custom data types that can be used in the meta-info.
 
-    The metainfo supports the most types out of the box. These includes the python build-in
+    The metainfo supports the most types out of the box. These include the python build-in
     primitive types (int, bool, str, float, ...), references to sections, and enums.
     However, in some occasions you need to add custom data types.
 
     This base class lets you customize various aspects of value treatment. This includes
     type checks and various value transformations. This allows to store values in the
-    section differently from how the usermight set/get them, and it allows to have non
-    serializeable values that are transformed on de-/serialization.
+    section differently from how users might set/get them, and it allows to have
+    non-serializable values that are transformed on de-/serialization.
     '''
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         ''' Transforms the given value before it is set and checks its type. '''
@@ -370,18 +430,16 @@ class DataType:
         return value
 
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        ''' Transforms the given value when making the section serializeable. '''
+        ''' Transforms the given value when making the section serializable. '''
         return value
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        ''' Transforms the given value from its serializeable form. '''
+        ''' Transforms the given value from its serializable form. '''
         return value
 
 
-range_re = re.compile(r'(\d)\.\.(\d|\*)')
-
-
 class _Dimension(DataType):
+    range_re = re.compile(r'(\d)\.\.(\d|\*)')
 
     def set_normalize(self, section, quantity_def: 'Quantity', value):
         if isinstance(value, int):
@@ -390,7 +448,7 @@ class _Dimension(DataType):
         if isinstance(value, str):
             if value.isidentifier():
                 return value
-            if re.match(range_re, value):
+            if re.match(_Dimension.range_re, value):
                 return value
 
         if isinstance(value, Section):
@@ -415,29 +473,53 @@ class _Dimension(DataType):
             if dimension.isidentifier():
                 return dimension == getattr(section, dimension)
 
-            m = re.match(range_re, dimension)
+            m = re.match(_Dimension.range_re, dimension)
             start = int(m.group(1))
             end = -1 if m.group(2) == '*' else int(m.group(2))
             return start <= length and (end == -1 or length <= end)
 
 
 class _Unit(DataType):
-    def set_normalize(self, section, quantity_def: 'Quantity', value):
+    @staticmethod
+    def check_dimensionality(quantity_def, unit: Optional[pint.Unit]) -> None:
+        if quantity_def is None or unit is None:
+            return
+
         # Explicitly providing a Pint delta-unit is not currently allowed.
         # Implicit conversions are fine as MathJS on the frontend supports them.
-        def has_delta(unit_string):
-            return 'delta_' in unit_string or 'Δ' in unit_string
+        # todo add back
+        # unit_string = str(unit)
+        # if 'delta_' in unit_string or 'Δ' in unit_string:
+        #     raise TypeError(f'Explicit Pint "delta"-unit {unit_string} are not yet supported.')
 
-        delta_error = TypeError('Explicit Pint "delta"-units are not yet supported.')
+        dimensionality = getattr(quantity_def, 'dimensionality', None)
+
+        if dimensionality is None:  # not set, do not validate
+            return
+
+        if dimensionality in ('dimensionless', '1') and unit.dimensionless:  # dimensionless
+            return
+
+        if dimensionality == 'transformation':
+            # todo: check transformation dimensionality
+            return
+
+        if units.Quantity(1 * unit).check(dimensionality):  # dimensional
+            return
+
+        raise TypeError(f'Dimensionality {dimensionality} is not met by unit {unit}')
+
+    def set_normalize(self, section, quantity_def: 'Quantity', value):
         if isinstance(value, str):
-            if has_delta(value):
-                raise delta_error
             value = units.parse_units(value)
-        elif isinstance(value, pint.unit._Unit):
-            if has_delta(str(value)):
-                raise delta_error
-        else:
+
+        elif isinstance(value, pint.Quantity):
+            value = value.units
+
+        elif not isinstance(value, pint.Unit):
             raise TypeError('Units must be given as str or pint Unit instances.')
+
+        _Unit.check_dimensionality(quantity_def, value)
 
         return value
 
@@ -445,7 +527,9 @@ class _Unit(DataType):
         return value.__str__()
 
     def deserialize(self, section, quantity_def: 'Quantity', value):
-        return units.parse_units(value)
+        value = units.parse_units(value)
+        _Unit.check_dimensionality(quantity_def, value)
+        return value
 
 
 class _Callable(DataType):
@@ -457,14 +541,14 @@ class _Callable(DataType):
 
 
 class _QuantityType(DataType):
-    ''' Data type for defining the type of a metainfo quantity.
+    ''' Data type for defining the type of metainfo quantity.
 
     A metainfo quantity type can be one of
 
     - python build-in primitives: int, float, bool, str
-    - numpy dtypes, e.g. f, int32
+    - numpy dtypes, e.g. np.int32
     - a section definition to define references
-    - an MEnum instance to use it's values as possible str values
+    - an MEnum instance to use its values as possible str values
     - a custom datatype, i.e. instance of :class:`DataType`
     - Any
     '''
@@ -474,12 +558,12 @@ class _QuantityType(DataType):
             return value
 
         if isinstance(value, MEnum):
-            for enum_value in value._values:
-                if not isinstance(enum_value, str):
-                    raise TypeError('MEnum value %s is not a string.' % enum_value)
             return value
 
         if isinstance(value, np.dtype):
+            value = value.type
+        # we normalise all np.dtype to basic np.number types
+        if value in _types_numpy:
             return value
 
         if isinstance(value, Section):
@@ -510,19 +594,23 @@ class _QuantityType(DataType):
             value.m_proxy_quantity = quantity_def
             return value
 
-        raise MetainfoError(
-            'Type %s of %s is not a valid metainfo quantity type' %
-            (value, quantity_def))
+        raise MetainfoError(f'Type {value} of {quantity_def} is not a valid metainfo quantity type')
 
     def serialize(self, section, quantity_def, value):
         if value in _primitive_types:
             return dict(type_kind='python', type_data=value.__name__)
 
         if isinstance(value, MEnum):
-            return dict(type_kind='Enum', type_data=list(value))
+            result = dict(type_kind='Enum', type_data=list(value))
+            if len(value.get_all_descriptions()) > 0:
+                result['type_descriptions'] = value.get_all_descriptions()
+            return result
 
         if isinstance(value, np.dtype):
-            return dict(type_kind='numpy', type_data=str(value))
+            value = value.type
+        # serialise follows the same logic to use basic np.number only
+        if value in _types_numpy:
+            return dict(type_kind='numpy', type_data=str(value.__name__))
 
         if isinstance(value, Reference):
             if isinstance(value, QuantityReference):
@@ -545,16 +633,14 @@ class _QuantityType(DataType):
             if module is None or module == str.__class__.__module__:
                 type_data = value.__class__.__name__
             else:
-                type_data = '%s.%s' % (module, value.__class__.__name__)
+                type_data = f'{module}.{value.__class__.__name__}'
 
             return dict(type_kind='custom', type_data=type_data)
 
         if value == Any:
             return dict(type_kind='Any')
 
-        raise MetainfoError(
-            'Type %s of %s is not a valid metainfo quantity type' %
-            (value, quantity_def))
+        raise MetainfoError(f'Type {value} of {quantity_def} is not a valid metainfo quantity type')
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         if isinstance(value, dict):
@@ -583,7 +669,7 @@ class _QuantityType(DataType):
                         f'Could not load python implementation of custom datatype {type_data}')
             if type_kind == 'numpy':
                 try:
-                    return np.dtype(type_data)
+                    return np.dtype(type_data).type
                 except Exception:
                     raise MetainfoError(f'{type_data} is not a valid numpy type.')
             if type_kind in ['numpy', 'custom']:
@@ -596,7 +682,7 @@ class _QuantityType(DataType):
         if isinstance(value, str):
             if value.startswith('np.') or value.startswith('numpy.'):
                 try:
-                    resolved = np.dtype(getattr(np, value.split('.', 1)[1]))
+                    resolved = getattr(np, value.split('.', 1)[1])
                 except Exception:
                     raise MetainfoError(f'{value.split(".", 1)[1]} is not a valid numpy type.')
                 if resolved:
@@ -715,28 +801,22 @@ class Reference(DataType):
             return value
 
         if not isinstance(value, MSection):
-            raise TypeError(
-                'The value %s is not a section and can not be used as a reference.' % value)
+            raise TypeError(f'The value {value} is not a section and can not be used as a reference.')
 
         if not value.m_follows(self.target_section_def.m_resolved()):  # type: ignore
             raise TypeError(
-                '%s is not a %s and therefore an invalid value of %s.' %
-                (value, self.target_section_def, quantity_def))
+                f'{value} is not a {self.target_section_def} and therefore an invalid value of {quantity_def}.')
 
         return value
 
-    def normalize_reference(self, section: 'MSection', quantity_def: 'Quantity', value: str):
+    @staticmethod
+    def normalize_reference(section: 'MSection', quantity_def: 'Quantity', value: str):
         context = cast(MSection, section.m_root()).m_context
-        if context:
-            value = context.normalize_reference(section, value)
-        return value
+        return context.normalize_reference(section, value) if context else value
 
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         context = cast(MSection, section.m_root()).m_context
-        if context is not None:
-            return context.create_reference(section, quantity_def, value)
-
-        return value.m_path()
+        return context.create_reference(section, quantity_def, value) if context else value.m_path()
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         return MProxy(value, m_proxy_section=section, m_proxy_type=quantity_def.type)
@@ -772,11 +852,11 @@ class _SectionReference(Reference):
             definitions = context_section
 
         if definitions:
-            splitted_fragment = fragment.lstrip('/').split('/', 1)
-            if len(splitted_fragment) == 2:
-                first_segment, remaining_fragment = splitted_fragment
+            split_fragment = fragment.lstrip('/').split('/', 1)
+            if len(split_fragment) == 2:
+                first_segment, remaining_fragment = split_fragment
             else:
-                first_segment, remaining_fragment = splitted_fragment[0], None
+                first_segment, remaining_fragment = split_fragment[0], None
 
             resolved: MSection = None
             for content in definitions.m_contents():
@@ -887,42 +967,39 @@ class _File(DataType):
 
 
 class _URL(DataType):
-    def _validate_web_url(self, url_str: str):
-        urlRegex = re.compile(
-            r'^(?:http|ftp)s?://'
-            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
-            r'localhost|'
-            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-            r'(?::\d+)?'
-            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-        return (re.match(urlRegex, url_str) is not None)
+    _url_regex = re.compile(
+        r'^(?:http|ftp)s?://'
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
+        r'localhost|'
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+        r'(?::\d+)?'
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
-    def _test(self, url_str: str) -> str:
+    @staticmethod
+    def _validate_url(url_str: str) -> Optional[str]:
         if url_str is None:
             return None
 
         if not isinstance(url_str, str):
             raise TypeError('Links need to be given as URL strings')
-        if not self._validate_web_url(url_str):
+        if re.match(_URL._url_regex, url_str) is None:
             raise ValueError('The given URL is not valid')
 
         return url_str
 
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        return self._test(value)
+        return _URL._validate_url(value)
 
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        if value is None:
-            return None
-        return self._test(value)
+        return _URL._validate_url(value)
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        return self._test(value)
+        return _URL._validate_url(value)
 
 
 class _Datetime(DataType):
-
-    def _parse(self, datetime_str: str) -> datetime:
+    @staticmethod
+    def _parse(datetime_str: str) -> datetime:
         # removing trailing spaces and replacing the potential white space between date and time with char 'T'
         if datetime_str[0].isdigit():
             datetime_str = datetime_str.strip().replace(' ', 'T')
@@ -936,7 +1013,7 @@ class _Datetime(DataType):
             date = aniso8601.parse_date(datetime_str)
             if isinstance(date, datetime):
                 return date
-        except ValueError as e:
+        except ValueError:
             pass
 
         try:
@@ -964,14 +1041,15 @@ class _Datetime(DataType):
         except ValueError:
             pass
 
-        raise TypeError('Invalid date literal %s' % datetime_str)
+        raise TypeError(f'Invalid date literal {datetime_str}')
 
-    def _convert(self, value):
+    @staticmethod
+    def _convert(value) -> Optional[datetime]:
         if value is None:
             return None
 
         if isinstance(value, str):
-            value = self._parse(value)
+            value = _Datetime._parse(value)
 
         elif isinstance(value, (int, float)):
             value = datetime.fromtimestamp(value)
@@ -983,7 +1061,7 @@ class _Datetime(DataType):
             value = datetime.combine(value, datetime.min.time())
 
         if not isinstance(value, datetime):
-            raise TypeError('%s is not a datetime.' % value)
+            raise TypeError(f'{value} is not a datetime.')
 
         if value.tzinfo is None:
             value = value.replace(tzinfo=pytz.utc)
@@ -996,10 +1074,7 @@ class _Datetime(DataType):
         return self._convert(value)
 
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        if value is None:
-            return None
-
-        return value.isoformat()
+        return None if value is None else value.isoformat()
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         return self._convert(value)
@@ -1089,14 +1164,14 @@ def constraint(warning):
 class Context():
     '''
     The root of a metainfo section hierarchy can have a Context. Contexts allow to customize
-    the resolution of references based on how and in what context an metainfo-based
+    the resolution of references based on how and in what context a metainfo-based
     archive (or otherwise top-level section is used). This allows to logically combine
-    multiple hiearchies (e.g. archives) with references.
+    multiple hierarchies (e.g. archives) with references.
     '''
 
     def warning(self, event, **kwargs):
         '''
-        Used to log (or otherwise handle) warning that are issued, e.g. while serializaton,
+        Used to log (or otherwise handle) warning that are issued, e.g. while serialization,
         reference resolution, etc.
         '''
         pass
@@ -1182,7 +1257,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     members of :class:`MSection` are available on all `section instances`. :class:`MSection`
     provides many special attributes and functions (they all start with ``m_``) that allow
     to reflect on a `section's definition` and allow to manipulate the `section instance`
-    without a priori knowledge of the `section defintion`.
+    without a priori knowledge of the `section definition`.
 
     .. automethod:: m_set
     .. automethod:: m_get
@@ -1223,7 +1298,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     .. automethod:: m_xpath
 
     Each section and all its quantities and contents can be transformed into a general
-    JSON-serializable Python dictionary. Similarely, a section can be instantiated from
+    JSON-serializable Python dictionary. Similarly, a section can be instantiated from
     such a Python dictionary. This allows to save and load sections to JSON-files or
     by other compatible means (e.g. document databases, binary JSON flavours).
 
@@ -1259,9 +1334,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if self.m_def.extends_base_section:
                 MetainfoError('Section extends another section and cannot be instantiated.')
 
-        else:
-            if not is_bootstrapping:
-                MetainfoError('Section has not m_def.')
+        elif not is_bootstrapping:
+            MetainfoError('Section has no m_def.')
 
         # get annotations from kwargs
         self.m_annotations: Dict[str, Any] = kwargs.get('m_annotations', {})
@@ -1280,7 +1354,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         # add annotation attributes for names annotations
         for annotation_name, annotation in self.m_annotations.items():
-            setattr(self, 'a_%s' % annotation_name, annotation)
+            setattr(self, f'a_{annotation_name}', annotation)
 
         # set remaining kwargs
         if is_bootstrapping:
@@ -1291,7 +1365,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     @classmethod
     def __init_cls__(cls):
         # ensure that the m_def is defined
-        m_def = cls.__dict__.get('m_def')  # do not accedentally get the m_def from a potential base section
+        m_def = cls.__dict__.get('m_def')  # do not accidentally get the m_def from a potential base section
         if m_def is None:
             m_def = Section()
             setattr(cls, 'm_def', m_def)
@@ -1308,8 +1382,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 base_section = getattr(base_cls, 'm_def')
                 if base_section is None:
                     raise TypeError(
-                        'Section defining classes must have MSection or a decendant as '
-                        'base classes.')
+                        'Section defining classes must have MSection or a descendant of base classes.')
                 base_sections.append(base_section)
 
         if len(base_sections) > 0:
@@ -1386,7 +1459,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             dsc = parsed_docstring.long_description
 
             if short and dsc:
-                description = '%s %s' % (short.strip(), dsc.strip())
+                description = f'{short.strip()} {dsc.strip()}'
             elif short:
                 description = short.strip()
             elif dsc:
@@ -1406,27 +1479,77 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         for content in m_def.m_all_contents(depth_first=True, include_self=True):
             cast(Definition, content).__init_metainfo__()
 
-    def __setattr__(self, name, value):
-        all_aliases = None
-        if self.m_def is not None:
-            all_aliases = self.m_def.all_aliases
+    @staticmethod
+    def __resolve_variable_name(
+            definitions: Dict[str, 'Definition'], name: str) -> Optional['Definition']:
+        '''
+        For properties with variadic names, it is necessary to check all possible definitions
+        in the schema to find the unique and correct definition that matches the naming pattern.
 
-        if all_aliases is not None and name in self.m_def.all_aliases:
-            name = self.m_def.all_aliases[name].name
+        In the schema defines a property with the name 'FOO_bar', implying the prefix 'FOO' is
+        merely a placeholder, the actual name in the data can be anything, such as 'a_bar' or 'b_bar'.
+
+        This method checks each definition name by replacing the placeholder with '.*' and then check if
+        the property name matches the pattern. If it does, it returns the corresponding definition.
+
+        For example, the definition name 'FOO_bar' will be replaced by '.*_bar', which further matches
+        'a_bar', 'aa_bar', etc.
+
+        In case of multiple quantities with identical template/variadic patterns, the string similarity
+        is used to determine which to be used.
+        '''
+        candidates: list = []
+        for definition in set(definitions.values()):
+            if not definition.variable:
+                continue
+
+            name_re = re.sub(r'(^_*)[A-Z_]+(_|$)', r'\1.*\2', definition.name)
+            if re.match(name_re, name):
+                candidates.append(definition)
+
+        if len(candidates) == 0:
+            raise MetainfoError(f'Cannot find a proper definition for name {name}')
+
+        if len(candidates) == 1:
+            return candidates[0]
+
+        # multiple matches, check similarity
+        similarity: list = [SequenceMatcher(None, v.name.upper(), name.upper()).ratio() for v in candidates]
+
+        return candidates[similarity.index(max(similarity))]
+
+    def __setattr__(self, name, value):
+        if self.m_def is None:
+            return super().__setattr__(name, value)
+
+        alias_pool = self.m_def.all_aliases
+
+        if alias_pool is not None and name in alias_pool:
+            name = alias_pool[name].name
+        elif self.m_def.has_variable_names and not reserved_name_re.match(name):
+            resolved_variable_name = self.__resolve_variable_name(self.m_def.all_properties, name)
+            if resolved_variable_name:
+                self.m_set_attribute(resolved_variable_name, 'm_source_name', name)  # type: ignore
+                name = resolved_variable_name.name
 
         return super().__setattr__(name, value)
 
     def __getattr__(self, name):
         # The existence of __getattr__ will make mypy and pylint ignore 'missing' dynamic
         # attributes and functions and wrong types of those.
-        # Ideally we have a plugin for both that add the corrent type info
+        # Ideally we have a plugin for both that add the correct type info
 
         if name in self.m_def.all_aliases:
             return getattr(self, self.m_def.all_aliases[name].name)
 
+        if self.m_def.has_variable_names:
+            resolved_variable_name = self.__resolve_variable_name(self.m_def.all_properties, name)
+            if resolved_variable_name:
+                return getattr(self, resolved_variable_name.name)
+
         raise AttributeError(name)
 
-    def __check_np(self, quantity_def: 'Quantity', value: np.ndarray) -> np.ndarray:
+    def __check_np(self, definition: 'Definition', value: np.ndarray) -> np.ndarray:
         # TODO this feels expensive, first check, then possible convert very often?
         # if quantity_ref.type != value.dtype:
         #     raise MetainfoError(
@@ -1435,113 +1558,110 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return value
 
-    def __set_normalize(self, quantity_def: 'Quantity', value: Any) -> Any:
+    def __normalize_value(self, value_type, definition: 'Definition', value: Any) -> Any:
+        if isinstance(value_type, DataType):
+            return value_type.set_normalize(self, None, value)  # type: ignore
 
+        if isinstance(value_type, MEnum):
+            if value not in cast(MEnum, value_type).get_all_values():
+                raise TypeError(f'The value {value} is not an enum value for {definition}.')
+            return value
+
+        if value_type == Any:
+            return value
+
+        if value_type == str and type(value) == np.str_:
+            return str(value)
+
+        if value_type == bool and type(value) == np.bool_:
+            return bool(value)
+
+        if value_type == int and type(value) == np.float_:
+            return int(value)
+
+        if value_type in _primitive_types and type(value) != value_type:
+            try:
+                return _primitive_types[value_type](value)  # type: ignore
+            except ValueError as e:
+                raise TypeError(e)
+
+        if value is not None and type(value) != value_type:
+            raise TypeError(f'The value {value} with for {definition} is not of type {value_type}.')
+
+        return value
+
+    def __set_normalize(self, quantity_def: 'Quantity', value: Any) -> Any:
         if isinstance(quantity_def.type, DataType):
             return quantity_def.type.set_normalize(self, quantity_def, value)
 
-        elif isinstance(quantity_def.type, Section):
+        if isinstance(quantity_def.type, Section):
             if isinstance(value, MProxy):
                 return value
 
             if not isinstance(value, MSection):
                 raise TypeError(
-                    'The value %s for reference quantity %s is not a section instance.' %
-                    (value, quantity_def))
+                    f'The value {value} for reference quantity {quantity_def} is not a section instance.')
 
             if not value.m_follows(quantity_def.type):
                 raise TypeError(
-                    'The value %s for quantity %s does not follow %s' %
-                    (value, quantity_def, quantity_def.type))
+                    f'The value {value} for quantity {quantity_def} does not follow {quantity_def.type}')
 
-        elif isinstance(quantity_def.type, MEnum):
-            if value not in quantity_def.type._values:
-                raise TypeError(
-                    'The value %s is not an enum value for quantity %s.' %
-                    (value, quantity_def))
+            return value
 
-        elif quantity_def.type == Any:
-            pass
+        return self.__normalize_value(quantity_def.type, quantity_def, value)
 
-        elif quantity_def.type == str and type(value) == np.str_:
-            return str(value)
+    def __to_np(self, np_type, shape, unit, definition: 'Definition', value):
+        _Unit.check_dimensionality(definition, unit)
 
-        elif quantity_def.type == bool and type(value) == np.bool_:
-            return bool(value)
+        if isinstance(value, pint.Quantity):
+            if unit is None:
+                raise MetainfoError(f'The quantity {definition} does not have a unit, but value {value} does.')
 
-        elif quantity_def.type == int and type(value) == np.float_:
-            return int(value)
+            if type(value.magnitude) == np.ndarray and np_type != value.dtype:
+                value = value.astype(np_type)
 
-        elif quantity_def.type in _primitive_types and type(value) != quantity_def.type:
-            try:
-                return _primitive_types[quantity_def.type](value)  # type: ignore
-            except ValueError as e:
-                raise TypeError(e)
-
-        else:
-            if value is not None and type(value) != quantity_def.type:
-                raise TypeError(
-                    'The value %s with type %s for quantity %s is not of type %s' %
-                    (value, type(value), quantity_def, quantity_def.type))
-
-        return value
-
-    def __to_np(self, quantity_def: 'Quantity', value):
-        if isinstance(value, pint.quantity._Quantity):
-            if quantity_def.unit is None:
-                raise MetainfoError(
-                    'The quantity %s has not a unit, but value %s has.' %
-                    (quantity_def, value))
-
-            if type(value.magnitude) == np.ndarray and quantity_def.type != value.dtype:
-                value = value.astype(quantity_def.type)
-
-            value = value.to(quantity_def.unit).magnitude
+            value = value.to(unit).magnitude
 
         if isinstance(value, pd.DataFrame):
             try:
                 value = value.to_numpy()
             except AttributeError:
                 raise AttributeError(
-                    'Could not convert value %s of type pandas.Dataframe to a numpy array' %
-                    (value))
+                    f'Could not convert value {value} of type pandas.Dataframe to a numpy array')
 
         if type(value) != np.ndarray:
-            if len(quantity_def.shape) > 0:
+            if len(shape) > 0:
                 try:
                     value = np.asarray(value)
                 except TypeError:
-                    raise TypeError(
-                        'Could not convert value %s of %s to a numpy array' %
-                        (value, quantity_def))
-            elif type(value) != quantity_def.type.type:
+                    raise TypeError(f'Could not convert value {value} of {definition} to a numpy array')
+            elif type(value) != np_type:
                 try:
-                    value = quantity_def.type.type(value)
+                    value = np_type(value)
                 except TypeError:
-                    raise TypeError(
-                        'Could not convert value %s of %s to a numpy scalar' %
-                        (value, quantity_def))
+                    raise TypeError(f'Could not convert value {value} of {definition} to a numpy scalar')
 
-        return self.__check_np(quantity_def, value)
+        return self.__check_np(definition, value)
 
-    def m_set(self, quantity_def: 'Quantity', value: Any) -> None:
+    def m_set(self, quantity_def: 'Quantity', value: Any, add_new: bool = False) -> None:
         ''' Set the given value for the given quantity. '''
         self.m_mod_count += 1
 
         if quantity_def.derived is not None:
-            raise MetainfoError('The quantity %s is derived and cannot be set.' % quantity_def)
+            raise MetainfoError(f'The quantity {quantity_def} is derived and cannot be set.')
 
         if value is None:
-            # This implements the implicit "unset" semantics of assigned None as a
-            # value
+            # This implements the implicit "unset" semantics of assigned None as a value
             self.__dict__.pop(quantity_def.name, None)
             return
 
-        if isinstance(quantity_def.type, np.dtype):
-            value = self.__to_np(quantity_def, value)
-
-        elif isinstance(quantity_def.type, pd.DataFrame):
-            value = self.__to_np(quantity_def, value)
+        if quantity_def.type in _types_numpy or isinstance(quantity_def.type, pd.DataFrame):
+            value = self.__to_np(
+                quantity_def.type,
+                quantity_def.shape,
+                quantity_def.unit,
+                quantity_def,
+                value)
         else:
             dimensions = len(quantity_def.shape)
             if dimensions == 0:
@@ -1550,15 +1670,39 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             elif dimensions == 1:
                 if type(value) == str or not isinstance(value, IterableABC):
                     raise TypeError(
-                        'The shape of %s requires an iterable value, but %s is not iterable.' %
-                        (quantity_def, value))
+                        f'The shape of {quantity_def} requires an iterable value, but {value} is not iterable.')
 
                 value = list(self.__set_normalize(quantity_def, item) for item in value)
 
+                def __check_shape(shape):
+                    if not isinstance(shape, str) or shape == '*':
+                        return
+
+                    bound_match = re.match(r"(\d+)\.\.(\d+|\*)", shape)
+                    if bound_match:
+                        low_bound = bound_match.group(1)
+                        upper_bound = bound_match.group(2)
+                        if len(value) < int(low_bound):
+                            raise MetainfoError(f'At least {low_bound} elements required.')
+                        if upper_bound != '*' and len(value) >= int(upper_bound):
+                            raise MetainfoError(f'At most {upper_bound} elements required.')
+                    else:
+                        try:
+                            bound = int(shape)
+                            if len(value) != bound:
+                                raise MetainfoError(f'Exact {bound} elements required.')
+                        except ValueError:
+                            pass
+                # todo: need further work as some tests do not follow the shape rule
+                # __check_shape(quantity_def.shape[0])
             else:
                 raise MetainfoError(
-                    'Only numpy arrays and dtypes can be used for higher dimensional '
-                    'quantities: %s' % quantity_def)
+                    f'Only numpy arrays and dtypes can be used for higher dimensional quantities: {quantity_def}')
+
+        # account for variable name
+        if add_new:
+            self.m_def.quantities.append(quantity_def)
+            quantity_def.init_metainfo()
 
         self.__dict__[quantity_def.name] = value
 
@@ -1685,6 +1829,57 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         except KeyError:
             return 0
 
+    def _get_attribute(self, property: Union[str, 'Property'], attr_name: str) -> 'Attribute':
+        property_as_property = None
+
+        if isinstance(property, str):
+            property_as_property = self.m_def.all_properties.get(property)
+            if not property_as_property:
+                property_as_property = self.__resolve_variable_name(
+                    self.m_def.all_properties, property)
+        elif isinstance(property, Property):
+            property_as_property = self.m_def.all_properties.get(property.name)
+
+        if property_as_property is None:
+            raise ValueError('The given property is not a property.')
+
+        attribute = property_as_property.all_attributes.get(attr_name)
+        if attribute is None:
+            attribute = self.__resolve_variable_name(property_as_property.all_attributes, attr_name)
+        if attribute is None:
+            raise ValueError(
+                'The given attribute name must be a name for an attribute of the given property.')
+
+        return attribute
+
+    def m_set_attribute(self, tgt_property: Union[str, 'Property'], attr_name: str, attr_value: Any):
+        attribute = self._get_attribute(tgt_property, attr_name)
+        key = attribute.section_key
+        if attribute.type in _types_numpy:
+            attr_value = self.__to_np(attribute.type, [], None, attribute, attr_value)
+            attr_value = self.__normalize_value(attribute.type, attribute, attr_value)
+        else:
+            dimension = len(attribute.shape)
+            if dimension == 0:
+                attr_value = self.__normalize_value(attribute.type, attribute, attr_value)
+            elif dimension == 1:
+                if type(attr_value) == str or not isinstance(attr_value, IterableABC):
+                    raise TypeError(
+                        f'The shape requires an iterable value, but {attr_value} is not iterable.')
+
+                attr_value = list(self.__normalize_value(attribute.type, attribute, item) for item in attr_value)
+
+            else:
+                raise MetainfoError(
+                    f'Only numpy arrays and dtypes can be used for higher dimensional quantities: {attribute}')
+
+        self.__dict__[key] = attr_value
+
+    def m_get_attribute(self, tgt_property: Union[str, 'Property'], attr_name: str):
+        attribute = self._get_attribute(tgt_property, attr_name)
+        key = attribute.section_key
+        return self.__dict__.get(key)
+
     def m_create(
             self, section_cls: Type[MSectionBound], sub_section_def: 'SubSection' = None,
             **kwargs) -> MSectionBound:
@@ -1692,26 +1887,26 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         corresponding sub section.
 
         Args:
-            section_cls: The section class for the sub-secton to create
+            section_cls: The section class for the sub-section to create
             sub_section_def: If there are multiple sub-sections for the given class,
-                this must be used to explicitely state the sub-section definition.
+                this must be used to explicitly state the sub-section definition.
         '''
 
         section_def = section_cls.m_def
         sub_section_defs = self.m_def.all_sub_sections_by_section.get(section_def, [])
         n_sub_section_defs = len(sub_section_defs)
         if n_sub_section_defs == 0:
-            raise TypeError('There is no sub section to hold a %s in %s.' % (section_def, self.m_def))
+            raise TypeError(f'There is no sub section to hold a {section_def} in {self.m_def}.')
 
         if n_sub_section_defs > 1 and sub_section_def is None:
             raise MetainfoError(
-                'There are multiple sub section to hold a %s in %s, '
-                'but no sub-section was explicitely given.' % (section_def, self.m_def))
+                f'There are multiple sub section to hold a {section_def} in {self.m_def}, '
+                f'but no sub-section was explicitly given.')
 
         if sub_section_def is not None and sub_section_def not in sub_section_defs:
             raise MetainfoError(
-                'The given sub-section class %s does not match the given sub-section '
-                'definition %s.' % (section_cls, sub_section_def))
+                f'The given sub-section class {section_cls} does not '
+                f'match the given sub-section definition {sub_section_def}.')
 
         if sub_section_def is None:
             sub_section_def = sub_section_defs[0]
@@ -1730,7 +1925,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if prop is None:
                 if m_ignore_additional_keys:
                     continue
-                raise KeyError('%s is not an attribute of this section %s' % (name, self))
+                raise KeyError(f'{name} is not an attribute of this section {self}')
 
             if isinstance(prop, SubSection):
                 if prop.repeats:
@@ -1738,7 +1933,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         for item in value:
                             self.m_add_sub_section(prop, item)
                     else:
-                        raise TypeError('Sub section %s repeats, but no list was given' % prop.name)
+                        raise TypeError(f'Sub section {prop.name} repeats, but no list was given')
                 else:
                     self.m_add_sub_section(prop, value)
 
@@ -1752,7 +1947,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     def m_follows(self, definition: 'Section') -> bool:
         ''' Determines if this section's definition is or is derived from the given definition. '''
         if not isinstance(definition, Section):
-            raise TypeError('%s is of class Section' % definition)
+            raise TypeError(f'{definition} is not an instance of class Section')
         return self.m_def == definition or definition in self.m_def.all_base_sections
 
     def m_to_dict(
@@ -1766,12 +1961,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             exclude: TypingCallable[['Definition', 'MSection'], bool] = None,
             transform: TypingCallable[['Definition', 'MSection', Any, str], Any] = None) -> Dict[str, Any]:
         '''
-        Returns the data of this section as a (json serializeable) dictionary.
+        Returns the data of this section as a (json serializable) dictionary.
 
         With its default configuration, it is the opposite to :func:`MSection.m_from_dict`.
 
         There are a lot of ways to customize the behavior, e.g. to generate JSON for
-        databases, searchengines, etc.
+        databases, search engines, etc.
 
         Arguments:
             with_meta: Include information about the section definition, the sections
@@ -1893,7 +2088,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             elif quantity_type in _primitive_types:
                 serialize = _primitive_types[quantity_type]
 
-            elif isinstance(quantity_type, np.dtype):
+            elif quantity_type in _types_numpy:
                 is_scalar = quantity.is_scalar
 
                 def serialize_dtype(value):
@@ -1931,8 +2126,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             else:
                 raise MetainfoError(
-                    'Do not know how to serialize data with type %s for quantity %s' %
-                    (quantity_type, quantity))
+                    f'Do not know how to serialize data with type {quantity_type} for quantity {quantity}')
 
             quantity_type = quantity.type
             if resolve_references and isinstance(quantity_type, QuantityReference):
@@ -1959,15 +2153,16 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 serialize_before_transform = serialize
 
                 def serialize_and_transform(value: Any, path_override=None):
-                    if is_ref:
-                        return transform(quantity, self, serialize_before_transform(value, path_override), path_override)
-                    else:
+                    if not is_ref:
                         return transform(quantity, self, serialize_before_transform(value), path_override)
+
+                    return transform(quantity, self, serialize_before_transform(value, path_override), path_override)
 
                 serialize = serialize_and_transform
 
-            if isinstance(quantity_type, np.dtype):
+            if quantity_type in _types_numpy:
                 return serialize(value)
+
             elif len(quantity.shape) == 0:
                 if is_ref:
                     return serialize(value, path)
@@ -1979,7 +2174,25 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 else:
                     return [serialize(item) for item in value]
             else:
-                raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
+                raise NotImplementedError(f'Higher shapes ({quantity.shape}) not supported: {quantity}')
+
+        def serialize_attribute(attribute: 'Attribute', value: Any) -> Any:
+            if isinstance(attribute.type, DataType):
+                return attribute.type.serialize(self, None, value)
+
+            if attribute.type in _primitive_types:
+                if len(attribute.shape) == 0:
+                    return _primitive_types[attribute.type](value)  # type: ignore
+
+                return [_primitive_types[attribute.type](v) for v in value]  # type: ignore
+
+            if isinstance(attribute.type, MEnum):
+                return str(value)
+
+            if isinstance(attribute.type, np.dtype):
+                return value.item()
+
+            return value
 
         def serialize_annotation(annotation):
             if isinstance(annotation, Annotation):
@@ -2066,23 +2279,37 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
                     yield name, serialize_quantity(quantity, is_set, False, path)
 
+                    for attribute in quantity.all_attributes.values():
+                        key = attribute.section_key
+                        if key in self.__dict__:
+                            yield key, serialize_attribute(attribute, self.__dict__[key])
+
                 except ValueError as e:
-                    raise ValueError('Value error (%s) for %s' % (str(e), quantity))
+                    raise ValueError(f'Value error ({str(e)}) for {quantity}')
 
             # sub sections
             for name, sub_section_def in self.m_def.all_sub_sections.items():
                 if exclude(sub_section_def, self):
                     continue
 
+                is_set = False
                 if sub_section_def.repeats:
                     if self.m_sub_section_count(sub_section_def) > 0:
+                        is_set = True
                         yield name, [
                             None if item is None else item.m_to_dict(**kwargs)
                             for item in self.m_get_sub_sections(sub_section_def)]
                 else:
                     sub_section = self.m_get_sub_section(sub_section_def, -1)
                     if sub_section is not None:
+                        is_set = True
                         yield name, sub_section.m_to_dict(**kwargs)
+
+                if is_set:
+                    for attribute in sub_section_def.all_attributes.values():
+                        key = attribute.section_key
+                        if key in self.__dict__:
+                            yield key, serialize_attribute(attribute, self.__dict__[key])
 
         return {key: value for key, value in items()}
 
@@ -2107,18 +2334,20 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         if sub_section_dct is None:
                             sub_section = None
                         else:
-                            sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_dct, m_parent=self, m_context=m_context)
+                            sub_section = sub_section_def.sub_section.section_cls.m_from_dict(
+                                sub_section_dct, m_parent=self, m_context=m_context)
                         section.m_add_sub_section(sub_section_def, sub_section)
 
                 else:
-                    sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_value, m_parent=self, m_context=m_context)
+                    sub_section = sub_section_def.sub_section.section_cls.m_from_dict(
+                        sub_section_value, m_parent=self, m_context=m_context)
                     section.m_add_sub_section(sub_section_def, sub_section)
 
             if isinstance(property_def, Quantity):
                 quantity_def = property_def
                 quantity_value = dct[name]
 
-                if isinstance(quantity_def.type, np.dtype):
+                if quantity_def.type in _types_numpy:
                     quantity_value = np.asarray(quantity_value)
 
                 if isinstance(quantity_def.type, DataType):
@@ -2135,6 +2364,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                             'Only numpy quantities can have more than 1 dimension.')
 
                 section.__dict__[property_def.name] = quantity_value  # type: ignore
+
+            for attribute in property_def.all_attributes.values():
+                key = attribute.section_key
+                if key in dct:
+                    section.m_set_attribute(property_def, attribute.name, dct[key])
 
     @classmethod
     def m_from_dict(cls: Type[MSectionBound], data: Dict[str, Any], **kwargs) -> MSectionBound:
@@ -2164,7 +2398,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if 'm_ref_archives' in dct and isinstance(m_context, Context):
             # dct['m_ref_archives'] guarantees that 'm_def' exists
             for entry_url, archive_json in dct['m_ref_archives'].items():
-                m_context.cache_archive(entry_url, MSection.from_dict(archive_json, m_parent=m_parent, m_context=m_context))
+                m_context.cache_archive(
+                    entry_url, MSection.from_dict(archive_json, m_parent=m_parent, m_context=m_context))
             del dct['m_ref_archives']
 
         # first try to find a m_def in the data
@@ -2298,12 +2533,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if self.m_parent_index == -1:
             segment = self.m_parent_sub_section.name
         else:
-            segment = '%s/%d' % (self.m_parent_sub_section.name, self.m_parent_index)
+            segment = f'{self.m_parent_sub_section.name}/{self.m_parent_index:d}'
 
         if quantity_def is not None:
-            segment = '%s/%s' % (segment, quantity_def.name)
+            segment = f'{segment}/{quantity_def.name}'
 
-        return '%s/%s' % (self.m_parent.m_path().rstrip('/'), segment)
+        return f'{self.m_parent.m_path().rstrip("/")}/{segment}'
 
     def m_root(self, cls: Type[MSectionBound] = None) -> MSectionBound:
         ''' Returns the first parent of the parent section that has no parent; the root. '''
@@ -2408,7 +2643,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 case, all names and list for names are iterated and all annotations of the
                 given class are returned.
             default: The default, if no annotation is found. None is  the default default.
-            as_list: Returns a list, no matter how many annoations have been found.
+            as_list: Returns a list, no matter how many annotations have been found.
         '''
         if isinstance(key, str):
             value = self.m_annotations.get(key, default)
@@ -2446,7 +2681,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         if type(value) == np.ndarray:
             value_shape = value.shape
-        if isinstance(value, list) and not isinstance(value, MEnum):
+        elif isinstance(value, list) and not isinstance(value, MEnum):
             value_shape = [len(value)]
         else:
             value_shape = []
@@ -2468,15 +2703,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             constraint = getattr(self, constraint_name, None)
             if constraint is None:
                 raise MetainfoError(
-                    'Could not find implementation for contraint %s of section %s.' %
-                    (constraint_name, self.m_def))
+                    f'Could not find implementation for constraint {constraint_name} of section {self.m_def}.')
 
             try:
                 constraint()
             except AssertionError as e:
                 error_str = str(e).strip()
                 if error_str == '':
-                    error_str = 'Constraint %s violated.' % constraint_name
+                    error_str = f'Constraint {constraint_name} violated.'
                 if getattr(constraint, 'm_warning', False):
                     warnings.append(error_str)
                 else:
@@ -2486,7 +2720,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if self.m_is_set(quantity) and not quantity.derived:
                 if not self.__validate_shape(quantity, self.m_get(quantity)):
                     errors.append(
-                        'The shape of quantity %s does not match its value.' % quantity)
+                        f'The shape of quantity {quantity} does not match its value.')
 
         return errors, warnings
 
@@ -2735,6 +2969,18 @@ class Definition(MSection):
             can be used to access the respective property with a different name from
             its containing section.
 
+        variable:
+            A boolean that indicates this property as variable parts in its name.
+            If this is set to true, all capital letters in the name can be
+            replaced with arbitrary strings. However, variable names work similar to
+            aliases and can be considered on-demand aliases. Other aliases and the
+            defined name will work as well. Thus, variable names are only resolved
+            at runtime by the Python interface and are not directly serialized.
+            However, the variable name is set in a meta attribute `m_source_name`
+            automatically for properties (but not attributes).
+            Variable names are only implemented for Quantity, SubSection,
+            Attribute.
+
         deprecated: If set this definition is marked deprecated. The value should be a
             string that describes how to replace the deprecated definition.
 
@@ -2755,6 +3001,7 @@ class Definition(MSection):
     categories: 'Quantity' = _placeholder_quantity
     deprecated: 'Quantity' = _placeholder_quantity
     aliases: 'Quantity' = _placeholder_quantity
+    variable: 'Quantity' = _placeholder_quantity
     more: 'Quantity' = _placeholder_quantity
 
     # store the hash object generated
@@ -2781,7 +3028,7 @@ class Definition(MSection):
     def __init_metainfo__(self):
         '''
         An initialization method that is called after the class context of the definition
-        has been initialized. For example it is called on all quantities of a section
+        has been initialized. For example, it is called on all quantities of a section
         class after the class was created. If metainfo definitions are created without
         a class context, this method must be called manually on all definitions.
         '''
@@ -2833,7 +3080,7 @@ class Definition(MSection):
         return super(Definition, self).m_to_dict(**kwargs)
 
     def __repr__(self):
-        return '%s:%s' % (self.qualified_name(), self.m_def.name)
+        return f'{self.qualified_name()}:{self.m_def.name}'
 
     def _hash_seed(self) -> str:
         '''
@@ -2841,9 +3088,12 @@ class Definition(MSection):
 
         The order of aliases is not important.
         '''
-        if len(self.aliases) == 0:
-            return str(self.name)
-        return str(self.name) + ''.join([str(i) for i in sorted(self.aliases)])
+        seed: str = str(self.name)
+        seed += 'T' if self.variable else 'F'
+        if len(self.aliases) > 0:
+            seed += ''.join([str(i) for i in sorted(self.aliases)])
+
+        return seed
 
     def _hash(self, regenerate=False) -> 'hashlib._Hash':
         '''
@@ -2865,24 +3115,68 @@ class Definition(MSection):
         return self._hash().hexdigest()
 
 
+class Attribute(Definition):
+    '''
+    Attributes can be used to qualify all properties (sub sections and quantities)
+    with simple scalar values.
+
+    Attributes:
+        type: The type of the attribute. Can be any primitive type, including
+            numpy types, Datetime and enums.
+    '''
+
+    type: 'Quantity' = _placeholder_quantity
+    shape: 'Quantity' = _placeholder_quantity
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @property
+    def section_key(self):
+        return f'{cast(Property, self.m_parent).name}@{self.name}'
+
+    @constraint(warning=False)
+    def type_is_primitive(self):
+        value = self.type
+        if value in _primitive_types or value in _types_num:
+            return
+
+        if isinstance(value, (MEnum, np.dtype, _Datetime)):
+            return
+
+        assert False, 'Attributes must have primitive type.'
+
+    def _hash_seed(self) -> str:
+        seed = super(Attribute, self)._hash_seed()
+        type_id = QuantityType.serialize(self, Quantity.type, self.type)
+        if 'type_data' in type_id and isinstance(type_id['type_data'], list):
+            type_id['type_data'].sort()
+        seed += json.dumps(type_id)
+        for dim in self.shape:
+            seed += dim if isinstance(dim, str) else str(dim)
+        return seed
+
+
 class Property(Definition):
     '''
     A common base-class for section properties: sub sections and quantities.
 
     Attributes:
-        type:
-            A boolean that indicates this property as a *template* property. Template properties
-            can be accessed under a custom, instance-level name. To assign values
-            use `obj.my_template = (<name>, <value>)` tuples. To read values simply
-            use the choosen `<name>`: `obj.name`. If you use the schema-level name, you'll
-            get a dictionary witht the names values: `obj.my_template == {<name>: <value}`.
-            Choosen names must not collide with names defined in the metainfo, e.g.
-            `obj.my_template = ('my_template', <value>)` is not allowed.
-
-            This is not functional in this version of the metainfo.
+        attributes:
+            The attributes that can further qualify property values.
+        all_attributes:
+            A virtual convenient property that provides all attributes as a dictionary
+            from attribute name to attribute. This includes meta attributes (starting with m_)
+            that are defined for all properties of the same kind (sub_section or quantity).
+            An example for a meta attribute is the quantity attribute `m_source_unit`,
+            which can be set on all quantities without defining it on each quantity
+            separately.
     '''
 
-    template: 'Quantity' = _placeholder_quantity
+    m_attributes: List['Attribute'] = []
+
+    all_attributes: 'Quantity' = _placeholder_quantity
+    attributes: 'SubSection' = None
 
     def get_from_dict(self, data: Dict[str, Any], default_value: Any = None) -> Tuple[str, Any]:
         '''
@@ -2894,10 +3188,34 @@ class Property(Definition):
                 return name, data[name]
         return None, default_value
 
+    def get_base_property(self) -> 'Property':
+        '''
+        Retrieve a potential overwritten property from a base-class.
+        '''
+        assert self.m_parent and isinstance(self.m_parent, Section), 'Property must be property of a section.'
+        section = cast(Section, self.m_parent)
+        for base_section in section.all_base_sections.values():
+            base_property = base_section.all_properties.get(self.name)
+            if base_property:
+                if base_property.m_def != self.m_def:
+                    raise MetainfoError('Cannot overwrite a property of different metainfo type.')
+                return base_property
+
+        return None
+
+    def _hash_seed(self) -> str:
+        seed = super(Property, self)._hash_seed()
+
+        if self.attributes:
+            for item in self.attributes:  # pylint: disable=not-an-iterable
+                seed += item._hash_seed()
+
+        return seed
+
 
 class Quantity(Property):
     '''
-    To define quantities, instantiate :class:`Quantity` as a classattribute values in
+    To define quantities, instantiate :class:`Quantity` as a class attribute values in
     a `section classes`. The name of a quantity is automatically taken from its `section class`
     attribute. You can provide all other attributes to the constructor with keyword arguments
 
@@ -2923,7 +3241,7 @@ class Quantity(Property):
             - an instance of :class:`MEnum`, e.g. ``MEnum('one', 'two', 'three')``
             - a section to define references to other sections as quantity values
             - a custom meta-info :class:`DataType`, see :ref:`metainfo-custom-types`
-            - a numpy `dtype`, e.g. ``np.dtype('float32')``
+            - a numpy `dtype`, e.g. ``np.float32``
             - ``typing.Any`` to support any value
 
             If set to `dtype`, this quantity will use a numpy array or scalar to store values
@@ -2933,7 +3251,7 @@ class Quantity(Property):
             To define a reference, either a `section class` or instance of :class:`Section`
             can be given. See :ref:`metainfo-sections` for details. Instances of the given section
             constitute valid values for this type. Upon serialization, references section
-            instance will represented with metainfo URLs. See :ref:`metainfo-urls`.
+            instance will represent with metainfo URLs. See :ref:`metainfo-urls`.
 
             For quantities with more than one dimension, only numpy arrays and `dtypes`
             are allowed.
@@ -2955,7 +3273,7 @@ class Quantity(Property):
             length. The ``*`` can be used to denote an arbitrarily high upper bound.
 
             Quantities with dimensionality (length of the shape) higher than 1, must be
-            numpy arrays. Theire type must be a `dtype`.
+            numpy arrays. Their type must be a `dtype`.
 
         is_scalar:
             Derived quantity that is True, iff this quantity has shape of length 0
@@ -2968,6 +3286,12 @@ class Quantity(Property):
             The metainfo provides a preconfigured *pint* unit registry :py:data:`ureg`.
             You can also provide the unit as *pint* parsable string, e.g. ``'meter / seconds'`` or
             ``'m/s'``.
+
+        dimensionality:
+            The dimensionality of the quantity. It is optional.
+
+            If set, it will be used to validate the compatibility between chosen unit and the target
+            dimensionality.
 
         default:
             The default value for this quantity. The value must match type and shape.
@@ -3003,6 +3327,7 @@ class Quantity(Property):
     type: 'Quantity' = _placeholder_quantity
     shape: 'Quantity' = _placeholder_quantity
     unit: 'Quantity' = _placeholder_quantity
+    dimensionality: 'Quantity' = _placeholder_quantity
     default: 'Quantity' = _placeholder_quantity
     derived: 'Quantity' = _placeholder_quantity
     cached: 'Quantity' = _placeholder_quantity
@@ -3024,13 +3349,15 @@ class Quantity(Property):
         is_primitive = not self.derived
         is_primitive = is_primitive and len(self.shape) <= 1
         is_primitive = is_primitive and self.type in [str, bool, float, int]
-        is_primitive = is_primitive and not isinstance(self.type, np.dtype)
+        is_primitive = is_primitive and self.type not in _types_num_numpy
         if is_primitive:
             self._default = self.default
             self._name = self.name
             self._type = self.type
             self._list = len(self.shape) == 1
             self.__class__ = PrimitiveQuantity
+
+        _Unit.check_dimensionality(self, self.unit)
 
     def __get__(self, obj, cls):
         try:
@@ -3065,18 +3392,14 @@ class Quantity(Property):
                 value = self.type.get_normalize(obj, self, value)
 
             elif dimensions == 1:
-                value = list(
-                    self.type.get_normalize(obj, self, item)
-                    for item in value)
+                value = list(self.type.get_normalize(obj, self, item) for item in value)
 
             else:
                 raise MetainfoError(
-                    'Only numpy arrays and dtypes can be used for higher dimensional '
-                    'quantities.')
+                    'Only numpy arrays and dtypes can be used for higher dimensional quantities.')
 
-        elif isinstance(self.type, np.dtype):
-            if self.unit is not None:
-                value = value * self.unit
+        if self.unit is not None and self.type in _types_num:
+            value = value * self.unit
 
         return value
 
@@ -3108,25 +3431,24 @@ class Quantity(Property):
     @constraint(warning=True)
     def dimensions(self):
         for dimension in self.shape:
-            if isinstance(dimension, str):
-                if dimension.isidentifier():
-                    dim_quantity = self.m_parent.all_quantities.get(dimension, None)
+            if not isinstance(dimension, str) or not dimension.isidentifier():
+                continue
 
-                    assert dim_quantity is not None, \
-                        'Dimensions (%s) must be quantities of the same section (%s).' % (
-                            dimension, self.m_parent)
+            dim_quantity = self.m_parent.all_quantities.get(dimension, None)
 
-                    assert len(dim_quantity.shape) == 0 and \
-                        dim_quantity.type in [int, np.int16, np.int32, np.int8, np.uint8], \
-                        'Dimensions (%s) must be shapeless (%s) and int (%s) typed.' % (
-                            dimension, dim_quantity.shape, dim_quantity.type)
+            assert dim_quantity is not None, \
+                f'Dimensions ({dimension}) must be quantities of the same section ({self.m_parent}).'
+
+            assert dim_quantity.type in [int, np.int16, np.int32, np.int8, np.uint8] and len(
+                dim_quantity.shape) == 0, \
+                f'Dimensions ({dimension}) must be shapeless ({dim_quantity.shape}) ' \
+                f'and int ({dim_quantity.type}) typed.'
 
     @constraint(warning=True)
     def higher_shapes_require_dtype(self):
         if len(self.shape) > 1:
-            assert isinstance(self.type, np.dtype), \
-                'Higher dimensional quantities (%s) need a dtype and will be treated as ' \
-                'numpy arrays.' % self
+            assert self.type in _types_numpy, \
+                f'Higher dimensional quantities ({self}) need a dtype and will be treated as numpy arrays.'
 
     def _hash_seed(self) -> str:
         '''
@@ -3159,6 +3481,7 @@ class Quantity(Property):
             new_id += dim if isinstance(dim, str) else str(dim)
 
         new_id += f'{str(self.unit)}{"N" if self.default is None else self.default}'
+        new_id += str(self.dimensionality)
         new_id += "T" if self.virtual else "F"
 
         return new_id
@@ -3174,6 +3497,7 @@ def derived(**kwargs):
             kwargs['type'] = Any
 
         return Quantity(derived=f, **kwargs)
+
     return decorator
 
 
@@ -3209,11 +3533,14 @@ class PrimitiveQuantity(Quantity):
     ''' An optimized replacement for Quantity suitable for primitive properties. '''
     def __get__(self, obj, cls):
         try:
-            return obj.__dict__[self._name]
+            value = obj.__dict__[self._name]
         except KeyError:
-            return self._default
+            value = self._default
         except AttributeError:
             return self
+        if value is not None and self.unit is not None and self.type in _types_num:
+            value = value * self.unit
+        return value
 
     def __set__(self, obj, value):
         obj.m_mod_count += 1
@@ -3222,25 +3549,36 @@ class PrimitiveQuantity(Quantity):
             obj.__dict__.pop(self.name, None)
             return
 
+        # Handle pint quantities. Conversion is done automatically between
+        # units. Notice that currently converting from float to int or vice
+        # versa is not allowed for primitive types.
+        if isinstance(value, pint.quantity._Quantity):
+            if self.unit is None:
+                raise TypeError(
+                    f'The quantity {self} does not have a unit, but value {value} has.'
+                )
+            if self.type in _types_int:
+                raise TypeError(
+                    f'Cannot save data with unit conversion into the quantity {self} '
+                    'with integer data type due to possible precision loss.'
+                )
+            value = value.to(self.unit).magnitude
+
         if self._list:
             if not isinstance(value, list):
                 if hasattr(value, 'tolist'):
                     value = value.tolist()
-
                 else:
                     raise TypeError(
-                        'The value %s for quantity %s has not shape %s' %
-                        (value, self, self.shape))
+                        f'The value {value} for quantity {self} has not shape {self.shape}')
 
             if any(v is not None and type(v) != self._type for v in value):
                 raise TypeError(
-                    'The value %s with type %s for quantity %s is not of type %s' %
-                    (value, type(value), self, self.type))
+                    f'The value {value} with type {type(value)} for quantity {self} is not of type {self.type}')
 
         elif type(value) != self._type:
             raise TypeError(
-                'The value %s with type %s for quantity %s is not of type %s' %
-                (value, type(value), self, self.type))
+                f'The value {value} with type {type(value)} for quantity {self} is not of type {self.type}')
 
         try:
             obj.__dict__[self._name] = value
@@ -3265,7 +3603,7 @@ class SubSection(Property):
             will be the child `section definition`. The defining section the child
             `section definition`.
 
-        repeats: A boolean that determines wether this sub-section can appear multiple
+        repeats: A boolean that determines whether this sub-section can appear multiple
             times in the parent section.
     '''
 
@@ -3275,16 +3613,15 @@ class SubSection(Property):
     repeats: 'Quantity' = _placeholder_quantity
 
     def __get__(self, obj, type=None):
+        # the class attribute case
         if obj is None:
-            # the class attribute case
             return self
 
-        else:
-            # the object attribute case
-            if self.repeats:
-                return obj.m_get_sub_sections(self)
-            else:
-                return obj.m_get_sub_section(self, -1)
+        # the object attribute case
+        if self.repeats:
+            return obj.m_get_sub_sections(self)
+
+        return obj.m_get_sub_section(self, -1)
 
     def __set__(self, obj, value):
         if obj is None:
@@ -3298,7 +3635,8 @@ class SubSection(Property):
                 return
 
             if value is not None:
-                raise NotImplementedError('Cannot set a repeating sub section directly, modify the list, e.a. via append.')
+                raise NotImplementedError(
+                    'Cannot set a repeating sub section directly, modify the list, e.a. via append.')
 
             obj.m_get_sub_sections(self).clear()
 
@@ -3313,7 +3651,8 @@ class SubSection(Property):
 
     @constraint(warning=False)
     def has_sub_section(self):
-        assert self.sub_section is not None, 'Each sub section must define the section that is used as sub section via the "sub_section" quantity'
+        assert self.sub_section is not None, \
+            'Each sub section must define the section that is used as sub section via the "sub_section" quantity'
         try:
             assert not isinstance(self.sub_section.m_resolved(), MProxy), 'Cannot resolve "sub_section"'
         except MetainfoReferenceError as e:
@@ -3539,6 +3878,7 @@ class Section(Definition):
     all_sub_sections_by_section: 'Quantity' = _placeholder_quantity
     all_aliases: 'Quantity' = _placeholder_quantity
     all_inner_section_definitions: 'Quantity' = _placeholder_quantity
+    has_variable_names: 'Quantity' = _placeholder_quantity
     path: 'Quantity' = _placeholder_quantity
 
     def __init__(self, *args, validate: bool = True, **kwargs):
@@ -3603,7 +3943,7 @@ class Section(Definition):
             for base_section in self.base_sections:
                 base_section.inheriting_sections = base_section.inheriting_sections + [self]
 
-        # Transfer properties of inherited and overwriten property definitions that
+        # Transfer properties of inherited and overwritten property definitions that
         # have not been overwritten
         inherited_properties: Dict[str, Property] = dict()
         for base_section in self.all_base_sections:
@@ -3629,12 +3969,14 @@ class Section(Definition):
 
         for def_list in [self.quantities, self.sub_sections]:
             for definition in def_list:
-                assert definition.name not in names, 'All names in a section must be unique. ' \
-                    'Name %s of %s in %s already exists in %s.' % (definition.name, definition, definition.m_parent, self)
+                assert definition.name not in names, \
+                    f'All names in a section must be unique. ' \
+                    f'Name {definition.name} of {definition} in {definition.m_parent} already exists in {self}.'
                 names.add(definition.name)
                 for alias in definition.aliases:
-                    assert alias not in names, 'All names (incl. aliases) in a section must be unique. ' \
-                        'Alias %s of %s in %s already exists in %s.' % (alias, definition, definition.m_parent, self)
+                    assert alias not in names, \
+                        f'All names (incl. aliases) in a section must be unique. ' \
+                        f'Alias {alias} of {definition} in {definition.m_parent} already exists in {self}.'
                     names.add(alias)
 
     @constraint
@@ -3660,9 +4002,14 @@ class Section(Definition):
                                 assert_component(
                                     component, definition.name, definition.type.__name__, validElnComponents['bool']
                                 )
-                            elif definition.type.__name__ in ['float', 'int']:
+                            elif definition.type in _types_num_python:
                                 assert_component(
                                     component, definition.name, definition.type.__name__,
+                                    validElnComponents['number']
+                                )
+                            elif definition.type in _types_num_numpy:
+                                assert_component(
+                                    component, definition.name, f'np.{definition.type.__name__}',
                                     validElnComponents['number']
                                 )
                             elif definition.type.__name__ == 'User':
@@ -3675,13 +4022,6 @@ class Section(Definition):
                                     component, definition.name, definition.type.__name__,
                                     validElnComponents['author']
                                 )
-                        elif definition.type in [np.float64, np.float32, np.float,
-                                                 np.uint64, np.uint32, np.uint,
-                                                 np.int64, np.int32, np.int]:
-                            assert_component(
-                                component, definition.name, type(definition.type).__name__,
-                                validElnComponents['number']
-                            )
                         elif isinstance(definition.type, _Datetime):
                             assert_component(
                                 component, definition.name, type(definition.type).__name__,
@@ -3780,18 +4120,18 @@ def dict_to_named_list(data):
 
 
 class Package(Definition):
-    ''' Packages organize metainfo defintions alongside Python modules
+    ''' Packages organize metainfo definitions alongside Python modules
 
-    Each Python module with metainfo Definition (explicitely or implicitely) has a member
+    Each Python module with metainfo Definition (explicitly or implicitly) has a member
     ``m_package`` with an instance of this class. Definitions (categories, sections) in
     Python modules are automatically added to the module's :class:`Package`.
-    Packages are not nested and rather have the fully qualitied Python module name as
+    Packages are not nested and rather have the fully qualified Python module name as
     name.
 
     This allows to inspect all definitions in a Python module and automatically puts
     module name and docstring as :class:`Package` name and description.
 
-    Besides the regular :class:`Defintion` attributes, packages can have the following
+    Besides the regular :class:`Definition` attributes, packages can have the following
     attributes:
 
     Attributes:
@@ -3847,8 +4187,8 @@ class Package(Definition):
         self.errors, self.warnings = self.m_all_validate()
         if len(self.errors) > 0:
             raise MetainfoError(
-                'One constraint was violated: %s (there are %d more violations)' %
-                (str(self.errors[0]).strip('.'), len(self.errors) - 1))
+                f'One constraint was violated: {str(self.errors[0]).strip(".")} '
+                f'(there are {len(self.errors) - 1:d} more violations)')
 
     @staticmethod
     def from_module(module_name: str):
@@ -3986,6 +4326,7 @@ Section.m_def.m_def = Section.m_def
 Section.m_def._section_cls = Section
 
 Definition.m_def = Section(name='Definition')
+Attribute.m_def = Section(name='Attribute')
 Property.m_def = Section(name='Property')
 Quantity.m_def = Section(name='Quantity')
 SubSection.m_def = Section(name='SubSection')
@@ -3999,6 +4340,7 @@ Definition.categories = Quantity(
     type=Reference(Category.m_def), shape=['0..*'], default=[], name='categories')
 Definition.deprecated = Quantity(type=str, name='deprecated')
 Definition.aliases = Quantity(type=str, shape=['0..*'], default=[], name='aliases')
+Definition.variable = Quantity(type=bool, name='variable', default=False)
 Definition.more = Quantity(type=JSON, name='more', default={})
 
 Section.quantities = SubSection(
@@ -4123,6 +4465,14 @@ def all_inner_section_definitions(self) -> Dict[str, Section]:
 
 
 @derived(cached=True)
+def has_variable_names(self) -> bool:
+    for property in self.all_properties.values():
+        if property.variable:
+            return True
+    return False
+
+
+@derived(cached=True)
 def section_path(self) -> str:
     used_in_sub_sections: List[SubSection] = SubSection._used_sections.get(self, [])  # type: ignore
     if len(used_in_sub_sections) == 0:
@@ -4155,10 +4505,30 @@ Section.all_sub_sections = all_sub_sections
 Section.all_sub_sections_by_section = all_sub_sections_by_section
 Section.all_aliases = all_aliases
 Section.all_inner_section_definitions = all_inner_section_definitions
+Section.has_variable_names = has_variable_names
 Section.path = section_path
 
+Attribute.type = DirectQuantity(type=QuantityType, name='type')
+Attribute.shape = DirectQuantity(type=Dimension, shape=['0..*'], name='shape', default=[])
 
-Property.template = Quantity(type=bool, name='template', default=False)
+
+@derived(cached=True, virtual=True)  # Virtual has to be set manually, due to bootstrapping hen-egg problems
+def all_attributes(self: Property) -> Dict[str, Attribute]:
+    result: Dict[str, Attribute] = {}
+    for definition in self.attributes:
+        result[definition.name] = definition
+
+    for section_def in self.m_def.all_base_sections + [self.m_def]:
+        m_attributes = getattr(section_def.section_cls, 'm_attributes', [])
+        for m_attribute in m_attributes:
+            m_attribute = m_attribute.m_copy(parent=self)
+            result[m_attribute.name] = m_attribute
+    return result
+
+
+Property.attributes = SubSection(
+    sub_section=Attribute.m_def, name='attributes', repeats=True)
+Property.all_attributes = all_attributes
 
 SubSection.repeats = Quantity(type=bool, name='repeats', default=False)
 
@@ -4170,6 +4540,7 @@ Quantity.m_def._section_cls = Quantity
 Quantity.type = DirectQuantity(type=QuantityType, name='type')
 Quantity.shape = DirectQuantity(type=Dimension, shape=['0..*'], name='shape', default=[])
 Quantity.unit = Quantity(type=Unit, name='unit')
+Quantity.dimensionality = DirectQuantity(type=str, name='dimensionality')
 Quantity.default = DirectQuantity(type=Any, default=None, name='default')
 Quantity.derived = DirectQuantity(type=Callable, default=None, name='derived', virtual=True)
 Quantity.virtual = DirectQuantity(type=bool, default=False, name='virtual')
@@ -4236,9 +4607,13 @@ def dependencies(self):
 Package.all_definitions = all_definitions
 Package.dependencies = dependencies
 
+Property.m_attributes.append(Attribute(name='m_source_name', type=str))
+Quantity.m_attributes.append(Attribute(name='m_source_unit', type=Unit))
+
 is_bootstrapping = False
 
 Definition.__init_cls__()
+Attribute.__init_cls__()
 Property.__init_cls__()
 Section.__init_cls__()
 Package.__init_cls__()

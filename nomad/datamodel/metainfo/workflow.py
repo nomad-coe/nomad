@@ -850,7 +850,7 @@ class Elastic(MSection):
         ''')
 
     deformation_types = Quantity(
-        type=np.dtype('U'),
+        type=np.str_,
         shape=['n_deformations', 6],
         description='''
         deformation types
@@ -887,7 +887,7 @@ class Elastic(MSection):
         ''')
 
     elastic_constants_notation_matrix_second_order = Quantity(
-        type=np.dtype('U'),
+        type=np.str_,
         shape=[6, 6],
         description='''
         Symmetry of the second-order elastic constant matrix in Voigt notation
@@ -1699,7 +1699,7 @@ class EnsembleProperty(MSection):
         ''')
 
     variables_name = Quantity(
-        type=np.dtype(str),
+        type=str,
         shape=['n_variables'],
         description='''
         Name/description of the independent variables along which the observable is defined.

@@ -28,7 +28,7 @@ from nomad import utils, datamodel, processing, config
 from nomad.metainfo.elasticsearch_extension import entry_type
 from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
-from nomad.doi import DOI
+from nomad.doi import DOI, DOIException
 from nomad.search import search, update_by_query
 
 from .auth import create_user_dependency
@@ -90,8 +90,48 @@ _dataset_is_empty = status.HTTP_400_BAD_REQUEST, {
         contents to the dataset first.
     ''')}
 
+_datacite_did_not_resolve = status.HTTP_500_INTERNAL_SERVER_ERROR, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Datacite server couldn't resolve the request. Please try again later.
+    ''')}
+
+_existing_dataset_with_findable_state = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The dataset was failed to to be submitted previously. It is removed now.
+    ''')}
 
 Dataset = datamodel.Dataset.m_def.a_pydantic.model
+
+
+def _delete_dataset(user: User, dataset_id, dataset):
+    es_query = cast(Query, {'datasets.dataset_id': dataset_id})
+    entries = _do_exaustive_search(
+        owner=Owner.user, query=es_query, user=user,
+        include=['entry_id'])
+    entry_ids = [entry['entry_id'] for entry in entries]
+    mongo_query = {'_id': {'$in': entry_ids}}
+
+    dataset.delete()
+
+    if len(entry_ids) > 0:
+        processing.Entry._get_collection().update_many(
+            mongo_query, {'$pull': {'datasets': dataset.dataset_id}})
+        update_by_query(
+            '''
+                int index = -1;
+                for (int i = 0; i < ctx._source.datasets.length; i++) {
+                    if (ctx._source.datasets[i].dataset_id == params.dataset_id) {
+                        index = i
+                    }
+                }
+                if (index != -1) {
+                    ctx._source.datasets.remove(index);
+                }
+            ''',
+            params=dict(dataset_id=dataset_id),
+            query=es_query, user_id=user.user_id, refresh=True)
 
 
 class DatasetPagination(Pagination):
@@ -315,32 +355,7 @@ async def delete_dataset(
 
     # delete dataset from entries in mongo and elastic
     # TODO this should be part of a new edit API
-    es_query = cast(Query, {'datasets.dataset_id': dataset_id})
-    entries = _do_exaustive_search(
-        owner=Owner.user, query=es_query, user=user,
-        include=['entry_id'])
-    entry_ids = [entry['entry_id'] for entry in entries]
-    mongo_query = {'_id': {'$in': entry_ids}}
-
-    dataset.delete()
-
-    if len(entry_ids) > 0:
-        processing.Entry._get_collection().update_many(
-            mongo_query, {'$pull': {'datasets': dataset.dataset_id}})
-        update_by_query(
-            '''
-                int index = -1;
-                for (int i = 0; i < ctx._source.datasets.length; i++) {
-                    if (ctx._source.datasets[i].dataset_id == params.dataset_id) {
-                        index = i
-                    }
-                }
-                if (index != -1) {
-                    ctx._source.datasets.remove(index);
-                }
-            ''',
-            params=dict(dataset_id=dataset_id),
-            query=es_query, user_id=user.user_id, refresh=True)
+    _delete_dataset(user=user, dataset_id=dataset_id, dataset=dataset)
 
     return {
         'dataset_id': dataset.dataset_id,
@@ -370,6 +385,12 @@ async def assign_doi(
             detail=_bad_id_response[1]['description'])
 
     if dataset.doi is not None:
+        doi = DOI.objects(doi=dataset.doi).first()
+        if type(doi) == DOI and not (doi.state == 'findable'):
+            _delete_dataset(user=user, dataset_id=dataset_id, dataset=dataset)
+            raise HTTPException(
+                status_code=_existing_dataset_with_findable_state[0],
+                detail=_existing_dataset_with_findable_state[1]['description'])
         raise HTTPException(
             status_code=_existing_name_response[0],
             detail=_dataset_is_fixed_response[1]['description'])
@@ -401,8 +422,14 @@ async def assign_doi(
             detail=_dataset_has_unpublished_contents[1]['description'])
 
     doi = DOI.create(title='NOMAD dataset: %s' % dataset.dataset_name, user=user)
-    doi.create_draft()
-    doi.make_findable()
+
+    try:
+        doi.create_draft()
+        doi.make_findable()
+    except DOIException:
+        raise HTTPException(
+            status_code=_datacite_did_not_resolve[0],
+            detail=_datacite_did_not_resolve[1]['description'])
 
     dataset.doi = doi.doi
 

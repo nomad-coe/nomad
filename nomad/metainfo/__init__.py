@@ -35,6 +35,7 @@ from .metainfo import (
     MSection,
     MCategory,
     Definition,
+    Attribute,
     Property,
     Quantity,
     SubSection,

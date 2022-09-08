@@ -27,7 +27,7 @@ from typing import List, Dict, Any, Iterable
 from tests.utils import build_url, set_upload_entry_metadata
 
 from tests.test_files import (
-    example_file_mainfile_different_atoms, example_file_vasp_with_binary, example_file_aux,
+    example_file_mainfile_different_atoms, example_file_vasp_with_binary, example_file_aux, example_file_mainfile,
     example_file_unparsable, example_file_corrupt_zip, empty_file,
     assert_upload_files)
 from tests.test_search import assert_search_upload
@@ -252,6 +252,7 @@ def assert_processing(
     response_entries_json = response_entries.json()
     response_entries_data = response_entries_json['data']
     all_entries_succesful = True
+
     for entry in response_entries_data:
         entry_succeeded = entry['process_status'] == ProcessStatus.SUCCESS
         if not entry_succeeded:
@@ -1003,6 +1004,9 @@ def test_get_upload_entry_archive(
         'stream', None, 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
         True, False, 401, None, id='no-credentials'),
     pytest.param(
+        'stream', None, 'examples_template', example_file_aux, '', {'file_name': 1},
+        True, False, 401, None, id='filename-not-str'),
+    pytest.param(
         'stream', 'invalid', 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
         True, False, 401, None, id='invalid-credentials'),
     pytest.param(
@@ -1032,6 +1036,38 @@ def test_get_upload_entry_archive(
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_aux, '', {},
         True, False, 200, ['examples_template/template.json'], id='multipart'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        {
+            'file_name': 'template.json',
+            "copy_or_move_source_path": 'examples_template/template.json',
+            "copy_or_move": 'copy'
+        },
+        True, False, 200, {'template.json': True, 'examples_template/template.json': True}, id='copy-file-to-rawdir'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        {
+            'file_name': 'template_2.json',
+            "copy_or_move_source_path": 'examples_template/template.json',
+            "copy_or_move": 'copy'
+        },
+        True, False, 200, {'examples_template/template.json': True}, id='copy-with-rename-file-to-rawdir'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        {
+            'file_name': 'template.json',
+            "copy_or_move_source_path": 'examples_template/template.json',
+            "copy_or_move": 'move'
+        },
+        True, False, 200, {'template.json': True}, id='move-file-to-rawdir'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        {
+            'file_name': 'template_2.json',
+            "copy_or_move_source_path": 'examples_template/template.json',
+            "copy_or_move": 'move'
+        },
+        True, False, 200, None, id='move-with-rename-file-to-rawdir'),
     pytest.param(
         'stream', 'test_user', 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
         True, False, 200, ['examples_template/template.json'], id='stream'),
@@ -1095,10 +1131,10 @@ def test_get_upload_entry_archive(
         True, False, 200, [
             'examples_template/template.json',
             'dir1/examples_vasp/xml/Si.xml',
-            'dir1/examples_vasp/xml/perovskite.xml.gz'], id='uplod-multiple-vasp-and-aux'),
+            'dir1/examples_vasp/xml/perovskite.xml.gz'], id='upload-multiple-vasp-and-aux'),
     pytest.param(
         'multipart', 'test_user', 'examples_template', [example_file_aux, example_file_corrupt_zip], 'dir1', {'file_name': 'tmp.zip'},
-        True, False, 400, ['examples_template/template.json'], id='uplod-multiple-one-corrupted-zip')])
+        True, False, 400, ['examples_template/template.json'], id='upload-multiple-one-corrupted-zip')])
 def test_put_upload_raw_path(
         client, proc_infra, non_empty_processed, example_data_writeable, test_auth_dict,
         mode, user, upload_id, source_paths, target_path, query_args, accept_json, use_upload_token,

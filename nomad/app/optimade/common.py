@@ -17,9 +17,15 @@
 #
 
 from typing import Dict, cast
-import numpy as np
 
-from nomad.metainfo.metainfo import Quantity, Reference, Datetime, MEnum
+from nomad.metainfo.metainfo import (
+    Quantity,
+    Reference,
+    Datetime,
+    MEnum,
+    _types_int,
+    _types_float
+)
 from nomad.metainfo.elasticsearch_extension import SearchQuantity, entry_type
 
 
@@ -36,9 +42,9 @@ def create_provider_field(name, definition):
         type = 'boolean'
     elif definition.type == Datetime:
         type = 'timestamp'
-    elif isinstance(definition.type, np.dtype) or definition.type == float:
+    elif definition.type in _types_float:
         type = 'float'
-    elif definition.type == int:
+    elif definition.type in _types_int:
         type = 'integer'
     else:
         raise NotImplementedError(

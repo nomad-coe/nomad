@@ -98,52 +98,23 @@ from tests.normalizing.conftest import run_normalize
         '''), id='units')
 ])
 def test_tabular(raw_files, monkeypatch, schema, content):
-    mainfile = os.path.join(config.fs.tmp, 'test.my_schema.archive.csv')
-    schema_file = os.path.join(config.fs.tmp, 'my_schema.archive.yaml')
-    with open(mainfile, 'wt') as f:
-        f.write(content)
-    with open(schema_file, 'wt') as f:
-        f.write(schema)
-
+    mainfile, schema_file = get_files(schema, content)
     data = pd.read_csv(mainfile)
-
     parser = TabularDataParser()
     keys = parser.is_mainfile(mainfile, 'text/application', bytes(), '')
 
     assert isinstance(keys, list)
     assert len(keys) == data.shape[0]
 
-    class MyContext(ClientContext):
-        def load_raw_file(self, path, upload_id, installation_url):
-            archive = super().load_raw_file(path, upload_id, installation_url)
-            archive.metadata = EntryMetadata(
-                upload_id='test_upload',
-                entry_id=generate_entry_id('test_upload', schema_file))
-            return archive
-
-    context = MyContext(local_dir='')
-    main_archive = EntryArchive(m_context=context, metadata=EntryMetadata(
-        upload_id=None,
-        mainfile=mainfile,
-        entry_id=generate_entry_id('test_upload', mainfile)))
-    child_archives = {
-        key: EntryArchive(m_context=context, metadata=EntryMetadata(
-            upload_id='test_upload',
-            mainfile=mainfile,
-            mainfile_key=key,
-            entry_id=generate_entry_id('test_upload', mainfile, key)))
-        for key in keys}
-
+    upload_id = 'test_upload'
+    context = get_context(upload_id, schema_file)
+    main_archive, child_archives = get_archives(context, mainfile, upload_id, keys)
     parser.parse(mainfile, main_archive, None, child_archives)
-    main_archive.metadata.upload_id = 'test_upload'
+    main_archive.metadata.upload_id = upload_id
 
     assert main_archive.data is not None
     for child_archive in child_archives.values():
         child_archive.data is not None
-
-    # print('# main: ', json.dumps(main_archive.m_to_dict(), indent=2))
-    # for key in keys:
-    #     print(f'# {key}: ', json.dumps(child_archives[key].m_to_dict(), indent=2))
 
 
 @pytest.mark.parametrize('schema', [
@@ -262,20 +233,15 @@ def test_tabular(raw_files, monkeypatch, schema, content):
         '''), id='w_sheetName_colMode')
 ])
 def test_xlsx_tabular(raw_files, monkeypatch, schema):
-    schema_file = os.path.join(config.fs.tmp, 'excel_parser.archive.yaml')
-    with open(schema_file, 'wt') as f:
-        f.write(schema)
-
+    _, schema_file = get_files(schema)
     excel_file = os.path.join(os.path.dirname(__file__), '../../tests/data/parsers/tabular/Test.xlsx')
 
     class MyContext(ClientContext):
         def raw_file(self, path, *args, **kwargs):
             return open(excel_file, *args, **kwargs)
     context = MyContext(local_dir='')
-    main_archive = EntryArchive(m_context=context, metadata=EntryMetadata(
-        upload_id=None,
-        mainfile=schema_file,
-        entry_id=generate_entry_id('test_upload', schema_file)))
+
+    main_archive, _ = get_archives(context, schema_file, None)
     ArchiveParser().parse(schema_file, main_archive)
     run_normalize(main_archive)
 
@@ -284,3 +250,115 @@ def test_xlsx_tabular(raw_files, monkeypatch, schema):
     assert main_archive.data.process.experiment_identifier == '22-01-21-MA-255'
     if 'pyrotemperature' in main_archive.data.process:
         assert len(main_archive.data.process['pyrotemperature']) == 6
+
+
+@pytest.mark.parametrize('schema,content,missing', [
+    pytest.param(
+        strip('''
+            definitions:
+                sections:
+                    MyTable:
+                        base_section: nomad.parsing.tabular.TableRow
+                        quantities:
+                            header_0:
+                                type: str
+                            header_1:
+                                type: str
+        '''),
+        strip('''
+            header_0,header_1
+            a,
+            ,b
+        '''),
+        ['header_1', 'header_0'],
+        id='missing string'
+    ),
+    pytest.param(
+        strip('''
+            definitions:
+                sections:
+                    MyTable:
+                        base_section: nomad.parsing.tabular.TableRow
+                        quantities:
+                            header_0:
+                                type: float
+                            header_1:
+                                type: float
+        '''),
+        strip('''
+            header_0,header_1
+            1,
+            ,2
+        '''),
+        ['header_1', 'header_0'],
+        id='missing float'
+    )
+])
+def test_missing_data(raw_files, monkeypatch, schema, content, missing):
+    '''Tests that missing data is handled correctly. Pandas by default
+    interprets missing numeric values as NaN, which are incompatible with
+    metainfo.
+    '''
+    mainfile, schema_file = get_files(schema, content)
+    upload_id = 'test_upload'
+    parser = TabularDataParser()
+    context = get_context(upload_id, schema_file)
+    keys = parser.is_mainfile(mainfile, 'text/application', bytes(), '')
+    main_archive, child_archives = get_archives(context, mainfile, upload_id, keys)
+    parser.parse(mainfile, main_archive, None, child_archives)
+    for key, quantity in zip(keys, missing):
+        assert getattr(child_archives[key].data, quantity) is None
+
+
+def get_files(schema=None, content=None):
+    '''Prepares files containing schema and data in the temporary file
+    directory.
+    '''
+    if schema:
+        schema_file = os.path.join(config.fs.tmp, 'my_schema.archive.yaml')
+        with open(schema_file, 'wt') as f:
+            f.write(schema)
+    else:
+        schema_file = None
+    if content:
+        mainfile = os.path.join(config.fs.tmp, 'test.my_schema.archive.csv')
+        with open(mainfile, 'wt') as f:
+            f.write(content)
+    else:
+        mainfile = None
+    return mainfile, schema_file
+
+
+def get_context(upload_id, schema_file):
+    '''Prepares a custom context for testing.
+    '''
+    class MyContext(ClientContext):
+        def load_raw_file(self, path, upload_id, installation_url):
+            archive = super().load_raw_file(path, upload_id, installation_url)
+            archive.metadata = EntryMetadata(
+                upload_id=upload_id,
+                entry_id=generate_entry_id(upload_id, schema_file))
+            return archive
+
+    return MyContext(local_dir='')
+
+
+def get_archives(context, mainfile, upload_id, keys=None):
+    '''Prepares a main archive and child archives for parsing.
+    '''
+    main_archive = EntryArchive(m_context=context, metadata=EntryMetadata(
+        upload_id=None,
+        mainfile=mainfile,
+        entry_id=generate_entry_id(upload_id, mainfile)))
+    if keys:
+        child_archives = {
+            key: EntryArchive(m_context=context, metadata=EntryMetadata(
+                upload_id=upload_id,
+                mainfile=mainfile,
+                mainfile_key=key,
+                entry_id=generate_entry_id(upload_id, mainfile, key)))
+            for key in keys}
+    else:
+        child_archives = None
+
+    return main_archive, child_archives

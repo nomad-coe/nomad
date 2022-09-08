@@ -29,6 +29,12 @@ from mongoengine.errors import NotUniqueError
 
 from nomad.datamodel import User
 from nomad import config, utils
+from fastapi import HTTPException
+
+
+class DOIException(Exception):
+    ''' Datacite-requests related errors. '''
+    pass
 
 
 def _create_dataset_url(doi: str) -> str:
@@ -157,23 +163,27 @@ class DOI(Document):
         return doi
 
     def __handle_datacite_errors(self, response, msg: str):
-        if response.status_code >= 300:
+        if response is None or response.status_code >= 300:
             utils.get_logger(__name__).error(
                 'could not %s' % msg,
                 status_code=response.status_code, body=response.content,
                 doi=self.doi)
 
-            return False
-        else:
-            return True
+            raise DOIException()
+
+        return True
 
     def create_draft(self):
         if config.datacite.enabled:
             assert self.state == 'created', 'can only create a draft for created DOIs'
-            response = requests.post(
-                self.metadata_url,
-                headers={'Content-Type': 'application/xml;charset=UTF-8'},
-                data=self.metadata_xml.encode('utf-8'), **_requests_args())
+            response = None
+            try:
+                response = requests.post(
+                    self.metadata_url,
+                    headers={'Content-Type': 'application/xml;charset=UTF-8'},
+                    data=self.metadata_xml.encode('utf-8'), **_requests_args())
+            except HTTPException:
+                pass
 
             if self.__handle_datacite_errors(response, 'create draft DOI'):
                 self.state = 'draft'
@@ -182,7 +192,12 @@ class DOI(Document):
     def delete(self, *args, **kwargs):
         if config.datacite.enabled:
             assert self.state == 'draft', 'can only delete drafts'
-            response = requests.delete(self.metadata_url, **_requests_args())
+            response = None
+
+            try:
+                response = requests.delete(self.metadata_url, **_requests_args())
+            except HTTPException:
+                pass
 
             self.__handle_datacite_errors(response, 'delete draft DOI')
 
@@ -192,9 +207,14 @@ class DOI(Document):
         if config.datacite.enabled:
             assert self.state == 'draft', 'can only make drafts findable'
             body = ('doi=%s\nurl=%s' % (self.doi, self.url)).encode('utf-8')
-            response = requests.put(
-                self.doi_url, **_requests_args(),
-                headers={'Content-Type': 'text/plain;charset=UTF-8'}, data=body)
+            response = None
+
+            try:
+                response = requests.put(
+                    self.doi_url, **_requests_args(),
+                    headers={'Content-Type': 'text/plain;charset=UTF-8'}, data=body)
+            except HTTPException:
+                pass
 
             if self.__handle_datacite_errors(response, 'make DOI findable'):
                 self.state = 'findable'

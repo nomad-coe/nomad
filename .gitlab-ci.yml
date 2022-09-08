@@ -125,9 +125,7 @@ gui tests:
   script:
     - cd gui
     - yarn --network-timeout 1200000
-    - export NODE_OPTIONS=--max_old_space_size=3072
-    - yarn test --ci --collectCoverage --reporters=default --reporters=jest-junit --silent
-  timeout: 1h 30m
+    - yarn test --ci --collectCoverage --reporters=default --reporters=jest-junit --silent --testPathIgnorePatterns=MetainfoBrowser.spec.js
   coverage: /Lines\s*:\s*(\d+.?\d*)%/
   artifacts:
     when: always

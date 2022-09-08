@@ -30,7 +30,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.exceptions import RequestValidationError
 
 from nomad import utils, config, files
-from nomad.files import StagingUploadFiles, UploadBundle, is_safe_relative_path
+from nomad.files import StagingUploadFiles, UploadBundle, is_safe_relative_path, is_safe_basename
 from nomad.processing import Upload, Entry, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
 from nomad.search import search, search_iterator, refresh as search_refresh, QueryValidationError
@@ -850,6 +850,16 @@ async def put_upload_raw_path(
             None,
             description=strip('''
             Specifies the name of the file, when using method 2.''')),
+        copy_or_move: str = FastApiQuery(
+            None,
+            description=strip('''
+             If moving or copying a file within the same upload,
+             specify which operation to do: move or copy''')),
+        copy_or_move_source_path: str = FastApiQuery(
+            None,
+            description=strip('''
+            If moving or copying a file within the same upload, specify the path to the
+            source file.''')),
         wait_for_processing: bool = FastApiQuery(
             False,
             description=strip('''
@@ -866,7 +876,7 @@ async def put_upload_raw_path(
             The hash code of the not modified entry.''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
-    Upload one or more files to the directory specified by `path` in the the upload specified by `upload_id`.
+    Upload one or more files to the directory specified by `path` in the upload specified by `upload_id`.
 
     When uploading a zip or tar archive, it will first be extracted, and the content will be
     *merged* with the existing content, i.e. new files are added, and if there is a collision
@@ -893,6 +903,12 @@ async def put_upload_raw_path(
     This *needs* to be specified when using method 2, unless you are uploading a zip/tar file
     (for zip/tar files the names don't matter since they are extracted). See the POST `uploads`
     endpoint for examples of curl commands for uploading files.
+
+    Also, this path can be used to copy/move a file from one directory to another. Three
+    query parameters are required for a successful operation: 1) `copy_or_move` param to specify
+    if the file needs to be moved (if set to move then the original file will be removed), 2)
+    `file_name` param that contains the new name for the file moved/copied file and 3) `copy_or_move_source_path`
+    param that contains the path of the original/existing local file to be copied or moved.
     '''
     if include_archive and not wait_for_processing:
         raise HTTPException(
@@ -906,13 +922,35 @@ async def put_upload_raw_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Bad path provided.')
 
+    if copy_or_move is not None or copy_or_move_source_path is not None:
+        if copy_or_move not in ['copy', 'move']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='The copy_or_move query parameter should be one of \'copy\' or \'move\' options.')
+
+        if copy_or_move is None or copy_or_move_source_path is None or file_name is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='''For a successful copy/move operation, all three query parameters:
+                 file_name, copy_or_move and copy_or_move_source_path are required.''')
+
+        if not is_safe_basename(file_name):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Bad file name provided')
+
+        if copy_or_move_source_path is not None and not is_safe_relative_path(copy_or_move_source_path):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Bad source path provided.')
+
     upload_paths, method = await _get_files_if_provided(
         upload_id, request, file, local_path, file_name, user)
 
-    if not upload_paths:
+    if not upload_paths and not (copy_or_move and copy_or_move_source_path and file_name):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='No upload file provided.')
+            detail='Either an upload file or the query parameters for moving/copying a file should be provided.')
 
     if entry_hash:
         upload_path = upload_paths[0]
@@ -933,16 +971,42 @@ async def put_upload_raw_path(
 
     if not wait_for_processing:
         # Process on worker (normal case)
-        try:
-            upload.process_upload(
-                file_operations=[
-                    dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0))
-                    for upload_path in upload_paths],
-                only_updated_files=True)
-        except ProcessAlreadyRunning:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='The upload is currently blocked by another process.')
+        if file_name and copy_or_move_source_path:  # the case for move/copy an existing file
+            upload_files = StagingUploadFiles(upload_id)
+            if not upload_files.raw_path_exists(path):
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail='No file or folder with that path found.')
+
+            try:
+                new_file_path = os.path.join(path, file_name)
+                # If the flag copy_or_move is set to copy, this operation emulates a copy functionality
+                # and if the flag is set to move, this operation emulates a move functionality
+                upload.process_upload(
+                    file_operations=[
+                        dict(
+                            op='COPY',
+                            path_to_existing_file=copy_or_move_source_path,
+                            path_to_target_file=new_file_path,
+                            copy_or_move=copy_or_move)],
+                    only_updated_files=True)
+
+            except ProcessAlreadyRunning:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='The upload is currently blocked by another process.')
+
+        else:
+            try:
+                upload.process_upload(
+                    file_operations=[
+                        dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0))
+                        for upload_path in upload_paths],
+                    only_updated_files=True)
+            except ProcessAlreadyRunning:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='The upload is currently blocked by another process.')
 
         if request.headers.get('Accept') == 'application/json':
             response = PutRawFileResponse(
@@ -955,6 +1019,11 @@ async def put_upload_raw_path(
             media_type = 'text/plain'
     else:
         # Process locally
+        if file_name and copy_or_move_source_path:  # case for move/copy an existing file
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Cannot move/copy the file with wait_for_processing set to true.')
+
         if len(upload_paths) != 1 or decompress:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
