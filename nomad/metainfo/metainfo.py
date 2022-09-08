@@ -113,8 +113,8 @@ def _split_python_definition(definition_with_id: str) -> Tuple[list, Union[str, 
     Split a Python type name into names and an optional id.
 
     Example:
-        mypackage.mysection@myid  ==> (['mypackage', 'mysection'], 'myid')
-        mypackage.mysection       ==> (['mypackage', 'mysection'], None)
+        my_package.my_section@my_id  ==> (['my_package', 'my_section'], 'my_id')
+        my_package.my_section       ==> (['my_package', 'my_section'], None)
     '''
     if '@' not in definition_with_id:
         return definition_with_id.split('.'), None
@@ -723,11 +723,11 @@ class Reference(DataType):
 
     The behavior in this DataType class uses URLs to serialize references. In memory, the
     actual referenced section instance (or respective MProxy instances) are used as values.
-    During de-serialization, MProxy instances that autoresolve on usage, will be used.
+    During de-serialization, MProxy instances that auto-resolve on usage, will be used.
     The reference datatype will also accept MProxy instances or URL strings as values
     when set in Python and replace the value with the resolved section instance.
 
-    Sub-classes might exchange URLs with a different string serialization, e.g. Python
+    Subclasses might exchange URLs with a different string serialization, e.g. Python
     qualified names.
 
     Arguments:
@@ -1138,7 +1138,7 @@ This can either be :
 
 - the name of the section
 - the section definition itself
-- the definition of a sub section
+- the definition of a subsection
 - or the section definition Python class
 '''
 
@@ -1179,7 +1179,7 @@ class Context():
     def create_reference(self, section: 'MSection', quantity_def: 'Quantity', value: 'MSection') -> str:
         '''
         Returns a reference for the given target section (value) based on the given context.
-        Allows sub-classes to build references across resources, if necessary.
+        Allows subclasses to build references across resources, if necessary.
 
         Raises: MetainfoReferenceError
         '''
@@ -1268,29 +1268,29 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     .. automethod:: m_add_sub_section
     .. automethod:: m_remove_sub_section
 
-    There are some specific attributes for section instances that are sub-sections of
-    another section. While sub-sections are directly accessible from the containing
-    section by using the Python property that represents the sub-section (e.g.
-    `run.section_system`), there is also a way to navigate from the sub-section to
+    There are some specific attributes for section instances that are subsections of
+    another section. While subsections are directly accessible from the containing
+    section by using the Python property that represents the subsection (e.g.
+    `run.section_system`), there is also a way to navigate from the subsection to
     the containing section (`parent section`) using these Python properties:
 
     Attributes:
         m_parent:
-            If this section is a sub-section, this references the parent section instance.
+            If this section is a subsection, this references the parent section instance.
 
         m_parent_sub_section:
-            If this section is a sub-section, this is the :class:`SubSection` that defines
+            If this section is a subsection, this is the :class:`SubSection` that defines
             this relationship.
 
         m_parent_index:
-            For repeatable sections, parent keep a list of sub-sections. This is the index
-            of this section in the respective parent sub-section list.
+            For repeatable sections, parent keep a list of subsections. This is the index
+            of this section in the respective parent subsection list.
 
         m_context: The :class:`MContext` that manages this (root-)section.
 
     Often some general tasks have to be performed on a whole tree of sections without
     knowing about the definitions in advance. The following methods allow to access
-    sub-sections reflectively.
+    subsections reflectively.
 
     .. automethod:: m_traverse
     .. automethod:: m_all_contents
@@ -1446,12 +1446,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         pkg.m_add_sub_section(Package.section_definitions, cls.m_def)
 
         # apply_google_docstrings
-        # Parses the google doc string of the given class and properly updates the
+        # Parses the Google doc string of the given class and properly updates the
         # definition descriptions.
 
-        # This allows to document quantities and sub-sections with 'Args:' in the section
+        # This allows to document quantities and subsections with 'Args:' in the section
         # class. It will remove the 'Args' section from the section definition and will
-        # set the respective pieces to the quantity and sub-section descriptions.
+        # set the respective pieces to the quantity and subsection descriptions.
         docstring = cls.__doc__
         if docstring is not None:
             parsed_docstring = docstring_parser.parse(docstring)
@@ -1752,7 +1752,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         sub_section.m_parent_index = -1
 
     def m_add_sub_section(self, sub_section_def: 'SubSection', sub_section: 'MSection', index: int = -1) -> None:
-        ''' Adds the given section instance as a sub section of the given sub section definition. '''
+        ''' Adds the given section instance as a subsection of the given subsection definition. '''
 
         sub_section_name = sub_section_def.name
         if sub_section_def.repeats:
@@ -1760,7 +1760,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if index == -1:
                 sub_section_lst.append(sub_section)
             else:
-                raise NotImplementedError('You can only append sub sections.')
+                raise NotImplementedError('You can only append subsections.')
 
             if sub_section_lst.__class__ != MSubSectionList:
                 self._on_add_sub_section(
@@ -1775,7 +1775,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 self._on_remove_sub_section(sub_section_def, old_sub_section)
 
     def m_remove_sub_section(self, sub_section_def: 'SubSection', index: int) -> None:
-        ''' Removes the exiting section for a non repeatable sub section '''
+        ''' Removes the exiting section for a non-repeatable subsection '''
         self.m_mod_count += 1
 
         if sub_section_def.repeats:
@@ -1788,7 +1788,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             self._on_remove_sub_section(sub_section_def, sub_section)
 
     def m_get_sub_section(self, sub_section_def: 'SubSection', index: Any) -> 'MSection':
-        ''' Retrieves a single sub section of the given sub section definition. '''
+        ''' Retrieves a single subsection of the given subsection definition. '''
         if sub_section_def.repeats:
             if isinstance(index, int):
                 return self.__dict__[sub_section_def.name][index]
@@ -1809,7 +1809,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             return self.__dict__.get(sub_section_def.name, None)
 
     def m_get_sub_sections(self, sub_section_def: 'SubSection') -> List['MSection']:
-        ''' Retrieves  all sub sections of the given sub section definition. '''
+        ''' Retrieves  all subsections of the given subsection definition. '''
         if sub_section_def.repeats:
             return self._get_sub_sections(sub_section_def)
         else:
@@ -1819,7 +1819,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 return []
 
     def m_sub_section_count(self, sub_section_def: 'SubSection') -> int:
-        ''' Returns the number of sub sections for the given sub section definition. '''
+        ''' Returns the number of subsections for the given subsection definition. '''
         try:
             value = self.__dict__[sub_section_def.name]
             if sub_section_def.repeats:
@@ -1884,29 +1884,29 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             self, section_cls: Type[MSectionBound], sub_section_def: 'SubSection' = None,
             **kwargs) -> MSectionBound:
         ''' Creates a section instance and adds it to this section provided there is a
-        corresponding sub section.
+        corresponding subsection.
 
         Args:
-            section_cls: The section class for the sub-section to create
-            sub_section_def: If there are multiple sub-sections for the given class,
-                this must be used to explicitly state the sub-section definition.
+            section_cls: The section class for the subsection to create
+            sub_section_def: If there are multiple subsections for the given class,
+                this must be used to explicitly state the subsection definition.
         '''
 
         section_def = section_cls.m_def
         sub_section_defs = self.m_def.all_sub_sections_by_section.get(section_def, [])
         n_sub_section_defs = len(sub_section_defs)
         if n_sub_section_defs == 0:
-            raise TypeError(f'There is no sub section to hold a {section_def} in {self.m_def}.')
+            raise TypeError(f'There is no subsection to hold a {section_def} in {self.m_def}.')
 
         if n_sub_section_defs > 1 and sub_section_def is None:
             raise MetainfoError(
-                f'There are multiple sub section to hold a {section_def} in {self.m_def}, '
-                f'but no sub-section was explicitly given.')
+                f'There are multiple subsection to hold a {section_def} in {self.m_def}, '
+                f'but no subsection was explicitly given.')
 
         if sub_section_def is not None and sub_section_def not in sub_section_defs:
             raise MetainfoError(
-                f'The given sub-section class {section_cls} does not '
-                f'match the given sub-section definition {sub_section_def}.')
+                f'The given subsection class {section_cls} does not '
+                f'match the given subsection definition {sub_section_def}.')
 
         if sub_section_def is None:
             sub_section_def = sub_section_defs[0]
@@ -1917,7 +1917,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         return cast(MSectionBound, sub_section)
 
     def m_update(self, m_ignore_additional_keys: bool = False, **kwargs):
-        ''' Updates all quantities and sub-sections with the given arguments. '''
+        ''' Updates all quantities and subsections with the given arguments. '''
         self.m_mod_count += 1
 
         for name, value in kwargs.items():
@@ -1933,7 +1933,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         for item in value:
                             self.m_add_sub_section(prop, item)
                     else:
-                        raise TypeError(f'Sub section {prop.name} repeats, but no list was given')
+                        raise TypeError(f'Subsection {prop.name} repeats, but no list was given')
                 else:
                     self.m_add_sub_section(prop, value)
 
@@ -1972,8 +1972,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             with_meta: Include information about the section definition, the sections
                 position in its parent, and annotations. For Definition instances this
                 information will be included regardless; the section definition will
-                always be included if the sub section definition references a base section
-                and the concrete sub section is derived from this base section.
+                always be included if the subsection definition references a base section
+                and the concrete subsection is derived from this base section.
             with_out_meta: Exclude information `with_meta` information, even from
                 Definition instances.
             with_root_def: Include the m_def for the top-level section. This allows to
@@ -1986,25 +1986,25 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 Treat references as the sections and values they represent. References
                 must not create circles; there is no check and danger of endless looping.
             categories: A list of category classes or category definitions that is used
-                to filter the included quantities and sub sections. Only applied to
-                properties of this section, not on sub-sections. Is overwritten
+                to filter the included quantities and subsections. Only applied to
+                properties of this section, not on subsections. Is overwritten
                 by partial.
-            include: A function that determines if a property (quantity or sub-section) will
+            include: A function that determines if a property (quantity or subsection) will
                 be included in the results. It takes the property definition and the current
                 section as arguments. The function returns true for including and false for
-                excluding the property. Include is applied recursively on sub-sections.
+                excluding the property. Include is applied recursively on subsections.
                 Overrides categories.
-            exclude: A function that determines if a property (quantity or sub-section) will
+            exclude: A function that determines if a property (quantity or subsection) will
                 be excluded from the results. It takes the property definition and the current
                 section as arguments. The function returns true for excluding and false for
-                including the property. Exclude is applied recursively on sub-sections.
+                including the property. Exclude is applied recursively on subsections.
                 Overrides categories.
             transform: A function that determines serialized quantity values.
                 It takes the quantity definition, current section, the default
                 serialized value and the metainfo path with respect to the
-                document root as arguments. Depending where this is used, you
+                document root as arguments. Depending on where this is used, you
                 might have to ensure that the result is JSON-serializable.  By
-                default values are serialized to JSON according to the quantity
+                default, values are serialized to JSON according to the quantity
                 type.
         '''
         if isinstance(self, Definition) and not with_out_meta:
@@ -2250,9 +2250,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if with_def_id:
                     yield 'm_def_id', self.m_def.definition_id
             elif self.m_parent and self.m_parent_sub_section.sub_section != self.m_def:
-                # The sub section definition's section def is different from our
+                # The subsection definition's section def is different from our
                 # own section def. We are probably a specialized derived section
-                # from the base section that was used in the sub section def. To allow
+                # from the base section that was used in the subsection def. To allow
                 # clients to recognize the concrete section def, we force the export
                 # of the section def.
                 yield 'm_def', m_def_reference()
@@ -2287,7 +2287,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 except ValueError as e:
                     raise ValueError(f'Value error ({str(e)}) for {quantity}')
 
-            # sub sections
+            # subsections
             for name, sub_section_def in self.m_def.all_sub_sections.items():
                 if exclude(sub_section_def, self):
                     continue
@@ -2374,7 +2374,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     def m_from_dict(cls: Type[MSectionBound], data: Dict[str, Any], **kwargs) -> MSectionBound:
         ''' Creates a section from the given serializable data dictionary.
 
-        This is the 'opposite' of :func:`m_to_dict`. It takes a deserialized dict, e.g
+        This is the 'opposite' of :func:`m_to_dict`. It takes a deserialized dict, e.g.
         loaded from JSON, and turns it into a proper section, i.e. instance of the given
         section class.
         '''
@@ -2415,7 +2415,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             m_def_proxy.m_proxy_context = m_context
             cls = m_def_proxy.section_cls
 
-        # if 'm_def_id' exist, check if id matches
+        # if 'm_def_id' exists, check if id matches
         # in case of mismatch, retrieve the Package and use the corresponding section definition
         if 'm_def_id' in dct:
             if cls is None or cls.m_def is None or dct['m_def_id'] != cls.m_def.definition_id:
@@ -2448,7 +2448,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             self, depth_first: bool = False, include_self: bool = False,
             stop: TypingCallable[['MSection'], bool] = None) -> Iterable['MSection']:
         '''
-        Returns an iterable over all sub and sub subs sections.
+        Returns an iterable over all sub and sub subsections.
 
         Arguments:
             depth_first: A boolean indicating that children should be returned before
@@ -2611,14 +2611,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         section = section.m_get_sub_section(prop_def, index)
                     except Exception:
                         raise MetainfoReferenceError(
-                            f'Could not resolve {path}, there is no sub section for '
+                            f'Could not resolve {path}, there is no subsection for '
                             f'{prop_name} at {index}')
 
                 else:
                     section = section.m_get_sub_section(prop_def, -1)
                     if section is None:
                         raise MetainfoReferenceError(
-                            f'Could not resolve {path}, there is no sub section {prop_name}')
+                            f'Could not resolve {path}, there is no subsection {prop_name}')
 
             elif isinstance(prop_def, Quantity):
                 if len(path_stack) > 0:
@@ -2642,7 +2642,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 case the annotation is returned, regardless of its type. In the second
                 case, all names and list for names are iterated and all annotations of the
                 given class are returned.
-            default: The default, if no annotation is found. None is  the default default.
+            default: The default, if no annotation is found. None is the default `default`.
             as_list: Returns a list, no matter how many annotations have been found.
         '''
         if isinstance(key, str):
@@ -2854,7 +2854,7 @@ class MSubSectionList(list):
         super().__init__()
 
     def __setitem__(self, key, value):
-        raise NotImplementedError('You can only append sub-sections.')
+        raise NotImplementedError('You can only append subsections.')
 
     def __delitem__(self, key):
         old_value = self[key]
@@ -2865,10 +2865,10 @@ class MSubSectionList(list):
         self.section._on_remove_sub_section(self.sub_section_def, old_value)
 
     def __setslice__(self, i, j, sequence):
-        raise NotImplementedError('You can only append sub-sections.')
+        raise NotImplementedError('You can only append subsections.')
 
     def __delslice__(self, i, j):
-        raise NotImplementedError('You can only append sub-sections.')
+        raise NotImplementedError('You can only append subsections.')
 
     def append(self, value):
         list.append(self, value)
@@ -2876,7 +2876,7 @@ class MSubSectionList(list):
             self.section._on_add_sub_section(self.sub_section_def, value, len(self) - 1)
 
     def pop(self):
-        raise NotImplementedError('You can only append sub-sections.')
+        raise NotImplementedError('You can only append subsections.')
 
     def extend(self, newvalue):
         start_index = len(self)
@@ -2886,16 +2886,16 @@ class MSubSectionList(list):
                 self.sub_section_def, value, start_index + index)
 
     def insert(self, i, element):
-        raise NotImplementedError('You can only append sub-sections.')
+        raise NotImplementedError('You can only append subsections.')
 
     def remove(self, element):
-        raise NotImplementedError('You can only append sub-sections.')
+        raise NotImplementedError('You can only append subsections.')
 
     def reverse(self):
-        raise NotImplementedError('You can only append sub-sections.')
+        raise NotImplementedError('You can only append subsections.')
 
     def sort(self, cmpfunc=None):
-        raise NotImplementedError('You can only append sub-sections.')
+        raise NotImplementedError('You can only append subsections.')
 
     def clear(self):
         old_values = list(self)
@@ -2934,7 +2934,7 @@ class Definition(MSection):
     '''
     :class:`Definition` is the common base class for all metainfo definitions.
 
-    All metainfo `definitions` (sections, quantities, sub-sections, packages, ...) share
+    All metainfo `definitions` (sections, quantities, subsections, packages, ...) share
     some common properties.
 
     Attributes:
@@ -2950,22 +2950,22 @@ class Definition(MSection):
             definitions* (i.e. section definitions are represented by Python classes),
             lower case `snake_case` identifier for variables that hold *sections*, and for
             *properties* (i.e. fields in a Python class) we typically use lower
-            case `snake_case` identifier. Sub-sections are often prefixed with ``section_``
-            to clearly separate sub-sections from quantities.
+            case `snake_case` identifier. Subsections are often prefixed with ``section_``
+            to clearly separate subsections from quantities.
 
             Generally, you do not have to set this attribute manually, it will be derived
             from Python identifiers automatically.
 
-        description: The description can be an arbitrary human readable text that explains
+        description: The description can be an arbitrary human-readable text that explains
             what a definition is about. For section definitions you do not have to set
             this manually as it will be derived from the classes doc string. Quantity and
-            sub-section descriptions can also be taken from the containing section class'
+            subsection descriptions can also be taken from the containing section class'
             doc-string ``Attributes:`` section.
 
         links: Each definition can be accompanied by a list of URLs. These should point
             to resources that further explain the definition.
 
-        aliases: A list of alternative names. For quantities and sub-sections these
+        aliases: A list of alternative names. For quantities and subsections these
             can be used to access the respective property with a different name from
             its containing section.
 
@@ -3117,7 +3117,7 @@ class Definition(MSection):
 
 class Attribute(Definition):
     '''
-    Attributes can be used to qualify all properties (sub sections and quantities)
+    Attributes can be used to qualify all properties (subsections and quantities)
     with simple scalar values.
 
     Attributes:
@@ -3159,7 +3159,7 @@ class Attribute(Definition):
 
 class Property(Definition):
     '''
-    A common base-class for section properties: sub sections and quantities.
+    A common base-class for section properties: subsections and quantities.
 
     Attributes:
         attributes:
@@ -3320,7 +3320,7 @@ class Quantity(Property):
 
         virtual:
             A boolean that determines if this quantity is virtual. Virtual quantities can
-            be get/set like regular quantities, but their values are not (de-)serialized,
+            be got/set like regular quantities, but their values are not (de-)serialized,
             hence never permanently stored.
     '''
 
@@ -3588,22 +3588,22 @@ class PrimitiveQuantity(Quantity):
 
 class SubSection(Property):
     '''
-    Like quantities, sub-sections are defined in a `section class` as attributes
-    of this class. An like quantities, each sub-section definition becomes a property of
-    the corresponding `section definition` (parent). A sub-section definition references
-    another `section definition` as the sub-section (child). As a consequence, parent
-    `section instances` can contain child `section instances` as sub-sections.
+    Like quantities, subsections are defined in a `section class` as attributes
+    of this class. Unlike quantities, each subsection definition becomes a property of
+    the corresponding `section definition` (parent). A subsection definition references
+    another `section definition` as the subsection (child). As a consequence, parent
+    `section instances` can contain child `section instances` as subsections.
 
-    Contrary to the old NOMAD metainfo, we distinguish between sub-section the section
-    and sub-section the property. This allows to use on child `section definition` as
-    sub-section of many different parent `section definitions`.
+    Contrary to the old NOMAD metainfo, we distinguish between subsection the section
+    and subsection the property. This allows to use on child `section definition` as
+    subsection of many parent `section definitions`.
 
     Attributes:
         sub_section: A :class:`Section` or Python class object for a `section class`. This
             will be the child `section definition`. The defining section the child
             `section definition`.
 
-        repeats: A boolean that determines whether this sub-section can appear multiple
+        repeats: A boolean that determines whether this subsection can appear multiple
             times in the parent section.
     '''
 
@@ -3636,7 +3636,7 @@ class SubSection(Property):
 
             if value is not None:
                 raise NotImplementedError(
-                    'Cannot set a repeating sub section directly, modify the list, e.a. via append.')
+                    'Cannot set a repeating subsection directly, modify the list, e.a. via append.')
 
             obj.m_get_sub_sections(self).clear()
 
@@ -3647,12 +3647,12 @@ class SubSection(Property):
             obj.m_add_sub_section(self, value)
 
     def __delete__(self, obj):
-        raise NotImplementedError('Deleting sub sections is not supported.')
+        raise NotImplementedError('Deleting subsections is not supported.')
 
     @constraint(warning=False)
     def has_sub_section(self):
         assert self.sub_section is not None, \
-            'Each sub section must define the section that is used as sub section via the "sub_section" quantity'
+            'Each subsection must define the section that is used as subsection via the "sub_section" quantity'
         try:
             assert not isinstance(self.sub_section.m_resolved(), MProxy), 'Cannot resolve "sub_section"'
         except MetainfoReferenceError as e:
@@ -3707,20 +3707,20 @@ class Section(Definition):
             Will be automatically set from the `section class`.
 
         sub_sections:
-            The sub-section definitions of this section definition as list of :class:`SubSection`.
+            The subsection definitions of this section definition as list of :class:`SubSection`.
             Will be automatically set from the `section class`.
 
         base_sections:
             A list of `section definitions` (:class:`Section`). By default this definition will
-            inherit all quantity and sub section definitions from the given section definitions.
+            inherit all quantity and subsection definitions from the given section definitions.
             This behavior might be altered with ``extends_base_section``.
 
             If there are no base sections to define, you have to use :class:`MSection`.
 
-    The Metainfo supports two inheritance mechanism. By default it behaves like regular
+    The Metainfo supports two inheritance mechanism. By default, it behaves like regular
     Python inheritance and the class inherits all its base
     classes' properties. The other mode (enabled via ``extends_base_section=True``), will
-    add all sub-class properties to the base-class. This is used throughout the NOMAD metainfo
+    add all subclass properties to the base-class. This is used throughout the NOMAD metainfo
     to add code-specific metadata to common section definitions. Here is an example:
 
     .. code-block:: python
@@ -3733,18 +3733,18 @@ class Section(Definition):
             x_vasp_some_incar_parameter = Quantity(str)
 
         method = Method()
-        methid.x_vasp_same_incar_parameter = 'value'
+        method.x_vasp_same_incar_parameter = 'value'
 
     In this example, the section class ``VASPMethod`` defines a section definition that inherits
     from section definition ``Method``. The quantity `x_vasp_some_incar_parameter` will
     be added to `Method` and can be used in regular `Method` instances.
 
-    The following :class:`Section` attributes maniputlate the inheritance semantics:
+    The following :class:`Section` attributes manipulate the inheritance semantics:
 
     Attributes:
         extends_base_section:
             If True, this definition must have exactly one ``base_sections``.
-            Instead of inheriting properties, the quantity and sub-section definitions
+            Instead of inheriting properties, the quantity and subsection definitions
             of this section will be added to the base section.
 
             This allows to add further properties to an existing section definition.
@@ -3759,11 +3759,11 @@ class Section(Definition):
 
         inheriting_sections:
             A list of `section definitions` (:class:`Section`). These are those sections
-            that inherit (i.e. are sub classes) of this section.
+            that inherit (i.e. are subclasses) of this section.
 
 
-    Besides defining quantities and sub-sections, a section definition can also provide
-    constraints that are used to validate a section and its quantities and sub-sections.
+    Besides defining quantities and subsections, a section definition can also provide
+    constraints that are used to validate a section and its quantities and subsections.
     Constraints allow to define more specific data structures beyond types and shapes.
     But constraints are not enforced automatically, sections have to be explicitly
     validated in order to evaluate constraints.
@@ -3787,7 +3787,7 @@ class Section(Definition):
             Constraints are rules that a section must fulfil to be valid. This allows to implement
             semantic checks that go behind mere type or shape checks. This quantity takes
             the names of constraints as string. Constraints have to be implemented as methods
-            with the :func:`constraint` decorator. They can raise :class:`ConstraintVialated`
+            with the :func:`constraint` decorator. They can raise :class:`ConstraintViolated`
             or an AssertionError to indicate that the constraint is not fulfilled for the ``self``
             section. This quantity will be set automatically from all constraint methods in the
             respective section class. To run validation of a section use :py:meth:`MSection.m_validate`.
@@ -3810,7 +3810,7 @@ class Section(Definition):
             A helper attribute that gives direct and indirect inheriting sections.
 
         all_properties:
-            A helper attribute that gives all properties (sub section and quantity) definitions
+            A helper attribute that gives all properties (subsection and quantity) definitions
             including inherited properties and properties from extending sections as a
             dictionary with names and definitions.
 
@@ -3820,12 +3820,12 @@ class Section(Definition):
             to :class:`Quantity`.
 
         all_sub_sections:
-            A helper attribute that gives all sub-section definition including inherited ones
+            A helper attribute that gives all subsection definition including inherited ones
             and ones from extending sections as a dictionary that maps names (strings)
             to :class:`SubSection`.
 
         all_sub_sections_by_section:
-            A helper attribute that gives all sub-section definition including inherited ones
+            A helper attribute that gives all subsection definition including inherited ones
             and ones from extending sections as a dictionary that maps section classes
             (i.e. Python class objects) to lists of :class:`SubSection`.
 
@@ -3839,7 +3839,7 @@ class Section(Definition):
             their aliases by name.
 
         path: Shortest path from a root section to this section. This is not the path
-            in the metainfo schema (`m_path`) but a archive path in potential data.
+            in the metainfo schema (`m_path`) but an archive path in potential data.
 
         event_handlers:
             Event handler are functions that get called when the section data is changed.
