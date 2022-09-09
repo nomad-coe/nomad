@@ -24,6 +24,7 @@ from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, 
 from dataclasses import dataclass
 from collections.abc import Iterable as IterableABC, Sequence
 import sys
+from functools import reduce
 import inspect
 import re
 import json
@@ -80,6 +81,7 @@ _types_num = _types_num_python | _types_num_numpy
 _types_str_numpy = {np.str_}
 _types_bool_numpy = {np.bool_}
 _types_numpy = _types_num_numpy | _types_str_numpy | _types_bool_numpy
+_delta_symbols = {'delta_', 'Δ'}
 
 validElnTypes = {
     'str': ['str'],
@@ -485,13 +487,6 @@ class _Unit(DataType):
         if quantity_def is None or unit is None:
             return
 
-        # Explicitly providing a Pint delta-unit is not currently allowed.
-        # Implicit conversions are fine as MathJS on the frontend supports them.
-        # todo add back
-        # unit_string = str(unit)
-        # if 'delta_' in unit_string or 'Δ' in unit_string:
-        #     raise TypeError(f'Explicit Pint "delta"-unit {unit_string} are not yet supported.')
-
         dimensionality = getattr(quantity_def, 'dimensionality', None)
 
         if dimensionality is None:  # not set, do not validate
@@ -509,7 +504,25 @@ class _Unit(DataType):
 
         raise TypeError(f'Dimensionality {dimensionality} is not met by unit {unit}')
 
+    @staticmethod
+    def check_unit(unit: Union[str, pint.Unit]) -> None:
+        '''Check that the unit is valid.
+        '''
+        if isinstance(unit, str):
+            unit_str = unit
+        elif isinstance(unit, pint.unit._Unit):
+            unit_str = str(unit)
+        else:
+            raise TypeError('Units must be given as str or pint Unit instances.')
+
+        # Explicitly providing a Pint delta-unit is not currently allowed.
+        # Implicit conversions are fine as MathJS on the frontend supports them.
+        if any(x in unit_str for x in _delta_symbols):
+            raise TypeError('Explicit Pint "delta"-units are not yet supported.')
+
     def set_normalize(self, section, quantity_def: 'Quantity', value):
+        _Unit.check_unit(value)
+
         if isinstance(value, str):
             value = units.parse_units(value)
 
@@ -524,9 +537,13 @@ class _Unit(DataType):
         return value
 
     def serialize(self, section, quantity_def: 'Quantity', value):
-        return value.__str__()
+        value = value.__str__()
+        # The delta prefixes are not serialized: only implicit deltas are
+        # allowed currently.
+        return reduce(lambda a, b: a.replace(b, ''), _delta_symbols, value)
 
     def deserialize(self, section, quantity_def: 'Quantity', value):
+        _Unit.check_unit(value)
         value = units.parse_units(value)
         _Unit.check_dimensionality(quantity_def, value)
         return value
