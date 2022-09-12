@@ -1,0 +1,38 @@
+{
+    "data": {
+        "m_def": "../upload/raw/solar_cell_eln.schema.archive.yaml#/definitions/section_definitions/0",
+        "description": "<p>This is an example of an ELN for a single solar cell.</p>",
+        "publication_reference": {
+            "DOI_number": "https://doi.org/10.1016/j.solmat.2015.10.004"
+        },
+        "solar_cell_definition": {
+            "stack_sequence": [
+                "SLG",
+                "Mo",
+                "CZTSe",
+                "CdS",
+                "i-ZnO",
+                "Al:ZnO",
+                "Ni/Al/Ni"
+            ],
+            "solar_cell_area": 0.01,
+            "architecture": "Pn-Heterojunction"
+        },
+        "solar_cell_parameters": {
+            "data_file": "jv_file.xlsx",
+            "light_intensity": 100
+        },
+        "solar_cell_eqe": {
+            "eqe_data_file": "eqe_file.dat",
+            "header_lines": 0
+        },
+        "absorber_layer": {
+            "chemical_formula": "Cu0.50Zn0.25Sn0.25Se1",
+            "bandgap": 1.05,
+            "solar_cell_layer_type": "Absorber",
+            "layer_name": "CZTSe",
+            "layer_thickness": 2000
+        }
+    },
+    "m_ref_archives": {}
+}
