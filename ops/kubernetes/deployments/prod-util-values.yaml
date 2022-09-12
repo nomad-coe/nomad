@@ -29,7 +29,7 @@ app:
 
 worker:
   replicas: 1
-  routing: "queue"
+  routing: "worker"
   processes: 12
   nomadNodeType: "prod-worker"
 
@@ -61,8 +61,8 @@ keycloak:
 volumes:
   prefixSize: 1
   public: /nomad/fairdi/prod/fs/public
-  staging: /nomad/fairdi/util/fs/staging
-  tmp: /nomad/fairdi/util/fs/tmp
+  staging: /scratch/fairdi/util/fs/staging
+  tmp: /scratch/fairdi/util/fs/tmp
   nomad: /nomad
   archiveVersionSuffix: v1
 

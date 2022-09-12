@@ -43,7 +43,7 @@ mongo:
 logstash:
   host: logstash.elk.svc.cluster.local
 
-dbname: nomad_prod_v1
+dbname: nomad_develop_v1
 
 uploadurl: "https://nomad-lab.eu/prod/v1/develop/api/uploads"
 
@@ -60,9 +60,9 @@ keycloak:
 
 volumes:
   prefixSize: 1
-  public: /nomad/fairdi/prod/fs/public
-  staging: /nomad/fairdi/prod/fs/staging
-  tmp: /nomad/fairdi/prod/fs/tmp
+  public: /nomad/fairdi/develop/fs/public
+  staging: /nomad/fairdi/develop/fs/staging
+  tmp: /nomad/fairdi/develop/fs/tmp
   nomad: /nomad
   archiveVersionSuffix: v1
 
