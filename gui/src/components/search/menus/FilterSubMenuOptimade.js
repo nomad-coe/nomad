@@ -43,7 +43,7 @@ const FilterSubMenuOptimade = React.memo(({
   useEffect(() => {
     const requestBody = {
       exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'dft.quantities', 'dft.labels', 'dft.geometries'],
-      owner: 'public'
+      owner: 'visible'
     }
     api.post(`entries/query`, requestBody).then(response => {
       const optimade = response?.data?.[0]?.optimade
@@ -104,11 +104,11 @@ const FilterSubMenuOptimade = React.memo(({
               const options = Array.from(err.msg.matchAll(/\t\* \w+\n/g), m => m[0].slice(3, -1))
               const command = filter.slice(0, errorIndex).trim()
               renderSuggestion(command, options, suggestions)
-              if (err.msg.match(/Semantic error/i)) {
-                const msg = err.msg.match(/(?<=:\n\n).*/i)?.[0]
+              const semanticError = err.msg.match(/Semantic error.*\n\n(.*)/i)
+              if (semanticError) {
                 setValues(oldValues => {
                   const newValues = [...oldValues]
-                  newValues[index] = {value: oldValues[index].value, valid: oldValues[index].valid, msg: msg}
+                  newValues[index] = {value: oldValues[index].value, valid: oldValues[index].valid, msg: semanticError?.[1]}
                   return newValues
                 })
               }
