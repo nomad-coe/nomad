@@ -246,4 +246,4 @@ BrillouinZone.defaultProps = {
   captureName: 'brillouin_zone'
 }
 
-export default withWebGLErrorHandler(withErrorHandler(BrillouinZone, 'Could not load Brillouin zone.'))
+export default withWebGLErrorHandler(withErrorHandler('Could not load Brillouin zone.')(BrillouinZone))

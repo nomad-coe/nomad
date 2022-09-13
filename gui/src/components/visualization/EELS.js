@@ -19,7 +19,8 @@ import React, {useState, useEffect, useMemo} from 'react'
 import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
-import { getLineStyles, mergeObjects } from '../../utils'
+import { mergeObjects } from '../../utils'
+import { getLineStyles } from '../plotting/common'
 import { Quantity, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 
@@ -107,4 +108,4 @@ EELS.propTypes = {
   units: PropTypes.object
 }
 
-export default withErrorHandler(EELS, 'Could not load EELS data.')
+export default withErrorHandler('Could not load EELS data.')(EELS)

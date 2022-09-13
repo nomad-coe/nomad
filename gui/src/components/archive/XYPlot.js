@@ -2,7 +2,8 @@ import React, {useMemo} from 'react'
 import {Box, useTheme} from '@material-ui/core'
 import {Quantity as Q, useUnits} from '../../units'
 import {resolveRef} from './metainfo'
-import {getLineStyles, titleCase} from '../../utils'
+import {titleCase} from '../../utils'
+import {getLineStyles} from '../plotting/common'
 import { merge } from 'lodash'
 import Plot from '../visualization/Plot'
 import PropTypes from 'prop-types'
@@ -172,4 +173,8 @@ XYPlot.propTypes = {
   title: PropTypes.string
 }
 
-export default withErrorHandler(XYPlot, (error) => error.name === 'XYPlotError' ? error.message : 'Could not load plot due to an unexpected error.')
+export default withErrorHandler(
+  (error) => error.name === 'XYPlotError'
+    ? error.message
+    : 'Could not load plot due to an unexpected error.'
+)(XYPlot)

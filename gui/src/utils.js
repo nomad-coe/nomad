@@ -19,7 +19,6 @@ import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, isPlainObj
 import { Quantity } from './units'
 import { format } from 'date-fns'
 import { dateFormat, guiBase, apiBase } from './config'
-import { scale as chromaScale } from 'chroma-js'
 import searchQuantities from './searchQuantities.json'
 const crypto = require('crypto')
 
@@ -57,6 +56,31 @@ export const capitalize = (s) => {
 }
 
 /**
+ * Recursive object traversal.
+ *
+ * @param {*} data The data to traverse.
+ * @param {bool} fullPath Whether to return the full path as a list of keys. Defaults to
+ *   false which means that only the last key is returned.
+ * @return List of pairs of keys and values.
+ */
+export function traverseDeep(object, fullPath = false) {
+  const items = []
+  const traverse = (obj, path) => {
+    for (const [key, value] of Object.entries(obj)) {
+      const newPath = [...path]
+      newPath.push(key)
+      if (value && isPlainObject(value)) {
+        traverse(value, newPath)
+      } else {
+        items.push([fullPath ? [...newPath] : key, value])
+      }
+    }
+  }
+  traverse(object, [])
+  return items
+}
+
+/**
  * Map that works on n-dimensional arrays. Implemented with simple for loops for
  * performance.
  *
@@ -65,7 +89,7 @@ export const capitalize = (s) => {
  *
  * @return {*} A copy of the original data with numbers scaled.
  */
-export function deepMap(value, func) {
+export function mapDeep(value, func) {
   // Function for recursively applying the function
   function mapRecursive(list, newList) {
     const isScalarArray = !Array.isArray(list[0])
@@ -102,7 +126,7 @@ export function deepMap(value, func) {
  * @return {n-dimensional array} A copy of the original data with numbers scaled.
  */
 export function scale(value, factor) {
-  return deepMap(value, x => x * factor)
+  return mapDeep(value, x => x * factor)
 }
 
 /**
@@ -114,7 +138,7 @@ export function scale(value, factor) {
  * @return {n-dimensional array} A copy of the original data with the addition.
  */
 export function add(value, addition) {
-  return deepMap(value, x => x + addition)
+  return mapDeep(value, x => x + addition)
 }
 
 /**
@@ -579,27 +603,6 @@ export function approxInteger(number) {
  */
 export function delay(func) {
   setTimeout(func, 0)
-}
-
-/**
- * Returns a list of linestyles.
- *
- * @param {number} nLines number of lines to plot
- */
-export function getLineStyles(nLines, theme) {
-  const styles = []
-  const lineStyles = ['solid', 'dot', 'dashdot']
-  const colors = chromaScale([theme.palette.primary.dark, theme.palette.secondary.light])
-    .mode('lch').colors(nLines)
-  for (let i = 0; i < nLines; ++i) {
-    const line = {
-      dash: lineStyles[i % lineStyles.length],
-      color: colors[i],
-      width: 2
-    }
-    styles.push(line)
-  }
-  return styles
 }
 
 /**

@@ -25,7 +25,13 @@ from ase.formula import Formula
 from nomad import config
 from nomad import atomutils
 from nomad.datamodel.metainfo.measurements import Spectrum
-from nomad.datamodel.metainfo.workflow import EquationOfState, EOSFit, Workflow
+from nomad.datamodel.metainfo.workflow import (
+    EquationOfState,
+    EOSFit,
+    RadialDistributionFunction as RDFWorkflow,
+    RadialDistributionFunctionValues,
+    Workflow
+)
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
     material_type,
@@ -52,7 +58,8 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     BandStructure as BandStructureCalculation,
     BandEnergies,
     DosValues,
-    Calculation)  # noqa
+    Calculation
+)  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
     BasisSet, Scf, Electronic, Smearing, GW as GWMethod
 )  # noqa
@@ -2063,6 +2070,42 @@ class ThermodynamicProperties(MSection):
     )
 
 
+class RadialDistributionFunction(PropertySection):
+    m_def = Section(
+        description='''
+        Radial distribution function.
+        ''',
+    )
+    type = RDFWorkflow.type.m_copy()
+    type.m_annotations['elasticsearch'] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default')
+    ]
+    label = RadialDistributionFunctionValues.label.m_copy()
+    label.m_annotations['elasticsearch'] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default')
+    ]
+    bins = RadialDistributionFunctionValues.bins.m_copy()
+    n_bins = RadialDistributionFunctionValues.n_bins.m_copy()
+    value = RadialDistributionFunctionValues.value.m_copy()
+    frame_start = RadialDistributionFunctionValues.frame_start.m_copy()
+    frame_end = RadialDistributionFunctionValues.frame_end.m_copy()
+
+
+class StructuralProperties(MSection):
+    m_def = Section(
+        description='''
+        Structural properties.
+        ''',
+    )
+    radial_distribution_function = SubSection(
+        sub_section=RadialDistributionFunction.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+
+
 class SolarCell(MSection):
     m_def = Section(
         description='''
@@ -2248,6 +2291,7 @@ class Properties(MSection):
         this entry.
         '''
     )
+    structural = SubSection(sub_section=StructuralProperties.m_def, repeats=False)
     structures = SubSection(sub_section=Structures.m_def, repeats=False)
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False)

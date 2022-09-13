@@ -37,6 +37,9 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies)
 from nomad.datamodel.metainfo.workflow import (
     IntegrationParameters,
+    MolecularDynamicsResults,
+    RadialDistributionFunction,
+    RadialDistributionFunctionValues,
     Workflow,
     GeometryOptimization,
     Elastic,
@@ -95,14 +98,14 @@ def normalized_template_example(parsed_template_example) -> EntryArchive:
 
 
 def get_template_dft() -> EntryArchive:
-    """Returns a basic archive template for a DFT calculation.
-    """
+    '''Returns a basic archive template for a DFT calculation.
+    '''
     template = EntryArchive()
     run = template.m_create(Run)
-    run.program = Program(name="VASP", version="4.6.35")
+    run.program = Program(name='VASP', version='4.6.35')
     method = run.m_create(Method)
-    method.basis_set.append(BasisSet(type="plane waves"))
-    method.electronic = Electronic(method="DFT")
+    method.basis_set.append(BasisSet(type='plane waves'))
+    method.electronic = Electronic(method='DFT')
     xc_functional = XCFunctional(exchange=[Functional(name='GGA_X_PBE')])
     method.dft = DFT(xc_functional=xc_functional)
     system = run.m_create(System)
@@ -118,7 +121,7 @@ def get_template_dft() -> EntryArchive:
             [0.0, 0.0, 0.0],
             [2.88186311e-10, 2.88186311e-10, 0.0],
         ],
-        labels=["Br", "K", "Si", "Si"],
+        labels=['Br', 'K', 'Si', 'Si'],
         periodic=[True, True, True])
     scc = run.m_create(Calculation)
     scc.system_ref = system
@@ -128,20 +131,20 @@ def get_template_dft() -> EntryArchive:
         total=EnergyEntry(value=-1.5935696296699573e-18),
         total_t0=EnergyEntry(value=-3.2126683561907e-22))
     workflow = template.m_create(Workflow)
-    workflow.type = "geometry_optimization"
+    workflow.type = 'geometry_optimization'
     return template
 
 
 def get_template_eels() -> EntryArchive:
-    """Returns a basic archive template for an EELS experiment.
-    """
+    '''Returns a basic archive template for an EELS experiment.
+    '''
     # Ensure that the eels schema is loaded
     from eelsdbparser import eelsdb_parser  # pylint: disable=unused-import
     dct_data = yaml.safe_load(strip(f'''
         results:
             properties:
                 spectroscopy:
-                    spectrum: "#/measurement/0/eels/spectrum"
+                    spectrum: '#/measurement/0/eels/spectrum'
                     eels:
                         detector_type: Quantum GIF
                         min_energy: {(100 * ureg.electron_volt).to(ureg.joule).m}
@@ -197,9 +200,9 @@ def get_template_dos(
         energy_reference_highest_occupied: Union[float, None] = None,
         energy_reference_lowest_unoccupied: Union[float, None] = None,
         n_values: int = 101,
-        type: str = "electronic",
+        type: str = 'electronic',
         normalize: bool = True) -> EntryArchive:
-    """Used to create a test data for DOS.
+    '''Used to create a test data for DOS.
 
     Args:
         fill: List containing the energy ranges (eV) that should be filled with
@@ -208,15 +211,15 @@ def get_template_dos(
         energy_fermi: Fermi energy (eV)
         energy_reference_highest_occupied: Highest occupied energy (eV) as given by a parser.
         energy_reference_lowest_unoccupied: Lowest unoccupied energy (eV) as given by a parser.
-        type: "electronic" or "vibrational"
+        type: 'electronic' or 'vibrational'
         has_references: Whether the DOS has energy references or not.
         normalize: Whether the returned value is already normalized or not.
-    """
-    if len(fill) > 1 and type != "electronic":
-        raise ValueError("Cannot create spin polarized DOS for non-electronic data.")
+    '''
+    if len(fill) > 1 and type != 'electronic':
+        raise ValueError('Cannot create spin polarized DOS for non-electronic data.')
     template = get_template_dft()
     scc = template.run[0].calculation[0]
-    dos_type = Calculation.dos_electronic if type == "electronic" else Calculation.dos_phonon
+    dos_type = Calculation.dos_electronic if type == 'electronic' else Calculation.dos_phonon
     dos = scc.m_create(Dos, dos_type)
     energies = np.linspace(-5, 5, n_values)
     for i, range_list in enumerate(fill):
@@ -255,25 +258,25 @@ def get_template_dos(
 
 def get_template_band_structure(
         band_gaps: List = None,
-        type: str = "electronic",
+        type: str = 'electronic',
         has_references: bool = True,
         normalize: bool = True) -> EntryArchive:
-    """Used to create a test data for band structures.
+    '''Used to create a test data for band structures.
 
     Args:
         band_gaps: List containing the band gap value and band gap type as a
-            tuple, e.g. [(1, "direct"), (0.5, "indirect)]. Band gap values are
+            tuple, e.g. [(1, 'direct'), (0.5, 'indirect)]. Band gap values are
             in eV. Use a list of Nones if you don't want a gap for a specific
             channel.
-        type: "electronic" or "vibrational"
+        type: 'electronic' or 'vibrational'
         has_references: Whether the band structure has energy references or not.
         normalize: Whether the returned value is already normalized or not.
-    """
+    '''
     if band_gaps is None:
         band_gaps = [None]
     template = get_template_dft()
     scc = template.run[0].calculation[0]
-    if type == "electronic":
+    if type == 'electronic':
         bs = scc.m_create(BandStructure, Calculation.band_structure_electronic)
         n_spin_channels = len(band_gaps)
         fermi: List[float] = []
@@ -307,17 +310,17 @@ def get_template_band_structure(
         energies = np.zeros((n_spin_channels, n_points, 2))
         k_points = np.zeros((n_points, 3))
         k_points[:, 0] = np.linspace(0, 1, n_points)
-        if type == "electronic":
+        if type == 'electronic':
             for i_spin in range(n_spin_channels):
                 if band_gaps[i_spin] is not None:
-                    if band_gaps[i_spin][1] == "direct":
+                    if band_gaps[i_spin][1] == 'direct':
                         energies[i_spin, :, 0] = -np.cos(krange)
                         energies[i_spin, :, 1] = np.cos(krange)
-                    elif band_gaps[i_spin][1] == "indirect":
+                    elif band_gaps[i_spin][1] == 'indirect':
                         energies[i_spin, :, 0] = -np.cos(krange)
                         energies[i_spin, :, 1] = np.sin(krange)
                     else:
-                        raise ValueError("Invalid band gap type")
+                        raise ValueError('Invalid band gap type')
                     energies[i_spin, :, 1] += 2 + band_gaps[i_spin][0]
                 else:
                     energies[i_spin, :, 0] = -np.cos(krange)
@@ -335,9 +338,9 @@ def get_template_band_structure(
         # e.append(seg.band_energies)
     # e = np.concatenate(e, axis=1)
     # import matplotlib.pyplot as mpl
-    # mpl.plot(e[0], color="blue")
+    # mpl.plot(e[0], color='blue')
     # if n_spin_channels == 2:
-        # mpl.plot(e[1], color="orange")
+        # mpl.plot(e[1], color='orange')
     # mpl.show()
 
     if normalize:
@@ -347,45 +350,45 @@ def get_template_band_structure(
 
 @pytest.fixture(scope='session')
 def dft() -> EntryArchive:
-    """DFT calculation."""
+    '''DFT calculation.'''
     template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.basis_set.append(BasisSet(type="plane waves"))
+    method_dft.basis_set.append(BasisSet(type='plane waves'))
     method_dft.dft = DFT()
     method_dft.electronic = Electronic(
-        method="DFT",
-        smearing=Smearing(kind="gaussian", width=1e-20),
+        method='DFT',
+        smearing=Smearing(kind='gaussian', width=1e-20),
         n_spin_channels=2,
-        van_der_waals_method="G06",
-        relativity_method="scalar_relativistic")
+        van_der_waals_method='G06',
+        relativity_method='scalar_relativistic')
     method_dft.scf = Scf(threshold_energy_change=1e-24)
     method_dft.dft.xc_functional = XCFunctional()
-    method_dft.dft.xc_functional.correlation.append(Functional(name="GGA_C_PBE", weight=1.0))
-    method_dft.dft.xc_functional.exchange.append(Functional(name="GGA_X_PBE", weight=1.0))
+    method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
+    method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft_method_referenced() -> EntryArchive:
-    """DFT calculation with two methods: one referencing the other."""
+    '''DFT calculation with two methods: one referencing the other.'''
     template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.basis_set.append(BasisSet(type="plane waves"))
+    method_dft.basis_set.append(BasisSet(type='plane waves'))
     method_dft.electronic = Electronic(
-        smearing=Smearing(kind="gaussian", width=1e-20),
-        n_spin_channels=2, van_der_waals_method="G06",
-        relativity_method="scalar_relativistic")
+        smearing=Smearing(kind='gaussian', width=1e-20),
+        n_spin_channels=2, van_der_waals_method='G06',
+        relativity_method='scalar_relativistic')
     method_dft.scf = Scf(threshold_energy_change=1e-24)
     method_dft.dft = DFT(xc_functional=XCFunctional())
-    method_dft.dft.xc_functional.correlation.append(Functional(name="GGA_C_PBE", weight=1.0))
-    method_dft.dft.xc_functional.exchange.append(Functional(name="GGA_X_PBE", weight=1.0))
+    method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
+    method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
     method_ref = run.m_create(Method)
-    method_ref.basis_set.append(BasisSet(type="plane waves"))
-    method_ref.electronic = Electronic(method="DFT")
+    method_ref.basis_set.append(BasisSet(type='plane waves'))
+    method_ref.electronic = Electronic(method='DFT')
     method_ref.core_method_ref = method_dft
     run.calculation[0].method_ref = method_ref
 
@@ -394,62 +397,62 @@ def dft_method_referenced() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def dft_plus_u() -> EntryArchive:
-    """DFT+U calculation."""
+    '''DFT+U calculation.'''
     template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.basis_set.append(BasisSet(type="plane waves"))
+    method_dft.basis_set.append(BasisSet(type='plane waves'))
     method_dft.electronic = Electronic(
-        method="DFT+U",
-        smearing=Smearing(kind="gaussian", width=1e-20),
-        n_spin_channels=2, van_der_waals_method="G06",
-        relativity_method="scalar_relativistic")
+        method='DFT+U',
+        smearing=Smearing(kind='gaussian', width=1e-20),
+        n_spin_channels=2, van_der_waals_method='G06',
+        relativity_method='scalar_relativistic')
     method_dft.scf = Scf(threshold_energy_change=1e-24)
     method_dft.dft = DFT(xc_functional=XCFunctional())
-    method_dft.dft.xc_functional.correlation.append(Functional(name="GGA_C_PBE", weight=1.0))
-    method_dft.dft.xc_functional.exchange.append(Functional(name="GGA_X_PBE", weight=1.0))
+    method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
+    method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def gw() -> EntryArchive:
-    """GW calculation."""
+    '''GW calculation.'''
     template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
     method_dft.electronic = Electronic(
-        method="DFT",
-        smearing=Smearing(kind="gaussian", width=1e-20),
-        n_spin_channels=2, van_der_waals_method="G06",
-        relativity_method="scalar_relativistic")
+        method='DFT',
+        smearing=Smearing(kind='gaussian', width=1e-20),
+        n_spin_channels=2, van_der_waals_method='G06',
+        relativity_method='scalar_relativistic')
     method_dft.scf = Scf(threshold_energy_change=1e-24)
     method_dft.dft = DFT(xc_functional=XCFunctional())
-    method_dft.dft.xc_functional.correlation.append(Functional(name="GGA_C_PBE", weight=1.0))
-    method_dft.dft.xc_functional.exchange.append(Functional(name="GGA_X_PBE", weight=1.0))
+    method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
+    method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
 
     method_gw = run.m_create(Method)
-    method_gw.gw = GW(type="G0W0", starting_point="GGA_C_PBE GGA_X_PBE")
+    method_gw.gw = GW(type='G0W0', starting_point='GGA_C_PBE GGA_X_PBE')
     method_gw.starting_method_ref = run.method[0]
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def eels() -> EntryArchive:
-    """EELS experiment."""
+    '''EELS experiment.'''
     template = get_template_eels()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def mechanical() -> EntryArchive:
-    """Entry with mechanical properties."""
+    '''Entry with mechanical properties.'''
     template = get_template_dft()
 
     # Elastic workflow
     workflow = template.m_create(Workflow)
-    workflow.type = "elastic"
+    workflow.type = 'elastic'
     workflow.elastic = Elastic(
         shear_modulus_hill=10000,
         shear_modulus_reuss=10000,
@@ -458,13 +461,13 @@ def mechanical() -> EntryArchive:
 
     # EOS workflow
     workflow = template.m_create(Workflow)
-    workflow.type = "equation_of_state"
+    workflow.type = 'equation_of_state'
     equation_of_state = EquationOfState(
         volumes=np.linspace(0, 10, 10) * ureg.angstrom ** 3,
         energies=np.linspace(0, 10, 10) * ureg.electron_volt,
     )
     eos_fit = equation_of_state.m_create(EOSFit)
-    eos_fit.function_name = "murnaghan"
+    eos_fit.function_name = 'murnaghan'
     eos_fit.fitted_energies = np.linspace(0, 10, 10) * ureg.electron_volt
     eos_fit.bulk_modulus = 10000
     workflow.equation_of_state = equation_of_state
@@ -481,7 +484,7 @@ def bulk() -> EntryArchive:
 @pytest.fixture(scope='session')
 def two_d() -> EntryArchive:
     atoms = Atoms(
-        symbols=["C", "C"],
+        symbols=['C', 'C'],
         scaled_positions=[
             [0, 0, 0.5],
             [1 / 3, 1 / 3, 0.5],
@@ -504,14 +507,14 @@ def surface() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def molecule() -> EntryArchive:
-    atoms = ase.build.molecule("CO2")
+    atoms = ase.build.molecule('CO2')
     return get_template_for_structure(atoms)
 
 
 @pytest.fixture(scope='session')
 def atom() -> EntryArchive:
     atoms = Atoms(
-        symbols=["H"],
+        symbols=['H'],
         scaled_positions=[[0.5, 0.5, 0.5]],
         cell=[10, 10, 10],
         pbc=True,
@@ -527,7 +530,7 @@ def one_d() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def single_point() -> EntryArchive:
-    """Single point calculation."""
+    '''Single point calculation.'''
     template = get_template_dft()
 
     return run_normalize(template)
@@ -555,18 +558,18 @@ def geometry_optimization() -> EntryArchive:
     run.m_add_sub_section(Run.system, sys1)
     run.m_add_sub_section(Run.system, sys2)
     workflow = template.m_create(Workflow)
-    workflow.type = "geometry_optimization"
+    workflow.type = 'geometry_optimization'
     workflow.geometry_optimization = GeometryOptimization(
         convergence_tolerance_energy_difference=1e-3 * ureg.electron_volt,
         convergence_tolerance_force_maximum=1e-11 * ureg.newton,
         convergence_tolerance_displacement_maximum=1e-3 * ureg.angstrom,
-        method="bfgs")
+        method='bfgs')
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def molecular_dynamics() -> EntryArchive:
-    """Molecular dynamics calculation."""
+    '''Molecular dynamics calculation.'''
     template = get_template_dft()
     run = template.run[0]
 
@@ -591,15 +594,32 @@ def molecular_dynamics() -> EntryArchive:
 
     # Create workflow
     workflow = template.m_create(Workflow)
-    workflow.type = "molecular_dynamics"
+    workflow.type = 'molecular_dynamics'
     workflow.calculation_result_ref = calcs[-1]
     workflow.calculations_ref = calcs
-    workflow.molecular_dynamics = MolecularDynamics(
+    rdf_values = RadialDistributionFunctionValues(
+        bins=[0, 1, 2],
+        n_bins=3,
+        value=[0, 1, 2],
+        frame_start=0,
+        frame_end=100,
+        label='MOL-MOL'
+    )
+    rdf = RadialDistributionFunction(
+        type='molecular',
+        radial_distribution_function_values=[rdf_values]
+    )
+    results = MolecularDynamicsResults(
+        radial_distribution_functions=[rdf]
+    )
+    md = MolecularDynamics(
         thermodynamic_ensemble='NVT',
         integration_parameters=IntegrationParameters(
             integration_timestep=0.5 * ureg('fs'),
-        )
+        ),
+        results=results
     )
+    workflow.molecular_dynamics = md
 
     return run_normalize(template)
 
@@ -622,46 +642,46 @@ def topology_calculation() -> EntryArchive:
 
     # Topology
     molecule_group = AtomsGroup(
-        label="MOL_GROUP",
-        type="molecule_group",
+        label='MOL_GROUP',
+        type='molecule_group',
         index=0,
-        composition_formula="H(4)O(2)",
+        composition_formula='H(4)O(2)',
         n_atoms=6,
         atom_indices=[0, 1, 2, 3, 4, 5]
     )
     system.m_add_sub_section(System.atoms_group, molecule_group)
     molecule1 = AtomsGroup(
-        label="MOL",
-        type="molecule",
+        label='MOL',
+        type='molecule',
         index=0,
-        composition_formula="H(2)O(1)",
+        composition_formula='H(2)O(1)',
         n_atoms=3,
         atom_indices=[0, 1, 2]
     )
     molecule_group.m_add_sub_section(AtomsGroup.atoms_group, molecule1)
     molecule2 = AtomsGroup(
-        label="MOL",
-        type="molecule",
+        label='MOL',
+        type='molecule',
         index=0,
-        composition_formula="H(2)O(1)",
+        composition_formula='H(2)O(1)',
         n_atoms=3,
         atom_indices=[3, 4, 5]
     )
     molecule_group.m_add_sub_section(AtomsGroup.atoms_group, molecule2)
     monomer_group = AtomsGroup(
-        label="MON_GROUP",
-        type="monomer_group",
+        label='MON_GROUP',
+        type='monomer_group',
         index=0,
-        composition_formula="H(2)",
+        composition_formula='H(2)',
         n_atoms=2,
         atom_indices=[0, 1]
     )
     molecule1.m_add_sub_section(AtomsGroup.atoms_group, monomer_group)
     monomer = AtomsGroup(
-        label="MON",
-        type="monomer",
+        label='MON',
+        type='monomer',
         index=0,
-        composition_formula="H(2)",
+        composition_formula='H(2)',
         n_atoms=2,
         atom_indices=[0, 1]
     )
@@ -677,16 +697,16 @@ def topology_calculation() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def phonon() -> EntryArchive:
-    parser_name = "parsers/phonopy"
-    filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
+    parser_name = 'parsers/phonopy'
+    filepath = 'tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def elastic() -> EntryArchive:
-    parser_name = "parsers/elastic"
-    filepath = "tests/data/parsers/elastic/diamond/INFO_ElaStic"
+    parser_name = 'parsers/elastic'
+    filepath = 'tests/data/parsers/elastic/diamond/INFO_ElaStic'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
@@ -699,7 +719,7 @@ def dos_electronic() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def bands_unpolarized_gap_indirect() -> EntryArchive:
-    return get_template_band_structure([(1, "indirect")])
+    return get_template_band_structure([(1, 'indirect')])
 
 
 @pytest.fixture(scope='session')
@@ -714,53 +734,53 @@ def bands_unpolarized_no_gap() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def bands_polarized_gap_indirect() -> EntryArchive:
-    return get_template_band_structure([(1, "indirect"), (0.8, "indirect")])
+    return get_template_band_structure([(1, 'indirect'), (0.8, 'indirect')])
 
 
 @pytest.fixture(scope='session')
 def dos_si_vasp() -> EntryArchive:
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/dos/dos_si_vasp/vasprun.xml.relax2.xz"
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/dos/dos_si_vasp/vasprun.xml.relax2.xz'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def dos_si_exciting() -> EntryArchive:
-    parser_name = "parsers/exciting"
-    filepath = "tests/data/normalizers/dos/dos_si_exciting/INFO.OUT"
+    parser_name = 'parsers/exciting'
+    filepath = 'tests/data/normalizers/dos/dos_si_exciting/INFO.OUT'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def dos_si_fhiaims() -> EntryArchive:
-    parser_name = "parsers/fhi-aims"
-    filepath = "tests/data/normalizers/dos/dos_si_fhiaims/aims.log"
+    parser_name = 'parsers/fhi-aims'
+    filepath = 'tests/data/normalizers/dos/dos_si_fhiaims/aims.log'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def dos_polarized_vasp() -> EntryArchive:
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/dos/polarized_vasp/vasprun.xml.relax2.xz"
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/dos/polarized_vasp/vasprun.xml.relax2.xz'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def dos_unpolarized_vasp() -> EntryArchive:
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/dos/unpolarized_vasp/vasprun.xml.xz"
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/dos/unpolarized_vasp/vasprun.xml.xz'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def hash_exciting() -> EntryArchive:
-    parser_name = "parsers/exciting"
-    filepath = "tests/data/normalizers/hashes/exciting/INFO.OUT"
+    parser_name = 'parsers/exciting'
+    filepath = 'tests/data/normalizers/hashes/exciting/INFO.OUT'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
@@ -772,51 +792,51 @@ def hash_vasp(bands_unpolarized_gap_indirect) -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_cF() -> EntryArchive:
-    """Band structure calculation for a cP Bravais lattice.
-    """
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/cF/vasprun.xml.bands.xz"
+    '''Band structure calculation for a cP Bravais lattice.
+    '''
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/cF/vasprun.xml.bands.xz'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def band_path_tP() -> EntryArchive:
-    """Band structure calculation for a tP Bravais lattice.
-    """
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/tP/vasprun.xml.bands.xz"
+    '''Band structure calculation for a tP Bravais lattice.
+    '''
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/tP/vasprun.xml.bands.xz'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def band_path_hP() -> EntryArchive:
-    """Band structure calculation for a hP Bravais lattice.
-    """
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/hP/vasprun.xml.bands.xz"
+    '''Band structure calculation for a hP Bravais lattice.
+    '''
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/hP/vasprun.xml.bands.xz'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def band_path_mP_nonstandard() -> EntryArchive:
-    """Band structure calculation for a mP Bravais lattice with a non-standard
+    '''Band structure calculation for a mP Bravais lattice with a non-standard
     lattice ordering.
-    """
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/mP_nonstandard/vasprun.xml.bands.xz"
+    '''
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/mP_nonstandard/vasprun.xml.bands.xz'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def band_path_cF_nonstandard() -> EntryArchive:
-    """Band structure calculation for a mP Bravais lattice with a non-standard
+    '''Band structure calculation for a mP Bravais lattice with a non-standard
     lattice ordering.
-    """
-    parser_name = "parsers/exciting"
-    filepath = "tests/data/normalizers/band_structure/cF_nonstandard/INFO.OUT"
+    '''
+    parser_name = 'parsers/exciting'
+    filepath = 'tests/data/normalizers/band_structure/cF_nonstandard/INFO.OUT'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)

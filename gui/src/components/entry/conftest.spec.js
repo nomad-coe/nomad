@@ -17,10 +17,12 @@
  * limitations under the License.
  */
 
-import { expectQuantity, screen } from '../conftest.spec'
-import { expectPlotButtons } from '../visualization/conftest.spec'
 import { within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { expectQuantity, screen } from '../conftest.spec'
+import { expectPlotButtons } from '../visualization/conftest.spec'
+import { traverseDeep, serializeMetainfo } from '../../utils'
+import { unitSystems } from '../../units'
 
 /*****************************************************************************/
 // Expects
@@ -91,4 +93,30 @@ export function expectTrajectory(index, root = screen) {
   expectQuantity('results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type', 'NVT')
   const trajectoryPlot = screen.getByTestId('trajectory')
   expectPlotButtons(trajectoryPlot)
+}
+
+/**
+ * Tests that an methodology itme is displayed correctly.
+ *
+ * @param {PlotState} state The expected plot state.
+ * @param {str} placeholderTestID The test id for the placeholder.
+ * @param {str} errorMsg The expected error message.
+ * @param {object} container The root element to perform the search on.
+ */
+export async function expectMethodologyItem(
+  title,
+  data,
+  path,
+  container = document.body
+) {
+  const root = within(container)
+  if (!data) {
+      expect(root.queryByText(title)).not.toBeInTheDocument()
+  } else {
+    expect(root.getByText(title)).toBeInTheDocument()
+    for (const [key, value] of traverseDeep(data, true)) {
+      const quantity = `${path}.${key.join('.')}`
+      expectQuantity(quantity, serializeMetainfo(quantity, value, unitSystems.Custom.units))
+    }
+  }
 }

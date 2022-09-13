@@ -17,8 +17,9 @@
 #
 
 import re
+from nomad.datamodel.metainfo.workflow import Workflow
 import numpy as np
-from typing import Dict, List, Union, Any, Set
+from typing import Dict, List, Union, Any, Set, Optional
 import ase.data
 from ase import Atoms
 from matid import SymmetryAnalyzer
@@ -34,6 +35,7 @@ from nomad.datamodel.optimade import Species
 from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
 from nomad.datamodel.results import (
     BandGap,
+    RadialDistributionFunction,
     Results,
     Material,
     Method,
@@ -46,6 +48,7 @@ from nomad.datamodel.results import (
     PressureDynamic,
     EnergyDynamic,
     Properties,
+    StructuralProperties,
     Structures,
     Structure,
     StructureOriginal,
@@ -120,6 +123,7 @@ class ResultsNormalizer(Normalizer):
             "results.properties.vibrational.energy_free_helmholtz": "energy_free_helmholtz",
             "results.properties.vibrational.heat_capacity_constant_volume": "heat_capacity_constant_volume",
             "results.properties.thermodynamic.trajectory": "trajectory",
+            "results.properties.structural.radial_distribution_function": "radial_distribution_function",
             "results.properties.geometry_optimization": "geometry_optimization",
             "results.properties.mechanical.bulk_modulus": "bulk_modulus",
             "results.properties.mechanical.shear_modulus": "shear_modulus",
@@ -426,6 +430,20 @@ class ResultsNormalizer(Normalizer):
 
         return None
 
+    def get_md_methodology(self, workflow: Workflow) -> Optional[MolecularDynamics]:
+        """Retrieves the MD methodology from the given workflow.
+        """
+        md_wf = workflow.molecular_dynamics
+        md = None
+        if md_wf is not None:
+            try:
+                md = MolecularDynamics()
+                md.time_step = md_wf.integration_parameters.integration_timestep
+                md.ensemble_type = md_wf.thermodynamic_ensemble
+            except Exception:
+                pass
+        return md
+
     def trajectory(self) -> List[Trajectory]:
         """Returns a list of trajectories.
         """
@@ -434,16 +452,9 @@ class ResultsNormalizer(Normalizer):
         for workflow in self.traverse_reversed(path):
             # Check validity
             if workflow.type == "molecular_dynamics":
-                md_wf = workflow.molecular_dynamics
                 traj = Trajectory()
-                if md_wf is not None:
-                    md = MolecularDynamics()
-                    try:
-                        md.time_step = md_wf.integration_parameters.integration_timestep
-                        md.ensemble_type = md_wf.thermodynamic_ensemble
-                    except Exception:
-                        pass
-
+                md = self.get_md_methodology(workflow)
+                if md:
                     traj.methodology = Methodology(molecular_dynamics=md)
 
                 # Loop through calculations, gather thermodynamics directly
@@ -492,6 +503,36 @@ class ResultsNormalizer(Normalizer):
                     traj.available_properties = available_properties
                 trajs.append(traj)
         return trajs
+
+    def rdf(self) -> List[RadialDistributionFunction]:
+        """Returns a list of radial distribution functions.
+        """
+        path = ["workflow", "molecular_dynamics", "results", "radial_distribution_functions"]
+        rdfs = []
+        for rdf_workflow in self.traverse_reversed(path):
+            rdf_values = rdf_workflow.radial_distribution_function_values
+            if rdf_values is not None:
+                for rdf_value in rdf_values or []:
+                    rdf = RadialDistributionFunction()
+                    try:
+                        rdf.bins = rdf_value.bins
+                        rdf.n_bins = rdf_value.n_bins
+                        rdf.value = rdf_value.value
+                        rdf.label = rdf_value.label
+                        rdf.frame_start = rdf_value.frame_start
+                        rdf.frame_end = rdf_value.frame_end
+                        rdf.type = rdf_workflow.type
+                        md = self.get_md_methodology(rdf_workflow.m_parent.m_parent.m_parent)
+                        if md:
+                            rdf.methodology = Methodology(
+                                molecular_dynamics=md
+                            )
+                    except Exception as e:
+                        self.logger.error('error in resolving radial distribution data', exc_info=e)
+                    else:
+                        rdfs.append(rdf)
+
+        return rdfs
 
     def properties(
             self,
@@ -586,6 +627,13 @@ class ResultsNormalizer(Normalizer):
             thermodynamic = ThermodynamicProperties()
             thermodynamic.trajectory = trajectory
             properties.thermodynamic = thermodynamic
+
+        # Structural
+        rdf = self.rdf()
+        if rdf:
+            structural = StructuralProperties()
+            structural.radial_distribution_function = rdf
+            properties.structural = structural
 
         try:
             n_calc = len(self.section_run.calculation)

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import { isNil, startCase, toLower, has, cloneDeep, isString, isNumber, isArray } from 'lodash'
-import { deepMap } from './utils'
+import { mapDeep } from './utils'
 import { Unit as UnitMathJS, createUnit } from 'mathjs'
 import { atom, useRecoilValue } from 'recoil'
 import { unitList, prefixes } from './unitsData'
@@ -563,7 +563,7 @@ export class Quantity {
    * @returns Value in base units.
    */
   normalize(value) {
-    return deepMap(value, (x) => this.unit.mathjsUnit._normalize(x))
+    return mapDeep(value, (x) => this.unit.mathjsUnit._normalize(x))
   }
 
   /**
@@ -572,7 +572,7 @@ export class Quantity {
    * @returns Value in currently set units.
    */
   denormalize(value) {
-    return deepMap(value, (x) => this.unit.mathjsUnit._denormalize(x))
+    return mapDeep(value, (x) => this.unit.mathjsUnit._denormalize(x))
   }
 
   label() {

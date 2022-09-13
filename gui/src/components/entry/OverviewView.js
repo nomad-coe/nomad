@@ -27,6 +27,7 @@ import NexusCard from './properties/NexusCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
 import MechanicalPropertiesCard from '../entry/properties/MechanicalPropertiesCard'
 import ThermodynamicPropertiesCard from '../entry/properties/ThermodynamicPropertiesCard'
+import StructuralProperties from '../entry/properties/StructuralPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 import SpectroscopyCard from './properties/SpectroscopyCard'
 import { MethodMetadata } from './EntryDetails'
@@ -94,6 +95,7 @@ const overviewArchiveFilter = Object.freeze({
     method: '*',
     properties: {
       structures: '*',
+      structural: '*',
       electronic: 'include-resolved',
       mechanical: 'include-resolved',
       spectroscopy: 'include-resolved',
@@ -235,6 +237,7 @@ const OverviewView = React.memo((props) => {
         <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
         <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>
         <ThermodynamicPropertiesCard index={index} archive={archive} properties={properties}/>
+        <StructuralProperties index={index} archive={archive} properties={properties}/>
         <GeometryOptimizationCard index={index} archive={archive} properties={properties}/>
         <SpectroscopyCard index={index} archive={archive} properties={properties}/>
       </Grid>

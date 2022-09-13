@@ -554,6 +554,10 @@ class MaterialNormalizer():
             return None
         if structure_original.nperiodic_dimensions == 0:
             return None
+        # TODO: It still needs to be decided what this limit should be.
+        n_atoms = len(structure_original.species_at_sites)
+        if n_atoms > 500:
+            return None
         top_id = 1
         top_id_str = f'/results/material/topology/{top_id}'
 
@@ -640,10 +644,6 @@ class MaterialNormalizer():
         except Exception:
             return None
 
-        # TODO: It still needs to be decided what this limit should be.
-        n_atoms = len(structure_original.species_at_sites)
-        if n_atoms > 500:
-            return None
         return structure_original
 
     def _perform_matid_clustering(self, structure_original: StructureOriginal) -> list:

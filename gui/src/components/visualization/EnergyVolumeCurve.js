@@ -21,7 +21,7 @@ import { useTheme } from '@material-ui/core/styles'
 import Plot from './Plot'
 import { withErrorHandler } from '../ErrorHandler'
 import { Quantity, Unit } from '../../units'
-import { getLineStyles } from '../../utils'
+import { getLineStyles } from '../plotting/common'
 
 /**
  * A thin wrapper for the Plot-component that is used for plotting energy-volume
@@ -138,4 +138,4 @@ EnergyVolumeCurve.propTypes = {
   'data-testid': PropTypes.string
 }
 
-export default withErrorHandler(EnergyVolumeCurve, 'Could not load energy volume curve.')
+export default withErrorHandler('Could not load energy volume curve.')(EnergyVolumeCurve)
