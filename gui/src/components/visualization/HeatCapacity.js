@@ -116,4 +116,4 @@ HeatCapacity.defaultProps = {
   type: 'electronic'
 }
 
-export default withErrorHandler(HeatCapacity, 'Could not load heat capacity.')
+export default withErrorHandler('Could not load heat capacity.')(HeatCapacity)

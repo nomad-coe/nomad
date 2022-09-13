@@ -15,18 +15,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { isNil } from 'lodash'
+import clsx from 'clsx'
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
+import { QuantityCell, QuantityRow, QuantityTable } from '../../Quantity'
+import { isNil, chunk } from 'lodash'
 import {
+  Accordion as MuiAccordion,
+  AccordionDetails as MuiAccordionDetails,
+  AccordionSummary as MuiAccordionSummary,
   Card,
   CardContent,
   CardHeader,
   CardActions,
   Grid,
   Typography,
-  makeStyles
+  makeStyles,
+  withStyles
 } from '@material-ui/core'
+import { traverseDeep } from '../../../utils'
+
+/**
+ * Contains components for displaying properties. The main idea is:
+ * - Each main property category should be placed inside a PropertyCard.
+ * - A property card should have PropertyGrid as a direct descendant.
+ * - PropertyItems are used to display individual properties inside a PropertyGrid.
+ * - If you wish to subdivide a single PropertyItem into smaller subitems, use a
+ *   PropertySubGrid with the set of wanted PropertyItems inside it.
+ */
 
 const gridSpacing = 2
 
@@ -46,7 +63,11 @@ export function PropertyCard({className, children, ...headerProps}) {
   const styles = usePropertyCardStyles()
 
   return <Card className={className} data-testid='property-card'>
-    <CardHeader {...headerProps} className={styles.header} classes={{action: styles.action}}/>
+    <CardHeader
+      {...headerProps}
+      className={styles.header}
+      classes={{action: styles.action}}
+    />
     {children}
   </Card>
 }
@@ -71,6 +92,32 @@ export function PropertyCardActions({children}) {
 
 PropertyCardActions.propTypes = {
   children: PropTypes.any
+}
+
+/**
+ * For displaying actions at the bottom of a PropertyCard.
+ */
+const usePropertyTitleStyles = makeStyles(theme => ({
+  root: {
+    textTransform: 'none',
+    fontSize: '0.9rem'
+  }
+}))
+export function PropertyTitle({title, align, className}) {
+  const styles = usePropertyTitleStyles()
+  return title
+    ? <Typography
+      variant="button"
+      align={align || 'center'}
+      className={clsx(className, styles.root)}
+    >{title}</Typography>
+    : null
+}
+
+PropertyTitle.propTypes = {
+  title: PropTypes.string,
+  align: PropTypes.string,
+  className: PropTypes.string
 }
 
 /**
@@ -114,9 +161,7 @@ PropertySubGrid.propTypes = {
  */
 const usePropertyItemStyles = makeStyles(theme => ({
   title: {
-    marginBottom: theme.spacing(1),
-    textTransform: 'none',
-    fontSize: '0.9rem'
+    marginBottom: theme.spacing(1)
   },
   column: {
     width: '100%',
@@ -126,14 +171,30 @@ const usePropertyItemStyles = makeStyles(theme => ({
   },
   content: {
     flex: 1,
-    minHeight: 0 // added min-height: 0 to allow the item to shrink to fit inside the container.
+    minHeight: 0 // min-height: 0 to allow the item to shrink to fit inside the container.
   }
 }))
-export function PropertyItem({title, align, className, classes, children, height, minHeight, ...other}) {
+export function PropertyItem({
+  title,
+  align,
+  className,
+  classes,
+  children,
+  height,
+  minHeight,
+  ...other
+}) {
   const styles = usePropertyItemStyles({classes: classes})
-  return <Grid item {...other} className={className} style={(!isNil(height) || !isNil(minHeight)) && {height: height, minHeight: minHeight}}>
+  return <Grid
+    item
+    {...other}
+    className={className}
+    style={
+      (!isNil(height) || !isNil(minHeight)) && {height: height, minHeight: minHeight}
+    }
+  >
     <div className={styles.column}>
-      {title && <Typography variant="button" align={align || 'center'} className={styles.title}>{title}</Typography>}
+      <PropertyTitle title={title} className={styles.title}/>
       <div className={styles.content}>
         {children}
       </div>
@@ -153,4 +214,120 @@ PropertyItem.propTypes = {
 
 PropertyItem.defaultProps = {
   height: '400px'
+}
+
+/**
+ * For displaying the methodology steps for a property.
+ */
+const usePropertyMethodologyListStyle = makeStyles(theme => ({
+  column: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  content: {
+    flex: 1,
+    minHeight: 0 // min-height: 0 to allow the item to shrink to fit inside the container.
+  }
+}))
+export function PropertyMethodologyList({className, classes, children, ...other}) {
+  const styles = usePropertyMethodologyListStyle({classes: classes})
+  return <Grid item {...other} className={className}>
+    <div className={styles.column}>
+      <div className={styles.content}>
+        {children}
+      </div>
+    </div>
+  </Grid>
+}
+
+PropertyMethodologyList.propTypes = {
+  className: PropTypes.string,
+  classes: PropTypes.object,
+  children: PropTypes.any
+}
+
+const Accordion = withStyles((theme) => ({
+  expanded: {
+    margin: theme.spacing(1)
+  }
+}))(MuiAccordion)
+
+const AccordionSummary = withStyles((theme) => ({
+  root: {
+    padding: `0 ${theme.spacing(1)}px`,
+    minHeight: theme.spacing(4),
+    '&$expanded': {
+      minHeight: theme.spacing(4)
+    }
+  },
+  content: {
+    margin: 0,
+    '&$expanded': {
+      margin: 0
+    }
+  },
+  expanded: {}
+}))(MuiAccordionSummary)
+
+const AccordionDetails = withStyles((theme) => ({
+  root: {
+    margin: 0,
+    padding: `0 ${theme.spacing(1)}px`
+  }
+}))(MuiAccordionDetails)
+
+/**
+ * For displaying methodology steps.
+ */
+export const PropertyMethodologyItem = React.memo(({title, data, path, columns}) => {
+  // Recursively extract items from the data and split the items into equal sized rows
+  const rows = useMemo(() => {
+    if (!data) return undefined
+
+    const quantities = []
+    for (const [key, value] of traverseDeep(data, true)) {
+      quantities.push({
+        label: key[key.length - 1].replace(/_/g, ' '),
+        quantity: `${path === '' ? '' : `${path}.`}${key.join('.')}`,
+        value: value
+      })
+    }
+
+    return chunk(quantities, columns)
+  }, [data, path, columns])
+
+  if (!data) {
+    return null
+  }
+
+  return <Accordion defaultExpanded elevation={0}>
+    <AccordionSummary IconButtonProps={{size: 'small'}} expandIcon={<ExpandMoreIcon />}>
+      <PropertyTitle title={title} />
+    </AccordionSummary>
+    <AccordionDetails>
+      <QuantityTable>
+        {rows.map((row) =>
+          <QuantityRow key={row[0].label}>
+            {row.map((column) => <QuantityCell
+              key={column.label}
+              {...column}
+            />)}
+          </QuantityRow>
+        )}
+      </QuantityTable>
+    </AccordionDetails>
+  </Accordion>
+})
+
+PropertyMethodologyItem.propTypes = {
+  title: PropTypes.string,
+  data: PropTypes.object,
+  path: PropTypes.string,
+  columns: PropTypes.number
+}
+
+PropertyMethodologyItem.defaultProps = {
+  columns: 4
 }

@@ -16,50 +16,18 @@
  * limitations under the License.
  */
 import React from 'react'
-import assert from 'assert'
-import { within } from '@testing-library/dom'
 import { render } from '../conftest.spec'
+import { expectPlot } from './conftest.spec'
 import GeometryOptimization from './GeometryOptimization'
 import { PlotState } from './Plot'
 
-  test.each([
-    [PlotState.NoData, false],
-    [PlotState.Loading, undefined],
-    [PlotState.Error, {invalid: "data"}],
-    [PlotState.Success, [0, 1, 2, 3, 4]]
-  ])('%s', async (state, energies) => {
-    const {container} = render(<GeometryOptimization energies={energies}/>)
-    await expectGeometryOptimization(state, container)
-  })
-
-/**
- * Tests that the geometry optimization data is loaded properly.
- *
- * @param {PlotState} state The expected state of the component.
- * @param {object} root The root element to perform the search on.
- */
-async function expectGeometryOptimization(state, container = document.body) {
-  assert(state in PlotState, 'Please provide a valid state.')
-  const root = within(container)
-
-  if (state === PlotState.NoData) {
-    // The component should immediately (without any placeholders) display that
-    // there is no data.
-    expect(root.getByText('no data')).toBeInTheDocument()
-  } else if (state === PlotState.Loading) {
-    // The component should immediately display the placeholder
-    expect(root.getByTestId('geometry-optimization-plot-placeholder')).toBeInTheDocument()
-  } else if (state === PlotState.Error) {
-    // The component should immediately (without any placeholders) display the
-    // error message.
-    expect(root.getByText('Could not load geometry optimization data.')).toBeInTheDocument()
-  } else if (state === PlotState.Success) {
-    // The component should display the plot. Only way to currently test SVG
-    // charts is to use querySelector which is not ideal. Note that testing for
-    // SVG text contents in JSDOM is also not currently working with JSDOM. Here
-    // we simply test that the SVG elements holding the titles exist.
-    expect(container.querySelector(".xtitle")).toBeInTheDocument()
-    expect(container.querySelector(".ytitle")).toBeInTheDocument()
-    expect(container.querySelector(".y2title")).toBeInTheDocument()
-  }
-}
+const errorMsg = 'Could not load geometry optimization data.'
+test.each([
+  [PlotState.NoData, false, undefined],
+  [PlotState.Loading, undefined, 'geometry-optimization-plot-placeholder'],
+  [PlotState.Error, {invalid: 'data'}, undefined],
+  [PlotState.Success, [0, 1, 2, 3, 4], undefined]
+])('%s', async (state, energies, placeholderTestID) => {
+  const {container} = render(<GeometryOptimization energies={energies}/>)
+  await expectPlot(state, placeholderTestID, errorMsg, container)
+})

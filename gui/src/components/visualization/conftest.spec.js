@@ -16,7 +16,9 @@
  * limitations under the License.
  */
 
-import { within } from '@testing-library/react'
+import assert from 'assert'
+import { within } from '@testing-library/dom'
+import { PlotState } from './Plot'
 
 /*****************************************************************************/
 // Expects
@@ -26,9 +28,48 @@ import { within } from '@testing-library/react'
  *
  * @param {object} root The container to work on.
  */
-export function expectPlotButtons(root) {
-  expect(within(root).getByRole('button', {name: 'Reset view'})).toBeInTheDocument()
-  expect(within(root).getByRole('button', {name: 'Toggle fullscreen'})).toBeInTheDocument()
-  expect(within(root).getByRole('button', {name: 'Capture image'})).toBeInTheDocument()
-  expect(within(root).getByRole('button', {name: 'View data in the archive'})).toBeInTheDocument()
+export function expectPlotButtons(container) {
+  const root = within(container)
+  expect(root.getByRole('button', {name: 'Reset view'})).toBeInTheDocument()
+  expect(root.getByRole('button', {name: 'Toggle fullscreen'})).toBeInTheDocument()
+  expect(root.getByRole('button', {name: 'Capture image'})).toBeInTheDocument()
+  expect(root.getByRole('button', {name: 'View data in the archive'})).toBeInTheDocument()
+}
+
+/**
+ * Tests that plot is loaded properly.
+ *
+ * @param {PlotState} state The expected plot state.
+ * @param {str} placeholderTestID The test id for the placeholder.
+ * @param {str} errorMsg The expected error message.
+ * @param {object} container The root element to perform the search on.
+ */
+export async function expectPlot(
+  state,
+  placeholderTestID,
+  errorMsg,
+  container = document.body
+) {
+  assert(state in PlotState, 'Please provide a valid state.')
+  const root = within(container)
+
+  if (state === PlotState.NoData) {
+    // The component should immediately (without any placeholders) display that
+    // there is no data.
+    expect(root.getByText('no data')).toBeInTheDocument()
+  } else if (state === PlotState.Loading) {
+    // The component should immediately display the placeholder
+    expect(root.getByTestId(placeholderTestID)).toBeInTheDocument()
+  } else if (state === PlotState.Error) {
+    // The component should immediately (without any placeholders) display the
+    // error message.
+    expect(root.getByText(errorMsg)).toBeInTheDocument()
+  } else if (state === PlotState.Success) {
+    // The component should display the plot. Only way to currently test SVG
+    // charts is to use querySelector which is not ideal. Note that testing for
+    // SVG text contents in JSDOM is also not currently working with JSDOM. Here
+    // we simply test that the SVG elements holding the titles exist.
+    expect(container.querySelector(".xtitle")).toBeInTheDocument()
+    expect(container.querySelector(".ytitle")).toBeInTheDocument()
+  }
 }

@@ -339,7 +339,7 @@ export function getLineStyles(nLines, theme) {
     .mode('lch').colors(nLines)
   for (let i = 0; i < nLines; ++i) {
     const line = {
-      dash: lineStyles[i % lineStyles.length],
+      dash: nLines <= 5 ? 'solid' : lineStyles[i % lineStyles.length],
       color: colors[i],
       width: 2
     }

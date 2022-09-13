@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -18,26 +19,26 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
-import { Trajectories } from '../../visualization/Trajectory'
+import { RadialDistributionFunctions } from '../../visualization/RadialDistributionFunction'
 
 /**
- * Card displaying molecular dynamics properties.
+ * Card for displaying structural properties.
  */
-const ThermodynamicPropertiesCard = React.memo(({index, properties, archive}) => {
+const StructuralPropertiesCard = React.memo(({index, properties, archive}) => {
   // Check what data is available and do not show the card if none of the properties are
   // available.
-  const hasTrajectory = properties.has('trajectory')
-  if (!hasTrajectory) return null
+  const hasRdf = properties.has('radial_distribution_function')
+  if (!hasRdf) return null
 
-  return <PropertyCard title="Thermodynamic">
-    {hasTrajectory && <Trajectories index={index} archive={archive} />}
+  return <PropertyCard title="Structural">
+    {hasRdf && <RadialDistributionFunctions index={index} archive={archive}/>}
   </PropertyCard>
 })
 
-ThermodynamicPropertiesCard.propTypes = {
+StructuralPropertiesCard.propTypes = {
   index: PropTypes.object.isRequired,
   properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }
 
-export default ThermodynamicPropertiesCard
+export default StructuralPropertiesCard

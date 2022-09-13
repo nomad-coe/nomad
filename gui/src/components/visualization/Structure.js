@@ -619,7 +619,7 @@ Structure.defaultProps = {
   bondLimit: 50
 }
 
-export default withWebGLErrorHandler(withErrorHandler(Structure, 'Could not load structure.'))
+export default withWebGLErrorHandler(withErrorHandler('Could not load structure.')(Structure))
 
 function getRadius(radius) {
   return `${Math.sqrt(radius) * 12}px`

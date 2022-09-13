@@ -114,4 +114,4 @@ HelmholtzFreeEnergy.propTypes = {
   'data-testid': PropTypes.string
 }
 
-export default withErrorHandler(HelmholtzFreeEnergy, 'Could not load Helmholtz free energy.')
+export default withErrorHandler('Could not load Helmholtz free energy.')(HelmholtzFreeEnergy)
