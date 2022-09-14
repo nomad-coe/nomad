@@ -377,7 +377,7 @@ function UploadOverview(props) {
   const handleDelete = () => {
     setOpenDeleteConfirmDialog(false)
     api.delete(`/uploads/${uploadId}`)
-      .then(results => updateUpload({upload: results.data, deletionRequested: true}))
+      .then(results => updateUpload({upload: results.data}))
       .catch(raiseError)
   }
 

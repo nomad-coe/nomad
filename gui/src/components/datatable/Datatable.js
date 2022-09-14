@@ -335,7 +335,7 @@ const useDatatableRowStyles = makeStyles(theme => ({
   }
 }))
 
-const DatatableRow = React.memo(function DatatableRow({data, selected, uncollapsed, onRowUncollapsed, actions, details}) {
+const DatatableRow = React.memo(function DatatableRow({data, selected, uncollapsed, onRowUncollapsed, actions, details, progressIcon}) {
   const classes = useDatatableRowStyles()
   const {withSelectionFeature, shownColumns, onSelectedChanged} = useStaticDatatableContext()
   const columns = shownColumns
@@ -352,7 +352,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
       if (selected === 'all') {
         return [row]
       }
-      const index = selected.map(selectedRow => selectedRow.entry_id).indexOf(row.entry_id)
+      const index = selected.indexOf(row)
       if (index > -1) {
         return [...selected.slice(0, index), ...selected.slice(index + 1)]
       } else {
@@ -376,10 +376,10 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
       data-testid={'datatable-row'}
     >
       {withSelectionFeature && <TableCell padding="checkbox">
-        <Checkbox
+        {progressIcon || <Checkbox
           checked={selected}
           onClick={handleSelect}
-        />
+        />}
       </TableCell>}
       {columns.map(column => <TableCell key={column.key} align={column.align || 'right'} style={column.style}>
         {(column?.render && column?.render(row)) || row[column.key] || ''}
@@ -408,7 +408,8 @@ DatatableRow.propTypes = {
   uncollapsed: PropTypes.bool,
   onRowUncollapsed: PropTypes.func.isRequired,
   actions: PropTypes.elementType,
-  details: PropTypes.elementType
+  details: PropTypes.elementType,
+  progressIcon: PropTypes.node
 }
 
 const useDatatableTableStyles = makeStyles(theme => ({
@@ -463,10 +464,11 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
           actions={actions}
           details={details}
           key={index}
-          selected={selected === 'all' || selected?.map(selectedRow => selectedRow.entry_id).includes(row.entry_id)}
+          selected={selected === 'all' || selected?.includes(row)}
           uncollapsed={row === uncollapsedRow}
           data={row}
           onRowUncollapsed={setUncollapsedRow}
+          progressIcon={row?.current_process === 'delete_upload' && (row?.process_status === 'PENDING' || row?.process_status === 'RUNNING') && <CircularProgress/>}
         />
       ))}
       {!isExtending && (emptyRows > 0) && (
