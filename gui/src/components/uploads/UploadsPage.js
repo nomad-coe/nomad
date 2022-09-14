@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useState, useMemo} from 'react'
+import React, {useCallback, useEffect, useState, useMemo, useContext, useRef} from 'react'
 import PropTypes from 'prop-types'
 import Markdown from '../Markdown'
 import {
   Paper, IconButton, Tooltip, Typography,
-  Box, Divider, makeStyles } from '@material-ui/core'
+  Box, Divider, makeStyles
+} from '@material-ui/core'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import HelpDialog from '../Help'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
@@ -36,13 +37,14 @@ import DetailsIcon from '@material-ui/icons/MoreHoriz'
 import { UploadButton } from '../nav/Routes'
 import {
   addColumnDefaults, combinePagination, Datatable, DatatablePagePagination,
-  DatatableTable, DatatableToolbar
+  DatatableTable, DatatableToolbar, DatatableToolbarActions
 } from '../datatable/Datatable'
 import TooltipButton from '../utils/TooltipButton'
 import ReloadIcon from '@material-ui/icons/Replay'
 import Quantity from '../Quantity'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import { useHistory } from 'react-router-dom'
+import DeleteUploadsButton from './DeleteUploadsButton'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -121,6 +123,10 @@ metadata when you click on an upload to open its details, and press the edit but
 The metadata fields cannot be changed after the upload has been published (except for dataset members).
 The documentation on the [user data page](${guiBase}/userdata) contains more information.
 `
+export const uploadsPageContext = React.createContext()
+export function useUploadsPageContext() {
+  return useContext(uploadsPageContext)
+}
 
 const columns = [
   {
@@ -250,6 +256,8 @@ export function UploadsPage() {
   const data = useMemo(() => apiData?.response, [apiData])
   const [unpublished, setUnpublished] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
+  const [selected, setSelected] = useState([])
+  const fetchTimer = useRef(-1)
   const [pagination, setPagination] = useState({
     page_size: 10,
     page: 1,
@@ -262,10 +270,25 @@ export function UploadsPage() {
     const {page_size, page, order_by, order} = pagination
     const url = `/uploads?page_size=${page_size}&page=${page}&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`
     api.get(url, null, {returnRequest: true})
-      .then(setApiData)
+      .then(uploads => {
+        setApiData(uploads)
+        const deleteStatus = uploads.response.data.filter(upload => upload?.current_process === 'delete_upload' && (upload?.process_status === 'PENDING' || upload?.process_status === 'RUNNING'))
+        if (deleteStatus.length === 0) {
+          if (fetchTimer.current !== -1) {
+            clearInterval(fetchTimer.current)
+          }
+          fetchTimer.current = -1
+        } else {
+          if (fetchTimer.current === -1) {
+            fetchTimer.current = setInterval(fetchData, 2000)
+          }
+        }
+      })
       .catch(errors.raiseError)
-    api.get(`/uploads?is_published=false&page_size=0&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
-      .then(setUnpublished)
+    api.get(`/uploads?is_published=false&page_size=10000&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
+      .then(response => {
+        setUnpublished(response)
+      })
       .catch(errors.raiseError)
   }, [pagination, setApiData, setUnpublished, errors, api])
 
@@ -278,6 +301,10 @@ export function UploadsPage() {
   // history.pushed back to the UploadsPage and want to reload the list of uploads.
   useEffect(() => {
     fetchData()
+    return () => {
+      if (fetchTimer.current !== -1) clearInterval(fetchTimer.current)
+      fetchTimer.current = -1
+    }
   }, [fetchData, history])
 
   const isDisabled = unpublished ? (unpublished.pagination ? unpublished.pagination.total >= servicesUploadLimit : false) : false
@@ -287,6 +314,29 @@ export function UploadsPage() {
       .then(setUploadCommands)
       .catch(errors.raiseError)
   }, [api, errors, setUploadCommands])
+
+  const selectedUploads = useMemo(() => selected === 'all' ? unpublished.data.map(upload => upload.upload_id) : selected.map(upload => upload.upload_id), [selected, unpublished])
+  const selectedCount = useMemo(() => selected === 'all' ? unpublished.pagination.total : selected.length, [selected, unpublished])
+  const deleteUploads = useCallback(() => {
+    const promises = selectedUploads.map(upload_id => api.delete(`uploads/${upload_id}`))
+    return Promise.allSettled(promises)
+  }, [selectedUploads, api])
+
+  const handleDeleteSubmitted = useCallback(() => {
+    deleteUploads().then(responses => {
+      responses.forEach((response) => {
+        if (response.status === 'fulfilled') {
+          // No error occurred
+        } else if (response.status === 'rejected') {
+          errors.raiseError(new Error(response.reason.apiMessage))
+        } else {
+          errors.raiseError(new Error('Unexpected error!'))
+        }
+      })
+      setSelected([])
+      fetchData()
+    })
+  }, [deleteUploads, errors, fetchData])
 
   return (
     <Page loading={!(data && uploadCommands)}>
@@ -324,18 +374,28 @@ export function UploadsPage() {
             data={data.data || []}
             pagination={combinePagination(pagination, data.pagination)}
             onPaginationChanged={setPagination}
+            selected={selected} onSelectedChanged={setSelected}
           >
             <DatatableToolbar title="Your existing uploads">
-              <TooltipButton
-                title="Reload the uploads"
-                component={IconButton}
-                onClick={handleReload}
-              >
-                <ReloadIcon/>
-              </TooltipButton>
-              <SourceApiDialogButton maxWidth="lg" fullWidth>
-                <SourceApiCall {...apiData} />
-              </SourceApiDialogButton>
+              <DatatableToolbarActions>
+                <TooltipButton
+                  title="Reload the uploads"
+                  component={IconButton}
+                  onClick={handleReload}
+                >
+                  <ReloadIcon/>
+                </TooltipButton>
+                <SourceApiDialogButton maxWidth="lg" fullWidth>
+                  <SourceApiCall {...apiData} />
+                </SourceApiDialogButton>
+              </DatatableToolbarActions>
+              <DatatableToolbarActions selection>
+                <DeleteUploadsButton
+                  isIcon
+                  selectedCount={selectedCount}
+                  onSubmitted={handleDeleteSubmitted}
+                />
+              </DatatableToolbarActions>
             </DatatableToolbar>
             <DatatableTable actions={UploadActions}>
               <DatatablePagePagination />

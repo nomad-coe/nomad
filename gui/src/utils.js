@@ -623,7 +623,8 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
     'value': 'values',
     'material': 'materials',
     'dataset': 'datasets',
-    'item': 'items'
+    'item': 'items',
+    'upload': 'uploads'
   }
   const plural = dictionary[word]
   if (isNil(plural)) {
