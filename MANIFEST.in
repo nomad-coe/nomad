@@ -8,6 +8,7 @@ include auto_complete_install.sh
 include setup.json
 recursive-include nomad/app/static/gui/ *.css *.ico *.html *.json *.js *.map *.txt *.svg *.png
 recursive-include docs/build/ *.css *.ico *.html *.json *.js *.map *.txt *.svg *.png
+recursive-include dependencies/parsers/ metadata.yaml
 recursive-include dependencies/parsers/nexus/nexusparser/definitions/base_classes/ *.xml
 recursive-include dependencies/parsers/nexus/nexusparser/definitions/applications/ *.xml
 recursive-include dependencies/parsers/nexus/nexusparser/definitions/contributed_definitions/ *.xml

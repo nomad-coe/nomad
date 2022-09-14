@@ -21,7 +21,7 @@ import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
-from nomad.datamodel.metainfo.simulation.system import System
+from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import Method
 
 from ..common import FastAccess
@@ -175,6 +175,44 @@ class AtomicValues(MSection):
         shape=[],
         description='''
         String representation of the of the atomic orbital.
+        ''')
+
+
+class AtomicGroup(MSection):
+    '''
+    Generic section containing the values and information reqarding a molecular or sub-molecular
+    quantity that is a function of an atomic group such as radius of gyration...
+    '''
+
+    m_def = Section(validate=False)
+
+    kind = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Kind of the quantity.
+        ''')
+
+
+class AtomicGroupValues(MSection):
+    '''
+    Generic section containing information regarding the values of a trajectory property.
+    '''
+
+    m_def = Section(validate=False)
+
+    label = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the atoms or molecule types involved in determining the property.
+        ''')
+
+    atomsgroup_ref = Quantity(
+        type=Reference(AtomsGroup.m_def),
+        shape=[1],
+        description='''
+        References to the atoms_group section containing the molecule for which Rg was calculated.
         ''')
 
 
@@ -1538,6 +1576,34 @@ class VibrationalFrequencies(MSection):
     infrared = SubSection(sub_section=VibrationalFrequenciesValues.m_def, repeats=False)
 
 
+class RadiusOfGyrationValues(AtomicGroupValues):
+    '''
+    Section containing information regarding the values of
+    radius of gyration (Rg).
+    '''
+
+    m_def = Section(validate=False)
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m',
+        description='''
+        Value of Rg.
+        ''')
+
+
+class RadiusOfGyration(AtomicGroup):
+    '''
+    Section containing information about the calculation of
+    radius of gyration (Rg).
+    '''
+
+    m_def = Section(validate=False)
+
+    radius_of_gyration_values = SubSection(sub_section=RadiusOfGyrationValues.m_def, repeats=True)
+
+
 class BaseCalculation(MSection):
     '''
     Contains computed properties of a configuration as defined by the corresponding
@@ -1674,6 +1740,8 @@ class BaseCalculation(MSection):
     charges = SubSection(sub_section=Charges.m_def, repeats=True)
 
     density_charge = SubSection(sub_section=Density.m_def, repeats=True)
+
+    radius_of_gyration = SubSection(sub_section=RadiusOfGyration.m_def, repeats=True)
 
     volume = Quantity(
         type=np.dtype(np.float64),

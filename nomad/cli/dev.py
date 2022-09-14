@@ -162,23 +162,9 @@ def search_quantities():
 @dev.command(help='Generates a JSON file that compiles all the parser metadata from each parser project.')
 def parser_metadata():
     import json
-    import yaml
-    import os
-    import os.path
-    from glob import glob
+    from nomad.parsing.parsers import code_metadata
 
-    parsers_metadata = {}
-    parsers_path = './dependencies/parsers'
-    for parser_metadata_file in sorted(glob(f'{parsers_path}/**/metadata.yaml', recursive=True)):
-        with open(parser_metadata_file) as f:
-            parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
-        parsers_metadata[os.path.basename(os.path.dirname(parser_metadata_file))] = parser_metadata
-
-    parsers_metadata = {
-        key: parsers_metadata[key]
-        for _, key in sorted([(key.lower(), key) for key in parsers_metadata], key=lambda x: x[0])}
-
-    print(json.dumps(parsers_metadata, indent=2))
+    print(json.dumps(code_metadata, indent=2, sort_keys=True))
 
 
 @dev.command(help='Generates a JSON file from example-uploads metadata in the YAML file.')
