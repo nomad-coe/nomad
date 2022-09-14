@@ -609,7 +609,7 @@ export function delay(func) {
  * Returns the correct form (plural/singular) for the given word. The syntax is
  * similar to the "pluralize"-library.
  *
- * @param {string} word The word to plurarize
+ * @param {string} word The word to pluralize
  * @param {count} number How many of the words exist
  * @param {boolean} inclusive Whether to prefix with the number (e.g. 3 ducks)
  * @param {boolean} format Whether to format the number.
@@ -627,12 +627,18 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
     'material': 'materials',
     'dataset': 'datasets',
     'item': 'items',
-    'upload': 'uploads'
+    'upload': 'uploads',
+    'code': 'codes',
+    'manager': 'managers'
   }
-  const plural = dictionary[word]
+  const words = word.trim().split(" ")
+  const lastWord = words[words.length - 1]
+  let plural = dictionary[lastWord]
   if (isNil(plural)) {
     throw Error(`The word ${word} is not in the dictionary, please add it.`)
   }
+  words[words.length - 1] = plural
+  plural = words.join(" ")
   const form = count === 1
     ? word
     : plural

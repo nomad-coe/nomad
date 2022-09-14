@@ -19,13 +19,27 @@ import React, { useLayoutEffect, useRef, useCallback, useEffect, useState } from
 import { ReactComponent as AboutSvg } from '../images/about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
+import { isNil } from 'lodash'
 import { appBase, debug, aitoolkitEnabled, encyclopediaBase } from '../config'
 import packageJson from '../../package.json'
-import { Grid, Card, CardContent, Typography, makeStyles, Link, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@material-ui/core'
+import {
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  Link,
+  makeStyles,
+  Typography
+} from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
 import tutorials from '../toolkitMetadata'
 import parserMetadata from '../parserMetadata'
 import { useInfo } from './api'
+import { pluralize } from '../utils'
 
 function CodeInfo({code, ...props}) {
   if (!code) {
@@ -76,41 +90,84 @@ CodeInfo.propTypes = {
   onClose: PropTypes.func
 }
 
-export const CodeList = ({withUploadInstructions}) => {
+export const CodeList = React.memo(({withUploadInstructions}) => {
   const [selected, setSelected] = useState(null)
 
-  const codes = Object.keys(parserMetadata).map(code => {
-    const metadata = parserMetadata[code]
-    if (!metadata) {
-      return code
+  // Create lists containing code name and category
+  const codes = []
+  const categorySizes = {}
+  Object.entries(parserMetadata).forEach(([code, metadata]) => {
+    const name = metadata.codeLabel || code
+    const category = metadata.codeCategory
+    if (categorySizes[category]) {
+      categorySizes[category] += 1
+    } else {
+      categorySizes[category] = 1
+    }
+    if (!metadata || code === 'example') {
+      return
     }
 
-    if (withUploadInstructions) {
-      return <Link
-        href="#" key={code} onClick={() => setSelected(code)}
-      >{code.codeLabel || code}</Link>
-    }
+    const link = withUploadInstructions
+      ? [code, category, <Link href="#" key={code} onClick={() => setSelected(code)}>{name}</Link>]
+      : metadata.codeUrl
+        ? [code, category, <Link href={metadata.codeUrl} key={code} target="code">{name}</Link>]
+        : [code, category, name]
 
-    if (metadata.codeUrl) {
-      return <Link href={metadata.codeUrl} key={code} target="code">{code.codeLabel || code}</Link>
-    }
-
-    return code
+    codes.push(link)
   })
 
-  const toRender = codes.reduce((list, value, index) => {
-    if (index !== 0) {
-      list.push(', ')
+  // Sort by category size, then by program name. Codes without category go to
+  // the end.
+  codes.sort((a, b) => {
+    const nameA = a[0]
+    const nameB = b[0]
+    const categoryA = a[1]
+    const categoryB = b[1]
+    const sizeA = categorySizes[categoryA]
+    const sizeB = categorySizes[categoryB]
+    if (isNil(categoryA) && !isNil(categoryB)) return 1
+    if (isNil(categoryB) && !isNil(categoryA)) return -1
+    if (sizeA > sizeB) return -1
+    if (sizeA < sizeB) return 1
+    if (nameA > nameB) return 1
+    if (nameA < nameB) return -1
+    return 0
+  })
+
+  // Create a renderable version
+  let currentCategory = null
+  let categoryIndex = 0
+  const codeshtml = codes.reduce((list, value) => {
+    let index = -1
+    const categoryTmp = value[1]
+    const html = value[2]
+    const category = categoryTmp ? pluralize(categoryTmp) : 'Miscellaneous'
+
+    if (currentCategory !== category) {
+      index = 0
+      if (categoryIndex !== 0) {
+        list.push(', ')
+      }
+      list.push(<b> {category}: </b>)
+      categoryIndex += 1
+      currentCategory = category
     }
-    list.push(value)
+
+    if (html) {
+      if (index !== 0) {
+        list.push(', ')
+      }
+      list.push(html)
+    }
     return list
   }, [])
 
-  return <React.Fragment>
-    {toRender}
+  return <span data-testid="code-list">
+    {codeshtml}
     <CodeInfo code={selected} onClose={() => setSelected(null)} />
-  </React.Fragment>
-}
+  </span>
+})
 CodeList.propTypes = {
   withUploadInstructions: PropTypes.bool
 }
@@ -370,7 +427,6 @@ export default function About() {
         - version (GUI): \`${packageJson.version}/${packageJson.commit}\`
         - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
         - last commit message: *${info ? info.git.log : 'loading'}*
-        - supported codes: ${info ? info.codes.map(code => code.code_name).join(', ') : 'loading'}
         - parsers: ${info ? info.parsers.join(', ') : 'loading'}
         - normalizers: ${info ? info.normalizers.join(', ') : 'loading'}
         `}</Markdown>

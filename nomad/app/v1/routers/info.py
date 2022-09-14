@@ -29,7 +29,8 @@ from pydantic.main import BaseModel
 from nomad import config, normalizing, gitinfo
 from nomad.utils import strip
 from nomad.search import search
-from nomad.parsing import parsers, MatchingParser
+from nomad.parsing import parsers
+from nomad.parsing.parsers import code_metadata
 from nomad.app.v1.models import Aggregation, StatisticsAggregation
 from nomad.metainfo.elasticsearch_extension import entry_type
 
@@ -105,15 +106,6 @@ def statistics():
     response_model=InfoModel)
 async def get_info():
     ''' Return information about the nomad backend and its configuration. '''
-    codes_dict = {}
-    for parser in parsers.parser_dict.values():
-        if isinstance(parser, MatchingParser) and parser.domain == 'dft':
-            code_name = parser.code_name
-            if code_name in codes_dict:
-                continue
-            codes_dict[code_name] = dict(code_name=code_name, code_homepage=parser.code_homepage)
-    codes = sorted(list(codes_dict.values()), key=lambda code_info: code_info['code_name'].lower())
-
     return {
         'parsers': [
             key[key.index('/') + 1:]
@@ -121,7 +113,10 @@ async def get_info():
         'metainfo_packages': ['general', 'general.experimental', 'common', 'public'] + sorted([
             key[key.index('/') + 1:]
             for key in parsers.parser_dict.keys()]),
-        'codes': codes,
+        'codes': [
+            {'code_name': x['codeLabel'], 'code_homepage': x['codeUrl']}
+            for x in sorted(code_metadata.values(), key=lambda info: info['codeLabel'].lower())
+        ],
         'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
         'statistics': statistics(),
         'search_quantities': {
