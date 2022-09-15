@@ -1,8 +1,7 @@
 import React, {useMemo} from 'react'
 import {Box, useTheme} from '@material-ui/core'
 import {Quantity as Q, useUnits} from '../../units'
-import {resolveRef} from './metainfo'
-import {titleCase} from '../../utils'
+import {titleCase, resolveInternalRef} from '../../utils'
 import {getLineStyles} from '../plotting/common'
 import { merge } from 'lodash'
 import Plot from '../visualization/Plot'
@@ -30,12 +29,12 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     const Y = Array.isArray(yAxis) ? yAxis : [yAxis]
     const nLines = Y.length
     const toUnit = path => {
-      const relativePath = path.replace('./', '')
-      const resolvedQuantityDef = resolveRef(relativePath, sectionDef)
+      const relativePath = '/' + path.replace('./', '')
+      const resolvedQuantityDef = resolveInternalRef(relativePath, sectionDef)
       if (resolvedQuantityDef === undefined || resolvedQuantityDef === null) {
         throw new XYPlotError(`Could not resolve the path ${path}`)
       }
-      const value = resolveRef(relativePath, section)
+      const value = resolveInternalRef(relativePath, section)
       if (value === undefined || value === null) {
         throw new XYPlotError(`Could not resolve the data for ${path}`)
       }

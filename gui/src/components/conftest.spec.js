@@ -43,8 +43,9 @@ import DataStore from './DataStore'
 import searchQuantities from '../searchQuantities'
 import { keycloakBase } from '../config'
 import { useKeycloak } from '@react-keycloak/web'
-import { GlobalMetainfo, createGlobalMetainfo } from './archive/metainfo'
+import { GlobalMetainfo, Metainfo } from './archive/metainfo'
 import metainfoData from '../metainfo'
+import { systemMetainfoUrl } from '../utils'
 
 beforeEach(async () => {
   // For some strange reason, the useKeycloak mock gets reset if we set it earlier
@@ -77,7 +78,11 @@ beforeEach(async () => {
   }
   window.ResizeObserver = ResizeObserver
 
-  metainfoData._metaInfo = await createGlobalMetainfo()
+  // TODO: Hacky: resetting the global metainfo, since loading custom metainfos update it, and it
+  // creates effects across tests. Need a better solution.
+  metainfoData._url = systemMetainfoUrl
+  metainfoData._metainfo = new Metainfo(null, metainfoData, null)
+  await metainfoData._metainfo._result
 })
 
 const fs = require('fs')
@@ -104,19 +109,19 @@ export const WrapperDefault = ({children}) => {
   return <RecoilRoot>
     <APIProvider>
       <MuiPickersUtilsProvider utils={DateFnsUtils}>
-        <GlobalMetainfo>
-          <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
-            <MemoryRouter>
-              <ErrorSnacks>
-                <ErrorBoundary>
-                  <DataStore>
+        <ErrorSnacks>
+          <ErrorBoundary>
+            <DataStore>
+              <GlobalMetainfo>
+                <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
+                  <MemoryRouter>
                     {children}
-                  </DataStore>
-                </ErrorBoundary>
-              </ErrorSnacks>
-            </MemoryRouter>
-          </Router>
-        </GlobalMetainfo>
+                  </MemoryRouter>
+                </Router>
+              </GlobalMetainfo>
+            </DataStore>
+          </ErrorBoundary>
+        </ErrorSnacks>
       </MuiPickersUtilsProvider>
     </APIProvider>
   </RecoilRoot>

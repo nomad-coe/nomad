@@ -19,8 +19,8 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
 import { useUnits } from '../../../units'
-import { getLocation } from '../../../utils'
-import { refPath, resolveRef } from '../../archive/metainfo'
+import { getLocation, resolveInternalRef } from '../../../utils'
+import { refPath } from '../../archive/metainfo'
 import MechanicalProperties from '../../visualization/MechanicalProperties'
 
 /**
@@ -47,8 +47,8 @@ const MechanicalPropertiesCard = React.memo(({index, properties, archive}) => {
     evCurves = {
       m_path: `${urlPrefix}/${refPath(evCurveData[0].volumes.split('/').slice(0, -1).join('/'))}`,
       data: evCurveData.map(ev => ({
-        volumes: resolveRef(ev.volumes, archive),
-        energies: resolveRef(ev.energies_raw || ev.energies_fit, archive),
+        volumes: resolveInternalRef(ev.volumes, archive),
+        energies: resolveInternalRef(ev.energies_raw || ev.energies_fit, archive),
         name: ev.type
       }))
     }

@@ -18,10 +18,10 @@
 import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
-import { configState, useBrowserAdaptorContext } from './ArchiveBrowser'
+import { configState } from './ArchiveBrowser'
 import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName, Title } from './Browser'
 import { Typography, Box, makeStyles, FormGroup, TextField, Button, Link } from '@material-ui/core'
-import { resolveRef, vicinityGraph, SubSectionMDef, SectionMDef, QuantityMDef, CategoryMDef, useGlobalMetainfo, PackageMDef } from './metainfo'
+import { vicinityGraph, SubSectionMDef, SectionMDef, QuantityMDef, CategoryMDef, useGlobalMetainfo, PackageMDef, getMetainfoFromDefinition } from './metainfo'
 import * as d3 from 'd3'
 import blue from '@material-ui/core/colors/blue'
 import teal from '@material-ui/core/colors/teal'
@@ -89,10 +89,12 @@ export function MetainfoPage() {
 }
 
 export default function MetainfoBrowser() {
-  const context = useBrowserAdaptorContext()
-  const adaptor = useMemo(() => new MetainfoRootAdaptor(context), [context])
-  if (!context.metainfo) {
-    return ''
+  const globalMetainfo = useGlobalMetainfo()
+  const adaptor = useMemo(() => {
+    return globalMetainfo ? new MetainfoRootAdaptor(globalMetainfo.getEntryArchiveDefinition()) : null
+  }, [globalMetainfo])
+  if (!adaptor) {
+    return null
   }
   return <Browser
     adaptor={adaptor}
@@ -159,54 +161,68 @@ const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
   )
 })
 
-export async function metainfoAdaptorFactory(context, obj) {
-  if (obj.m_def === SectionMDef) {
-    return new SectionDefAdaptor(context, obj)
-  } else if (obj.m_def === SubSectionMDef) {
-    return new SubSectionDefAdaptor(context, obj)
-  } else if (obj.m_def === QuantityMDef) {
-    return new QuantityDefAdaptor(context, obj)
-  } else if (obj.m_def === CategoryMDef) {
-    return new CategoryDefAdaptor(context, obj)
-  } else if (obj.m_def === PackageMDef) {
-    return new PackageDefAdaptor(context, obj)
+export async function metainfoAdaptorFactory(def) {
+  if (def.m_def === SectionMDef) {
+    return new SectionDefAdaptor(def)
+  } else if (def.m_def === SubSectionMDef) {
+    return new SubSectionDefAdaptor(def)
+  } else if (def.m_def === QuantityMDef) {
+    return new QuantityDefAdaptor(def)
+  } else if (def.m_def === CategoryMDef) {
+    return new CategoryDefAdaptor(def)
+  } else if (def.m_def === PackageMDef) {
+    return new PackageDefAdaptor(def)
   } else {
     throw new Error('Unknown metainfo definition type')
   }
 }
 
 class MetainfoAdaptor extends Adaptor {
-  constructor(context, def) {
-    super(context)
+  constructor(def) {
+    super()
     this.def = def
   }
 
   async itemAdaptor(key) {
     if (key === '_reference') {
-      return metainfoAdaptorFactory(this.context, this.def.type._referencedSection)
+      return metainfoAdaptorFactory(this.def.type._referencedSection)
     } else if (key.startsWith('_category:')) {
       const categoryName = key.split(':')[1]
-      return metainfoAdaptorFactory(this.context, this.def.categories.find(categoryDef => categoryDef.name === categoryName))
+      return metainfoAdaptorFactory(this.def.categories.find(categoryDef => categoryDef.name === categoryName))
     } else if (key === '_metainfo') {
-      return metainfoAdaptorFactory(this.context, await this.context.metainfo.resolveDefinition(this.def.m_def, this.context))
-    } else if (this.def[key]) {
-      console.error('deprecated adaptor implementation for key', key, this.def[key])
-      return metainfoAdaptorFactory(this.context, resolveRef(this.def[key]))
+      return metainfoAdaptorFactory(await getMetainfoFromDefinition(this.def).resolveDefinition(this.def.m_def))
     } else {
       throw new Error('Unknown item key')
     }
+  }
+
+  async initialize(api, dataStore) {
+    // Subscribe to the metainfo containing this def
+    if (this.def.m_def) {
+      // A normal definition provided (note, the PackagePrefixAdaptor is not passed a normal
+      // metainfo definition, so in that case, m_def will be unset (but we also don't need to
+      // subscribe to anything).
+      const metainfoBaseUrl = getMetainfoFromDefinition(this.def)._url
+      await dataStore.getMetainfoAsync(metainfoBaseUrl)
+      this.unsubscriber = dataStore.subscribeToMetainfo(metainfoBaseUrl, () => {})
+    }
+  }
+
+  cleanup() {
+    // Clean up subscriptions
+    if (this.unsubscriber) this.unsubscriber()
   }
 }
 
 export class MetainfoRootAdaptor extends MetainfoAdaptor {
   async itemAdaptor(key) {
-    const rootSection = this.context.metainfo.getRootSectionDefinitions().find(def => def.name === key)
+    const rootSection = getMetainfoFromDefinition(this.def).getRootSectionDefinitions().find(def => def.name === key)
     if (rootSection) {
-      return metainfoAdaptorFactory(this.context, rootSection)
+      return metainfoAdaptorFactory(rootSection)
     } else {
-      const packagePrefixes = this.context.metainfo.getPackagePrefixes()
+      const packagePrefixes = getMetainfoFromDefinition(this.def).getPackagePrefixes()
       if (packagePrefixes[key]) {
-        return new PackagePrefixAdaptor(this.context, packagePrefixes[key])
+        return new PackagePrefixAdaptor(packagePrefixes[key])
       }
     }
 
@@ -221,7 +237,7 @@ export class PackageDefAdaptor extends MetainfoAdaptor {
   async itemAdaptor(key) {
     const sectionDef = this.def.section_definitions.find(sectionDef => sectionDef.name === key)
     if (sectionDef) {
-      return metainfoAdaptorFactory(this.context, sectionDef)
+      return metainfoAdaptorFactory(sectionDef)
     }
     return super.itemAdaptor(key)
   }
@@ -246,7 +262,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
     const def = Object.keys(this.def)
       .map(key => this.def[key])
       .reduce((value, pkg) => value || pkg[type].find(def => def._qualifiedName === name), null)
-    return metainfoAdaptorFactory(this.context, def)
+    return metainfoAdaptorFactory(def)
   }
   render() {
     const sectionDefs = Object.keys(this.def)
@@ -323,24 +339,24 @@ export class SectionDefAdaptor extends MetainfoAdaptor {
       if (type === '_innerSectionDef') {
         const innerSectionDef = this.def.inner_section_definitions.find(def => def.name === name)
         if (innerSectionDef) {
-          return metainfoAdaptorFactory(this.context, innerSectionDef)
+          return metainfoAdaptorFactory(innerSectionDef)
         }
       } else if (type === '_inheritingSectionDef') {
         const inheritingSectionDef = this.def._allInheritingSections.find(inheritingSection => inheritingSection.name === name)
         if (inheritingSectionDef) {
-          return metainfoAdaptorFactory(this.context, inheritingSectionDef)
+          return metainfoAdaptorFactory(inheritingSectionDef)
         }
       } else if (type === '_baseSectionDef') {
         const baseSectionDef = this.def.base_sections[parseInt(name)]
         if (baseSectionDef) {
-          return metainfoAdaptorFactory(this.context, baseSectionDef)
+          return metainfoAdaptorFactory(baseSectionDef)
         }
       }
     }
 
     const property = this.def._properties[key]
     if (property) {
-      return metainfoAdaptorFactory(this.context, property)
+      return metainfoAdaptorFactory(property)
     }
 
     return super.itemAdaptor(key)
@@ -351,9 +367,9 @@ export class SectionDefAdaptor extends MetainfoAdaptor {
 }
 
 class SubSectionDefAdaptor extends MetainfoAdaptor {
-  constructor(context, def) {
-    super(context, def)
-    this.sectionDefAdaptor = new SectionDefAdaptor(this.context, this.def.sub_section)
+  constructor(def) {
+    super(def)
+    this.sectionDefAdaptor = new SectionDefAdaptor(this.def.sub_section)
   }
   async itemAdaptor(key) {
     return this.sectionDefAdaptor.itemAdaptor(key)

@@ -16,7 +16,14 @@
  * limitations under the License.
  */
 
-import { createMetainfo } from './metainfo'
+import { Metainfo } from './metainfo'
+import { systemMetainfoUrl } from '../../utils'
+
+async function createMetainfo(data, parent, url = systemMetainfoUrl) {
+  data._url = url
+  data._metainfo = new Metainfo(parent, data, null)
+  return await data._metainfo._result
+}
 
 test('metainfo initializes correctly', async () => {
   const data = ({
@@ -61,43 +68,4 @@ test('metainfo initializes correctly', async () => {
   expect(defsByName.TestSection[0]._properties.baseSectionQuantity.name).toBe('baseSectionQuantity')
 })
 
-test('parent metainfo definitions are resolved', async () => {
-  const parentData = ({
-    packages: [
-      {
-        name: 'testPackage',
-        section_definitions: [
-          {
-            name: 'TestSection',
-            quantities: [
-              {
-                name: 'testQuantity',
-                type: { type_kind: 'python', type_data: 'str' }
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  })
-
-  const childData = ({
-    definitions: {
-      m_def: 'nomad.metainfo.metainfo.Package',
-      section_definitions: [
-        {
-          name: 'DerivedTestSection',
-          base_sections: [
-            'testPackage.TestSection'
-          ]
-        }
-      ]
-    }
-  })
-
-  const parentMetainfo = await createMetainfo(parentData)
-  const childMetainfo = await createMetainfo(childData, parentMetainfo)
-
-  const defsByName = await childMetainfo.getDefsByName()
-  expect(defsByName.DerivedTestSection[0]._properties.testQuantity.name).toBe('testQuantity')
-})
+// TODO: more tests. How to test resolving?

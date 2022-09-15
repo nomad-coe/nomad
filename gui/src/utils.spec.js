@@ -84,7 +84,6 @@ test.each([
   ['unexpected path element after entry id', '../upload/archive/SomeEntryID/silly'],
   ['expected "raw" or "archive" after upload ref', '../upload/silly'],
   ['Unexpected "#" without entry reference', '../uploads/SomeUploadId/raw#/silly/arch/path'],
-  ['# should always be followed by a "/"', '../uploads/SomeUploadId/raw/main/file#bad/arch/path'],
   ['versionHash can only be specified for metainfo urls.', '../uploads/SomeUploadID/archive/SomeArchID#/arch/path@SomeHash'],
   ['cannot specify versionHash for url that is data-relative.', '#/packages/some/path@SomeVersionHash'],
   ['bad versionHash provided', '../uploads/SomeUploadID/archive/SomeArchID#/definitions/some/path@*']
@@ -161,7 +160,7 @@ test.each([
     isResolved: true,
     isExternal: false
   }],
-  [`${apiBase}/uploads/SomeUploadID/archive/SomeArchID#/arch/path`, {
+  [`${apiBase}/uploads/SomeUploadID/archive/SomeArchID#arch/path`, {
     relativeTo: null,
     type: refType.archive,
     installationUrl: apiBase,
@@ -187,7 +186,7 @@ test.each([
     isResolved: true,
     isExternal: false
   }],
-  [`${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path#/arch/path`, {
+  [`${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path#/arch//path`, {
     relativeTo: null,
     type: refType.archive,
     installationUrl: apiBase,
@@ -239,7 +238,7 @@ test.each([
     isResolved: false,
     isExternal: undefined
   }],
-  [`../uploads/SomeUploadID/raw/some/path#/definitions/some/schema/path@SomeVersionHash`, {
+  [`../uploads/SomeUploadID/raw/some/path#definitions/some/schema/path@SomeVersionHash`, {
     relativeTo: refRelativeTo.installation,
     type: refType.metainfo,
     installationUrl: undefined,
@@ -304,7 +303,7 @@ test.each([
     isResolved: false,
     isExternal: undefined
   }],
-  [`../uploads/SomeUploadID/archive/mainfile/some/path#/definitions/some/schema/path@SomeVersionHash`, {
+  [`../uploads/SomeUploadID/archive/mainfile/some/path#definitions/some//schema/path@SomeVersionHash`, {
     relativeTo: refRelativeTo.installation,
     type: refType.metainfo,
     installationUrl: undefined,
@@ -447,18 +446,44 @@ test.each([
     isResolved: false,
     isExternal: undefined
   }],
-  [`nomad.datamodel.some.path`, {
-    relativeTo: null,
+  [`/arch/path`, {
+    relativeTo: refRelativeTo.data,
+    type: refType.archive,
+    installationUrl: undefined,
+    uploadId: undefined,
+    entryId: undefined,
+    mainfile: undefined,
+    path: '/arch/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
+  }],
+  [`/definitions/def/path`, {
+    relativeTo: refRelativeTo.data,
     type: refType.metainfo,
-    installationUrl: apiBase,
+    installationUrl: undefined,
+    uploadId: undefined,
+    entryId: undefined,
+    mainfile: undefined,
+    path: '/definitions/def/path',
+    qualifiedName: undefined,
+    versionHash: undefined,
+    isResolved: false,
+    isExternal: undefined
+  }],
+  [`nomad.datamodel.some.path`, {
+    relativeTo: refRelativeTo.installation,
+    type: refType.metainfo,
+    installationUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
     path: undefined,
     qualifiedName: 'nomad.datamodel.some.path',
     versionHash: undefined,
-    isResolved: true,
-    isExternal: false
+    isResolved: false,
+    isExternal: undefined
   }]
 ])('parseNomadUrl: %s', (url, expectedResult) => {
   const result = parseNomadUrl(url)

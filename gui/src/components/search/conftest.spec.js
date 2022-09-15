@@ -110,7 +110,9 @@ export async function expectInputList(quantity, loaded, items, prompt, root = sc
     await expectInputHeader(quantity)
 
     // Check that placeholder disappears
-    !loaded && await waitForElementToBeRemoved(() => root.getByTestId('inputlist-placeholder'))
+    if (!loaded) {
+      await waitFor(() => expect(root.queryByTestId('inputlist-placeholder')).toBe(null))
+    }
 
     // Test elements that are displayed after API response
     for (const item of items) {
@@ -209,6 +211,7 @@ export async function expectInputPeriodicTableItems(elements, root = screen) {
     await waitFor(() => {
       elementData.elements.forEach(element => {
         const button = root.getByText(element.symbol).closest('button')
+        expect(button).not.toBe(null)
         if (elementSet.has(element.symbol)) {
           expect(button).not.toHaveAttribute('disabled')
         } else {

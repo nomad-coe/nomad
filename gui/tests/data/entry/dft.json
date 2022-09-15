@@ -24,9 +24,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2022-08-26T08:00:13.499909+00:00",
+            "upload_create_time": "2022-09-13T11:52:58.143516+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2022-08-26T08:00:13.502909+00:00",
+            "publish_time": "2022-09-13T11:52:58.146516+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -196,7 +196,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2022-08-26T08:00:13.503909+00:00",
+            "entry_create_time": "2022-09-13T11:52:58.147516+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -447,14 +447,14 @@
               ],
               "metadata": {
                 "upload_id": "dft_upload",
-                "upload_create_time": "2022-08-26T08:00:13.499909+00:00",
+                "upload_create_time": "2022-09-13T11:52:58.143516+00:00",
                 "entry_id": "dft_bulk",
                 "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2022-08-26T08:00:13.503909+00:00",
+                "entry_create_time": "2022-09-13T11:52:58.147516+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "vasp.xml",
                 "published": true,
-                "publish_time": "2022-08-26T08:00:13.502909+00:00",
+                "publish_time": "2022-09-13T11:52:58.146516+00:00",
                 "with_embargo": false,
                 "embargo_length": 0,
                 "license": "CC BY 4.0",

@@ -67,13 +67,13 @@ const CreateEntry = React.memo(function CreateEntry(props) {
 
     const getTemplates = async () => {
       const customMetainfos = await globalMetainfo.fetchAllCustomMetainfos(true)
-      const customTemplates = customMetainfos.reduce((templates, data) => {
-        const archive = data.archive
+      const customTemplates = customMetainfos.reduce((templates, metainfo) => {
+        const archive = metainfo._data
         const newTemplates = getTemplatesFromDefinitions(
-          archive.definitions.section_definitions, data.entry_id, archive,
+          archive.definitions.section_definitions, archive.metadata.entry_id, archive,
           section => {
             const fragment = getSectionReference(section)
-            return `../uploads/${data.upload_id}/raw/${archive.metadata.mainfile}#/definitions${fragment}`
+            return `../uploads/${archive.metadata.upload_id}/raw/${archive.metadata.mainfile}#/definitions${fragment}`
           })
         newTemplates.forEach(template => {
           templates.push(template)
