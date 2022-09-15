@@ -32,8 +32,8 @@ import { PWAProvider } from './PWA'
 import Navigation from './nav/Navigation'
 import GUIMenu from './GUIMenu'
 import { APIProvider, GlobalLoginRequired, onKeycloakEvent } from './api'
-import { GlobalMetainfo } from './archive/metainfo'
 import DataStore from './DataStore'
+import { GlobalMetainfo } from './archive/metainfo'
 
 const keycloak = new Keycloak({
   url: keycloakBase,
@@ -53,25 +53,25 @@ export default function App() {
         <APIProvider>
           <PWAProvider>
             <MuiPickersUtilsProvider utils={DateFnsUtils}>
-              <GlobalMetainfo>
-                <Router history={history}>
-                  <QueryParamProvider ReactRouterRoute={Route}>
-                    <MuiThemeProvider theme={nomadTheme}>
-                      <CssBaseline />
-                      <ErrorSnacks>
-                        <ErrorBoundary>
-                          <GlobalLoginRequired>
-                            <DataStore>
+              <ErrorSnacks>
+                <ErrorBoundary>
+                  <DataStore>
+                    <GlobalMetainfo>
+                      <Router history={history}>
+                        <QueryParamProvider ReactRouterRoute={Route}>
+                          <MuiThemeProvider theme={nomadTheme}>
+                            <CssBaseline />
+                            <GlobalLoginRequired>
                               <Navigation />
                               <GUIMenu/>
-                            </DataStore>
-                          </GlobalLoginRequired>
-                        </ErrorBoundary>
-                      </ErrorSnacks>
-                    </MuiThemeProvider>
-                  </QueryParamProvider>
-                </Router>
-              </GlobalMetainfo>
+                            </GlobalLoginRequired>
+                          </MuiThemeProvider>
+                        </QueryParamProvider>
+                      </Router>
+                    </GlobalMetainfo>
+                  </DataStore>
+                </ErrorBoundary>
+              </ErrorSnacks>
             </MuiPickersUtilsProvider>
           </PWAProvider>
         </APIProvider>

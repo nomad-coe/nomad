@@ -18,6 +18,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles, Box, Grid, Divider } from '@material-ui/core'
+import { resolveNomadUrlNoThrow } from '../../utils'
 import Quantity from '../Quantity'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
 import OptoelectronicPropertiesCard from '../entry/properties/OptoelectronicPropertiesCard'
@@ -35,9 +36,9 @@ import Page from '../Page'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
 import { useEntryPageContext } from './EntryPageContext'
 import SectionCard from './properties/SectionCard'
-import { createMetainfo, traverse } from '../archive/metainfo'
+import { useMetainfoDef, traverse } from '../archive/metainfo'
 import {
-  ArchiveSaveButton, ArchiveDeleteButton, useBrowserAdaptorContext, ArchiveReloadButton, ArchiveReUploadButton
+  ArchiveSaveButton, ArchiveDeleteButton, ArchiveReloadButton, ArchiveReUploadButton
 } from '../archive/ArchiveBrowser'
 import { useErrors } from '../errors'
 import DefinitionsCard from './properties/DefinitionsCard'
@@ -114,12 +115,19 @@ const overviewArchiveFilter = Object.freeze({
  * Shows an informative overview about the selected entry.
  */
 const OverviewView = React.memo((props) => {
-  const {metadata, metadataApiData, exists, editable, archiveApiData} = useEntryPageContext(overviewArchiveFilter)
-  const archive = useMemo(() => archiveApiData?.response?.data?.archive, [archiveApiData])
+  const {
+    url,
+    metadata,
+    metadataApiData,
+    exists,
+    editable,
+    archive,
+    archiveApiData} = useEntryPageContext(overviewArchiveFilter)
   const index = metadata
   const [sections, setSections] = useState([])
   const {raiseError} = useErrors()
-  const context = useBrowserAdaptorContext()
+  const dataMetainfoDefUrl = resolveNomadUrlNoThrow(archive?.data?.m_def, url)
+  const dataMetainfoDef = useMetainfoDef(dataMetainfoDefUrl)
 
   const properties = useMemo(() => {
     return new Set(index?.results
@@ -129,16 +137,12 @@ const OverviewView = React.memo((props) => {
   }, [index])
 
   useEffect(() => {
-    if (!context.metainfo || !archive?.data) {
+    if (!dataMetainfoDef || !archive?.data) {
       return
     }
     const getSections = async () => {
-      // TODO the metainfo should be provided by entry context. Currently it will be
-      // created twice. Once here, and then also in the ArchiveBrowser.
-      const metainfo = await createMetainfo(archive, context.metainfo, context)
-      const sectionDef = await metainfo.resolveDefinition(archive.data.m_def, context)
       const sections = []
-      traverse(archive.data, sectionDef, 'data', (section, sectionDef, path) => {
+      traverse(archive.data, dataMetainfoDef, 'data', (section, sectionDef, path) => {
         if (path === 'data' || sectionDef.m_annotations?.eln?.[0]?.overview) {
           sections.push({
             archivePath: path,
@@ -150,7 +154,7 @@ const OverviewView = React.memo((props) => {
       return sections
     }
     getSections().then(setSections).catch(raiseError)
-  }, [archive, setSections, raiseError, context])
+  }, [archive, dataMetainfoDef, setSections, raiseError])
 
   const classes = useStyles()
 

@@ -46,9 +46,7 @@ export function formatSubSectionName(name) {
  * selected in this lane).
  */
 export class Adaptor {
-  constructor(context) {
-    this.context = context
-
+  constructor() {
     if (new.target === Adaptor) {
       throw new TypeError('Cannot construct Abstract instances directly')
     }
@@ -60,6 +58,18 @@ export class Adaptor {
    */
   initialize(api, dataStore) {
   }
+
+  /**
+   * A potentially asynchronous method called when the adaptor is cleaned up due to user navigation
+   */
+  cleanup() {
+  }
+
+  /**
+   * Optional additional methods:
+   *   onScrollToEnd: called when the user scrolls to the bottom of the lane. Useful to load more info.
+   *   onRendered: called in a useEffect after the adaptor has been rendered.
+   */
 
   /**
    * A potentially asynchronous method that is used to determine the adaptor for the
@@ -139,7 +149,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   const internalUpdate = useCallback(() => {
     setInternalRender(current => current + 1)
   }, [setInternalRender])
-  const lanes = useRef(null)
+  const lanes = useRef([])
   const computingForUrl = useRef(null)
   const computeLanes = useCallback(async () => {
     if (!url || computingForUrl.current === url) {
@@ -158,7 +168,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
       let lane
       let newLaneCreated = false
 
-      if (oldLanes && oldLanes[index]?.key === segment && !newLaneCreated) {
+      if (oldLanes[index]?.key === segment && !newLaneCreated) {
         // reuse the existing lane (incl. its adaptor and data)
         lane = oldLanes[index]
         lane.next = null
@@ -171,6 +181,10 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
           next: null,
           prev: prev,
           initialized: false
+        }
+        if (!newLaneCreated) {
+          // First newly created lane. Cleanup all adaptors that are being discarded
+          oldLanes.slice(index).forEach(oldLane => oldLane.adaptor?.cleanup())
         }
         newLaneCreated = true
         // Set or create the lane adaptor
@@ -213,13 +227,10 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   // Method used to invalidate and refresh lanes from the provided lane index and forward.
   const invalidateLanesFromIndex = useCallback((index) => {
     index = index || 0
-    lanes.current.splice(index)
-    // If all adaptors got invalidated, remove all data from the root adaptor to force reload
-    if (lanes.current.length === 0) {
-      adaptor.data = undefined
-    }
+    const droppedLanes = lanes.current.splice(index)
+    droppedLanes.forEach(droppedLane => droppedLane.adaptor?.cleanup())
     computeLanes()
-  }, [adaptor, computeLanes])
+  }, [computeLanes])
 
   // Method used to invalidate all lanes that have a certain dependency. The first lane which
   // has this dependency, and all subsequent lanes, are invalidated.
@@ -233,9 +244,13 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     }
   }, [invalidateLanesFromIndex])
 
-  // do no reuse the lanes if the adaptor has changed, e.g. due to updated archive data
   useEffect(() => {
-    lanes.current = null
+    return () => {
+      // Cleanup method, will run when the root adaptor changes or the Browser component is dismounted
+      // We should then cleanup all existing adaptors and not reuse any lanes.
+      lanes.current.forEach(lane => lane.adaptor?.cleanup())
+      lanes.current = []
+    }
   }, [adaptor])
 
   useEffect(() => {

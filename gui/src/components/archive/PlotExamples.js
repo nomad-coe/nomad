@@ -15,15 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
-import {Card, Box, CardContent} from '@material-ui/core'
+import { Card, Box, CardContent } from '@material-ui/core'
 import { Code } from '../buttons/SourceDialogButton'
 import { stripIndent } from '../../utils'
-import {SectionPlots} from './ArchiveBrowser'
-import {createGlobalMetainfo} from './metainfo'
-import metainfoData from '../../metainfo.json'
-import {JsonEditor} from './SectionEditor'
+import { SectionPlots } from './ArchiveBrowser'
+import { useGlobalMetainfo } from './metainfo'
+import { JsonEditor } from './SectionEditor'
 import Typography from '@material-ui/core/Typography'
 
 const pvdSection = {
@@ -124,13 +123,9 @@ function getSection(metainfo, packageName, sectionName) {
 }
 
 export function PlotExamples() {
-  const [metainfo, setMetainfo] = useState()
+  const metainfo = useGlobalMetainfo()
   const [plots, setPlots] = useState(pvdExamples.concat(processExamples))
   const [keys, setKeys] = useState(pvdExamples.concat(processExamples).map((example, index) => `plot${index}-0`))
-
-  useEffect(() => {
-    createGlobalMetainfo(metainfoData).then(setMetainfo)
-  }, [])
 
   const pvdSectionDef = useMemo(() => metainfo ? getSection(metainfo, 'nomad.datamodel.metainfo.eln.material_library', 'PVDEvaporation') : undefined, [metainfo])
   const processSectionDef = useMemo(() => metainfo ? getSection(metainfo, 'nomad.datamodel.metainfo.eln.material_library', 'Process') : undefined, [metainfo])

@@ -28,7 +28,7 @@ import TreeItem from '@material-ui/lab/TreeItem'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { QuantityTable, QuantityRow, QuantityCell } from '../../Quantity'
-import { resolveRef } from '../../archive/metainfo'
+import { resolveInternalRef } from '../../../utils'
 
 /**
  * For displaying the most descriptive chemical formula that is present in an
@@ -74,7 +74,7 @@ const MaterialCardTopology = React.memo(({index, properties, archive}) => {
       selection = undefined
       focus = undefined
       if (atomsRef !== structureRef.current) {
-        const atoms = resolveRef(top.atoms, archive)
+        const atoms = resolveInternalRef(top.atoms, archive)
         const structure = toMateriaStructure(atoms)
         structureRef.current = atomsRef
         setStructure(structure)

@@ -744,39 +744,42 @@ export function getLocation() {
  *
  * Possible formats (expressions in [brackets] are optional):
  * ----------------------------------------------------------
- *  Installation urls
- *    A normal url, starting with "http://" or "https://", locating the api of the nomad installation.
- *    Should always end with "/api".
- *    Example:
- *      https://nomad-lab.eu/prod/rae/api
+ *  Absolute urls:
+ *    <installationUrl>
+ *    <installationUrl>/uploads/<uploadId> [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
+ *    <installationUrl>/uploads/<uploadId>/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
+ *    <installationUrl>/uploads/<uploadId>/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
  *  Urls relative to the current installation:
  *    ../uploads/<uploadId> [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
  *    ../uploads/<uploadId>/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
  *    ../uploads/<uploadId>/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
+ *    <qualifiedName> (TODO: how to handle versions, installationUrl etc)
  *  Urls relative to the current upload:
  *    ../upload [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
  *    ../upload/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
  *    ../upload/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
  *  Urls relative to the current data (i.e. current archive or metainfo schema json):
- *    #<dataPath>
- *  Absolute urls:
- *    <installationUrl>/uploads/<uploadId> [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
- *    <installationUrl>/uploads/<uploadId>/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
- *    <installationUrl>/uploads/<uploadId>/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
- *    <qualifiedName> (TODO: how to handle versions,  etc)
+ *    #<dataPath> (preferred)
+ *    /<dataPath>
  * Note:
+ *  - An <installationUrl> is a normal url, starting with "http://" or "https://", locating
+ *    the api of the nomad installation. Should always end with "/api".
+ *    Example:
+ *      https://nomad-lab.eu/prod/rae/api
  *  - The rawPath and mainFile paths need to be escaped with urlEncodePath to ensure a valid url.
  *    (i.e. each segment needs to individually be escaped using encodeURIComponent)
- *  - The dataPath, if provided, should start with a '/' (i.e. it must start from the
- *    root node of the data).
+ *  - The dataPath, if provided, must always start from the root of the archive.
+ *    Leading and duplicate slashes are ignored.
  *  - If the first segment in dataPath is 'definitions' or 'packages', the url is recognized
  *    as a reference to a metainfo schema.
  *  - Metainfo sections defined in python can be referred using the qualifiedName, which
  *    is a "python style" name of alphanumerics separated by dots.
  *  - If no versionHash is specified for a url identifying a metainfo schema, it means
  *    we refer to the version defined by the base url (if the url is schema-relative), otherwise
- *    the latest version found in the installation.
+ *    the latest version (in the nomad installation in question).
  */
+
+export const systemMetainfoUrl = `system-metainfo` // TODO: should use absolute url with hash when implemented
 
 /**
  * Enum for the `type` attribute of parsed/resolved url objects
@@ -815,7 +818,8 @@ export const refRelativeTo = Object.freeze({
  *  mainfile
  *    The mainfile path, if it can be determined (unescaped!).
  *  path
- *    The path within the base resource (dataPath | rawPath (unescaped!)), if specified
+ *    The path within the base resource (dataPath | rawPath (unescaped!)), if specified.
+ *    If it is a dataPath, it will have a leading slash.
  *  qualifiedName
  *    The qualifiedName, if specified.
  *  versionHash
@@ -836,12 +840,29 @@ export function parseNomadUrl(url) {
   const prefix = `Could not parse nomad url "${url}": `
   if (!url) throw new Error(prefix + 'empty value')
   if (typeof url !== 'string') throw new Error(prefix + 'bad type, expected string, got ' + typeof url)
-  let relativeTo, type, installationUrl, uploadId, entryId, mainfile, path, qualifiedName, versionHash
 
-  const dataPathPos = url.indexOf('#')
-  let dataPath = dataPathPos !== -1 ? url.slice(dataPathPos + 1) : undefined
-  let rest = dataPathPos !== -1 ? url.slice(0, dataPathPos) : url
-  let rawPath
+  if (url === systemMetainfoUrl) {
+    // TODO proper handling, using a url containing installationUrl + versionHash somehow?
+    return {
+      url,
+      relativeTo: refRelativeTo.installation,
+      type: refType.metainfo,
+      installationUrl: apiBase,
+      isResolved: true,
+      isExternal: false
+    }
+  }
+
+  let relativeTo, type, installationUrl, uploadId, entryId, mainfile, path, qualifiedName, versionHash
+  let dataPath, rest, rawPath
+  if (url.startsWith('/')) {
+    dataPath = url
+    rest = ''
+  } else {
+    const bracketPos = url.indexOf('#')
+    dataPath = bracketPos !== -1 ? url.slice(bracketPos + 1) : undefined
+    rest = bracketPos !== -1 ? url.slice(0, bracketPos) : url
+  }
 
   if (rest.startsWith('http://') || rest.startsWith('https://')) {
     // Url includes installationUrl
@@ -854,17 +875,16 @@ export function parseNomadUrl(url) {
     relativeTo = null
   } else if (url.startsWith('../')) {
     rest = rest.slice(3)
-  } else if (url.startsWith('#')) {
+  } else if (url.startsWith('#') || url.startsWith('/')) {
     relativeTo = refRelativeTo.data
   } else if (url.match(/^([a-zA-Z]\w*\.)*[a-zA-Z]\w*$/)) {
     qualifiedName = url
-    installationUrl = apiBase // This probably needs to change to support different versions
-    relativeTo = null
+    relativeTo = refRelativeTo.installation
   } else {
     throw new Error(prefix + 'bad url')
   }
   const restParts = rest.split('/')
-  if ((installationUrl && rest && !qualifiedName) || url.startsWith('../')) {
+  if ((installationUrl && rest) || url.startsWith('../')) {
     // Expect upload ref
     if (restParts[0] === 'uploads') {
       // Ref with upload id
@@ -907,11 +927,12 @@ export function parseNomadUrl(url) {
     type = refType.installation
   } else if (dataPath !== undefined) {
     // Has dataPath
-    if (!url.startsWith('#') && !entryId && !mainfile && !rawPath) throw new Error(prefix + 'Unexpected "#" without entry reference')
-    if (!dataPath.startsWith('/')) throw new Error(prefix + '# should always be followed by a "/"')
+    if (!url.startsWith('#') && !url.startsWith('/') && !entryId && !mainfile && !rawPath) throw new Error(prefix + 'Unexpected "#" without entry reference')
     mainfile = mainfile || rawPath
-    const firstDataPathSegment = dataPath.split('/')[1]
+    const dataPathSegments = dataPath.split('/').filter(segment => segment)
+    const firstDataPathSegment = dataPathSegments[0]
     type = (firstDataPathSegment === 'definitions' || firstDataPathSegment === 'packages') ? refType.metainfo : refType.archive
+    dataPath = '/' + dataPathSegments.join('/') // Ensure leading slash, but no duplicate slashes
     const atPos = dataPath.indexOf('@')
     if (atPos !== -1) {
       versionHash = dataPath.slice(atPos + 1)
@@ -1003,6 +1024,21 @@ export function resolveNomadUrl(url, baseUrl) {
 }
 
 /**
+ * Works like resolveNomadUrl, but does not throw errors in case of failure. Instead:
+ *  1) If url is empty, we return null
+ *  2) If the url is non-empty and unresolvable, we return an *resolve failed object*, which
+ *     is an object containing {url, baseUrl, error}
+ */
+export function resolveNomadUrlNoThrow(url, baseUrl) {
+  if (!url) return null
+  try {
+    return resolveNomadUrl(url, baseUrl)
+  } catch (error) {
+    return {url, baseUrl, error}
+  }
+}
+
+/**
  * Returns a url string which is "normalized", i.e. it is absolute and have the preferred
  * url form for referencing the resource/data. Normalized urls always prefer identifying
  * entries with entryId rather than by specifying a mainfile.
@@ -1025,11 +1061,22 @@ export function normalizeNomadUrl(url) {
 }
 
 /**
- * Utility for creating an upload url, given installationUrl, uploadId and an UNESCAPED rawPath
+ * Utility for creating an absolute upload url, given installationUrl, uploadId and an UNESCAPED rawPath
  */
 export function createUploadUrl(installationUrl, uploadId, rawPathUnescaped) {
   const rawPathEscaped = urlEncodePath(rawPathUnescaped || '')
   return `${installationUrl}/uploads/${uploadId}/raw/${rawPathEscaped}`
+}
+
+/**
+ * Utility for creating an absolute entry url, given installationUrl, uploadId, entryId, and dataPath
+ */
+export function createEntryUrl(installationUrl, uploadId, entryId, dataPath) {
+  let rv = `${installationUrl}/uploads/${uploadId}/archive/${entryId}`
+  if (dataPath) {
+    rv += '#' + (!dataPath.startsWith('/') ? '/' : '') + dataPath
+  }
+  return rv
 }
 
 /**
@@ -1090,4 +1137,43 @@ export function urlAbs(url, base = window.location.origin, protocol) {
   }
 
   return absUrl
+}
+
+/**
+ * Given an internal url and a data object, gets the value at the corresponding location (path)
+ * in this data object. The data object should be an archive or a metainfo data object. The
+ * url parameter can be a single url or an array of urls. If it is an array of urls, the method
+ * will return an array of values instead of a single value. The url argument can be empty,
+ * in which case null will be returned. Otherwise, the url(s) MUST be internal (i.e. data-relative,
+ * starting with a '#' or a '/'), and they can be either strings or parsed nomad url objects.
+ */
+export function resolveInternalRef(url, data, throwOnError = true) {
+  if (!url) return null
+  if (Array.isArray(url)) {
+    return url.map(ref => resolveInternalRefSingle(ref, data, throwOnError))
+  }
+  return resolveInternalRefSingle(url, data, throwOnError)
+}
+
+function resolveInternalRefSingle(url, data) {
+  let path
+  if (url.relativeTo === refRelativeTo.data) {
+    // We have a parsed url obj
+    path = url.path
+  } else {
+    // Should be a string object
+    if (typeof url !== 'string' || (!url.startsWith('#') && !url.startsWith('/'))) throw new Error(`Expected internal ref, got ${url}`)
+    path = url.slice(1)
+  }
+  const segments = path.split('/').filter(segment => segment !== '')
+  let current = data
+  for (const segment of segments) {
+    if (!current) throw new Error(`Path does not exist: ${path}`)
+    if (isNaN(segment)) {
+      current = current[segment] || current._properties?.[segment] || current.sub_section?._properties?.[segment]
+    } else {
+      current = current.repeats && current.m_def ? current : current[parseInt(segment)]
+    }
+  }
+  return current
 }
