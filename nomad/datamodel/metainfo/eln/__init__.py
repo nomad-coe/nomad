@@ -329,25 +329,31 @@ class PublicationReference(ArchiveSection):
     def normalize(self, archive, logger):
         super(PublicationReference, self).normalize(archive, logger)
         from nomad.datamodel.datamodel import EntryMetadata
-        import requests
         import dateutil.parser
+        import requests
 
         # Parse journal name, lead author and publication date from crossref
         if self.DOI_number:
             try:
-                r = requests.get(f'https://api.crossref.org/works/{self.DOI_number}')
-                temp_dict = r.json()
-                given_name = temp_dict['message']['author'][0]['given']
-                family_name = temp_dict['message']['author'][0]['family']
-                self.journal = temp_dict['message']['container-title'][0]
-                self.publication_title = temp_dict['message']['title'][0]
-                self.publication_date = dateutil.parser.parse(temp_dict['message']['created']['date-time'])
-                self.lead_author = f'{given_name} {family_name}'
-                if not archive.metadata:
-                    archive.metadata = EntryMetadata()
-                if not archive.metadata.references:
-                    archive.metadata.references = []
+                url = f'https://api.crossref.org/works/{self.DOI_number}?mailto=contact@nomad-lab.eu'
+                timeout = 2
+                r = requests.get(url, timeout=timeout)
+                if r.status_code == 200:
+                    temp_dict = r.json()
+
+                    given_name = temp_dict['message']['author'][0]['given']
+                    family_name = temp_dict['message']['author'][0]['family']
+                    self.journal = temp_dict['message']['container-title'][0]
+                    self.publication_title = temp_dict['message']['title'][0]
+                    self.publication_date = dateutil.parser.parse(temp_dict['message']['created']['date-time'])
+                    self.lead_author = f'{given_name} {family_name}'
+                    if not archive.metadata:
+                        archive.metadata = EntryMetadata()
+                    if not archive.metadata.references:
+                        archive.metadata.references = []
                     archive.metadata.references.append(self.DOI_number)
+                else:
+                    logger.warning(f'Could not parse DOI number {self.DOI_number}')
             except Exception as e:
                 logger.warning(f'Could not parse crossref for {self.DOI_number}')
                 logger.warning(e)
