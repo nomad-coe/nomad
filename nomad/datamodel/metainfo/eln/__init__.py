@@ -652,10 +652,7 @@ class SolarCellJV(ArchiveSection):
 
     n_values = Quantity(type=int, derived=derive_n_values)
 
-    def normalize(self, archive, logger):
-        super(SolarCellJV, self).normalize(archive, logger)
-
-        addSolarCell(archive)
+    def update_results(self, archive):
         if self.open_circuit_voltage is not None:
             archive.results.properties.optoelectronic.solar_cell.open_circuit_voltage = self.open_circuit_voltage
         if self.short_circuit_current_density is not None:
@@ -666,6 +663,12 @@ class SolarCellJV(ArchiveSection):
             archive.results.properties.optoelectronic.solar_cell.efficiency = self.efficiency
         if self.light_intensity is not None:
             archive.results.properties.optoelectronic.solar_cell.illumination_intensity = self.light_intensity
+
+    def normalize(self, archive, logger):
+        super(SolarCellJV, self).normalize(archive, logger)
+
+        addSolarCell(archive)
+        self.update_results(archive)
 
 
 class SolarCellJVCurve(SolarCellJV):
@@ -726,6 +729,7 @@ class SolarCellJVCurve(SolarCellJV):
         if self.current_density is not None:
             if self.voltage is not None:
                 self.open_circuit_voltage, self.short_circuit_current_density, self.fill_factor, self.efficiency = self.cell_params()
+                self.update_results(archive)
 
 
 class SolarCellEQE(ArchiveSection):
