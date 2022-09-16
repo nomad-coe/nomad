@@ -24,7 +24,7 @@ from nomad.units import ureg
 
 class SectionA(MSection):
     plain = Quantity(type=float)
-    full = Quantity(type=int, unit='m', dimensionality='[length]', attributes=[Attribute(name='gender', type=str)])
+    full = Quantity(type=float, unit='m', dimensionality='[length]', attributes=[Attribute(name='gender', type=str)])
     VARIABLE_game = Quantity(type=str, variable=True, attributes=[
         Attribute(name='year', type=int),
         Attribute(name='aka', type=str, shape=['1..3']),
@@ -92,6 +92,7 @@ def test_full_storage_quantity():
     b_section.subsection = a_section
 
     json = a_section.m_to_dict(with_out_meta=True)
+
     assert json == SectionA.m_from_dict(json).m_to_dict(with_out_meta=True)
 
     json = b_section.m_to_dict(with_out_meta=True)

@@ -325,7 +325,7 @@ class _Unit(DataType):
         return value
 
     def serialize(self, section, quantity_def: 'Quantity', value):
-        return value.__str__()
+        return None if quantity_def.flexible_unit else value.__str__()
 
     def deserialize(self, section, quantity_def: 'Quantity', value):
         value = units.parse_units(value)
@@ -1207,39 +1207,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         raise AttributeError(name)
 
-    def __normalize_value(self, value_type, definition: 'Definition', value: Any) -> Any:
-        if isinstance(value_type, DataType):
-            return value_type.set_normalize(self, None, value)  # type: ignore
-
-        if isinstance(value_type, MEnum):
-            if value not in cast(MEnum, value_type).get_all_values():
-                raise TypeError(f'The value {value} is not an enum value for {definition}.')
-            return value
-
-        if value_type == Any:
-            return value
-
-        if value_type == str and type(value) == np.str_:
-            return str(value)
-
-        if value_type == bool and type(value) == np.bool_:
-            return bool(value)
-
-        if value_type == int and type(value) == np.float_:
-            return int(value)
-
-        if type(value) != value_type:
-            if value_type in MTypes.primitive:
-                try:
-                    return MTypes.primitive[value_type](value)  # type: ignore
-                except ValueError as e:
-                    raise TypeError(e)
-
-            if value is not None:
-                raise TypeError(f'The value {value} for {definition} is not of type {value_type}.')
-
-        return value
-
     def __set_normalize(self, quantity_def: 'Quantity', value: Any) -> Any:
         target_type = quantity_def.type
 
@@ -1260,7 +1227,37 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             return value
 
-        return self.__normalize_value(target_type, quantity_def, value)
+        if isinstance(target_type, DataType):
+            return target_type.set_normalize(self, None, value)  # type: ignore
+
+        if isinstance(target_type, MEnum):
+            if value not in cast(MEnum, target_type).get_all_values():
+                raise TypeError(f'The value {value} is not an enum value for {quantity_def}.')
+            return value
+
+        if target_type == Any:
+            return value
+
+        if target_type == str and type(value) == np.str_:
+            return str(value)
+
+        if target_type == bool and type(value) == np.bool_:
+            return bool(value)
+
+        if target_type == int and type(value) == np.float_:
+            return int(value)
+
+        if type(value) != target_type:
+            if target_type in MTypes.primitive:
+                try:
+                    return MTypes.primitive[target_type](value)  # type: ignore
+                except ValueError as e:
+                    raise TypeError(e)
+
+            if value is not None:
+                raise TypeError(f'The value {value} for {quantity_def} is not of type {target_type}.')
+
+        return value
 
     def m_set(self, quantity_def: 'Quantity', value: Any) -> None:
         ''' Set the given value for the given quantity. '''
@@ -1350,6 +1347,26 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     raise MetainfoError(f'Could not convert {m_quantity.unit} to {quantity_def.unit}')
                 m_quantity.unit = quantity_def.unit
 
+            if quantity_def.type in MTypes.numpy or isinstance(quantity_def.type, pd.DataFrame):
+                m_quantity.value = to_numpy(
+                    quantity_def.type, quantity_def.shape, quantity_def.unit, quantity_def, m_quantity.value)
+            else:
+                dimensions = len(quantity_def.shape)
+                if dimensions == 0:
+                    m_quantity.value = self.__set_normalize(quantity_def, m_quantity.value)
+
+                elif dimensions == 1:
+                    if type(m_quantity.value) == str or not isinstance(m_quantity.value, IterableABC):
+                        raise TypeError(
+                            f'The shape of {quantity_def} requires an iterable value, '
+                            f'but {m_quantity.value} is not iterable.')
+
+                    m_quantity.value = list(self.__set_normalize(quantity_def, item) for item in m_quantity.value)
+
+                else:
+                    raise MetainfoError(
+                        f'Only numpy arrays and dtypes can be used for higher dimensional quantities: {quantity_def}')
+
             # store under variable name with suffix
             if full_name in self.__dict__:
                 self.__dict__[full_name][m_quantity.name] = m_quantity
@@ -1369,6 +1386,15 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             return quantity_def.__get__(self, Quantity)
 
         return self.__dict__[to_storage_name(quantity_def)]
+
+    def m_get_quantity_definition(self, quantity_name: str, hint: Optional[str] = None):
+        '''
+        Get the definition of the quantity with the target name.
+
+        An optional hint string can be provided. The hint should be the name of one of attributes
+        defined in the target quantity.
+        '''
+        return resolve_variadic_name(self.m_def.all_quantities, quantity_name, hint)
 
     def m_is_set(self, quantity_def: 'Quantity') -> bool:
         ''' True if the given quantity is set. '''
@@ -1514,16 +1540,15 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         if tgt_attr.type in MTypes.numpy:
             attr_value = to_numpy(tgt_attr.type, [], None, tgt_attr, attr_value)
-            attr_value = self.__normalize_value(tgt_attr.type, tgt_attr, attr_value)
         else:
             dimension = len(tgt_attr.shape)
             if dimension == 0:
-                attr_value = self.__normalize_value(tgt_attr.type, tgt_attr, attr_value)
+                attr_value = self.__set_normalize(tgt_attr, attr_value)
             elif dimension == 1:
                 if type(attr_value) == str or not isinstance(attr_value, IterableABC):
                     raise TypeError(f'The shape requires an iterable value, but {attr_value} is not.')
 
-                attr_value = list(self.__normalize_value(tgt_attr.type, tgt_attr, item) for item in attr_value)
+                attr_value = list(self.__set_normalize(tgt_attr, item) for item in attr_value)
             else:
                 raise MetainfoError(f'Only numpy arrays can be used for higher dimensional quantities: {tgt_attr}.')
 
@@ -1900,6 +1925,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 m_result: dict = {'m_value': serialize_quantity(quantity_def, True, False, None, m_quantity.value)}
                 if m_quantity.unit:
                     m_result['m_unit'] = str(m_quantity.unit)
+                if m_quantity.original_unit:
+                    m_result['m_original_unit'] = str(m_quantity.original_unit)
                 if m_quantity.attributes:
                     a_result: dict = collect_attributes(m_quantity.attributes, quantity_def.all_attributes)
                     if a_result:
@@ -2068,17 +2095,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if isinstance(property_def, SubSection):
                 sub_section_def = property_def
                 sub_section_value = dct.get(name)
+                sub_section_cls = sub_section_def.sub_section.section_cls
                 if sub_section_def.repeats:
                     for sub_section_dct in sub_section_value:
-                        if sub_section_dct is None:
-                            sub_section = None
-                        else:
-                            sub_section = sub_section_def.sub_section.section_cls.m_from_dict(
-                                sub_section_dct, m_parent=self, m_context=m_context)
+                        sub_section = None if sub_section_dct is None else sub_section_cls.m_from_dict(
+                            sub_section_dct, m_parent=self, m_context=m_context)
                         section.m_add_sub_section(sub_section_def, sub_section)
-
                 else:
-                    sub_section = sub_section_def.sub_section.section_cls.m_from_dict(
+                    sub_section = sub_section_cls.m_from_dict(
                         sub_section_value, m_parent=self, m_context=m_context)
                     section.m_add_sub_section(sub_section_def, sub_section)
 
@@ -2098,6 +2122,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         m_quantity = MQuantity(each_name, m_value)
                         if 'm_unit' in each_quantity:
                             m_quantity.unit = units.parse_units(each_quantity['m_unit'])
+                        if 'm_original_unit' in each_quantity:
+                            m_quantity.original_unit = units.parse_units(each_quantity['m_original_unit'])
                         if 'm_attributes' in each_quantity:
                             m_quantity.attributes = each_quantity['m_attributes']
 
@@ -2968,6 +2994,7 @@ class Quantity(Property):
     is_scalar: 'Quantity' = _placeholder_quantity
     repeats: 'Quantity' = _placeholder_quantity
     use_full_storage: 'Quantity' = _placeholder_quantity
+    flexible_unit: 'Quantity' = _placeholder_quantity
 
     # TODO derived_from = Quantity(type=Quantity, shape=['0..*'])
     def __init__(self, *args, **kwargs):
@@ -4103,6 +4130,7 @@ Quantity.is_scalar = Quantity(
 Quantity.use_full_storage = Quantity(
     type=bool, name='use_full_storage',
     derived=lambda quantity: quantity.repeats or quantity.variable or len(quantity.attributes) > 0)
+Quantity.flexible_unit = Quantity(type=bool, name='flexible_unit', default=False)
 Quantity.repeats = Quantity(type=bool, name='repeats', default=False)
 Quantity.cached = Quantity(type=bool, name='cached', default=False)
 

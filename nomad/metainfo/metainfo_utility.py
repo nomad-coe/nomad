@@ -187,6 +187,7 @@ class MQuantity:
     name: str = None
     value: Any = None
     unit: Optional[pint.Unit] = None
+    original_unit: Optional[pint.Unit] = None
     attributes: dict = None
 
     def __init__(
@@ -215,6 +216,8 @@ class MQuantity:
                 self.unit = in_unit
             elif isinstance(in_unit, str):
                 self.unit = ureg.parse_units(in_unit)
+
+        self.original_unit = self.unit
 
         self.attributes: dict = {}
         if in_attributes is not None:
@@ -405,7 +408,16 @@ def convert_to(from_magnitude, from_unit: Optional[ureg.Unit], to_unit: Optional
     return from_quantity.to(to_unit).m
 
 
-def resolve_variadic_name(definitions: dict, name: str):
+def __similarity_match(candidates: list, name: str):
+    '''
+    Use similarity to find the best match for a name.
+    '''
+    similarity: list = [SequenceMatcher(None, v.name.upper(), name.upper()).ratio() for v in candidates]
+
+    return candidates[similarity.index(max(similarity))]
+
+
+def resolve_variadic_name(definitions: dict, name: str, hint: Optional[str] = None):
     '''
     For properties with variadic names, it is necessary to check all possible definitions
     in the schema to find the unique and correct definition that matches the naming pattern.
@@ -419,8 +431,18 @@ def resolve_variadic_name(definitions: dict, name: str):
     For example, the definition name 'FOO_bar' will be replaced by '.*_bar', which further matches
     'a_bar', 'aa_bar', etc.
 
-    In case of multiple quantities with identical template/variadic patterns, the string similarity
-    is used to determine which to be used.
+    In case of multiple quantities with identical template/variadic patterns, the following strategy
+    is used:
+        1. Check all quantities and collect all qualified quantities that match the naming pattern
+            in a candidate list.
+        2. Use the optionally provided hint string, which shall be one of attribute names of the desired
+            quantity. Check all candidates if this attribute exists. The existence of a hint attribute
+            prioritize this quantity, and it will be put into a prioritized list.
+        3. If the prioritized candidate list contains multiple matches, use name similarity determine
+            which to be used.
+        4. If no hint is provided, or no candidate has the hint attribute, check all quantities in the
+            first candidate list and use name similarity to determine which to be used.
+
     '''
 
     # check the exact name match
@@ -443,10 +465,23 @@ def resolve_variadic_name(definitions: dict, name: str):
     if len(candidates) == 1:
         return candidates[0]
 
-    # multiple matches, check similarity
-    similarity: list = [SequenceMatcher(None, v.name.upper(), name.upper()).ratio() for v in candidates]
+    hinted_candidates: list = []
+    if hint is not None:
+        for definition in candidates:
+            try:
+                if resolve_variadic_name(definition.all_attributes, hint):
+                    hinted_candidates.append(definition)
+            except ValueError:
+                pass
 
-    return candidates[similarity.index(max(similarity))]
+    if len(hinted_candidates) == 1:
+        return hinted_candidates[0]
+
+    # multiple matches, check similarity
+    if len(hinted_candidates) > 1:
+        return __similarity_match(hinted_candidates, name)
+
+    return __similarity_match(candidates, name)
 
 
 def retrieve_attribute(section, definition: Optional[str], attr_name: str) -> tuple:
@@ -456,7 +491,8 @@ def retrieve_attribute(section, definition: Optional[str], attr_name: str) -> tu
     '''
 
     # find the section or quantity where attribute is defined
-    tgt_def = section if definition is None else resolve_variadic_name(section.all_quantities, definition)
+    tgt_def = section if definition is None else resolve_variadic_name(
+        section.all_quantities, definition, attr_name)
     if tgt_def is None:
         raise ValueError(f'Cannot find the definition by the given {definition}')
 
@@ -561,13 +597,19 @@ def to_numpy(np_type, shape: list, unit: Optional[pint.Unit], definition, value:
     check_dimensionality(definition, unit)
 
     if isinstance(value, pint.Quantity):
-        if unit is None:
+        # if flexible unit is set, do not check unit in the definition
+        # it will be handled specially
+        # the stored unit would not be serialized
+        flexible_unit = getattr(definition, 'flexible_unit', False)
+
+        if not flexible_unit and unit is None:
             raise TypeError(f'The quantity {definition} does not have a unit, but value {value} does.')
 
         if type(value.magnitude) == np.ndarray and np_type != value.dtype:
             value = value.astype(np_type)
 
-        value = value.to(unit).magnitude
+        if not flexible_unit:
+            value = value.to(unit).magnitude
 
     if isinstance(value, pd.DataFrame):
         try:
@@ -648,7 +690,7 @@ def validate_url(url_str: str) -> Optional[str]:
     return url_str
 
 
-def parse_datetime(datetime_str: str) -> datetime:
+def __parse_datetime(datetime_str: str) -> datetime:
     # removing trailing spaces and replacing the potential white space between date and time with char "T"
     if datetime_str[0].isdigit():
         datetime_str = datetime_str.strip().replace(' ', 'T')
@@ -699,7 +741,7 @@ def normalize_datetime(value) -> Optional[datetime]:
         return None
 
     if isinstance(value, str):
-        value = parse_datetime(value)
+        value = __parse_datetime(value)
 
     elif isinstance(value, (int, float)):
         value = datetime.fromtimestamp(value)
