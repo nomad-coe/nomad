@@ -2091,7 +2091,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         raise MetainfoError('Full storage quantity must be a dict')
 
                     for each_name, each_quantity in quantity_value.items():
-                        m_value = self.__deserialize(section, quantity_def, each_quantity['m_value'])
+                        try:
+                            m_value = self.__deserialize(section, quantity_def, each_quantity['m_value'])
+                        except KeyError:
+                            raise MetainfoError(f'Set full storage quantity {property_def} must have a value')
                         m_quantity = MQuantity(each_name, m_value)
                         if 'm_unit' in each_quantity:
                             m_quantity.unit = units.parse_units(each_quantity['m_unit'])

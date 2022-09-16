@@ -136,6 +136,10 @@ export async function createMetainfo(data, parentMetainfo, context) {
   return metainfo
 }
 
+export function quantityUsesFullStorage(def) {
+  return def.repeats || def.variable || def.attributes?.length
+}
+
 /**
  * Represents and manages schema data.
  *

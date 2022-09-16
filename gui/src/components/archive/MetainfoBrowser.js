@@ -345,6 +345,11 @@ export class SectionDefAdaptor extends MetainfoAdaptor {
       return metainfoAdaptorFactory(this.context, property)
     }
 
+    const attribute = this.def.attributes?.find(attr => attr.name === key)
+    if (attribute) {
+      return metainfoAdaptorFactory(this.context, attribute)
+    }
+
     return super.itemAdaptor(key)
   }
   render() {
@@ -518,6 +523,8 @@ function SectionDefContent({def}) {
       }
     </Compartment>}
     <DefinitionDetails def={def} />
+    <Attributes def={def}/>
+    <Annotations def={def}/>
   </React.Fragment>
 }
 SectionDefContent.propTypes = ({
@@ -528,7 +535,6 @@ function SectionDef({def}) {
   return <Content>
     <Definition def={def} kindLabel="section definition" />
     <SectionDefContent def={def} />
-    <Annotations def={def}/>
   </Content>
 }
 SectionDef.propTypes = ({
@@ -542,8 +548,8 @@ function SubSectionDef({def}) {
       <ArchiveTitle def={def} useName isDefinition kindLabel="sub section definition" />
       <DefinitionDocs def={sectionDef} />
       <Attributes def={def}/>
-      <SectionDefContent def={sectionDef} />
       <Annotations def={def}/>
+      <SectionDefContent def={sectionDef} />
     </Content>
   </React.Fragment>
 }
@@ -598,13 +604,15 @@ function QuantityDef({def}) {
         <b>shape</b>:&nbsp;
         [{def.shape.join(', ')}]
       </Typography>
+      {def.derived && <Typography><b>repeats</b>:&nbsp;true</Typography>}
       {def.unit &&
         <Typography><b>unit</b>:&nbsp;{def.unit}</Typography>}
       {def.dimensionality &&
         <Typography><b>dimensionality</b>:&nbsp;{def.dimensionality}</Typography>}
       {def.default &&
         <Typography><b>default</b>:&nbsp;{String(def.default)}</Typography>}
-      {def.derived && <Typography><b>derived</b></Typography>}
+      {def.derived && <Typography><b>derived</b>:&nbsp;true</Typography>}
+      {def.variable && <Typography><b>variable</b>:&nbsp;true</Typography>}
     </DefinitionProperties>
     <Attributes def={def}/>
     <Annotations def={def}/>
@@ -623,10 +631,10 @@ function AttributeDef({def}) {
         {Array.isArray(def.type.type_data) ? def.type.type_data.join(', ') : def.type.type_data}&nbsp;
         {def.type.type_kind !== 'data' && `(${def.type.type_kind})`}
       </Typography>
-      <Typography>
+      {def.shape && <Typography>
         <b>shape</b>:&nbsp;
         [{def.shape.join(', ')}]
-      </Typography>
+      </Typography>}
       {def.default &&
         <Typography><b>default</b>:&nbsp;{String(def.default)}</Typography>}
     </DefinitionProperties>
