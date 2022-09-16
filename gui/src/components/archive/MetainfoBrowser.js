@@ -19,9 +19,9 @@ import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useStat
 import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState, useBrowserAdaptorContext } from './ArchiveBrowser'
-import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName, Title } from './Browser'
+import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName, Title, ItemChip } from './Browser'
 import { Typography, Box, makeStyles, FormGroup, TextField, Button, Link } from '@material-ui/core'
-import { resolveRef, vicinityGraph, SubSectionMDef, SectionMDef, QuantityMDef, CategoryMDef, useGlobalMetainfo, PackageMDef } from './metainfo'
+import { resolveRef, vicinityGraph, SubSectionMDef, SectionMDef, QuantityMDef, CategoryMDef, useGlobalMetainfo, PackageMDef, AttributeMDef } from './metainfo'
 import * as d3 from 'd3'
 import blue from '@material-ui/core/colors/blue'
 import teal from '@material-ui/core/colors/teal'
@@ -170,6 +170,8 @@ export async function metainfoAdaptorFactory(context, obj) {
     return new CategoryDefAdaptor(context, obj)
   } else if (obj.m_def === PackageMDef) {
     return new PackageDefAdaptor(context, obj)
+  } else if (obj.m_def === AttributeMDef) {
+    return new AttributeDefAdaptor(context, obj)
   } else {
     throw new Error('Unknown metainfo definition type')
   }
@@ -343,6 +345,11 @@ export class SectionDefAdaptor extends MetainfoAdaptor {
       return metainfoAdaptorFactory(this.context, property)
     }
 
+    const attribute = this.def.attributes?.find(attr => attr.name === key)
+    if (attribute) {
+      return metainfoAdaptorFactory(this.context, attribute)
+    }
+
     return super.itemAdaptor(key)
   }
   render() {
@@ -356,6 +363,10 @@ class SubSectionDefAdaptor extends MetainfoAdaptor {
     this.sectionDefAdaptor = new SectionDefAdaptor(this.context, this.def.sub_section)
   }
   async itemAdaptor(key) {
+    const attributeDef = this.def.attributes?.find(def => def.name === key)
+    if (attributeDef) {
+      return metainfoAdaptorFactory(this.context, attributeDef)
+    }
     return this.sectionDefAdaptor.itemAdaptor(key)
   }
   render() {
@@ -364,6 +375,15 @@ class SubSectionDefAdaptor extends MetainfoAdaptor {
 }
 
 class QuantityDefAdaptor extends MetainfoAdaptor {
+  itemAdaptor(key) {
+    const attributeDef = this.def.attributes.find(def => def.name === key)
+    if (attributeDef) {
+      return metainfoAdaptorFactory(this.context, attributeDef)
+    }
+
+    return super.itemAdaptor(key)
+  }
+
   render() {
     return <QuantityDef def={this.def} />
   }
@@ -375,6 +395,12 @@ class CategoryDefAdaptor extends MetainfoAdaptor {
       <Definition def={this.def} />
       <DefinitionDetails def={this.def} />
     </Content>
+  }
+}
+
+class AttributeDefAdaptor extends MetainfoAdaptor {
+  render() {
+    return <AttributeDef def={this.def} />
   }
 }
 
@@ -422,7 +448,7 @@ function SectionDefContent({def}) {
       </Compartment>
     }
     {def._allInheritingSections?.length > 0 &&
-      <Compartment title="all inheriting sections">
+      <Compartment title="all inheriting sections" startCollapsed>
         {def._allInheritingSections.map((inheritingSection, index) => {
           const key = `_inheritingSectionDef@${inheritingSection.name}`
           const categories = inheritingSection.categories
@@ -449,7 +475,10 @@ function SectionDefContent({def}) {
             <Typography component="span" color={unused && 'error'}>
               <Box fontWeight="bold" component="span">
                 {formatSubSectionName(subSectionDef.more?.label || subSectionDef.name)}
-              </Box>{subSectionDef.repeats && <span>&nbsp;(repeats)</span>}
+              </Box>
+              {subSectionDef.repeats && <ItemChip label="repeats"/>}
+              {subSectionDef._overwritten && <ItemChip label="overwritten" />}
+              {subSectionDef._inherited && <ItemChip label="inherited" />}
             </Typography>
           </Item>
         })
@@ -468,6 +497,8 @@ function SectionDefContent({def}) {
                   {quantityDef.more?.label || quantityDef.name}
                 </Box>
               </Typography>
+              {quantityDef._overwritten && <ItemChip label="overwritten" />}
+              {quantityDef._inherited && <ItemChip label="inherited" />}
             </Box>
           </Item>
         })
@@ -492,6 +523,8 @@ function SectionDefContent({def}) {
       }
     </Compartment>}
     <DefinitionDetails def={def} />
+    <Attributes def={def}/>
+    <Annotations def={def}/>
   </React.Fragment>
 }
 SectionDefContent.propTypes = ({
@@ -502,7 +535,6 @@ function SectionDef({def}) {
   return <Content>
     <Definition def={def} kindLabel="section definition" />
     <SectionDefContent def={def} />
-    <Annotations def={def}/>
   </Content>
 }
 SectionDef.propTypes = ({
@@ -515,8 +547,9 @@ function SubSectionDef({def}) {
     <Content>
       <ArchiveTitle def={def} useName isDefinition kindLabel="sub section definition" />
       <DefinitionDocs def={sectionDef} />
-      <SectionDefContent def={sectionDef} />
+      <Attributes def={def}/>
       <Annotations def={def}/>
+      <SectionDefContent def={sectionDef} />
     </Content>
   </React.Fragment>
 }
@@ -540,7 +573,7 @@ function DefinitionProperties({def, children}) {
     {children}
     {def.aliases?.length && <Typography><b>aliases</b>:&nbsp;{def.aliases.map(a => `"${a}"`).join(', ')}</Typography>}
     {def.deprecated && <Typography><b>deprecated</b>: {def.deprecated}</Typography>}
-    {Object.keys(def.more).map((moreKey, i) => (
+    {Object.keys(def.more || {}).map((moreKey, i) => (
       <Typography key={i}><b>{moreKey}</b>:&nbsp;{String(def.more[moreKey])}</Typography>
     ))}
     {hasSearchAnnotations > 0 && <Typography><b>search&nbsp;keys</b>:&nbsp;{
@@ -571,16 +604,62 @@ function QuantityDef({def}) {
         <b>shape</b>:&nbsp;
         [{def.shape.join(', ')}]
       </Typography>
+      {def.derived && <Typography><b>repeats</b>:&nbsp;true</Typography>}
       {def.unit &&
         <Typography><b>unit</b>:&nbsp;{def.unit}</Typography>}
+      {def.dimensionality &&
+        <Typography><b>dimensionality</b>:&nbsp;{def.dimensionality}</Typography>}
       {def.default &&
         <Typography><b>default</b>:&nbsp;{String(def.default)}</Typography>}
-      {def.derived && <Typography><b>derived</b></Typography>}
+      {def.derived && <Typography><b>derived</b>:&nbsp;true</Typography>}
+      {def.variable && <Typography><b>variable</b>:&nbsp;true</Typography>}
     </DefinitionProperties>
+    <Attributes def={def}/>
     <Annotations def={def}/>
   </Content>
 }
 QuantityDef.propTypes = ({
+  def: PropTypes.object
+})
+
+function AttributeDef({def}) {
+  return <Content>
+    <Definition def={def} kindLabel="attribute definition"/>
+    <DefinitionProperties def={def}>
+      <Typography>
+        <b>type</b>:&nbsp;
+        {Array.isArray(def.type.type_data) ? def.type.type_data.join(', ') : def.type.type_data}&nbsp;
+        {def.type.type_kind !== 'data' && `(${def.type.type_kind})`}
+      </Typography>
+      {def.shape && <Typography>
+        <b>shape</b>:&nbsp;
+        [{def.shape.join(', ')}]
+      </Typography>}
+      {def.default &&
+        <Typography><b>default</b>:&nbsp;{String(def.default)}</Typography>}
+    </DefinitionProperties>
+    <Attributes def={def}/>
+    <Annotations def={def}/>
+  </Content>
+}
+AttributeDef.propTypes = ({
+  def: PropTypes.object
+})
+
+function Attributes({def}) {
+  if (!def.attributes?.length) {
+    return null
+  }
+
+  return <Compartment title="attributes">
+     {def.attributes.map((attributeDef, index) => {
+        return <Item key={index} itemKey={attributeDef.name}>
+          <Typography>{attributeDef.more?.label || attributeDef.name}</Typography>
+        </Item>
+      })}
+  </Compartment>
+}
+Attributes.propTypes = ({
   def: PropTypes.object
 })
 
@@ -702,7 +781,8 @@ const definitionLabels = {
   [SectionMDef]: 'section',
   [QuantityMDef]: 'quantity',
   [SubSectionMDef]: 'sub section',
-  [CategoryMDef]: 'category'
+  [CategoryMDef]: 'category',
+  [AttributeMDef]: 'attribute'
 }
 
 export function ArchiveTitle({def, isDefinition, data, kindLabel, useName, actions}) {

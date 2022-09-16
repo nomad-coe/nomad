@@ -106,6 +106,7 @@ export const SectionMDef = 'nomad.metainfo.metainfo.Section'
 export const QuantityMDef = 'nomad.metainfo.metainfo.Quantity'
 export const SubSectionMDef = 'nomad.metainfo.metainfo.SubSection'
 export const CategoryMDef = 'nomad.metainfo.metainfo.Category'
+export const AttributeMDef = 'nomad.metainfo.metainfo.Attribute'
 
 export async function createGlobalMetainfo() {
   return createMetainfo(metainfoData)
@@ -133,6 +134,10 @@ export async function createMetainfo(data, parentMetainfo, context) {
   }
   data._metainfo = metainfo
   return metainfo
+}
+
+export function quantityUsesFullStorage(def) {
+  return def.repeats || def.variable || def.attributes?.length
 }
 
 /**
@@ -282,23 +287,30 @@ class Metainfo {
 
   async _getAllProperties(sectionDef) {
     const results = {}
-    function addProperties(sectionDef) {
-      sectionDef.quantities.forEach(
-        property => {
-          property.m_def = QuantityMDef
-          results[property.name] = property
+    function createAddProperties(inherited) {
+      return (sectionDef) => {
+        function createAddProperty(m_def) {
+          return (property) => {
+            const propertyToAdd = inherited ? {} : property
+            if (inherited) {
+              Object.assign(propertyToAdd, property)
+              propertyToAdd._inherited = true
+            } else {
+              if (results[property.name]) {
+                propertyToAdd._overwritten = true
+              }
+            }
+            property.m_def = m_def
+            results[property.name] = propertyToAdd
+          }
         }
-      )
-      sectionDef.sub_sections.forEach(
-        property => {
-          property.m_def = SubSectionMDef
-          results[property.name] = property
-        }
-      )
+        sectionDef.quantities.forEach(createAddProperty(QuantityMDef))
+        sectionDef.sub_sections.forEach(createAddProperty(SubSectionMDef))
+      }
     }
     sectionDef = await this._initSection(sectionDef)
-    sectionDef._allBaseSections.forEach(addProperties)
-    addProperties(sectionDef)
+    sectionDef._allBaseSections.forEach(createAddProperties(true))
+    createAddProperties(false)(sectionDef)
     return Object.keys(results).map(key => results[key])
   }
 

@@ -1,0 +1,58 @@
+definitions:
+  sections:
+    MySection:
+      base_section: nomad.datamodel.EntryData
+      attributes:
+        -
+          name: section_attr_1
+          type: str
+        -
+          name: section_attr_2
+          type: float
+      quantities:
+        my_quantity:
+          type: str
+          attributes:
+            -
+              name: quantity_attr_1
+              type: str
+            -
+              name: quantity_attr_2
+              type: float
+        MY_variable_quantity:
+          type: np.float64
+          variable: true
+          shape: [3,3]
+          dimensionality: '[length]'
+          unit: 'm'
+          attributes:
+            -
+              name: quantity_attr_1
+              type: str
+            -
+              name: quantity_attr_2
+              type: float
+
+data:
+  m_def: MySection
+  m_attributes:
+    section_attr_1: "value"
+    section_attr_2: 0
+  MY_variable_quantity:
+    foo_variable_quantity:
+      m_value: [[1,1,1], [0,0,0], [-1,-1,-1]]
+      m_unit: 'mm'
+      m_attributes:
+        quantity_attr_1: "foo"
+        quantity_attr_2: 0
+    bar_variable_quantity:
+      m_value: [[1,1,1], [0,0,0], [-1,-1,-1]]
+      m_unit: 'cm'
+      m_attributes:
+        quantity_attr_1: "bar"
+        quantity_attr_2: 0
+  my_quantity:
+    my_quantity:
+      m_value: 'value'
+      m_attributes:
+        quantity_attr_2: 0.0
