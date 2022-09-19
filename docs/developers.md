@@ -1,4 +1,7 @@
-# Developing NOMAD
+---
+title: Getting started
+---
+# Getting started with developing NOMAD
 
 ## Clone the sources
 If not already done, you should clone nomad. If you have a gitlab@MPCDF account, you can clone with git URL:

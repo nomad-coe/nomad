@@ -1,16 +1,13 @@
 # Using the web interface
 
-For our upcoming tutorial on metadata management with NOMAD, we will produce a series
-of videos that demonstrates the web interface of NOMAD v1. The videos will show how to
-
-- upload and publish data
-- search and download data
-- use the archive
-
-This will come in February 2022.
-
-
 ## Uploading and publishing data
+
+This tutorial guides you through the basics of going from files on your computer
+to a published dataset with DOI.
+
+<div class="youtube">
+<iframe src="https://www.youtube.com/embed/3rVvfYoUbO0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
 
 
 ### Preparing files
@@ -127,3 +124,11 @@ files directly from its servers via an additional `local_path` parameter:
 ```
 curl -X PUT "http://nomad-lab.eu/prod/v1/api/uploads/?token=<your-token>&local_path=<path-to-upload-file>"
 ```
+
+## Exploring data on NOMAD
+
+This tutorial shows how to use NOMAD's search interface and structured data browsing to explore available data.
+
+<div class="youtube">
+<iframe src="https://www.youtube.com/embed/38S2U-TIvxE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>

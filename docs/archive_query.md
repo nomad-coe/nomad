@@ -2,7 +2,7 @@
 
 The `ArchiveQuery` allows you to search for entries and access their parsed and processed *archive* data
 at the same time. Furthermore, all data is accessible through a convenient Python interface
-based on the [NOMAD metainfo](archive.md) rather than plain JSON.
+based on the [NOMAD metainfo](schema/python.md#wrap-data-with-python-schema-classes) rather than plain JSON.
 
 ## Basic Usage
 

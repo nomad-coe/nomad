@@ -1,0 +1,47 @@
+definitions:
+  sections:
+    Data:
+      sub_sections:
+        periodic_table:
+          section: PeriodicTable
+        compositions:
+          section: Composition
+          repeats: true
+    Element:
+      quantities:
+        label:
+          type: str
+        density:
+          type: np.float64
+          unit: g/cm**3
+        isotopes:
+          type: int
+          shape: ['*']
+    PeriodicTable:
+      sub_sections:
+        elements:
+          repeats: true
+          section: Element
+    Composition:
+      quantities:
+        composition:
+          type: str
+        elements:
+          type: Element
+          shape: ['*']
+data:
+  m_def: Data
+  periodic_table:
+    elements:
+    - label: H
+      density: 0.00008375
+      isotopes: [1, 2, 3]
+    - label: O
+      density: 1.141
+      isotopes: [16, 17, 18]
+  compositions:
+    -
+      composition: 'H2O'
+      elements:
+        - '#/data/periodic_table/elements/0'
+        - '#/data/periodic_table/elements/1'

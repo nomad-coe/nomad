@@ -1,0 +1,15 @@
+definitions:
+  sections:
+    Composition:
+      quantities:
+        composition:
+          type: str
+        elements:
+          type: ../upload/raw/periodic_table.archive.yaml#Element
+          shape: ['*']
+data:
+  m_def: Composition
+  composition: 'H2O'
+  elements:
+    - ../upload/raw/periodic_table.archive.yaml#data/elements/0
+    - ../upload/raw/periodic_table.archive.yaml#data/elements/1

@@ -1,0 +1,11 @@
+definitions:
+  sections:
+    Process:
+      quantities:
+        time:
+          type: Datetime
+    Sample:
+      sub_sections:
+        processes:
+          section: Process
+          repeats: true

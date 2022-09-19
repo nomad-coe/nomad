@@ -1,0 +1,20 @@
+definitions:
+  sections:
+    Element:
+      quantities:
+        label:
+          type: str
+        density:
+          type: np.float64
+          unit: g/cm**3
+        isotopes:
+          type: int
+          shape: ['*']
+    Composition:
+      quantities:
+        composition:
+          type: str
+      sub_sections:
+        elements:
+          section: Element
+          repeats: true

@@ -1,0 +1,26 @@
+definitions:
+  sections:
+    Element:
+      quantities:
+        label:
+          type: str
+        density:
+          type: np.float64
+          unit: g/cm**3
+        isotopes:
+          type: int
+          shape: ['*']
+    PeriodicTable:
+      sub_sections:
+        elements:
+          repeats: true
+          section: Element
+data:
+  m_def: PeriodicTable
+  elements:
+  - label: H
+    density: 0.00008375
+    isotopes: [1, 2, 3]
+  - label: O
+    density: 1.141
+    isotopes: [16, 17, 18]
