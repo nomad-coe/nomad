@@ -438,6 +438,12 @@ export class Unit {
     } else {
       throw Error('Unknown unit type. Please provide the unit as as string or as instance of Unit.')
     }
+
+    // We cannot directly feed the unit string into Math.js, because it will try
+    // to parse units like 1/<unit> as Math.js units which have values, and then
+    // will raise an exception when converting between valueless and valued
+    // unit. The workaround is to explicitly define a valueless unit.
+    unit = new UnitMathJS(undefined, unit)
     return new Unit(this.mathjsUnit.to(unit))
   }
 
