@@ -100,7 +100,8 @@ test.each([
   ['simple to complex with one unit', 'N', 'kg*m/s^2', '(kg m) / s^2'],
   ['complex to simple with one unit', 'kg*m/s^2', 'N', 'N'],
   ['simple to complex with expression', 'N/m', 'kg/s^2', 'kg / s^2'],
-  ['complex to simple with expression', 'kg/s^2', 'N/m', 'N / m']
+  ['complex to simple with expression', 'kg/s^2', 'N/m', 'N / m'],
+  ['unit starting with a number', '1/minute', '1/second', 's^-1']
 ]
 )('test conversion with "to()": %s', async (name, unitA, unitB, labelB) => {
   const a = new Quantity(1, unitA)
