@@ -1,0 +1,10 @@
+data:
+  m_def: '../upload/raw/schema.archive.yaml#Composition'
+  composition: 'H2O'
+  elements:
+    - label: H
+      density: 0.00008375
+      isotopes: [1, 2, 3]
+    - label: O
+      density: 1.141
+      isotopes: [16, 17, 18]

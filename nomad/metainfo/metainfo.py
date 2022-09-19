@@ -2424,8 +2424,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             # We re-use the _SectionReference implementation for m_def
             m_def = dct['m_def']
             context_section = m_parent
-            if m_parent:
-                definitions = getattr(m_parent, 'definitions', None)
+            archive_root: MSection = m_parent.m_root() if m_parent else None
+            if archive_root:
+                definitions = getattr(archive_root, 'definitions', None)
                 if isinstance(definitions, Package):
                     context_section = definitions
             m_def_proxy = SectionReference.deserialize(context_section, None, m_def)
@@ -2446,6 +2447,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             section = cls(m_context=m_context, **kwargs)
         else:
             section = cls(**kwargs)
+
+        # We have to set this prematurely. It would be set later on, but to late to get
+        # the proper root for subsequent resolution of m_def references.
+        section.m_parent = m_parent
 
         if 'm_annotations' in dct:
             if isinstance(dct['m_annotations'], dict):
@@ -4391,14 +4396,18 @@ def inherited_sections(self) -> List[Section]:
     return result
 
 
-@derived(cached=True)
+@derived(cached=False)
 def all_base_sections(self) -> List[Section]:
     result: List[Section] = []
     for base_section in self.base_sections:
         if isinstance(base_section, SectionProxy):
+            # In some reference resolution contexts, it is important to reevaluate later
+            self.m_mod_count += 1
             continue
         for base_base_section in base_section.all_base_sections:
             if isinstance(base_base_section, SectionProxy):
+                # In some reference resolution contexts, it is important to reevaluate later
+                self.m_mod_count += 1
                 continue
             result.append(base_base_section)
         result.append(base_section)
@@ -4410,9 +4419,13 @@ def all_inheriting_sections(self) -> List[Section]:
     result: Set[Section] = set()
     for inheriting_section in self.inheriting_sections:
         if isinstance(inheriting_section, SectionProxy):
+            # In some reference resolution contexts, it is important to reevaluate later
+            self.m_mod_count += 1
             continue
         for inheriting_inheriting_section in inheriting_section.all_inheriting_sections:
             if isinstance(inheriting_inheriting_section, SectionProxy):
+                # In some reference resolution contexts, it is important to reevaluate later
+                self.m_mod_count += 1
                 continue
             result.add(inheriting_inheriting_section)
         result.add(inheriting_section)

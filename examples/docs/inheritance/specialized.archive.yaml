@@ -1,0 +1,25 @@
+definitions:
+  sections:
+    Evaporation:
+      base_section: '../upload/raw/abstract.archive.yaml#Process'
+      quantities:
+        pressure:
+          type: np.float64
+          unit: Pa
+    Annealing:
+      base_section: '../upload/raw/abstract.archive.yaml#Process'
+      quantities:
+        temperature:
+          type: np.float64
+          unit: K
+data:
+  m_def: '../upload/raw/abstract.archive.yaml#Sample'
+  processes:
+    -
+      m_def: Evaporation
+      time: '2022-10-13'
+      pressure: 100
+    -
+      m_def: Annealing
+      time: '2022-10-13'
+      temperature: 342

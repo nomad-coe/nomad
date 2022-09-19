@@ -1,10 +1,17 @@
-# Extending the Archive and Metainfo
+---
+title: Python schemas
+---
 
-In [Using the Archive and Metainfo](archive.md), we learned what the Archive and Metainfo
-are. It also demonstrated the Python interface and how to use it on Archive data. The
-Metainfo is written down in Python code as a bunch of classes that define *sections*
-and their properties. Here, we will look at how the Metainfo classes work and how
-the metainfo can be extended with new definitions.
+# Write NOMAD schemas in Python
+
+Writing and uploading schemas in `.archive.yaml` format is a good way for NOMAD users
+to add schemas. But it has limitations. As a NOMAD developer or Oasis administrator
+you can add Python schemas to NOMAD. All build in NOMAD schemas (e.g. for electronic structure code data) are written an Python and are part of the NOMAD sources (`nomad.datamodel.metainfo.*`).
+
+There is a 1-1 translation between Python schemas (written in classes) and YAML (or JSON)
+schemas (written in objects). Both use the same fundamental concepts, like
+*section*, *quantity*, or *sub-section*, introduced in [YAML schemas](basics.md).
+
 
 ## Starting example
 
@@ -87,29 +94,9 @@ This will convert the data into JSON:
 }
 ```
 
-## Definitions and Instances
+## Definitions
 
-As you have already seen in the example, we must first define how data can look like (schema),
-before we can actually program with them. Since schema and data are often discussed in the
-same context, it is of utmost importance to clearly distingish between the two. For example, if we
-just say "system", it is unclear what we refer to. We could mean the idea of a system, i.e. all
-possible systems, a data structure that comprises a lattice, or atoms with their elements and
-positions in the lattice. Or we mean a specific system of a specific calculation, with
-a concrete set of atoms, and real numbers for lattice vectors and atom positions as concrete data.
-
-The NOMAD Metainfo is just a collection of definitions that describe what material science
-data might look like (a schema). The NOMAD Archive is all the data that we extract from all data
-provided to NOMAD. The data in the NOMAD Archive follows the definitions of the NOMAD metainfo.
-
-Similarely, we need to distingish between the NOMAD Metainfo as a collection of definitions
-and the Metainfo system that defines how to define a section or a quantity. In this sense,
-we have a three layout model where the Archive (data) is an instance of the Metainfo (schema)
-and the Metainfo is an instance of the Metainfo system (schema of the schema).
-
-This documentation describes the Metainfo by explaining the means of how to write down definitions
-in Python. Conceptually we map the Metainfo system to Python language constructs, e.g.
-a section definition is a Python class, a quantity a Python property, etc. If you are
-familiar with databases, this is similar to what an object relational mapping (ORM) would do.
+The following describes the schema language (the sum of all possible definitions) and how it is expressed in Python.
 
 
 ### Common attributes of Metainfo Definitions
@@ -254,19 +241,23 @@ m_package = Package()
 m_package.__init_metainfo__()
 ```
 
-## Adding definition to the existing metainfo schema
+## Adding Python schemas to NOMAD
 
-Now you know how to define new sections and quantities, but how should your additions
-be integrated in the existing schema and what conventions need to be followed?
+Now you know how to write a schema as a Python module, but how should you
+integrate new schema modules into the existing code and what conventions need to be
+followed?
 
-### Metainfo schema super structure
+### Schema super structure
+
+You should follow the basic [developer's getting started](../developers.md) to setup a development environment. This will give you all the necessary libraries and allows you
+to place your modules into the NOMAD code.
 
 The `EntryArchive` section definition sets the root of the archive for each entry in
 NOMAD. It therefore defines the top level sections:
 
 - `metadata`, all "administrative" metadata (ids, permissions, publish state, uploads, user metadata, etc.)
 - `results`, a summary with copies and references to data from method specific sections. This also
-presents the [searchable metadata](search.md).
+presents the [searchable metadata](../search.md).
 - `workflows`, all workflow metadata
 - Method specific sub-sections, e.g. `run`. This is were all parsers are supposed to
 add the parsed data.
@@ -298,7 +289,7 @@ class MyCodeRun(Method)
         type=MEnum('hpc', 'parallel', 'single'), description='...')
 ```
 
-### Metainfo schema conventions
+### Schema conventions
 
 - Use lower snake case for section properties; use upper camel case for section definitions.
 - Use a `_ref` suffix for references.
@@ -307,3 +298,97 @@ E.g. the section `workflow` contains a section `geometry_optimization` for all g
 workflow quantities.
 - Prefix parser-specific and user-defined definitions with `x_name_`, where `name` is the
 short handle of a code name or other special method prefix.
+
+
+## Use Python schemas to work with data
+
+### Access structured data via API
+
+The [API section](../api.md#access-archives) demonstrates how to access an Archive, i.e.
+retrieve the processed data from a NOAMD entry. This API will give you JSON data likes this:
+
+```json title="https://nomad-lab.eu/prod/v1/api/v1/entries/--dLZstNvL_x05wDg2djQmlU_oKn/archive"
+{
+    "run": [
+        {
+            "program": {...},
+            "method": [...],
+            "system": [
+                {...},
+                {...},
+                {...},
+                {...},
+                {
+                    "type": "bulk",
+                    "configuration_raw_gid": "-ZnDK8gT9P3_xtArfKlCrDOt9gba",
+                    "is_representative": true,
+                    "chemical_composition": "KKKGaGaGaGaGaGaGaGaGa",
+                    "chemical_composition_hill": "Ga9K3",
+                    "chemical_composition_reduced": "K3Ga9",
+                    "atoms": {...},
+                    "springer_material": [...],
+                    "symmetry": [...]
+                }
+            ]
+            "calculation": [...],
+        }
+    ],
+    "workflow": [...],
+    "metadata": {...},
+    "results":{
+        "material": {...},
+        "method": {...},
+        "properties": {...},
+    }
+}
+```
+
+This will show you the Archive as a hierarchy of JSON objects (each object is a section),
+where each key is a property (e.g. a quantity or subsection). Of course you can use
+this data in this JSON form. You can expect that the same keys (each item has a formal
+definition) always provides the same type of data. However, not all keys are present in
+every archive, and not all lists might have the same number of objects. This depends on the
+data. For example, some *runs* contain many systems (e.g. geometry optimizations), others
+don't; typically *bulk* systems will have *symmetry* data, non bulk systems might not.
+To learn what each key means, you need to look up its definition in the Metainfo.
+
+{{ metainfo_data() }}
+
+
+### Wrap data with Python schema classes
+
+In Python, JSON data is typically represented as nested combinations of dictionaries
+and lists. Of course, you could work with this right away. To make it easier for Python
+programmers the [NOMAD Python package](../pythonlib.md) allows you to use this
+JSON data with a higher level interface, which provides the following advantages:
+
+- code completion in dynamic coding environments like Jupyter notebooks
+- a cleaner syntax that uses attributes instead of dictionary access
+- all higher dimensional numerical data is represented as numpy arrays
+- allows to navigate through references
+- numerical data has a Pint unit attached to it
+
+For each section the Python package contains a Python class that corresponds to its
+definition in the metainfo. You can use these classes to access `json_data` downloaded
+via API:
+```python
+from nomad.datamodel import EntryArchive
+
+archive = EntryArchive.m_from_dict(json_data)
+calc = archive.run[0].calculation[-1]
+total_energy_in_ev = calc.energy.total.value.to(units.eV).m
+formula = calc.system_ref.chemical_formula_reduced
+```
+
+Archive data can also be serialized into JSON again:
+```python
+import json
+
+print(json.dumps(calc.m_to_dict(), indent=2))
+```
+
+### Access structured data via the NOMAD Python package
+
+The NOMAD Python package provides utilities to [query large amounts of
+archive data](/archive_query.md). This uses the build-in Python schema classes as
+an interface to the data.

@@ -1,5 +1,14 @@
 # Using the APIs
 
+## Tutorial
+
+This video tutorial explains the basics of API and shows how to do simple requests
+against the NOMAD api.
+
+<div class="youtube">
+<iframe src="https://www.youtube.com/embed/G1frBCrxC0g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
+
 ## Getting started
 
 If you are comfortable with REST APIs and using Pythons `requests` library, this example
@@ -175,7 +184,7 @@ The result will look like this:
 You can work with the results in the given JSON (or respective Python dict/list) data already.
 If you have [NOMAD's Python library](pythonlib.md) installed ,
 you can take the archive data and use the Python interface.
-The [Python interface](metainfo.md) will help with code-completion (e.g. in notebook environments),
+The [Python interface](schema/python.md#wrap-data-with-python-schema-classes) will help with code-completion (e.g. in notebook environments),
 resolve archive references (e.g. from workflow to calculation to system), and allow unit conversion:
 ```py
 from nomad.datamodel import EntryArchive

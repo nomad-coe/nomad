@@ -1,0 +1,35 @@
+definitions:
+  name: 'Exemplified polymorphy in sub-sections and references'
+  sections:
+    Substance:
+      quantities:
+        name:
+          type: str
+    Chemical23:
+      base_section: Substance
+      quantities:
+        formula:
+          type: str
+    Sample:
+      base_section: nomad.datamodel.data.EntryData
+      quantities:
+        referenced_substances:
+          type: Substance  # could be a substance or a chemical
+          shape: ['*']
+      sub_sections:
+        substances:
+          section: Substance  # again, could be a substance of a chemical
+          repeats: true
+
+data:
+  m_def: Sample
+  substances:
+    -
+      name: A  # this is a Substance implicitly
+    -
+      m_def: Chemical23  # this is a Chemical explicitly
+      name: Water
+      formula: H2O
+  referenced_substances:
+    - '/substances/0'  # this is a referenced Substance
+    - '/substances/1'  # this is a referenced Chemical
