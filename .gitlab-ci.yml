@@ -2,15 +2,32 @@
 # using an image that can do git, docker, docker-compose
 image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner:latest
 
-# https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
+# https://docs.gitlab.com/ee/ci/yaml/workflow.html
+# https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
+# if: CI_COMMIT_BRANCH && CI_COMMIT_BEFORE_SHA == "0000000000000000000000000000000000000000"
+# A branch pipeline, but it is the first commit for that branch
+# if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+# For an existing workflow section to switch from branch pipelines to merge request pipelines when a merge request is created.
+# if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+# A branch pipeline, but a merge request is open for that branch, do not run the branch pipeline.
+# if: $CI_PIPELINE_SOURCE == "merge_request_event"
+# A merge request pipeline, start the pipeline.
+# if: $CI_COMMIT_BRANCH
+# A branch pipeline, but there is no merge request open for the branch, run the branch pipeline.
+
 workflow:
   rules:
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BEFORE_SHA == "0000000000000000000000000000000000000000"
+      when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
       when: never
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+    - when: never
 
 stages:
   - build
@@ -52,7 +69,6 @@ python linting:
     - if: $CI_COMMIT_TAG
       when: never
     - when: on_success
-
 
 gui linting:
   stage: test
@@ -218,6 +234,7 @@ deploy dev:
     - if: $CI_COMMIT_TAG
       when: never
     - when: manual
+      allow_failure: true
 
 stop deploy dev:
   stage: deploy
@@ -235,7 +252,7 @@ stop deploy dev:
     - if: $CI_COMMIT_TAG
       when: never
     - when: manual
-
+      allow_failure: true
 
 deploy prod staging:
   stage: deploy
@@ -261,6 +278,7 @@ deploy prod staging:
     - if: $CI_COMMIT_TAG
       when: never
     - when: manual
+      allow_failure: true
 
 deploy prod test:
   stage: deploy
@@ -286,6 +304,7 @@ deploy prod test:
     - if: $CI_COMMIT_TAG
       when: never
     - when: manual
+      allow_failure: true
 
 deploy prod util:
   stage: deploy
@@ -305,6 +324,7 @@ deploy prod util:
     - if: $CI_COMMIT_TAG
       when: never
     - when: manual
+      allow_failure: true
 
 deploy prod develop:
   stage: deploy
@@ -336,6 +356,7 @@ deploy prod develop:
     - if: $CI_COMMIT_TAG
       when: never
     - when: manual
+      allow_failure: true
 
 release latest image:
   stage: release
@@ -349,6 +370,7 @@ release latest image:
     - if: $CI_COMMIT_TAG
       when: never
     - when: manual
+      allow_failure: true
 
 release stable image:
   stage: release
@@ -363,6 +385,7 @@ release stable image:
   rules:
     - if: $CI_COMMIT_TAG
       when: manual
+      allow_failure: true
     - when: never
 
 python package:
@@ -374,6 +397,7 @@ python package:
     - docker run --rm $TEST_IMAGE python -m twine upload -u gitlab-ci-token -p ${CI_JOB_TOKEN} --repository-url https://gitlab.mpcdf.mpg.de/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/nomad-lab-*.tar.gz
   rules:
     - when: manual
+      allow_failure: true
 
 pypi package:
   stage: release
@@ -384,3 +408,4 @@ pypi package:
     - docker run --rm $TEST_IMAGE bash -c "python -m twine upload -u $CI_TWINE_USER -p $CI_TWINE_PASSWORD dist/nomad-lab-*.tar.gz"
   rules:
     - when: manual
+      allow_failure: true
