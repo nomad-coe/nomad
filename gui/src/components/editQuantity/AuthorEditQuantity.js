@@ -15,15 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import React, {useCallback, useEffect, useState} from 'react'
 import PropTypes from 'prop-types'
 import {getFieldProps, TextFieldWithHelp} from './StringEditQuantity'
-import {Box} from '@material-ui/core'
+import {makeStyles, Typography} from '@material-ui/core'
+
+const useStyles = makeStyles(theme => ({
+  label: {
+    marginLeft: theme.spacing(1)
+  },
+  fields: {
+    marginTop: theme.spacing(1)
+  }
+}))
 
 export const AuthorEditQuantity = React.memo((props) => {
   const {quantityDef, onChange, ...otherProps} = props
+  const classes = useStyles()
   const [author, setAuthor] = useState(undefined)
-  const [open, setOpen] = useState(false)
   const [email, setEmail] = useState(otherProps?.value?.email)
   const [emailError, setEmailError] = useState(false)
 
@@ -43,16 +52,6 @@ export const AuthorEditQuantity = React.memo((props) => {
     }
   }, [author, onChange])
 
-  const title = useMemo(() => {
-    if (author?.first_name && author?.last_name) {
-      return author?.affiliation
-        ? `${author?.first_name} ${author?.last_name} (${author?.affiliation})`
-        : `${author?.first_name} ${author?.last_name}`
-    } else {
-      return ''
-    }
-  }, [author?.affiliation, author?.first_name, author?.last_name])
-
   const handleEmailChange = useCallback((value) => {
     setEmail(value)
     if (value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
@@ -64,64 +63,61 @@ export const AuthorEditQuantity = React.memo((props) => {
   }, [handleChange])
 
   return <React.Fragment>
+    <Typography className={classes.label} variant={'body1'}>
+      {getFieldProps(quantityDef).label}
+    </Typography>
     <TextFieldWithHelp
+      className={classes.fields}
+      label={'First name'}
       variant='filled'
       size='small'
-      value={title}
-      onClick={event => setOpen(open => !open)}
+      placeholder='First name'
+      value={otherProps?.value?.first_name}
+      onChange={event => handleChange('first_name', event.target.value)}
       fullWidth
-      inputProps={{readOnly: true}}
-      {...getFieldProps(quantityDef)}
     />
-    <Box hidden={!open} padding={0}>
-      <TextFieldWithHelp
-        label={'First name'}
-        variant='filled'
-        size='small'
-        placeholder='First name'
-        value={otherProps?.value?.first_name}
-        onChange={event => handleChange('first_name', event.target.value)}
-        fullWidth
-      />
-      <TextFieldWithHelp
-        label={'Last name'}
-        variant='filled'
-        size='small'
-        placeholder='Last name'
-        value={otherProps?.value?.last_name}
-        onChange={event => handleChange('last_name', event.target.value)}
-        fullWidth
-      />
-      <TextFieldWithHelp
-        label={'Affiliation'}
-        variant='filled'
-        size='small'
-        placeholder='Affiliation'
-        value={otherProps?.value?.affiliation}
-        onChange={event => handleChange('affiliation', event.target.value)}
-        fullWidth
-      />
-      <TextFieldWithHelp
-        label={'Email'}
-        variant='filled'
-        size='small'
-        placeholder="Email address"
-        value={email}
-        onChange={event => handleEmailChange(event.target.value)}
-        error={emailError}
-        helperText={emailError && 'The email is not valid!'}
-        fullWidth
-      />
-      <TextFieldWithHelp
-        label={'Address'}
-        variant='filled'
-        size='small'
-        placeholder='Affiliation address'
-        value={otherProps?.value?.affiliation_address}
-        onChange={event => handleChange('affiliation_address', event.target.value)}
-        fullWidth
-      />
-    </Box>
+    <TextFieldWithHelp
+      className={classes.fields}
+      label={'Last name'}
+      variant='filled'
+      size='small'
+      placeholder='Last name'
+      value={otherProps?.value?.last_name}
+      onChange={event => handleChange('last_name', event.target.value)}
+      fullWidth
+    />
+    <TextFieldWithHelp
+      className={classes.fields}
+      label={'Affiliation'}
+      variant='filled'
+      size='small'
+      placeholder='Affiliation'
+      value={otherProps?.value?.affiliation}
+      onChange={event => handleChange('affiliation', event.target.value)}
+      fullWidth
+    />
+    <TextFieldWithHelp
+      className={classes.fields}
+      label={'Email'}
+      variant='filled'
+      size='small'
+      placeholder="Email address"
+      value={email}
+      onChange={event => handleEmailChange(event.target.value)}
+      error={emailError}
+      helperText={emailError && 'The email is not valid!'}
+      fullWidth
+    />
+    <TextFieldWithHelp
+      className={classes.fields}
+      label={'Address'}
+      variant='filled'
+      size='small'
+      placeholder='Affiliation address'
+      value={otherProps?.value?.affiliation_address}
+      onChange={event => handleChange('affiliation_address', event.target.value)}
+      fullWidth
+    />
   </React.Fragment>
 })
 AuthorEditQuantity.propTypes = {
