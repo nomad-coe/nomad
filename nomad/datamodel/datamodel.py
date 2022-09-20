@@ -30,12 +30,10 @@ from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requireing the m_package already, this would be too late.
-from ..metainfo.metainfo import User, Author
-
 m_package = metainfo.Package()
 
 from .results import Results  # noqa
-from .data import EntryData, ArchiveSection  # noqa
+from .data import EntryData, ArchiveSection, User, user_reference, author_reference  # noqa
 from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
@@ -82,56 +80,6 @@ def QuantitySearch():
             material_entry_type,
             mapping=dict(type='text', analyzer=path_analyzer.to_dict()),
             field='path', _es_field='')]
-
-
-class UserReference(metainfo.Reference):
-    '''
-    Special metainfo reference type that allows to use user_ids as values. It automatically
-    resolves user_ids to User objects. This is done lazily on getting the value.
-    '''
-
-    def __init__(self):
-        super().__init__(User.m_def)
-
-    def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
-        return User.get(user_id=proxy.m_proxy_value)
-
-    def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
-        return value.user_id
-
-
-user_reference = UserReference()
-
-
-class AuthorReference(metainfo.Reference):
-    '''
-    Special metainfo reference type that allows to use either user_ids or direct author
-    information as values. It automatically resolves user_ids to User objects and author
-    data into Author objects.
-    '''
-
-    def __init__(self):
-        super().__init__(Author.m_def)
-
-    def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
-        proxy_value = proxy.m_proxy_value
-        if isinstance(proxy_value, str):
-            return User.get(user_id=proxy.m_proxy_value)
-        elif isinstance(proxy_value, dict):
-            return Author.m_from_dict(proxy_value)
-        else:
-            raise metainfo.MetainfoReferenceError()
-
-    def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
-        if isinstance(value, User):
-            return value.user_id
-        elif isinstance(value, Author):
-            return value.m_to_dict()
-        else:
-            raise metainfo.MetainfoReferenceError()
-
-
-author_reference = AuthorReference()
 
 
 class Dataset(metainfo.MSection):

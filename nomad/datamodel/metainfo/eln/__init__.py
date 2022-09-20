@@ -19,7 +19,7 @@
 import numpy as np
 from nomad import utils
 from nomad.units import ureg
-from nomad.datamodel.data import EntryData, ArchiveSection
+from nomad.datamodel.data import EntryData, ArchiveSection, user_reference, author_reference
 from nomad.metainfo.metainfo import SectionProxy
 from nomad.datamodel.results import ELN, Results, Material, BandGap
 from nomad.metainfo import Package, Quantity, Datetime, Reference, Section
@@ -98,7 +98,7 @@ class ElnBaseSection(ArchiveSection):
         archive.results.eln.sections.append(self.m_def.name)
 
 
-class ElnActivityBaseSecton(ElnBaseSection):
+class ElnActivityBaseSection(ElnBaseSection):
     '''
     A generic abstract base section for ELNs that provides a few commonly used for
     laboratory activities, e.g. processes, characterizations, measurements, etc.
@@ -112,8 +112,18 @@ class ElnActivityBaseSecton(ElnBaseSection):
         type=str,
         description='A short consistent handle for the applied method.')
 
+    user = Quantity(
+        type=user_reference,
+        description='A user registered in Nomad.',
+        a_eln=dict(component='UserEditQuantity'))
+
+    author = Quantity(
+        type=author_reference,
+        description='An author that may or not be a Nomad user.',
+        a_eln=dict(component='AuthorEditQuantity'))
+
     def normalize(self, archive, logger):
-        super(ElnActivityBaseSecton, self).normalize(archive, logger)
+        super(ElnActivityBaseSection, self).normalize(archive, logger)
 
         if archive.results.eln.methods is None:
             archive.results.eln.methods = []
@@ -182,12 +192,12 @@ class Instrument(ElnBaseSection):
             archive.results.eln.instruments.append(self.name)
 
 
-class Process(ElnActivityBaseSecton):
+class Process(ElnActivityBaseSection):
     ''' A ELN base section that can be used for processes.'''
     pass
 
 
-class Measurement(ElnActivityBaseSecton):
+class Measurement(ElnActivityBaseSection):
     ''' A ELN base section that can be used for measurements.'''
     pass
 
