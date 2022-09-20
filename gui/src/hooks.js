@@ -176,3 +176,19 @@ export function useSuggestions(quantities, input, minLength = 2, debounceTime = 
   const results = useMemo(() => [suggestions, loading], [suggestions, loading])
   return results
 }
+
+/**
+ * Custom hook that returns a function that can be used to propertly catch
+ * errors within React ErrorBoundaries raised by asynchronous calls.
+ */
+export const useAsyncError = () => {
+  const setError = useState()[1]
+  return useCallback(
+    e => {
+      setError(() => {
+        throw e
+      })
+    },
+    [setError]
+  )
+}
