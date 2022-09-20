@@ -610,6 +610,8 @@ def to_numpy(np_type, shape: list, unit: Optional[pint.Unit], definition, value:
 
         if not flexible_unit:
             value = value.to(unit).magnitude
+        else:
+            value = value.magnitude
 
     if isinstance(value, pd.DataFrame):
         try:
