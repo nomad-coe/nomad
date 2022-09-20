@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, alpha } from '@material-ui/core/styles'
 import {
@@ -40,11 +40,12 @@ import Floatable from './Floatable'
 import NoData from './NoData'
 import Placeholder from '../visualization/Placeholder'
 import { Actions, Action } from '../Actions'
-import { delay } from '../../utils'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import { useHistory } from 'react-router-dom'
 import { isEmpty, flattenDeep, isNil, merge, cloneDeep } from 'lodash'
 import { Quantity } from '../../units'
+import { delay } from '../../utils'
+import { useAsyncError } from '../../hooks'
 import clsx from 'clsx'
 
 /**
@@ -118,12 +119,10 @@ const Structure = React.memo(({
   structureType,
   m_path,
   captureName,
-  positionsOnly,
   sizeLimit,
   bondLimit,
   disableLegend,
   selection,
-  positionsSubject,
   'data-testid': testID,
   placeHolderStyle,
   noDataStyle}
@@ -134,29 +133,29 @@ const Structure = React.memo(({
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [showCell, setShowCell] = useState(true)
   const [center, setCenter] = useState('COP')
-  const originalCenter = useRef()
   const [fit, setFit] = useState('full')
   const [wrap, setWrap] = useState(true)
   const [showPrompt, setShowPrompt] = useState(false)
   const [accepted, setAccepted] = useState(false)
-  const [nAtoms, setNAtoms] = useState()
-  const [showBonds, setShowBonds] = useState(false)
+  const [showBonds, setShowBonds] = useState(true)
   const [species, setSpecies] = useState()
   const [loading, setLoading] = useState(true)
-  const firstLoad = useRef(true)
+  const throwError = useAsyncError()
 
   // Variables
   const history = useHistory()
   const open = Boolean(anchorEl)
   const refViewer = useRef(null)
   const refCanvasDiv = useRef(null)
+  const originalCenter = useRef()
+  const firstLoad = useRef(true)
   const styles = useStyles(classes)
   const hasSelection = !isEmpty(selection?.selection)
-
-  useEffect(() => {
-    if (data) {
-      setLoading(true)
-    }
+  const nAtoms = useMemo(() => data?.positions.length, [data])
+  const hasCell = useMemo(() => {
+    return !data?.cell
+      ? false
+      : !flattenDeep(data.cell).every(v => v === 0)
   }, [data])
 
   // In order to properly detect changes in a reference, a reference callback is
@@ -182,53 +181,41 @@ const Structure = React.memo(({
     refCanvasDiv.current = node
   }, [fit])
 
-  // Run only on first render to initialize the viewer.
-  useEffect(() => {
-    // If the number of atoms has not been set, do not load the viewer yet.
-    if (isNil(nAtoms)) {
-      return
-    }
-    // When the viewer is loaded for the first time, the default options are
-    // set.
-    const isHighQuality = nAtoms <= 3000
-    const options = {
-      renderer: {
-        backgroundColor: ['#ffffff', 1],
-        antialias: {enabled: isHighQuality},
-        pixelRatioScale: 1,
-        shadows: {enabled: false}
-      },
-      atoms: {
-        smoothness: isHighQuality ? 165 : 150,
-        outline: {enabled: isHighQuality}
-      },
-      bonds: {
-        enabled: showBonds,
-        smoothness: isHighQuality ? 145 : 130,
-        outline: {enabled: isHighQuality}
-      }
-    }
-    refViewer.current = new StructureViewer(undefined, options)
-
-    if (positionsSubject && refViewer.current) {
-      positionsSubject.subscribe((positions) => {
-        refViewer.current.setPositions(positions)
-      })
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [positionsSubject, nAtoms])
-
-  const loadSystem = useCallback((system, refViewer) => {
-    // This function calls is delayed in order to not block the first render of
-    // the component. delay hoists the heavy function call outside so that the
-    // react rendering can finish before it.
-    delay(() => {
-      // If the cell is all zeroes, positions are assumed to be cartesian.
-      if (system.cell !== undefined) {
-        if (flattenDeep(system.cell).every(v => v === 0)) {
-          system.cell = undefined
+  /**
+   * Used to asynchronously load a new viewer and system. Since loading the
+   * structure is a long-taking operation, running this function later in the
+   * event queue allows the component to perform state updates (e.g. loading
+   * placeholder) while the viewer is loading.
+   */
+  const loadSystem = useCallback(async (system, refViewer) => {
+    await delay(() => {
+      // Initialize the viewer. A new viewer is used for each system as the
+      // render settings may differ.
+      const isHighQuality = nAtoms <= 3000
+      const options = {
+        renderer: {
+          backgroundColor: ['#ffffff', 1],
+          antialias: {enabled: isHighQuality},
+          pixelRatioScale: 1,
+          shadows: {enabled: false}
+        },
+        atoms: {
+          smoothness: isHighQuality ? 165 : 150,
+          outline: {enabled: isHighQuality}
+        },
+        bonds: {
+          enabled: showBonds,
+          smoothness: isHighQuality ? 145 : 130,
+          outline: {enabled: isHighQuality}
         }
       }
+      refViewer.current = new StructureViewer(undefined, options)
+
+      // If there is no valid cell, the property is set as undefined
+      if (!hasCell) {
+        system.cell = undefined
+      }
+
       // Determine the orientation and view centering based on material type and
       // the structure type.
       let centerValue = 'COP'
@@ -236,12 +223,12 @@ const Structure = React.memo(({
         [0, 1, 0, 60],
         [1, 0, 0, 30]
       ]
-      let alignments = system.cell === undefined
-        ? undefined
-        : [
+      let alignments = hasCell
+        ? [
           ['up', 'c'],
           ['right', 'b']
         ]
+        : undefined
       if (structureType === 'conventional' || structureType === 'primitive') {
         if (materialType === 'bulk') {
           centerValue = 'COC'
@@ -270,26 +257,27 @@ const Structure = React.memo(({
           ]
         }
       }
+
       refViewer.current.load(system)
       refViewer.current.setRotation([1, 0, 0, 0])
       refViewer.current.atoms()
-      refViewer.current.wrap(wrap)
-      refViewer.current.bonds()
-      refViewer.current.cell({enabled: showCell})
-      refViewer.current.latticeConstants({enabled: showLatticeConstants})
-      refViewer.current.align(alignments)
+      refViewer.current.bonds({enabled: showBonds})
+      if (hasCell) {
+        refViewer.current.wrap(wrap)
+        refViewer.current.cell({enabled: showCell})
+        refViewer.current.latticeConstants({enabled: showLatticeConstants})
+        refViewer.current.align(alignments)
+      }
       refViewer.current.rotate(rotations)
       refViewer.current.controls({resetOnDoubleClick: false})
       originalCenter.current = centerValue
-      const fit = 'full'
+      const fitValue = 'full'
       refViewer.current.center(centerValue)
-      refViewer.current.fit(fit, fitMargin)
+      refViewer.current.fit(fitValue, fitMargin)
       setCenter(centerValue)
-      setFit(fit)
+      setFit(fitValue)
       refViewer.current.render()
       refViewer.current.saveCameraReset()
-      setLoading(false)
-      firstLoad.current = false
 
       // Get a list of all species ordered by atomic number
       const species = Object.entries(refViewer.current.elements)
@@ -303,20 +291,16 @@ const Structure = React.memo(({
       setSpecies(species)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [structureType, materialType])
+  }, [structureType, materialType, hasCell])
 
-  // Called whenever the given system changes. If positionsOnly is true, only
-  // updates the positions. Otherwise reloads the entire structure.
+  // Called whenever the system changes. Loads the structure asynchronously.
   useEffect(() => {
-    if (!data) {
-      return
-    }
+    if (!data) return
+    setLoading(true)
 
     if (!accepted) {
-      const nAtoms = data.positions.length
-      setNAtoms(nAtoms)
-      if (nAtoms <= bondLimit) {
-        setShowBonds(true)
+      if (nAtoms > bondLimit) {
+        setShowBonds(false)
       }
       if (nAtoms > sizeLimit) {
         setShowPrompt(true)
@@ -324,14 +308,16 @@ const Structure = React.memo(({
       }
     }
 
-    if (positionsOnly && !!(refViewer?.current?.structure)) {
-      refViewer.current.setPositions(data.positions)
-      setLoading(false)
-      return
-    }
-
+    // Remember to catch since react error boundaries do not automatically catch
+    // from async calls.
     loadSystem(data, refViewer)
-  }, [data, positionsOnly, accepted, loadSystem, sizeLimit, bondLimit])
+      .catch(throwError)
+      .finally(() => {
+        setLoading(false)
+        firstLoad.current = false
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, nAtoms, accepted, sizeLimit, bondLimit])
 
   // Handles selections. If a selection is given, the selected atoms will be
   // higlighted. Additionally the view will be centered on the selection if this
@@ -436,82 +422,6 @@ const Structure = React.memo(({
     />
   }
 
-  const menuItems = [
-    <MenuItem key='show-bonds'>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={hasSelection ? false : showBonds}
-            disabled={hasSelection}
-            onChange={(event) => {
-              setShowBonds(!showBonds)
-              refViewer.current.bonds({enabled: !showBonds})
-              refViewer.current.render()
-            }}
-            color='primary'
-          />
-        }
-        label='Show bonds'
-      />
-    </MenuItem>
-  ]
-  if (data?.cell) {
-    menuItems.push(...[
-      <MenuItem key='show-axis'>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={hasSelection ? !selection.isSubsystem : showLatticeConstants}
-              disabled={hasSelection}
-              onChange={(event) => {
-                setShowLatticeConstants(!showLatticeConstants)
-                refViewer.current.latticeConstants({enabled: !showLatticeConstants})
-                refViewer.current.render()
-              }}
-              color='primary'
-            />
-          }
-          label='Show lattice constants'
-        />
-      </MenuItem>,
-      <MenuItem key='show-cell'>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={hasSelection ? !selection.isSubsystem : showCell}
-              disabled={hasSelection}
-              onChange={(event) => {
-                setShowCell(!showCell)
-                refViewer.current.cell({enabled: !showCell})
-                refViewer.current.render()
-              }}
-              color='primary'
-            />
-          }
-          label='Show simulation cell'
-        />
-      </MenuItem>,
-      <MenuItem key='wrap'>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={wrap}
-              disabled={hasSelection}
-              onChange={(event) => {
-                setWrap(!wrap)
-                refViewer.current.wrap(!wrap)
-                refViewer.current.bonds({enabled: showBonds})
-                refViewer.current.render()
-              }}
-              color='primary'
-            />
-          }
-          label='Wrap positions'
-        />
-      </MenuItem>
-    ])
-  }
-
   return <Floatable
     data-testid={testID}
     className={clsx(styles.root, className)}
@@ -562,7 +472,75 @@ const Structure = React.memo(({
           open={open}
           onClose={closeMenu}
         >
-          {menuItems}
+        <MenuItem key='show-bonds'>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={hasSelection ? false : showBonds}
+                disabled={hasSelection}
+                onChange={(event) => {
+                  setShowBonds(!showBonds)
+                  refViewer.current.bonds({enabled: !showBonds})
+                  refViewer.current.render()
+                }}
+                color='primary'
+              />
+            }
+            label='Show bonds'
+          />
+        </MenuItem>
+        <MenuItem key='show-axis'>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!hasCell ? false : (hasSelection ? !selection.isSubsystem : showLatticeConstants)}
+                disabled={!hasCell ? true : hasSelection}
+                onChange={(event) => {
+                  setShowLatticeConstants(!showLatticeConstants)
+                  refViewer.current.latticeConstants({enabled: !showLatticeConstants})
+                  refViewer.current.render()
+                }}
+                color='primary'
+              />
+            }
+            label='Show lattice constants'
+          />
+        </MenuItem>
+        <MenuItem key='show-cell'>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!hasCell ? false : (hasSelection ? !selection.isSubsystem : showCell)}
+                disabled={!hasCell ? true : hasSelection}
+                onChange={(event) => {
+                  setShowCell(!showCell)
+                  refViewer.current.cell({enabled: !showCell})
+                  refViewer.current.render()
+                }}
+                color='primary'
+              />
+            }
+            label='Show simulation cell'
+          />
+        </MenuItem>
+        <MenuItem key='wrap'>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!hasCell ? false : wrap}
+                disabled={!hasCell ? true : hasSelection}
+                onChange={(event) => {
+                  setWrap(!wrap)
+                  refViewer.current.wrap(!wrap)
+                  refViewer.current.bonds({enabled: showBonds})
+                  refViewer.current.render()
+                }}
+                color='primary'
+              />
+            }
+            label='Wrap positions'
+          />
+        </MenuItem>
         </Menu>
       </div>
     </div>
@@ -581,18 +559,11 @@ Structure.propTypes = {
   structureType: PropTypes.oneOf(['original', 'conventional', 'primitive']),
   m_path: PropTypes.string, // Path of the structure data in the metainfo
   captureName: PropTypes.string, // Name of the file that the user can download
-  positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
   sizeLimit: PropTypes.number, // Maximum system size before a prompt is shown
   bondLimit: PropTypes.number, // The size at which bonds are turned off
   disableLegend: PropTypes.bool, // Disable the legend showing the species list
   placeHolderStyle: PropTypes.string, // The CSS class to apply for the Placeholder component.
   noDataStyle: PropTypes.string, // The CSS class to apply for the NoData component.
-  /**
-   * A RxJS Subject for efficient, non-persistent, position changes that bypass
-   * rendering of the component. Should send messages that contain the new
-   * atomic positions as a list.
-  */
-  positionsSubject: PropTypes.any,
   selection: PropTypes.shape({
     /**
      * The atom indices to show.

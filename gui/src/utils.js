@@ -597,12 +597,23 @@ export function approxInteger(number) {
 }
 
 /**
- * Delays the execution of the given function to the next react render cycle.
+ * Forces the given function to be placed in the Javascript event queue and
+ * executed once the queue is free. Returns a promise that also correctly
+ * catches errors within the execution.
  *
  * @param {func} func Function to delay
  */
 export function delay(func) {
-  setTimeout(func, 0)
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      try {
+        func()
+        resolve()
+      } catch (e) {
+        reject(e)
+      }
+    })
+  })
 }
 
 /**
