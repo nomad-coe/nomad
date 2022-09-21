@@ -20,21 +20,27 @@ import PropTypes from 'prop-types'
 import { useApi, DoesNotExist } from './api'
 import { useErrors } from './errors'
 import { apiBase } from '../config'
+import { refType, parseNomadUrl, createEntryUrl, systemMetainfoUrl } from '../utils'
+import { Metainfo } from './archive/metainfo'
+import currentSystemMetainfoData from '../metainfo'
 
 function addSubscription(storeObj, cb, options) {
-  storeObj.subscriptions.push({cb, ...options})
+  storeObj._subscriptions.push({cb, ...options})
+  storeObj._subscribeCounter = (storeObj._subscribeCounter || 0) + 1
 }
 
 function removeSubscription(store, key, cb) {
   const storeObj = store[key]
   if (storeObj) {
-    storeObj.subscriptions = storeObj.subscriptions.filter(subscription => subscription.cb !== cb)
-    if (!storeObj.subscriptions.length) {
-      // No subscribers. Wait for 5 seconds, if there are still no subscribers, clear the cache
+    storeObj._subscriptions = storeObj._subscriptions.filter(subscription => subscription.cb !== cb)
+    if (!storeObj._subscriptions.length) {
+      // No subscribers. Wait for 5 seconds, then check again
+      const oldSubscribeCount = storeObj._subscribeCounter
       setTimeout(() => {
         if (store) {
           const storeObj = store[key]
-          if (storeObj && !storeObj.subscriptions.length) {
+          if (storeObj && storeObj._subscribeCounter === oldSubscribeCount) {
+            // Noone has subscribed to it during this time window. Delete it.
             delete store[key]
           }
         }
@@ -42,6 +48,12 @@ function removeSubscription(store, key, cb) {
     }
   }
 }
+
+const metainfoArchiveFilter = Object.freeze({
+  // Archive data required to create a Metainfo object
+  definitions: '*',
+  metadata: '*'
+})
 
 export const dataStoreContext = React.createContext()
 
@@ -58,6 +70,7 @@ const DataStore = React.memo(({children}) => {
 
   const uploadStore = useRef({}) // The upload store objects
   const entryStore = useRef({}) // The entry store objects
+  const metainfoDataStore = useRef({}) // The metainfo data store objects
 
   /**
    * Gets an upload object from the store, creating it if it doesn't exist (in which case
@@ -91,9 +104,9 @@ const DataStore = React.memo(({children}) => {
 
         // ReadOnly - Managed by the store
         error: undefined, // If we had an api error from the last store refresh
-        subscriptions: [],
         isRefreshing: false,
         refreshOptions: null, // The options used at the last store refresh
+        _subscriptions: [],
 
         // Convenience methods
         updateUpload: (dataToUpdate) => { updateUpload(installationUrl, uploadId, dataToUpdate) },
@@ -167,7 +180,7 @@ const DataStore = React.memo(({children}) => {
     uploadStore.current[uploadId] = newStoreObj
 
     // Notify subscribers
-    for (const subscription of [...newStoreObj.subscriptions]) {
+    for (const subscription of [...newStoreObj._subscriptions]) {
       try {
         subscription.cb(oldStoreObj, newStoreObj)
       } catch (error) {
@@ -202,9 +215,12 @@ const DataStore = React.memo(({children}) => {
       : api.get(`/uploads/${uploadId}`)
 
     apiCall.then(apiData => {
-      const dataToUpdate = requireEntriesPage
-        ? {error: undefined, isRefreshing: false, upload: apiData.response?.upload, entries: apiData.response?.data, apiData, pagination: currentPagination, refreshOptions}
-        : {error: undefined, isRefreshing: false, upload: apiData.data, entries: undefined, apiData: undefined, refreshOptions}
+      const upload = requireEntriesPage ? apiData.response?.upload : apiData.data
+      let dataToUpdate = requireEntriesPage
+        ? {error: undefined, isRefreshing: false, upload: upload, entries: apiData.response?.data, apiData, pagination: currentPagination, refreshOptions}
+        : {error: undefined, isRefreshing: false, upload: upload, entries: undefined, apiData: undefined, refreshOptions}
+      const deletionRequested = upload?.current_process === 'delete_upload' && (upload?.process_status === 'PENDING' || upload?.process_status === 'RUNNING')
+      if (deletionRequested) dataToUpdate = {...dataToUpdate, deletionRequested}
       updateUpload(installationUrl, uploadId, dataToUpdate)
     }).catch((error) => {
       if (requireEntriesPage && error.apiMessage === 'Page out of range requested.') {
@@ -272,6 +288,7 @@ const DataStore = React.memo(({children}) => {
         installationUrl, // ReadOnly
         entryId: entryId, // ReadOnly
         uploadId: undefined, // ReadOnly - fetched by the store
+        url: undefined, // ReadOnly - populated when uploadId fetched from the store
         metadata: undefined, // ReadOnly - fetched by the store
         metadataApiData: undefined, // ReadOnly - fetched by the store
         archive: undefined, // Modifiable object - fetched by the store, but the object *content* can be changed when editing.
@@ -286,9 +303,9 @@ const DataStore = React.memo(({children}) => {
         archiveHasChanges: false,
 
         error: undefined, // If we had an api error from the last store refresh
-        subscriptions: [],
         isRefreshing: false,
         refreshOptions: null, // The options used at the last store refresh
+        _subscriptions: [],
 
         // Convenience methods
         handleArchiveChanged: () => { handleArchiveChanged(installationUrl, entryId) },
@@ -346,6 +363,7 @@ const DataStore = React.memo(({children}) => {
     const oldStoreObj = getEntry(installationUrl, entryId)
     const newStoreObj = {...oldStoreObj, ...dataToUpdate}
     // Compute derived values not set by the refreshEntry method
+    newStoreObj.url = newStoreObj.uploadId ? `${installationUrl}/uploads/${newStoreObj.uploadId}/archive/${entryId}` : undefined
     newStoreObj.exists = newStoreObj?.error?.name !== 'DoesNotExist'
     newStoreObj.archiveHasChanges = newStoreObj.archiveVersion !== newStoreObj.savedArchiveVersion
 
@@ -353,7 +371,7 @@ const DataStore = React.memo(({children}) => {
     entryStore.current[entryId] = newStoreObj
 
     // Notify subscribers
-    for (const subscription of [...newStoreObj.subscriptions]) {
+    for (const subscription of [...newStoreObj._subscriptions]) {
       try {
         subscription.cb(oldStoreObj, newStoreObj)
       } catch (error) {
@@ -487,6 +505,120 @@ const DataStore = React.memo(({children}) => {
     updateEntry(installationUrl, entryId, {archiveVersion: archiveVersion + 1})
   }
 
+  /**
+   * Gets a parsed metainfo object from the store, asynchronously.
+   * The url can be a string or a parsed Url object. If it is empty, null will be returned.
+   * Note, this method always returns the whole data object. I.e. if the url specifies a
+   * particular section definition, we return the metainfo data object which *contains* this
+   * definition, not just the definition itself.
+   */
+  async function getMetainfoAsync(url) {
+    if (!url) return null
+    // Get metainfoData
+    const metainfoBaseUrl = getMetainfoBaseUrl(url)
+    let metainfoData = metainfoDataStore.current[metainfoBaseUrl]
+    if (!metainfoData) {
+      // Not found in cache. Fetch data object.
+      const parsedMetainfoBaseurl = parseNomadUrl(metainfoBaseUrl)
+      metainfoData = await fetchMetainfoData(parsedMetainfoBaseurl)
+      metainfoData._url = metainfoBaseUrl
+      metainfoData._parsedUrl = parsedMetainfoBaseurl
+      metainfoData._subscriptions = []
+      metainfoDataStore.current[metainfoBaseUrl] = metainfoData
+    }
+    // If needed, create metainfo (which will also initiate parsing)
+    if (!metainfoData._metainfo) {
+      const parent = metainfoBaseUrl === systemMetainfoUrl ? undefined : await getMetainfoAsync(systemMetainfoUrl)
+      metainfoData._metainfo = new Metainfo(parent, metainfoData, getMetainfoAsync)
+    }
+    // Returned object after parsing is completed.
+    return await metainfoData._metainfo._result
+  }
+
+  /**
+   * Gets the parsed metainfo definition specified by the url, asynchronously.
+   * The url can be a string or a parsed Url object. If it is empty, null will be returned.
+   */
+  async function getMetainfoDefAsync(url) {
+    if (!url) return null
+    const parsedUrl = parseNomadUrl(url)
+    const metainfo = await getMetainfoAsync(parsedUrl)
+    if (parsedUrl.qualifiedName) {
+      return metainfo.getDefByQualifiedName(parsedUrl.qualifiedName)
+    } else if (parsedUrl.path) {
+      return metainfo.getDefByPath(parsedUrl.path)
+    }
+    throw new Error(`Expected metainfo definition url, got: ${url}`)
+  }
+
+  /**
+   * Subscribes the callback cb to a metainfo, and returns a function to be called to unsubscribe.
+   * The main purpose of the subscriptions is to tell the store that it needs to keep this
+   * metainfo object in the cache. If a metainfo object is not subscribed to by anyone, it will
+   * eventually be removed from the cache (with the exception of the system metainfo, which is
+   * always kept). If the url is empty, or refers to the system metainfo, we do nothing and
+   * return null.
+   */
+  function subscribeToMetainfo(url, cb) {
+    if (!url) return null
+    const metainfoBaseUrl = getMetainfoBaseUrl(url)
+    if (metainfoBaseUrl === systemMetainfoUrl) return null
+    const metainfoData = metainfoDataStore.current[metainfoBaseUrl]
+    for (const url of metainfoData._metainfo._dependencies) {
+      const dependency = metainfoDataStore.current[url]
+      if (dependency) {
+        addSubscription(dependency, cb)
+      }
+    }
+    return function unsubscriber() {
+      const metainfoData = metainfoDataStore.current[metainfoBaseUrl]
+      for (const url of metainfoData._metainfo._dependencies) {
+        removeSubscription(metainfoDataStore.current, url, cb)
+      }
+    }
+  }
+
+  function getMetainfoBaseUrl(url) {
+    // Internal use: computes the *metainfo base url* (string), given an absolute metainfo url.
+    // The base url is an absolute url, identifying the metainfo data obj to parse
+    // (to get the Metainfo object), and is also used as the cache key to store the resulting
+    // Metainfo object.
+    if ((url.url || url) === systemMetainfoUrl) return systemMetainfoUrl
+    url = parseNomadUrl(url)
+    if (url.type !== refType.metainfo && url.type !== refType.archive) throw new Error(`Cannot get metainfo: bad url type (${url})`)
+    if (!url.isResolved) throw new Error(`Url not resolved: ${url}`)
+
+    if (url.versionHash) {
+      // TODO
+      throw new Error('Fetching frozen schemas not yet implemented')
+    } else if (url.entryId) {
+      return createEntryUrl(url.installationUrl, url.uploadId, url.entryId, '/definitions')
+    } else if (url.qualifiedName) {
+      return systemMetainfoUrl
+    }
+  }
+
+  async function fetchMetainfoData(parsedMetainfoBaseUrl) {
+    // Internal use: fetches the metainfo data
+    if (parsedMetainfoBaseUrl.url === systemMetainfoUrl) return currentSystemMetainfoData
+    if (parsedMetainfoBaseUrl.versionHash) {
+      // TODO
+      throw new Error('Fetching frozen schemas not yet implemented')
+    } else if (parsedMetainfoBaseUrl.entryId) {
+      const entryStoreObj = await getEntryAsync(
+        parsedMetainfoBaseUrl.installationUrl, parsedMetainfoBaseUrl.entryId, false, metainfoArchiveFilter)
+      if (entryStoreObj.error) {
+        throw new Error(`Error fetching entry ${parsedMetainfoBaseUrl.entryId}: ${entryStoreObj.error}`)
+      } else if (!entryStoreObj.archive?.definitions) {
+        throw new Error(`Entry ${parsedMetainfoBaseUrl.entryId} does not contain metainfo definitions`)
+      }
+      return {
+        definitions: JSON.parse(JSON.stringify(entryStoreObj.archive.definitions)),
+        metadata: JSON.parse(JSON.stringify(entryStoreObj.archive.metadata))
+      }
+    }
+  }
+
   const contextValue = {
     getUpload,
     getUploadAsync,
@@ -496,7 +628,10 @@ const DataStore = React.memo(({children}) => {
     getEntry,
     getEntryAsync,
     subscribeToEntry,
-    selectedEntry
+    selectedEntry,
+    getMetainfoAsync,
+    getMetainfoDefAsync,
+    subscribeToMetainfo
   }
 
   return <dataStoreContext.Provider value={contextValue}>
@@ -568,7 +703,7 @@ function uploadOptions(uploadStoreObj) {
   // Internal use: Determine the options of the upload, based on the subscriptions
   let requireUpload = false
   let requireEntriesPage = false
-  for (const subscription of uploadStoreObj.subscriptions) {
+  for (const subscription of uploadStoreObj._subscriptions) {
     requireUpload = requireUpload || subscription.requireUpload
     requireEntriesPage = requireEntriesPage || subscription.requireEntriesPage
   }
@@ -588,7 +723,7 @@ function entryOptions(entryStoreObj) {
   // Internal use: Determine the options of the entry, based on the subscriptions
   let requireMetadata = false
   let requireArchive
-  for (const subscription of entryStoreObj.subscriptions) {
+  for (const subscription of entryStoreObj._subscriptions) {
     requireMetadata = requireMetadata || subscription.requireMetadata
     requireArchive = mergeArchiveFilter(requireArchive, subscription.requireArchive)
   }

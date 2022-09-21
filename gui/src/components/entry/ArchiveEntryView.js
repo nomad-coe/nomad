@@ -49,7 +49,7 @@ const useStyles = makeStyles(theme => ({
 
 export default function ArchiveEntryView(props) {
   const classes = useStyles()
-  const {archive, archiveApiData, exists} = useEntryPageContext('*')
+  const {url, archive, archiveApiData, exists} = useEntryPageContext('*')
 
   if (!exists) {
     return (
@@ -69,7 +69,7 @@ export default function ArchiveEntryView(props) {
         archive && typeof archive !== 'string'
           ? <div className={classes.archiveBrowser}>
             <ApiDataContext.Provider value={archiveApiData}>
-              <ArchiveBrowser data={archive} />
+              <ArchiveBrowser url={url} />
             </ApiDataContext.Provider>
           </div> : <div>{
             archive

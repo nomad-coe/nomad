@@ -20,6 +20,7 @@ from typing import cast
 import pytest
 import os.path
 
+from nomad.datamodel import user_reference, author_reference
 from nomad.metainfo import (
     MSection, Quantity, Section, SubSection, MProxy, Reference, QuantityReference, File,
     MetainfoReferenceError, Package as MetainfoPackage, Context, Package)
@@ -127,12 +128,11 @@ def test_section_proxy(example_data):
 
 
 def test_quantity_proxy(example_data):
-    example_data.referencing.quantity_reference = MProxy(
-        'doesnotexist',
-        m_proxy_section=example_data.referencing,
-        m_proxy_type=Referencing.section_reference.type)
     with pytest.raises(MetainfoReferenceError):
-        example_data.referencing.quantity_reference
+        example_data.referencing.quantity_reference = MProxy(
+            'doesnotexist',
+            m_proxy_section=example_data.referencing,
+            m_proxy_type=Referencing.section_reference.type)
 
     example_data.referencing.quantity_reference = MProxy(
         '/referenced',
@@ -184,6 +184,14 @@ def test_quantity_references_serialize():
     }
     root = Root.m_from_dict(source)
     assert source == root.m_to_dict()
+
+
+def test_quantity_references_unset_serialize():
+    referencing = Referencing()
+    referencing.quantity_reference = Referenced()
+
+    assert not referencing.m_is_set(Referencing.quantity_reference)
+    assert 'quantity_reference' not in referencing.m_to_dict()
 
 
 def test_section_reference_serialize():
@@ -379,3 +387,38 @@ def test_parse_with_references(mainfile):
 
     m_def = entry_archive.m_to_dict()['data']['m_def']
     assert '#/definitions/' in m_def
+
+
+@pytest.mark.parametrize('def_type, value, expected_name', [
+    pytest.param(user_reference, '00000000-0000-0000-0000-000000000001', 'Sheldon Cooper'),
+    pytest.param(author_reference, {'first_name': 'Mohammad', 'last_name': 'Nakhaee'}, 'Mohammad Nakhaee'),
+    pytest.param(author_reference, '00000000-0000-0000-0000-000000000001', 'Sheldon Cooper')
+])
+def test_user_author(def_type, value, expected_name):
+    class UserAuthorSection(MSection):
+        quantity = Quantity(type=def_type)
+
+    section = UserAuthorSection()
+
+    # test assignment
+    section.quantity = value
+    quantity = section.quantity
+    resolved_quantity = quantity.m_resolved()
+
+    assert quantity.m_proxy_value == value
+    assert quantity.m_proxy_type.target_section_def.name == def_type.target_section_def.name
+    assert quantity.m_proxy_section == section
+    assert resolved_quantity.name == expected_name
+
+    # test serialization
+    serialized_section = section.m_to_dict()
+    assert serialized_section['quantity'] == value
+
+    # test deserialization
+    deserialized_section = UserAuthorSection().m_from_dict(serialized_section)
+    deserialized_quantity = deserialized_section.quantity
+    resolved_deserialized_quantity = deserialized_quantity.m_resolved()
+
+    assert deserialized_quantity.m_proxy_value == value
+    assert deserialized_quantity.m_proxy_type.target_section_def.name == def_type.target_section_def.name
+    assert resolved_deserialized_quantity.name == expected_name

@@ -18,7 +18,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
-import { resolveRef } from '../../archive/metainfo'
+import { resolveInternalRef } from '../../../utils'
 import GeometryOptimization from '../../visualization/GeometryOptimization'
 
 export default function GeometryOptimizationCard({index, archive, properties}) {
@@ -45,7 +45,7 @@ export default function GeometryOptimizationCard({index, archive, properties}) {
   let energies = hasEnergies ? null : false
   const energiesArchive = archive?.results?.properties?.geometry_optimization?.energies
   if (hasEnergies && energiesArchive) {
-    energies = resolveRef(energiesArchive, archive)
+    energies = resolveInternalRef(energiesArchive, archive)
   }
 
   // Resolve convergence properties

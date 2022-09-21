@@ -19,6 +19,8 @@
 import os.path
 from typing import Tuple, List, Dict
 from collections.abc import Iterable
+import pkgutil
+from pathlib import Path
 
 from nomad import config
 from nomad.datamodel import EntryArchive, EntryMetadata, results
@@ -196,30 +198,37 @@ def run_parser(
     return entry_archives
 
 
+# Here we resolve the path of the installation directories of various parsers.
+# Note that this should be done in a way that does not yet import the modules
+# themselves (this takes a while). The parser modules are imported lazily later.
+prefix_electronic = f'{Path(pkgutil.get_loader("electronicparsers").path).parent.absolute()}'  # type: ignore
+prefix_atomistic = f'{Path(pkgutil.get_loader("atomisticparsers").path).parent.absolute()}'  # type: ignore
+prefix_workflow = f'{Path(pkgutil.get_loader("workflowparsers").path).parent.absolute()}'  # type: ignore
+prefix_database = f'{Path(pkgutil.get_loader("databaseparsers").path).parent.absolute()}'  # type: ignore
+prefix_eels = f'{Path(pkgutil.get_loader("eelsdbparser").path).parent.absolute()}'  # type: ignore
+
 parsers = [
     GenerateRandomParser(),
     TemplateParser(),
     ChaosParser(),
     MatchingParserInterface(
         'electronicparsers.AbinitParser',
-        name='parsers/abinit', code_name='ABINIT', code_homepage='https://www.abinit.org/',
+        metadata_path=f'{prefix_electronic}/abinit/metadata.yaml',
         mainfile_contents_re=(r'^\n*\.Version\s*[0-9.]*\s*of ABINIT\s*')
     ),
     MatchingParserInterface(
-        'electronicparsers.ATKParser',
-        name='parsers/atk', code_name='AtomistixToolKit',
-        code_homepage='https://www.synopsys.com/silicon/quantumatk.html',
-        mainfile_name_re=r'^.*\.nc', mainfile_mime_re=r'application/octet-stream'
-    ),
-    MatchingParserInterface(
         'electronicparsers.AMSParser',
-        name='parsers/ams', code_name='AMS',
-        code_homepage='https://www.scm.com',
+        metadata_path=f'{prefix_electronic}/ams/metadata.yaml',
         mainfile_contents_re=r'\* +\| +A M S +\| +\*'
     ),
     MatchingParserInterface(
+        'electronicparsers.ATKParser',
+        metadata_path=f'{prefix_electronic}/atk/metadata.yaml',
+        mainfile_name_re=r'^.*\.nc', mainfile_mime_re=r'application/octet-stream'
+    ),
+    MatchingParserInterface(
         'electronicparsers.BigDFTParser',
-        name='parsers/bigdft', code_name='BigDFT', code_homepage='http://bigdft.org/',
+        metadata_path=f'{prefix_electronic}/bigdft/metadata.yaml',
         mainfile_contents_re=(
             # r'__________________________________ A fast and precise DFT wavelet code\s*'
             # r'\|     \|     \|     \|     \|     \|\s*'
@@ -250,18 +259,18 @@ parsers = [
     ),
     MatchingParserInterface(
         'electronicparsers.CastepParser',
-        name='parsers/castep', code_name='CASTEP', code_homepage='http://www.castep.org/',
+        metadata_path=f'{prefix_electronic}/castep/metadata.yaml',
         mainfile_contents_re=(r'\s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*')
     ),
     MatchingParserInterface(
         'electronicparsers.CharmmParser',
-        name='parsers/charmm', code_name='Charmm', domain='dft',
+        metadata_path=f'{prefix_electronic}/charmm/metadata.yaml',
         mainfile_contents_re=r'\s*Chemistry\s*at\s*HARvard\s*Macromolecular\s*Mechanics\s*',
         mainfile_mime_re=r'text/.*'
     ),
     MatchingParserInterface(
         'electronicparsers.CP2KParser',
-        name='parsers/cp2k', code_name='CP2K', code_homepage='https://www.cp2k.org/',
+        metadata_path=f'{prefix_electronic}/cp2k/metadata.yaml',
         mainfile_contents_re=(
             r'\*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s.*\n'
             r' \*\*\*\*\* \*\* \*\*\*  \*\*\* \*\*   PROGRAM STARTED ON\s*.*\n'
@@ -271,59 +280,52 @@ parsers = [
     ),
     MatchingParserInterface(
         'electronicparsers.CPMDParser',
-        name='parsers/cpmd', code_name='CPMD',
-        code_homepage='https://www.lcrc.anl.gov/for-users/software/available-software/cpmd/',
+        metadata_path=f'{prefix_electronic}/cpmd/metadata.yaml',
         mainfile_contents_re=(r'\*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*')
     ),
     MatchingParserInterface(
         'electronicparsers.CrystalParser',
-        name='parsers/crystal',
-        code_name='Crystal',
-        code_homepage='https://www.crystal.unito.it/',
+        metadata_path=f'{prefix_electronic}/crystal/metadata.yaml',
         mainfile_contents_re=(
             fr'(\r?\n \*\s+CRYSTAL[\d]+\s+\*\r?\n \*\s*[a-zA-Z]+ : \d+[\.\d+]*)')
     ),
     MatchingParserInterface(
         'electronicparsers.Dmol3Parser',
-        name='parsers/dmol', code_name='DMol3',
-        code_homepage='http://dmol3.web.psi.ch/dmol3.html', domain='dft',
+        metadata_path=f'{prefix_electronic}/dmol3/metadata.yaml',
         mainfile_name_re=r'.*\.outmol',
         mainfile_contents_re=r'Materials Studio DMol\^3'
     ),
     MatchingParserInterface(
         'electronicparsers.ElkParser',
-        name='parsers/elk', code_name='elk', code_homepage='http://elk.sourceforge.net/',
+        metadata_path=f'{prefix_electronic}/elk/metadata.yaml',
         mainfile_contents_re=r'\| Elk version [0-9.a-zA-Z]+ started \|'
     ),
     MatchingParserInterface(
         'electronicparsers.ExcitingParser',
-        name='parsers/exciting', code_name='exciting', code_homepage='http://exciting-code.org/',
+        metadata_path=f'{prefix_electronic}/exciting/metadata.yaml',
         mainfile_name_re=r'^.*.OUT(\.[^/]*)?$', mainfile_contents_re=(r'EXCITING.*started')
     ),
     MatchingParserInterface(
         'electronicparsers.FHIAimsParser',
-        name='parsers/fhi-aims', code_name='FHI-aims',
-        code_homepage='https://aimsclub.fhi-berlin.mpg.de/',
+        metadata_path=f'{prefix_electronic}/fhiaims/metadata.yaml',
         mainfile_contents_re=(
             r'^(.*\n)*'
             r'?\s*Invoking FHI-aims \.\.\.')
     ),
     MatchingParserInterface(
         'electronicparsers.FleurParser',
-        name='parsers/fleur', code_name='fleur',
-        code_homepage='https://www.flapw.de/', domain='dft',
+        metadata_path=f'{prefix_electronic}/fleur/metadata.yaml',
         mainfile_contents_re=r'This output is generated by fleur.'
     ),
     MatchingParserInterface(
         'electronicparsers.FploParser',
-        name='parsers/fplo', code_name='fplo', domain='dft',
+        metadata_path=f'{prefix_electronic}/fplo/metadata.yaml',
         mainfile_contents_re=r'\s*\|\s*FULL-POTENTIAL LOCAL-ORBITAL MINIMUM BASIS BANDSTRUCTURE CODE\s*\|\s*',
         mainfile_mime_re=r'text/.*'
     ),
     MatchingParserInterface(
         'electronicparsers.GamessParser',
-        name='parsers/gamess', code_name='GAMESS',
-        code_homepage='https://www.msg.chem.iastate.edu/gamess/versions.html',
+        metadata_path=f'{prefix_electronic}/gamess/metadata.yaml',
         mainfile_contents_re=(
             r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
             r'\s*\*\s*GAMESS VERSION =\s*(.*)\*\s*'
@@ -331,48 +333,55 @@ parsers = [
     ),
     MatchingParserInterface(
         'electronicparsers.GaussianParser',
-        name='parsers/gaussian', code_name='Gaussian', code_homepage='http://gaussian.com/',
-        mainfile_mime_re=r'.*', mainfile_contents_re=(
+        metadata_path=f'{prefix_electronic}/gaussian/metadata.yaml',
+        mainfile_mime_re=r'.*',
+        mainfile_contents_re=(
             r'\s*Cite this work as:'
             r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,')
     ),
     MatchingParserInterface(
         'electronicparsers.GPAWParser',
-        name='parsers/gpaw', code_name='GPAW', code_homepage='https://wiki.fysik.dtu.dk/gpaw/',
+        metadata_path=f'{prefix_electronic}/gpaw/metadata.yaml',
         mainfile_name_re=(r'^.*\.(gpw2|gpw)$'),
         mainfile_mime_re=r'application/(x-tar|octet-stream)'
     ),
     MatchingParserInterface(
         'electronicparsers.MolcasParser',
-        name='parsers/molcas', code_name='MOLCAS', code_homepage='http://www.molcas.org/',
-        domain='dft', mainfile_contents_re=r'M O L C A S'
+        metadata_path=f'{prefix_electronic}/molcas/metadata.yaml',
+        mainfile_contents_re=r'M O L C A S'
+    ),
+    MatchingParserInterface(
+        'electronicparsers.MopacParser',
+        metadata_path=f'{prefix_electronic}/mopac/metadata.yaml',
+        mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
+        mainfile_mime_re=r'text/.*',
     ),
     MatchingParserInterface(
         'electronicparsers.NWChemParser',
-        name='parsers/nwchem', code_name='NWChem', code_homepage='http://www.nwchem-sw.org/',
+        metadata_path=f'{prefix_electronic}/nwchem/metadata.yaml',
         mainfile_contents_re=(
             r'Northwest Computational Chemistry Package \(NWChem\) (\d+\.)+\d+')
     ),
     MatchingParserInterface(
         'electronicparsers.OctopusParser',
-        name='parsers/octopus', code_name='Octopus', code_homepage='https://octopus-code.org/',
+        metadata_path=f'{prefix_electronic}/octopus/metadata.yaml',
         mainfile_contents_re=(r'\|0\) ~ \(0\) \|')
     ),
     MatchingParserInterface(
         'electronicparsers.OnetepParser',
-        name='parsers/onetep', code_name='ONETEP', code_homepage='https://www.onetep.org/',
-        domain='dft', mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
+        metadata_path=f'{prefix_electronic}/onetep/metadata.yaml',
+        mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
     ),
     MatchingParserInterface(
         'electronicparsers.OpenmxParser',
-        name='parsers/openmx', code_name='OpenMX', code_homepage='http://www.openmx-square.org/',
+        metadata_path=f'{prefix_electronic}/openmx/metadata.yaml',
         mainfile_mime_re=r'(text/.*)',
         mainfile_name_re=r'.*\.out$',
         mainfile_contents_re=(r'^\*{59}\s+\*{59}\s+This calculation was performed by OpenMX'),
     ),
     MatchingParserInterface(
         'electronicparsers.OrcaParser',
-        name='parsers/orca', code_name='ORCA', code_homepage='https://orcaforum.kofo.mpg.de/',
+        metadata_path=f'{prefix_electronic}/orca/metadata.yaml',
         mainfile_contents_re=(
             r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
             r'\s+\* O   R   C   A \*\s*'
@@ -382,45 +391,41 @@ parsers = [
     ),
     MatchingParserInterface(
         'electronicparsers.Psi4Parser',
-        name='parsers/psi4', code_name='Psi4', code_homepage='https://psicode.org/',
+        metadata_path=f'{prefix_electronic}/psi4/metadata.yaml',
         mainfile_contents_re=(r'Psi4: An Open-Source Ab Initio Electronic Structure Package')
     ),
     MatchingParserInterface(
         'electronicparsers.QBallParser',
-        name='parsers/qball',
-        code_name='qball',
+        metadata_path=f'{prefix_electronic}/qball/metadata.yaml',
         mainfile_contents_re='qball',
         supported_compressions=["gz", "bz2", "xz"]
     ),
     MatchingParserInterface(
         'electronicparsers.QboxParser',
-        name='parsers/qbox', code_name='qbox', code_homepage='http://qboxcode.org/',
-        domain='dft', mainfile_mime_re=r'(application/xml)|(text/.*)',
+        metadata_path=f'{prefix_electronic}/qbox/metadata.yaml',
+        mainfile_mime_re=r'(application/xml)|(text/.*)',
         mainfile_contents_re=(r'http://qboxcode.org')
     ),
     MatchingParserInterface(
         'electronicparsers.QuantumEspressoParser',
-        name='parsers/quantumespresso', code_name='Quantum Espresso',
-        code_homepage='https://www.quantum-espresso.org/',
+        metadata_path=f'{prefix_electronic}/quantumespresso/metadata.yaml',
         mainfile_contents_re=(r'(Program PWSCF.*starts)|(Current dimensions of program PWSCF are)')
     ),
     MatchingParserInterface(
         'electronicparsers.SiestaParser',
-        name='parsers/siesta', code_name='Siesta',
-        code_homepage='https://departments.icmab.es/leem/siesta/',
+        metadata_path=f'{prefix_electronic}/siesta/metadata.yaml',
         mainfile_contents_re=(
             r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])|'
             r'(\*\s*WELCOME TO SIESTA\s*\*)')
     ),
     MatchingParserInterface(
         'electronicparsers.TurbomoleParser',
-        name='parsers/turbomole', code_name='turbomole',
-        code_homepage='https://www.turbomole.org/',
+        metadata_path=f'{prefix_electronic}/turbomole/metadata.yaml',
         mainfile_contents_re=(r'Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
     ),
     MatchingParserInterface(
         'electronicparsers.VASPParser',
-        name='parsers/vasp', code_name='VASP', code_homepage='https://www.vasp.at/',
+        metadata_path=f'{prefix_electronic}/vasp/metadata.yaml',
         mainfile_mime_re=r'(application/.*)|(text/.*)',
         mainfile_name_re=r'.*[^/]*xml[^/]*',  # only the alternative mainfile name should match
         mainfile_contents_re=(
@@ -433,56 +438,55 @@ parsers = [
     ),
     MatchingParserInterface(
         'electronicparsers.Wien2kParser',
-        name='parsers/wien2k', code_name='WIEN2k', code_homepage='http://www.wien2k.at/',
+        metadata_path=f'{prefix_electronic}/wien2k/metadata.yaml',
         mainfile_name_re=r'.*\.scf$',
         mainfile_alternative=True,
         mainfile_contents_re=r'\s*---------\s*:ITE[0-9]+:\s*[0-9]+\.\s*ITERATION\s*---------'
     ),
     MatchingParserInterface(
         'electronicparsers.YamboParser',
-        name='parsers/yambo', code_name='YAMBO', code_homepage='https://yambo-code.org/',
+        metadata_path=f'{prefix_electronic}/yambo/metadata.yaml',
         mainfile_contents_re=(r'Build.+\s+http://www\.yambo-code\.org')
     ),
     MatchingParserInterface(
         'electronicparsers.ABACUSParser',
-        name='parsers/abacus', code_name='ABACUS', code_homepage='http://abacus.ustc.edu.cn/',
+        metadata_path=f'{prefix_electronic}/abacus/metadata.yaml',
         mainfile_contents_re=(r'\s*\n\s*WELCOME TO ABACUS')
     ),
     MatchingParserInterface(
         'atomisticparsers.AmberParser',
-        name='parsers/amber', code_name='Amber', domain='dft',
+        metadata_path=f'{prefix_atomistic}/amber/metadata.yaml',
         mainfile_contents_re=r'\s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+'
     ),
     MatchingParserInterface(
         'atomisticparsers.AsapParser',
-        name='parsers/asap', code_name='ASAP', domain='dft',
+        metadata_path=f'{prefix_atomistic}/asap/metadata.yaml',
         mainfile_name_re=r'.*.traj$', mainfile_mime_re=r'application/octet-stream'
     ),
     MatchingParserInterface(
         'atomisticparsers.DFTBPlusParser',
-        name='parsers/dftbplus', code_name='DFTB+', domain='dft',
+        metadata_path=f'{prefix_atomistic}/dftbplus/metadata.yaml',
         mainfile_contents_re=r'\|  DFTB\+',
         mainfile_mime_re=r'text/.*'
     ),
     MatchingParserInterface(
         'atomisticparsers.DLPolyParser',
-        name='parsers/dl-poly', code_name='DL_POLY',
-        code_homepage='https://www.scd.stfc.ac.uk/Pages/DL_POLY.aspx',
+        metadata_path=f'{prefix_atomistic}/dlpoly/metadata.yaml',
         mainfile_contents_re=(r'\*\* DL_POLY \*\*'),
     ),
     MatchingParserInterface(
         'atomisticparsers.GromacsParser',
-        name='parsers/gromacs', code_name='Gromacs', code_homepage='http://www.gromacs.org/',
-        domain='dft', mainfile_contents_re=r'gmx mdrun, (VERSION|version)'
+        metadata_path=f'{prefix_atomistic}/gromacs/metadata.yaml',
+        mainfile_contents_re=r'gmx mdrun, (VERSION|version)'
     ),
     MatchingParserInterface(
         'atomisticparsers.GromosParser',
-        name='parsers/gromos', code_name='Gromos', domain='dft',
+        metadata_path=f'{prefix_atomistic}/gromos/metadata.yaml',
         mainfile_contents_re=r'Bugreports to http://www.gromos.net'
     ),
     MatchingParserInterface(
         'atomisticparsers.GulpParser',
-        name='parsers/gulp', code_name='gulp', code_homepage='http://gulp.curtin.edu.au/gulp/',
+        metadata_path=f'{prefix_atomistic}/gulp/metadata.yaml',
         mainfile_contents_re=(
             r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*'
             r'\*\*\*\*\*\*\*\*\*\*\*\*\*\s*'
@@ -490,40 +494,28 @@ parsers = [
     ),
     MatchingParserInterface(
         'atomisticparsers.LammpsParser',
-        name='parsers/lammps', code_name='LAMMPS', code_homepage='https://lammps.sandia.gov/',
-        domain='dft', mainfile_contents_re=r'^LAMMPS'
+        metadata_path=f'{prefix_atomistic}/lammps/metadata.yaml',
+        mainfile_contents_re=r'^LAMMPS'
     ),
     MatchingParserInterface(
         'atomisticparsers.LibAtomsParser',
-        name='parsers/lib-atoms', code_name='libAtoms', code_homepage='https://libatoms.github.io/',
+        metadata_path=f'{prefix_atomistic}/libatoms/metadata.yaml',
         mainfile_contents_re=(r'\s*<GAP_params\s'),
     ),
     MatchingParserInterface(
-        'electronicparsers.MopacParser',
-        name='parsers/mopac', code_name='MOPAC', domain='dft',
-        mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
-        mainfile_mime_re=r'text/.*',
-    ),
-    MatchingParserInterface(
         'atomisticparsers.NAMDParser',
-        name='parsers/namd', code_name='Namd', domain='dft',
+        metadata_path=f'{prefix_atomistic}/namd/metadata.yaml',
         mainfile_contents_re=r'\s*Info:\s*NAMD\s*[0-9.]+\s*for\s*',
         mainfile_mime_re=r'text/.*',
     ),
     MatchingParserInterface(
-        'databaseparsers.OpenKIMParser',
-        name='parsers/openkim', code_name='OpenKIM', domain='dft',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_contents_re=r'openkim|OPENKIM|OpenKIM'
-    ),
-    MatchingParserInterface(
         'atomisticparsers.TinkerParser',
-        name='parsers/tinker', code_name='TINKER', domain='dft',
+        metadata_path=f'{prefix_atomistic}/tinker/metadata.yaml',
         mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design'
     ),
     MatchingParserInterface(
         'workflowparsers.AFLOWParser',
-        name='parsers/aflow', code_name='AFlow', code_homepage='http://www.aflowlib.org/',
+        metadata_path=f'{prefix_workflow}/aflow/metadata.yaml',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=r'.*aflowlib\.json.*',  # only the alternative mainfile name should match
         mainfile_contents_re=(
@@ -541,58 +533,59 @@ parsers = [
     ),
     MatchingParserInterface(
         'workflowparsers.ASRParser',
-        name='parsers/asr', code_name='ASR',
-        code_homepage='https://asr.readthedocs.io/en/latest/index.html',
+        metadata_path=f'{prefix_workflow}/asr/metadata.yaml',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=r'.*archive_.*\.json',
         mainfile_contents_re=(r'"name": "ASR"')
     ),
     MatchingParserInterface(
         'workflowparsers.ElasticParser',
-        name='parsers/elastic', code_name='elastic', code_homepage='http://exciting-code.org/elastic',
+        metadata_path=f'{prefix_workflow}/elastic/metadata.yaml',
         mainfile_contents_re=r'\s*Order of elastic constants\s*=\s*[0-9]+\s*',
         mainfile_name_re=(r'.*/INFO_ElaStic')
     ),
     MatchingParserInterface(
         'workflowparsers.FHIVibesParser',
-        name='parsers/fhi-vibes', code_name='FHI-vibes',
-        code_homepage='https://vibes.fhi-berlin.mpg.de/',
+        metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
         mainfile_name_re=(r'^.*\.(nc)$'), mainfile_mime_re=r'(application/x-hdf)',
         mainfile_binary_header_re=br'^\x89HDF'
     ),
     MatchingParserInterface(
         'workflowparsers.LobsterParser',
-        name='parsers/lobster', code_name='LOBSTER',
-        code_homepage='http://schmeling.ac.rwth-aachen.de/cohp/',
+        metadata_path=f'{prefix_workflow}/lobster/metadata.yaml',
         mainfile_name_re=r'.*lobsterout$',
         mainfile_contents_re=(r'^LOBSTER\s*v[\d\.]+.*'),
     ),
     MatchingParserInterface(
         'workflowparsers.AtomateParser',
-        name='parsers/atomate', code_name='Atomate',
-        code_homepage='https://materialsproject.org',
+        metadata_path=f'{prefix_workflow}/atomate/metadata.yaml',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=r'.*mp.+materials\.json',
         mainfile_contents_re=(r'"pymatgen_version":')
     ),
     MatchingParserInterface(
         'workflowparsers.PhonopyParser',
-        name='parsers/phonopy', code_name='Phonopy', code_homepage='https://phonopy.github.io/phonopy/',
+        metadata_path=f'{prefix_workflow}/phonopy/metadata.yaml',
         mainfile_name_re=(r'(.*/phonopy-FHI-aims-displacement-0*1/control.in$)|(.*/phon.+yaml)')
     ),
     MatchingParserInterface(
         'eelsdbparser.EELSDBParser',
-        name='parsers/eels', code_name='eels', code_homepage='https://eelsdb.eu/',
-        domain='ems',
+        metadata_path=f'{prefix_eels}/metadata.yaml',
         mainfile_mime_re=r'application/json',
         mainfile_contents_re=(r'https://eelsdb.eu/spectra')
     ),
     MatchingParserInterface(
         'workflowparsers.MOFStructuresParser',
-        name='parsers/mofstructures', code_name='MOF Structures',
+        metadata_path=f'{prefix_workflow}/mofstructures/metadata.yaml',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=r'.*mof_.*\.json',
         mainfile_contents_re=r'MOF Structures'
+    ),
+    MatchingParserInterface(
+        'databaseparsers.OpenKIMParser',
+        metadata_path=f'{prefix_database}/openkim/metadata.yaml',
+        mainfile_mime_re=r'(application/json)|(text/.*)',
+        mainfile_contents_re=r'openkim|OPENKIM|OpenKIM'
     ),
     NexusParser(),
     TabularDataParser(),
@@ -602,22 +595,18 @@ parsers = [
 empty_parsers = [
     EmptyParser(
         name='missing/octopus', code_name='Octopus', code_homepage='https://octopus-code.org/',
-        domain='dft',
         mainfile_name_re=r'(inp)|(.*/inp)'
     ),
     EmptyParser(
-        name='missing/crystal', code_name='Crystal', code_homepage='https://www.crystal.unito.it/index.php',
-        domain='dft',
+        name='missing/crystal', code_name='CRYSTAL', code_homepage='https://www.crystal.unito.it/index.php',
         mainfile_name_re=r'.*\.cryst\.out'
     ),
     EmptyParser(
         name='missing/wien2k', code_name='WIEN2k', code_homepage='http://www.wien2k.at/',
-        domain='dft',
         mainfile_name_re=r'.*\.scf'
     ),
     EmptyParser(
         name='missing/fhi-aims', code_name='FHI-aims', code_homepage='https://aimsclub.fhi-berlin.mpg.de/',
-        domain='dft',
         mainfile_name_re=r'.*\.fhiaims'
     )
 ]
@@ -645,12 +634,18 @@ parser_dict['parser/onetep'] = parser_dict['parsers/onetep']
 
 # register code names as possible statistic value to the dft datamodel
 code_names = []
+code_metadata = {}
 for parser in parsers:
+    code_name = getattr(parser, 'code_name', None)
     if parser.domain == 'dft' and \
-            getattr(parser, 'code_name', None) is not None and \
-            getattr(parser, 'code_name') != 'currupted mainfile' and \
-            getattr(parser, 'code_name') != 'Template':
-        code_names.append(getattr(parser, 'code_name'))
+            code_name is not None and \
+            code_name != 'currupted mainfile' and \
+            code_name != 'Template':
+        code_names.append(code_name)
+        if parser.metadata:
+            code_metadata[code_name] = parser.metadata.dict()
+        else:
+            code_metadata[code_name] = {}
 code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
 results.Simulation.program_name.a_elasticsearch[0].values = code_names + [
     config.services.unavailable_value, config.services.not_processed_value]

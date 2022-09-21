@@ -33,6 +33,7 @@ import Quantity from '../Quantity'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
+import { formatTimestamp } from '../../utils'
 
 export const help = `
 NOMAD allows you to create *datasets* from your data. A dataset is like a tag that you
@@ -63,12 +64,12 @@ const columns = [
   {
     key: 'dataset_create_time',
     label: 'Create time',
-    render: dataset => new Date(dataset.dataset_create_time).toLocaleString()
+    render: dataset => formatTimestamp(dataset.dataset_create_time)
   },
   {
     key: 'dataset_modified_time',
     label: 'Modify time',
-    render: dataset => (dataset.dataset_modified_time ? new Date(dataset.dataset_modified_time).toLocaleString() : '')
+    render: dataset => (dataset.dataset_modified_time ? formatTimestamp(dataset.dataset_modified_time) : '')
   }
 ]
 

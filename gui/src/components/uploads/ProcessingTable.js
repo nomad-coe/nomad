@@ -28,7 +28,7 @@ import EntryDownloadButton from '../entry/EntryDownloadButton'
 import DeleteEntriesButton from './DeleteEntriesButton'
 import Quantity from '../Quantity'
 import EditMetaDataDialog from './EditMetaDataDialog'
-import {pluralize} from '../../utils'
+import {formatTimestamp, pluralize} from '../../utils'
 import { useUploadPageContext } from './UploadPageContext'
 
 const columns = [
@@ -58,7 +58,7 @@ const columns = [
     key: 'complete_time',
     align: 'left',
     sortable: false,
-    render: entry => new Date(entry.complete_time).toLocaleString()
+    render: entry => formatTimestamp(entry.complete_time)
   },
   {key: 'comment', sortable: false, align: 'left'},
   {

@@ -15,95 +15,119 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useMemo} from 'react'
+import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
+import { isNil, get } from 'lodash'
 import { useTheme } from '@material-ui/core/styles'
-import { Box } from '@material-ui/core'
 import Plot from './Plot'
-import { mergeObjects } from '../../utils'
-import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
-import { SectionTableAutomatic } from '../Quantity'
-import { Quantity, Unit } from '../../units'
-import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
+import { mergeObjects, getLocation } from '../../utils'
+import {
+  PropertyGrid,
+  PropertyItem,
+  PropertyMethodologyItem,
+  PropertyMethodologyList
+} from '../entry/properties/PropertyCard'
+import { Quantity, Unit, useUnits } from '../../units'
+import { withErrorHandler } from '../ErrorHandler'
 import { getPlotLayoutVertical, getPlotTracesVertical } from '../plotting/common'
 
 const timeUnit = new Unit('second')
 const energyUnit = new Unit('joule')
 const temperatureUnit = new Unit('kelvin')
 const pressureUnit = new Unit('pascal')
+export const trajectoryPath = ['results', 'properties', 'thermodynamic', 'trajectory']
+export const trajectoryError = 'Could not load trajectory data.'
 
 /**
  * Graph for the thermodynamic properties reported during molecular dynamics.
  */
-function Trajectory({temperature, pressure, energyPotential, methodology, layout, className, units, archiveURL, ...other}) {
+const Trajectory = React.memo(({
+  temperature,
+  pressure,
+  energyPotential,
+  methodology,
+  layout,
+  className,
+  archiveURL,
+  ...other
+}) => {
+  let nPlots = 0
+  if (temperature !== false) ++nPlots
+  if (pressure !== false) ++nPlots
+  if (energyPotential !== false) ++nPlots
   const theme = useTheme()
+  const units = useUnits()
+  const [finalData, setFinalData] = useState(nPlots === 0 ? false : undefined)
+  const [finalLayout, setFinalLayout] = useState()
 
   // Create a configuration for the plot data
-  const plots = useMemo(() => [
-    {
-      data: temperature && {
-        x: new Quantity(temperature.time, timeUnit).toSystem(units).value(),
-        y: new Quantity(temperature.value, temperatureUnit).toSystem(units).value()
-      },
-      ytitle: {text: `Temperature (${temperatureUnit.toSystem(units).label()})`}
-    },
-    {
-      data: pressure && {
-        x: new Quantity(pressure.time, timeUnit).toSystem(units).value(),
-        y: new Quantity(pressure.value, pressureUnit).toSystem(units).value()
-      },
-      ytitle: {text: `Pressure (${pressureUnit.toSystem(units).label()})`}
-    },
-    {
-      data: energyPotential && {
-        x: new Quantity(energyPotential.time, timeUnit).toSystem(units).value(),
-        y: new Quantity(energyPotential.value, energyUnit).toSystem(units).value()
-      },
-      ytitle: {text: `Potential energy (${energyUnit.toSystem(units).label()})`}
+  useEffect(() => {
+    // Since the properties are plotted together, if any of them is laoding, show the
+    // placeholder
+    if ([temperature, pressure, energyPotential].some(isNil)) {
+      setFinalData(undefined)
+      return
     }
-  ], [energyPotential, pressure, temperature, units])
-
-  // Create final layout. Notice that layout is created before the actual data
-  // is loaded.
-  const mergedLayout = useMemo(() => {
+    // If there is no data, show the NoData component.
+    if (nPlots === 0) {
+      setFinalData(false)
+      return
+    }
+    const traces = [
+      {
+        data: temperature && {
+          x: new Quantity(temperature.time, timeUnit).toSystem(units).value(),
+          y: new Quantity(temperature.value, temperatureUnit).toSystem(units).value()
+        },
+        ytitle: {text: `Temperature (${temperatureUnit.toSystem(units).label()})`}
+      },
+      {
+        data: pressure && {
+          x: new Quantity(pressure.time, timeUnit).toSystem(units).value(),
+          y: new Quantity(pressure.value, pressureUnit).toSystem(units).value()
+        },
+        ytitle: {text: `Pressure (${pressureUnit.toSystem(units).label()})`}
+      },
+      {
+        data: energyPotential && {
+          x: new Quantity(energyPotential.time, timeUnit).toSystem(units).value(),
+          y: new Quantity(energyPotential.value, energyUnit).toSystem(units).value()
+        },
+        ytitle: {text: `Potential energy (${energyUnit.toSystem(units).label()})`}
+      }
+    ]
     const defaultLayout = getPlotLayoutVertical(
-      plots,
+      traces,
       {text: `Time (${timeUnit.toSystem(units).label()})`},
       theme
     )
-    return mergeObjects(layout, defaultLayout)
-  }, [plots, units, theme, layout])
-
-  const nPlots = mergedLayout.grid.rows
+    const mergedLayout = mergeObjects(layout, defaultLayout)
+    setFinalData(getPlotTracesVertical(traces, theme))
+    setFinalLayout(mergedLayout)
+  }, [temperature, pressure, energyPotential, layout, units, theme, nPlots])
 
   return <PropertyGrid>
-    {nPlots !== 0 &&
-      <PropertyItem xs={12} title="Trajectory" height="auto">
-        <div style={{height: `${nPlots * 200}px`}}>
-          <ErrorHandler message='Could not load trajectory data.'>
-            <Plot
-              data={getPlotTracesVertical(plots, theme)}
-              layout={mergedLayout}
-              floatTitle="Trajectory"
-              fixedMargins={true}
-              className={className}
-              data-testid='trajectory'
-              metaInfoLink={archiveURL}
-              {...other}
-            />
-          </ErrorHandler>
-        </div>
-        <Box marginTop={1}>
-          <SectionTableAutomatic
-            data={methodology}
-            prefix="results.properties.thermodynamic.trajectory.methodology"
-            columns={4}
-          />
-        </Box>
-      </PropertyItem>
-    }
+    <PropertyItem xs={12} title="Trajectory" height={`${Math.max(nPlots, 1) * 200}px`}>
+      <Plot
+        data={finalData}
+        layout={finalLayout}
+        floatTitle="Trajectory"
+        fixedMargins={true}
+        className={className}
+        data-testid='trajectory'
+        metaInfoLink={archiveURL}
+        {...other}
+      />
+    </PropertyItem>
+    {methodology && <PropertyMethodologyList xs={12}>
+      <PropertyMethodologyItem
+        title="Molecular dynamics"
+        data={methodology.molecular_dynamics}
+        path={([...trajectoryPath, 'methodology', 'molecular_dynamics']).join('.')}
+      />
+    </PropertyMethodologyList>}
   </PropertyGrid>
-}
+})
 
 const dynamicShape = PropTypes.oneOfType([
   PropTypes.bool,
@@ -120,8 +144,46 @@ Trajectory.propTypes = {
   methodology: PropTypes.object,
   layout: PropTypes.object,
   className: PropTypes.string,
-  units: PropTypes.object,
   archiveURL: PropTypes.string // Path for the data in the archive browser
 }
 
-export default withErrorHandler(Trajectory, 'Could not load trajectory data.')
+export default withErrorHandler(trajectoryError)(Trajectory)
+
+/**
+ * Fetches all trajectories from the archive and displays them.
+ */
+const TrajectoriesRaw = React.memo(({index, archive}) => {
+  const urlPrefix = `${getLocation()}/data`
+
+  // Resolve and return component for showing the list of trajectories
+  const trajsIndex = get(index, trajectoryPath) || []
+  const trajsArchive = get(archive, trajectoryPath) || []
+
+  return trajsIndex.map((trajIndex, i) => {
+    const trajProperties = new Set(trajIndex?.available_properties || [])
+    const trajArchive = trajsArchive[i]
+    const hasPressure = trajProperties.has('pressure')
+    const pressure = hasPressure ? trajArchive?.pressure : false
+    const hasTemperature = trajProperties.has('temperature')
+    const temperature = hasTemperature ? trajArchive?.temperature : false
+    const hasEnergyPotential = trajProperties.has('energy_potential')
+    const energyPotential = hasEnergyPotential ? trajArchive?.energy_potential : false
+    const methodology = trajIndex?.methodology || false
+
+    return <Trajectory
+      key={i}
+      pressure={pressure}
+      temperature={temperature}
+      energyPotential={energyPotential}
+      methodology={methodology}
+      archiveURL={`${urlPrefix}/${trajectoryPath.join('/')}:${i}`}
+    />
+  })
+})
+
+TrajectoriesRaw.propTypes = {
+  index: PropTypes.object,
+  archive: PropTypes.object
+}
+
+export const Trajectories = withErrorHandler(trajectoryError)(TrajectoriesRaw)

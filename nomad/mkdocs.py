@@ -25,13 +25,28 @@ from nomad.app.v1.models import (
     owner_documentation)
 from nomad.app.v1.routers.entries import archive_required_documentation
 from nomad import utils
+
 import yaml
+import json
+import os.path
+
 
 doc_snippets = {
     'query': query_documentation,
     'owner': owner_documentation,
     'archive-required': archive_required_documentation
 }
+
+
+class MyYamlDumper(yaml.Dumper):
+    '''
+    A custom dumper that always shows objects in yaml and not json syntax
+    even with default_flow_style=None.
+    '''
+    def represent_mapping(self, *args, **kwargs):
+        node = super(MyYamlDumper, self).represent_mapping(*args, **kwargs)
+        node.flow_style = False
+        return node
 
 
 def define_env(env):
@@ -68,3 +83,54 @@ def define_env(env):
                 continue
             md_table.append('|{}|{}|'.format(str(item), str(description)))
         return utils.strip('\n'.join(md_table))
+
+    @env.macro
+    def yaml_snippet(path, indent, filter=None):  # pylint: disable=unused-variable
+        '''
+        Produces a yaml string from a (partial) .json or .yaml file.
+
+        Arguments:
+            path: The path to the file relative to project root.
+            indent: Additional indentation that is added to each line of the result string.
+            filter:
+                Optional comma separated list of keys that should be removed from
+                the top-level object.
+        '''
+
+        if ':' not in path:
+            path = f'{path}:'
+
+        file_path, json_path = path.split(':')
+        file_path = os.path.join(os.path.dirname(__file__), '..', file_path)
+
+        with open(file_path, 'rt') as f:
+            if file_path.endswith('.yaml'):
+                data = yaml.load(f, Loader=yaml.FullLoader)
+            elif file_path.endswith('.json'):
+                data = json.load(f)
+            else:
+                raise NotImplementedError('Only .yaml and .json is supported')
+
+        for segment in json_path.split('/'):
+            if segment == '':
+                continue
+            try:
+                segment = int(segment)
+            except ValueError:
+                pass
+            data = data[segment]
+
+        if filter is not None:
+            filter = set([item.strip() for item in filter.split(',')])
+            to_remove = []
+            for key in data.keys():
+                if key in filter:
+                    to_remove.append(key)
+            for key in to_remove:
+                del(data[key])
+
+        yaml_string = yaml.dump(
+            data,
+            sort_keys=False, default_flow_style=None,
+            Dumper=MyYamlDumper)
+        return f'\n{indent}'.join(f'{indent}{yaml_string}'.split('\n'))

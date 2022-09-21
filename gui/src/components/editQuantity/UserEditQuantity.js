@@ -23,6 +23,7 @@ import AutoComplete from "@material-ui/lab/Autocomplete"
 import {debounce} from "lodash"
 import {getFieldProps, TextFieldWithHelp} from './StringEditQuantity'
 import {fetchUsers} from '../uploads/EditMembersDialog'
+import {CircularProgress, InputAdornment} from '@material-ui/core'
 
 export const UserEditQuantity = React.memo((props) => {
   const {quantityDef, onChange, ...otherProps} = props
@@ -32,11 +33,9 @@ export const UserEditQuantity = React.memo((props) => {
   const [query, setQuery] = useState('')
   const [user, setUser] = useState(undefined)
   const [suggestions, setSuggestions] = useState([])
+  const [searching, setSearching] = useState(false)
 
-  const handleInputChange = useCallback((event, value) => {
-    if (!(event && event.type && event.type === 'change')) {
-      return
-    }
+  const searchUsers = useCallback((value) => {
     const newQuery = value.toLowerCase()
     if (!(newQuery.startsWith(query) && suggestions.length === 0) || query === '') {
       fetchUsers(api, query, newQuery)
@@ -47,6 +46,7 @@ export const UserEditQuantity = React.memo((props) => {
         })
     }
     setQuery(newQuery)
+    setSearching(false)
   }, [api, raiseError, query, suggestions])
 
   const getUser = useCallback((user_id) => {
@@ -72,9 +72,15 @@ export const UserEditQuantity = React.memo((props) => {
     })
   }, [getUser, otherProps.value])
 
-  const debouncedHandleInputChange = useMemo(() => (
-    debounce(handleInputChange, 700)
-  ), [handleInputChange])
+  const debouncedSearchUsers = useMemo(() => debounce(searchUsers, 700), [searchUsers])
+
+  const handleInputChange = useCallback((event, value) => {
+    if (!(event && event.type && event.type === 'change')) {
+      return
+    }
+    setSearching(true)
+    debouncedSearchUsers(value)
+  }, [debouncedSearchUsers])
 
   const handleChange = useCallback((event, value) => {
     if (onChange) {
@@ -90,12 +96,17 @@ export const UserEditQuantity = React.memo((props) => {
       options={suggestions}
       getOptionLabel={option => option ? (option.affiliation ? `${option.name} (${option.affiliation})` : option.name) : ''}
       getOptionSelected={(option, value) => suggestions && value && option.user_id === value.user_id}
-      onInputChange={debouncedHandleInputChange}
+      onInputChange={handleInputChange}
       onChange={handleChange}
       value={suggestions.includes(user) ? user : null}
       renderInput={params => (
         <TextFieldWithHelp
           {...params}
+          InputProps={(searching ? {
+            endAdornment: (searching && <InputAdornment position="end">
+              <CircularProgress color="inherit" size={20} />
+            </InputAdornment>)
+          } : params.InputProps)}
           variant='filled'
           size='small'
           placeholder="NOMAD member's name"

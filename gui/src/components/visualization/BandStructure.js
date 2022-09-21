@@ -324,4 +324,4 @@ BandStructure.defaultProps = {
   type: 'electronic'
 }
 
-export default withErrorHandler(BandStructure, 'Could not load band structure.')
+export default withErrorHandler('Could not load band structure.')(BandStructure)

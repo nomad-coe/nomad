@@ -23,11 +23,9 @@ import { debounce } from 'lodash'
 import { Autocomplete, createFilterOptions } from '@material-ui/lab'
 import { makeStyles, TextField } from '@material-ui/core'
 import { useEntryPageContext } from '../entry/EntryPageContext'
-import { resolveRefAsync } from '../archive/metainfo'
-import { ItemButton, useLane } from '../archive/Browser'
-import { useBrowserAdaptorContext } from '../archive/ArchiveBrowser'
+import { ItemButton } from '../archive/Browser'
 import { getFieldProps } from './StringEditQuantity'
-import { isWaitingForUpdateTestId } from '../../utils'
+import { isWaitingForUpdateTestId, refType, resolveNomadUrl } from '../../utils'
 import AddIcon from '@material-ui/icons/AddCircle'
 
 const filter = createFilterOptions()
@@ -38,7 +36,7 @@ const useStyles = makeStyles(theme => ({
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const styles = useStyles()
-  const {uploadId, archive} = useEntryPageContext('*')
+  const {uploadId, archive, url} = useEntryPageContext('*')
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const {api} = useApi()
@@ -47,9 +45,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const [suggestions, setSuggestions] = useState([])
   const [error, setError] = useState()
   const fetchedSuggestionsFor = useRef()
-  const lane = useLane()
-  const browserAdaptorContext = useBrowserAdaptorContext(archive)
-  const context = lane?.adaptor?.context || browserAdaptorContext
+
   const referencedSectionQualifiedNames = useMemo(() => {
     return [...quantityDef.type._referencedSection._allInheritingSections.map(section => section._qualifiedName), quantityDef.type._referencedSection._qualifiedName]
   }, [quantityDef])
@@ -91,26 +87,40 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       setError(null)
       return
     }
-    const resolved = resolveRefAsync(value, archive, context, archive => {
-      const entry = archive.metadata
-      if (entry?.processing_errors.length === 0) {
+    const resolveValue = async () => {
+      const resolvedUrl = resolveNomadUrl(value, url)
+      if (resolvedUrl.type !== refType.archive) throw new Error(`Archive reference expected, got ${value}`)
+      const response = await api.post(`entries/${resolvedUrl.entryId}/archive/query`, {
+        'required': {
+          'metadata': {
+            'entry_name': '*',
+            'upload_id': '*',
+            'entry_id': '*',
+            'mainfile': '*',
+            'processing_errors': '*'
+          }
+        }
+      }, {
+        noLoading: true
+      })
+      const entry = response.data.archive.metadata
+      if (entry.processing_errors.length === 0) {
         setEntry(entry)
         setSuggestions([{entry_name: entry.entry_name, upload_id: entry.upload_id, entry_id: entry.entry_id}])
-        setInputValue(archive.metadata.entry_name)
+        setInputValue(entry.entry_name)
         setError(null)
       } else {
         setEntry(null)
         setSuggestions([{entry_name: archive.metadata.mainfile, upload_id: entry.upload_id, entry_id: entry.entry_id}])
         setInputValue(archive.metadata.mainfile)
       }
-    })
-    resolved.then(resolved => {
-      if (!resolved) {
+    }
+    resolveValue()
+      .catch(() => {
         setEntry(null)
         setError('the referenced value does not exist anymore')
-      }
-    })
-  }, [value, api, raiseError, archive, context, setError])
+      })
+  }, [value, api, raiseError, archive, url, setError])
 
   const getOptionLabel = useCallback(option => option.entry_name, [])
   const getOptionSelected = useCallback((option, value) => {

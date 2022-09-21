@@ -15,55 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
+import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
-import { useUnits } from '../../../units'
-import { getLocation } from '../../../utils'
-import Trajectory from '../../visualization/Trajectory'
+import { Trajectories } from '../../visualization/Trajectory'
 
 /**
  * Card displaying molecular dynamics properties.
  */
 const ThermodynamicPropertiesCard = React.memo(({index, properties, archive}) => {
-  const units = useUnits()
+  // Check what data is available and do not show the card if none of the properties are
+  // available.
   const hasTrajectory = properties.has('trajectory')
-  const urlPrefix = `${getLocation()}/data`
-
-  // Resolve and return component for showing the list of trajectories
-  const trajectory = useMemo(() => {
-    if (!hasTrajectory) return null
-    const trajsIndex = index?.results?.properties?.thermodynamic?.trajectory
-    const trajsArchive = archive?.results?.properties?.thermodynamic?.trajectory || []
-
-    return trajsIndex.map((trajIndex, i) => {
-      const trajProperties = new Set(trajIndex?.available_properties || [])
-      const trajArchive = trajsArchive[i]
-      const hasPressure = trajProperties.has('pressure')
-      const pressure = hasPressure ? trajArchive?.pressure : false
-      const hasTemperature = trajProperties.has('temperature')
-      const temperature = hasTemperature ? trajArchive?.temperature : false
-      const hasEnergyPotential = trajProperties.has('energy_potential')
-      const energyPotential = hasEnergyPotential ? trajArchive?.energy_potential : false
-      const methodology = trajIndex?.methodology || false
-
-      return <Trajectory
-        key={i}
-        pressure={pressure}
-        temperature={temperature}
-        energyPotential={energyPotential}
-        methodology={methodology}
-        units={units}
-        archiveURL={`${urlPrefix}/results/properties/thermodynamic/trajectory:${i}`}
-      />
-    })
-  }, [archive, index, units, urlPrefix, hasTrajectory])
-
-  // Do not show the card if none of the properties are available
   if (!hasTrajectory) return null
 
   return <PropertyCard title="Thermodynamic">
-    {trajectory}
+    {hasTrajectory && <Trajectories index={index} archive={archive} />}
   </PropertyCard>
 })
 

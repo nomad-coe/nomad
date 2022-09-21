@@ -48,6 +48,7 @@ import CreateEntry from './CreateEntry'
 import { useUploadPageContext } from './UploadPageContext'
 import { useApi } from '../api'
 import ReloadIcon from '@material-ui/icons/Replay'
+import { formatTimestamp } from '../../utils'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -377,7 +378,7 @@ function UploadOverview(props) {
   const handleDelete = () => {
     setOpenDeleteConfirmDialog(false)
     api.delete(`/uploads/${uploadId}`)
-      .then(results => updateUpload({upload: results.data, deletionRequested: true}))
+      .then(results => updateUpload({upload: results.data}))
       .catch(raiseError)
   }
 
@@ -543,7 +544,7 @@ function UploadOverview(props) {
           <StepLabel>Publish</StepLabel>
           <StepContent>
             {isPublished && <Typography className={classes.stepContent}>
-              {upload?.with_embargo ? `This upload has been published under embargo with a period of ${upload?.embargo_length} months from ${new Date(upload?.publish_time).toLocaleString()}.`
+              {upload?.with_embargo ? `This upload has been published under embargo with a period of ${upload?.embargo_length} months from ${formatTimestamp(upload?.publish_time)}.`
                 : `This upload has already been published.`}
             </Typography>}
             {!isPublished && <PublishUpload upload={upload} onPublish={handlePublish} />}

@@ -21,7 +21,7 @@ import { PropertyCard, PropertyGrid, PropertyItem } from './PropertyCard'
 import { useUnits } from '../../../units'
 import { SectionTable } from '../../Quantity'
 import EELS from '../../visualization/EELS'
-import { resolveRef } from '../../archive/metainfo'
+import { resolveInternalRef } from '../../../utils'
 
 /**
  * Card displaying spectroscopic properties.
@@ -50,7 +50,7 @@ const SpectroscopyCard = React.memo(({index, properties, archive}) => {
     const spectroscopy = archive?.results?.properties?.spectroscopy
     eelsTable = {data: [spectroscopy?.eels]}
     if (spectroscopy.spectrum) {
-      spectrumCurves = [resolveRef(spectroscopy.spectrum, archive)]
+      spectrumCurves = [resolveInternalRef(spectroscopy.spectrum, archive)]
     }
   }
 

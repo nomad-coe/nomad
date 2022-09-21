@@ -195,7 +195,7 @@ oasis = NomadConfig(
 )
 
 tests = NomadConfig(
-    default_timeout=30
+    default_timeout=60
 )
 
 

@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import {
   Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip,
-  IconButton, useTheme, Grid, Dialog, DialogContent, DialogContentText, DialogActions,
+  IconButton, Grid, Dialog, DialogContent, DialogContentText, DialogActions,
   Button,
   FormControl,
   MenuItem,
@@ -31,8 +31,8 @@ import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, lan
 import { RawFileAdaptor } from './FileBrowser'
 import {
   AttributeMDef,
-  isEditable, PackageMDef, QuantityMDef, quantityUsesFullStorage, removeSubSection, resolveRef, resolveRefAsync, SectionMDef, SubSectionMDef,
-  useMetainfo
+  isEditable, PackageMDef, QuantityMDef, quantityUsesFullStorage, removeSubSection, SectionMDef, SubSectionMDef,
+  useMetainfo, getMetainfoFromDefinition
 } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
@@ -45,6 +45,7 @@ import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
+import { useEntryStoreObj } from '../DataStore'
 import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '../buttons/SourceDialogButton'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
@@ -54,40 +55,14 @@ import SaveIcon from '@material-ui/icons/Save'
 import AddIcon from '@material-ui/icons/AddCircle'
 import CodeIcon from '@material-ui/icons/Code'
 import DeleteIcon from '@material-ui/icons/Delete'
-import {getLineStyles, titleCase, createUploadUrl} from '../../utils'
-import Plot from '../visualization/Plot'
-import { useUploadPageContext } from '../uploads/UploadPageContext'
+import XYPlot from './XYPlot'
+import {
+  titleCase, createUploadUrl, parseNomadUrl, refType,
+  resolveNomadUrl, resolveInternalRef, systemMetainfoUrl, formatTimestamp} from '../../utils'
 import {EntryButton} from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
-import {ErrorHandler} from '../ErrorHandler'
-import Alert from '@material-ui/lab/Alert'
-import _ from 'lodash'
 import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
-import { apiBase } from '../../config'
-
-export function useBrowserAdaptorContext(data) {
-  const entryPageContext = useEntryPageContext()
-  const uploadPageContext = useUploadPageContext()
-  const metainfo = useMetainfo(data)
-  const {api} = useApi()
-
-  const entryId = entryPageContext?.entryId
-  const uploadId = entryPageContext?.uploadId || uploadPageContext?.uploadId
-  const mainfile = entryPageContext?.metadata?.mainfile
-
-  const context = useMemo(() => ({
-    api: api,
-    metainfo: metainfo,
-    archive: data,
-    resources: {},
-    uploadId: uploadId,
-    entryId: entryId,
-    mainfile: mainfile
-  }), [uploadId, entryId, mainfile, api, data, metainfo])
-
-  return context
-}
 
 export const configState = atom({
   key: 'config',
@@ -98,39 +73,40 @@ export const configState = atom({
   }
 })
 
-const ArchiveBrowser = React.memo(({data}) => {
-  const context = useBrowserAdaptorContext(data)
-  const {metainfo} = context
+const ArchiveBrowser = React.memo(({url}) => {
+  const parsedUrl = useMemo(() => parseNomadUrl(url), [url])
+  const {archive} = useEntryStoreObj(parsedUrl.installationUrl, parsedUrl.entryId, false, '*')
+  const metainfo = useMetainfo(systemMetainfoUrl)
+  const rootSectionDef = metainfo ? metainfo.getEntryArchiveDefinition() : null
+
   const searchOptions = useMemo(() => {
-    return metainfo ? archiveSearchOptions(data, metainfo) : []
-  }, [data, metainfo])
+    return metainfo ? archiveSearchOptions(archive, metainfo) : []
+  }, [archive, metainfo])
 
   const adaptor = useMemo(() => {
-    if (!context.metainfo) {
+    if (!archive || !rootSectionDef) {
       return null
     }
-    return archiveAdaptorFactory(context, data, undefined)
-  }, [context, data])
+    return archiveAdaptorFactory(url, archive, rootSectionDef)
+  }, [url, archive, rootSectionDef])
 
   if (!adaptor) {
-    return ''
+    return null
   }
 
   // For some reason, this hook does not work in all of the components used in
   // the Browser (notably: Quantity, QuantityItemPreview). In order to pass the
   // up-to-date unit information, we pass the hook value down the component
   // hierarchy.
-  context.resources = context.resources || {}
-  context.archive = data
   return (
     <Browser
       adaptor={adaptor}
-      form={<ArchiveConfigForm searchOptions={searchOptions} data={data}/>}
+      form={<ArchiveConfigForm searchOptions={searchOptions} data={archive}/>}
     />
   )
 })
 ArchiveBrowser.propTypes = ({
-  data: PropTypes.object.isRequired
+  url: PropTypes.string.isRequired
 })
 export default ArchiveBrowser
 
@@ -373,12 +349,8 @@ export const ArchiveReUploadButton = React.memo((props) => {
   </IconButton>
 })
 
-export function archiveAdaptorFactory(context, data, sectionDef) {
-  return new SectionAdaptor(
-    {archive: data, ...context},
-    data,
-    sectionDef || context.metainfo?.getEntryArchiveDefinition(),
-    undefined)
+export function archiveAdaptorFactory(archiveUrl, archive, rootSectionDef) {
+  return new SectionAdaptor(archiveUrl, archive, rootSectionDef)
 }
 
 function archiveSearchOptions(data, metainfo) {
@@ -429,42 +401,76 @@ function archiveSearchOptions(data, metainfo) {
 }
 
 class ArchiveAdaptor extends Adaptor {
-  constructor(context, obj, def, parent) {
-    super(context)
-    this.obj = obj
+  /**
+   * @param {*} baseUrl Base url = an archive url, used to jump to the current archive
+   * @param {*} obj A data object, located somewhere in the archive specified by baseUrl
+   * @param {*} def The metainfo definition of obj
+   */
+  constructor(baseUrl, obj, def) {
+    super()
+    this.baseUrl = baseUrl
+    this.parsedBaseUrl = parseNomadUrl(baseUrl)
+    if (!this.parsedBaseUrl.isResolved) throw new Error(`Resolved url is required, got ${baseUrl}`)
+    if (this.parsedBaseUrl.type !== refType.archive) throw new Error(`Bad url type, expected entry url, got ${baseUrl}`)
+    // Will be set when initializing the adaptor
+    this.api = undefined
+    this.dataStore = undefined
+    this.entryIsEditable = undefined
+    this.obj = obj // The data in the archive tree to display
     this.def = def
-    this.parent = parent
-
-    if (!this.def) {
-      throw new Error('Definitions must be given.')
-    }
+    this.unsubscriberFunctions = []
   }
 
-  async adaptorFactory(obj, def, parent, childContext) {
-    const context = childContext || this.context
-    if (def === await this.context.metainfo.resolveDefinition(PackageMDef)) {
-      return metainfoAdaptorFactory(this.context, obj)
+  async initialize(api, dataStore) {
+    this.api = api
+    this.dataStore = dataStore
+    const {editable} = await dataStore.getEntryAsync(
+      this.parsedBaseUrl.installationUrl, this.parsedBaseUrl.entryId, false, '*')
+    this.entryIsEditable = editable
+    // Subscribe to the store objects we depend on
+    const cb = () => {}
+    this.unsubscriberFunctions = [
+      dataStore.subscribeToEntry(
+        this.parsedBaseUrl.installationUrl, this.parsedBaseUrl.entryId, cb, false, '*'),
+      dataStore.subscribeToMetainfo(
+        getMetainfoFromDefinition(this.def)._url, cb)
+    ]
+  }
+
+  cleanup() {
+    // Cancel subscriptions
+    this.unsubscriberFunctions?.forEach(fn => { if (fn) fn() })
+  }
+
+  async adaptorFactory(baseUrl, obj, def) {
+    if (obj.m_def === PackageMDef) {
+      // We're viewing an archive which contains metainfo definitions, and open the definitions node
+      const metainfo = await this.dataStore.getMetainfoAsync(baseUrl)
+      return metainfoAdaptorFactory(metainfo._data.definitions)
     }
 
     if (def.m_def === SectionMDef) {
       if (obj.m_def) {
         // Override the def given by the schema with the potentially more specific
         // def given by the data
-        def = await context.metainfo.resolveDefinition(obj.m_def, context)
+        const newDefUrl = resolveNomadUrl(obj.m_def, baseUrl)
+        def = await this.dataStore.getMetainfoDefAsync(newDefUrl)
       }
-      return new SectionAdaptor(context, obj, def, parent)
+      return new SectionAdaptor(baseUrl, obj, def)
     }
 
     if (def.m_def === QuantityMDef) {
       if (def.type.type_kind === 'reference') {
-        return new ReferenceAdaptor(context, obj, def, parent)
+        // Should only happen if the reference encountered has not been resolved, which can
+        // happen if the reference is invalid or if it is of a type which we have no handler for.
+        return new UnresolvedReferenceAdaptor(baseUrl, obj, def)
       }
 
-      return new QuantityAdaptor(context, obj, def, parent)
+      return new QuantityAdaptor(baseUrl, obj, def)
     }
 
     if (def.m_def === AttributeMDef) {
-      return new AttributeAdaptor(context, obj, def, parent)
+      return new AttributeAdaptor(baseUrl, obj, def)
     }
 
     throw new Error('not implemented')
@@ -472,7 +478,7 @@ class ArchiveAdaptor extends Adaptor {
 
   async itemAdaptor(key) {
     if (key === '_metainfo') {
-      return metainfoAdaptorFactory(this.context, this.def)
+      return metainfoAdaptorFactory(this.def)
     } else {
       throw new Error('Unknown item key')
     }
@@ -495,9 +501,9 @@ class SectionAdaptor extends ArchiveAdaptor {
       let subSectionIndex = -1
       if (property.repeats) {
         subSectionIndex = parseInt(index || 0)
-        subSectionAdaptor = await this.adaptorFactory(value[subSectionIndex], sectionDef, this.obj)
+        subSectionAdaptor = await this.adaptorFactory(this.parsedBaseUrl, value[subSectionIndex], sectionDef)
       } else {
-        subSectionAdaptor = await this.adaptorFactory(value, sectionDef, this.obj)
+        subSectionAdaptor = await this.adaptorFactory(this.parsedBaseUrl, value, sectionDef)
       }
       subSectionAdaptor.parentRelation = {
         parent: this.obj,
@@ -517,36 +523,36 @@ class SectionAdaptor extends ArchiveAdaptor {
           reference = value[index]
         }
         if (!reference) {
-          return this.adaptorFactory(value, property, this.obj)
+          return this.adaptorFactory(this.parsedBaseUrl, value, property)
         }
-        const childContext = {
-          ...this.context,
-          isReferenced: true
+        try {
+          const resolvedUrl = resolveNomadUrl(reference, this.parsedBaseUrl)
+          if (resolvedUrl.type === refType.archive) {
+            const {archive} = await this.dataStore.getEntryAsync(resolvedUrl.installationUrl, resolvedUrl.entryId, false, '*')
+            const resolvedObj = resolveInternalRef('/' + (resolvedUrl.path || ''), archive)
+            const resolvedDef = property.type._referencedSection
+            return this.adaptorFactory(resolvedUrl, resolvedObj, resolvedDef)
+          }
+          throw new Error('Unhandled reference type')
+        } catch (error) {
+          // some sections cannot be resolved, because they are not part of the archive
+          // user_id->user is one example
+          return this.adaptorFactory(this.parsedBaseUrl, reference, property)
         }
-        const resolved = await resolveRefAsync(reference, this.context.archive, this.context, archive => {
-          childContext.archive = archive
-        })
-        // some sections cannot be resolved, because they are not part of the archive
-        // user_id->user is one example
-        if (!resolved) {
-          return this.adaptorFactory(reference, property, this.obj)
-        }
-        const resolvedDef = property.type._referencedSection
-        return this.adaptorFactory(resolved, resolvedDef, this.obj, childContext)
       }
       // Regular quantities
       if (property.m_annotations?.browser) {
         if (property.m_annotations.browser[0].adaptor === 'RawFileAdaptor') {
-          const uploadId = this.context.archive.metadata.upload_id
+          const installationUrl = this.parsedBaseUrl.installationUrl
+          const uploadId = this.parsedBaseUrl.uploadId
           const path = this.obj[property.name]
-          const uploadUrl = createUploadUrl(apiBase, uploadId, path) // TODO: installationUrl should be fetched from adaptor when archive adaptors refactored to use urls
-          const response = await this.context.api.get(`uploads/${uploadId}/rawdir/${path}`)
-          return new RawFileAdaptor(this.context, uploadUrl, response.file_metadata, false)
+          const uploadUrl = createUploadUrl(installationUrl, uploadId, path)
+          return new RawFileAdaptor(uploadUrl, null, false)
         }
       }
-      return this.adaptorFactory(value, property, this.obj)
+      return this.adaptorFactory(this.parsedBaseUrl, value, property)
     } else if (property.m_def === AttributeMDef) {
-      return this.adaptorFactory(this.obj?.m_attributes[index], property, this.obj)
+      return this.adaptorFactory(this.parsedBaseUrl, this.obj?.m_attributes[index], property)
     } else {
       throw new Error('Unknown metainfo meta definition')
     }
@@ -555,13 +561,14 @@ class SectionAdaptor extends ArchiveAdaptor {
     return <Section
       section={this.obj}
       def={this.def}
-      parent={this.parent} parentRelation={this.parentRelation} />
+      parentRelation={this.parentRelation}
+      entryIsEditable={this.entryIsEditable} />
   }
 }
 
-class ReferenceAdaptor extends ArchiveAdaptor {
+class UnresolvedReferenceAdaptor extends ArchiveAdaptor {
   render() {
-    return <Reference value={this.obj} def={this.def} />
+    return <UnresolvedReference value={this.obj} def={this.def} />
   }
 }
 
@@ -632,7 +639,7 @@ function QuantityItemPreview({value, def}) {
       </Typography>
     </Box>
   } else {
-    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
+    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? formatTimestamp(value) : value)
     let finalUnit
     if (def.unit) {
       const a = new Q(finalValue, def.unit).toSystem(units)
@@ -654,7 +661,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
   const units = useUnits()
 
   const getRenderValue = useCallback(value => {
-    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
+    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? formatTimestamp(value) : value)
     let finalUnit
     if (def.unit) {
       const systemUnitQ = new Q(finalValue, def.unit).toSystem(units)
@@ -758,20 +765,20 @@ InheritingSections.propTypes = ({
   lane: PropTypes.object
 })
 
-function Section({section, def, parentRelation}) {
-  const {editable, handleArchiveChanged} = useEntryPageContext() || {}
+function Section({section, def, parentRelation, entryIsEditable}) {
+  const {handleArchiveChanged} = useEntryPageContext() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
   const lane = useContext(laneContext)
   const history = useHistory()
 
   const navEntryId = useMemo(() => {
-    return lane?.adaptor?.context?.archive?.metadata?.entry_id
+    return lane?.adaptor?.parsedBaseUrl?.entryId
   }, [lane])
 
   const sectionIsEditable = useMemo(() => {
-    return editable && isEditable(def) && !lane.adaptor.context.isReferenced
-  }, [editable, def, lane])
+    return entryIsEditable && isEditable(def)
+  }, [entryIsEditable, def])
 
   const actions = useMemo(() => {
     const navButton = navEntryId && (
@@ -946,8 +953,8 @@ function Section({section, def, parentRelation}) {
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
-  subSection: PropTypes.object,
-  parentRelation: PropTypes.object
+  parentRelation: PropTypes.object,
+  entryIsEditable: PropTypes.bool.isRequired
 })
 
 function SubSection({subSectionDef, section, editable}) {
@@ -1124,169 +1131,7 @@ PropertyValuesList.propTypes = ({
   ])
 })
 
-const usePlotStyle = makeStyles(theme => ({
-  error: {
-    margin: theme.spacing(1),
-    minWidth: 300
-  }
-}))
-
-const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
-  const classes = usePlotStyle()
-  const theme = useTheme()
-  const units = useUnits()
-  const xAxis = plot.x || plot['x_axis'] || plot['xAxis']
-  const yAxis = plot.y || plot['y_axis'] || plot['yAxis']
-
-  const [data, layout] = useMemo(() => {
-    const Y = Array.isArray(yAxis) ? yAxis : [yAxis]
-    const nLines = Y.length
-    const toUnit = path => {
-      const relativePath = path.replace('./', '')
-      const resolvedQuantityDef = resolveRef(relativePath, sectionDef)
-      if (resolvedQuantityDef === undefined || resolvedQuantityDef === null) {
-        throw new Error(`Could not resolve the path ${path}`)
-      }
-      const value = resolveRef(relativePath, section)
-      if (value === undefined || value === null) {
-        throw new Error(`Could not resolve the data for ${path}`)
-      }
-      const unit = resolvedQuantityDef?.unit
-      if (unit) {
-        const quantity = new Q(value, unit).toSystem(units)
-        return [quantity.value(), quantity.label()]
-      } else {
-        return [value, unit]
-      }
-    }
-
-    let xValues, xUnit
-    try {
-      [xValues, xUnit] = toUnit(xAxis)
-    } catch (e) {
-      return [{error: e.message}, undefined]
-    }
-    const xPath = xAxis.split('/')
-    const xLabel = titleCase(xPath[xPath.length - 1])
-
-    const lines = getLineStyles(nLines, theme).map(line => {
-      return {type: 'scatter',
-        mode: 'lines',
-        line: line}
-    })
-    if (plot.lines) {
-      Y.forEach((y, index) => {
-        _.merge(lines[index], plot.lines[index])
-      })
-    }
-
-    let data = []
-    const yUnits = []
-    const yLabels = []
-    Y.forEach((y, index) => {
-      let yValues, yUnit
-      try {
-        [yValues, yUnit] = toUnit(y)
-      } catch (e) {
-        data = {error: e.message}
-        return
-      }
-      const yPath = y.split('/')
-      const yLabel = titleCase(yPath[yPath.length - 1])
-      const line = {
-        name: yLabel,
-        x: xValues,
-        y: yValues,
-        ...lines[index]
-      }
-      data.push(line)
-      yUnits.push(yUnit)
-      yLabels.push(yLabel)
-    })
-
-    const getColor = index => {
-      const line = lines[index]
-      if ('mode' in line) {
-        if (line.mode === 'lines') {
-          return {color: line.line?.color}
-        } else if (line.mode === 'markers') {
-          return {color: line.marker?.color}
-        }
-      }
-      return {color: '#000000'}
-    }
-
-    const sameUnit = yUnits.every(unit => unit === yUnits[0])
-
-    const layout = {
-      xaxis: {
-        title: xUnit ? `${xLabel} (${xUnit})` : xLabel
-      },
-      yaxis: {
-        title: sameUnit ? (yUnits[0] ? `${titleCase(title)} (${yUnits[0]})` : titleCase(title)) : (yUnits[0] ? `${yLabels[0]} (${yUnits[0]})` : yLabels[0]),
-        titlefont: !sameUnit && nLines > 1 ? getColor(0) : undefined,
-        tickfont: !sameUnit && nLines > 1 ? getColor(0) : undefined
-      },
-      showlegend: sameUnit && nLines > 1,
-      legend: {
-        x: 1,
-        y: 1,
-        xanchor: 'right'
-      }
-    }
-
-    if (!sameUnit) {
-      Y.forEach((y, index) => {
-        const color = getColor(index)
-        if (index > 0) {
-          layout[`yaxis${index + 1}`] = {
-            title: yUnits[index] ? `${yLabels[index]} (${yUnits[index]})` : yLabels[index],
-            anchor: 'x',
-            overlaying: 'y',
-            side: index % 2 === 0 ? 'left' : 'right',
-            titlefont: nLines > 1 ? color : undefined,
-            tickfont: nLines > 1 ? color : undefined
-          }
-          data[index]['yaxis'] = `y${index + 1}`
-        }
-      })
-    }
-
-    if (plot.layout) {
-      _.merge(layout, plot.layout)
-    }
-
-    return [data, layout]
-  }, [plot.layout, plot.lines, xAxis, yAxis, section, sectionDef, theme, title, units])
-
-  if ('error' in data) {
-    return <Alert
-      severity="error"
-      className={classes.error}
-    >
-      {`Error when plotting ${titleCase(plot.label)}: ${data.error}`}
-    </Alert>
-  }
-
-  return <Box minWidth={500}>
-    <Plot
-      data={data}
-      layout={layout}
-      floatTitle={title}
-      fixedMargins={true}
-      config={plot.config}
-    />
-  </Box>
-})
-XYPlot.propTypes = {
-  plot: PropTypes.object.isRequired,
-  sectionDef: PropTypes.object.isRequired,
-  section: PropTypes.object,
-  title: PropTypes.string
-}
-
 export const SectionPlots = React.memo(function SectionPlots({section, sectionDef}) {
-  const classes = usePlotStyle()
   const plot = sectionDef.m_annotations?.plot
   const [selected, setSelected] = useState([0])
   const plots = useMemo(() => {
@@ -1308,8 +1153,6 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
   if (plots.length < 1 || selected.find(index => index >= plots.length)) {
     return ''
   }
-
-  const errorMessage = `Unexpected error when plotting ${titleCase(plots[0].label || '')}`
 
   return <Compartment title="plot">
     <Box minWidth={500}>
@@ -1333,18 +1176,13 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
       </TextField>}
       {selected.map(index => plots?.[index])
         ?.map((plot, index) => (
-          <ErrorHandler
+          <XYPlot
             key={index}
-            className={classes.error}
-            message={errorMessage}
-          >
-            <XYPlot
-              sectionDef={sectionDef}
-              section={section}
-              plot={plot}
-              title={plot.label}
-            />
-          </ErrorHandler>
+            sectionDef={sectionDef}
+            section={section}
+            plot={plot}
+            title={plot.label}
+          />
         ))
       }
     </Box>
@@ -1422,51 +1260,23 @@ Attribute.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
-function Reference({value, def}) {
-  const {api} = useApi()
-  const {raiseError} = useErrors()
-  const [loading, setLoading] = useState(true)
-  const {update, adaptor: {context}} = useContext(laneContext)
-  const upload_id = context.upload_id
-  context.resources = context.resources || {}
-  const resources = context.resources
-
-  useEffect(() => {
-    const url = value.split('#')[0]
-    if (resources?.[url]) {
-      setLoading(false)
-      return
-    }
-
-    if (!(url.startsWith('../upload/archive/') && upload_id)) {
-      setLoading(false)
-      return
-    }
-
-    api.get(`uploads/${upload_id}/${url.slice('../upload/'.length)}`)
-      .then(response => {
-        resources[url] = response.data.archive
-        update()
-      })
-      .catch(raiseError)
-  }, [api, upload_id, resources, raiseError, setLoading, update, value])
-
-  if (loading) {
-    return <Content>
-      <Typography>loading ...</Typography>
-    </Content>
-  }
-
+function UnresolvedReference({value, def}) {
+  const refTypeName = def?.type?._referencedSection?.name
+  const refTypeQualifiedName = def?.type?._referencedSection?._qualifiedName
+  const isOk = ['nomad.metainfo.metainfo.User'].includes(refTypeQualifiedName) // expected to not be resolvable
   return <Content>
     <ArchiveTitle def={def} data={value} kindLabel="value" />
     <Compartment title="reference">
-      <Typography color="error">Cannot resolve reference.</Typography>
+      {!isOk && <Typography color="error">Cannot resolve reference.</Typography>}
+      <Typography><b>Reference type:</b></Typography>
+      <Typography>{refTypeName || 'unknown'}</Typography>
+      <Typography><b>Reference value:</b></Typography>
       <Typography>{value}</Typography>
     </Compartment>
     <Meta def={def} />
   </Content>
 }
-Reference.propTypes = ({
+UnresolvedReference.propTypes = ({
   value: PropTypes.any,
   def: PropTypes.object.isRequired
 })

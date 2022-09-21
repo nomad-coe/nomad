@@ -19,9 +19,9 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
 import { useUnits } from '../../../units'
-import { getLocation } from '../../../utils'
+import { getLocation, resolveInternalRef } from '../../../utils'
 import ElectronicProperties from '../../visualization/ElectronicProperties'
-import { refPath, resolveRef } from '../../archive/metainfo'
+import { refPath } from '../../archive/metainfo'
 
 const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
@@ -41,8 +41,8 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   const dosData = archive?.results?.properties?.electronic?.dos_electronic
   if (dosData) {
     dos = {}
-    dos.energies = resolveRef(dosData.energies, archive)
-    dos.densities = resolveRef(dosData.total, archive).map(dos => dos.value)
+    dos.energies = resolveInternalRef(dosData.energies, archive)
+    dos.densities = resolveInternalRef(dosData.total, archive).map(dos => dos.value)
     if (dosData.band_gap) {
       dos.energy_highest_occupied = Math.max(...dosData.band_gap.map(x => x.energy_highest_occupied))
     }
@@ -54,8 +54,8 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   const bsData = archive?.results?.properties?.electronic?.band_structure_electronic
   if (bsData) {
     bs = {}
-    bs.reciprocal_cell = resolveRef(bsData.reciprocal_cell, archive)
-    bs.segment = resolveRef(bsData.segment, archive)
+    bs.reciprocal_cell = resolveInternalRef(bsData.reciprocal_cell, archive)
+    bs.segment = resolveInternalRef(bsData.segment, archive)
     if (bsData.band_gap) {
       bs.energy_highest_occupied = Math.max(...bsData.band_gap.map(x => x.energy_highest_occupied))
       bs.band_gap = bsData.band_gap

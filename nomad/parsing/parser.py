@@ -16,17 +16,33 @@
 # limitations under the License.
 #
 
-from typing import List, Iterable, Dict, Union
+from typing import List, Iterable, Dict, Union, Any, Optional
 from abc import ABCMeta, abstractmethod
 import re
 import os
 import os.path
+from enum import Enum
 from functools import lru_cache
 import importlib
+from pydantic import BaseModel, Extra  # pylint: disable=unused-import
+import yaml
 
 from nomad import config, utils
 from nomad.datamodel import EntryArchive, EntryMetadata
 from nomad.metainfo import Package
+
+
+class ParserStatus(Enum):
+    PRODUCTION = "production"
+    BETA = "beta"
+
+
+class ParserMetadata(BaseModel, use_enum_values=True, extra=Extra.allow):
+    codeLabel: str
+    codeUrl: Optional[str]
+    codeCategory: str
+    codeName: str
+    status: ParserStatus
 
 
 class Parser(metaclass=ABCMeta):
@@ -44,6 +60,7 @@ class Parser(metaclass=ABCMeta):
 
     def __init__(self):
         self.domain = 'dft'
+        self.metadata = None
 
     @abstractmethod
     def is_mainfile(
@@ -161,8 +178,11 @@ class MatchingParser(Parser):
     A parser implementation that uses regular expressions to match mainfiles.
 
     Arguments:
-        code_name: The name of the code or input format
+        name: The internally used name for the parser. The prefix 'parser/' will
+            be automatically added for legacy reasons.
+        code_name: The displayed name for the parser
         code_homepage: The homepage of the code or input format
+        code_catogory: An optional category for the code.
         mainfile_mime_re: A regexp that is used to match against a files mime type
         mainfile_contents_re: A regexp that is used to match the first 1024 bytes of a
             potential mainfile.
@@ -173,7 +193,12 @@ class MatchingParser(Parser):
         supported_compressions: A list of [gz, bz2], if the parser supports compressed files
     '''
     def __init__(
-            self, name: str, code_name: str, code_homepage: str = None,
+            self,
+            name: str = None,
+            code_name: str = None,
+            code_homepage: str = None,
+            code_category: str = None,
+            metadata_path: str = None,
             mainfile_contents_re: str = None,
             mainfile_binary_header: bytes = None,
             mainfile_binary_header_re: bytes = None,
@@ -184,14 +209,42 @@ class MatchingParser(Parser):
             supported_compressions: List[str] = []) -> None:
 
         super().__init__()
+
         self.name = name
         self.code_name = code_name
         self.code_homepage = code_homepage
+        self.code_category = code_category
+
+        # If a metainfo path is given, read the code metainfo from there.
+        self.metadata_path = metadata_path
+        metadata_keys = {
+            'code_name': 'codeLabel',
+            'code_homepage': 'codeUrl',
+            'code_category': 'codeCategory',
+            'status': 'status',
+            'name': 'codeName'
+        }
+        if metadata_path is not None:
+            metadata = ParserMetadata(**self.read_metadata_file(metadata_path))
+            self.metadata = metadata
+            for key_var, key_file in metadata_keys.items():
+                val_local = locals().get(key_var)
+                val_file = getattr(metadata, key_file)
+                if val_local is not None:
+                    raise ValueError(
+                        f'{key_var} specified both in metadata file ({val_file}) and in '
+                        f'parser constructor ({val_local})')
+                if key_file == 'codeName':
+                    val_file = f'parsers/{val_file}'
+                setattr(self, key_var, val_file)
+
+        assert self.code_name, f'please provide a code name for {name}'
         self.domain = domain
         self._mainfile_binary_header = mainfile_binary_header
         self._mainfile_mime_re = re.compile(mainfile_mime_re)
         self._mainfile_name_re = re.compile(mainfile_name_re)
         self._mainfile_alternative = mainfile_alternative
+
         # Assign private variable this way to avoid static check issue.
         if mainfile_contents_re is not None:
             self._mainfile_contents_re = re.compile(mainfile_contents_re)
@@ -204,6 +257,20 @@ class MatchingParser(Parser):
         self._supported_compressions = supported_compressions
 
         self._ls = lru_cache(maxsize=16)(lambda directory: os.listdir(directory))
+
+    def read_metadata_file(self, metadata_file: str) -> Dict[str, Any]:
+        '''
+        Read parser metadata from a yaml file.
+        '''
+        logger = utils.get_logger(__name__)
+        try:
+            with open(metadata_file, 'r', encoding='UTF-8') as f:
+                parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
+        except Exception as e:
+            logger.warning('failed to read parser metadata', exc_info=e)
+            raise
+
+        return parser_metadata
 
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
@@ -283,14 +350,16 @@ class MatchingParserInterface(MatchingParser):
         self.mainfile_parser.parse(mainfile, archive, logger)
 
     def import_parser_class(self):
+        logger = utils.get_logger(__name__)
         try:
             module_path, parser_class = self._parser_class_name.rsplit('.', 1)
             module = importlib.import_module(module_path)
-            return getattr(module, parser_class)
+            parser = getattr(module, parser_class)
         except Exception as e:
-            logger = utils.get_logger(__name__)
             logger.error('cannot import parser', exc_info=e)
             raise e
+
+        return parser
 
 
 class ArchiveParser(MatchingParser):

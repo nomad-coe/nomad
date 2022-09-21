@@ -1,0 +1,22 @@
+definitions:
+  sections:
+    Process:
+      quantities:
+        time:
+          type: Datetime
+    Evaporation:
+      base_section: Process
+      quantities:
+        pressure:
+          type: np.float64
+          unit: Pa
+    Annealing:
+      base_section: Process
+      quantities:
+        temperature:
+          type: np.float64
+          unit: K
+data:
+  m_def: Evaporation
+  time: '2022-10-13 12:00:00'
+  pressure: 100

@@ -6,7 +6,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, derived)
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
 from nomad.datamodel.metainfo.simulation.run import Run
-from nomad.datamodel.metainfo.simulation.system import System, Atoms
+from nomad.datamodel.metainfo.simulation.system import System, Atoms, AtomsGroup
 from .common import FastAccess
 
 
@@ -1574,6 +1574,8 @@ class MolecularDynamicsResults(MSection):
 
     radial_distribution_functions = SubSection(sub_section=SectionProxy('RadialDistributionFunction'), repeats=True)
 
+    radius_of_gyration = SubSection(sub_section=SectionProxy('RadiusOfGyration'), repeats=True)
+
     mean_squared_displacements = SubSection(sub_section=SectionProxy('MeanSquaredDisplacement'), repeats=True)
 
 
@@ -1632,6 +1634,66 @@ class MolecularDynamics(MSection):
     results = SubSection(sub_section=MolecularDynamicsResults.m_def, repeats=False)
 
 
+class TrajectoryProperty(MSection):
+    '''
+    Generic section containing information about a calculation of any observable
+    defined and stored at each individual frame of a trajectory.
+    '''
+
+    m_def = Section(validate=False)
+
+    type = Quantity(
+        type=MEnum('molecular', 'atomic'),
+        shape=[],
+        description='''
+        Describes if the observable is calculated at the molecular or atomic level.
+        ''')
+
+    error_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the type of error reported for this observable.
+        ''')
+
+
+class TrajectoryPropertyValues(MSection):
+    '''
+    Generic section containing information regarding the values of a trajectory property.
+    '''
+
+    m_def = Section(validate=False)
+
+    label = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the atoms or molecule types involved in determining the property.
+        ''')
+
+    n_frames = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of frames for which the observable is stored.
+        ''')
+
+    frames = Quantity(
+        type=np.dtype(np.int32),
+        shape=['n_frames'],
+        description='''
+        Frames for which the observable is stored.
+        ''')
+
+    times = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_frames'],
+        unit='s',
+        description='''
+        Times for which the observable is stored.
+        ''')
+
+
 class EnsemblePropertyValues(MSection):
     '''
     Generic section containing information regarding the values of an ensemble property.
@@ -1646,18 +1708,25 @@ class EnsemblePropertyValues(MSection):
         Describes the atoms or molecule types involved in determining the property.
         ''')
 
+    n_bins = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of bins.
+        ''')
+
     frame_start = Quantity(
         type=int,
         shape=[],
         description='''
-        The starting frame along the trajectory for performing the average.
+        Trajectory frame number where the ensemble averaging starts.
         ''')
 
     frame_end = Quantity(
         type=int,
         shape=[],
         description='''
-        The average is performed up to this frame.
+        Trajectory frame number where the ensemble averaging ends.
         ''')
 
 
@@ -1714,13 +1783,6 @@ class RadialDistributionFunctionValues(EnsemblePropertyValues):
 
     m_def = Section(validate=False)
 
-    n_bins = Quantity(
-        type=int,
-        shape=[],
-        description='''
-        Number of bins.
-        ''')
-
     bins = Quantity(
         type=np.dtype(np.float64),
         shape=['n_bins'],
@@ -1746,6 +1808,66 @@ class RadialDistributionFunction(EnsembleProperty):
     m_def = Section(validate=False)
 
     radial_distribution_function_values = SubSection(sub_section=RadialDistributionFunctionValues.m_def, repeats=True)
+
+
+class RadiusOfGyrationHistogram(EnsemblePropertyValues):
+    '''
+    Section containing the distribution of the Radius of Gyration over some trajectory.
+    '''
+
+    m_def = Section(validate=False)
+
+    bins = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_bins'],
+        unit='m',
+        description='''
+        Values of the radius of gyration.
+        ''')
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_bins'],
+        description='''
+        Histogram counts.
+        ''')
+
+
+class RadiusOfGyrationValues(TrajectoryPropertyValues):
+    '''
+    Section containing information regarding the values of
+    radius of gyration (Rg).
+    '''
+
+    m_def = Section(validate=False)
+
+    molecule_ref = Quantity(
+        type=Reference(AtomsGroup.m_def),
+        shape=[1],
+        description='''
+        References to the atoms_group section containing the molecule for which Rg was calculated.
+        ''')
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_frames'],
+        unit='m',
+        description='''
+        Values of the property.
+        ''')
+
+    radius_of_gyration_histogram = SubSection(sub_section=RadiusOfGyrationHistogram.m_def, repeats=True)
+
+
+class RadiusOfGyration(TrajectoryProperty):
+    '''
+    Section containing information about the calculation of
+    radius of gyration (Rg).
+    '''
+
+    m_def = Section(validate=False)
+
+    radius_of_gyration_values = SubSection(sub_section=RadiusOfGyrationValues.m_def, repeats=True)
 
 
 class CorrelationFunctionValues(MSection):

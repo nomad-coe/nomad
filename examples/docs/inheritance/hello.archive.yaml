@@ -1,0 +1,10 @@
+definitions:
+  sections:
+    Greetings:
+      base_section: nomad.datamodel.EntryData
+      quantities:
+        message:
+          type: str
+data:
+  m_def: MyData
+  message: Hello World

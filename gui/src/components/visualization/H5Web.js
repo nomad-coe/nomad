@@ -22,7 +22,7 @@ const H5Web = (props) => {
     if (filename.includes('.yaml') || filename.includes('.yml')) {
       api.get(`/uploads/${upload_id}/raw/${filename}`)
         .then(data => {
-          const fname = data.match(/(?<=output:\s*)[^\s].*nxs/g)[0]
+          const fname = data.match(/output:[ \t]*(.*nxs)/i)?.[1]
           setFilepath(upload_id.substring(0, 2) + '/' + upload_id + '/raw/' + fname)
         })
         .catch(raiseError)

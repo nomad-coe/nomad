@@ -19,7 +19,7 @@
 import numpy as np
 from nomad import utils
 from nomad.units import ureg
-from nomad.datamodel.data import EntryData, ArchiveSection
+from nomad.datamodel.data import EntryData, ArchiveSection, user_reference, author_reference
 from nomad.metainfo.metainfo import SectionProxy
 from nomad.datamodel.results import ELN, Results, Material, BandGap
 from nomad.metainfo import Package, Quantity, Datetime, Reference, Section
@@ -98,7 +98,7 @@ class ElnBaseSection(ArchiveSection):
         archive.results.eln.sections.append(self.m_def.name)
 
 
-class ElnActivityBaseSecton(ElnBaseSection):
+class ElnActivityBaseSection(ElnBaseSection):
     '''
     A generic abstract base section for ELNs that provides a few commonly used for
     laboratory activities, e.g. processes, characterizations, measurements, etc.
@@ -112,8 +112,18 @@ class ElnActivityBaseSecton(ElnBaseSection):
         type=str,
         description='A short consistent handle for the applied method.')
 
+    user = Quantity(
+        type=user_reference,
+        description='A user registered in Nomad.',
+        a_eln=dict(component='UserEditQuantity'))
+
+    author = Quantity(
+        type=author_reference,
+        description='An author that may or not be a Nomad user.',
+        a_eln=dict(component='AuthorEditQuantity'))
+
     def normalize(self, archive, logger):
-        super(ElnActivityBaseSecton, self).normalize(archive, logger)
+        super(ElnActivityBaseSection, self).normalize(archive, logger)
 
         if archive.results.eln.methods is None:
             archive.results.eln.methods = []
@@ -182,12 +192,12 @@ class Instrument(ElnBaseSection):
             archive.results.eln.instruments.append(self.name)
 
 
-class Process(ElnActivityBaseSecton):
+class Process(ElnActivityBaseSection):
     ''' A ELN base section that can be used for processes.'''
     pass
 
 
-class Measurement(ElnActivityBaseSecton):
+class Measurement(ElnActivityBaseSection):
     ''' A ELN base section that can be used for measurements.'''
     pass
 
@@ -329,25 +339,31 @@ class PublicationReference(ArchiveSection):
     def normalize(self, archive, logger):
         super(PublicationReference, self).normalize(archive, logger)
         from nomad.datamodel.datamodel import EntryMetadata
-        import requests
         import dateutil.parser
+        import requests
 
         # Parse journal name, lead author and publication date from crossref
         if self.DOI_number:
             try:
-                r = requests.get(f'https://api.crossref.org/works/{self.DOI_number}')
-                temp_dict = r.json()
-                given_name = temp_dict['message']['author'][0]['given']
-                family_name = temp_dict['message']['author'][0]['family']
-                self.journal = temp_dict['message']['container-title'][0]
-                self.publication_title = temp_dict['message']['title'][0]
-                self.publication_date = dateutil.parser.parse(temp_dict['message']['created']['date-time'])
-                self.lead_author = f'{given_name} {family_name}'
-                if not archive.metadata:
-                    archive.metadata = EntryMetadata()
-                if not archive.metadata.references:
-                    archive.metadata.references = []
+                url = f'https://api.crossref.org/works/{self.DOI_number}?mailto=contact@nomad-lab.eu'
+                timeout = 2
+                r = requests.get(url, timeout=timeout)
+                if r.status_code == 200:
+                    temp_dict = r.json()
+
+                    given_name = temp_dict['message']['author'][0]['given']
+                    family_name = temp_dict['message']['author'][0]['family']
+                    self.journal = temp_dict['message']['container-title'][0]
+                    self.publication_title = temp_dict['message']['title'][0]
+                    self.publication_date = dateutil.parser.parse(temp_dict['message']['created']['date-time'])
+                    self.lead_author = f'{given_name} {family_name}'
+                    if not archive.metadata:
+                        archive.metadata = EntryMetadata()
+                    if not archive.metadata.references:
+                        archive.metadata.references = []
                     archive.metadata.references.append(self.DOI_number)
+                else:
+                    logger.warning(f'Could not parse DOI number {self.DOI_number}')
             except Exception as e:
                 logger.warning(f'Could not parse crossref for {self.DOI_number}')
                 logger.warning(e)
@@ -652,10 +668,7 @@ class SolarCellJV(ArchiveSection):
 
     n_values = Quantity(type=int, derived=derive_n_values)
 
-    def normalize(self, archive, logger):
-        super(SolarCellJV, self).normalize(archive, logger)
-
-        addSolarCell(archive)
+    def update_results(self, archive):
         if self.open_circuit_voltage is not None:
             archive.results.properties.optoelectronic.solar_cell.open_circuit_voltage = self.open_circuit_voltage
         if self.short_circuit_current_density is not None:
@@ -666,6 +679,12 @@ class SolarCellJV(ArchiveSection):
             archive.results.properties.optoelectronic.solar_cell.efficiency = self.efficiency
         if self.light_intensity is not None:
             archive.results.properties.optoelectronic.solar_cell.illumination_intensity = self.light_intensity
+
+    def normalize(self, archive, logger):
+        super(SolarCellJV, self).normalize(archive, logger)
+
+        addSolarCell(archive)
+        self.update_results(archive)
 
 
 class SolarCellJVCurve(SolarCellJV):
@@ -726,6 +745,7 @@ class SolarCellJVCurve(SolarCellJV):
         if self.current_density is not None:
             if self.voltage is not None:
                 self.open_circuit_voltage, self.short_circuit_current_density, self.fill_factor, self.efficiency = self.cell_params()
+                self.update_results(archive)
 
 
 class SolarCellEQE(ArchiveSection):

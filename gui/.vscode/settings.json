@@ -1,9 +1,19 @@
-{
+{   
+    "editor.rulers": [
+        90
+    ],
+    "editor.renderWhitespace": "all",
+    "editor.tabSize": 4,
+    "files.trimTrailingWhitespace": true,
+    "[javascript]": {
+        "editor.tabSize": 2
+    },
     "files.exclude": {
         "**/node_modules": true
     },
     "files.watcherExclude": {
         "**": true,
         "**/**": true
-    }
+    },
+    "jest.autoRun": "off"
 }

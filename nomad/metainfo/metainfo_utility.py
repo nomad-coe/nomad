@@ -37,6 +37,8 @@ __hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
 
 _storage_suffix = '_full'
 
+_delta_symbols = {'delta_', 'Δ'}
+
 
 @dataclass
 class MRegEx:
@@ -583,6 +585,22 @@ def check_dimensionality(quantity_def, unit: Optional[pint.Unit]) -> None:
         return
 
     raise TypeError(f'Dimensionality {dimensionality} is not met by unit {unit}')
+
+
+def check_unit(unit: Union[str, pint.Unit]) -> None:
+    '''Check that the unit is valid.
+    '''
+    if isinstance(unit, str):
+        unit_str = unit
+    elif isinstance(unit, pint.Unit):
+        unit_str = str(unit)
+    else:
+        raise TypeError('Units must be given as str or pint Unit instances.')
+
+    # Explicitly providing a Pint delta-unit is not currently allowed.
+    # Implicit conversions are fine as MathJS on the frontend supports them.
+    if any(x in unit_str for x in _delta_symbols):
+        raise TypeError('Explicit Pint "delta"-units are not yet supported.')
 
 
 def to_section_def(section_def):

@@ -66,8 +66,8 @@ test('correctly renders metadata and all properties', async () => {
   expectQuantity(undefined, `${index.nomad_version}/${index.nomad_commit}`, 'processing version', 'Version used in the last processing')
   // TODO: add the following to the state for testing.
   // expectQuantity('datasets', index.datasets[0].dataset_name)
-  // expectQuantity('upload_create_time', new Date(index.upload_create_time).toLocaleString())
-  // expectQuantity('last_processing_time', new Date(index.last_processing_time).toLocaleString())
+  // expectQuantity('upload_create_time', formatTimestamp(index.upload_create_time))
+  // expectQuantity('last_processing_time', formatTimestamp(index.last_processing_time))
 
   // Check if all material data is shown (on the right, in the materials card)
   expectComposition(index)

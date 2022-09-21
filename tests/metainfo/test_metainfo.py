@@ -182,16 +182,31 @@ class TestM2:
     def test_unit(self):
         assert System.lattice_vectors.unit is not None
 
-    @pytest.mark.skip()
-    def test_unit_explicit_delta(self):
+    @pytest.mark.parametrize('unit', [
+        pytest.param('delta_degC / hr'),
+        pytest.param('ΔdegC / hr'),
+        pytest.param(ureg.delta_degC / ureg.hour),
+    ])
+    def test_unit_explicit_delta(self, unit):
+        '''Explicit delta values are not allowed when setting or de-serializing.
+        '''
         with pytest.raises(TypeError):
-            Quantity(type=np.dtype(np.float64), unit='delta_degC / hr')
+            Quantity(type=np.dtype(np.float64), unit=unit)
         with pytest.raises(TypeError):
-            Quantity(type=np.dtype(np.float64), unit='ΔdegC / hr')
-        Quantity(type=np.dtype(np.float64), unit='degC / hr')
-        with pytest.raises(TypeError):
-            Quantity(type=np.dtype(np.float64), unit=ureg.delta_degC / ureg.hour)
-        Quantity(type=np.dtype(np.float64), unit=ureg.degC / ureg.hour)
+            Quantity.m_from_dict({'m_def': 'nomad.metainfo.metainfo.Quantity', 'unit': str(unit)})
+
+    @pytest.mark.parametrize('unit', [
+        pytest.param('degC / hr'),
+        pytest.param(ureg.degC / ureg.hour),
+    ])
+    def test_unit_implicit_delta(self, unit):
+        '''Implicit delta values are allowed in setting and deserializing, delta
+        prefixes are not serialized.
+        '''
+        quantity = Quantity(type=np.dtype(np.float64), unit=unit)
+        serialized = quantity.m_to_dict()
+        assert serialized['unit'] == 'degree_Celsius / hour'
+        Quantity.m_from_dict(serialized)
 
     @pytest.mark.parametrize('dtype', [
         pytest.param(np.longlong),

@@ -57,10 +57,11 @@ ErrorHandler.propTypes = ({
   className: PropTypes.string
 })
 
-export const withErrorHandler = (WrappedComponent, message) => props => (
-  <ErrorHandler message={message}>
+export const withErrorHandler = (message) => (WrappedComponent) => props => {
+  return <ErrorHandler message={message}>
     <WrappedComponent {...props}></WrappedComponent>
-  </ErrorHandler>)
+  </ErrorHandler>
+}
 withErrorHandler.propTypes = ({
   message: PropTypes.oneOfType([PropTypes.string, PropTypes.func]) // Provide either a fixed error message or a callback that will receive the error details.
 })

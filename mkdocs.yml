@@ -6,18 +6,23 @@ nav:
   - Introduction: index.md
   - web.md
   - api.md
-  - The nomad-lab Python package:
+  - Python package:
     - pythonlib.md
     - archive_query.md
     - local_parsers.md
-  - archive.md
+  - Schemas:
+    - schema/introduction.md
+    - schema/basics.md
+    - schema/python.md
+    - schema/elns.md
   # - Using the AI Toolkit and other remote tools: aitoolkit.md
-  - Extending and Developing NOMAD:
-    - developers.md
-    - metainfo.md
-    - search.md
-    - parser.md
-    - normalizers.md
+  - Developing NOMAD:
+    - develop/setup.md
+    - develop/guides.md
+    - develop/gitlab.md
+    - develop/search.md
+    - develop/parser.md
+    - develop/normalizers.md
   - Operating NOMAD (Oasis): oasis.md
 theme:
   name: material
@@ -58,6 +63,5 @@ extra_css:
   - stylesheets/extra.css
 extra_javascript:
   - javascript.js
-  - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

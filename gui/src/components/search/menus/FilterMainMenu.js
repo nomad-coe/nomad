@@ -96,8 +96,8 @@ const FilterMainMenu = React.memo(({
   const styles = useStyles()
   const [loaded, setLoaded] = useState(false)
 
-  // Rendering the submenus is delayed: this makes loading the search page more
-  // responsive by first loading everything else.
+  // Rendering the submenus is delayed on the event queue: this makes loading
+  // the search page more responsive by first loading everything else.
   useEffect(() => {
     delay(() => { setLoaded(true) })
   }, [])

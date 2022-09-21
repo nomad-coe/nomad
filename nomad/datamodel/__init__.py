@@ -72,11 +72,11 @@ section. We currently have the following domain specific metadata classes/sectio
 import sys
 
 from nomad.metainfo import Environment
-
+from .data import (User, Author, user_reference, author_reference)
 from .datamodel import (
-    Dataset, User, Author, EditableUserMetadata, AuthLevel,
+    Dataset, EditableUserMetadata, AuthLevel,
     MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
-    EntryMetadata, EntryArchive, user_reference, author_reference)
+    EntryMetadata, EntryArchive)
 from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
 from .results import Results

@@ -21,6 +21,7 @@ from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, 
     Callable as TypingCallable, cast, Optional
 from collections.abc import Iterable as IterableABC
 import sys
+from functools import reduce
 import inspect
 import re
 import json
@@ -32,14 +33,13 @@ import pandas as pd
 import pint
 import docstring_parser
 import jmespath
-from cachetools import cached, TTLCache
 
-from nomad import config
 from nomad.config import process
 from nomad.metainfo.metainfo_utility import Annotation, DefinitionAnnotation, MEnum, MQuantity, MRegEx, \
     MSubSectionList, MTypes, ReferenceURL, SectionAnnotation, _storage_suffix, check_dimensionality, convert_to, \
     default_hash, dict_to_named_list, normalize_datetime, resolve_variadic_name, retrieve_attribute, \
-    split_python_definition, to_dict, to_numpy, to_section_def, to_storage_name, validate_shape, validate_url
+    split_python_definition, to_dict, to_numpy, to_section_def, to_storage_name, validate_shape, validate_url, \
+    check_unit, _delta_symbols
 from nomad.units import ureg as units
 
 m_package: Optional['Package'] = None
@@ -49,6 +49,8 @@ Elasticsearch = TypeVar('Elasticsearch')
 MSectionBound = TypeVar('MSectionBound', bound='MSection')
 SectionDefOrCls = Union['Section', 'SectionProxy', Type['MSection']]
 T = TypeVar('T')
+
+_unset_value = '__UNSET__'
 
 _HASH_OBJ = Type['hashlib._Hash']  # type: ignore
 
@@ -311,6 +313,8 @@ class _Dimension(DataType):
 
 class _Unit(DataType):
     def set_normalize(self, section, quantity_def: 'Quantity', value):
+        check_unit(value)
+
         if isinstance(value, str):
             value = units.parse_units(value)
 
@@ -325,9 +329,16 @@ class _Unit(DataType):
         return value
 
     def serialize(self, section, quantity_def: 'Quantity', value):
-        return None if quantity_def.flexible_unit else value.__str__()
+        if quantity_def.flexible_unit:
+            return None
+
+        value = value.__str__()
+        # The delta prefixes are not serialized: only implicit deltas are
+        # allowed currently.
+        return reduce(lambda a, b: a.replace(b, ''), _delta_symbols, value)
 
     def deserialize(self, section, quantity_def: 'Quantity', value):
+        check_unit(value)
         value = units.parse_units(value)
         check_dimensionality(quantity_def, value)
         return value
@@ -390,6 +401,9 @@ class _QuantityType(DataType):
         if isinstance(value, Quantity):
             return QuantityReference(value)
 
+        if value.__name__ == 'UserReference' or value.__name__ == 'AuthorReference':
+            return value
+
         if isinstance(value, MProxy):
             value.m_proxy_section = section
             value.m_proxy_quantity = quantity_def
@@ -427,7 +441,7 @@ class _QuantityType(DataType):
             if config.process.store_package_definition_in_mongo:
                 type_data += f'@{value.target_section_def.definition_id}'
 
-            return dict(type_kind='reference', type_data=type_data)
+            return value.serialize_type(type_data)
 
         if isinstance(value, DataType):
             module = value.__class__.__module__
@@ -453,8 +467,10 @@ class _QuantityType(DataType):
                 return MTypes.primitive_name[type_data]
             if type_kind == 'Enum':
                 return MEnum(*type_data)
-            if type_kind == 'reference':
-                return Reference(SectionProxy(type_data, m_proxy_section=section))
+            reference = Reference.deserialize_type(type_kind, type_data, section)
+            if reference:
+                return reference
+
             if type_kind == 'quantity_reference':
                 return QuantityReference(cast(Quantity, MProxy(
                     type_data, m_proxy_section=section, m_proxy_type=Reference(Quantity.m_def))))
@@ -598,9 +614,18 @@ class Reference(DataType):
         context = cast(MSection, section.m_root()).m_context
         return context.normalize_reference(section, value) if context else value
 
+    def serialize_type(self, type_data):
+        return dict(type_kind='reference', type_data=type_data)
+
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         context = cast(MSection, section.m_root()).m_context
         return context.create_reference(section, quantity_def, value) if context else value.m_path()
+
+    @classmethod
+    def deserialize_type(cls, type_kind, type_data, section):
+        if type_kind == 'reference':
+            return Reference(SectionProxy(type_data, m_proxy_section=section))
+        return None
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         return MProxy(value, m_proxy_section=section, m_proxy_type=quantity_def.type)
@@ -719,6 +744,12 @@ class QuantityReference(Reference):
     def serialize_proxy_value(self, proxy):
         return f'{proxy.m_proxy_value}/{self.target_quantity_def.name}'
 
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if not value.m_is_set(self.target_quantity_def):
+            return _unset_value
+
+        return super().set_normalize(section, quantity_def, value)
+
     def get_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         section = super().get_normalize(section, quantity_def, value)
         return getattr(section, self.target_quantity_def.name)
@@ -797,6 +828,10 @@ Capitalized = _Capitalized()
 Bytes = _Bytes()
 File = _File()
 URL = _URL()
+
+predefined_datatypes = {
+    'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
+    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File, 'URL': URL}
 
 
 # Metainfo data storage and reflection interface
@@ -1287,13 +1322,16 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 dimensions = len(quantity_def.shape)
                 if dimensions == 0:
                     value = self.__set_normalize(quantity_def, value)
+                    if value == _unset_value:
+                        return
 
                 elif dimensions == 1:
                     if type(value) == str or not isinstance(value, IterableABC):
                         raise TypeError(
                             f'The shape of {quantity_def} requires an iterable value, but {value} is not iterable.')
 
-                    value = list(self.__set_normalize(quantity_def, item) for item in value)
+                    value = [v for v in list(
+                        self.__set_normalize(quantity_def, item) for item in value) if v != _unset_value]
 
                 else:
                     raise MetainfoError(
@@ -1354,6 +1392,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 dimensions = len(quantity_def.shape)
                 if dimensions == 0:
                     m_quantity.value = self.__set_normalize(quantity_def, m_quantity.value)
+                    if m_quantity.value == _unset_value:
+                        return
 
                 elif dimensions == 1:
                     if type(m_quantity.value) == str or not isinstance(m_quantity.value, IterableABC):
@@ -1361,7 +1401,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                             f'The shape of {quantity_def} requires an iterable value, '
                             f'but {m_quantity.value} is not iterable.')
 
-                    m_quantity.value = list(self.__set_normalize(quantity_def, item) for item in m_quantity.value)
+                    m_quantity.value = [v for v in list(
+                        self.__set_normalize(quantity_def, item) for item in m_quantity.value) if v != _unset_value]
 
                 else:
                     raise MetainfoError(
@@ -2172,8 +2213,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             # We re-use the _SectionReference implementation for m_def
             m_def = dct['m_def']
             context_section = m_parent
-            if m_parent:
-                definitions = getattr(m_parent, 'definitions', None)
+            archive_root: MSection = m_parent.m_root() if m_parent else None
+            if archive_root:
+                definitions = getattr(archive_root, 'definitions', None)
                 if isinstance(definitions, Package):
                     context_section = definitions
             m_def_proxy = SectionReference.deserialize(context_section, None, m_def)
@@ -2194,6 +2236,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             section = cls(m_context=m_context, **kwargs)
         else:
             section = cls(**kwargs)
+
+        # We have to set this prematurely. It would be set later on, but to late to get
+        # the proper root for subsequent resolution of m_def references.
+        section.m_parent = m_parent
 
         if 'm_annotations' in dct:
             m_annotations = dct['m_annotations']
@@ -3983,14 +4029,18 @@ def inherited_sections(self) -> List[Section]:
     return result
 
 
-@derived(cached=True)
+@derived(cached=False)
 def all_base_sections(self) -> List[Section]:
     result: List[Section] = []
     for base_section in self.base_sections:
         if isinstance(base_section, SectionProxy):
+            # In some reference resolution contexts, it is important to reevaluate later
+            self.m_mod_count += 1
             continue
         for base_base_section in base_section.all_base_sections:
             if isinstance(base_base_section, SectionProxy):
+                # In some reference resolution contexts, it is important to reevaluate later
+                self.m_mod_count += 1
                 continue
             result.append(base_base_section)
         result.append(base_section)
@@ -4002,9 +4052,13 @@ def all_inheriting_sections(self) -> List[Section]:
     result: Set[Section] = set()
     for inheriting_section in self.inheriting_sections:
         if isinstance(inheriting_section, SectionProxy):
+            # In some reference resolution contexts, it is important to reevaluate later
+            self.m_mod_count += 1
             continue
         for inheriting_inheriting_section in inheriting_section.all_inheriting_sections:
             if isinstance(inheriting_inheriting_section, SectionProxy):
+                # In some reference resolution contexts, it is important to reevaluate later
+                self.m_mod_count += 1
                 continue
             result.add(inheriting_inheriting_section)
         result.add(inheriting_section)
@@ -4256,84 +4310,3 @@ class Environment(MSection):
             raise KeyError(f'Could not uniquely identify {name}, candidates are {defs}')
 
         raise KeyError(f'Could not resolve {name}')
-
-
-class Author(MSection):
-    from nomad.metainfo.elasticsearch_extension import material_entry_type, Elasticsearch as ElasticSearch
-
-    ''' A person that is author of data in NOMAD or references by NOMAD. '''
-    name = Quantity(
-        type=str,
-        derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
-        a_elasticsearch=[
-            ElasticSearch(material_entry_type, _es_field='keyword'),  # type: ignore
-            ElasticSearch(material_entry_type, mapping='text', field='text', _es_field=''),  # type: ignore
-            ElasticSearch(suggestion="default")
-        ])
-
-    first_name = Quantity(type=Capitalized)
-    last_name = Quantity(type=Capitalized)
-    email = Quantity(type=str)
-
-    affiliation = Quantity(type=str)
-    affiliation_address = Quantity(type=str)
-
-
-class User(Author):
-    from nomad.metainfo.pydantic_extension import PydanticModel
-    from nomad.metainfo.elasticsearch_extension import material_entry_type, Elasticsearch as ElasticSearch
-    ''' A NOMAD user.
-
-    Typically a NOMAD user has a NOMAD account. The user related data is managed by
-    NOMAD keycloak user-management system. Users are used to denote authors,
-    reviewers, and owners of datasets.
-
-    Args:
-        user_id: The unique, persistent keycloak UUID
-        username: The unique, persistent, user chosen username
-        first_name: The users first name (including all other given names)
-        last_name: The users last name
-        affiliation: The name of the company and institutes the user identifies with
-        affiliation_address: The address of the given affiliation
-        created: The time the account was created
-        repo_user_id: The id that was used to identify this user in the NOMAD CoE Repository
-        is_admin: Bool that indicated, iff the user the use admin user
-    '''
-
-    m_def = Section(a_pydantic=PydanticModel())
-
-    user_id = Quantity(
-        type=str,
-        a_elasticsearch=ElasticSearch(material_entry_type))  # type: ignore
-
-    username = Quantity(type=str)
-
-    created = Quantity(type=Datetime)
-
-    repo_user_id = Quantity(
-        type=str,
-        description='Optional, legacy user id from the old NOMAD CoE repository.')
-
-    is_admin = Quantity(
-        type=bool, derived=lambda user: user.user_id == config.services.admin_user_id)
-
-    is_oasis_admin = Quantity(type=bool, default=False)
-
-    @staticmethod
-    @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
-    def get(*args, **kwargs) -> 'User':
-        from nomad import infrastructure
-        return infrastructure.user_management.get_user(*args, **kwargs)  # type: ignore
-
-    def full_user(self) -> 'User':
-        ''' Returns a User object with all attributes loaded from the user management system. '''
-        from nomad import infrastructure
-        assert self.user_id is not None
-        return infrastructure.user_management.get_user(user_id=self.user_id)  # type: ignore
-
-
-predefined_datatypes = {
-    'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
-    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File,
-    'URL': URL, 'User': User, 'Author': Author
-}

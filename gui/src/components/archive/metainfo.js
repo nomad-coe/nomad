@@ -18,21 +18,17 @@
 
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
-import metainfoData from '../../metainfo'
+import { useErrors } from '../errors'
 import { useApi } from '../api'
+import { useDataStore } from '../DataStore'
+import { parseNomadUrl, resolveNomadUrl, resolveInternalRef, systemMetainfoUrl, createEntryUrl } from '../../utils'
+import { apiBase } from '../../config'
 
 const metainfoContext = React.createContext()
 
 export const GlobalMetainfo = React.memo(function GlobalMetainfo({children}) {
-  const [globalMetainfo, setGlobalMetainfo] = useState(metainfoData._metainfo)
-  useEffect(() => {
-    if (!globalMetainfo) {
-      createGlobalMetainfo().then(metainfo => {
-        setGlobalMetainfo(metainfo)
-      })
-    }
-  }, [setGlobalMetainfo, globalMetainfo])
-
+  const dataStore = useDataStore()
+  const globalMetainfo = useMetainfo(systemMetainfoUrl)
   const {api} = useApi()
   const [allCustomMetainfos, setAllCustomMetainfos] = useState()
 
@@ -52,22 +48,24 @@ export const GlobalMetainfo = React.memo(function GlobalMetainfo({children}) {
         processed: true
       },
       required: {
-        definitions: '*',
         metadata: {
-          mainfile: '*',
-          entry_name: '*'
+          entry_id: '*'
         }
       }
     })
+    const foundCustomMetainfos = []
     for (const data of response.data) {
-      const archive = data.archive
-      // TODO we should not createMetainfo all the time? There needs to be a
-      // register/cache based on hashes or something
-      archive._metainfo = await createMetainfo(archive, globalMetainfo, {api: api, archive: archive})
+      try {
+        const url = createEntryUrl(apiBase, data.upload_id, data.entry_id)
+        const customMetainfo = await dataStore.getMetainfoAsync(url)
+        foundCustomMetainfos.push(customMetainfo)
+      } catch (error) {
+        // Unparseable metainfo
+      }
     }
-    setAllCustomMetainfos(response.data)
-    return response.data
-  }, [globalMetainfo, api, allCustomMetainfos, setAllCustomMetainfos])
+    setAllCustomMetainfos(foundCustomMetainfos)
+    return foundCustomMetainfos
+  }, [api, dataStore, allCustomMetainfos, setAllCustomMetainfos])
 
   if (globalMetainfo) {
     globalMetainfo.fetchAllCustomMetainfos = fetchAllCustomMetainfos
@@ -87,18 +85,72 @@ export function useGlobalMetainfo() {
   return useContext(metainfoContext)
 }
 
-export function useMetainfo(data) {
+/**
+ * React function for fetching a parsed metainfo object, given a url.
+ * The url can be a string or a parsed Url object. If it is empty, null will be returned.
+ * Note, this method always returns the whole data object. I.e. if the url specifies a
+ * particular section definition, we return the metainfo data object which *contains* this
+ * definition, not just the definition itself.
+ */
+export function useMetainfo(url) {
+  const dataStore = useDataStore()
+  const {raiseError} = useErrors()
   const [metainfo, setMetainfo] = useState()
-  const globalMetainfo = useGlobalMetainfo()
+
   useEffect(() => {
-    if (data) {
-      createMetainfo(data, globalMetainfo).then(setMetainfo)
-    } else if (globalMetainfo) {
-      setMetainfo(globalMetainfo)
+    dataStore.getMetainfoAsync(url)
+      .then(setMetainfo)
+      .catch(error => {
+        raiseError(error)
+        setMetainfo(null)
+      })
+  }, [url, dataStore, raiseError, setMetainfo])
+
+  useEffect(() => {
+    // Manage subscriptions
+    if (metainfo) {
+      return dataStore.subscribeToMetainfo(metainfo._url, () => {})
     }
-  }, [data, globalMetainfo, setMetainfo])
+  }, [metainfo, dataStore])
 
   return metainfo
+}
+
+/**
+ * React function for fetching a parsed metainfo def, given a url.
+ * The url can be a string or a parsed Url object. If it is empty, null will be returned.
+ */
+export function useMetainfoDef(url) {
+  const dataStore = useDataStore()
+  const {raiseError} = useErrors()
+  const [metainfoDef, setMetainfoDef] = useState(null)
+
+  useEffect(() => {
+    if (!url) {
+      setMetainfoDef(null)
+    } else if (url.error) {
+      raiseError(url.error)
+      setMetainfoDef(null)
+    } else {
+      dataStore.getMetainfoDefAsync(url)
+        .then(result => {
+          setMetainfoDef(result)
+        })
+        .catch(error => {
+          raiseError(error)
+          setMetainfoDef(null)
+        })
+    }
+  }, [url, setMetainfoDef, dataStore, raiseError])
+
+  useEffect(() => {
+    // Manage subscriptions
+    if (metainfoDef) {
+      return dataStore.subscribeToMetainfo(getMetainfoFromDefinition(metainfoDef)._url, () => {})
+    }
+  }, [metainfoDef, dataStore])
+
+  return metainfoDef
 }
 
 export const PackageMDef = 'nomad.metainfo.metainfo.Package'
@@ -107,34 +159,6 @@ export const QuantityMDef = 'nomad.metainfo.metainfo.Quantity'
 export const SubSectionMDef = 'nomad.metainfo.metainfo.SubSection'
 export const CategoryMDef = 'nomad.metainfo.metainfo.Category'
 export const AttributeMDef = 'nomad.metainfo.metainfo.Attribute'
-
-export async function createGlobalMetainfo() {
-  return createMetainfo(metainfoData)
-}
-
-export async function createMetainfo(data, parentMetainfo, context) {
-  if (!(data.packages || data.definitions) && parentMetainfo) {
-    return parentMetainfo
-  }
-
-  if (data._metainfo) {
-    return data._metainfo
-  }
-
-  const metainfo = new Metainfo(data, parentMetainfo, context)
-  if (data.packages) {
-    await metainfo._addPackages(data.packages)
-  }
-  if (data.definitions) {
-    const entryId = data?.metadata?.entry_id
-    const mainfile = data?.metadata?.mainfile
-    const uploadId = data?.metadata?.upload_id
-    const url = mainfile && uploadId && `../uploads/${uploadId}/raw/${mainfile}#definitions`
-    await metainfo._addPackages([data.definitions], entryId ? `entry_id:${entryId}` : null, url)
-  }
-  data._metainfo = metainfo
-  return metainfo
-}
 
 export function quantityUsesFullStorage(def) {
   return def.repeats || def.variable || def.attributes?.length
@@ -157,17 +181,29 @@ export function quantityUsesFullStorage(def) {
  * root section (e.g. Package or Environment). URL fragments can be resolved here. The
  * rest of the reference URL can be used load respective resources with the context.
  */
-class Metainfo {
-  constructor(data, parent, context) {
-    this._context = context
+export class Metainfo {
+  /**
+   * Constructs a Metainfo object. Note, this should only be invoked by the store.
+   */
+  constructor(parent, data, getMetainfoAsync) {
     this._parent = parent
     this._data = data
-    this._defs = new Set()
+    this._getMetainfoAsync = getMetainfoAsync
+    this._url = data._url // the data url, always string
+    this._parsedUrl = parseNomadUrl(data._url)
 
+    this._defs = new Set()
     this._packageDefs = {}
     this._defsByNameCache = null
     this._packagePrefixCache = null
     this._rootSectionsCache = null
+    this._dependencies = new Set([this._url]) // Set of all metainfo urls (base urls [str]) on which this schema depends (including this._url)
+
+    // Initiate a single call to _parse, using a promise
+    this._isParsed = false
+    this._result = new Promise((resolve, reject) => {
+      this._parse().then(resolve).catch(reject)
+    })
   }
 
   /**
@@ -195,6 +231,23 @@ class Metainfo {
       return result
     }, {})
     return this._defsByNameCache
+  }
+
+  /**
+   * Gets a definition by its qualified name
+   */
+  getDefByQualifiedName(qualifiedName) {
+    const defQualifiedNameSegments = qualifiedName.split('.')
+    const packageName = defQualifiedNameSegments.slice(0, -1).join('.')
+    const sectionName = defQualifiedNameSegments[defQualifiedNameSegments.length - 1]
+    return this._packageDefs[packageName]?._sections?.[sectionName]
+  }
+
+  /**
+   * Gets a definition by its path (starting with '#' or '/', i.e. from the 'root' of the metainfo data)
+   */
+  getDefByPath(path) {
+    return resolveInternalRef(path, this._data)
   }
 
   /**
@@ -240,6 +293,25 @@ class Metainfo {
     return entryArchiveDefinition
   }
 
+  /**
+   * Parses the metainfo data
+   */
+  async _parse() {
+    // Parse data
+    if (this._data.packages) {
+      await this._addPackages(this._data.packages)
+    }
+    if (this._data.definitions) {
+      const entryId = this._data?.metadata?.entry_id // TODO: which format to use?
+      const mainfile = this._data?.metadata?.mainfile
+      const uploadId = this._data?.metadata?.upload_id
+      const url = mainfile && uploadId && `../uploads/${uploadId}/raw/${mainfile}#definitions`
+      await this._addPackages([this._data.definitions], entryId ? `entry_id:${entryId}` : null, url)
+    }
+    this._isParsed = true
+    return this
+  }
+
   async _addDef(def) {
     // only add if not already added
     if (this._defs.has(def)) {
@@ -262,7 +334,6 @@ class Metainfo {
     sectionDef.inner_section_definitions = sectionDef.inner_section_definitions || []
     sectionDef._allBaseSections = []
     sectionDef._allInheritingSections = []
-    sectionDef._incomingRefs = []
     sectionDef._parentSections = []
     sectionDef._parentSubSections = []
 
@@ -368,8 +439,6 @@ class Metainfo {
         property.shape = property.shape || []
         if (isReference(property)) {
           const referencedSection = await this.resolveDefinition(property.type.type_data)
-          referencedSection._incomingRefs = referencedSection._incomingRefs || []
-          referencedSection._incomingRefs.push(property)
           property.type._referencedSection = referencedSection
         }
       } else if (property.m_def === SubSectionMDef) {
@@ -408,6 +477,8 @@ class Metainfo {
     for (const sectionDef of pkg.section_definitions) {
       await this._addSection(pkg, sectionDef, pkg, 'section_definitions', index++)
     }
+
+    pkg._metainfo = this // Allows us to, from a pkg definition, get the metainfo object containing it.
   }
 
   async _addPackages(packages, unique_id, url) {
@@ -462,165 +533,47 @@ class Metainfo {
     return path.reverse().join('/')
   }
 
-  async resolveDefinitionList(references, context) {
+  async resolveDefinitionList(references) {
     const result = []
     for (const reference of references) {
-      result.push(await this.resolveDefinition(reference, context))
+      result.push(await this.resolveDefinition(reference))
     }
     return result
   }
 
-  async resolveDefinition(reference, context) {
-    context = context || this._context
+  /**
+   * Resolves a reference found inside this metainfo object
+   */
+  async resolveDefinition(reference) {
     if (typeof reference !== 'string') {
       // already resolved
       return reference
     }
-    if (reference.match(/.+#.*/)) {
-      if (!context) {
-        console.error('cannot resolve definition without context', reference)
-        return null
-      }
-      return resolveRefAsync(reference, this._data, context, async archive => {
-        if (!archive._metainfo) {
-          archive._metainfo = await createMetainfo(archive, context.metainfo, context)
+    if (reference.startsWith('#') || reference.startsWith('/')) {
+      // Local path reference
+      return this.getDefByPath(reference)
+    }
+    const resolvedUrl = resolveNomadUrl(reference, this._parsedUrl)
+    if (resolvedUrl.versionHash) {
+      // Reference to a frozen metainfo
+      throw new Error('Fetching frozen schemas not yet implemented')
+    } else if (resolvedUrl.qualifiedName) {
+      // Reference to the system metainfo, using qualified name
+      const systemMetainfo = this._url === systemMetainfoUrl ? this : await this._getMetainfoAsync(systemMetainfoUrl)
+      return systemMetainfo.getDefByQualifiedName(resolvedUrl.qualifiedName)
+    } else if (resolvedUrl.entryId) {
+      // Reference to entry metainfo
+      const metainfo = await this._getMetainfoAsync(resolvedUrl)
+      if (metainfo._url !== systemMetainfoUrl && !this._isParsed) {
+        if (!this._dependencies.has(metainfo._url)) {
+          // Add this metainfo and all its dependencies to our dependencies
+          metainfo._dependencies.forEach(url => this._dependencies.add(url))
         }
-      })
-    }
-
-    const resolved = await this._parent?.resolveDefinition(reference, context)
-    if (resolved) {
-      return resolved
-    }
-
-    if (reference.includes('#') || reference.includes('/')) {
-      return resolveRef(reference, this._data)
-    } else {
-      const qualifiedName = reference
-      const defQualifiedNameSegments = qualifiedName.split('.')
-      const packageName = defQualifiedNameSegments.slice(0, -1).join('.')
-      const sectionName = defQualifiedNameSegments[defQualifiedNameSegments.length - 1]
-      return this._packageDefs[packageName]?._sections?.[sectionName]
-    }
-  }
-}
-
-export async function resolveRefAsync(reference, data, context, adaptArchive) {
-  if (!data) {
-    data = context?.archive
-  }
-
-  if (!data) {
-    return resolveRef(reference)
-  }
-
-  if (!reference.includes('#') || reference.startsWith('#')) {
-    return resolveRef(reference, data)
-  }
-
-  let resourceUrl = reference.slice(0, reference.indexOf('#'))
-  reference = reference.slice(reference.indexOf('#'))
-  if (!context.resources[resourceUrl]) {
-    try {
-      let apiUrl
-      let uploadId = context.uploadId
-
-      const uploadIdMatch = resourceUrl.match(/\.\.\/uploads\/([a-zA-Z0-9_-]+)\//)
-      if (uploadIdMatch) {
-        uploadId = uploadIdMatch[1]
-        resourceUrl = '../upload/' + resourceUrl.slice(uploadIdMatch[0].length)
       }
-
-      if (resourceUrl.startsWith('../upload/archive')) {
-        apiUrl = `uploads/${uploadId}/${resourceUrl.slice('../upload/'.length)}`
-      } else if (resourceUrl.startsWith('../upload/raw')) {
-        const mainfile = resourceUrl.slice('../upload/raw/'.length)
-        const queryBody = ({
-          owner: 'visible',
-          query: {
-            upload_id: uploadId,
-            'mainfile': mainfile
-          },
-          required: {
-            include: ['entry_id']
-          }
-        })
-        const queryResponse = await context.api.post(`/entries/query`, queryBody)
-        if (!queryResponse.data[0]) {
-          return null
-        }
-        const entryId = queryResponse.data[0].entry_id
-        apiUrl = `uploads/${uploadId}/archive/${entryId}`
-      } else {
-        console.error(`Reference solutions for urls like ${resourceUrl} is not yet implemented.`)
-        return null
-      }
-
-      const response = await context.api.get(apiUrl)
-      const archive = response.data.archive
-      context.resources[resourceUrl] = archive
-    } catch {
-      return null
+      return metainfo.getDefByPath(resolvedUrl.path)
     }
+    throw new Error(`Bad reference encountered: ${reference}`)
   }
-  data = context.resources[resourceUrl]
-  if (adaptArchive) {
-    await adaptArchive(data)
-  }
-  if (!data) {
-    return null
-  }
-
-  return resolveRef(reference, data)
-}
-
-/**
- * Resolves the given string reference into the actual data.
- * @param {string} ref Reference.
- * @param {object} data Archive.
- */
-export function resolveRef(ref, data) {
-  if (!ref) {
-    return null
-  }
-
-  const resolve = (ref, context) => {
-    const parts = ref.split('#')
-    if (parts.length === 2 && parts[0] !== '') {
-      const url = parts[0]
-      ref = parts[1]
-      data = data?.resources?.[url]
-      if (!data) {
-        return null
-      }
-    } else {
-      if (parts.length === 2) {
-        ref = parts[1]
-      } else {
-        ref = parts[0]
-      }
-    }
-
-    try {
-      context = data || metainfoData
-      const segments = ref.split('/').filter(segment => segment !== '')
-      const reducer = (current, segment) => {
-        return isNaN(segment)
-          ? current?.[segment] || current?._properties?.[segment] || current?.sub_section?._properties?.[segment]
-          : current?.repeats && current?.m_def
-            ? current
-            : current?.[parseInt(segment)]
-      }
-      return segments.reduce(reducer, context)
-    } catch (e) {
-      console.log('could not resolve: ' + ref)
-      throw e
-    }
-  }
-  if (Array.isArray(ref)) {
-    return ref.map(x => resolve(x, data))
-  }
-  return resolve(ref, data)
 }
 
 /**
@@ -679,6 +632,14 @@ export function getSectionReference(definition) {
     return `${ref}/${definition._parentIndex}`
   }
   return ref
+}
+
+/**
+ * Given a definition, gets the metainfo object in which it is defined.
+ */
+export function getMetainfoFromDefinition(definition) {
+  if (definition._metainfo) return definition._metainfo
+  return getMetainfoFromDefinition(definition._package || definition._parent || definition._section)
 }
 
 /**
@@ -766,13 +727,18 @@ export function vicinityGraph(def) {
         })
         const references = def.quantities.filter(quantity => quantity.type.type_kind === 'reference')
         const layoutMiddle = (references.length - 1) * dx / 2
+        const metainfo = getMetainfoFromDefinition(def)
         references.forEach((reference, i) => {
-          const referencedSectionDef = resolveRef(reference.type.type_data)
-          const referenced = addNode(
-            referencedSectionDef,
-            {x: x + i * dx - layoutMiddle, y: y + dy, i: i},
-            () => reference._qualifiedName)
-          addEdge(node, referenced, reference)
+          try {
+            const referencedSectionDef = resolveInternalRef(reference.type.type_data, metainfo)
+            const referenced = addNode(
+              referencedSectionDef,
+              {x: x + i * dx - layoutMiddle, y: y + dy, i: i},
+              () => reference._qualifiedName)
+            addEdge(node, referenced, reference)
+          } catch (error) {
+            // Ignore for now. External ref?
+          }
         })
       } else if (def.m_def === QuantityMDef) {
         const section = addNode(def._section, {

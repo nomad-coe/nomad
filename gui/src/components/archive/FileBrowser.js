@@ -37,25 +37,19 @@ import Dropzone from 'react-dropzone'
 import Download from '../entry/Download'
 import Quantity from '../Quantity'
 import FilePreview, {viewers} from './FilePreview'
-import { archiveAdaptorFactory, useBrowserAdaptorContext } from './ArchiveBrowser'
-import { createMetainfo } from './metainfo'
+import { useEntryPageContext } from '../entry/EntryPageContext'
+import { archiveAdaptorFactory } from './ArchiveBrowser'
 import NorthLaunchButton from '../north/NorthLaunchButton'
 import { useTools } from '../north/NorthPage'
 import { EntryButton } from '../nav/Routes'
 import { useErrors } from '../errors'
 import { apiBase } from '../../config'
-import { parseNomadUrl, refType, urlJoin, urlEncodePath } from '../../utils'
+import { parseNomadUrl, refType, urlJoin, urlEncodePath, systemMetainfoUrl, createEntryUrl } from '../../utils'
 
 const FileBrowser = React.memo(({uploadUrl, rootTitle, highlightedItem = null}) => {
-  const context = useBrowserAdaptorContext()
   const adaptor = useMemo(() => {
-    return new RawDirectoryAdaptor(
-      context, uploadUrl, rootTitle, highlightedItem)
-  }, [context, uploadUrl, rootTitle, highlightedItem])
-
-  if (!context.metainfo) {
-    return null
-  }
+    return new RawDirectoryAdaptor(uploadUrl, rootTitle, highlightedItem)
+  }, [uploadUrl, rootTitle, highlightedItem])
 
   return <Browser adaptor={adaptor} />
 })
@@ -67,8 +61,8 @@ FileBrowser.propTypes = {
 export default FileBrowser
 
 class RawDirectoryAdaptor extends Adaptor {
-  constructor(context, uploadUrl, title, highlightedItem) {
-    super(context)
+  constructor(uploadUrl, title, highlightedItem) {
+    super()
     const parsedUrl = parseNomadUrl(uploadUrl)
     if (parsedUrl.type !== refType.upload) throw new Error(`Expected an upload url, got ${uploadUrl}`)
     if (!parsedUrl.isResolved) throw new Error(`Absolute url required, got ${uploadUrl}`)
@@ -98,6 +92,9 @@ class RawDirectoryAdaptor extends Adaptor {
     this.editable = uploadStoreObj.isEditable
     await this.fetchData()
   }
+  cleanup() {
+    delete this.data
+  }
   async fetchData() {
     const encodedPath = urlEncodePath(this.path)
     if (this.installationUrl !== apiBase) throw new Error('Fetching directory data from external source is not yet supported')
@@ -122,9 +119,9 @@ class RawDirectoryAdaptor extends Adaptor {
     }
     if (element) {
       if (element.is_file) {
-        return new RawFileAdaptor(this.context, extendedUrl, element, this.editable)
+        return new RawFileAdaptor(extendedUrl, element, this.editable)
       } else {
-        return new RawDirectoryAdaptor(this.context, extendedUrl, key, null)
+        return new RawDirectoryAdaptor(extendedUrl, key, null)
       }
     }
     throw new Error('Bad path: ' + key)
@@ -205,6 +202,7 @@ const useRawDirectoryContentStyles = makeStyles(theme => ({
 function RawDirectoryContent({installationUrl, uploadId, path, title, highlightedItem, editable}) {
   const classes = useRawDirectoryContentStyles()
   const dataStore = useDataStore()
+  const entryPageMainFile = useEntryPageContext()?.metadata?.mainfile // Will be set if we're on an entry page
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
   const history = useHistory()
@@ -285,8 +283,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     setOpenConfirmDeleteDirDialog(false)
     api.delete(`/uploads/${uploadId}/raw/${encodedPath}`)
       .then(response => {
-        const mainfile = lane.adaptor.context?.mainfile // Will be set if we're on an entry page
-        if (typeof mainfile === 'string' && (path === '' || mainfile === path || mainfile.startsWith(path + '/'))) {
+        if (typeof mainfile === 'string' && (path === '' || entryPageMainFile === path || entryPageMainFile.startsWith(path + '/'))) {
           // This will delete the current entry - go to upload overview page
           history.push(`/user/uploads/upload/id/${uploadId}`)
         } else {
@@ -451,8 +448,12 @@ RawDirectoryContent.propTypes = {
 }
 
 export class RawFileAdaptor extends Adaptor {
-  constructor(context, uploadUrl, data, editable) {
-    super(context)
+  /**
+   * Constructs an adaptor for a file lane. Note, data is optional, if not provided it will
+   * be fetched in initialize.
+   */
+  constructor(uploadUrl, data, editable) {
+    super()
     const parsedUrl = parseNomadUrl(uploadUrl)
     if (parsedUrl.type !== refType.upload) throw new Error(`Expected an upload url, got ${uploadUrl}`)
     if (!parsedUrl.isResolved) throw new Error(`Absolute url required, got ${uploadUrl}`)
@@ -466,21 +467,22 @@ export class RawFileAdaptor extends Adaptor {
   depends() {
     return this.dependencies
   }
+  async initialize(api, dataStore) {
+    this.dataStore = dataStore
+    if (!this.data) {
+      const response = await api.get(`uploads/${this.uploadId}/rawdir/${this.path}`)
+      this.data = response.file_metadata
+    }
+  }
   async itemAdaptor(key) {
     if (key === 'archive') {
-      if (!this.data.archive) {
-        const response = await this.context.api.get(`entries/${this.data.entry_id}/archive`)
-        this.data.archive = response.data.archive
-        this.data.archive._metainfo = await createMetainfo(this.data.archive, this.context.metainfo, this.context)
-      }
-      const childContext = {
-        ...this.context,
-        metainfo: this.data.archive._metainfo || this.context.metainfo,
-        archive: this.data.archive
-      }
-      return archiveAdaptorFactory(childContext, this.data.archive)
+      const archiveUrl = createEntryUrl(this.installationUrl, this.uploadId, this.data.entry_id)
+      const {archive} = await this.dataStore.getEntryAsync(this.installationUrl, this.data.entry_id, false, '*')
+      const metainfo = await this.dataStore.getMetainfoAsync(systemMetainfoUrl)
+      const rootSectionDef = metainfo.getEntryArchiveDefinition()
+      return archiveAdaptorFactory(archiveUrl, archive, rootSectionDef)
     } else if (key === 'preview') {
-      return new FilePreviewAdaptor(this.context, this.uploadId, this.path, this.data)
+      return new FilePreviewAdaptor(this.uploadId, this.path, this.data)
     }
   }
   render() {
@@ -491,8 +493,8 @@ export class RawFileAdaptor extends Adaptor {
 }
 
 class FilePreviewAdaptor extends Adaptor {
-  constructor(context, uploadId, path, data) {
-    super(context)
+  constructor(uploadId, path, data) {
+    super()
     this.uploadId = uploadId
     this.path = path
     this.data = data
@@ -505,6 +507,7 @@ class FilePreviewAdaptor extends Adaptor {
 }
 
 function RawFileContent({installationUrl, uploadId, path, data, editable}) {
+  const entryPageMainFile = useEntryPageContext()?.metadata?.mainfile // Will be set if we're on an entry page
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
   const history = useHistory()
@@ -528,8 +531,7 @@ function RawFileContent({installationUrl, uploadId, path, data, editable}) {
     setOpenConfirmDeleteFileDialog(false)
     api.delete(`/uploads/${uploadId}/raw/${encodedPath}`)
       .then(response => {
-        const mainfile = lane.adaptor.context?.mainfile // Will be set if we're on an entry page
-        if (path === mainfile) {
+        if (path === entryPageMainFile) {
           // Deleting the main entry - go to upload overview page
           history.push(`/user/uploads/upload/id/${uploadId}`)
         } else {

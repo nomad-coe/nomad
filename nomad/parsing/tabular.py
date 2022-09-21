@@ -234,6 +234,7 @@ class TabularDataParser(MatchingParser):
     def __init__(self) -> None:
         super().__init__(
             name='parser/tabular', code_name='tabular data',
+            domain=None,
             mainfile_mime_re=r'text/.*|application/.*',
             mainfile_name_re=r'.*\.archive\.(csv|xlsx?)$')
 

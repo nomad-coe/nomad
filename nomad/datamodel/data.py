@@ -18,10 +18,15 @@
 
 import os.path
 
-from nomad.metainfo import MSection
+from typing import Any
+from cachetools import cached, TTLCache
+from ..metainfo.metainfo import predefined_datatypes
+from nomad import metainfo, config
+from nomad.metainfo.pydantic_extension import PydanticModel
+from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 
 
-class ArchiveSection(MSection):
+class ArchiveSection(metainfo.MSection):
     '''
     Base class for sections in a NOMAD archive. Provides a framework for custom
     section normalization via the `normalize` function.
@@ -57,3 +62,143 @@ class EntryData(ArchiveSection):
 
         if not archive.results:
             archive.results = Results()
+
+
+class Author(metainfo.MSection):
+    ''' A person that is author of data in NOMAD or references by NOMAD. '''
+    name = metainfo.Quantity(
+        type=str,
+        derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type, _es_field='keyword'),
+            Elasticsearch(material_entry_type, mapping='text', field='text', _es_field=''),
+            Elasticsearch(suggestion="default")
+        ])
+
+    first_name = metainfo.Quantity(type=metainfo.Capitalized)
+    last_name = metainfo.Quantity(type=metainfo.Capitalized)
+    email = metainfo.Quantity(type=str)
+
+    affiliation = metainfo.Quantity(type=str)
+    affiliation_address = metainfo.Quantity(type=str)
+
+
+class User(Author):
+    ''' A NOMAD user.
+
+    Typically a NOMAD user has a NOMAD account. The user related data is managed by
+    NOMAD keycloak user-management system. Users are used to denote authors,
+    reviewers, and owners of datasets.
+
+    Args:
+        user_id: The unique, persistent keycloak UUID
+        username: The unique, persistent, user chosen username
+        first_name: The users first name (including all other given names)
+        last_name: The users last name
+        affiliation: The name of the company and institutes the user identifies with
+        affiliation_address: The address of the given affiliation
+        created: The time the account was created
+        repo_user_id: The id that was used to identify this user in the NOMAD CoE Repository
+        is_admin: Bool that indicated, iff the user the use admin user
+    '''
+
+    m_def = metainfo.Section(a_pydantic=PydanticModel())
+
+    user_id = metainfo.Quantity(
+        type=str,
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    username = metainfo.Quantity(type=str)
+
+    created = metainfo.Quantity(type=metainfo.Datetime)
+
+    repo_user_id = metainfo.Quantity(
+        type=str,
+        description='Optional, legacy user id from the old NOMAD CoE repository.')
+
+    is_admin = metainfo.Quantity(
+        type=bool, derived=lambda user: user.user_id == config.services.admin_user_id)
+
+    is_oasis_admin = metainfo.Quantity(type=bool, default=False)
+
+    @staticmethod
+    @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
+    def get(*args, **kwargs) -> 'User':
+        from nomad import infrastructure
+        return infrastructure.user_management.get_user(*args, **kwargs)  # type: ignore
+
+    def full_user(self) -> 'User':
+        ''' Returns a User object with all attributes loaded from the user management system. '''
+        from nomad import infrastructure
+        assert self.user_id is not None
+        return infrastructure.user_management.get_user(user_id=self.user_id)  # type: ignore
+
+
+class UserReference(metainfo.Reference):
+    '''
+    Special metainfo reference type that allows to use user_ids as values. It automatically
+    resolves user_ids to User objects. This is done lazily on getting the value.
+    '''
+
+    def __init__(self):
+        super().__init__(User.m_def)
+
+    def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
+        return User.get(user_id=proxy.m_proxy_value)
+
+    def serialize_type(self, type_data):
+        return dict(type_kind='User', type_data=self.target_section_def.name)
+
+    @classmethod
+    def deserialize_type(cls, type_kind, type_data, section):
+        if type_kind == 'User':
+            return user_reference
+        return None
+
+    def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
+        return value.user_id
+
+
+user_reference = UserReference()
+predefined_datatypes["User"] = user_reference
+
+
+class AuthorReference(metainfo.Reference):
+    '''
+    Special metainfo reference type that allows to use either user_ids or direct author
+    information as values. It automatically resolves user_ids to User objects and author
+    data into Author objects.
+    '''
+
+    def __init__(self):
+        super().__init__(Author.m_def)
+
+    def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
+        proxy_value = proxy.m_proxy_value
+        if isinstance(proxy_value, str):
+            return User.get(user_id=proxy.m_proxy_value)
+        elif isinstance(proxy_value, dict):
+            return Author.m_from_dict(proxy_value)
+        else:
+            raise metainfo.MetainfoReferenceError()
+
+    def serialize_type(self, type_data):
+        return dict(type_kind='Author', type_data=self.target_section_def.name)
+
+    @classmethod
+    def deserialize_type(cls, type_kind, type_data, section):
+        if type_kind == 'Author':
+            return author_reference
+        return None
+
+    def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
+        if isinstance(value, User):
+            return value.user_id
+        elif isinstance(value, Author):
+            return value.m_to_dict()
+        else:
+            raise metainfo.MetainfoReferenceError()
+
+
+author_reference = AuthorReference()
+predefined_datatypes["Author"] = author_reference

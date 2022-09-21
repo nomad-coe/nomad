@@ -222,4 +222,4 @@ GeometryOptimization.defaultProps = {
   'data-testid': 'geometry-optimization'
 }
 
-export default withErrorHandler(GeometryOptimization, 'Could not load geometry optimization data.')
+export default withErrorHandler('Could not load geometry optimization data.')(GeometryOptimization)

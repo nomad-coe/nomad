@@ -217,4 +217,4 @@ DOS.defaultProps = {
   type: 'electronic'
 }
 
-export default withErrorHandler(DOS, 'Could not load density of states.')
+export default withErrorHandler('Could not load density of states.')(DOS)

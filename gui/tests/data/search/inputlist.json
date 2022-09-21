@@ -94,6 +94,10 @@
                   },
                   {
                     "count": 0,
+                    "value": "AMS"
+                  },
+                  {
+                    "count": 0,
                     "value": "ASAP"
                   },
                   {
@@ -107,10 +111,6 @@
                   {
                     "count": 0,
                     "value": "AtomistixToolKit"
-                  },
-                  {
-                    "count": 0,
-                    "value": "BAND"
                   },
                   {
                     "count": 0,
@@ -312,7 +312,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5256",
+          "content-length": "5255",
           "content-type": "application/json",
           "server": "uvicorn"
         }

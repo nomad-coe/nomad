@@ -261,8 +261,13 @@ class RequiredReader:
                 result[prop] = value.to_list() if isinstance(value, ArchiveList) else value
                 continue
 
-            result[prop] = [handle_item(item) for item in value] if isinstance(
-                value, (list, ArchiveList)) else handle_item(value)
+            try:
+                result[prop] = [handle_item(item) for item in value] if isinstance(
+                    value, (list, ArchiveList)) else handle_item(value)
+            except ArchiveError as e:
+                # We continue just logging the error. Unresolvable references
+                # will appear as unset references in the returned archive.
+                utils.get_logger(__name__).error('archive error', exc_info=e)
 
         return result
 
@@ -416,6 +421,11 @@ class RequiredReader:
                     result[prop] = [self._apply_required(val, item, dataset) for item in archive_child]
                 else:
                     result[prop] = self._apply_required(val, archive_child, dataset)
+            except ArchiveError as e:
+                # We continue just logging the error. Unresolvable references
+                # will appear as unset references in the returned archive.
+                utils.get_logger(__name__).error('archive error', exc_info=e)
+                continue
             except (KeyError, IndexError):
                 continue
 

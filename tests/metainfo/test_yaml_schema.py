@@ -2,6 +2,7 @@ import numpy as np            # pylint: disable=unused-import
 import pytest
 import yaml
 
+from nomad.datamodel.data import UserReference, AuthorReference
 from nomad.metainfo.metainfo import MTypes
 from nomad.utils import strip
 
@@ -232,4 +233,35 @@ def test_datatype_component_annotations(eln_type, eln_component):
                 package.__init_metainfo__()
             assert isinstance(exception.value, MetainfoError)
             assert exception.value.args[0] == 'One constraint was violated: The component `%s` is not compatible with the quantity `%s` of the type `%s`. Accepted components: %s (there are 0 more violations)' \
-                   % (eln_component, 'quantity_name', type_name, ', '.join(MTypes.eln_component[eln_type]))
+                % (eln_component, 'quantity_name', type_name, ', '.join(MTypes.eln_component[eln_type]))
+
+
+yaml_schema_user_author = strip('''
+m_def: 'nomad.metainfo.metainfo.Package'
+sections:
+  Sample:
+    base_section: 'nomad.datamodel.metainfo.measurements.Sample'
+    quantities:
+      my_user:
+        type: User
+        m_annotations:
+          eln:
+            component: UserEditQuantity
+      my_author:
+        type: Author
+        m_annotations:
+          eln:
+            component: AuthorEditQuantity
+''')
+
+
+def test_user_author_yaml_deserialization():
+    des_m_package = yaml_to_package(yaml_schema_user_author)
+    des_sample = des_m_package['section_definitions'][0]
+    des_my_user = des_sample.quantities[0]
+    des_my_author = des_sample.quantities[1]
+
+    assert des_my_user.name == 'my_user'
+    assert des_my_author.name == 'my_author'
+    assert isinstance(des_my_user.type, UserReference)
+    assert isinstance(des_my_author.type, AuthorReference)
