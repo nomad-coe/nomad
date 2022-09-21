@@ -2383,7 +2383,6 @@ class Results(MSection):
     method = SubSection(sub_section=Method.m_def, repeats=False)
     properties = SubSection(sub_section=Properties.m_def, repeats=False)
     eln = SubSection(sub_section=ELN.m_def, repeats=False)
-    solarcell = SubSection(sub_section=SolarCell.m_def, repeats=False)
 
 
 m_package.__init_metainfo__()
