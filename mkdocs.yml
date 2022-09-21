@@ -17,10 +17,12 @@ nav:
     - schema/elns.md
   # - Using the AI Toolkit and other remote tools: aitoolkit.md
   - Developing NOMAD:
-    - developers.md
-    - search.md
-    - parser.md
-    - normalizers.md
+    - develop/setup.md
+    - develop/guides.md
+    - develop/gitlab.md
+    - develop/search.md
+    - develop/parser.md
+    - develop/normalizers.md
   - Operating NOMAD (Oasis): oasis.md
 theme:
   name: material
