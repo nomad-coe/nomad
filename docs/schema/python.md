@@ -249,7 +249,7 @@ followed?
 
 ### Schema super structure
 
-You should follow the basic [developer's getting started](../developers.md) to setup a development environment. This will give you all the necessary libraries and allows you
+You should follow the basic [developer's getting started](../develop/setup.md) to setup a development environment. This will give you all the necessary libraries and allows you
 to place your modules into the NOMAD code.
 
 The `EntryArchive` section definition sets the root of the archive for each entry in
@@ -257,7 +257,7 @@ NOMAD. It therefore defines the top level sections:
 
 - `metadata`, all "administrative" metadata (ids, permissions, publish state, uploads, user metadata, etc.)
 - `results`, a summary with copies and references to data from method specific sections. This also
-presents the [searchable metadata](../search.md).
+presents the [searchable metadata](../develop/search.md).
 - `workflows`, all workflow metadata
 - Method specific sub-sections, e.g. `run`. This is were all parsers are supposed to
 add the parsed data.
