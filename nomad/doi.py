@@ -112,7 +112,7 @@ class DOI(Document):
         # to create new DOIs based on a counter per day until we find a non existing DOI.
         # This might be bad if many DOIs per day are to be expected.
         counter = 1
-        create_time = datetime.datetime.now()
+        create_time = datetime.datetime.utcnow()
 
         while True:
             doi_str = '%s/NOMAD/%s-%d' % (

@@ -45,6 +45,7 @@ import Quantity from '../Quantity'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import { useHistory } from 'react-router-dom'
 import DeleteUploadsButton from './DeleteUploadsButton'
+import { formatTimestamp } from '../../utils'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -131,7 +132,7 @@ export function useUploadsPageContext() {
 const columns = [
   {
     key: 'upload_create_time',
-    render: upload => new Date(upload.upload_create_time).toLocaleString()
+    render: upload => formatTimestamp(upload.upload_create_time)
   },
   {key: 'upload_name'},
   {

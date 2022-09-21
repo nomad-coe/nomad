@@ -42,6 +42,7 @@ import {
 } from '../archive/ArchiveBrowser'
 import { useErrors } from '../errors'
 import DefinitionsCard from './properties/DefinitionsCard'
+import { ErrorHandler } from '../ErrorHandler'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -223,27 +224,50 @@ const OverviewView = React.memo((props) => {
         )}
         {sections
           .map((section, index) => (
-            <SectionCard
-              key={index} {...section}
-              archivePath={section.archivePath.replace(/\./g, '/')}
-              readOnly={!editable}
-            />
+            <ErrorHandler key={index} message="Could not render section card.">
+              <SectionCard
+                {...section}
+                archivePath={section.archivePath.replace(/\./g, '/')}
+                readOnly={!editable}
+              />
+            </ErrorHandler>
           ))
         }
-        <DefinitionsCard index={index} archive={archive}/>
-        <NexusCard index={index}/>
-        {index?.results?.material?.topology
-          ? <MaterialCardTopology index={index} archive={archive} properties={properties}/>
-          : <MaterialCard index={index} archive={archive} properties={properties}/>
-        }
-        <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
-        <OptoelectronicPropertiesCard index={index} archive={archive} properties={properties}/>
-        <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
-        <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>
-        <ThermodynamicPropertiesCard index={index} archive={archive} properties={properties}/>
-        <StructuralProperties index={index} archive={archive} properties={properties}/>
-        <GeometryOptimizationCard index={index} archive={archive} properties={properties}/>
-        <SpectroscopyCard index={index} archive={archive} properties={properties}/>
+        <ErrorHandler message="Could not render definitions card.">
+          <DefinitionsCard index={index} archive={archive}/>
+        </ErrorHandler>
+        <ErrorHandler message="Could not render Nexus card.">
+          <NexusCard index={index}/>
+        </ErrorHandler>
+        <ErrorHandler message="Could not render materials card.">
+          {index?.results?.material?.topology
+            ? <MaterialCardTopology index={index} archive={archive} properties={properties}/>
+            : <MaterialCard index={index} archive={archive} properties={properties}/>}
+        </ErrorHandler>
+        <ErrorHandler message="Could not render electronic properties.">
+          <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
+        </ErrorHandler>
+        <ErrorHandler message="Could not render opto-electronic properties.">
+          <OptoelectronicPropertiesCard index={index} archive={archive} properties={properties}/>
+        </ErrorHandler>
+        <ErrorHandler message="Could not render vibrational properties.">
+          <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
+        </ErrorHandler>
+        <ErrorHandler message="Could not render mechanical properties.">
+          <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>
+        </ErrorHandler>
+        <ErrorHandler message="Could not render thermodynamic properties.">
+          <ThermodynamicPropertiesCard index={index} archive={archive} properties={properties}/>
+        </ErrorHandler>
+        <ErrorHandler message="Could not render structural properties.">
+          <StructuralProperties index={index} archive={archive} properties={properties}/>
+        </ErrorHandler>
+        <ErrorHandler message="Could not render geometry optimization.">
+          <GeometryOptimizationCard index={index} archive={archive} properties={properties}/>
+        </ErrorHandler>
+        <ErrorHandler message="Could not render spectroscopy.">
+          <SpectroscopyCard index={index} archive={archive} properties={properties}/>
+        </ErrorHandler>
       </Grid>
     </Grid>
   </Page>
