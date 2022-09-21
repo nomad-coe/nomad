@@ -259,7 +259,7 @@ async def post_datasets(
     Create a new dataset.
     '''
 
-    now = datetime.now()
+    now = datetime.utcnow()
     dataset_type = create.dataset_type if create.dataset_type is not None else DatasetType.owned
 
     # check if name already exists

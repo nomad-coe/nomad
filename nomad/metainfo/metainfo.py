@@ -103,6 +103,8 @@ validElnComponents = {
     'reference': ['ReferenceEditQuantity']
 }
 
+_unset_value = '__UNSET__'
+
 
 def _default_hash():
     return hashlib.new(_hash_method)
@@ -969,6 +971,12 @@ class QuantityReference(Reference):
     def serialize_proxy_value(self, proxy):
         return f'{proxy.m_proxy_value}/{self.target_quantity_def.name}'
 
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if not value.m_is_set(self.target_quantity_def):
+            return _unset_value
+
+        return super().set_normalize(section, quantity_def, value)
+
     def get_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         section = super().get_normalize(section, quantity_def, value)
         return getattr(section, self.target_quantity_def.name)
@@ -1700,12 +1708,21 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if dimensions == 0:
                 value = self.__set_normalize(quantity_def, value)
 
+                if value == _unset_value:
+                    return
+
             elif dimensions == 1:
                 if type(value) == str or not isinstance(value, IterableABC):
                     raise TypeError(
                         f'The shape of {quantity_def} requires an iterable value, but {value} is not iterable.')
 
-                value = list(self.__set_normalize(quantity_def, item) for item in value)
+                list_value = list()
+                for item in value:
+                    item_value = self.__set_normalize(quantity_def, item)
+                    if item_value == _unset_value:
+                        continue
+                    list_value.append(item_value)
+                value = list_value
 
                 def __check_shape(shape):
                     if not isinstance(shape, str) or shape == '*':

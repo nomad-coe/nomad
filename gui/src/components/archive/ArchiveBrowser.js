@@ -57,7 +57,7 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import XYPlot from './XYPlot'
 import {
   titleCase, createUploadUrl, parseNomadUrl, refType,
-  resolveNomadUrl, resolveInternalRef, systemMetainfoUrl} from '../../utils'
+  resolveNomadUrl, resolveInternalRef, systemMetainfoUrl, formatTimestamp} from '../../utils'
 import {EntryButton} from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import ReloadIcon from '@material-ui/icons/Replay'
@@ -609,7 +609,7 @@ function QuantityItemPreview({value, def}) {
       </Typography>
     </Box>
   } else {
-    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
+    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? formatTimestamp(value) : value)
     let finalUnit
     if (def.unit) {
       const a = new Q(finalValue, def.unit).toSystem(units)
@@ -631,7 +631,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
   const units = useUnits()
 
   const getRenderValue = useCallback(value => {
-    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
+    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? formatTimestamp(value) : value)
     let finalUnit
     if (def.unit) {
       const a = new Q(finalValue, def.unit).toSystem(units)

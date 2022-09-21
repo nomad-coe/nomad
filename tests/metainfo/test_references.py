@@ -128,12 +128,11 @@ def test_section_proxy(example_data):
 
 
 def test_quantity_proxy(example_data):
-    example_data.referencing.quantity_reference = MProxy(
-        'doesnotexist',
-        m_proxy_section=example_data.referencing,
-        m_proxy_type=Referencing.section_reference.type)
     with pytest.raises(MetainfoReferenceError):
-        example_data.referencing.quantity_reference
+        example_data.referencing.quantity_reference = MProxy(
+            'doesnotexist',
+            m_proxy_section=example_data.referencing,
+            m_proxy_type=Referencing.section_reference.type)
 
     example_data.referencing.quantity_reference = MProxy(
         '/referenced',
@@ -185,6 +184,14 @@ def test_quantity_references_serialize():
     }
     root = Root.m_from_dict(source)
     assert source == root.m_to_dict()
+
+
+def test_quantity_references_unset_serialize():
+    referencing = Referencing()
+    referencing.quantity_reference = Referenced()
+
+    assert not referencing.m_is_set(Referencing.quantity_reference)
+    assert 'quantity_reference' not in referencing.m_to_dict()
 
 
 def test_section_reference_serialize():

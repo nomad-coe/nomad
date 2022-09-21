@@ -375,7 +375,18 @@ export function formatInteger(value) {
  * @return {str} The timestamp with new formatting
  */
 export function formatTimestamp(value) {
-  return value && new Date(value).toLocaleString()
+  if (value.search(/(\+|Z)/) === -1) { // search for timezone information
+    try {
+      // assume UTC timestamp from server and attempt to manually add UTC timezone,
+      // new Date will wrongly assume local timezone.
+      const result = new Date(`${value}Z`).toLocaleString()
+      if (result !== 'Invalid Date') {
+        return result
+      }
+    } catch {}
+  }
+  // create string for timestamp with correct timezone information or fallback
+  return new Date(value).toLocaleString()
 }
 
 /**
