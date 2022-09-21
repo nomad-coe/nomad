@@ -387,7 +387,7 @@ const quantityPresets = {
     render: (data) => (
       <Box flexGrow={1}>
         <Typography noWrap>
-          <RouteLink path={`entry/id/${data.upload_id}/${data.entry_id}`}>{data.entry_id}</RouteLink>
+          <RouteLink path={`entry/id/${data.entry_id}`}>{data.entry_id}</RouteLink>
         </Typography>
       </Box>
     )
