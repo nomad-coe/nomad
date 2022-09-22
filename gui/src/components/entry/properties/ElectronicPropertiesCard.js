@@ -18,13 +18,11 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
-import { useUnits } from '../../../units'
 import { getLocation, resolveInternalRef } from '../../../utils'
 import ElectronicProperties from '../../visualization/ElectronicProperties'
 import { refPath } from '../../archive/metainfo'
 
 const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
-  const units = useUnits()
   const urlPrefix = `${getLocation()}/data`
 
   // Find out which properties are present
@@ -37,7 +35,7 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   }
 
   // Resolve DOS data
-  let dos = hasDos ? null : false
+  let dos = hasDos ? undefined : false
   const dosData = archive?.results?.properties?.electronic?.dos_electronic
   if (dosData) {
     dos = {}
@@ -49,22 +47,40 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
     dos.m_path = `${urlPrefix}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
   }
 
-  // Resolve band structure data
-  let bs = hasBs ? null : false
+  // Resolve data for band structure, brillouin zone and band gaps.
+  let bs = hasBs ? undefined : false
+  let band_gap = hasBs ? undefined : false
   const bsData = archive?.results?.properties?.electronic?.band_structure_electronic
+  let brillouin_zone = bsData ? undefined : false
   if (bsData) {
-    bs = {}
-    bs.reciprocal_cell = resolveInternalRef(bsData.reciprocal_cell, archive)
-    bs.segment = resolveInternalRef(bsData.segment, archive)
+    const segments = resolveInternalRef(bsData.segment, archive)
+    bs = {
+      segment: segments,
+      m_path: `${urlPrefix}/${refPath(bsData.segment[0].split('/').slice(0, -2).join('/'))}`
+    }
+
     if (bsData.band_gap) {
       bs.energy_highest_occupied = Math.max(...bsData.band_gap.map(x => x.energy_highest_occupied))
       bs.band_gap = bsData.band_gap
+      band_gap = bsData.band_gap
     }
-    bs.m_path = `${urlPrefix}/${refPath(bsData.reciprocal_cell.split('/').slice(0, -1).join('/'))}`
+
+    const reciprocal_cell = resolveInternalRef(bsData.reciprocal_cell, archive)
+    brillouin_zone = reciprocal_cell
+      ? {
+        reciprocal_cell: reciprocal_cell,
+        segment: segments
+      }
+      : false
   }
 
   return <PropertyCard title="Electronic properties">
-    <ElectronicProperties bs={bs} dos={dos} units={units} />
+    <ElectronicProperties
+      bs={bs}
+      dos={dos}
+      brillouin_zone={brillouin_zone}
+      band_gap={band_gap}
+    />
   </PropertyCard>
 })
 

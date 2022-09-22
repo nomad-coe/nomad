@@ -19,8 +19,11 @@ import React, { } from 'react'
 import PropTypes from 'prop-types'
 import { SectionTable } from '../Quantity'
 import { useUnits } from '../../units'
+import { withErrorHandler } from '../ErrorHandler'
 import NoData from './NoData'
 import Placeholder from './Placeholder'
+
+export const bandGapError = "Could not load band gap."
 
 // Band gap quantities to show. Saved as const object to prevent re-renders
 const columns = {
@@ -33,7 +36,7 @@ const columns = {
  * Shows a summary of all band gap values, each displayed in a separate row of a
  * table.
  */
-const BandGap = React.memo(({data, section}) => {
+const BandGap = React.memo(({data, section, 'data-testid': testID}) => {
   const units = useUnits()
   return data !== false
     ? data
@@ -44,13 +47,24 @@ const BandGap = React.memo(({data, section}) => {
         data={{data: data}}
         units={units}
       />
-      : <Placeholder />
+      : <Placeholder data-testid={`${testID}-placeholder`} />
     : <NoData />
 })
 
 BandGap.propTypes = {
-  data: PropTypes.any,
-  section: PropTypes.string
+  data: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.shape({
+      index: PropTypes.number,
+      value: PropTypes.number,
+      type: PropTypes.string
+    })),
+    PropTypes.oneOf([false, undefined]) // False for NoData, undefined for Placeholder,
+  ]),
+  section: PropTypes.string,
+  'data-testid': PropTypes.string
+}
+BandGap.defaultProps = {
+  'data-testid': 'band-gap'
 }
 
-export default BandGap
+export default withErrorHandler(bandGapError)(BandGap)

@@ -21,10 +21,7 @@ import pytest
 
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
     phonon,
-    bands_unpolarized_no_gap,
-    bands_polarized_no_gap,
-    bands_unpolarized_gap_indirect,
-    bands_polarized_gap_indirect,
+    get_template_band_structure,
     band_path_cF,
     band_path_tP,
     band_path_hP,
@@ -35,48 +32,36 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
 from nomad.units import ureg
 
 
-def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpolarized_gap_indirect, bands_polarized_gap_indirect):
+@pytest.mark.parametrize('gaps,has_reciprocal_cell', [
+    pytest.param([None], True, id="unpolarized, no gap"),
+    pytest.param([(1, 'indirect')], True, id="unpolarized, finite gap"),
+    pytest.param([None, None], True, id="polarized, no gap"),
+    pytest.param([(1, 'indirect'), (0.8, 'indirect')], True, id="polarized, different gaps"),
+    pytest.param([(1, 'indirect')], False, id="no reciprocal cell"),
+])
+def test_band_gaps(gaps, has_reciprocal_cell):
     """Tests that band gaps are correctly identified for different cases.
     """
-    def test_generic(bs):
-        """Generic tests for band structure data."""
+    bs = get_template_band_structure(gaps, has_reciprocal_cell=has_reciprocal_cell).run[0].calculation[0].band_structure_electronic[0]
+    if has_reciprocal_cell:
         assert bs.reciprocal_cell.shape == (3, 3)
-
-    # Unpolarized, no gaps
-    bs = bands_unpolarized_no_gap.run[0].calculation[0].band_structure_electronic[0]
-    test_generic(bs)
-    assert len(bs.band_gap) == 1
-    assert bs.band_gap[0].value == 0
-
-    # Polarized, no gaps
-    bs = bands_polarized_no_gap.run[0].calculation[0].band_structure_electronic[0]
-    test_generic(bs)
-    assert len(bs.band_gap) == 2
-    assert bs.band_gap[0].value == 0
-    assert bs.band_gap[1].value == 0
-
-    # Unpolarized, finite gap, indirect
-    bs = bands_unpolarized_gap_indirect.run[0].calculation[0].band_structure_electronic[0]
-    test_generic(bs)
-    assert len(bs.band_gap) == 1
-    info = bs.band_gap[0]
-    gap_joule = info.value
-    gap_ev = gap_joule.to(ureg.eV).magnitude
-    assert gap_ev == pytest.approx(1, 0.001)
-    assert info.type == "indirect"
-
-    # Polarized, finite gap, indirect
-    bs = bands_polarized_gap_indirect.run[0].calculation[0].band_structure_electronic[0]
-    test_generic(bs)
-    assert len(bs.band_gap) == 2
-    channel_up = bs.band_gap[0]
-    channel_down = bs.band_gap[1]
-    gap_up_ev = channel_up.value.to(ureg.eV).magnitude
-    gap_down_ev = channel_down.value.to(ureg.eV).magnitude
-    assert channel_up.type == "indirect"
-    assert channel_down.type == "indirect"
-    assert gap_up_ev == pytest.approx(1, 0.01)
-    assert gap_down_ev == pytest.approx(0.8, 0.01)
+    else:
+        assert bs.reciprocal_cell is None
+    assert len(bs.band_gap) == len(gaps)
+    for index, gap in enumerate(gaps):
+        channel_info = bs.band_gap[index]
+        value = channel_info.value
+        if gap is not None and has_reciprocal_cell:
+            assert channel_info.type == gap[1]
+        else:
+            assert channel_info.type is None
+        if gap is None:
+            assert value == 0
+        else:
+            gap_ev = value.to(ureg.eV).magnitude
+            assert gap_ev == pytest.approx(gap[0], 0.001)
+        eho_ev = channel_info.energy_highest_occupied.to(ureg.eV).magnitude
+        assert eho_ev == pytest.approx(1 if gap else 0, 0.001)
 
 
 def test_paths(band_path_cF, band_path_tP, band_path_hP):

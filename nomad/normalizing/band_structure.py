@@ -167,17 +167,7 @@ class BandStructureNormalizer(Normalizer):
             if energy_lowest is not None:
                 info.energy_lowest_unoccupied = energy_lowest
 
-        # Use a reference energy (fermi or highest occupied) to determine the
-        # energy references from the band structure (discretization will affect
-        # the exact location).
-        reciprocal_cell = band.reciprocal_cell
-        if reciprocal_cell is None:
-            self.logger.info("could not resolve band gaps as reciprocal cell is missing")
-            return
-
-        # Gather the energies and k points from each segment into one big
-        # array
-        reciprocal_cell = reciprocal_cell.magnitude
+        # Gather the energies and k points from each segment into one big array
         path: NDArray = []
         energies: NDArray = []
         for segment in band.segment:
@@ -191,7 +181,9 @@ class BandStructureNormalizer(Normalizer):
         path = np.concatenate(path, axis=0)
         energies = np.concatenate(energies, axis=2)
 
-        # Handle spin channels separately to find gaps for spin up and down
+        # Use a reference energy (fermi or highest occupied) to determine the
+        # energy references from the band structure (discretization will affect
+        # the exact location).
         for i_channel in range(n_channels):
             i_energy_highest = None
             i_energy_lowest = None
@@ -247,11 +239,13 @@ class BandStructureNormalizer(Normalizer):
                     # locations with some tolerance
                     k_point_lower = path[gap_lower_idx]
                     k_point_upper = path[gap_upper_idx]
-                    k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
-                    is_direct_gap = k_point_distance <= config.normalize.k_space_precision
-
-                    band_gap_type = "direct" if is_direct_gap else "indirect"
-                    info.type = band_gap_type
+                    reciprocal_cell = band.reciprocal_cell
+                    if reciprocal_cell is not None:
+                        reciprocal_cell = reciprocal_cell.magnitude
+                        k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
+                        is_direct_gap = k_point_distance <= config.normalize.k_space_precision
+                        band_gap_type = "direct" if is_direct_gap else "indirect"
+                        info.type = band_gap_type
             info.value = gap_value
 
     def add_path_labels(self, band: BandStructure, system: System) -> None:

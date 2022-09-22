@@ -28,6 +28,7 @@ import {
 } from '@material-ui/icons'
 import { BrillouinZoneViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
+import NoData from './NoData'
 import Placeholder from '../visualization/Placeholder'
 import { scale, distance } from '../../utils'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
@@ -36,7 +37,7 @@ import { Actions, Action } from '../Actions'
 /**
  * Interactive 3D Brillouin zone viewer based on the 'materia'-library.
  */
-
+export const bzError = 'Could not load Brillouin zone.'
 const fitMargin = 0.06
 const useStyles = makeStyles((theme) => {
   return {
@@ -92,8 +93,11 @@ const BrillouinZone = React.memo(({
   // Run only on first render to initialize the viewer.
   const theme = useTheme()
   useEffect(() => {
+    if (!data || refViewer.current) {
+      return
+    }
     refViewer.current = new BrillouinZoneViewer(undefined)
-  }, [])
+  }, [data])
 
   // Called only on first render to load the given structure.
   useEffect(() => {
@@ -199,9 +203,15 @@ const BrillouinZone = React.memo(({
     refViewer.current.render()
   }, [])
 
+  // If data is set explicitly to false, we show the NoData component.
+  if (data === false) {
+    return <NoData className={clsx(className, styles.root)}/>
+  }
+
   if (loading) {
     return <Placeholder
       variant="rect"
+      className={clsx(className, styles.root)}
       data-testid={`${testID}-placeholder`}
     />
   }
@@ -233,10 +243,13 @@ const BrillouinZone = React.memo(({
 })
 
 BrillouinZone.propTypes = {
-  data: PropTypes.shape({
-    reciprocal_cell: PropTypes.array.isRequired, // Reciprocal cell in SI units
-    segment: PropTypes.array.isRequired // Array of section_k_band_segments in SI units
-  }),
+  data: PropTypes.oneOfType([
+    PropTypes.shape({
+      reciprocal_cell: PropTypes.array.isRequired, // Reciprocal cell in SI units
+      segment: PropTypes.array.isRequired // Array of section_k_band_segments in SI units
+    }),
+    PropTypes.oneOf([false, undefined]) // False for NoData, undefined for Placeholder
+  ]),
   captureName: PropTypes.string, // Name of the file that the user can download
   classes: PropTypes.object,
   className: PropTypes.string,
@@ -246,4 +259,4 @@ BrillouinZone.defaultProps = {
   captureName: 'brillouin_zone'
 }
 
-export default withWebGLErrorHandler(withErrorHandler('Could not load Brillouin zone.')(BrillouinZone))
+export default withWebGLErrorHandler(withErrorHandler(bzError)(BrillouinZone))
