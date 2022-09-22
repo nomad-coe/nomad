@@ -59,12 +59,11 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     if (input !== '') {
       query['entry_name.prefix'] = input
     }
-    const sections = referencedSectionQualifiedNames?.map(qualifiedName => ({'sections': qualifiedName}))
+    const sections = referencedSectionQualifiedNames?.map(qualifiedName => ({'sections': qualifiedName, ...query}))
     api.post('entries/query', {
       'owner': 'visible',
       'query': {
-        'or': sections,
-        ...query
+        'or': sections
       },
       'required': {
         'include': [
@@ -144,11 +143,9 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   }, [onChange])
 
   const createNewEntry = useCallback((uploadId, fileName) => {
-    const template = {name: 'noname'}
     const archive = {
       data: {
-        m_def: quantityDef.type._referencedSection._url || quantityDef.type._referencedSection._qualifiedName,
-      ...template
+        m_def: quantityDef.type._referencedSection._url || quantityDef.type._referencedSection._qualifiedName
       }
     }
     return new Promise((resolve, reject) => {
