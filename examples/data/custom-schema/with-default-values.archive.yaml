@@ -1,0 +1,34 @@
+definitions:
+  sections:
+    PlainSection:
+      quantities:
+        with_default:
+          type: str
+          default: 'default value'
+        without_default:
+          type: str
+    ElnSection:
+      base_section: PlainSection
+      quantities:
+        with_default_eln:
+          type: str
+          default: 'default value'
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        without_default_eln:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+    RootSection:
+      base_section: nomad.datamodel.EntryData
+      m_annotations:
+        eln:
+      sub_sections:
+        eln:
+          section: ElnSection
+        plain:
+          section: PlainSection
+data:
+  m_def: RootSection

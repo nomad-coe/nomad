@@ -27,7 +27,7 @@ import {
   FormHelperText} from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane, browserContext } from './Browser'
+import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane, browserContext, ItemChip } from './Browser'
 import { RawFileAdaptor } from './FileBrowser'
 import {
   isEditable, PackageMDef, QuantityMDef, removeSubSection, SectionMDef, SubSectionMDef,
@@ -405,7 +405,7 @@ class ArchiveAdaptor extends Adaptor {
    * @param {*} obj A data object, located somewhere in the archive specified by baseUrl
    * @param {*} def The metainfo definition of obj
    */
-  constructor(baseUrl, obj, def) {
+  constructor(baseUrl, obj, def, isInEln) {
     super()
     this.baseUrl = baseUrl
     this.parsedBaseUrl = parseNomadUrl(baseUrl)
@@ -415,6 +415,7 @@ class ArchiveAdaptor extends Adaptor {
     this.api = undefined
     this.dataStore = undefined
     this.entryIsEditable = undefined
+    this.isInEln = isInEln === undefined && def.m_def === SectionMDef ? isEditable(def) : isInEln
     this.obj = obj // The data in the archive tree to display
     this.def = def
     this.unsubscriberFunctions = []
@@ -455,7 +456,8 @@ class ArchiveAdaptor extends Adaptor {
         const newDefUrl = resolveNomadUrl(obj.m_def, baseUrl)
         def = await this.dataStore.getMetainfoDefAsync(newDefUrl)
       }
-      return new SectionAdaptor(baseUrl, obj, def)
+      const isInEln = this.isInEln || isEditable(def)
+      return new SectionAdaptor(baseUrl, obj, def, isInEln)
     }
 
     if (def.m_def === QuantityMDef) {
@@ -552,7 +554,8 @@ class SectionAdaptor extends ArchiveAdaptor {
       section={this.obj}
       def={this.def}
       parentRelation={this.parentRelation}
-      entryIsEditable={this.entryIsEditable} />
+      sectionIsInEln={this.isInEln}
+      sectionIsEditable={this.entryIsEditable && this.isInEln}/>
   }
 }
 
@@ -688,32 +691,35 @@ QuantityValue.propTypes = ({
 
 const InheritingSections = React.memo(function InheritingSections({def, section, lane}) {
   const browser = useContext(browserContext)
-  const selection = useMemo(() => {
-    return section?.m_def || null
-  }, [section])
   const handleInheritingSectionsChange = useCallback((e) => {
     section.m_def = e.target.value
     browser.invalidateLanesFromIndex(lane.index)
   }, [section, browser, lane])
 
+  if (section.m_def) {
+    return ''
+  }
+
   return (def._allInheritingSections?.length > 0 &&
     <Box sx={{minWidth: 120}}>
       <FormControl fullWidth >
-        <FormHelperText>Select an m_def from the list</FormHelperText>
+        <FormHelperText>Multiple specific sections are available</FormHelperText>
         <TextField
-          variant='outlined'
+          value=''
+          variant='filled'
+          label='Select a section'
           data-testid={`inheriting:${def.name}`}
-          value={selection || def._url || def._qualifiedName}
           onChange={handleInheritingSectionsChange}
+          size="small"
           select
         >
-          <MenuItem data-testid='select-options' key={0} value={def._url || def._qualifiedName}>
+          <MenuItem key={0} value={def._url || def._qualifiedName}>
             {def.name}
           </MenuItem>
           {def._allInheritingSections.map((inheritingSection, i) => {
-            const val = inheritingSection._url || inheritingSection._qualifiedName
+            const sectionValue = inheritingSection._url || inheritingSection._qualifiedName
             return (
-              <MenuItem key={i + 1} value={val} data-testid='select-options'>
+              <MenuItem key={i + 1} value={sectionValue}>
                 {inheritingSection.name}
               </MenuItem>
             )
@@ -729,7 +735,7 @@ InheritingSections.propTypes = ({
   lane: PropTypes.object
 })
 
-function Section({section, def, parentRelation, entryIsEditable}) {
+function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEln}) {
   const {handleArchiveChanged} = useEntryPageContext() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
@@ -739,10 +745,6 @@ function Section({section, def, parentRelation, entryIsEditable}) {
   const navEntryId = useMemo(() => {
     return lane?.adaptor?.parsedBaseUrl?.entryId
   }, [lane])
-
-  const sectionIsEditable = useMemo(() => {
-    return entryIsEditable && isEditable(def)
-  }, [entryIsEditable, def])
 
   const actions = useMemo(() => {
     const navButton = navEntryId && (
@@ -795,6 +797,7 @@ function Section({section, def, parentRelation, entryIsEditable}) {
   const renderQuantity = useCallback(quantityDef => {
     const key = quantityDef.name
     const value = quantityDef.default || section[key]
+    const isDefault = value && !section[key]
     const disabled = value === undefined
     if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
       return <ReferenceValuesList key={key} quantityDef={quantityDef} />
@@ -815,6 +818,7 @@ function Section({section, def, parentRelation, entryIsEditable}) {
             </span>
           }
         </Box>
+        {isDefault && <ItemChip label="default value"/>}
       </Item>
     )
   }, [section])
@@ -874,7 +878,7 @@ function Section({section, def, parentRelation, entryIsEditable}) {
       {subSectionCompartment}
       <Compartment title="quantities">
         {quantities
-          .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
+          .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined || sectionIsInEln)
           .filter(filter)
           .map(renderQuantity)
         }
@@ -899,7 +903,8 @@ Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
   parentRelation: PropTypes.object,
-  entryIsEditable: PropTypes.bool.isRequired
+  sectionIsEditable: PropTypes.bool,
+  sectionIsInEln: PropTypes.bool
 })
 
 function SubSection({subSectionDef, section, editable}) {
