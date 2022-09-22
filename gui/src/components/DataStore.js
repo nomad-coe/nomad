@@ -23,6 +23,7 @@ import { apiBase } from '../config'
 import { refType, parseNomadUrl, createEntryUrl, systemMetainfoUrl } from '../utils'
 import { Metainfo } from './archive/metainfo'
 import currentSystemMetainfoData from '../metainfo'
+import YAML from 'yaml'
 
 function addSubscription(storeObj, cb, options) {
   storeObj._subscriptions.push({cb, ...options})
@@ -480,8 +481,17 @@ const DataStore = React.memo(({children}) => {
       delete newArchive.metadata
       delete newArchive.results
       delete newArchive.processing_logs
+
+      const config = {}
+      let stringifiedArchive
+      if (fileName.endsWith('yaml') || fileName.endsWith('yml')) {
+        config.headers = {
+          'Content-Type': 'application/yaml'
+        }
+        stringifiedArchive = YAML.stringify(newArchive)
+      }
       return new Promise((resolve, reject) => {
-        api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}&wait_for_processing=true&entry_hash=${archive.metadata.entry_hash}`, newArchive)
+        api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}&wait_for_processing=true&entry_hash=${archive.metadata.entry_hash}`, stringifiedArchive || newArchive, config)
           .then(response => {
             requestRefreshEntry(installationUrl, entryId)
           })

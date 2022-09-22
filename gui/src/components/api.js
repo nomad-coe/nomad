@@ -277,9 +277,10 @@ class Api {
     const auth = await this.authHeaders()
     config = config || {}
     config.params = config.params || {}
-    config.headers = config.headers || {
+    config.headers = {
       accept: 'application/json',
-      ...auth.headers
+      ...auth.headers,
+      ...(config?.headers || {})
     }
     try {
       const results = await method(path, body, config)
