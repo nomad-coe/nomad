@@ -17,6 +17,7 @@
  */
 import React, {useState, useEffect, useMemo} from 'react'
 import PropTypes from 'prop-types'
+import { isFinite } from 'lodash'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { add, distance, mergeObjects } from '../../utils'
@@ -28,7 +29,6 @@ const BandStructure = React.memo(({
   data,
   layout,
   className,
-  placeholderStyle,
   units,
   type,
   ...other
@@ -46,7 +46,7 @@ const BandStructure = React.memo(({
     if (type === 'vibrational') {
       return [0, true]
     } else {
-      if (!data.energy_highest_occupied === undefined) {
+      if (!isFinite(data.energy_highest_occupied)) {
         return [0, false]
       } else {
         return [new Quantity(data.energy_highest_occupied, energyUnit).toSystem(units).value(), true]
@@ -297,7 +297,6 @@ const BandStructure = React.memo(({
     layout={finalLayout}
     floatTitle={'Band structure'}
     warning={normalized ? null : msgNormalizationWarning}
-    placeholderStyle={placeholderStyle}
     metaInfoLink={data?.m_path}
     className={className}
     {...other}
@@ -316,7 +315,6 @@ BandStructure.propTypes = {
   ]),
   layout: PropTypes.object,
   className: PropTypes.string,
-  placeholderStyle: PropTypes.any,
   units: PropTypes.object, // Contains the unit configuration
   type: PropTypes.string // Type of band structure: electronic or vibrational
 }

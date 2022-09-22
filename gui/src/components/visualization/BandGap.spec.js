@@ -17,16 +17,14 @@
  */
 import React from 'react'
 import { render } from '../conftest.spec'
-import { expectPlot, VisualizationState } from './conftest.spec'
-import GeometryOptimization from './GeometryOptimization'
+import { expectVisualization, VisualizationState } from './conftest.spec'
+import BandGap, { bandGapError } from './BandGap'
 
-const errorMsg = 'Could not load geometry optimization data.'
 test.each([
-  [VisualizationState.NoData, false, undefined],
-  [VisualizationState.Loading, undefined, 'geometry-optimization-plot-placeholder'],
-  [VisualizationState.Error, {invalid: 'data'}, undefined],
-  [VisualizationState.Success, [0, 1, 2, 3, 4], undefined]
-])('%s', async (state, energies, placeholderTestID) => {
-  const {container} = render(<GeometryOptimization energies={energies}/>)
-  await expectPlot(state, placeholderTestID, errorMsg, container)
+  ['no data', VisualizationState.NoData, false],
+  ['loading', VisualizationState.Loading, undefined],
+  ['error: invalid data', VisualizationState.Error, "invalid data"]
+])('band gap: %s', async (id, state, data) => {
+  render(<BandGap data={data} />)
+  await expectVisualization(state, 'band-gap-placeholder', bandGapError)
 })

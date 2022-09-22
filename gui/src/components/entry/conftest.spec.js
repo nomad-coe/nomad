@@ -98,9 +98,9 @@ export function expectTrajectory(index, root = screen) {
 /**
  * Tests that an methodology itme is displayed correctly.
  *
- * @param {PlotState} state The expected plot state.
- * @param {str} placeholderTestID The test id for the placeholder.
- * @param {str} errorMsg The expected error message.
+ * @param {str} title The methodology title.
+ * @param {object} data The data that should be shown.
+ * @param {str} path The path for the methodology information.
  * @param {object} container The root element to perform the search on.
  */
 export async function expectMethodologyItem(

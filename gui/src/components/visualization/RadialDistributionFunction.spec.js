@@ -18,17 +18,16 @@
 import React from 'react'
 import { render } from '../conftest.spec'
 import { expectMethodologyItem } from '../entry/conftest.spec'
-import { expectPlot } from './conftest.spec'
-import { PlotState } from './Plot'
+import { expectPlot, VisualizationState } from './conftest.spec'
 import RadialDistributionFunction, { rdfError, rdfPath } from './RadialDistributionFunction'
 
 test.each([
-  ['no data', PlotState.NoData, {molecular: {'MOL-MOL': false}}, undefined],
-  ['loading', PlotState.Loading, {molecular: {'MOL-MOL': undefined}}, 'radial-distribution-function-molecular-mol-mol-placeholder'],
-  ['error: data cannot be false', PlotState.Error, false, undefined],
-  ['error: data cannot be undefined', PlotState.Error, undefined, undefined],
-  ['error: invalid data layout', PlotState.Error, {invalid: "data"}, undefined],
-  ['valid', PlotState.Success, {molecular: {'MOL-MOL': [{bins: [0, 1], value: [0, 1]}]}}, undefined]
+  ['no data', VisualizationState.NoData, {molecular: {'MOL-MOL': false}}, undefined],
+  ['loading', VisualizationState.Loading, {molecular: {'MOL-MOL': undefined}}, 'radial-distribution-function-molecular-mol-mol-placeholder'],
+  ['error: data cannot be false', VisualizationState.Error, false, undefined],
+  ['error: data cannot be undefined', VisualizationState.Error, undefined, undefined],
+  ['error: invalid data layout', VisualizationState.Error, {invalid: "data"}, undefined],
+  ['valid', VisualizationState.Success, {molecular: {'MOL-MOL': [{bins: [0, 1], value: [0, 1]}]}}, undefined]
 ])('rdf plot: %s', async (id, state, data, placeholderTestID) => {
   render(<RadialDistributionFunction rdf={data} />)
   await expectPlot(state, placeholderTestID, rdfError)

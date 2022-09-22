@@ -18,15 +18,14 @@
 import React from 'react'
 import { render } from '../conftest.spec'
 import { expectMethodologyItem } from '../entry/conftest.spec'
-import { expectPlot } from './conftest.spec'
+import { expectPlot, VisualizationState } from './conftest.spec'
 import Trajectory, { trajectoryError, trajectoryPath } from './Trajectory'
-import { PlotState } from './Plot'
 
 test.each([
-  ['no data', PlotState.NoData, false, false, false, undefined],
-  ['loading', PlotState.Loading, undefined, false, false, 'trajectory-placeholder'],
-  ['error', PlotState.Error, {invalid: 'data'}, false, false, undefined],
-  ['valid', PlotState.Success, {time: [0, 1, 2], value: [0, 1, 2]}, false, false, undefined]
+  ['no data', VisualizationState.NoData, false, false, false, undefined],
+  ['loading', VisualizationState.Loading, undefined, false, false, 'trajectory-placeholder'],
+  ['error', VisualizationState.Error, {invalid: 'data'}, false, false, undefined],
+  ['valid', VisualizationState.Success, {time: [0, 1, 2], value: [0, 1, 2]}, false, false, undefined]
 ])('trajectory plot: %s', async (id, state, temperature, pressure, energyPotential, placeholderTestID) => {
   render(<Trajectory
     temperature={temperature}

@@ -493,10 +493,3 @@ Plot.defaultProps = {
 }
 
 export default Plot
-
-export const PlotState = {
-  NoData: 'NoData',
-  Loading: 'Loading',
-  Success: 'Success',
-  Error: 'Error'
-}

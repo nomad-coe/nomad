@@ -32,7 +32,7 @@ from nomad.datamodel.metainfo.simulation.method import (
     Method, BasisSet, Electronic, DFT, XCFunctional, Functional,
     Electronic, Smearing, Scf, XCFunctional, Functional, GW)
 from nomad.datamodel.metainfo.simulation.system import (
-    AtomsGroup, System, Atoms as AtomsMethod)
+    AtomsGroup, System, Atoms as AtomsSystem)
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies)
 from nomad.datamodel.metainfo.workflow import (
@@ -109,7 +109,7 @@ def get_template_dft() -> EntryArchive:
     xc_functional = XCFunctional(exchange=[Functional(name='GGA_X_PBE')])
     method.dft = DFT(xc_functional=xc_functional)
     system = run.m_create(System)
-    system.atoms = AtomsMethod(
+    system.atoms = AtomsSystem(
         lattice_vectors=[
             [5.76372622e-10, 0.0, 0.0],
             [0.0, 5.76372622e-10, 0.0],
@@ -186,7 +186,7 @@ def get_template_for_structure(atoms: Atoms) -> EntryArchive:
 
 def get_section_system(atoms: Atoms):
     system = System()
-    system.atoms = AtomsMethod(
+    system.atoms = AtomsSystem(
         positions=atoms.get_positions() * 1E-10,
         labels=atoms.get_chemical_symbols(),
         lattice_vectors=atoms.get_cell() * 1E-10,
@@ -260,7 +260,8 @@ def get_template_band_structure(
         band_gaps: List = None,
         type: str = 'electronic',
         has_references: bool = True,
-        normalize: bool = True) -> EntryArchive:
+        normalize: bool = True,
+        has_reciprocal_cell: bool = True) -> EntryArchive:
     '''Used to create a test data for band structures.
 
     Args:
@@ -271,10 +272,13 @@ def get_template_band_structure(
         type: 'electronic' or 'vibrational'
         has_references: Whether the band structure has energy references or not.
         normalize: Whether the returned value is already normalized or not.
+        has_reciprocal_cell: Whether the reciprocal cell is available or not
     '''
     if band_gaps is None:
         band_gaps = [None]
     template = get_template_dft()
+    if not has_reciprocal_cell:
+        template.run[0].system[0].atoms = None
     scc = template.run[0].calculation[0]
     if type == 'electronic':
         bs = scc.m_create(BandStructure, Calculation.band_structure_electronic)
@@ -718,26 +722,6 @@ def dos_electronic() -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
-def bands_unpolarized_gap_indirect() -> EntryArchive:
-    return get_template_band_structure([(1, 'indirect')])
-
-
-@pytest.fixture(scope='session')
-def bands_polarized_no_gap() -> EntryArchive:
-    return get_template_band_structure([None, None])
-
-
-@pytest.fixture(scope='session')
-def bands_unpolarized_no_gap() -> EntryArchive:
-    return get_template_band_structure([None])
-
-
-@pytest.fixture(scope='session')
-def bands_polarized_gap_indirect() -> EntryArchive:
-    return get_template_band_structure([(1, 'indirect'), (0.8, 'indirect')])
-
-
-@pytest.fixture(scope='session')
 def dos_si_vasp() -> EntryArchive:
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/dos/dos_si_vasp/vasprun.xml.relax2.xz'
@@ -786,8 +770,8 @@ def hash_exciting() -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
-def hash_vasp(bands_unpolarized_gap_indirect) -> EntryArchive:
-    return bands_unpolarized_gap_indirect
+def hash_vasp() -> EntryArchive:
+    return get_template_band_structure([(1, 'indirect')])
 
 
 @pytest.fixture(scope='session')
