@@ -602,3 +602,7 @@ Title.propTypes = ({
     PropTypes.node
   ])
 })
+
+export function ItemChip(props) {
+  return <Chip style={{marginLeft: 8, marginBottom: 3, height: 18}} size="small" {...props} />
+}
