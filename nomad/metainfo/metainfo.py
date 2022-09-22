@@ -2533,12 +2533,17 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     def m_traverse(self):
         '''
         Performs a depth-first traversal and yield tuples of section, property def,
-        parent index for all set properties.
+        parent index for all set properties. If the section has no property the empty
+        section is returned.
         '''
+
+        empty = True
         for key in self.__dict__:
             property_def = self.m_def.all_properties.get(key)
             if property_def is None:
                 continue
+
+            empty = False
 
             if isinstance(property_def, SubSection):
                 for sub_section in self.m_get_sub_sections(property_def):
@@ -2549,6 +2554,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             else:
                 yield self, property_def, -1
+
+        if empty:
+            yield self, None, -1
 
     def m_pretty_print(self, indent=None):
         ''' Pretty prints the containment hierarchy '''

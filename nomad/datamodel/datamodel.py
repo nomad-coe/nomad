@@ -577,6 +577,9 @@ class EntryMetadata(metainfo.MSection):
         for section, property_def, _ in archive.m_traverse():
             sections.add(section.m_def)
 
+            if property_def is None:
+                continue
+
             section_path = get_section_path(section)
             quantity_path = f'{section_path}.{property_def.name}' if section_path else property_def.name
             quantities.add(quantity_path)
