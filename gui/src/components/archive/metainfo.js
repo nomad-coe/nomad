@@ -431,6 +431,10 @@ export class Metainfo {
         property._qualifiedName = `${sectionDef._qualifiedName}.${property.name}`
       }
       property._package = pkg
+      property._parent = sectionDef
+      for (const attribute of (property?.attributes || [])) {
+        attribute._parent = property
+      }
       await this._addDef(property)
     }
     for (const property of sectionDef._allProperties) {
@@ -449,6 +453,9 @@ export class Metainfo {
         subSectionsSectionDef._parentSubSections.push(property)
         property._section = sectionDef
       }
+    }
+    for (const attribute of (sectionDef?.attributes || [])) {
+      attribute._parent = sectionDef
     }
   }
 

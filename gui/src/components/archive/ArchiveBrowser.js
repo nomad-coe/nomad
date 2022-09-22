@@ -577,7 +577,7 @@ class QuantityAdaptor extends ArchiveAdaptor {
     const attribute = this.def.attributes.find(attr => attr.name === key)
     const value = this.obj.m_attributes[key]
     if (attribute) {
-      return await this.adaptorFactory(value, attribute, this.obj)
+      return await this.adaptorFactory(this.parsedBaseUrl, value, attribute)
     }
 
     return super.itemAdaptor(key)
