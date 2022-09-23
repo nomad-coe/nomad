@@ -1238,6 +1238,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     return None
 
                 if m_quantity.value is not None:
+                    if m_quantity.unit is not None:
+                        return units.Quantity(m_quantity.value, m_quantity.unit)
+
                     return m_quantity.value
 
         raise AttributeError(name)
@@ -3072,7 +3075,12 @@ class Quantity(Property):
             try:
                 value = obj.__dict__[self.name]
             except KeyError:
-                value = obj.__dict__[f'{self.name}{_storage_suffix}'][self.name].value
+                # ! can only directly build the key here due to infinite recursion
+                m_quantity = obj.__dict__[f'{self.name}{_storage_suffix}'][self.name]
+                if m_quantity.unit:
+                    value = units.Quantity(m_quantity.value, m_quantity.unit)
+                else:
+                    value = m_quantity.value
         except KeyError:
             if self.derived is not None:
                 try:
@@ -3107,6 +3115,10 @@ class Quantity(Property):
             else:
                 raise MetainfoError(
                     'Only numpy arrays and dtypes can be used for higher dimensional quantities.')
+
+        # no need to append unit if it is already a quantity from full storage
+        if isinstance(value, units.Quantity):
+            return value
 
         if self.unit is not None and self.type in MTypes.num:
             return value * self.unit
