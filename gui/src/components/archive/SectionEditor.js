@@ -73,7 +73,7 @@ const PropertyEditor = React.memo(function PropertyEditor({quantityDef, value, o
   const componentName = editAnnotation?.component
   const component = componentName && editQuantityComponents[componentName]
   if (!component) {
-    return ''
+    return null
   }
   const props = {
     quantityDef: quantityDef,
@@ -92,7 +92,7 @@ const PropertyEditor = React.memo(function PropertyEditor({quantityDef, value, o
     />
   } else {
     console.log('Unsupported quantity shape ', shape)
-    return ''
+    return null
   }
 })
 PropertyEditor.propTypes = {

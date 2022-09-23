@@ -45,12 +45,12 @@ test('Correctly renders the page', async () => {
   expect(infoBox).toBeChecked()
 
   // Unchecking the checkbox INFO should re-paint the DOM with only one log and no seeMore button
-  userEvent.click(infoBox)
+  await userEvent.click(infoBox)
   await waitFor(() => expect(screen.queryAllByTestId('Accordions')).toHaveLength(1))
   expect(seeMoreButton).not.toBeInTheDocument()
 
   // Re-checking the INFO button should repaint the DOM with the seeMore Button as well as the 10 logs
-  userEvent.click(infoBox)
+  await userEvent.click(infoBox)
   expect(await screen.findByText(/see more/i)).toBeInTheDocument()
   expect(screen.queryAllByTestId('Accordions')).toHaveLength(10)
 
@@ -60,7 +60,7 @@ test('Correctly renders the page', async () => {
   const butt = within(view).getByRole('button')
   await userEvent.click(butt)
   await waitFor(() => expect(screen.queryByTestId('system_size')).toBeInTheDocument())
-  userEvent.click(screen.getByTestId('system_size'))
+  await userEvent.click(screen.getByTestId('system_size'))
   expect(await screen.findByText(/debug: parsers\/vasp \| undefined/i))
 
   closeAPI()

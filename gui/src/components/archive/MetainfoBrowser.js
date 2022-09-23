@@ -549,7 +549,7 @@ function DefinitionProperties({def, children}) {
   const hasSearchAnnotations = searchAnnotations && searchAnnotations.length > 0
 
   if (!(children || def.aliases?.length || def.deprecated || (def.more && Object.keys(def.more).length) || hasSearchAnnotations)) {
-    return ''
+    return null
   }
 
   return <Compartment title="properties">
@@ -770,7 +770,7 @@ DefinitionLabel.propTypes = ({
 
 const Annotations = React.memo(function Annotations({def}) {
   if (!def.m_annotations) {
-    return ''
+    return null
   }
 
   return (

@@ -291,7 +291,7 @@ test.each([
 
   const deleteButton1 = screen1.queryByTitle('Delete archive').closest('button')
   expect(deleteButton1).toBeEnabled()
-  fireEvent.click(deleteButton1)
+  await userEvent.click(deleteButton1)
   await waitForGUI()
   const deleteButtons = screen1.queryAllByText(/delete mainfile/i)
   const deleteButton = deleteButtons[0]
@@ -312,11 +312,11 @@ test.each([
   const inputTextField2 = within(cardSample2).queryAllByRole('textbox', { hidden: true })
   fireEvent.change(inputTextField2[0], { target: { value: 'new text 2' } })
 
-  userEvent.click(deleteButton)
+  await userEvent.click(deleteButton)
   await waitForGUI()
 
   expect(saveButton2).toBeEnabled()
-  fireEvent.click(saveButton2)
+  await userEvent.click(saveButton2)
 
   await waitForGUI()
   expect(await screen2.queryByText('The changes cannot be saved. The content has been modified by someone else.')).toBeInTheDocument()

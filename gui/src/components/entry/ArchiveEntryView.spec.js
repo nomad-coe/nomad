@@ -94,12 +94,12 @@ test.each([
 
   if (withDefinition) {
     // Click the definitions checkbox
-    userEvent.click(screen.getByRoleAndText('checkbox', 'definitions'))
+    await userEvent.click(screen.getByRoleAndText('checkbox', 'definitions'))
     expect(await within(getLane(0)).findByText('meta')).toBeVisible()
   }
   if (withAll) {
     // Click the metainfo definition
-    userEvent.click(screen.getByRoleAndText('checkbox', 'all defined'))
+    await userEvent.click(screen.getByRoleAndText('checkbox', 'all defined'))
     expect(await within(getLane(0)).findByText('processing_logs')).toBeVisible()
   }
   const lane = await navigateTo(path)

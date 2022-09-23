@@ -54,7 +54,7 @@ const columns = [
           data={{datasets: dataset}}
         />
       }
-      return ''
+      return null
     }
   },
   {

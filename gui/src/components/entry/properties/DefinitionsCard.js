@@ -27,7 +27,7 @@ const DefinitionsCard = React.memo(function DefinitionsCard({index, archive}) {
   const {entryId, uploadId} = useEntryPageContext()
 
   if (!index?.quantities?.includes('definitions')) {
-    return ''
+    return null
   }
 
   const actions = (

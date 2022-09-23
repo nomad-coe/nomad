@@ -43,7 +43,7 @@ import { pluralize } from '../utils'
 
 function CodeInfo({code, ...props}) {
   if (!code) {
-    return ''
+    return null
   }
 
   const metadata = parserMetadata[code]

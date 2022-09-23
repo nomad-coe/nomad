@@ -146,7 +146,7 @@ export async function selectItemAndWaitForRender(lane, laneIndex, itemKey, item 
   if (!item) {
     item = within(lane).getByTestId(`item:${itemKey}`)
   }
-  userEvent.click(item)
+  await userEvent.click(item)
   await waitFor(() => {
     const nextLane = getLane(laneIndex + 1, itemKey)
     expect(nextLane).not.toBeNull()
@@ -207,7 +207,7 @@ export async function browseRecursively(lane, laneIndex, path, itemFilter, filte
   for (const itemList of within(lane).queryAllByRole('item-list')) {
     const label = itemList.textContent
     try {
-      userEvent.click(itemList)
+      await userEvent.click(itemList)
       await within(lane).findByTestId(`item-list:${label}`)
       expectNoConsoleOutput()
     } catch (error) {
