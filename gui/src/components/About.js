@@ -94,28 +94,26 @@ export const CodeList = React.memo(({withUploadInstructions}) => {
   const [selected, setSelected] = useState(null)
 
   // Create lists containing code name and category
-  const codes = []
   const categorySizes = {}
-  Object.entries(parserMetadata).forEach(([code, metadata]) => {
-    const name = metadata.codeLabel || code
-    const category = metadata.codeCategory
-    if (categorySizes[category]) {
-      categorySizes[category] += 1
-    } else {
-      categorySizes[category] = 1
-    }
-    if (!metadata || code === 'example') {
-      return
-    }
+  const codes = Object.entries(parserMetadata)
+    .filter(([code, metadata]) => metadata && code !== 'example')
+    .map(([code, metadata], index) => {
+      const name = metadata.codeLabel || code
+      const category = metadata.codeCategory
+      if (categorySizes[category]) {
+        categorySizes[category] += 1
+      } else {
+        categorySizes[category] = 1
+      }
 
-    const link = withUploadInstructions
-      ? [code, category, <Link href="#" key={code} onClick={() => setSelected(code)}>{name}</Link>]
-      : metadata.codeUrl
-        ? [code, category, <Link href={metadata.codeUrl} key={code} target="code">{name}</Link>]
-        : [code, category, name]
-
-    codes.push(link)
-  })
+      if (withUploadInstructions) {
+        return [code, category, <Link key={index} href="#" onClick={() => setSelected(code)}>{name}</Link>]
+      } else if (metadata.codeUrl) {
+        return [code, category, <Link key={index} href={metadata.codeUrl} target="code">{name}</Link>]
+      } else {
+        return [code, category, name]
+      }
+    })
 
   // Sort by category size, then by program name. Codes without category go to
   // the end.
@@ -164,10 +162,7 @@ export const CodeList = React.memo(({withUploadInstructions}) => {
   }, [])
 
   return <span data-testid="code-list">
-    {codeshtml.map((html, index) =>
-      <span key={`codeListFragment${index}`}>
-        {html}
-      </span>)}
+    {codeshtml.map((html, index) => <React.Fragment key={`codeListFragment${index}`}>{html}</React.Fragment>)}
     <CodeInfo code={selected} onClose={() => setSelected(null)} />
   </span>
 })
