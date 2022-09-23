@@ -96,7 +96,7 @@ async function testBrowseAround(editable) {
   fireEvent.error(within(getLane(3)).getByRole('img'))
   await within(getLane(3)).findByText('Failed to open with image viewer. Bad file format?')
   expect(within(getLane(3)).getByButtonText('Open with text viewer')).toBeEnabled()
-  userEvent.click(within(getLane(3)).getByButtonText('Open with text viewer'))
+  await userEvent.click(within(getLane(3)).getByButtonText('Open with text viewer'))
   await within(getLane(3)).findByText('this is not an image!') // text content of the file
 
   // json
@@ -197,10 +197,10 @@ test('delete files', async () => {
 
   for (const fileName of ['vasp.xml', '1.aux']) {
     await navigateTo(`test_entry/${fileName}`, browserConfig)
-    userEvent.click(within(getLane(2)).getByButtonText('delete this file'))
+    await userEvent.click(within(getLane(2)).getByButtonText('delete this file'))
     await screen.findByText(/Really delete the file/)
     expect(screen.queryAllByText(fileName).length).toBeGreaterThan(1)
-    userEvent.click(screen.getByButtonText('OK'))
+    await userEvent.click(screen.getByButtonText('OK'))
     await waitFor(() => {
       expect(screen.queryAllByText(fileName).length).toEqual(0)
     })
@@ -229,10 +229,10 @@ test('delete folder', async () => {
     const parentPath = (segments.slice(0, segments.length - 1)).join('/')
     // Navigate to path
     const lane = await navigateTo(path, browserConfig)
-    userEvent.click(within(lane).getByButtonText('delete this folder'))
+    await userEvent.click(within(lane).getByButtonText('delete this folder'))
     await screen.findByText(/Really delete the directory/)
     expect(screen.queryAllByText(folderName).length).toBeGreaterThan(1)
-    userEvent.click(screen.getByButtonText('OK'))
+    await userEvent.click(screen.getByButtonText('OK'))
     await waitFor(() => {
       expect(screen.queryAllByText(folderName).length).toEqual(0)
     })

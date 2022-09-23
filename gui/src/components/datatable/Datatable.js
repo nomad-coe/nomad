@@ -168,7 +168,7 @@ export const DatatableLoadMorePagination = React.memo(function DatatableLoadMore
     </div>
   }
 
-  return ''
+  return null
 })
 DatatableLoadMorePagination.propTypes = {}
 
@@ -521,7 +521,7 @@ export const DatatableToolbarActions = React.memo(function DatatableToolbarActio
     </React.Fragment>
   }
 
-  return ''
+  return null
 })
 DatatableToolbarActions.propTypes = {
   /** If true, this component is only shown if the surrounding table as an active selection. */

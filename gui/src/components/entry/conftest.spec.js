@@ -75,10 +75,10 @@ export async function expectStructure(index, root = screen) {
   expect(prim).not.toBeInTheDocument()
 
   // After clicking all the options should be shown
-  userEvent.click(select)
+  await userEvent.click(select)
   expect(await root.findByText('Conventional')).toBeInTheDocument()
   expect(await root.findByText('Primitive')).toBeInTheDocument()
-  userEvent.click(select)
+  await userEvent.click(select)
 }
 
 export function expectNoStructure(index, root = screen) {

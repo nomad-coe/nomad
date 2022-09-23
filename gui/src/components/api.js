@@ -454,7 +454,7 @@ function VerifyGlobalLogin({children}) {
   }, [api, setVerified])
 
   if (verified === null) {
-    return ''
+    return null
   }
 
   if (!verified) {

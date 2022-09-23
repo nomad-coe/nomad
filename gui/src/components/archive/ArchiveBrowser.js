@@ -825,7 +825,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
 
   if (!section) {
     console.error('section is not available')
-    return ''
+    return null
   }
 
   const filter = config.showCodeSpecific ? def => !def.virtual : def => !def.virtual && !def.name.startsWith('x_')
@@ -1101,7 +1101,7 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
   }, [plots.length])
 
   if (plots.length < 1 || selected.find(index => index >= plots.length)) {
-    return ''
+    return null
   }
 
   return <Compartment title="plot">
@@ -1210,7 +1210,7 @@ export function Meta({def}) {
   const classes = useMetaStyles()
   const config = useRecoilValue(configState)
   if (!config.showMeta) {
-    return ''
+    return null
   }
   return <Compartment title="meta" color="primary">
     <div className={classes.metainfo}>

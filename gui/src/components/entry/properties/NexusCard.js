@@ -24,7 +24,7 @@ import { Card } from '@material-ui/core'
 
 const NexusCard = React.memo(function NexusCard({index}) {
   if (index.parser_name !== 'parsers/nexus') {
-    return ''
+    return null
   }
   return (
     <Card style={{height: 500}}>
