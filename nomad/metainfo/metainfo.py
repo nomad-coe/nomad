@@ -63,9 +63,12 @@ _primitive_types = {
     bool: bool,
     np.bool_: bool}
 
+primitive_type_aliases = {'string': str, 'boolean': bool}
 
 _primitive_type_names = {
     primitive_type.__name__: primitive_type for primitive_type in _primitive_types}
+
+_primitive_type_names.update(primitive_type_aliases)
 
 _types_int_numpy = {np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64}
 _types_int_python = {int}
@@ -82,8 +85,8 @@ _types_numpy = _types_num_numpy | _types_str_numpy | _types_bool_numpy
 _delta_symbols = {'delta_', 'Δ'}
 
 validElnTypes = {
-    'str': ['str'],
-    'bool': ['bool'],
+    'str': ['str', 'string'],
+    'bool': ['bool', 'boolean'],
     'number': [x.__name__ for x in _types_num_python] + [f'np.{x.__name__}' for x in _types_num_numpy],
     'datetime': ['Datetime'],
     'enum': ['{type_kind: Enum, type_data: [Operator, Responsible_person]}'],
