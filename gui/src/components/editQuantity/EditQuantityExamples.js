@@ -151,7 +151,7 @@ export function EditQuantityExamples() {
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit="fs"`}
+                          defaultDisplayUnit: "fs"`}
                   >
                     <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'second', m_annotations: {eln: [{defaultDisplayUnit: 'fs'}]}})}/>
                   </Example>
@@ -165,7 +165,7 @@ export function EditQuantityExamples() {
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit="eV"`}
+                          defaultDisplayUnit: "eV"`}
                   >
                     <NumberEditQuantity {...createDefaultProps('float_derived_unit', {type: float, unit: 'joule', m_annotations: {eln: [{defaultDisplayUnit: 'eV'}]}})}/>
                   </Example>
@@ -179,7 +179,7 @@ export function EditQuantityExamples() {
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit="milliampere / ms^2 * cm"`}
+                          defaultDisplayUnit: "milliampere / ms^2 * cm"`}
                   >
                     <NumberEditQuantity {...createDefaultProps('float_complex_unit', {type: float, unit: 'ampere / second^2 * meter', m_annotations: {eln: [{defaultDisplayUnit: 'milliampere / ms^2 * cm'}]}})}/>
                   </Example>
@@ -304,8 +304,9 @@ export function EditQuantityExamples() {
                     autocomplete_enum:
                       type:
                         type_kind: enum
-                        type_data:
+                        type_data: [
                           ...
+                          ]
                       m_annotations:
                         eln:
                           component: AutocompleteEditQuantity`}
@@ -370,13 +371,13 @@ export function EditQuantityExamples() {
                 <Grid item>
                   <Example
                     code={`
-                    richt_text:
+                    rich_text:
                       type: str
                       m_annotations:
                         eln:
-                          component: TimeEditQuantity`}
+                          component: RichTextEditQuantity`}
                   >
-                    <RichTextEditQuantity {...createDefaultProps('richt_text')} />
+                    <RichTextEditQuantity {...createDefaultProps('rich_text')} />
                   </Example>
                 </Grid>
                 <Grid item>
