@@ -164,7 +164,10 @@ export const CodeList = React.memo(({withUploadInstructions}) => {
   }, [])
 
   return <span data-testid="code-list">
-    {codeshtml}
+    {codeshtml.map((html, index) =>
+      <span key={`codeListFragment${index}`}>
+        {html}
+      </span>)}
     <CodeInfo code={selected} onClose={() => setSelected(null)} />
   </span>
 })

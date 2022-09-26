@@ -28,6 +28,7 @@ import { useSearchContext } from '../SearchContext'
 import InputItem from '../input/InputItem'
 import { InputTextQuantity } from '../input/InputText'
 import { useErrors } from '../../errors'
+import { useDataStore } from '../../DataStore'
 
 const filterProperties = def => !(def.name.startsWith('x_') || def.virtual)
 
@@ -148,6 +149,7 @@ const FilterSubMenuArchive = React.memo(({
   value,
   ...rest
 }) => {
+  const dataStore = useDataStore()
   const globalMetainfo = useGlobalMetainfo()
   const [[options, tree], setOptions] = useState([[], {}])
   const {raiseError} = useErrors()
@@ -180,7 +182,7 @@ const FilterSubMenuArchive = React.memo(({
           }
           if (def.m_def === SectionMDef) {
             def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName, node))
-            def._allInheritingSections.forEach(def => {
+            dataStore.getAllInheritingSections(def).forEach(def => {
               def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName, node))
             })
           }
@@ -189,7 +191,7 @@ const FilterSubMenuArchive = React.memo(({
         setOptions([options, tree])
       })
       .catch(raiseError)
-  }, [raiseError, globalMetainfo, setOptions])
+  }, [raiseError, dataStore, globalMetainfo, setOptions])
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>

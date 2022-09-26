@@ -21,7 +21,7 @@ import { useApi, DoesNotExist } from './api'
 import { useErrors } from './errors'
 import { apiBase } from '../config'
 import { refType, parseNomadUrl, createEntryUrl, systemMetainfoUrl } from '../utils'
-import { Metainfo } from './archive/metainfo'
+import { getUrlFromDefinition, Metainfo } from './archive/metainfo'
 import currentSystemMetainfoData from '../metainfo'
 import YAML from 'yaml'
 
@@ -72,6 +72,7 @@ const DataStore = React.memo(({children}) => {
   const uploadStore = useRef({}) // The upload store objects
   const entryStore = useRef({}) // The entry store objects
   const metainfoDataStore = useRef({}) // The metainfo data store objects
+  const externalInheritanceCache = useRef({}) // Used to keep track of inheritance between metainfos
 
   /**
    * Gets an upload object from the store, creating it if it doesn't exist (in which case
@@ -539,7 +540,7 @@ const DataStore = React.memo(({children}) => {
     // If needed, create metainfo (which will also initiate parsing)
     if (!metainfoData._metainfo) {
       const parent = metainfoBaseUrl === systemMetainfoUrl ? undefined : await getMetainfoAsync(systemMetainfoUrl)
-      metainfoData._metainfo = new Metainfo(parent, metainfoData, getMetainfoAsync)
+      metainfoData._metainfo = new Metainfo(parent, metainfoData, getMetainfoAsync, externalInheritanceCache.current)
     }
     // Returned object after parsing is completed.
     return await metainfoData._metainfo._result
@@ -629,6 +630,25 @@ const DataStore = React.memo(({children}) => {
     }
   }
 
+  /**
+   * Gets all the inheriting sections of the provided section definition. That is: all inheriting
+   * sections *currently known to the store*. The result is returned as a list of definitions.
+   */
+  function getAllInheritingSections(definition) {
+    const rv = []
+    // Add subclasses (i.e. *directly* inheriting from this section)
+    const url = getUrlFromDefinition(definition)
+    rv.push(...(definition._allInternalInheritingSections || []))
+    rv.push(...(externalInheritanceCache.current[url] || []))
+    // Add recursively (sub-sub classes, sub-sub-sub classes etc.)
+    const recursive = []
+    for (const inheritingSection of rv) {
+      recursive.push(...getAllInheritingSections(inheritingSection))
+    }
+    rv.push(...recursive)
+    return rv
+  }
+
   const contextValue = {
     getUpload,
     getUploadAsync,
@@ -641,7 +661,8 @@ const DataStore = React.memo(({children}) => {
     selectedEntry,
     getMetainfoAsync,
     getMetainfoDefAsync,
-    subscribeToMetainfo
+    subscribeToMetainfo,
+    getAllInheritingSections
   }
 
   return <dataStoreContext.Provider value={contextValue}>

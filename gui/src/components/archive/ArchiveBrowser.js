@@ -31,7 +31,7 @@ import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, lan
 import { RawFileAdaptor } from './FileBrowser'
 import {
   isEditable, PackageMDef, QuantityMDef, removeSubSection, SectionMDef, SubSectionMDef,
-  useMetainfo, getMetainfoFromDefinition
+  useMetainfo, getMetainfoFromDefinition, getUrlFromDefinition
 } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
@@ -44,7 +44,7 @@ import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import { useEntryStoreObj } from '../DataStore'
+import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '../buttons/SourceDialogButton'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
@@ -62,6 +62,7 @@ import {EntryButton} from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
+import { apiBase } from '../../config'
 
 export const configState = atom({
   key: 'config',
@@ -690,6 +691,7 @@ QuantityValue.propTypes = ({
 })
 
 const InheritingSections = React.memo(function InheritingSections({def, section, lane}) {
+  const dataStore = useDataStore()
   const browser = useContext(browserContext)
   const handleInheritingSectionsChange = useCallback((e) => {
     section.m_def = e.target.value
@@ -697,10 +699,11 @@ const InheritingSections = React.memo(function InheritingSections({def, section,
   }, [section, browser, lane])
 
   if (section.m_def) {
-    return ''
+    return null
   }
 
-  return (def._allInheritingSections?.length > 0 &&
+  const allInheritingSections = dataStore.getAllInheritingSections(def)
+  return (allInheritingSections.length > 0 &&
     <Box sx={{minWidth: 120}}>
       <FormControl fullWidth >
         <FormHelperText>Multiple specific sections are available</FormHelperText>
@@ -713,11 +716,11 @@ const InheritingSections = React.memo(function InheritingSections({def, section,
           size="small"
           select
         >
-          <MenuItem key={0} value={def._url || def._qualifiedName}>
+          <MenuItem key={0} value={getUrlFromDefinition(def, {installationUrl: apiBase}, true)}>
             {def.name}
           </MenuItem>
-          {def._allInheritingSections.map((inheritingSection, i) => {
-            const sectionValue = inheritingSection._url || inheritingSection._qualifiedName
+          {allInheritingSections.map((inheritingSection, i) => {
+            const sectionValue = getUrlFromDefinition(inheritingSection, {installationUrl: apiBase}, true)
             return (
               <MenuItem key={i + 1} value={sectionValue}>
                 {inheritingSection.name}

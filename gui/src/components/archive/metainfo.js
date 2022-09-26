@@ -21,7 +21,9 @@ import PropTypes from 'prop-types'
 import { useErrors } from '../errors'
 import { useApi } from '../api'
 import { useDataStore } from '../DataStore'
-import { parseNomadUrl, resolveNomadUrl, resolveInternalRef, systemMetainfoUrl, createEntryUrl } from '../../utils'
+import {
+  parseNomadUrl, resolveNomadUrl, resolveInternalRef, systemMetainfoUrl, createEntryUrl,
+  urlEncodePath, urlJoin, relativizeNomadUrl } from '../../utils'
 import { apiBase } from '../../config'
 
 const metainfoContext = React.createContext()
@@ -180,10 +182,11 @@ export class Metainfo {
   /**
    * Constructs a Metainfo object. Note, this should only be invoked by the store.
    */
-  constructor(parent, data, getMetainfoAsync) {
+  constructor(parent, data, getMetainfoAsync, externalInheritanceCache) {
     this._parent = parent
     this._data = data
     this._getMetainfoAsync = getMetainfoAsync
+    this._externalInheritanceCache = externalInheritanceCache
     this._url = data._url // the data url, always string
     this._parsedUrl = parseNomadUrl(data._url)
 
@@ -294,14 +297,14 @@ export class Metainfo {
   async _parse() {
     // Parse data
     if (this._data.packages) {
-      await this._addPackages(this._data.packages)
+      let pkgIndex = 0
+      for (const pkg of this._data.packages) {
+        await this._addPackage(pkg, null, this._data, 'packages', pkgIndex++)
+      }
     }
     if (this._data.definitions) {
-      const entryId = this._data?.metadata?.entry_id // TODO: which format to use?
-      const mainfile = this._data?.metadata?.mainfile
-      const uploadId = this._data?.metadata?.upload_id
-      const url = mainfile && uploadId && `../uploads/${uploadId}/raw/${mainfile}#definitions`
-      await this._addPackages([this._data.definitions], entryId ? `entry_id:${entryId}` : null, url)
+      const entryId = this._parsedUrl.entryId
+      await this._addPackage(this._data.definitions, `entry_id:${entryId}`, this._data, 'definitions')
     }
     this._isParsed = true
     return this
@@ -323,31 +326,43 @@ export class Metainfo {
       return sectionDef
     }
 
-    sectionDef.base_sections = await this.resolveDefinitionList(sectionDef.base_sections || [])
+    sectionDef.base_sections = sectionDef.base_sections || []
     sectionDef.quantities = sectionDef.quantities || []
     sectionDef.sub_sections = sectionDef.sub_sections || []
     sectionDef.inner_section_definitions = sectionDef.inner_section_definitions || []
     sectionDef._allBaseSections = []
-    sectionDef._allInheritingSections = []
+    sectionDef._allInternalInheritingSections = []
     sectionDef._parentSections = []
     sectionDef._parentSubSections = []
 
-    if (!sectionDef.extends_base_section) {
-      for (const baseSection of sectionDef.base_sections) {
+    const resolvedBaseSections = []
+    for (const baseSectionRef of sectionDef.base_sections) {
+      const baseSection = await this.resolveDefinition(baseSectionRef)
+      resolvedBaseSections.push(baseSection)
+      if (!sectionDef.extends_base_section) {
         await this._initSection(baseSection)
         sectionDef._allBaseSections.push(baseSection)
         baseSection._allBaseSections.forEach(baseBaseSection => sectionDef._allBaseSections.push(baseBaseSection))
-        if (!baseSection._allInheritingSections.includes(sectionDef)) {
-          baseSection._allInheritingSections.push(sectionDef)
-          sectionDef._allInheritingSections.forEach(inheritingInheritingSection => {
-            if (!baseSection._allInheritingSections.includes(inheritingInheritingSection)) {
-              baseSection._allInheritingSections.push(inheritingInheritingSection)
-            }
-          })
+        if (typeof baseSectionRef === 'string' && (baseSectionRef.startsWith('#') || baseSectionRef.startsWith('/'))) {
+          // Internal base section link (both this and the base section defined in the same metainfo data)
+          if (!baseSection._allInternalInheritingSections.includes(sectionDef)) {
+            baseSection._allInternalInheritingSections.push(sectionDef)
+          }
+        } else {
+          // External base section link. These are stored in a separate cache in the store.
+          const baseSectionUrl = getUrlFromDefinition(baseSection)
+          let externalInheritingSections = this._externalInheritanceCache[baseSectionUrl]
+          if (!externalInheritingSections) {
+            externalInheritingSections = []
+            this._externalInheritanceCache[baseSectionUrl] = externalInheritingSections
+          }
+          if (!externalInheritingSections.includes(sectionDef)) {
+            externalInheritingSections.push(sectionDef)
+          }
         }
       }
     }
-
+    sectionDef.base_sections = resolvedBaseSections
     return sectionDef
   }
 
@@ -382,9 +397,6 @@ export class Metainfo {
     pkg._sections[sectionDef.name] = sectionDef
     await this._initSection(sectionDef)
     sectionDef._qualifiedName = parentDef ? `${parentDef._qualifiedName || parentDef._unique_id || parentDef.name}.${sectionDef.name}` : sectionDef.name
-    if (parentDef?._url) {
-      sectionDef._url = `${parentDef._url}/section_definitions/${parentIndex}`
-    }
     sectionDef._package = pkg
 
     let index = 0
@@ -412,17 +424,15 @@ export class Metainfo {
 
     sectionDef._allProperties = await this._getAllProperties(sectionDef)
     sectionDef._properties = {}
-    const addProperty = async property => {
-      sectionDef._properties[property.name] = property
-      if (!sectionDef.extends_base_section) {
-        property._section = sectionDef
-        property._qualifiedName = `${sectionDef._qualifiedName}.${property.name}`
-      }
+
+    // Do for new properties (i.e. defined in THIS section, not inherited from base sections)
+    const addNewProperty = async (property, parentProperty, index) => {
+      property._section = sectionDef
+      property._parentProperty = parentProperty
+      property._parentIndex = index
+      property._qualifiedName = `${sectionDef._qualifiedName}.${property.name}`
       property._package = pkg
       await this._addDef(property)
-    }
-    for (const property of sectionDef._allProperties) {
-      await addProperty(property)
       if (property.m_def === QuantityMDef) {
         property.shape = property.shape || []
         if (isReference(property)) {
@@ -438,19 +448,32 @@ export class Metainfo {
         property._section = sectionDef
       }
     }
+    for (const def of sectionDef.quantities) {
+      await addNewProperty(def, 'quantities', index)
+    }
+    for (const def of sectionDef.sub_sections) {
+      await addNewProperty(def, 'sub_sections', index)
+    }
+
+    // Do for all properties (new + inherited)
+    for (const property of sectionDef._allProperties) {
+      sectionDef._properties[property.name] = property
+    }
   }
 
-  async _addPackage(pkg, unique_id, url) {
+  async _addPackage(pkg, unique_id, pkgParentData, parentProperty, parentIndex) {
     this._packagePrefixCache = null
     pkg.m_def = PackageMDef
     if (unique_id) {
       pkg._unique_id = unique_id
     }
-    pkg._url = url
     const packageName = pkg.name || '*'
     this._packageDefs[packageName] = pkg
     await this._addDef(pkg)
 
+    pkg._pkgParentData = pkgParentData
+    pkg._parentProperty = parentProperty
+    pkg._parentIndex = parentIndex
     pkg._sections = {}
     pkg.category_definitions = pkg.category_definitions || []
     pkg.section_definitions = pkg.section_definitions || []
@@ -464,14 +487,6 @@ export class Metainfo {
     let index = 0
     for (const sectionDef of pkg.section_definitions) {
       await this._addSection(pkg, sectionDef, pkg, 'section_definitions', index++)
-    }
-
-    pkg._metainfo = this // Allows us to, from a pkg definition, get the metainfo object containing it.
-  }
-
-  async _addPackages(packages, unique_id, url) {
-    for (const pkg of packages) {
-      await this._addPackage(pkg, unique_id, url)
     }
   }
 
@@ -608,14 +623,54 @@ export function removeSubSection(section, subSectionDef, index) {
 }
 
 /**
- * @param {*} definition The section definition to create a reference for.
- * @returns The reference fragment for the given section definition.
+ * Given a definition, compute its url (string). Optionally, you can specify relativeTo, an
+ * object of the form {installationUrl, uploadId, entryId} (containing the first, the two first,
+ * or all three atributes, depending on what you want the url to be relative to). If relativeTo
+ * is left out, we return an absolute url. You may also specify preferMainfile = true if you
+ * want the url to use the mainfile rather than the entryId when possible (more humanly readable).
  */
-export function getSectionReference(definition) {
-  if (!definition._parent) {
-    return ''
+ export function getUrlFromDefinition(definition, relativeTo = null, preferMainfile = false) {
+  const pkg = definition.m_def === PackageMDef ? definition : definition._package
+  const metainfo = pkg._pkgParentData._metainfo
+  if (!metainfo._parsedUrl.entryId && relativeTo?.installationUrl === metainfo._parsedUrl.installationUrl) {
+    return definition._qualifiedName
   }
-  const ref = `${getSectionReference(definition._parent)}/${definition._parentProperty}`
+  let parentUrl
+  switch (definition.m_def) {
+    case PackageMDef: {
+      const entryId = metainfo._parsedUrl.entryId
+      if (entryId) {
+        // Custom metainfo
+        let rv
+        if (relativeTo) {
+          rv = relativizeNomadUrl(
+            metainfo._parsedUrl, relativeTo.installationUrl, relativeTo.uploadId, relativeTo.entryId)
+        } else {
+          rv = metainfo._url
+        }
+        if (preferMainfile) {
+          const mainfile = metainfo._data.metadata.mainfile
+          rv = rv.replace(`/archive/${entryId}`, `/raw/${urlEncodePath(mainfile)}`)
+        }
+        return rv
+      }
+      // System metainfo
+      return urlJoin(metainfo._url, 'packages', definition._parentIndex)
+    }
+    case SectionMDef:
+      parentUrl = getUrlFromDefinition(definition._parent, relativeTo, preferMainfile)
+      break
+    case SubSectionMDef:
+    case QuantityMDef:
+      parentUrl = getUrlFromDefinition(definition._section, relativeTo, preferMainfile)
+      break
+    case CategoryMDef:
+      parentUrl = getUrlFromDefinition(definition._package, relativeTo, preferMainfile)
+      break
+    default:
+      throw new Error('Could not get url from definition: bad m_def')
+  }
+  const ref = `${parentUrl}/${definition._parentProperty}`
   if (!isNaN(definition._parentIndex)) {
     return `${ref}/${definition._parentIndex}`
   }
@@ -626,7 +681,7 @@ export function getSectionReference(definition) {
  * Given a definition, gets the metainfo object in which it is defined.
  */
 export function getMetainfoFromDefinition(definition) {
-  if (definition._metainfo) return definition._metainfo
+  if (definition._pkgParentData) return definition._pkgParentData._metainfo
   return getMetainfoFromDefinition(definition._package || definition._parent || definition._section)
 }
 

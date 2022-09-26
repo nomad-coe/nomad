@@ -1061,6 +1061,44 @@ export function resolveNomadUrlNoThrow(url, baseUrl) {
 }
 
 /**
+ * Relativizes a url with respect to the provided installationUrl, uploadId, entryId, and
+ * returns the shortest possible relative url, as a string.
+ * This method thus basically does the *opposite* of resolveNomadUrl. You can specify either none,
+ * the first, the two first, or all three arguments of the (installationUrl, uploadId, entryId)
+ * tuple. The url provided must be absolute.
+ */
+export function relativizeNomadUrl(url, installationUrl, uploadId, entryId) {
+  const parsedUrl = parseNomadUrl(url)
+  if (!parsedUrl.isResolved) {
+    throw new Error(`Absolute url required, got ${url}.`)
+  }
+  if (!parsedUrl.uploadId) {
+    throw new Error(`Expected url to specify an upload, got ${url}`)
+  }
+  if (parsedUrl.installationUrl !== installationUrl) {
+    // Nothing to relativize
+    return normalizeNomadUrl(parsedUrl)
+  }
+  if (parsedUrl.entryId === entryId) {
+    // Same installation and entry
+    return '#' + (parsedUrl.path || '/')
+  }
+  // Same installation, possibly also same upload
+  let rv = parsedUrl.uploadId === uploadId ? '../upload' : `../uploads/${parsedUrl.uploadId}`
+  if (parsedUrl.type === refType.archive || parsedUrl.type === refType.metainfo) {
+    rv = `${rv}/archive/${parsedUrl.entryId}`
+    if (parsedUrl.path) {
+      rv = `${rv}#${parsedUrl.path}`
+    }
+  } else if (parsedUrl.type === refType.upload) {
+    if (parsedUrl.path) {
+      rv = `${rv}/raw/${parsedUrl.path}`
+    }
+  }
+  return rv
+}
+
+/**
  * Returns a url string which is "normalized", i.e. it is absolute and have the preferred
  * url form for referencing the resource/data. Normalized urls always prefer identifying
  * entries with entryId rather than by specifying a mainfile.

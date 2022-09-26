@@ -43,9 +43,7 @@ import DataStore from './DataStore'
 import searchQuantities from '../searchQuantities'
 import { keycloakBase } from '../config'
 import { useKeycloak } from '@react-keycloak/web'
-import { GlobalMetainfo, Metainfo } from './archive/metainfo'
-import metainfoData from '../metainfo'
-import { systemMetainfoUrl } from '../utils'
+import { GlobalMetainfo } from './archive/metainfo'
 
 beforeEach(async () => {
   // For some strange reason, the useKeycloak mock gets reset if we set it earlier
@@ -77,12 +75,6 @@ beforeEach(async () => {
     disconnect() {}
   }
   window.ResizeObserver = ResizeObserver
-
-  // TODO: Hacky: resetting the global metainfo, since loading custom metainfos update it, and it
-  // creates effects across tests. Need a better solution.
-  metainfoData._url = systemMetainfoUrl
-  metainfoData._metainfo = new Metainfo(null, metainfoData, null)
-  await metainfoData._metainfo._result
 })
 
 const fs = require('fs')
