@@ -2301,11 +2301,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 # check the potential full storage
                 if key.endswith(_storage_suffix):
                     property_def = self.m_def.all_properties.get(key[:-len(_storage_suffix)])
+                    assert property_def.use_full_storage, f'Property {key} is not a full storage property'
 
                 if property_def is None:
                     continue
-
-                assert property_def.full_storage, f'Property {key} is not a full storage property'
 
             if isinstance(property_def, SubSection):
                 for sub_section in self.m_get_sub_sections(property_def):
