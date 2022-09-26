@@ -575,8 +575,8 @@ class UnresolvedReferenceAdaptor extends ArchiveAdaptor {
 class QuantityAdaptor extends ArchiveAdaptor {
   async itemAdaptor(key) {
     const attribute = this.def.attributes.find(attr => attr.name === key)
-    const value = this.obj.m_attributes[key]
     if (attribute) {
+      const value = this.obj?.m_attributes[key]
       return await this.adaptorFactory(this.parsedBaseUrl, value, attribute)
     }
 
@@ -612,22 +612,26 @@ function QuantityItemPreview({value, def}) {
   }
   if (def.shape.length > 0) {
     const dimensions = []
-    let current = value
-    for (let i = 0; i < def.shape.length; i++) {
-      dimensions.push(current.length)
-      current = current[0]
-    }
-    let typeLabel
-    if (def.type.type_kind === 'python') {
-      typeLabel = 'list'
-    } else {
-      if (dimensions.length === 1) {
-        typeLabel = 'vector'
-      } else if (dimensions.length === 2) {
-        typeLabel = 'matrix'
-      } else {
-        typeLabel = 'tensor'
+    let typeLabel = 'unknown'
+    try {
+      let current = value
+      for (let i = 0; i < def.shape.length; i++) {
+        dimensions.push(current.length)
+        current = current[0]
       }
+      if (def.type.type_kind === 'python') {
+        typeLabel = 'list'
+      } else {
+        if (dimensions.length === 1) {
+          typeLabel = 'vector'
+        } else if (dimensions.length === 2) {
+          typeLabel = 'matrix'
+        } else {
+          typeLabel = 'tensor'
+        }
+      }
+    } catch (e) {
+      console.error('Quantity shape did not fit quantity value.', e)
     }
     return <Box component="span" whiteSpace="nowrap" fontStyle="italic">
       <Typography component="span">
@@ -969,7 +973,12 @@ function SubSection({subSectionDef, section, editable}) {
         sectionDef._properties[key] && sectionDef._properties[key].m_def === QuantityMDef
       ))
     }
-    const labelQuantity = itemLabelKey && sectionDef._properties[itemLabelKey]
+    let labelQuantity = itemLabelKey && sectionDef._properties[itemLabelKey]
+    if (labelQuantity && quantityUsesFullStorage(labelQuantity)) {
+      // We do not yet support label quantities that use full storage
+      labelQuantity = undefined
+      itemLabelKey = undefined
+    }
     const getItemLabel = item => {
       if (labelQuantity) {
         const value = item[itemLabelKey]
