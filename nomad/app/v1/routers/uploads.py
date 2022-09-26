@@ -507,12 +507,12 @@ async def get_upload(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to retrieve.'),
-        user: User = Depends(create_user_dependency(required=True))):
+        user: User = Depends(create_user_dependency())):
     '''
     Fetches a specific upload by its upload_id.
     '''
     # Get upload (or throw exception if nonexistent/no access)
-    upload = _get_upload_with_read_access(upload_id, user)
+    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
 
     return UploadProcDataResponse(
         upload_id=upload_id,

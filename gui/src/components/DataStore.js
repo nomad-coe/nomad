@@ -172,6 +172,9 @@ const DataStore = React.memo(({children}) => {
     if (dataToUpdate.upload || dataToUpdate.entries) {
       dataToUpdate.error = undefined // Updating upload or entries -> reset error
     }
+    if (dataToUpdate?.upload?.current_process === 'delete_upload') {
+      newStoreObj.deletionRequested = true // Will treat subsequent 404 errors
+    }
     const viewers = newStoreObj.upload?.viewers
     const writers = newStoreObj.upload?.writers
     newStoreObj.isViewer = user && viewers?.includes(user.sub)
@@ -217,12 +220,9 @@ const DataStore = React.memo(({children}) => {
       : api.get(`/uploads/${uploadId}`)
 
     apiCall.then(apiData => {
-      const upload = requireEntriesPage ? apiData.response?.upload : apiData.data
-      let dataToUpdate = requireEntriesPage
-        ? {error: undefined, isRefreshing: false, upload: upload, entries: apiData.response?.data, apiData, pagination: currentPagination, refreshOptions}
-        : {error: undefined, isRefreshing: false, upload: upload, entries: undefined, apiData: undefined, refreshOptions}
-      const deletionRequested = upload?.current_process === 'delete_upload' && (upload?.process_status === 'PENDING' || upload?.process_status === 'RUNNING')
-      if (deletionRequested) dataToUpdate = {...dataToUpdate, deletionRequested}
+      const dataToUpdate = requireEntriesPage
+        ? {error: undefined, isRefreshing: false, upload: apiData.response?.upload, entries: apiData.response?.data, apiData, pagination: currentPagination, refreshOptions}
+        : {error: undefined, isRefreshing: false, upload: apiData.data, entries: undefined, apiData: undefined, refreshOptions}
       updateUpload(installationUrl, uploadId, dataToUpdate)
     }).catch((error) => {
       if (requireEntriesPage && error.apiMessage === 'Page out of range requested.') {

@@ -21,9 +21,17 @@ import FileBrowser from '../archive/FileBrowser'
 import Page from '../Page'
 import { useUploadPageContext } from './UploadPageContext'
 import { createUploadUrl } from '../../utils'
+import { Typography } from '@material-ui/core'
 
 const UploadFilesView = React.memo(function UploadFilesView() {
-  const {installationUrl, uploadId} = useUploadPageContext()
+  const {installationUrl, uploadId, error, hasUpload} = useUploadPageContext()
+
+  if (!hasUpload) {
+    return <Page limitedWidth>
+      {(error ? <Typography>{error.apiMessage || error.message || 'Failed to load'}</Typography> : <Typography>loading ...</Typography>)}
+    </Page>
+  }
+
   return <Page>
     <FileBrowser
       uploadUrl={createUploadUrl(installationUrl, uploadId, '')}
