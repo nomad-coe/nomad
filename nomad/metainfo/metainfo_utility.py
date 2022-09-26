@@ -35,7 +35,7 @@ from nomad.units import ureg
 
 __hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
 
-_storage_suffix = '_full'
+_storage_suffix = ''
 
 _delta_symbols = {'delta_', 'Δ'}
 
@@ -363,30 +363,6 @@ def to_dict(entries):
         pass
 
     return entries
-
-
-def to_storage_name(quantity) -> str:
-    '''
-    Returns the name used for storage.
-
-    If the quantity requires full storage due to, for example, being repeating, the value and
-    other metadata will be wrapped into a 'MQuantity' and stored in a map under the full name.
-
-    If the quantity does not require full storage, the value will be stored directly under the
-    original name.
-
-    If the quantity is an attribute, the full name will be the corresponding section key.
-
-    This function checks and returns the proper name to be used to access the storage.
-
-    Arguments:
-        quantity: the quantity definition 'Quantity' to be checked
-    '''
-
-    if quantity.use_full_storage:
-        return f'{quantity.name}{_storage_suffix}'
-
-    return quantity.name
 
 
 def convert_to(from_magnitude, from_unit: Optional[ureg.Unit], to_unit: Optional[ureg.Unit]):

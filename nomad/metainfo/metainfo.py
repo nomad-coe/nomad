@@ -16,30 +16,30 @@
 # limitations under the License.
 #
 
-import itertools
-from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, \
-    Callable as TypingCallable, cast, Optional
-from collections.abc import Iterable as IterableABC
-import sys
-from functools import reduce
-import inspect
-import re
-import json
 import base64
 import importlib
+import inspect
+import itertools
+import json
+import re
+import sys
+from collections.abc import Iterable as IterableABC
+from functools import reduce
+from typing import Any, Callable as TypingCallable, Dict, Iterable, List, Optional, Set, Tuple, Type, \
+    TypeVar, Union, cast
 
+import docstring_parser
+import jmespath
 import numpy as np
 import pandas as pd
 import pint
-import docstring_parser
-import jmespath
 
 from nomad.config import process
 from nomad.metainfo.metainfo_utility import Annotation, DefinitionAnnotation, MEnum, MQuantity, MRegEx, \
-    MSubSectionList, MTypes, ReferenceURL, SectionAnnotation, _storage_suffix, check_dimensionality, convert_to, \
-    default_hash, dict_to_named_list, normalize_datetime, resolve_variadic_name, retrieve_attribute, \
-    split_python_definition, to_dict, to_numpy, to_section_def, to_storage_name, validate_shape, validate_url, \
-    check_unit, _delta_symbols
+    MSubSectionList, MTypes, ReferenceURL, SectionAnnotation, _delta_symbols, check_dimensionality, \
+    check_unit, convert_to, default_hash, dict_to_named_list, normalize_datetime, resolve_variadic_name, \
+    retrieve_attribute, split_python_definition, to_dict, to_numpy, to_section_def, validate_shape, \
+    validate_url
 from nomad.units import ureg as units
 
 m_package: Optional['Package'] = None
@@ -1229,7 +1229,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if not isinstance(m_definition, Quantity) or not m_definition.use_full_storage:
                     return getattr(self, m_definition.name)
 
-                m_storage: dict = self.__dict__.get(to_storage_name(m_definition), None)
+                m_storage: dict = self.__dict__.get(m_definition.name, None)
                 if m_storage is None:
                     return None
 
@@ -1304,12 +1304,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if quantity_def.derived is not None:
             raise MetainfoError(f'The quantity {quantity_def} is derived and cannot be set.')
 
-        # full storage suffix
-        full_name: str = to_storage_name(quantity_def)
+        item_name: str = quantity_def.name
 
         if value is None:
             # This implements the implicit "unset" semantics of assigned None as a value
-            to_remove = self.__dict__.pop(full_name, None)
+            to_remove = self.__dict__.pop(item_name, None)
             # if full storage is used, also need to clear quantities created for convenient access
             if quantity_def.use_full_storage and to_remove:
                 # self.__dict__[full_name] is guaranteed to be a 'dict[str, MQuantity]'
@@ -1340,7 +1339,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     raise MetainfoError(
                         f'Only numpy arrays and dtypes can be used for higher dimensional quantities: {quantity_def}')
 
-            self.__dict__[full_name] = value
+            self.__dict__[item_name] = value
         else:
             # it is a repeating quantity w/o attributes
             # the actual value/name/unit would be wrapped into 'MQuantity'
@@ -1351,26 +1350,26 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 m_quantity = value
                 if not quantity_def.variable:
                     if not m_quantity.name:
-                        m_quantity.name = quantity_def.name
-                    elif m_quantity.name != quantity_def.name:
-                        raise MetainfoError(f"The name of {value} must match definition name {quantity_def.name}")
+                        m_quantity.name = item_name
+                    elif m_quantity.name != item_name:
+                        raise MetainfoError(f"The name of {value} must match definition name {item_name}")
                 else:
                     if not m_quantity.name:
-                        raise MetainfoError(f"The name must be provided for variadic quantity {quantity_def.name}")
+                        raise MetainfoError(f"The name must be provided for variadic quantity {item_name}")
 
                 # swap to add attributes via the setter to allow validation
                 m_attribute = m_quantity.attributes
                 m_quantity.attributes = {}
             elif not quantity_def.variable:
                 try:
-                    m_quantity = self.__dict__[full_name][quantity_def.name]
+                    m_quantity = self.__dict__[item_name][item_name]
                     if isinstance(value, pint.Quantity):
                         m_quantity.value = value.m
                         m_quantity.unit = value.u
                     else:
                         m_quantity.value = value
                 except KeyError:
-                    m_quantity = MQuantity(quantity_def.name, value)
+                    m_quantity = MQuantity(item_name, value)
             else:
                 raise MetainfoError("Variadic quantities only accept raw values wrapped in 'MQuantity'")
 
@@ -1412,10 +1411,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         f'Only numpy arrays and dtypes can be used for higher dimensional quantities: {quantity_def}')
 
             # store under variable name with suffix
-            if full_name in self.__dict__:
-                self.__dict__[full_name][m_quantity.name] = m_quantity
+            if item_name in self.__dict__:
+                self.__dict__[item_name][m_quantity.name] = m_quantity
             else:
-                self.__dict__[full_name] = {m_quantity.name: m_quantity}
+                self.__dict__[item_name] = {m_quantity.name: m_quantity}
 
             for k, v in m_attribute.items():
                 self.m_set_quantity_attribute(m_quantity.name, k, v)
@@ -1429,7 +1428,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if not full:
             return quantity_def.__get__(self, Quantity)
 
-        return self.__dict__[to_storage_name(quantity_def)]
+        return self.__dict__[quantity_def.name]
 
     def m_get_quantity_definition(self, quantity_name: str, hint: Optional[str] = None):
         '''
@@ -1445,7 +1444,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if quantity_def.derived is not None:
             return True
 
-        return quantity_def.name in self.__dict__ or to_storage_name(quantity_def) in self.__dict__
+        return quantity_def.name in self.__dict__
 
     def m_add_values(self, quantity_def: 'Quantity', values: Any, offset: int) -> None:
         ''' Add (partial) values for the given quantity of higher dimensionality. '''
@@ -1600,7 +1599,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             raise MetainfoError(f'Invalid shape for attribute: {tgt_attr}.')
 
         if isinstance(tgt_def, Quantity) and tgt_def.use_full_storage:
-            m_storage: Optional[dict] = self.__dict__.get(to_storage_name(tgt_def), None)
+            m_storage: Optional[dict] = self.__dict__.get(tgt_def.name, None)
             m_quantity: Optional[MQuantity] = m_storage.get(tgt_property, None) if m_storage else None
             if m_quantity is None:
                 m_quantity = MQuantity(tgt_name, None)
@@ -1639,7 +1638,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             return self.__dict__['m_attributes'].get(attr_name, None)
 
         # quantity attributes
-        m_storage: Optional[dict] = self.__dict__.get(to_storage_name(tgt_def), None)
+        m_storage: Optional[dict] = self.__dict__.get(tgt_def.name, None)
         if m_storage is None:
             return None
 
@@ -1966,7 +1965,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         def serialize_full_quantity(quantity_def: 'Quantity', values: Dict[str, MQuantity]):
             result: dict = {}
             for m_quantity in values.values():
-                m_result: dict = {'m_value': serialize_quantity(quantity_def, True, False, None, m_quantity.value)}
+                m_result: dict = {
+                    'm_value': serialize_quantity(quantity_def, True, False, None, m_quantity.value)}
                 if m_quantity.unit:
                     m_result['m_unit'] = str(m_quantity.unit)
                 if m_quantity.original_unit:
@@ -2065,14 +2065,15 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     if not quantity.use_full_storage:
                         yield name, serialize_quantity(quantity, is_set, False, path)
                     else:
-                        yield name, serialize_full_quantity(quantity, self.__dict__[to_storage_name(quantity)])
+                        yield name, serialize_full_quantity(quantity, self.__dict__[quantity.name])
 
                 except ValueError as e:
                     raise ValueError(f'Value error ({str(e)}) for {quantity}')
 
             # section attributes
             if 'm_attributes' in self.__dict__:
-                yield 'm_attributes', collect_attributes(self.__dict__['m_attributes'], self.m_def.all_attributes)
+                yield 'm_attributes', collect_attributes(
+                    self.__dict__['m_attributes'], self.m_def.all_attributes)
 
             # subsections
             for name, sub_section_def in self.m_def.all_sub_sections.items():
@@ -2297,14 +2298,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         for key in self.__dict__:
             property_def = self.m_def.all_properties.get(key)
             if property_def is None:
-                # for quantities using full storage, the key does not match the property name
-                # check the potential full storage
-                if key.endswith(_storage_suffix):
-                    property_def = self.m_def.all_properties.get(key[:-len(_storage_suffix)])
-                    assert property_def.use_full_storage, f'Property {key} is not a full storage property'
-
-                if property_def is None:
-                    continue
+                continue
 
             if isinstance(property_def, SubSection):
                 for sub_section in self.m_get_sub_sections(property_def):
@@ -3079,11 +3073,11 @@ class Quantity(Property):
 
     def __get__(self, obj, cls):
         try:
-            try:
-                value = obj.__dict__[self.name]
-            except KeyError:
-                # ! can only directly build the key here due to infinite recursion
-                m_quantity = obj.__dict__[f'{self.name}{_storage_suffix}'][self.name]
+            value = obj.__dict__[self.name]
+            # appears to be a quantity using full storage
+            # cannot use .use_full_storage as this is not set yet
+            if isinstance(value, dict) and self.name in value:
+                m_quantity = value[self.name]
                 if m_quantity.unit:
                     value = units.Quantity(m_quantity.value, m_quantity.unit)
                 else:
