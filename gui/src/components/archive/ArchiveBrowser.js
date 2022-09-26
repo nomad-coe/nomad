@@ -574,9 +574,9 @@ class UnresolvedReferenceAdaptor extends ArchiveAdaptor {
 
 class QuantityAdaptor extends ArchiveAdaptor {
   async itemAdaptor(key) {
-    const attribute = this.def.attributes.find(attr => attr.name === key)
+    const attribute = this.def?.attributes?.find(attr => attr.name === key)
     if (attribute) {
-      const value = this.obj?.m_attributes[key]
+      const value = this.obj?.m_attributes?.[key]
       return await this.adaptorFactory(this.parsedBaseUrl, value, attribute)
     }
 
