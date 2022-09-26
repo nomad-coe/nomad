@@ -24,13 +24,13 @@ import InputSection from '../input/InputSection'
 import InputField from '../input/InputField'
 
 const FilterSubMenuSpectroscopy = React.memo(({
-  value,
+  id,
   ...rest
 }) => {
   const {selected, open} = useContext(filterMenuContext)
-  const visible = open && value === selected
+  const visible = open && id === selected
 
-  return <FilterSubMenu value={value} {...rest}>
+  return <FilterSubMenu id={id} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <InputField
@@ -67,7 +67,7 @@ const FilterSubMenuSpectroscopy = React.memo(({
   </FilterSubMenu>
 })
 FilterSubMenuSpectroscopy.propTypes = {
-  value: PropTypes.string
+  id: PropTypes.string
 }
 
 export default FilterSubMenuSpectroscopy

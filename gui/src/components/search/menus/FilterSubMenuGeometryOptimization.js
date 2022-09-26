@@ -24,14 +24,14 @@ import { InputCheckboxValue } from '../input/InputCheckbox'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 
 const FilterSubMenuGeometryOptimization = React.memo(({
-  value,
+  id,
   ...rest
 }) => {
   const {selected, open} = useContext(filterMenuContext)
-  const visible = open && value === selected
+  const visible = open && id === selected
 
   return <FilterSubMenu
-    value={value}
+    id={id}
     actions={<InputCheckboxValue
       quantity="results.properties.available_properties"
       value="geometry_optimization"
@@ -62,7 +62,7 @@ const FilterSubMenuGeometryOptimization = React.memo(({
   </FilterSubMenu>
 })
 FilterSubMenuGeometryOptimization.propTypes = {
-  value: PropTypes.string
+  id: PropTypes.string
 }
 
 export default FilterSubMenuGeometryOptimization

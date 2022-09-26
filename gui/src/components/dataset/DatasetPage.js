@@ -18,9 +18,10 @@
 import React, { useContext, useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles } from '@material-ui/core'
+import { ui } from '../../config'
 import { errorContext } from '../errors'
 import { useApi } from '../api'
-import Search from '../search/Search'
+import SearchPage from '../search/SearchPage'
 import { SearchContext } from '../search/SearchContext'
 import { DOI } from './DOI'
 
@@ -29,13 +30,14 @@ This page allows you to **inspect** and **download** NOMAD datasets. It also all
 to explore a dataset with similar controls that the search page offers.
 `
 
+const context = ui?.search_contexts?.options?.entries
 const useStyles = makeStyles(theme => ({
   header: {
     display: 'flex',
     flexDirection: 'column'
   }
 }))
-const UserdataPage = React.memo(({match}) => {
+const DatasetPage = React.memo(({match}) => {
   const styles = useStyles()
   const [dataset, setDataset] = useState()
   const {raiseError} = useContext(errorContext)
@@ -55,25 +57,31 @@ const UserdataPage = React.memo(({match}) => {
       })
   }, [datasetId, api, raiseError])
 
-  // Shows basic dataset information above the searchbar
-  return dataset && <SearchContext
-    resource="entries"
-    filtersLocked={datasetFilter}
-  >
-    <Search header={
-      <div className={styles.header}>
-        <Typography variant="h4">
-          {dataset.dataset_name || (dataset.isEmpty && 'Empty or non existing dataset') || 'loading ...'}
-        </Typography>
-        <Typography>
-          dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
-        </Typography>
-      </div>}
-    />
-  </SearchContext>
+  // Show a customized search page for this dataset. Basic dataset information
+  // shown in the header.
+  return dataset
+    ? <SearchContext
+      resource={context?.resource}
+      initialPagination={context?.pagination}
+      initialColumns={context?.columns}
+      initialFilterMenus={context?.menus}
+      filtersLocked={datasetFilter}
+    >
+      <SearchPage header={
+        <div className={styles.header}>
+          <Typography variant="h4">
+            {dataset.dataset_name || (dataset.isEmpty && 'Empty or non existing dataset') || 'loading ...'}
+          </Typography>
+          <Typography>
+            dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
+          </Typography>
+        </div>}
+      />
+    </SearchContext>
+    : null
 })
-UserdataPage.propTypes = {
+DatasetPage.propTypes = {
   match: PropTypes.object
 }
 
-export default UserdataPage
+export default DatasetPage

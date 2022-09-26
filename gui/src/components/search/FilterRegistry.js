@@ -32,31 +32,30 @@ export const filterAbbreviations = [] // Mapping of filter full name -> abbrevia
 export const filterFullnames = [] // Mapping of filter abbreviation -> full name
 export const filterData = {} // Stores data for each registered filter
 
-// Labels for the filter menus
-export const labelMaterial = 'Material'
-export const labelElements = 'Elements / Formula'
-export const labelSymmetry = 'Symmetry'
-export const labelMethod = 'Method'
-export const labelSimulation = 'Simulation'
-export const labelDFT = 'DFT'
-export const labelGW = 'GW'
-export const labelExperiment = 'Experiment'
-export const labelEELS = 'EELS'
-export const labelProperties = 'Properties'
-export const labelElectronic = 'Electronic'
-export const labelOptoelectronic = 'Optoelectronic'
-export const labelVibrational = 'Vibrational'
-export const labelMechanical = 'Mechanical'
-export const labelSpectroscopy = 'Spectroscopy'
-export const labelThermodynamic = 'Thermodynamic'
-export const labelGeometryOptimization = 'Geometry optimization'
-export const labelELN = 'Electronic Lab Notebook'
-export const labelAuthor = 'Author / Origin'
-export const labelAccess = 'Access'
-export const labelDataset = 'Dataset'
-export const labelIDs = 'IDs'
-export const labelArchive = 'Processed data quantities'
-export const labelOptimade = 'Optimade'
+// Ids for the filter menus: used to tie filter chips to a specific menu.
+const idMaterial = 'material'
+const idElements = 'elements'
+const idSymmetry = 'symmetry'
+const idMethod = 'method'
+const idSimulation = 'simulation'
+const idDFT = 'dft'
+const idGW = 'gw'
+const idProperties = 'properties'
+const idElectronic = 'electronic'
+const idOptoelectronic = 'optoelectronic'
+const idVibrational = 'vibrational'
+const idMechanical = 'mechanical'
+const idSpectroscopy = 'spectroscopy'
+const idThermodynamic = 'thermodynamic'
+const idGeometryOptimization = 'geometry_optimization'
+const idELN = 'eln'
+const idAuthor = 'author'
+const idDataset = 'dataset'
+const idAccess = 'access'
+const idIDs = 'ids'
+const idArchive = 'processed_data_quantities'
+const idOptimade = 'optimade'
+
 /**
  * Used to gather a list of fixed filter options from the metainfo.
  * @param {string} quantity Metainfo name
@@ -291,52 +290,52 @@ const noQueryQuantity = {guiOnly: true, multiple: false}
 const numberHistogramQuantity = {multiple: false, exclusive: false}
 
 // Filters that directly correspond to a metainfo value
-registerFilter('results.material.structural_type', labelMaterial, {...termQuantity, scale: '1/4'})
-registerFilter('results.material.functional_type', labelMaterial, termQuantityNonExclusive)
-registerFilter('results.material.compound_type', labelMaterial, termQuantityNonExclusive)
-registerFilter('results.material.material_name', labelMaterial, termQuantity)
-registerFilter('results.material.chemical_formula_hill', labelElements, termQuantity)
-registerFilter('results.material.chemical_formula_anonymous', labelElements, termQuantity)
-registerFilter('results.material.n_elements', labelElements, {...numberHistogramQuantity, label: 'Number of Elements'})
-registerFilter('results.material.symmetry.bravais_lattice', labelSymmetry, termQuantity)
-registerFilter('results.material.symmetry.crystal_system', labelSymmetry, termQuantity)
-registerFilter('results.material.symmetry.structure_name', labelSymmetry, termQuantity)
-registerFilter('results.material.symmetry.strukturbericht_designation', labelSymmetry, termQuantity)
-registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry, termQuantity)
-registerFilter('results.material.symmetry.point_group', labelSymmetry, termQuantity)
-registerFilter('results.material.symmetry.hall_symbol', labelSymmetry, termQuantity)
-registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry, termQuantity)
-registerFilter('results.method.method_name', labelMethod, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.workflow_name', labelMethod, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.simulation.program_name', labelSimulation, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.simulation.program_version', labelSimulation, termQuantity)
-registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, termQuantity)
-registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {...termQuantity, scale: '1/2', label: 'XC Functional Type'})
-registerFilter('results.method.simulation.dft.xc_functional_names', labelDFT, {...termQuantityNonExclusive, scale: '1/2', label: 'XC Functional Names'})
-registerFilter('results.method.simulation.dft.relativity_method', labelDFT, termQuantity)
-registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, label: 'GW Type'})
-registerFilter('results.eln.sections', labelELN, termQuantity)
-registerFilter('results.eln.tags', labelELN, termQuantity)
-registerFilter('results.eln.methods', labelELN, termQuantity)
-registerFilter('results.eln.instruments', labelELN, termQuantity)
-registerFilter('results.eln.lab_ids', labelELN, termQuantity)
-registerFilter('results.eln.names', labelELN, termQuantity)
-registerFilter('results.eln.descriptions', labelELN, termQuantity)
-registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database', scale: '1/4'})
-registerFilter('authors.name', labelAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
-registerFilter('upload_create_time', labelAuthor, {...numberHistogramQuantity, scale: '1/2'})
-registerFilter('datasets.dataset_name', labelDataset, {...termQuantityLarge, label: 'Dataset Name'})
-registerFilter('datasets.doi', labelDataset, {...termQuantity, label: 'Dataset DOI'})
-registerFilter('entry_id', labelIDs, termQuantity)
-registerFilter('upload_id', labelIDs, termQuantity)
-registerFilter('quantities', labelArchive, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
-registerFilter('results.material.material_id', labelIDs, termQuantity)
-registerFilter('datasets.dataset_id', labelIDs, termQuantity)
-registerFilter('optimade_filter', labelOptimade, {multiple: true, queryMode: 'all'})
+registerFilter('results.material.structural_type', idMaterial, {...termQuantity, scale: '1/4'})
+registerFilter('results.material.functional_type', idMaterial, termQuantityNonExclusive)
+registerFilter('results.material.compound_type', idMaterial, termQuantityNonExclusive)
+registerFilter('results.material.material_name', idMaterial, termQuantity)
+registerFilter('results.material.chemical_formula_hill', idElements, termQuantity)
+registerFilter('results.material.chemical_formula_anonymous', idElements, termQuantity)
+registerFilter('results.material.n_elements', idElements, {...numberHistogramQuantity, label: 'Number of Elements'})
+registerFilter('results.material.symmetry.bravais_lattice', idSymmetry, termQuantity)
+registerFilter('results.material.symmetry.crystal_system', idSymmetry, termQuantity)
+registerFilter('results.material.symmetry.structure_name', idSymmetry, termQuantity)
+registerFilter('results.material.symmetry.strukturbericht_designation', idSymmetry, termQuantity)
+registerFilter('results.material.symmetry.space_group_symbol', idSymmetry, termQuantity)
+registerFilter('results.material.symmetry.point_group', idSymmetry, termQuantity)
+registerFilter('results.material.symmetry.hall_symbol', idSymmetry, termQuantity)
+registerFilter('results.material.symmetry.prototype_aflow_id', idSymmetry, termQuantity)
+registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.workflow_name', idMethod, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.simulation.program_name', idSimulation, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.simulation.program_version', idSimulation, termQuantity)
+registerFilter('results.method.simulation.dft.basis_set_type', idDFT, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.simulation.dft.core_electron_treatment', idDFT, termQuantity)
+registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {...termQuantity, scale: '1/2', label: 'XC Functional Type'})
+registerFilter('results.method.simulation.dft.xc_functional_names', idDFT, {...termQuantityNonExclusive, scale: '1/2', label: 'XC Functional Names'})
+registerFilter('results.method.simulation.dft.relativity_method', idDFT, termQuantity)
+registerFilter('results.method.simulation.gw.type', idGW, {...termQuantity, label: 'GW Type'})
+registerFilter('results.eln.sections', idELN, termQuantity)
+registerFilter('results.eln.tags', idELN, termQuantity)
+registerFilter('results.eln.methods', idELN, termQuantity)
+registerFilter('results.eln.instruments', idELN, termQuantity)
+registerFilter('results.eln.lab_ids', idELN, termQuantity)
+registerFilter('results.eln.names', idELN, termQuantity)
+registerFilter('results.eln.descriptions', idELN, termQuantity)
+registerFilter('external_db', idAuthor, {...termQuantity, label: 'External Database', scale: '1/4'})
+registerFilter('authors.name', idAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
+registerFilter('upload_create_time', idAuthor, {...numberHistogramQuantity, scale: '1/2'})
+registerFilter('datasets.dataset_name', idDataset, {...termQuantityLarge, label: 'Dataset Name'})
+registerFilter('datasets.doi', idDataset, {...termQuantity, label: 'Dataset DOI'})
+registerFilter('entry_id', idIDs, termQuantity)
+registerFilter('upload_id', idIDs, termQuantity)
+registerFilter('quantities', idArchive, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
+registerFilter('results.material.material_id', idIDs, termQuantity)
+registerFilter('datasets.dataset_id', idIDs, termQuantity)
+registerFilter('optimade_filter', idOptimade, {multiple: true, queryMode: 'all'})
 registerFilter(
   'results.properties.spectroscopy.eels',
-  labelSpectroscopy,
+  idSpectroscopy,
   {...nestedQuantity, label: 'Electron Energy Loss Spectrum (EELS)'},
   [
     {name: 'detector_type', ...termQuantity},
@@ -347,7 +346,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.electronic.band_structure_electronic',
-  labelElectronic,
+  idElectronic,
   {...nestedQuantity, label: 'Band Structure'},
   [
     {name: 'spin_polarized', label: 'Spin-polarized', ...termQuantityBool}
@@ -355,7 +354,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.electronic.dos_electronic',
-  labelElectronic,
+  idElectronic,
   {...nestedQuantity, label: 'Density of States (DOS)'},
   [
     {name: 'spin_polarized', label: 'Spin-polarized', ...termQuantityBool}
@@ -363,7 +362,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.electronic.band_structure_electronic.band_gap',
-  labelElectronic,
+  idElectronic,
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
@@ -372,7 +371,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.optoelectronic.band_gap',
-  labelOptoelectronic,
+  idOptoelectronic,
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
@@ -381,7 +380,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.optoelectronic.solar_cell',
-  labelOptoelectronic,
+  idOptoelectronic,
   nestedQuantity,
   [
     {name: 'efficiency', ...numberHistogramQuantity, scale: '1/4'},
@@ -402,7 +401,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.mechanical.bulk_modulus',
-  labelMechanical,
+  idMechanical,
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
@@ -411,7 +410,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.mechanical.shear_modulus',
-  labelMechanical,
+  idMechanical,
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
@@ -420,12 +419,12 @@ registerFilter(
 )
 registerFilter(
   'results.properties.available_properties',
-  labelProperties,
+  idProperties,
   termQuantityAll
 )
 registerFilter(
   'results.properties.mechanical.energy_volume_curve',
-  labelMechanical,
+  idMechanical,
   nestedQuantity,
   [
     {name: 'type', ...termQuantity}
@@ -433,7 +432,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.geometry_optimization',
-  labelGeometryOptimization,
+  idGeometryOptimization,
   nestedQuantity,
   [
     {name: 'final_energy_difference', ...numberHistogramQuantity, scale: '1/8'},
@@ -443,7 +442,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.thermodynamic.trajectory',
-  labelThermodynamic,
+  idThermodynamic,
   nestedQuantity,
   [
     {name: 'available_properties', ...termQuantityAll},
@@ -454,7 +453,7 @@ registerFilter(
 
 // Visibility: controls the 'owner'-parameter in the API query, not part of the
 // query itself.
-registerFilter('visibility', labelAccess, {...noQueryQuantity, default: 'visible'})
+registerFilter('visibility', idAccess, {...noQueryQuantity, default: 'visible'})
 
 // Combine: controls whether materials search combines data from several
 // entries.
@@ -471,7 +470,7 @@ registerFilter('exclusive', undefined, {...noQueryQuantity, default: false})
 // into a single string.
 registerFilter(
   'results.material.elements',
-  labelElements,
+  idElements,
   {
     stats: ptStatConfig,
     aggs: {terms: {size: elementData.elements.length}},
@@ -495,7 +494,7 @@ registerFilter(
 // Electronic properties: subset of results.properties.available_properties
 registerFilterOptions(
   'electronic_properties',
-  labelElectronic,
+  idElectronic,
   'results.properties.available_properties',
   'Electronic Properties',
   'The electronic properties that are present in an entry.',
@@ -509,7 +508,7 @@ registerFilterOptions(
 // Optoelectronic properties: subset of results.properties.available_properties
 registerFilterOptions(
   'optoelectronic_properties',
-  labelOptoelectronic,
+  idOptoelectronic,
   'results.properties.available_properties',
   'Optoelectronic properties',
   'The optoelectronic properties that are present in an entry.',
@@ -522,7 +521,7 @@ registerFilterOptions(
 // Vibrational properties: subset of results.properties.available_properties
 registerFilterOptions(
   'vibrational_properties',
-  labelVibrational,
+  idVibrational,
   'results.properties.available_properties',
   'Vibrational Properties',
   'The vibrational properties that are present in an entry.',
@@ -537,7 +536,7 @@ registerFilterOptions(
 // Mechanical properties: subset of results.properties.available_properties
 registerFilterOptions(
   'mechanical_properties',
-  labelMechanical,
+  idMechanical,
   'results.properties.available_properties',
   'Mechanical Properties',
   'The mechanical properties that are present in an entry.',
@@ -551,7 +550,7 @@ registerFilterOptions(
 // Spectroscopic properties: subset of results.properties.available_properties
 registerFilterOptions(
   'spectroscopic_properties',
-  labelSpectroscopy,
+  idSpectroscopy,
   'results.properties.available_properties',
   'Spectroscopic Properties',
   'The spectroscopic properties that are present in an entry.',
@@ -563,7 +562,7 @@ registerFilterOptions(
 // Thermodynamical properties: subset of results.properties.available_properties
 registerFilterOptions(
   'thermodynamic_properties',
-  labelThermodynamic,
+  idThermodynamic,
   'results.properties.available_properties',
   'Thermodynamic Properties',
   'The thermodynamic properties that are present.',

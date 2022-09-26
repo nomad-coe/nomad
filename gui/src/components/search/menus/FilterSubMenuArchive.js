@@ -146,7 +146,7 @@ Definition.propTypes = {
 }
 
 const FilterSubMenuArchive = React.memo(({
-  value,
+  id,
   ...rest
 }) => {
   const dataStore = useDataStore()
@@ -193,7 +193,7 @@ const FilterSubMenuArchive = React.memo(({
       .catch(raiseError)
   }, [raiseError, dataStore, globalMetainfo, setOptions])
 
-  return <FilterSubMenu value={value} {...rest}>
+  return <FilterSubMenu id={id} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <Box marginTop={2} marginBottom={1}>
@@ -210,7 +210,7 @@ const FilterSubMenuArchive = React.memo(({
   </FilterSubMenu>
 })
 FilterSubMenuArchive.propTypes = {
-  value: PropTypes.string
+  id: PropTypes.string
 }
 
 export default FilterSubMenuArchive

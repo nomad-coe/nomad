@@ -23,11 +23,11 @@ import {Box, TextField} from "@material-ui/core"
 import {useSearchContext} from "../SearchContext"
 import AutoComplete from "@material-ui/lab/Autocomplete"
 import {useApi} from '../../api'
-import {debounce} from 'lodash'
+import {debounce, isArray} from 'lodash'
 import {useErrors} from '../../errors'
 
 const FilterSubMenuOptimade = React.memo(({
-  value,
+  id,
   ...rest
 }) => {
   const [suggestions, setSuggestions] = useState([['']])
@@ -37,7 +37,7 @@ const FilterSubMenuOptimade = React.memo(({
   const {useFilterState} = useSearchContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
-  const visible = open && value === selected
+  const visible = open && id === selected
   const [optimadeFilters, setOptimadeFilters] = useFilterState("optimade_filter")
 
   useEffect(() => {
@@ -87,7 +87,7 @@ const FilterSubMenuOptimade = React.memo(({
       })
       return {valid: true, suggestions: []}
     } catch (error) {
-      if (error?.apiMessage) {
+      if (isArray(error?.apiMessage)) {
         const suggestions = []
         error?.apiMessage.forEach((err) => {
           const errorLocations = err?.loc
@@ -117,6 +117,7 @@ const FilterSubMenuOptimade = React.memo(({
         })
         return {valid: false, suggestions: suggestions}
       }
+      return {valid: false, suggestions: []}
     }
   }, [api, identifiers, renderSuggestion])
 
@@ -200,7 +201,7 @@ const FilterSubMenuOptimade = React.memo(({
   }, [setFilter, setOptimadeFilter, validate, values])
 
   return <FilterSubMenu
-    value={value}
+    id={id}
     actions={<InputCheckboxValue
       quantity="quantities"
       value="data"
@@ -234,7 +235,7 @@ const FilterSubMenuOptimade = React.memo(({
   </FilterSubMenu>
 })
 FilterSubMenuOptimade.propTypes = {
-  value: PropTypes.string
+  id: PropTypes.string
 }
 
 export default FilterSubMenuOptimade

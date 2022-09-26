@@ -47,7 +47,7 @@ import { GlobalMetainfo } from './archive/metainfo'
 
 beforeEach(async () => {
   // For some strange reason, the useKeycloak mock gets reset if we set it earlier
-  if (!useKeycloak()) {
+  if (!useKeycloak()?.keycloak) {
     useKeycloak.mockReturnValue(
       {
         keycloak: {
@@ -346,7 +346,7 @@ if (!fs.existsSync(`../${configPath}`)) {
  * @param {string} password Password for the username.
  */
 export async function startAPI(state, path, username = '', password = '') {
-  mockKeycloak(username, password)
+  await mockKeycloak(username, password)
 
   // Prepare API state for reading responses directly from it.
   const jsonPath = `${path}.json`
@@ -451,12 +451,12 @@ ${func}()"`)
  * realm is limited. Inspired by:
  * https://stackoverflow.com/questions/63627652/testing-pages-secured-by-react-keycloak
  */
-function mockKeycloak(username, password) {
-  const login = (username, password) => {
+async function mockKeycloak(username, password) {
+  const login = async (username, password) => {
     if ((username === undefined || username === '') && (password === undefined || password === '')) return
     const response = getRefreshToken(username, password)
     const authenticated = response.access_token !== undefined
-    if (authenticated) updateToken(response.refresh_token)
+    if (authenticated) await updateToken(response.refresh_token)
   }
 
   const logout = () => {
@@ -564,7 +564,7 @@ function mockKeycloak(username, password) {
   }
 
   if (username && password) {
-    login(username, password)
+    await login(username, password)
   }
 
   useKeycloak.mockReturnValue({keycloak: mockedKeycloak, initialized: true})

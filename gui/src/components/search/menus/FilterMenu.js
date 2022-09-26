@@ -440,33 +440,34 @@ const useFilterMenuItemStyles = makeStyles(theme => {
   }
 })
 export const FilterMenuItem = React.memo(({
-  value,
+  id,
+  label,
   group,
   onClick,
   disableButton,
-  depth
+  level
 }) => {
   const styles = useFilterMenuItemStyles()
   const theme = useTheme()
-  const groupFinal = group || filterGroups[value]
+  const groupFinal = group || filterGroups[id]
   const { selected, open, onChange } = useContext(filterMenuContext)
   const handleClick = disableButton ? undefined : (onClick || onChange)
-  const opened = open && value === selected
+  const opened = open && id === selected
 
   return <>
     <ListItem
       button={!!handleClick}
       className={styles.listItem}
       classes={{gutters: styles.gutters}}
-      onClick={handleClick && (() => handleClick(value))}
+      onClick={handleClick && (() => handleClick(id))}
     >
       <ListItemText
-        style={{marginLeft: theme.spacing(depth * 1.8)}}
+        style={{marginLeft: theme.spacing(level * 1.8)}}
         primaryTypographyProps={{
           color: opened ? 'primary' : 'initial',
           className: styles.label
         }}
-        primary={value}
+        primary={label}
       />
       {handleClick && <ListItemIcon className={styles.listIcon}>
         <NavigateNextIcon color={opened ? 'primary' : 'action'} className={styles.arrow}/>
@@ -478,14 +479,15 @@ export const FilterMenuItem = React.memo(({
 })
 
 FilterMenuItem.propTypes = {
-  value: PropTypes.string,
+  id: PropTypes.string,
+  label: PropTypes.string,
   group: PropTypes.string,
   onClick: PropTypes.func,
   disableButton: PropTypes.bool,
-  depth: PropTypes.number
+  level: PropTypes.number
 }
 FilterMenuItem.defaultProps = {
-  depth: 0
+  level: 0
 }
 
 const useFilterSubMenusStyles = makeStyles(theme => {
@@ -614,14 +616,14 @@ const useFilterSubMenuStyles = makeStyles(theme => ({
 }))
 
 export const FilterSubMenu = React.memo(({
-  value,
+  id,
   size,
   actions,
   children
 }) => {
   const styles = useFilterSubMenuStyles()
   const { selected, onSizeChange } = useContext(filterMenuContext)
-  const visible = value === selected
+  const visible = id === selected
   useEffect(() => {
     if (visible) {
       onSizeChange(size)
@@ -638,7 +640,7 @@ export const FilterSubMenu = React.memo(({
   </div>
 })
 FilterSubMenu.propTypes = {
-  value: PropTypes.string,
+  id: PropTypes.string,
   size: PropTypes.oneOf(['small', 'medium', 'large']),
   actions: PropTypes.node,
   children: PropTypes.node
