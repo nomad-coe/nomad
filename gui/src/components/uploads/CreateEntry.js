@@ -5,11 +5,11 @@ import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { getUrl } from '../nav/Routes'
 import { useHistory, useLocation } from 'react-router-dom'
-import { getSectionReference, SectionMDef, useGlobalMetainfo } from '../archive/metainfo'
+import { getUrlFromDefinition, SectionMDef, useGlobalMetainfo } from '../archive/metainfo'
 import { useUploadPageContext } from './UploadPageContext'
 
 const CreateEntry = React.memo(function CreateEntry(props) {
-  const {uploadId, isProcessing} = useUploadPageContext()
+  const {installationUrl, uploadId, isProcessing} = useUploadPageContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const globalMetainfo = useGlobalMetainfo()
@@ -72,8 +72,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
         const newTemplates = getTemplatesFromDefinitions(
           archive.definitions.section_definitions, archive.metadata.entry_id, archive,
           section => {
-            const fragment = getSectionReference(section)
-            return `../uploads/${archive.metadata.upload_id}/raw/${archive.metadata.mainfile}#/definitions${fragment}`
+            return getUrlFromDefinition(section, {installationUrl, uploadId}, true)
           })
         newTemplates.forEach(template => {
           templates.push(template)
@@ -87,7 +86,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
     }
 
     getTemplates().then(setTemplates).catch(raiseError)
-  }, [api, raiseError, setTemplates, globalMetainfo, isProcessing])
+  }, [api, raiseError, setTemplates, globalMetainfo, isProcessing, installationUrl, uploadId])
 
   const handleAdd = useCallback(() => {
     api.put(`uploads/${uploadId}/raw/?file_name=${name}.archive.json&wait_for_processing=true`, selectedTemplate.archive)

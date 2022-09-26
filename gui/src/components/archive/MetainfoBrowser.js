@@ -205,6 +205,10 @@ class MetainfoAdaptor extends Adaptor {
       const metainfoBaseUrl = getMetainfoFromDefinition(this.def)._url
       await dataStore.getMetainfoAsync(metainfoBaseUrl)
       this.unsubscriber = dataStore.subscribeToMetainfo(metainfoBaseUrl, () => {})
+
+      if (this.def.m_def === SectionMDef || this.def.m_def === SubSectionMDef) {
+        this.inheritingSections = dataStore.getAllInheritingSections(this.def.sub_section || this.def)
+      }
     }
   }
 
@@ -216,7 +220,7 @@ class MetainfoAdaptor extends Adaptor {
 
 export class MetainfoRootAdaptor extends MetainfoAdaptor {
   async itemAdaptor(key) {
-    const rootSection = getMetainfoFromDefinition(this.def).getRootSectionDefinitions().find(def => def.name === key)
+    const rootSection = getMetainfoFromDefinition(this.def).getRootSectionDefinitions().find(def => def._qualifiedName === key)
     if (rootSection) {
       return metainfoAdaptorFactory(rootSection)
     } else {
@@ -311,13 +315,13 @@ const Metainfo = React.memo(function Metainfo(props) {
   const globalMetainfo = useGlobalMetainfo()
   return <Content>
     <Compartment title="archive root section">
-      <Item itemKey="EntryArchive">
+      <Item itemKey="nomad.datamodel.datamodel.EntryArchive">
         <Typography>Entry</Typography>
       </Item>
     </Compartment>
     <Compartment title="other root sections">
       {globalMetainfo.getRootSectionDefinitions().filter(def => def.name !== 'EntryArchive').map((def, i) => (
-        <Item key={i} itemKey={def.name}>
+        <Item key={i} itemKey={def._qualifiedName}>
           <Typography>
             {def.more?.label || def.name}
           </Typography>
@@ -342,7 +346,7 @@ export class SectionDefAdaptor extends MetainfoAdaptor {
           return metainfoAdaptorFactory(innerSectionDef)
         }
       } else if (type === '_inheritingSectionDef') {
-        const inheritingSectionDef = this.def._allInheritingSections.find(inheritingSection => inheritingSection.name === name)
+        const inheritingSectionDef = this.inheritingSections.find(inheritingSection => inheritingSection._qualifiedName === name)
         if (inheritingSectionDef) {
           return metainfoAdaptorFactory(inheritingSectionDef)
         }
@@ -362,7 +366,7 @@ export class SectionDefAdaptor extends MetainfoAdaptor {
     return super.itemAdaptor(key)
   }
   render() {
-    return <SectionDef def={this.def} />
+    return <SectionDef def={this.def} inheritingSections={this.inheritingSections}/>
   }
 }
 
@@ -371,11 +375,17 @@ class SubSectionDefAdaptor extends MetainfoAdaptor {
     super(def)
     this.sectionDefAdaptor = new SectionDefAdaptor(this.def.sub_section)
   }
+  async initialize(api, dataStore) {
+    await this.sectionDefAdaptor.initialize(api, dataStore)
+  }
+  cleanup() {
+    this.sectionDefAdaptor.cleanup()
+  }
   async itemAdaptor(key) {
     return this.sectionDefAdaptor.itemAdaptor(key)
   }
   render() {
-    return <SubSectionDef def={this.def} />
+    return <SubSectionDef def={this.def} inheritingSections={this.sectionDefAdaptor.inheritingSections}/>
   }
 }
 
@@ -394,7 +404,7 @@ class CategoryDefAdaptor extends MetainfoAdaptor {
   }
 }
 
-function SectionDefContent({def}) {
+function SectionDefContent({def, inheritingSections}) {
   const config = useRecoilValue(configState)
   const metainfoConfig = useRecoilValue(metainfoConfigState)
   const filter = def.extends_base_section ? () => true : def => {
@@ -437,10 +447,10 @@ function SectionDefContent({def}) {
         })}
       </Compartment>
     }
-    {def._allInheritingSections?.length > 0 &&
+    {inheritingSections.length > 0 &&
       <Compartment title="all inheriting sections">
-        {def._allInheritingSections.map((inheritingSection, index) => {
-          const key = `_inheritingSectionDef@${inheritingSection.name}`
+        {inheritingSections.map((inheritingSection, index) => {
+          const key = `_inheritingSectionDef@${inheritingSection._qualifiedName}`
           const categories = inheritingSection.categories
           const unused = categories?.find(c => c.name === 'Unused')
           return <Item key={index} itemKey={key}>
@@ -511,33 +521,36 @@ function SectionDefContent({def}) {
   </React.Fragment>
 }
 SectionDefContent.propTypes = ({
-  def: PropTypes.object
+  def: PropTypes.object,
+  inheritingSections: PropTypes.array
 })
 
-function SectionDef({def}) {
+function SectionDef({def, inheritingSections}) {
   return <Content>
     <Definition def={def} kindLabel="section definition" />
-    <SectionDefContent def={def} />
+    <SectionDefContent def={def} inheritingSections={inheritingSections}/>
     <Annotations def={def}/>
   </Content>
 }
 SectionDef.propTypes = ({
-  def: PropTypes.object
+  def: PropTypes.object,
+  inheritingSections: PropTypes.array
 })
 
-function SubSectionDef({def}) {
+function SubSectionDef({def, inheritingSections}) {
   const sectionDef = def.sub_section
   return <React.Fragment>
     <Content>
       <ArchiveTitle def={def} useName isDefinition kindLabel="sub section definition" />
       <DefinitionDocs def={sectionDef} />
-      <SectionDefContent def={sectionDef} />
+      <SectionDefContent def={sectionDef} inheritingSections={inheritingSections}/>
       <Annotations def={def}/>
     </Content>
   </React.Fragment>
 }
 SubSectionDef.propTypes = ({
-  def: PropTypes.object
+  def: PropTypes.object,
+  inheritingSections: PropTypes.array
 })
 
 function DefinitionProperties({def, children}) {

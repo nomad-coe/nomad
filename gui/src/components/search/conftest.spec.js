@@ -19,7 +19,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import assert from 'assert'
-import { waitFor, waitForElementToBeRemoved } from '@testing-library/dom'
+import { waitFor } from '@testing-library/dom'
 import elementData from '../../elementData.json'
 import { screen, WrapperDefault, WrapperNoAPI } from '../conftest.spec'
 import { render } from '@testing-library/react'
@@ -145,7 +145,9 @@ export async function expectInputRange(quantity, loaded, histogram, anchored, mi
     // Check histogram
     if (histogram) {
       // Check that placeholder disappears
-      !loaded && await waitForElementToBeRemoved(() => root.getByTestId('inputrange-histogram-placeholder'))
+      if (!loaded) {
+        await waitFor(() => expect(root.queryByTestId('inputrange-histogram-placeholder')).toBe(null))
+      }
     }
 
     // Test text elements if the component is not anchored

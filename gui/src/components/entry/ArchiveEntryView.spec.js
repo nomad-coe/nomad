@@ -35,13 +35,13 @@ afterEach(() => {
   closeAPI()
 })
 
-function archiveItemFilter(parentPath, items) {
+function archiveItemFilter(parentPath, itemKeys) {
   // The archive tree is very big and contains referential cycles, so we need to limit the crawling.
   // This method is used to make the selection.
   const segments = parentPath.split('/')
   if (segments.length === 1) {
     // Root - filter nothing
-    return Object.keys(items)
+    return itemKeys
   }
   if (segments[segments.length - 2] === '_metainfo' || segments[segments.length - 2] === '_baseSectionDef@0') {
     // Never step deeper than one level into metainfo definitions, these are tested elsewhere
@@ -50,7 +50,7 @@ function archiveItemFilter(parentPath, items) {
   }
   const rv = []
   const itemLists = {}
-  for (const itemKey of Object.keys(items)) {
+  for (const itemKey of itemKeys) {
     const parts = itemKey.split(':')
     if (parts.length === 2) {
       const [label, index] = parts
@@ -102,9 +102,9 @@ test.each([
     await userEvent.click(screen.getByRoleAndText('checkbox', 'all defined'))
     expect(await within(getLane(0)).findByText('processing_logs')).toBeVisible()
   }
-  const lane = await navigateTo(path)
+  await navigateTo(path)
   const laneIndex = path ? path.split('/').length : 0
-  await browseRecursively(lane, laneIndex, join(`*ArchiveBrowser ${name}*`, path), archiveItemFilter, filterKeyLength)
+  await browseRecursively(laneIndex, join(`*ArchiveBrowser ${name}*`, path), archiveItemFilter, filterKeyLength)
 }, 20 * minutes)
 
 test('inheriting sections', async () => {
@@ -113,7 +113,7 @@ test('inheriting sections', async () => {
   expect(await screen.findByText('Entry')).toBeVisible()
 
   const path = 'data'
-  const sectionName = '../uploads/archive_browser_test/raw/inheriting-schema.archive.yaml#definitions/section_definitions/1'
+  const sectionName = '../uploads/archive_browser_test/raw/inheriting-schema.archive.yaml#/definitions/section_definitions/1'
   await navigateTo(path)
 
   await userEvent.click(await screen.findByTestId('subsection:C1'))
