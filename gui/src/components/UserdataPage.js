@@ -16,13 +16,14 @@
  * limitations under the License.
  */
 import React from 'react'
+import { ui } from '../config'
 import { withLoginRequired } from './api'
 import { SearchContext } from './search/SearchContext'
-import Search from './search/Search'
+import SearchPage from './search/SearchPage'
 
 export const help = `
-This page allows you to **inspect** and **manage** you own data. It is similar to the
-*search page*, but it will only show data that was uploaded by you or is shared with you.
+This page allows you to **inspect** and **manage** your own data. It is similar to the
+*entry search page*, but it will only show data that was uploaded by you or is shared with you.
 
 Besides giving you a filter for your data, this page also allows you to edit the *user metadata*
 on all entries. User metadata is assigned to individual entries, but of course you can
@@ -70,15 +71,19 @@ DOI, they will be redirected to a NOMAD view that shows the dataset and allows i
 Once you assigned a DOI to a dataset, no entries can be removed or added to the dataset.
 `
 
+const context = ui?.search_contexts?.options?.entries
 const filtersLocked = {
   'visibility': 'user'
 }
 const UserdataPage = React.memo(() => {
   return <SearchContext
-    resource="entries"
+    resource={context?.resource}
+    initialPagination={context?.pagination}
+    initialColumns={context?.columns}
+    initialFilterMenus={context?.filter_menus}
     filtersLocked={filtersLocked}
   >
-    <Search/>
+    <SearchPage/>
   </SearchContext>
 })
 

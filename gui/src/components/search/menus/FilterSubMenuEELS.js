@@ -25,14 +25,14 @@ import InputSection from '../input/InputSection'
 import { InputCheckboxValue } from '../input/InputCheckbox'
 
 const FilterSubMenuEELS = React.memo(({
-  value,
+  id,
   ...rest
 }) => {
   const {selected, open} = useContext(filterMenuContext)
-  const visible = open && value === selected
+  const visible = open && id === selected
 
   return <FilterSubMenu
-    value={value}
+    id={id}
     actions={<InputCheckboxValue
       quantity="results.method.method_name"
       value="EELS"
@@ -68,7 +68,7 @@ const FilterSubMenuEELS = React.memo(({
   </FilterSubMenu>
 })
 FilterSubMenuEELS.propTypes = {
-  value: PropTypes.string
+  id: PropTypes.string
 }
 
 export default FilterSubMenuEELS

@@ -40,7 +40,7 @@ import os
 import os.path
 import yaml
 import warnings
-from typing import Dict, Any
+from typing import Dict, List, Any
 
 try:
     from nomad import gitinfo
@@ -439,6 +439,175 @@ archive = NomadConfig(
     min_entries_per_process=20  # minimum number of entries per process
 )
 
+ui = NomadConfig(
+    search_contexts={
+        "include": ["entries"],
+        "exclude": [],
+        "options": {
+            "entries": {
+                'label': "Entries",
+                'path': "entries",
+                'resource': 'entries',
+                'breadcrumb': "Entries search",
+                'description': "Search individual database entries",
+                'help': {
+                    'title': 'Entries search',
+                    'content': r'''
+    This page allows you to **search entries** within NOMAD. Entries represent
+    individual calculations or experiments that have bee uploaded into NOMAD.
+
+    The search page consists of three main elements: the filter panel, the search
+    bar, and the result list.
+
+    The filter panel on the left allows you to graphically explore and enter
+    different search filters. It also gives a visual indication of the currently
+    active search filters for each category. This is a good place to start exploring
+    the available search filters and their meaning.
+
+    The search bar allows you to specify filters by typing them in and pressing
+    enter. You can also start by simply typing keywords of interest, which will
+    toggle a list of suggestions. For numerical data you can also use range queries,
+    e.g. \`0.0 < band_gap <= 0.1\`.
+
+    Notice that the units used in the filter panel and in the queries can be changed
+    using the **units** button on the top right corner. When using the search bar,
+    you can also specify a unit by typing the unit abbreviations, e.g. \`band_gap >=
+    0.1 Ha\`
+
+    The result list on the right is automatically updated according to the filters
+    you have specified. You can browse through the results by scrolling through the
+    available items and loading more results as you go. Here you can also change the
+    sorting of the results, modify the displayed columns, access individual entries
+    or even download the raw data or the archive document by selecting individual
+    entries and pressing the download button that appears. The ellipsis button shown
+    for each entry will navigate you to that entry's page. This entry page will show
+    more metadata, raw files, the entry's archive, and processing logs.
+    ''',
+                },
+                'pagination': {
+                    'order_by': 'upload_create_time',
+                    'order': 'desc',
+                },
+                'columns': {
+                    'enable': [
+                        'entry_name',
+                        'results.material.chemical_formula_hill',
+                        'entry_type',
+                        'upload_create_time',
+                        'authors'
+                    ],
+                    'include': [
+                        'entry_name',
+                        'results.material.chemical_formula_hill',
+                        'entry_type',
+                        'results.method.method_name',
+                        'results.method.simulation.program_name',
+                        'results.method.simulation.dft.basis_set_name',
+                        'results.method.simulation.dft.xc_functional_type',
+                        'results.material.structural_type',
+                        'results.material.symmetry.crystal_system',
+                        'results.material.symmetry.space_group_symbol',
+                        'results.material.symmetry.space_group_number',
+                        'results.eln.lab_ids',
+                        'results.eln.sections',
+                        'results.eln.methods',
+                        'results.eln.tags',
+                        'results.eln.instruments',
+                        'mainfile',
+                        'upload_create_time',
+                        'authors',
+                        'comment',
+                        'references',
+                        'datasets',
+                        'published',
+                    ],
+                    'exclude': [],
+                    'options': {
+                        'entry_name': {'label': 'Name', 'align': 'left'},
+                        'results.material.chemical_formula_hill': {'label': 'Formula', 'align': 'left'},
+                        'entry_type': {'label': 'Entry type', 'align': 'left'},
+                        'results.method.method_name': {'label': 'Method name'},
+                        'results.method.simulation.program_name': {'label': 'Program name'},
+                        'results.method.simulation.dft.basis_set_name': {'label': 'Basis set name'},
+                        'results.method.simulation.dft.xc_functional_type': {'label': 'XC functional type'},
+                        'results.material.structural_type': {'label': 'Structural type'},
+                        'results.material.symmetry.crystal_system': {'label': 'Crystal system'},
+                        'results.material.symmetry.space_group_symbol': {'label': 'Space group symbol'},
+                        'results.material.symmetry.space_group_number': {'label': 'Space group number'},
+                        'results.eln.lab_ids': {'label': 'Lab IDs'},
+                        'results.eln.sections': {'label': 'Sections'},
+                        'results.eln.methods': {'label': 'Methods'},
+                        'results.eln.tags': {'label': 'Tags'},
+                        'results.eln.instruments': {'label': 'Instruments'},
+                        'mainfile': {'label': 'Mainfile', 'align': 'left'},
+                        'upload_create_time': {'label': 'Upload time', 'align': 'left'},
+                        'authors': {'label': 'Authors', 'align': 'left'},
+                        'comment': {'label': 'Comment', 'align': 'left'},
+                        'references': {'label': 'References', 'align': 'left'},
+                        'datasets': {'label': 'Datasets', 'align': 'left'},
+                        'published': {'label': 'Access'}
+                    }
+                },
+                'filter_menus': {
+                    'include': [
+                        'material',
+                        'elements',
+                        'symmetry',
+                        'method',
+                        'simulation',
+                        'dft',
+                        'gw',
+                        'experiment',
+                        'eels',
+                        'properties',
+                        'electronic',
+                        'optoelectronic',
+                        'vibrational',
+                        'mechanical',
+                        'spectroscopy',
+                        'thermodynamic',
+                        'geometry_optimization',
+                        'eln',
+                        'author',
+                        'dataset',
+                        'access',
+                        'ids',
+                        'processed_data_quantities',
+                        'optimade',
+                    ],
+                    'exclude': [],
+                    'options': {
+                        'material': {'label': 'Material', 'level': 0, 'size': 'small'},
+                        'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large'},
+                        'symmetry': {'label': 'Symmetry', 'level': 1, 'size': 'small'},
+                        'method': {'label': 'Method', 'level': 0, 'size': 'small'},
+                        'simulation': {'label': 'Simulation', 'level': 1, 'size': 'small'},
+                        'dft': {'label': 'DFT', 'level': 2, 'size': 'small'},
+                        'gw': {'label': 'GW', 'level': 2, 'size': 'small'},
+                        'experiment': {'label': 'Experiment', 'level': 1, 'size': 'small'},
+                        'eels': {'label': 'EELS', 'level': 2, 'size': 'small'},
+                        'properties': {'label': 'Properties', 'level': 0, 'size': 'small'},
+                        'electronic': {'label': 'Electronic', 'level': 1, 'size': 'small'},
+                        'optoelectronic': {'label': 'Optoelectronic', 'level': 1, 'size': 'small'},
+                        'vibrational': {'label': 'Vibrational', 'level': 1, 'size': 'small'},
+                        'mechanical': {'label': 'Mechanical', 'level': 1, 'size': 'small'},
+                        'spectroscopy': {'label': 'Spectroscopy', 'level': 1, 'size': 'small'},
+                        'thermodynamic': {'label': 'Thermodynamic', 'level': 1, 'size': 'small'},
+                        'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1, 'size': 'small'},
+                        'eln': {'label': 'Electronic Lab Notebook', 'level': 0, 'size': 'small'},
+                        'author': {'label': 'Author / Origin', 'level': 0, 'size': 'medium'},
+                        'dataset': {'label': 'Dataset', 'level': 0, 'size': 'small'},
+                        'access': {'label': 'Access', 'level': 0, 'size': 'small'},
+                        'ids': {'label': 'IDs', 'level': 0, 'size': 'small'},
+                        'processed_data_quantities': {'label': 'Processed Data Quantities', 'level': 0, 'size': 'medium'},
+                        'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium'},
+                    }
+                }
+            }
+        }
+    }
+)
+
 
 def north_url(ssl: bool = True):
     return api_url(ssl=ssl, api='north', api_host=north.hub_host, api_port=north.hub_port)
@@ -474,6 +643,25 @@ _transformations = {
 
 # use std python logger, since logging is not configured while loading configuration
 logger = logging.getLogger(__name__)
+
+
+def _merge(a: dict, b: dict, path: List[str] = None) -> dict:
+    '''
+    Recursively merges b into a. Will add new key-value pairs, and will
+    overwrite existing key-value pairs. Notice that this mutates the original
+    dictionary a and if you want to return a copy, you will want to first
+    (deep)copy the original dictionary.
+    '''
+    if path is None: path = []
+    for key in b:
+        if key in a:
+            if isinstance(a[key], dict) and isinstance(b[key], dict):
+                _merge(a[key], b[key], path + [str(key)])
+            else:
+                a[key] = b[key]
+        else:
+            a[key] = b[key]
+    return a
 
 
 def _apply(key, value, raise_error: bool = True) -> None:
@@ -515,6 +703,9 @@ def _apply(key, value, raise_error: bool = True) -> None:
         current_value = current[key]
         if current_value is not None and not isinstance(value, type(current_value)):
             value = _transformations.get(full_key, type(current_value))(value)
+
+        if isinstance(value, dict):
+            value = _merge(current[key], value)
 
         current[key] = value
         logger.info(f'set config setting {full_key}={value}')

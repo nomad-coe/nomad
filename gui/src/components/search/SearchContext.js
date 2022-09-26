@@ -37,16 +37,19 @@ import {
   isFunction,
   size,
   isEqual,
-  merge
+  merge,
+  cloneDeep
 } from 'lodash'
+import { Link } from '@material-ui/core'
 import qs from 'qs'
 import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
 import { useApi } from '../api'
-import { setToArray } from '../../utils'
+import { setToArray, authorList, formatTimestamp } from '../../utils'
 import { Quantity } from '../../units'
 import { useErrors } from '../errors'
-import { combinePagination } from '../datatable/Datatable'
+import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
+import { Published } from '../entry/EntryDetails'
 import { inputSectionContext } from './input/InputSection'
 import {
   filterData as filterDataGlobal,
@@ -75,10 +78,6 @@ import {
  * depending on the context would re-render for each filter change regardless if
  * it actually changes the state of that component or not.
  */
-const orderByMap = {
-  'entries': {order_by: 'upload_create_time', order: 'desc'},
-  'materials': {order_by: 'chemical_formula_hill', order: 'asc'}
-}
 let indexContext = 0
 let indexFilters = 0
 let indexLocked = 0
@@ -103,6 +102,8 @@ export const searchContext = React.createContext()
 export const SearchContext = React.memo(({
   resource,
   filtersLocked,
+  initialColumns,
+  initialFilterMenus,
   initialPagination,
   initialStatistics,
   children
@@ -118,6 +119,79 @@ export const SearchContext = React.memo(({
   const updatedFilters = useRef(new Set())
   const firstLoad = useRef(true)
   const disableUpdate = useRef(false)
+
+  // The final filtered set of columns
+  const columns = useMemo(() => {
+    if (!initialColumns) return undefined
+    const columns = cloneDeep(initialColumns)
+    let options = columns.include
+      .filter(key => !columns?.exclude?.includes(key))
+      .map(key => ({key, ...columns.options[key]}))
+
+    // Custom render and sortability is enforced for a subset of columns.
+    const overrides = {
+      upload_create_time: {
+        render: row => row?.upload_create_time
+          ? formatTimestamp(row.upload_create_time)
+          : <i>no upload time</i>
+      },
+      authors: {
+        render: row => authorList(row),
+        align: 'left',
+        sortable: false
+      },
+      references: {
+        sortable: false,
+        render: row => {
+          const refs = row.references || []
+          if (refs.length > 0) {
+            return (
+              <div style={{display: 'inline'}}>
+                {refs.map((ref, i) => <span key={ref}>
+                  <Link href={ref}>{ref}</Link>{(i + 1) < refs.length ? ', ' : <React.Fragment/>}
+                </span>)}
+              </div>
+            )
+          } else {
+            return <i>no references</i>
+          }
+        }
+      },
+      datasets: {
+        sortable: false,
+        render: entry => {
+          const datasets = entry.datasets || []
+          if (datasets.length > 0) {
+            return datasets.map(dataset => dataset.dataset_name).join(', ')
+          } else {
+            return <i>no datasets</i>
+          }
+        }
+      },
+      published: {
+        render: (entry) => <Published entry={entry} />
+      }
+    }
+
+    addColumnDefaults(options)
+    options = options.map(
+      option => ({...option, ...(overrides[option.key] || {})})
+    )
+
+    return {
+      options,
+      enable: columns.enable
+    }
+  }, [initialColumns])
+
+  // The final filtered set of menus
+  const filterMenus = useMemo(() => {
+    return initialFilterMenus?.include
+      ? initialFilterMenus.include
+        .filter(key => !initialFilterMenus.exclude.includes(key))
+        .map(key => ({key, ...initialFilterMenus.options[key]}))
+      : undefined
+  }, [initialFilterMenus])
 
   // Initialize the set of available filters. This may depend on the resource.
   const [filtersLocal, filterDataLocal] = useMemo(() => {
@@ -285,10 +359,7 @@ export const SearchContext = React.memo(({
 
     const paginationState = atom({
       key: `pagination_${indexContext}`,
-      default: initialPagination || {
-        page_size: 20,
-        ...orderByMap[resource]
-      }
+      default: initialPagination
     })
 
     const resultsUsedState = atom({
@@ -742,7 +813,7 @@ export const SearchContext = React.memo(({
       useAgg,
       useSetFilters
     ]
-  }, [initialQuery, filters, filtersLocked, finalStatistics, initialAggs, initialPagination, resource, filterData])
+  }, [initialQuery, filters, filtersLocked, finalStatistics, initialAggs, initialPagination, filterData])
 
   const setResults = useSetRecoilState(resultsState)
   const setApiData = useSetRecoilState(apiDataState)
@@ -1001,6 +1072,8 @@ export const SearchContext = React.memo(({
 
     return {
       resource,
+      columns,
+      filterMenus,
       useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
       useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
       useIsCollapsed: () => useRecoilValue(isCollapsedState),
@@ -1033,6 +1106,8 @@ export const SearchContext = React.memo(({
     }
   }, [
     resource,
+    columns,
+    filterMenus,
     useFilterValue,
     useSetFilter,
     useFilterState,
@@ -1068,9 +1143,12 @@ export const SearchContext = React.memo(({
     {children}
   </searchContext.Provider>
 })
+
 SearchContext.propTypes = {
   resource: PropTypes.string,
   filtersLocked: PropTypes.object,
+  initialColumns: PropTypes.object,
+  initialFilterMenus: PropTypes.object,
   initialPagination: PropTypes.object,
   initialStatistics: PropTypes.object,
   children: PropTypes.node

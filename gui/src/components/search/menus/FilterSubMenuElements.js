@@ -34,14 +34,14 @@ const useStyles = makeStyles(theme => ({
 }))
 
 const FilterSubMenuElements = React.memo(({
-  value,
+  id,
   ...rest
 }) => {
   const {selected, open} = useContext(filterMenuContext)
-  const visible = open && value === selected
+  const visible = open && id === selected
   const styles = useStyles()
 
-  return <FilterSubMenu value={value} {...rest}>
+  return <FilterSubMenu id={id} {...rest}>
     <InputGrid className={styles.grid}>
       <InputGridItem xs={12}>
         <InputPeriodicTable
@@ -75,7 +75,7 @@ const FilterSubMenuElements = React.memo(({
   </FilterSubMenu>
 })
 FilterSubMenuElements.propTypes = {
-  value: PropTypes.string
+  id: PropTypes.string
 }
 
 export default FilterSubMenuElements

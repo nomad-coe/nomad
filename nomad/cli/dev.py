@@ -1,4 +1,3 @@
-
 # Copyright The NOMAD Authors.
 #
 # This file is part of NOMAD. See https://nomad-lab.eu for further info.
@@ -17,6 +16,7 @@
 #
 
 import sys
+import json
 from collections import defaultdict
 from pint.converters import ScaleConverter
 import os
@@ -67,7 +67,6 @@ def gui_qa(skip_tests: bool):
 
 @dev.command(help='Generates a JSON with all metainfo.')
 def metainfo():
-    import json
     export = _all_metainfo_packages()
     metainfo_data = export.m_to_dict(with_meta=True)
     print(json.dumps(metainfo_data, indent=2))
@@ -107,8 +106,6 @@ def _all_metainfo_packages():
 @dev.command(help='Generates a JSON with all search quantities.')
 def search_quantities():
     _all_metainfo_packages()
-    import json
-
     # Currently only quantities with "entry_type" are included.
     from nomad.metainfo.elasticsearch_extension import entry_type, Elasticsearch
     from nomad.datamodel import EntryArchive
@@ -161,15 +158,41 @@ def search_quantities():
 
 @dev.command(help='Generates a JSON file that compiles all the parser metadata from each parser project.')
 def parser_metadata():
-    import json
     from nomad.parsing.parsers import code_metadata
 
     print(json.dumps(code_metadata, indent=2, sort_keys=True))
 
 
+def get_gui_config():
+    '''Create a simplified and strippped version of the nomad.yaml contents that
+    is used by the GUI.
+    '''
+    from nomad import config
+
+    return f'''window.nomadEnv = {{
+    'appBase': '{"https" if config.services.https else "http"}://{config.services.api_host}:{config.services.api_port}{config.services.api_base_path.rstrip("/")}',
+    'northBase': '{"https" if config.services.https else "http"}://{config.north.hub_host}:{config.north.hub_port}{config.services.api_base_path.rstrip("/")}/north',
+    'keycloakBase': '{config.keycloak.public_server_url}',
+    'keycloakRealm': '{config.keycloak.realm_name}',
+    'keycloakClientId': '{config.keycloak.client_id}',
+    'debug': false,
+    'encyclopediaBase': '{config.encyclopedia_base if config.encyclopedia_base else 'undefined'}',
+    'aitoolkitEnabled': {'true' if config.aitoolkit_enabled else 'false'},
+    'oasis': {'true' if config.oasis.is_oasis else 'false'},
+    'version': {json.dumps(config.meta.beta) if config.meta.beta else dict()},
+    'globalLoginRequired': {'false' if config.oasis.allowed_users is None else 'true'},
+    'servicesUploadLimit': { config.services.upload_limit },
+    'ui': {json.dumps(config.ui) if config.ui else dict()}
+}};'''
+
+
+@dev.command(help='Generates a JS file that contains a subset of the nomad.yaml config needed by the GUI.')
+def gui_config():
+    print(get_gui_config())
+
+
 @dev.command(help='Generates a JSON file from example-uploads metadata in the YAML file.')
 def example_upload_metadata():
-    import json
     import yaml
 
     os_list = {}
@@ -184,7 +207,6 @@ def example_upload_metadata():
 def toolkit_metadata():
     import requests
     import re
-    import json
     modules = requests.get(
         'https://gitlab.mpcdf.mpg.de/api/v4/projects/3161/repository/files/.gitmodules/raw?ref=master').text
 
@@ -339,7 +361,6 @@ def example_data(username: str):
 @click.pass_context
 def units(ctx):
     import re
-    import json
     from nomad.units import ureg
 
     # TODO: Check that all units are unambiguously defined, and that there are
@@ -541,7 +562,6 @@ def units(ctx):
 def vscode_extension(output: str):
     import shutil
     import yaml
-    import json
 
     extension_path = os.path.normpath(output) + "/nomad-vscode" if output else "./nomad-vscode"
     snippets_path = os.path.join(extension_path, "snippets")

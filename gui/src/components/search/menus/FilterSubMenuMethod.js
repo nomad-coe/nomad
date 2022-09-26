@@ -22,13 +22,13 @@ import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
 
 const FilterSubMenuMethod = React.memo(({
-  value,
+  id,
   ...rest
 }) => {
   const {selected, open} = useContext(filterMenuContext)
-  const visible = open && value === selected
+  const visible = open && id === selected
 
-  return <FilterSubMenu value={value} {...rest}>
+  return <FilterSubMenu id={id} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <InputField
@@ -50,7 +50,7 @@ const FilterSubMenuMethod = React.memo(({
   </FilterSubMenu>
 })
 FilterSubMenuMethod.propTypes = {
-  value: PropTypes.string
+  id: PropTypes.string
 }
 
 export default FilterSubMenuMethod

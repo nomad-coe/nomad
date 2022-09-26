@@ -32,10 +32,10 @@ import EntryPage, { help as entryHelp } from '../entry/EntryPage'
 import UploadsPage, { help as uploadsHelp } from '../uploads/UploadsPage'
 import UserdataPage, { help as userdataHelp } from '../UserdataPage'
 import APIs from '../APIs'
-import SearchPageEntries, {help as searchEntriesHelp} from '../search/SearchPageEntries'
+import SearchPage from '../search/SearchPage'
+import { SearchContext } from '../search/SearchContext'
 import NorthPage, {help as NORTHHelp} from '../north/NorthPage'
-// import SearchPageMaterials, {help as searchMaterialsHelp} from '../search/SearchPageMaterials'
-import { aitoolkitEnabled, appBase, oasis, encyclopediaBase } from '../../config'
+import { aitoolkitEnabled, appBase, oasis, encyclopediaBase, ui } from '../../config'
 import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
 import DatasetPage, { help as datasetHelp } from '../dataset/DatasetPage'
@@ -181,6 +181,48 @@ const toolkitRoute = (!oasis && aitoolkitEnabled)
     tooltip: 'Visit the NOMAD Artificial Intelligence Analytics Toolkit'
   }
 
+const searchRoutes = ui?.search_contexts?.include
+  ? ui.search_contexts.include
+    .filter(key => !ui?.search_contexts?.exclude?.includes(key))
+    .map(key => {
+      const context = ui.search_contexts.options[key]
+      const routeMap = {
+        entries: entryRoutes
+      }
+      return {
+        path: context.path,
+        exact: true,
+        cache: 'always',
+        menu: context.label,
+        tooltip: context.description,
+        breadcrumb: context.breadcrumb,
+        render: (props) => (
+          <SearchContext
+            {...props}
+            resource={context.resource}
+            initialPagination={context.pagination}
+            initialColumns={context.columns}
+            initialFilterMenus={context.filter_menus}
+          >
+            <SearchPage/>
+          </SearchContext>
+        ),
+        help: {
+          title: context.help?.title,
+          content: context.help?.content
+        },
+        routes: routeMap[context.resource]
+      }
+    })
+  : []
+if (encyclopediaBase) {
+  searchRoutes.push({
+    menu: 'Material Encyclopedia',
+    href: `${encyclopediaBase}/search`,
+    tooltip: 'Search materials in the NOMAD Encyclopedia'
+  })
+}
+
 /**
  * The list with all routes. This is used to determine the routes for routing, the breadcrumbs,
  * and the main menu.
@@ -238,40 +280,7 @@ export const routes = [
     path: 'search',
     redirect: '/search/entries',
     menu: 'Explore',
-    routes: [
-      {
-        path: 'entries',
-        exact: true,
-        cache: 'always',
-        component: SearchPageEntries,
-        menu: 'Entries',
-        tooltip: 'Search individual database entries',
-        breadcrumb: 'Entries search',
-        help: {
-          title: 'Searching for entries',
-          content: searchEntriesHelp
-        },
-        routes: entryRoutes
-      },
-      {
-        menu: 'Material Encyclopedia',
-        href: 'https://nomad-lab.eu/prod/rae/encyclopedia',
-        tooltip: 'Search materials in the NOMAD Encyclopedia'
-      }
-      // {
-      //   path: 'materials',
-      //   exact: true,
-      //   cache: 'always',
-      //   component: SearchPageMaterials,
-      //   menu: 'Material Encyclopedia',
-      //   tooltip: 'Search materials',
-      //   breadcrumb: 'Materials search',
-      //   help: {
-      //     title: 'Searching for materials',
-      //     content: searchMaterialsHelp
-      //   }
-      // }
-    ]
+    routes: searchRoutes
   },
   {
     path: 'analyze',
