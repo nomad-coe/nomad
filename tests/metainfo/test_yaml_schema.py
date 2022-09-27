@@ -3,7 +3,7 @@ import pytest
 import yaml
 
 from nomad.datamodel.data import UserReference, AuthorReference
-from nomad.metainfo.metainfo import validElnComponents, validElnTypes, primitive_type_aliases, MTypes
+from nomad.metainfo.metainfo import MTypes
 from nomad.utils import strip
 
 from nomad.metainfo import Package, MSection, Quantity, Reference, SubSection, Section, MProxy, MetainfoError
@@ -267,8 +267,8 @@ def test_datatype_component_annotations(eln_type, eln_component):
                     quantity = process['quantities'][0]
                     if type(quantity.type).__name__ != 'type':
                         type_name = type(quantity.type).__name__
-                if type_name in primitive_type_aliases.keys():
-                    type_name = primitive_type_aliases[type_name].__name__
+                if type_name in MTypes.primitive_name:
+                    type_name = MTypes.primitive_name[type_name].__name__
                 package.__init_metainfo__()
             assert isinstance(exception.value, MetainfoError)
             assert exception.value.args[0] == 'One constraint was violated: The component `%s` is not compatible with the quantity `%s` of the type `%s`. Accepted components: %s (there are 0 more violations)' \

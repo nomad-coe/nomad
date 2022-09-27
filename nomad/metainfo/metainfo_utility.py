@@ -70,7 +70,7 @@ class MTypes:
         bool: lambda v: None if v is None else bool(v),
         np.bool_: lambda v: None if v is None else bool(v)}
 
-    primitive_name = {v.__name__: v for v in primitive}
+    primitive_name = {**{v.__name__: v for v in primitive}, 'string': str, 'boolean': bool}
 
     int_numpy = {np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64}
     int_python = {int}
@@ -86,8 +86,8 @@ class MTypes:
     numpy = num_numpy | str_numpy | bool_numpy
 
     eln = {
-        'str': ['str'],
-        'bool': ['bool'],
+        'str': ['str', 'string'],
+        'bool': ['bool', 'boolean'],
         'number': [x.__name__ for x in num_python] + [f'np.{x.__name__}' for x in num_numpy],
         'datetime': ['Datetime'],
         'enum': ['{type_kind: Enum, type_data: [Operator, Responsible_person]}'],
