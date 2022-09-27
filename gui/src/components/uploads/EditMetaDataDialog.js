@@ -280,11 +280,11 @@ const DatasetsActions = React.memo((props) => {
   }
 
   return <Box display={'inline-block'}>
-    <IconButton size='small' onClick={handleOpenLink}>
+    {data.dataset.dataset_id && <IconButton size='small' onClick={handleOpenLink}>
       <Tooltip title="Open in new tab">
         <OpenInNewIcon />
       </Tooltip>
-    </IconButton>
+    </IconButton>}
     <IconButton size='small' onClick={() => data.onRemove(data.dataset)} disabled={!!data.dataset.doi && !data.dataset?.notSubmitted} style={{pointerEvents: 'auto'}} data-testid='dataset-delete-action'>
       <Tooltip title={(data.dataset.doi && !data.dataset?.notSubmitted ? 'The dataset cannot be removed. A DOI has been assigned to the dataset.' : 'Remove the dataset')}>
         <DeleteIcon />
