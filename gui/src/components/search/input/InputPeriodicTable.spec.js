@@ -58,12 +58,12 @@ describe('', () => {
 
     // Test that after selecting C, only H and C are selectable.
     const cButton = screen.getByText('C')
-    userEvent.click(cButton)
+    await userEvent.click(cButton)
     await expectInputPeriodicTableItems(['C', 'H'])
 
     // Test that after enabling exclusive search, only C is selectable
     const exclusiveCheckbox = screen.getByRole('checkbox')
-    userEvent.click(exclusiveCheckbox)
+    await userEvent.click(exclusiveCheckbox)
     await expectInputPeriodicTableItems(['C'])
   })
 })

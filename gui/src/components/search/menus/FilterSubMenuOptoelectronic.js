@@ -23,14 +23,14 @@ import InputSection from '../input/InputSection'
 import InputRange from '../input/InputRange'
 import InputField from '../input/InputField'
 
-const FilterSubMenuOptoElectronic = React.memo(({
-  value,
+const FilterSubMenuOptoelectronic = React.memo(({
+  id,
   ...rest
 }) => {
   const {selected, open} = useContext(filterMenuContext)
-  const visible = open && value === selected
+  const visible = open && id === selected
 
-  return <FilterSubMenu value={value} {...rest}>
+  return <FilterSubMenu id={id} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <InputField
@@ -121,8 +121,8 @@ const FilterSubMenuOptoElectronic = React.memo(({
     </InputGrid>
   </FilterSubMenu>
 })
-FilterSubMenuOptoElectronic.propTypes = {
-  value: PropTypes.string
+FilterSubMenuOptoelectronic.propTypes = {
+  id: PropTypes.string
 }
 
-export default FilterSubMenuOptoElectronic
+export default FilterSubMenuOptoelectronic

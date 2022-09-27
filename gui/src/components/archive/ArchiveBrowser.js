@@ -27,12 +27,12 @@ import {
   FormHelperText} from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane, browserContext } from './Browser'
+import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane, browserContext, ItemChip } from './Browser'
 import { RawFileAdaptor } from './FileBrowser'
 import {
   AttributeMDef,
   isEditable, PackageMDef, QuantityMDef, quantityUsesFullStorage, removeSubSection, SectionMDef, SubSectionMDef,
-  useMetainfo, getMetainfoFromDefinition
+  useMetainfo, getMetainfoFromDefinition, getUrlFromDefinition
 } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
@@ -45,7 +45,7 @@ import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import { useEntryStoreObj } from '../DataStore'
+import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '../buttons/SourceDialogButton'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
@@ -63,6 +63,7 @@ import {EntryButton} from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
+import { apiBase } from '../../config'
 
 export const configState = atom({
   key: 'config',
@@ -406,7 +407,7 @@ class ArchiveAdaptor extends Adaptor {
    * @param {*} obj A data object, located somewhere in the archive specified by baseUrl
    * @param {*} def The metainfo definition of obj
    */
-  constructor(baseUrl, obj, def) {
+  constructor(baseUrl, obj, def, isInEln) {
     super()
     this.baseUrl = baseUrl
     this.parsedBaseUrl = parseNomadUrl(baseUrl)
@@ -416,6 +417,7 @@ class ArchiveAdaptor extends Adaptor {
     this.api = undefined
     this.dataStore = undefined
     this.entryIsEditable = undefined
+    this.isInEln = isInEln === undefined && def.m_def === SectionMDef ? isEditable(def) : isInEln
     this.obj = obj // The data in the archive tree to display
     this.def = def
     this.unsubscriberFunctions = []
@@ -456,7 +458,8 @@ class ArchiveAdaptor extends Adaptor {
         const newDefUrl = resolveNomadUrl(obj.m_def, baseUrl)
         def = await this.dataStore.getMetainfoDefAsync(newDefUrl)
       }
-      return new SectionAdaptor(baseUrl, obj, def)
+      const isInEln = this.isInEln || isEditable(def)
+      return new SectionAdaptor(baseUrl, obj, def, isInEln)
     }
 
     if (def.m_def === QuantityMDef) {
@@ -489,7 +492,7 @@ class SectionAdaptor extends ArchiveAdaptor {
   async itemAdaptor(key) {
     const [name, index] = key.split(':')
     const property = this.def._properties[name] || (name === 'm_attributes' && this.def.attributes.find(attr => attr.name === index))
-    let value = this.obj[name]
+    let value = this.obj[name] || property?.default
     if (property.m_def === QuantityMDef && quantityUsesFullStorage(property)) {
       value = value[index]
     }
@@ -562,7 +565,8 @@ class SectionAdaptor extends ArchiveAdaptor {
       section={this.obj}
       def={this.def}
       parentRelation={this.parentRelation}
-      entryIsEditable={this.entryIsEditable} />
+      sectionIsInEln={this.isInEln}
+      sectionIsEditable={this.entryIsEditable && this.isInEln}/>
   }
 }
 
@@ -727,33 +731,38 @@ QuantityValue.propTypes = ({
 })
 
 const InheritingSections = React.memo(function InheritingSections({def, section, lane}) {
+  const dataStore = useDataStore()
   const browser = useContext(browserContext)
-  const selection = useMemo(() => {
-    return section?.m_def || null
-  }, [section])
   const handleInheritingSectionsChange = useCallback((e) => {
     section.m_def = e.target.value
     browser.invalidateLanesFromIndex(lane.index)
   }, [section, browser, lane])
 
-  return (def._allInheritingSections?.length > 0 &&
+  if (section.m_def) {
+    return null
+  }
+
+  const allInheritingSections = dataStore.getAllInheritingSections(def)
+  return (allInheritingSections.length > 0 &&
     <Box sx={{minWidth: 120}}>
       <FormControl fullWidth >
-        <FormHelperText>Select an m_def from the list</FormHelperText>
+        <FormHelperText>Multiple specific sections are available</FormHelperText>
         <TextField
-          variant='outlined'
+          value=''
+          variant='filled'
+          label='Select a section'
           data-testid={`inheriting:${def.name}`}
-          value={selection || def._url || def._qualifiedName}
           onChange={handleInheritingSectionsChange}
+          size="small"
           select
         >
-          <MenuItem data-testid='select-options' key={0} value={def._url || def._qualifiedName}>
+          <MenuItem key={0} value={getUrlFromDefinition(def, {installationUrl: apiBase}, true)}>
             {def.name}
           </MenuItem>
-          {def._allInheritingSections.map((inheritingSection, i) => {
-            const val = inheritingSection._url || inheritingSection._qualifiedName
+          {allInheritingSections.map((inheritingSection, i) => {
+            const sectionValue = getUrlFromDefinition(inheritingSection, {installationUrl: apiBase}, true)
             return (
-              <MenuItem key={i + 1} value={val} data-testid='select-options'>
+              <MenuItem key={i + 1} value={sectionValue}>
                 {inheritingSection.name}
               </MenuItem>
             )
@@ -769,7 +778,7 @@ InheritingSections.propTypes = ({
   lane: PropTypes.object
 })
 
-function Section({section, def, parentRelation, entryIsEditable}) {
+function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEln}) {
   const {handleArchiveChanged} = useEntryPageContext() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
@@ -779,10 +788,6 @@ function Section({section, def, parentRelation, entryIsEditable}) {
   const navEntryId = useMemo(() => {
     return lane?.adaptor?.parsedBaseUrl?.entryId
   }, [lane])
-
-  const sectionIsEditable = useMemo(() => {
-    return entryIsEditable && isEditable(def)
-  }, [entryIsEditable, def])
 
   const actions = useMemo(() => {
     const navButton = navEntryId && (
@@ -834,6 +839,7 @@ function Section({section, def, parentRelation, entryIsEditable}) {
 
   const renderQuantityItem = useCallback((key, quantityName, quantityDef, value, disabled) => {
     const itemKey = quantityName ? `${key}:${quantityName}` : key
+    const isDefault = value && !section[key]
     return (
       <Item key={itemKey} itemKey={itemKey} disabled={disabled}>
         <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
@@ -850,13 +856,15 @@ function Section({section, def, parentRelation, entryIsEditable}) {
             </span>
           }
         </Box>
+        {isDefault && <ItemChip label="default value"/>}
       </Item>
     )
-  }, [])
+  }, [section])
 
   const renderQuantity = useCallback(quantityDef => {
     const key = quantityDef.name
-    const disabled = section[key] === undefined
+    const value = section[key] || quantityDef.default
+    const disabled = value === undefined
     if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
       return <ReferenceValuesList key={key} quantityDef={quantityDef} />
     }
@@ -868,13 +876,13 @@ function Section({section, def, parentRelation, entryIsEditable}) {
         )}
       </React.Fragment>
     } else {
-      return renderQuantityItem(key, null, quantityDef, section[quantityDef.name], disabled)
+      return renderQuantityItem(key, null, quantityDef, value, disabled)
     }
   }, [section, renderQuantityItem])
 
   if (!section) {
     console.error('section is not available')
-    return ''
+    return null
   }
 
   const filter = config.showCodeSpecific ? def => !def.virtual : def => !def.virtual && !def.name.startsWith('x_')
@@ -928,7 +936,7 @@ function Section({section, def, parentRelation, entryIsEditable}) {
       {subSectionCompartment}
       <Compartment title="quantities">
         {quantities
-          .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
+          .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined || sectionIsInEln)
           .filter(filter)
           .map(renderQuantity)
         }
@@ -958,7 +966,8 @@ Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
   parentRelation: PropTypes.object,
-  entryIsEditable: PropTypes.bool.isRequired
+  sectionIsEditable: PropTypes.bool,
+  sectionIsInEln: PropTypes.bool
 })
 
 function SubSection({subSectionDef, section, editable}) {
@@ -1160,7 +1169,7 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
   }, [plots.length])
 
   if (plots.length < 1 || selected.find(index => index >= plots.length)) {
-    return ''
+    return null
   }
 
   return <Compartment title="plot">
@@ -1308,7 +1317,7 @@ export function Meta({def}) {
   const classes = useMetaStyles()
   const config = useRecoilValue(configState)
   if (!config.showMeta) {
-    return ''
+    return null
   }
   return <Compartment title="meta" color="primary">
     <div className={classes.metainfo}>

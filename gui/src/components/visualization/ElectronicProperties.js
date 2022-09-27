@@ -18,7 +18,7 @@
 import React, { useCallback, useMemo } from 'react'
 import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
-import { Quantity } from '../../units'
+import { Quantity, useUnits } from '../../units'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
@@ -32,14 +32,10 @@ const useStyles = makeStyles((theme) => {
   return {
     nodata: {
       top: theme.spacing(0.7),
-      left: theme.spacing(2),
-      right: theme.spacing(2),
       bottom: '3.55rem'
     },
     placeholder: {
       top: theme.spacing(0.7),
-      left: theme.spacing(2),
-      right: theme.spacing(2),
       bottom: theme.spacing(2)
     }
   }
@@ -48,9 +44,11 @@ const useStyles = makeStyles((theme) => {
 const ElectronicProperties = React.memo(({
   bs,
   dos,
-  classes,
-  units
+  brillouin_zone,
+  band_gap,
+  classes
 }) => {
+  const units = useUnits()
   const range = useMemo(() => new Quantity(electronicRange, 'electron_volt').toSystem(units).value(), [units])
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
   const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
@@ -77,8 +75,6 @@ const ElectronicProperties = React.memo(({
       <BandStructure
         data={bs}
         layout={bsLayout}
-        placeHolderStyle={styles.placeholder}
-        noDataStyle={styles.nodata}
         units={units}
         onRelayouting={handleBSRelayouting}
         onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
@@ -99,25 +95,24 @@ const ElectronicProperties = React.memo(({
         data-testid="dos-electronic"
       />
     </PropertyItem>
-    {bs !== false && <>
-      <PropertyItem title="Brillouin zone" xs={8}>
-        <BrillouinZone
-          data={bs}
-          data-testid="bz-electronic"
-        />
-      </PropertyItem>
-      <PropertyItem title="Band gaps" xs={4}>
-        <BandGap data={bs && bs?.band_gap}/>
-      </PropertyItem>
-    </>}
+    <PropertyItem title="Brillouin zone" xs={8}>
+      <BrillouinZone
+        data={brillouin_zone}
+        data-testid="bz-electronic"
+      />
+    </PropertyItem>
+    <PropertyItem title="Band gaps" xs={4}>
+      <BandGap data={band_gap}/>
+    </PropertyItem>
   </PropertyGrid>
 })
 
 ElectronicProperties.propTypes = {
-  dos: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
-  bs: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
-  classes: PropTypes.object,
-  units: PropTypes.object // Contains the unit configuration
+  dos: PropTypes.any,
+  bs: PropTypes.any,
+  brillouin_zone: PropTypes.any,
+  band_gap: PropTypes.any,
+  classes: PropTypes.object
 }
 
 export default ElectronicProperties

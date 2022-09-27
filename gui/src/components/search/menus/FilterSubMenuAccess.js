@@ -23,13 +23,13 @@ import InputRadio from '../input/InputRadio'
 import { useApi } from '../../api'
 
 const FilterSubMenuAccess = React.memo(({
-  value,
+  id,
   ...rest
 }) => {
   const {api} = useApi()
   const authenticated = api?.keycloak?.authenticated
 
-  return <FilterSubMenu value={value} {...rest}>
+  return <FilterSubMenu id={id} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <InputRadio
@@ -51,7 +51,7 @@ const FilterSubMenuAccess = React.memo(({
   </FilterSubMenu>
 })
 FilterSubMenuAccess.propTypes = {
-  value: PropTypes.string
+  id: PropTypes.string
 }
 
 export default FilterSubMenuAccess

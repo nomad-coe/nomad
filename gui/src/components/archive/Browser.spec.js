@@ -92,7 +92,7 @@ test('Test browser lane error boundry', async () => {
     await navigateTo('dir1/success', browserConfig)
     expectNoConsoleOutput()
     // Call lane which fails to render
-    await expect(selectItemAndWaitForRender(getLane(1), 1, 'fail')).rejects.toThrow()
+    await expect(selectItemAndWaitForRender(1, 'fail')).rejects.toThrow()
     expect(within(getLane(2)).queryByText(laneErrorBoundryMessage)).not.toBeNull()
     expect(filteredConsoleOutput().length).not.toBe(0)
   } finally {

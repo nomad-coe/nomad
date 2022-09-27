@@ -49,6 +49,60 @@ Elasticsearch = TypeVar('Elasticsearch')
 MSectionBound = TypeVar('MSectionBound', bound='MSection')
 SectionDefOrCls = Union['Section', 'SectionProxy', Type['MSection']]
 T = TypeVar('T')
+_hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
+reserved_name_re = re.compile(r'^(m_|a_|_+).*$')
+
+_primitive_types = {
+    str: lambda v: None if v is None else str(v),
+    # TODO it is more complicated than that, because bytes cannot be naturally serialized to JSON
+    # bytes: lambda v: None if v is None else bytes(v),
+    int: int,
+    float: lambda v: None if v is None else float(v),
+    bool: bool,
+    np.bool_: bool}
+
+primitive_type_aliases = {'string': str, 'boolean': bool}
+
+_primitive_type_names = {
+    primitive_type.__name__: primitive_type for primitive_type in _primitive_types}
+
+_primitive_type_names.update(primitive_type_aliases)
+
+_types_int_numpy = {np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64}
+_types_int_python = {int}
+_types_int = _types_int_python | _types_int_numpy
+_types_float_numpy = {np.float16, np.float32, np.float64}
+_types_float_python = {float}
+_types_float = _types_float_python | _types_float_numpy
+_types_num_numpy = _types_int_numpy | _types_float_numpy
+_types_num_python = _types_int_python | _types_float_python
+_types_num = _types_num_python | _types_num_numpy
+_types_str_numpy = {np.str_}
+_types_bool_numpy = {np.bool_}
+_types_numpy = _types_num_numpy | _types_str_numpy | _types_bool_numpy
+_delta_symbols = {'delta_', 'Δ'}
+
+validElnTypes = {
+    'str': ['str', 'string'],
+    'bool': ['bool', 'boolean'],
+    'number': [x.__name__ for x in _types_num_python] + [f'np.{x.__name__}' for x in _types_num_numpy],
+    'datetime': ['Datetime'],
+    'enum': ['{type_kind: Enum, type_data: [Operator, Responsible_person]}'],
+    'user': ['User'],
+    'author': ['Author'],
+    'reference': ['']
+}
+
+validElnComponents = {
+    'str': ['StringEditQuantity', 'FileEditQuantity', 'RichTextEditQuantity', 'EnumEditQuantity'],
+    'bool': ['BoolEditQuantity'],
+    'number': ['NumberEditQuantity', 'SliderEditQuantity'],
+    'datetime': ['DateTimeEditQuantity'],
+    'enum': ['EnumEditQuantity', 'AutocompleteEditQuantity', 'RadioEnumEditQuantity'],
+    'user': ['UserEditQuantity'],
+    'author': ['AuthorEditQuantity'],
+    'reference': ['ReferenceEditQuantity']
+}
 
 _unset_value = '__UNSET__'
 
@@ -2293,12 +2347,17 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     def m_traverse(self):
         '''
         Performs a depth-first traversal and yield tuples of section, property def,
-        parent index for all set properties.
+        parent index for all set properties. If the section has no property the empty
+        section is returned.
         '''
+
+        empty = True
         for key in self.__dict__:
             property_def = self.m_def.all_properties.get(key)
             if property_def is None:
                 continue
+
+            empty = False
 
             if isinstance(property_def, SubSection):
                 for sub_section in self.m_get_sub_sections(property_def):
@@ -2309,6 +2368,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             else:
                 yield self, property_def, -1
+
+        if empty:
+            yield self, None, -1
 
     def m_pretty_print(self, indent=None):
         ''' Pretty prints the containment hierarchy '''

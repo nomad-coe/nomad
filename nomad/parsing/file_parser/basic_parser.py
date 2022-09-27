@@ -120,7 +120,9 @@ class BasicParser:
         def remove_empty_section(sections, definition):
             for n in range(len(sections) - 1, -1, -1):
                 empty = True
-                for _ in sections[n].m_traverse():
+                for _, property_def, _ in sections[n].m_traverse():
+                    if property_def is None:
+                        continue
                     empty = False
                     break
                 if empty:

@@ -142,11 +142,10 @@ export async function checkLanes(path, browserConfig) {
  * as the last argument (for optimization purposes), otherwise it will be fetched from the
  * itemKey.
  */
-export async function selectItemAndWaitForRender(lane, laneIndex, itemKey, item = null) {
-  if (!item) {
-    item = within(lane).getByTestId(`item:${itemKey}`)
-  }
-  userEvent.click(item)
+export async function selectItemAndWaitForRender(laneIndex, itemKey) {
+  const lane = getLane(laneIndex)
+  const item = within(lane).getByTestId(`item:${itemKey}`)
+  await userEvent.click(item)
   await waitFor(() => {
     const nextLane = getLane(laneIndex + 1, itemKey)
     expect(nextLane).not.toBeNull()
@@ -171,14 +170,14 @@ export async function navigateTo(path, browserConfig) {
   const segments = path.split('/')
   let subpath = ''
   let laneIndex = 0
-  let lane = getLane(0)
+  let lane
   let nextLane = getLane(1)
   for (const segment of segments) {
     subpath = join(subpath, segment)
     const selectedItemKey = nextLane ? getLaneKey(nextLane) : null
     if (selectedItemKey !== segment) {
       // Need to select a (different) item in this lane
-      lane = await selectItemAndWaitForRender(lane, laneIndex, segment)
+      lane = await selectItemAndWaitForRender(laneIndex, segment)
       if (browserConfig?.browserTree) {
         await checkLanes(subpath, browserConfig)
       }
@@ -196,18 +195,19 @@ export async function navigateTo(path, browserConfig) {
  * itemFilter is provided, all items will be visited. This method provides an easy way to
  * verify that the browser renders all (or at least a lot of) paths correctly.
  */
-export async function browseRecursively(lane, laneIndex, path, itemFilter, filterKeyLength = 2, filterMemory = null) {
+export async function browseRecursively(laneIndex, path, itemFilter, filterKeyLength = 2, filterMemory = null) {
+  const lane = getLane(laneIndex)
   let count = 0
   const hash = crypto.createHash('sha512')
 
   if (filterMemory === null) {
-    filterMemory = {}
+    filterMemory = new Set()
   }
   // Click on all discovered item-lists to open them
   for (const itemList of within(lane).queryAllByRole('item-list')) {
     const label = itemList.textContent
     try {
-      userEvent.click(itemList)
+      await userEvent.click(itemList)
       await within(lane).findByTestId(`item-list:${label}`)
       expectNoConsoleOutput()
     } catch (error) {
@@ -215,26 +215,27 @@ export async function browseRecursively(lane, laneIndex, path, itemFilter, filte
       throw error
     }
   }
-  const items = {}
+  let itemKeys = []
   for (const item of within(lane).queryAllByTestId(/^item:/)) {
     const itemKey = getItemKey(item)
-    items[itemKey] = item
+    itemKeys.push(itemKey)
     hash.update(itemKey)
   }
-  const itemKeys = itemFilter ? itemFilter(path, items) : Object.keys(items)
+  if (itemFilter) {
+    itemKeys = itemFilter(path, itemKeys)
+  }
   for (const itemKey of itemKeys) {
     const itemPath = join(path, itemKey)
     const segments = itemPath.split('/')
     const filterKey = segments.slice(segments.length - filterKeyLength).join('/')
-    if (!filterMemory[filterKey]) {
-      filterMemory[filterKey] = true
-      const item = items[itemKey]
+    if (!filterMemory.has(filterKey)) {
+      filterMemory.add(filterKey)
       const nextPath = `${path}/${itemKey}`
       // Uncomment line below if you want to show the paths visited.
       // process.stdout.write(`next path: ${nextPath}\n`)
-      let nextLane
+      // process.stdout.write(`mem: ${process.memoryUsage().heapTotal / 1e9}\n`)
       try {
-        nextLane = await selectItemAndWaitForRender(lane, laneIndex, itemKey, item)
+        await selectItemAndWaitForRender(laneIndex, itemKey)
         expectNoConsoleOutput()
       } catch (error) {
         process.stdout.write(`ERROR encountered when browsing to: ${nextPath}\n`)
@@ -242,7 +243,7 @@ export async function browseRecursively(lane, laneIndex, path, itemFilter, filte
       }
       // new lane rendered successfully
       count++
-      const rv = await browseRecursively(nextLane, laneIndex + 1, nextPath, itemFilter, filterKeyLength, filterMemory)
+      const rv = await browseRecursively(laneIndex + 1, nextPath, itemFilter, filterKeyLength, filterMemory)
       count += rv.count
       hash.update(rv.hash)
     }

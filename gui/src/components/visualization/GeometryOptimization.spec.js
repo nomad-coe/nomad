@@ -17,16 +17,15 @@
  */
 import React from 'react'
 import { render } from '../conftest.spec'
-import { expectPlot } from './conftest.spec'
+import { expectPlot, VisualizationState } from './conftest.spec'
 import GeometryOptimization from './GeometryOptimization'
-import { PlotState } from './Plot'
 
 const errorMsg = 'Could not load geometry optimization data.'
 test.each([
-  [PlotState.NoData, false, undefined],
-  [PlotState.Loading, undefined, 'geometry-optimization-plot-placeholder'],
-  [PlotState.Error, {invalid: 'data'}, undefined],
-  [PlotState.Success, [0, 1, 2, 3, 4], undefined]
+  [VisualizationState.NoData, false, undefined],
+  [VisualizationState.Loading, undefined, 'geometry-optimization-plot-placeholder'],
+  [VisualizationState.Error, {invalid: 'data'}, undefined],
+  [VisualizationState.Success, [0, 1, 2, 3, 4], undefined]
 ])('%s', async (state, energies, placeholderTestID) => {
   const {container} = render(<GeometryOptimization energies={energies}/>)
   await expectPlot(state, placeholderTestID, errorMsg, container)

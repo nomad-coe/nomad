@@ -18,7 +18,7 @@
 
 import assert from 'assert'
 import { within } from '@testing-library/dom'
-import { PlotState } from './Plot'
+import { webGlError } from '../ErrorHandler'
 
 /*****************************************************************************/
 // Expects
@@ -37,9 +37,44 @@ export function expectPlotButtons(container) {
 }
 
 /**
+ * Tests that a visualization state is loaded correctly.
+ *
+ * @param {VisualizationState} state The expected visualization state.
+ * @param {str} placeholderTestID The test id for the placeholder.
+ * @param {str} errorMsg The expected error message.
+ * @param {object} container The root element to perform the search on.
+ */
+export async function expectVisualization(
+  state,
+  placeholderTestID,
+  errorMsg,
+  container = document.body
+) {
+  assert(state in VisualizationState, 'Please provide a valid state.')
+  const root = within(container)
+
+  if (state === VisualizationState.NoData) {
+    // The component should immediately (without any placeholders) display that
+    // there is no data.
+    expect(root.getByText('no data')).toBeInTheDocument()
+  } else if (state === VisualizationState.Loading) {
+    // The component should immediately display the placeholder
+    expect(root.getByTestId(placeholderTestID)).toBeInTheDocument()
+  } else if (state === VisualizationState.Error) {
+    // The component should immediately (without any placeholders) display the
+    // error message.
+    expect(root.getByText(errorMsg)).toBeInTheDocument()
+  } else if (state === VisualizationState.NoWebGL) {
+    // The component should immediately (without any placeholders) display the
+    // error message.
+    expect(root.getByText(webGlError)).toBeInTheDocument()
+  }
+}
+
+/**
  * Tests that plot is loaded properly.
  *
- * @param {PlotState} state The expected plot state.
+ * @param {VisualizationState} state The expected plot state.
  * @param {str} placeholderTestID The test id for the placeholder.
  * @param {str} errorMsg The expected error message.
  * @param {object} container The root element to perform the search on.
@@ -50,26 +85,23 @@ export async function expectPlot(
   errorMsg,
   container = document.body
 ) {
-  assert(state in PlotState, 'Please provide a valid state.')
-  const root = within(container)
-
-  if (state === PlotState.NoData) {
-    // The component should immediately (without any placeholders) display that
-    // there is no data.
-    expect(root.getByText('no data')).toBeInTheDocument()
-  } else if (state === PlotState.Loading) {
-    // The component should immediately display the placeholder
-    expect(root.getByTestId(placeholderTestID)).toBeInTheDocument()
-  } else if (state === PlotState.Error) {
-    // The component should immediately (without any placeholders) display the
-    // error message.
-    expect(root.getByText(errorMsg)).toBeInTheDocument()
-  } else if (state === PlotState.Success) {
+  assert(state in VisualizationState, 'Please provide a valid state.')
+  if (state === VisualizationState.Success) {
     // The component should display the plot. Only way to currently test SVG
     // charts is to use querySelector which is not ideal. Note that testing for
     // SVG text contents in JSDOM is also not currently working with JSDOM. Here
     // we simply test that the SVG elements holding the titles exist.
     expect(container.querySelector(".xtitle")).toBeInTheDocument()
     expect(container.querySelector(".ytitle")).toBeInTheDocument()
+  } else {
+    await expectVisualization(state, placeholderTestID, errorMsg, container)
   }
+}
+
+export const VisualizationState = {
+  NoData: 'NoData',
+  Loading: 'Loading',
+  Success: 'Success',
+  Error: 'Error',
+  NoWebGL: 'NoWebGL'
 }

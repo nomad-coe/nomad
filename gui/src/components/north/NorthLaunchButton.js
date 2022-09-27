@@ -29,7 +29,7 @@ const NorthLaunchButton = React.memo(function NorthLaunchButton({tools, ...props
     .map(key => ({name: key, title: key, ...northTools[key]}))
 
   if (toolsData.length === 0) {
-    return ''
+    return null
   }
 
   return (

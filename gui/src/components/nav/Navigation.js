@@ -105,11 +105,11 @@ function BetaSnack() {
 
   if (!version) {
     console.warn('no version data available')
-    return ''
+    return null
   }
 
   if (!version.isBeta && !version.isTest) {
-    return ''
+    return null
   }
 
   return <Snackbar className={classes.root}

@@ -21,6 +21,7 @@ import click
 
 from nomad import config
 from nomad.cli.cli import cli
+from nomad.cli.dev import get_gui_config
 
 
 @cli.group(help='''The nomad admin commands to do nasty stuff directly on the databases.
@@ -230,7 +231,6 @@ def gui_config():
     from nomad import config
     import glob
     import shutil
-    import json
 
     gui_folder = os.path.abspath(
         os.path.join(os.path.dirname(__file__), '../../app/static/gui'))
@@ -244,20 +244,8 @@ def gui_config():
     env_js_file = os.path.join(run_gui_folder, 'env.js')
     if not os.path.exists(env_js_file):
         with open(env_js_file, 'wt') as f:
-            f.write(f'''
-window.nomadEnv = {{
-    'appBase': '{config.services.api_base_path.rstrip("/")}',
-    'northBase': '{config.services.api_base_path.rstrip("/")}/north',
-    'keycloakBase': '{config.keycloak.public_server_url}',
-    'keycloakRealm': '{config.keycloak.realm_name}',
-    'keycloakClientId': '{config.keycloak.client_id}',
-    'debug': false,
-    'encyclopediaBase': '{config.encyclopedia_base if config.encyclopedia_base else 'undefined'}',
-    'aitoolkitEnabled': {'true' if config.aitoolkit_enabled else 'false'},
-    'oasis': {'true' if config.oasis.is_oasis else 'false'},
-    'version': {json.dumps(config.meta.beta) if config.meta.beta else dict()},
-    'globalLoginRequired': {'false' if config.oasis.allowed_users is None else 'true'}
-}};''')
+            conf = get_gui_config()
+            f.write(conf)
 
     # replace base path in all GUI files
     source_file_globs = [

@@ -53,7 +53,7 @@ const PropertyPreview = React.memo(({quantityDef, section}) => {
   const {entryId, uploadId} = useEntryPageContext()
   const maxPreviewLength = 5
   if (!quantityDef.type) {
-    return ''
+    return null
   }
 
   const shape = quantityDef.shape || []
@@ -187,7 +187,7 @@ const SectionCard = React.memo(({archivePath, sectionDef, section, readOnly, ...
 
   if (!sectionDef) {
     console.error('SectionCard: section definition is not available')
-    return ''
+    return null
   }
 
   return <PropertyCard title={sectionDef.name} action={actions}>

@@ -21,8 +21,9 @@ import { useApi, DoesNotExist } from './api'
 import { useErrors } from './errors'
 import { apiBase } from '../config'
 import { refType, parseNomadUrl, createEntryUrl, systemMetainfoUrl } from '../utils'
-import { Metainfo } from './archive/metainfo'
+import { getUrlFromDefinition, Metainfo } from './archive/metainfo'
 import currentSystemMetainfoData from '../metainfo'
+import YAML from 'yaml'
 
 function addSubscription(storeObj, cb, options) {
   storeObj._subscriptions.push({cb, ...options})
@@ -71,6 +72,7 @@ const DataStore = React.memo(({children}) => {
   const uploadStore = useRef({}) // The upload store objects
   const entryStore = useRef({}) // The entry store objects
   const metainfoDataStore = useRef({}) // The metainfo data store objects
+  const externalInheritanceCache = useRef({}) // Used to keep track of inheritance between metainfos
 
   /**
    * Gets an upload object from the store, creating it if it doesn't exist (in which case
@@ -170,6 +172,9 @@ const DataStore = React.memo(({children}) => {
     if (dataToUpdate.upload || dataToUpdate.entries) {
       dataToUpdate.error = undefined // Updating upload or entries -> reset error
     }
+    if (dataToUpdate?.upload?.current_process === 'delete_upload') {
+      newStoreObj.deletionRequested = true // Will treat subsequent 404 errors
+    }
     const viewers = newStoreObj.upload?.viewers
     const writers = newStoreObj.upload?.writers
     newStoreObj.isViewer = user && viewers?.includes(user.sub)
@@ -215,12 +220,9 @@ const DataStore = React.memo(({children}) => {
       : api.get(`/uploads/${uploadId}`)
 
     apiCall.then(apiData => {
-      const upload = requireEntriesPage ? apiData.response?.upload : apiData.data
-      let dataToUpdate = requireEntriesPage
-        ? {error: undefined, isRefreshing: false, upload: upload, entries: apiData.response?.data, apiData, pagination: currentPagination, refreshOptions}
-        : {error: undefined, isRefreshing: false, upload: upload, entries: undefined, apiData: undefined, refreshOptions}
-      const deletionRequested = upload?.current_process === 'delete_upload' && (upload?.process_status === 'PENDING' || upload?.process_status === 'RUNNING')
-      if (deletionRequested) dataToUpdate = {...dataToUpdate, deletionRequested}
+      const dataToUpdate = requireEntriesPage
+        ? {error: undefined, isRefreshing: false, upload: apiData.response?.upload, entries: apiData.response?.data, apiData, pagination: currentPagination, refreshOptions}
+        : {error: undefined, isRefreshing: false, upload: apiData.data, entries: undefined, apiData: undefined, refreshOptions}
       updateUpload(installationUrl, uploadId, dataToUpdate)
     }).catch((error) => {
       if (requireEntriesPage && error.apiMessage === 'Page out of range requested.') {
@@ -480,8 +482,17 @@ const DataStore = React.memo(({children}) => {
       delete newArchive.metadata
       delete newArchive.results
       delete newArchive.processing_logs
+
+      const config = {}
+      let stringifiedArchive
+      if (fileName.endsWith('yaml') || fileName.endsWith('yml')) {
+        config.headers = {
+          'Content-Type': 'application/yaml'
+        }
+        stringifiedArchive = YAML.stringify(newArchive)
+      }
       return new Promise((resolve, reject) => {
-        api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}&wait_for_processing=true&entry_hash=${archive.metadata.entry_hash}`, newArchive)
+        api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}&wait_for_processing=true&entry_hash=${archive.metadata.entry_hash}`, stringifiedArchive || newArchive, config)
           .then(response => {
             requestRefreshEntry(installationUrl, entryId)
           })
@@ -529,7 +540,7 @@ const DataStore = React.memo(({children}) => {
     // If needed, create metainfo (which will also initiate parsing)
     if (!metainfoData._metainfo) {
       const parent = metainfoBaseUrl === systemMetainfoUrl ? undefined : await getMetainfoAsync(systemMetainfoUrl)
-      metainfoData._metainfo = new Metainfo(parent, metainfoData, getMetainfoAsync)
+      metainfoData._metainfo = new Metainfo(parent, metainfoData, getMetainfoAsync, externalInheritanceCache.current)
     }
     // Returned object after parsing is completed.
     return await metainfoData._metainfo._result
@@ -619,6 +630,25 @@ const DataStore = React.memo(({children}) => {
     }
   }
 
+  /**
+   * Gets all the inheriting sections of the provided section definition. That is: all inheriting
+   * sections *currently known to the store*. The result is returned as a list of definitions.
+   */
+  function getAllInheritingSections(definition) {
+    const rv = []
+    // Add subclasses (i.e. *directly* inheriting from this section)
+    const url = getUrlFromDefinition(definition)
+    rv.push(...(definition._allInternalInheritingSections || []))
+    rv.push(...(externalInheritanceCache.current[url] || []))
+    // Add recursively (sub-sub classes, sub-sub-sub classes etc.)
+    const recursive = []
+    for (const inheritingSection of rv) {
+      recursive.push(...getAllInheritingSections(inheritingSection))
+    }
+    rv.push(...recursive)
+    return rv
+  }
+
   const contextValue = {
     getUpload,
     getUploadAsync,
@@ -631,7 +661,8 @@ const DataStore = React.memo(({children}) => {
     selectedEntry,
     getMetainfoAsync,
     getMetainfoDefAsync,
-    subscribeToMetainfo
+    subscribeToMetainfo,
+    getAllInheritingSections
   }
 
   return <dataStoreContext.Provider value={contextValue}>

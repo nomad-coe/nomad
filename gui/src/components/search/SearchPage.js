@@ -23,8 +23,8 @@ import { makeStyles } from '@material-ui/core/styles'
 import FilterMainMenu from './menus/FilterMainMenu'
 import { collapsedMenuWidth } from './menus/FilterMenu'
 import SearchBar from './SearchBar'
+import SearchResults from './SearchResults'
 import StatisticsGrid from './statistics/StatisticsGrid'
-import SearchResults from './results/SearchResults'
 import { useSearchContext } from './SearchContext'
 
 /**
@@ -80,7 +80,7 @@ const useStyles = makeStyles(theme => {
   }
 })
 
-const Search = React.memo(({
+const SearchPage = React.memo(({
   header
 }) => {
   const styles = useStyles()
@@ -121,8 +121,8 @@ const Search = React.memo(({
     </div>
   </div>
 })
-Search.propTypes = {
+SearchPage.propTypes = {
   header: PropTypes.node
 }
 
-export default Search
+export default SearchPage

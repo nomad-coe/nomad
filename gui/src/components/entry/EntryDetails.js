@@ -175,7 +175,7 @@ export const VisitEntryAction = React.memo(function VisitEntryAction({data, ...p
   const {user} = useApi()
   const hide = (data.with_embargo && !user && !data.viewers.find(viewer => viewer.user_id === user.sub)) || data.process_running
   if (hide) {
-    return ''
+    return null
   }
 
   // The portal is disabled for this tooltip because this button causes a

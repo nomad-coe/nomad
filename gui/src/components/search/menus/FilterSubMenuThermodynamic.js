@@ -24,13 +24,13 @@ import InputSection from '../input/InputSection'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 
 const FilterSubMenuThermodynamic = React.memo(({
-  value,
+  id,
   ...rest
 }) => {
   const {selected} = useContext(filterMenuContext)
-  const visible = value === selected
+  const visible = id === selected
 
-  return <FilterSubMenu value={value} {...rest}>
+  return <FilterSubMenu id={id} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <InputField
@@ -65,7 +65,7 @@ const FilterSubMenuThermodynamic = React.memo(({
   </FilterSubMenu>
 })
 FilterSubMenuThermodynamic.propTypes = {
-  value: PropTypes.string
+  id: PropTypes.string
 }
 
 export default FilterSubMenuThermodynamic

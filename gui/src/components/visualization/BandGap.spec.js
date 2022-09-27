@@ -1,4 +1,3 @@
-/* eslint-disable quotes */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -16,24 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import React from 'react'
-import PropTypes from 'prop-types'
-import H5Web from '../../visualization/H5Web'
-import { Card } from '@material-ui/core'
+import { render } from '../conftest.spec'
+import { expectVisualization, VisualizationState } from './conftest.spec'
+import BandGap, { bandGapError } from './BandGap'
 
-const NexusCard = React.memo(function NexusCard({index}) {
-  if (index.parser_name !== 'parsers/nexus') {
-    return null
-  }
-  return (
-    <Card style={{height: 500}}>
-      <H5Web upload_id={index.upload_id} filename={index.mainfile}/>
-    </Card>
-  )
+test.each([
+  ['no data', VisualizationState.NoData, false],
+  ['loading', VisualizationState.Loading, undefined],
+  ['error: invalid data', VisualizationState.Error, "invalid data"]
+])('band gap: %s', async (id, state, data) => {
+  render(<BandGap data={data} />)
+  await expectVisualization(state, 'band-gap-placeholder', bandGapError)
 })
-NexusCard.propTypes = {
-  index: PropTypes.object.isRequired
-}
-
-export default NexusCard

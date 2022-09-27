@@ -39,19 +39,19 @@ function rand() {
 /**
  * Lower values -> visits fewer locations.
  */
-const visitProbabilityDecayFactor = 0.5
+const visitProbabilityDecayFactor = 0.1
 
-function metainfoItemFilter(parentPath, items) {
+function metainfoItemFilter(parentPath, itemKeys) {
   // The metainfo tree is very big, so we need to limit the crawling. This method is used
   // to make the selection.
   const parentSegments = parentPath.split('/').length - 1
   if (parentSegments === 0) {
     // Root - filter nothing
-    return Object.keys(items)
+    return itemKeys
   }
   const rv = []
   const categoryCache = {}
-  for (const itemKey of Object.keys(items)) {
+  for (const itemKey of itemKeys) {
     // Compute a "category" for the item, which is a string based on certain properties of
     // the itemKey. When selecting items to visit, we try to cover as many categories as possible
     let category = itemKey.startsWith('_') ? '1' : '0'
@@ -67,7 +67,7 @@ function metainfoItemFilter(parentPath, items) {
     }
     cache.push(itemKey)
   }
-  const visitProbability = visitProbabilityDecayFactor ** (parentSegments - 1)
+  const visitProbability = visitProbabilityDecayFactor ** parentSegments
   for (const category of Object.keys(categoryCache).sort()) {
     if (rand() < visitProbability) {
       // Include one of the itemKeys in this category, selected at random
@@ -89,9 +89,9 @@ test('Browse metainfo pseudorandomly', async () => {
   })
 
   const path = ''
-  const lane = await navigateTo(path)
+  await navigateTo(path)
   const laneIndex = path ? path.split('/').length : 0
-  const {count} = await browseRecursively(lane, laneIndex, join('*MetaInfoBrowser*', path), metainfoItemFilter, 2)
+  const {count} = await browseRecursively(laneIndex, join('*MetaInfoBrowser*', path), metainfoItemFilter, 2)
 
   // Currently we do not test that the visited items are the same using the hash
   // returned by browseRecursively. This is because any change in the metainfo
@@ -101,6 +101,6 @@ test('Browse metainfo pseudorandomly', async () => {
 
   // Check that the tested number of paths is enough, but also not too high. Adjust
   // visitProbabilityDecayFactor if the number is not in this range.
-  expect(count).toBeGreaterThan(500)
+  expect(count).toBeGreaterThan(100)
   expect(count).toBeLessThan(700)
 }, 20 * minutes) // NOTE!!! Do not increase this timeout! Rather, adjust the visitProbabilityDecayFactor

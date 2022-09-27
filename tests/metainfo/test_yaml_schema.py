@@ -3,7 +3,7 @@ import pytest
 import yaml
 
 from nomad.datamodel.data import UserReference, AuthorReference
-from nomad.metainfo.metainfo import MTypes
+from nomad.metainfo.metainfo import validElnComponents, validElnTypes, primitive_type_aliases, MTypes
 from nomad.utils import strip
 
 from nomad.metainfo import Package, MSection, Quantity, Reference, SubSection, Section, MProxy, MetainfoError
@@ -129,6 +129,43 @@ def test_yaml_deserialization():
     des_m_package.m_to_dict()
 
 
+yaml_schema_example_extended_types = strip('''
+m_def: 'nomad.metainfo.metainfo.Package'
+sections:
+  Sample:
+    base_section: 'nomad.datamodel.metainfo.measurements.Sample'
+    quantities:
+      method:
+        type: string
+        m_annotations:
+          eln:
+            component: StringEditQuantity
+      spin:
+        type: boolean
+        m_annotations:
+          eln:
+            component: BoolEditQuantity
+''')
+
+
+def test_yaml_extended_types_deserialization():
+    des_m_package = yaml_to_package(yaml_schema_example_extended_types)
+
+    des_sample = des_m_package['section_definitions'][0]
+
+    assert des_sample.name == "Sample"
+
+    method = des_sample['quantities'][0]
+    assert method.name == 'method'
+    assert method.type == str
+
+    spin = des_sample['quantities'][1]
+    assert spin.name == 'spin'
+    assert spin.type == bool
+
+    des_m_package.m_to_dict()
+
+
 @pytest.mark.parametrize('yaml_schema, expected_error', [
     pytest.param(strip('''
         m_def: 'nomad.metainfo.metainfo.Package'
@@ -230,6 +267,8 @@ def test_datatype_component_annotations(eln_type, eln_component):
                     quantity = process['quantities'][0]
                     if type(quantity.type).__name__ != 'type':
                         type_name = type(quantity.type).__name__
+                if type_name in primitive_type_aliases.keys():
+                    type_name = primitive_type_aliases[type_name].__name__
                 package.__init_metainfo__()
             assert isinstance(exception.value, MetainfoError)
             assert exception.value.args[0] == 'One constraint was violated: The component `%s` is not compatible with the quantity `%s` of the type `%s`. Accepted components: %s (there are 0 more violations)' \

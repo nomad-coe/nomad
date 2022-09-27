@@ -66,6 +66,7 @@ withErrorHandler.propTypes = ({
   message: PropTypes.oneOfType([PropTypes.string, PropTypes.func]) // Provide either a fixed error message or a callback that will receive the error details.
 })
 
+export const webGlError = 'Could not display the visualization as your browser does not support WebGL content.'
 export const withWebGLErrorHandler = WrappedComponent => props => {
   const hasWebGL = useState(hasWebGLSupport())[0]
 
@@ -76,7 +77,7 @@ export const withWebGLErrorHandler = WrappedComponent => props => {
     return <Alert
       severity="info"
     >
-      Could not display the visualization as your browser does not support WebGL content.
+      {webGlError}
     </Alert>
   }
 }

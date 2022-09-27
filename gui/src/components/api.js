@@ -67,7 +67,10 @@ function handleApiError(e) {
   }
 
   let error = null
-  if (e.response) {
+  if (e?.message === 'Failed to fetch' || e?.message === 'Network Error') {
+    error = new ApiError(e.message)
+    error.status = 400
+  } else if (e.response) {
     const body = e.response.body
     const message = (body && (body.message || body.description)) || e.response?.data?.detail || e.response.statusText
     const errorMessage = `${message} (${e.response.status})`
@@ -85,13 +88,8 @@ function handleApiError(e) {
     error.status = e.response.status
     error.apiMessage = message
   } else {
-    if (e.message === 'Failed to fetch' || e.message === 'Network Error') {
-      error = new ApiError(e.message)
-      error.status = 400
-    } else {
-      const errorMessage = e.status ? `${e} (${e.status})` : '' + e
-      error = new Error(errorMessage)
-    }
+    const errorMessage = e.status ? `${e} (${e.status})` : '' + e
+    error = new Error(errorMessage)
   }
   throw error
 }
@@ -277,9 +275,10 @@ class Api {
     const auth = await this.authHeaders()
     config = config || {}
     config.params = config.params || {}
-    config.headers = config.headers || {
+    config.headers = {
       accept: 'application/json',
-      ...auth.headers
+      ...auth.headers,
+      ...(config?.headers || {})
     }
     try {
       const results = await method(path, body, config)
@@ -453,7 +452,7 @@ function VerifyGlobalLogin({children}) {
   }, [api, setVerified])
 
   if (verified === null) {
-    return ''
+    return null
   }
 
   if (!verified) {

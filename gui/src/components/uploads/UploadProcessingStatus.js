@@ -38,7 +38,7 @@ const UploadProcessingStatus = React.memo(function ProcessingStatus() {
   const classes = useStyles()
 
   if (!upload) {
-    return ''
+    return null
   }
 
   return (

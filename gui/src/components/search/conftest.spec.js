@@ -19,9 +19,9 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import assert from 'assert'
-import { waitFor, waitForElementToBeRemoved } from '@testing-library/dom'
+import { waitFor } from '@testing-library/dom'
 import elementData from '../../elementData.json'
-import { screen, WrapperDefault, WrapperNoAPI } from '../conftest.spec'
+import { screen, WrapperDefault } from '../conftest.spec'
 import { render } from '@testing-library/react'
 import { SearchContext } from './SearchContext'
 import { filterData } from './FilterRegistry'
@@ -31,7 +31,7 @@ import { DType } from '../../utils'
 /*****************************************************************************/
 // Renders
 /**
- * Entry search render.
+ * Render within a search context.
  */
 const WrapperSearch = ({children}) => {
   return <WrapperDefault>
@@ -47,24 +47,6 @@ WrapperSearch.propTypes = {
 
 export const renderSearchEntry = (ui, options) =>
   render(ui, {wrapper: WrapperSearch, ...options})
-
-/**
- * Entry search render without API.
- */
-const WrapperNoAPISearch = ({children}) => {
-  return <WrapperNoAPI>
-    <SearchContext resource="entries">
-      {children}
-    </SearchContext>
-  </WrapperNoAPI>
-}
-
-WrapperNoAPISearch.propTypes = {
-  children: PropTypes.node
-}
-
-export const renderNoAPISearchEntry = (ui, options) =>
-  render(ui, {wrapper: WrapperNoAPISearch, ...options})
 
 /*****************************************************************************/
 // Expects
@@ -145,7 +127,9 @@ export async function expectInputRange(quantity, loaded, histogram, anchored, mi
     // Check histogram
     if (histogram) {
       // Check that placeholder disappears
-      !loaded && await waitForElementToBeRemoved(() => root.getByTestId('inputrange-histogram-placeholder'))
+      if (!loaded) {
+        await waitFor(() => expect(root.queryByTestId('inputrange-histogram-placeholder')).toBe(null))
+      }
     }
 
     // Test text elements if the component is not anchored
@@ -219,4 +203,40 @@ export async function expectInputPeriodicTableItems(elements, root = screen) {
         }
       })
     })
+}
+
+/**
+ * Tests that the correct FilterMainMenu items are displayed.
+ * @param {object} context The used search context
+ * @param {object} root The root element to perform the search on.
+ */
+export async function expectFilterMainMenu(context, root = screen) {
+    // Check that menu title is displayed
+    expect(screen.getByText(`${context.resource} search`)).toBeInTheDocument()
+
+    // Check that menu items are displayed
+    const menuConfig = context.filter_menus
+    const menus = menuConfig.include
+      .filter(key => !menuConfig.exclude.includes(key))
+      .map(key => menuConfig.options[key].label)
+    for (const menu of menus) {
+      expect(screen.getByText(menu, {selector: 'span'})).toBeInTheDocument()
+    }
+}
+
+/**
+ * Tests that the correct SearchResults are displayed.
+ * @param {object} context The used search context
+ * @param {object} root The root element to perform the search on.
+ */
+export async function expectSearchResults(context, root = screen) {
+    // Wait until search results are in
+    expect(await screen.findByText("search results", {exact: false})).toBeInTheDocument()
+
+    // Check that correct columns are displayed
+    const columnConfig = context.columns
+    const columns = columnConfig.enable.map(key => columnConfig.options[key].label)
+    for (const column of columns) {
+      expect(screen.getByText(column)).toBeInTheDocument()
+    }
 }

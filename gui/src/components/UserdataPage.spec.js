@@ -1,4 +1,3 @@
-/* eslint-disable quotes */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -18,22 +17,17 @@
  */
 
 import React from 'react'
-import PropTypes from 'prop-types'
-import H5Web from '../../visualization/H5Web'
-import { Card } from '@material-ui/core'
+import { render, startAPI, closeAPI } from './conftest.spec'
+import { expectFilterMainMenu, expectSearchResults } from './search/conftest.spec'
+import { ui } from '../config'
+import UserDatapage from './UserdataPage'
 
-const NexusCard = React.memo(function NexusCard({index}) {
-  if (index.parser_name !== 'parsers/nexus') {
-    return null
-  }
-  return (
-    <Card style={{height: 500}}>
-      <H5Web upload_id={index.upload_id} filename={index.mainfile}/>
-    </Card>
-  )
+test('renders user data search page correctly', async () => {
+  const context = ui.search_contexts.options.entries
+  await startAPI('tests.states.search.search', 'tests/data/search/userdatapage', 'test', 'password')
+  render(<UserDatapage />)
+
+  await expectFilterMainMenu(context)
+  await expectSearchResults(context)
+  closeAPI()
 })
-NexusCard.propTypes = {
-  index: PropTypes.object.isRequired
-}
-
-export default NexusCard

@@ -16,17 +16,14 @@
  * limitations under the License.
  */
 import { createTheme } from '@material-ui/core'
-import { urlAbs } from './utils'
 
 window.nomadEnv = window.nomadEnv || {}
 export const version = window.nomadEnv.version
-// Ensure that appBase is a correct absolute url that uses the same protocol as
-// the page in which this script is loaded.
-export const appBase = urlAbs(window.nomadEnv.appBase.replace(/\/$/, ''))
-// export const apiBase = 'http://nomad-lab.eu/prod/rae/api'
+export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
 export const apiBase = `${appBase}/api`
 export const northBase = window.nomadEnv.northBase
 export const guiBase = process.env.PUBLIC_URL
+export const ui = window.nomadEnv.ui
 export const servicesUploadLimit = window.nomadEnv.servicesUploadLimit
 export const keycloakBase = window.nomadEnv.keycloakBase
 export const keycloakRealm = window.nomadEnv.keycloakRealm

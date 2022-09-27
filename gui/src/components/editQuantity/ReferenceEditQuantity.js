@@ -27,6 +27,8 @@ import { ItemButton } from '../archive/Browser'
 import { getFieldProps } from './StringEditQuantity'
 import { isWaitingForUpdateTestId, refType, resolveNomadUrl } from '../../utils'
 import AddIcon from '@material-ui/icons/AddCircle'
+import { getUrlFromDefinition } from '../archive/metainfo'
+import { useDataStore } from '../DataStore'
 
 const filter = createFilterOptions()
 
@@ -36,7 +38,8 @@ const useStyles = makeStyles(theme => ({
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const styles = useStyles()
-  const {uploadId, archive, url} = useEntryPageContext('*')
+  const dataStore = useDataStore()
+  const {installationUrl, uploadId, archive, url} = useEntryPageContext('*')
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const {api} = useApi()
@@ -47,8 +50,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const fetchedSuggestionsFor = useRef()
 
   const referencedSectionQualifiedNames = useMemo(() => {
-    return [...quantityDef.type._referencedSection._allInheritingSections.map(section => section._qualifiedName), quantityDef.type._referencedSection._qualifiedName]
-  }, [quantityDef])
+    return [...dataStore.getAllInheritingSections(quantityDef.type._referencedSection).map(section => section._qualifiedName), quantityDef.type._referencedSection._qualifiedName]
+  }, [dataStore, quantityDef])
   const fetchSuggestions = useCallback(input => {
     if (fetchedSuggestionsFor.current === input) {
       return // We've already fetched suggestions for this search string
@@ -59,12 +62,11 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     if (input !== '') {
       query['entry_name.prefix'] = input
     }
-    const sections = referencedSectionQualifiedNames?.map(qualifiedName => ({'sections': qualifiedName}))
+    const sections = referencedSectionQualifiedNames?.map(qualifiedName => ({'sections': qualifiedName, ...query}))
     api.post('entries/query', {
       'owner': 'visible',
       'query': {
-        'or': sections,
-        ...query
+        'or': sections
       },
       'required': {
         'include': [
@@ -143,12 +145,10 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     }
   }, [onChange])
 
-  const createNewEntry = useCallback((uploadId, fileName) => {
-    const template = {name: 'noname'}
+  const createNewEntry = useCallback((fileName) => {
     const archive = {
       data: {
-        m_def: quantityDef.type._referencedSection._url || quantityDef.type._referencedSection._qualifiedName,
-      ...template
+        m_def: getUrlFromDefinition(quantityDef.type._referencedSection, {installationUrl, uploadId}, true)
       }
     }
     return new Promise((resolve, reject) => {
@@ -169,12 +169,12 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
           reject(new Error(error))
         })
     })
-  }, [api, quantityDef.type._referencedSection._qualifiedName, quantityDef.type._referencedSection._url])
+  }, [api, quantityDef.type._referencedSection, installationUrl, uploadId])
 
   const handleValueChange = useCallback((event, value) => {
     if (value?.createNewEntry) {
       value.entry_name = `${value.createNewEntry}.archive.json`
-      createNewEntry(value.upload_id, value.createNewEntry)
+      createNewEntry(value.createNewEntry)
         .then(response => {
           setInputValue(response.processing.entry.mainfile)
           changeValue({
