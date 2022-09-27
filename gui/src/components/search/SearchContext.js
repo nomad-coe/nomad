@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import React, { useCallback, useEffect, useState, useRef, useMemo, useContext } from 'react'
 import {
   atom,
@@ -42,6 +43,7 @@ import {
 } from 'lodash'
 import { Link } from '@material-ui/core'
 import qs from 'qs'
+import { v4 as uuidv4 } from 'uuid'
 import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
 import { useApi } from '../api'
@@ -78,9 +80,6 @@ import {
  * depending on the context would re-render for each filter change regardless if
  * it actually changes the state of that component or not.
  */
-let indexContext = 0
-let indexFilters = 0
-let indexLocked = 0
 
 /**
  * Used to turn empty containers into undefined which is used to indicate that a
@@ -119,6 +118,9 @@ export const SearchContext = React.memo(({
   const updatedFilters = useRef(new Set())
   const firstLoad = useRef(true)
   const disableUpdate = useRef(false)
+  const contextID = useMemo(() => uuidv4(), [])
+  const indexFilters = useRef(0)
+  const indexLocked = useRef(0)
 
   // The final filtered set of columns
   const columns = useMemo(() => {
@@ -278,12 +280,12 @@ export const SearchContext = React.memo(({
     useSetFilters
   ] = useMemo(() => {
     const queryFamily = atomFamily({
-      key: `queryFamily_${indexContext}`,
+      key: `queryFamily_${contextID}`,
       default: (name) => initialQuery[name]
     })
     // Used to get/set the locked state of all filters at once
     const filtersState = selector({
-      key: `filtersState_${indexContext}`,
+      key: `filtersState_${contextID}`,
       get: ({get}) => {
         const query = {}
         for (const key of filters) {
@@ -299,13 +301,13 @@ export const SearchContext = React.memo(({
 
     const guiLocked = toGUIFilter(filtersLocked)
     const lockedFamily = atomFamily({
-      key: `lockedFamily_${indexContext}`,
+      key: `lockedFamily_${contextID}`,
       default: (name) => !isNil(guiLocked?.[name])
     })
 
     // Used to set the locked state of several filters at once
     const lockedState = selector({
-      key: `lockedState_${indexContext}`,
+      key: `lockedState_${contextID}`,
       get: ({get}) => {
         const locks = {}
         for (const key of filters) {
@@ -321,7 +323,7 @@ export const SearchContext = React.memo(({
      * single query object used by the API.
      */
     const queryState = selector({
-      key: `query_${indexContext}`,
+      key: `query_${contextID}`,
       get: ({get}) => {
         const query = {}
         for (const key of filters) {
@@ -345,36 +347,36 @@ export const SearchContext = React.memo(({
     })
 
     const isStatisticsEnabledState = atom({
-      key: `statisticsEnabled_${indexContext}`,
+      key: `statisticsEnabled_${contextID}`,
       default: true
     })
     const isMenuOpenState = atom({
-      key: `isMenuOpen_${indexContext}`,
+      key: `isMenuOpen_${contextID}`,
       default: false
     })
     const isCollapsedState = atom({
-      key: `isCollapsed_${indexContext}`,
+      key: `isCollapsed_${contextID}`,
       default: false
     })
 
     const paginationState = atom({
-      key: `pagination_${indexContext}`,
+      key: `pagination_${contextID}`,
       default: initialPagination
     })
 
     const resultsUsedState = atom({
-      key: `resultsUsed_${indexContext}`,
+      key: `resultsUsed_${contextID}`,
       default: false
     })
 
     const statisticFamily = atomFamily({
-      key: `statisticFamily_${indexContext}`,
+      key: `statisticFamily_${contextID}`,
       default: (name) => finalStatistics[name]
     })
 
     // Used to get/set the the statistics configuration of all filters
     const statisticsState = selector({
-      key: `statisticsState_${indexContext}`,
+      key: `statisticsState_${contextID}`,
       set: ({set}, stats) => {
         stats && Object.entries(stats).forEach(([key, value]) => set(statisticFamily(key), value))
       },
@@ -444,29 +446,29 @@ export const SearchContext = React.memo(({
     }
 
     const resultsState = atom({
-      key: `results_${indexContext}`,
+      key: `results_${contextID}`,
       default: {
         pagination: {}
       }
     })
 
     const apiDataState = atom({
-      key: `apiData_${indexContext}`,
+      key: `apiData_${contextID}`,
       default: null
     })
 
     const aggsFamilyRaw = atomFamily({
-      key: `aggsFamilyRaw_${indexContext}`,
+      key: `aggsFamilyRaw_${contextID}`,
       default: (name) => initialAggs[name]
     })
 
     const aggKeys = atom({
-      key: `aggKeys_${indexContext}`,
+      key: `aggKeys_${contextID}`,
       default: []
     })
 
     const aggsFamily = selectorFamily({
-      key: `aggsFamily_${indexContext}`,
+      key: `aggsFamily_${contextID}`,
       get: (id) => ({ get }) => {
         return get(aggsFamilyRaw(id))
       },
@@ -481,7 +483,7 @@ export const SearchContext = React.memo(({
      * requests into a single query object used by the API.
      */
     const aggsState = selector({
-      key: `aggs_${indexContext}`,
+      key: `aggs_${contextID}`,
       get: ({get}) => {
         const aggs = {}
         for (const key of get(aggKeys)) {
@@ -496,13 +498,16 @@ export const SearchContext = React.memo(({
 
     // Atom for each aggregation response.
     const aggsResponseFamily = atomFamily({
-      key: `aggsResponseFamily_${indexContext}`,
+      key: `aggsResponseFamily_${contextID}`,
       default: undefined
     })
 
     // Recoil.js selector for updating the aggs response in one go.
     const aggsResponseState = selector({
-      key: `aggsResponse_${indexContext}`,
+      key: `aggsResponse_${contextID}`,
+      get: ({get}) => {
+        return undefined
+      },
       set: ({ set }, data) => {
         if (data) {
           for (const [key, value] of Object.entries(data)) {
@@ -650,8 +655,8 @@ export const SearchContext = React.memo(({
       // id. Because this hook can be called dynamically, we simply generate the ID
       // sequentially.
       const filterState = useMemo(() => {
-        const id = `locked_selector${indexLocked}`
-        indexLocked += 1
+        const id = `locked_selector_${contextID}_${indexLocked.current}`
+        indexLocked.current += 1
         return selector({
           key: id,
           get: ({get}) => {
@@ -684,8 +689,8 @@ export const SearchContext = React.memo(({
       // id. Because this hook can be called dynamically, we simply generate the ID
       // sequentially.
       const filterState = useMemo(() => {
-        const id = `dynamic_selector${indexFilters}`
-        indexFilters += 1
+        const id = `dynamic_selector_${contextID}_${indexFilters.current}`
+        indexFilters.current += 1
         return selector({
           key: id,
           get: ({get}) => {
@@ -781,7 +786,6 @@ export const SearchContext = React.memo(({
       return useSetRecoilState(filtersState)
     }
 
-    ++indexContext
     return [
       useFilterLocked,
       useFiltersLocked,
@@ -813,7 +817,7 @@ export const SearchContext = React.memo(({
       useAgg,
       useSetFilters
     ]
-  }, [initialQuery, filters, filtersLocked, finalStatistics, initialAggs, initialPagination, filterData])
+  }, [contextID, initialQuery, filters, filtersLocked, finalStatistics, initialAggs, initialPagination, filterData])
 
   const setResults = useSetRecoilState(resultsState)
   const setApiData = useSetRecoilState(apiDataState)
