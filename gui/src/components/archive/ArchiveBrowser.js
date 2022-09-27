@@ -487,7 +487,7 @@ class SectionAdaptor extends ArchiveAdaptor {
   async itemAdaptor(key) {
     const [name, index] = key.split(':')
     const property = this.def._properties[name]
-    const value = property?.default || this.obj[name]
+    const value = this.obj[name] || property?.default
     if (!property) {
       return super.itemAdaptor(key)
     } else if (property.m_def === SubSectionMDef) {
@@ -799,7 +799,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
 
   const renderQuantity = useCallback(quantityDef => {
     const key = quantityDef.name
-    const value = quantityDef.default || section[key]
+    const value = section[key] || quantityDef.default
     const isDefault = value && !section[key]
     const disabled = value === undefined
     if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
