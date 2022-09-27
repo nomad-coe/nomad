@@ -60,7 +60,7 @@
     "react-swipeable-views": "^0.14.0",
     "react-virtualized-auto-sizer": "^1.0.2",
     "react-window": "^1.8.5",
-    "recoil": "0.3.1",
+    "recoil": "0.7.5",
     "recompose": "^0.30.0",
     "remark": "^14.0.2",
     "remark-math": "^5.1.1",
