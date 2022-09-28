@@ -36,7 +36,7 @@ import RecognizedFileIcon from '@material-ui/icons/InsertChartOutlinedTwoTone'
 import Dropzone from 'react-dropzone'
 import Download from '../entry/Download'
 import Quantity from '../Quantity'
-import FilePreview, {viewers} from './FilePreview'
+import FilePreview from './FilePreview'
 import { useEntryPageContext } from '../entry/EntryPageContext'
 import { archiveAdaptorFactory } from './ArchiveBrowser'
 import NorthLaunchButton from '../north/NorthLaunchButton'
@@ -565,82 +565,81 @@ function RawFileContent({installationUrl, uploadId, path, data, editable}) {
     niceSize = `${data.size} bytes`
   }
 
-  const fileExtension = path.split('.').pop().toLowerCase()
-  const isExtensionSupported = viewers.map(viewer => viewer.fileExtensions).flat().includes(fileExtension)
-
   return (
     <Content
       key={path}
       display="flex" flexDirection="column" height="100%"
-      paddingTop={0} paddingBottom={0} maxWidth="initial"
+      paddingBottom={0} maxWidth="initial"
     >
-      <Box paddingTop={1}>
-        <Title
-          title={data.name}
-          label="file"
-          tooltip={path}
-          actions={
-            <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
-              {data.entry_id && (
-                <Grid item>
-                  <EntryButton entryId={data.entry_id} component={IconButton} size="small">
-                    <NavigateIcon />
-                  </EntryButton>
-                </Grid>
-              )}
+      <Title
+        title={data.name}
+        label="file"
+        tooltip={path}
+        actions={
+          <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+            {data.entry_id && (
               <Grid item>
-                <Download
-                  component={IconButton} disabled={false} size="small"
-                  tooltip="download this file"
-                  url={downloadUrl}
-                >
-                  <DownloadIcon />
-                </Download>
+                <EntryButton entryId={data.entry_id} component={IconButton} size="small">
+                  <NavigateIcon />
+                </EntryButton>
               </Grid>
-              {
-                editable &&
-                  <Grid item>
-                    <IconButton size="small" onClick={() => setOpenConfirmDeleteFileDialog(true)}>
-                      <Tooltip title="delete this file">
-                        <DeleteIcon />
-                      </Tooltip>
-                    </IconButton>
-                    <Dialog
-                      open={openConfirmDeleteFileDialog}
-                      onClose={() => setOpenConfirmDeleteFileDialog(false)}
-                    >
-                      <DialogContent>
-                        <DialogContentText>Really delete the file <b>{data.name}</b>?</DialogContentText>
-                      </DialogContent>
-                      <DialogActions>
-                        <Button onClick={() => setOpenConfirmDeleteFileDialog(false)} autoFocus>Cancel</Button>
-                        <Button onClick={handleDeleteFile}>OK</Button>
-                      </DialogActions>
-                    </Dialog>
-                  </Grid>
-              }
+            )}
+            <Grid item>
+              <Download
+                component={IconButton} disabled={false} size="small"
+                tooltip="download this file"
+                url={downloadUrl}
+              >
+                <DownloadIcon />
+              </Download>
             </Grid>
-          }
-        />
-      </Box>
+            {
+              editable &&
+                <Grid item>
+                  <IconButton size="small" onClick={() => setOpenConfirmDeleteFileDialog(true)}>
+                    <Tooltip title="delete this file">
+                      <DeleteIcon />
+                    </Tooltip>
+                  </IconButton>
+                  <Dialog
+                    open={openConfirmDeleteFileDialog}
+                    onClose={() => setOpenConfirmDeleteFileDialog(false)}
+                  >
+                    <DialogContent>
+                      <DialogContentText>Really delete the file <b>{data.name}</b>?</DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                      <Button onClick={() => setOpenConfirmDeleteFileDialog(false)} autoFocus>Cancel</Button>
+                      <Button onClick={handleDeleteFile}>OK</Button>
+                    </DialogActions>
+                  </Dialog>
+                </Grid>
+            }
+          </Grid>
+        }
+      />
       <Compartment>
         <Quantity quantity="filesize" data={{filesize: niceSize}} label="file size" />
-        { data.parser_name && <Quantity quantity="parser" data={{parser: data.parser_name}} />}
-        { data.parser_name && <Quantity quantity="entryId" data={{entryId: data.entry_id}} noWrap withClipboard />}
+        {data.parser_name && (
+          <Quantity quantity="parser" data={{parser: data.parser_name}} />
+        )}
+        {data.entry_id && (
+          <Quantity quantity="entryId" data={{entryId: data.entry_id}} noWrap withClipboard />
+        )}
       </Compartment>
-      {data.entry_id && (
-        <Compartment title="more">
-          <Item itemKey="archive"><Typography>processed data</Typography></Item>
-        </Compartment>
-      )}
-      {applicableNorthTools.length > 0 && (
-        <Compartment title="tools">
+      <Compartment>
+        {data.entry_id && (
+          <Item itemKey="archive">
+            <Typography>processed data</Typography>
+          </Item>
+        )}
+        <Item itemKey="preview">
+          <Typography>preview</Typography>
+        </Item>
+        {applicableNorthTools.length > 0 && (
           <NorthLaunchButton uploadId={uploadId} path={path} tools={applicableNorthTools} />
-        </Compartment>
-      )}
-      {isExtensionSupported && <Item itemKey="preview">
-        {'preview'}
-      </Item>}
+        )}
+      </Compartment>
     </Content>)
 }
 RawFileContent.propTypes = {

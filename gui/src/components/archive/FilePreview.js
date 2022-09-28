@@ -139,7 +139,7 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
 
   // Determine viewer to use and if we should preview automatically, based on extension and size
   const fileExtension = path.split('.').pop().toLowerCase()
-  let autoPreview = false
+  let autoPreview = true
   let selectedViewer = viewerText
   for (const viewer of viewers) {
     if (viewer.fileExtensions.includes(fileExtension)) {
