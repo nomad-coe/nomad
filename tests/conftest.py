@@ -150,6 +150,7 @@ def purged_app(celery_session_app):
     '''
     celery_session_app.control.purge()
     yield celery_session_app
+    celery_session_app.control.purge()
 
 
 @pytest.fixture(scope='session')
@@ -174,7 +175,9 @@ def worker(mongo, celery_session_worker, celery_inspect):
             if empty:
                 break
     except Exception:
-        pass
+        print('Exception during worker tear down.')
+        import traceback
+        traceback.print_exc()
 
 
 @pytest.fixture(scope='session')
@@ -206,6 +209,7 @@ def mongo_function(mongo_infra):
 @pytest.fixture(scope='function')
 def mongo(mongo_infra):
     ''' Provides a cleaned mocked mongo per function. '''
+    print('setup mongo worker')
     return clear_mongo(mongo_infra)
 
 
