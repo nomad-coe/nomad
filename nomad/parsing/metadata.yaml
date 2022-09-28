@@ -1,0 +1,64 @@
+codeName: nexus
+codeLabel: NeXus
+codeCategory: Database manager
+status: production
+codeLabelStyle: 'capitals: N, X.'
+codeUrl: https://www.nexusformat.org/
+parserDirName: dependencies/parsers/nexus/
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-nexus.git
+preamble: |
+  This is not a real parser, but an example template on how to write one. You can fork this repository to create actual parsers.
+
+  ## Get started
+
+  You should create a virtual environment. This is optional, but highly recommended as
+  the required nomad-lab pypi package requires many dependencies with specific versions
+  that might conflict with other libraries that you have installed. This was tested
+  with Python 3.7.
+
+  ```
+  pip install virtualenv
+  virtualenv -p `which python3` .pyenv
+  source .pyenv/bin/activate
+  ```
+
+  Simply install our pypi package with pip:
+  ```
+  pip install --upgrade pip
+  pip install nomad-lab
+  ```
+
+  Clone this project (or fork and then clone the fork). Go into the cloned directly and
+  directly run the parser from there:
+  ```
+  git clone https://github.com/nomad-coe/nomad-parser-nexus.git parser-nexus
+  cd parser-nexus
+  python -m nexusparser tests/data/nexus.out
+  ```
+
+  There are also a basic test framework written in [pytest](https://docs.pytest.org/en/stable/).
+  Install the remaining dev dependencies and run the tests with:
+  ```
+  pip install -r requirements.txt
+  pytest -sv tests
+  ```
+
+  ## Next steps
+
+  Our documentation provides several resources that might be interesting:
+  - [How to write a parser](https://nomad-lab.eu/prod/rae/docs/parser.html). Provides
+    a more detailed tutorial on how to write a parser.
+  - [Introduction to the NOMAD Metainfo](https://nomad-lab.eu/prod/rae/docs/metainfo.html).
+    This explains how NOMAD data schema and can be extended and used within your parser.
+
+  To get you parser included in NOMAD or ask further questions, you can:
+  - Use our forums at [matsci.org](https://matsci.org/c/nomad/32)
+  - Open an issue on the [nexus-parser GitHub project](https://github.com/nomad-coe/nomad-parser-nexus/issues)
+  - Write to [support@nomad-lab.eu](mailto:support@nomad-lab.eu)
+
+  **Note!** The rest of this README.md is the usual text that applies to all NOMAD parsers.
+
+tableOfFiles: |
+  |Input Filename| Description|
+  |--- | --- |
+  |`nexus.out` | **Mainfile** in NEXUS specific plain-text |

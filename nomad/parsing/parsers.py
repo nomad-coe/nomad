@@ -29,7 +29,7 @@ from nomad.datamodel.context import Context, ClientContext
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 from .tabular import TabularDataParser
-from nexusparser.parser import NexusParser
+from .nexus import NexusParser
 
 
 try:
