@@ -69,26 +69,27 @@ JsonEditor.propTypes = {
 
 const PropertyEditor = React.memo(function PropertyEditor({quantityDef, value, onChange}) {
   const editAnnotations = quantityDef.m_annotations?.eln || []
-  const editAnnotation = editAnnotations[0]
-  const componentName = editAnnotation?.component
-  const component = componentName && editQuantityComponents[componentName]
-  if (!component) {
+  const editAnnotation = editAnnotations[0] || {}
+  const {component, props, ...moreProps} = editAnnotation
+  const editComponent = component && editQuantityComponents[component]
+  if (!editComponent) {
     return null
   }
-  const props = {
+  const editComponentProps = {
     quantityDef: quantityDef,
     value: value === undefined ? quantityDef.default : value,
     onChange: onChange,
-    ...(editAnnotation?.props || {})
+    ...moreProps,
+    ...(props || {})
   }
 
   const shape = quantityDef.shape || []
   if (shape.length === 0) {
-    return React.createElement(component, props)
+    return React.createElement(editComponent, editComponentProps)
   } else if (shape.length === 1) {
     return <ListEditQuantity
-      component={component}
-      {...props}
+      component={editComponent}
+      {...editComponentProps}
     />
   } else {
     console.log('Unsupported quantity shape ', shape)
