@@ -51,7 +51,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 12
           },
           "required": {
             "include": [
@@ -67,18 +67,18 @@
                 "size": 7,
                 "data": [
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 4,
+                    "nested_count": 4,
                     "value": "2D"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 4,
+                    "nested_count": 4,
                     "value": "bulk"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 4,
+                    "nested_count": 4,
                     "value": "molecule / cluster"
                   }
                 ]
@@ -89,7 +89,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "823",
+          "content-length": "824",
           "content-type": "application/json",
           "server": "uvicorn"
         }

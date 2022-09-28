@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI2NzI3MjExNy0xNDljLTQyMDQtYjlhOC1iNWEyZTc0NjFlNGYiLCJleHAiOjE2NjMwOTU4MzQsIm5iZiI6MCwiaWF0IjoxNjYzMDU5ODU1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6Ijg0ZmZkM2JkLWVhNGYtNDRhZS05YzM2LWM2NDFmNDc4ODg4MCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.eJtUzxZ_5IrxtDN0uBgSFJzq3Vnn43FuUXkQfu4YDYnq2L5uoOOlQEtCtwu2WL5hB-vpGWfKVY9dsJmBpRyJv_2vTOIcnsVUqgdkGMTrvast-Mkancz2QzQqCS8zWJfcMtNQ559d_Hj9eTHsfA2q4O-issBSXTi9HwlSpoAYhe5rByPByNi23RBUGOf89Fmb91fLuHLjnYG5WE3hhfLo5LenuXL3Zl0eEkMI-Lx1LYKzQecegM4Xi-mt6aWmETh7jdecXJHkHiFpj-Ov4a3WeHO86wwS4y70HPBOVKw3GEYjpZl9og0fre6UWh7SixLOHbkgrw-QrMn8PtUYmbr8og",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0ZmI5MjFkMS0zN2FmLTRjNjktYWNjZC1mNzYxZDYxNmJkMTQiLCJleHAiOjE2NjQzODc1NDcsIm5iZiI6MCwiaWF0IjoxNjY0MzUxNTYwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImEzNTdkMWE0LTg5MzktNDZiNS05Y2I5LTdmODliNDM3MjNjNyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.JWL_hhSZcpiDCLRJ1giN0339b-hdAZxiQs4st5nwFI0q4Muf2U2WfKq6ZVIy6cVtzbJ1jURZzE7NFKRwPEVzJAdMnRQCD5KxeocnL-2Zx9SGpqBJ33gxtQtH6FNMKWJT3FQZKLwP2K6X0782f01-fTRUGAWNYCPTpD6oC9t4fxomhtZZCSzD99-73FA1nxsMabwNMYFrm3owxGDTmhFYEXYcc2RdkPZNb96UVqmV02uLQWqCLGgwpXQuGKyw3nl-1qkBi4ovKZLuoIeHl-mmv0-hMVe1GdnZJ4mm4qGrc2BtF1DbRHeAHpHEV8ggfQWUZVPg15TYQ-_Wci26v9WHwQ",
           "cookie": null
         }
       },
@@ -57,8 +57,8 @@
             ],
             "datasets": [],
             "n_quantities": 32,
-            "nomad_version": "1.1.3",
-            "upload_create_time": "2022-09-13T09:04:11.431000+00:00",
+            "nomad_version": "1.1.4",
+            "upload_create_time": "2022-09-28T07:52:37.858000+00:00",
             "nomad_commit": "d0778d6a",
             "processing_errors": [],
             "results": {
@@ -67,7 +67,7 @@
               }
             },
             "entry_name": "inter-entry.archive.json",
-            "last_processing_time": "2022-09-13T09:04:12.165000+00:00",
+            "last_processing_time": "2022-09-28T07:52:38.104000+00:00",
             "parser_name": "parsers/archive",
             "calc_id": "QoV6GTCH0lT4ArliEfO6ytXa9ihg",
             "published": false,
@@ -108,7 +108,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2022-09-13T09:04:11.774000+00:00",
+            "entry_create_time": "2022-09-28T07:52:37.995000+00:00",
             "with_embargo": false,
             "files": [
               "inter-entry.archive.json",
@@ -118,9 +118,11 @@
               "inheriting-schema.archive.yaml",
               "intra-entry.archive.json",
               "intra-entry.archive.yaml",
+              "polymorphy.archive.yaml",
               "pvd_process.csv",
               "schema.archive.json",
               "simple-schema.archive.yaml",
+              "with-default-values.archive.yaml",
               "with-problems.archive.yaml",
               "xrd_measurement.xrdml"
             ],
@@ -141,7 +143,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "3552",
+          "content-length": "3627",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -159,7 +161,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1ODY5YmNiYS1iNzM2LTRjN2UtYmY2Zi00ZGZjN2M5MjIxODYiLCJleHAiOjE2NjMwOTU4MzQsIm5iZiI6MCwiaWF0IjoxNjYzMDU5ODU2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6Ijg0ZmZkM2JkLWVhNGYtNDRhZS05YzM2LWM2NDFmNDc4ODg4MCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.ZRPnacAgfPPX29w-53fv-SEgozC4RuDESOQZqSOOUGFu0-EK94dir_tQi1HVjiecRVZpYX9L__7K5PDfSXQwl6qxymin-m_BotCzQ748n14kk8pYAaLain60ZuUPMlqDvRXAQIhubZ6gfc1WVimB9HQFm6T___tWXKc2deYp01-IK3ub00aH_zDzOENSXwxVUhEn847-Id-9bTvw05wRbasJjWVX3RY7gSTjaLq1od2ym0RqkB6c40CESGNI1Mu0xk9E9FRQ7_CTWuVYKVir1aUEkzCqd4a0imok6as3DJlaMI-vZ3EeXj2Ldut3jc4m9UMxikMAHflerKn5UueWIA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0NTk2ZGEwMy0zNzg3LTRjYTItOTJhZC01NjJlOTRjOTczZjgiLCJleHAiOjE2NjQzODc1NDcsIm5iZiI6MCwiaWF0IjoxNjY0MzUxNTYxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImEzNTdkMWE0LTg5MzktNDZiNS05Y2I5LTdmODliNDM3MjNjNyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.XCwmfyzVkyIejhHkR7a3ZGKni-g_I4gZdWasdO683-WglrH35GNpUlkLnHWfw6T7meXIDSEi2f9TKy5Ws4wUwh1w97rQ-62EgFVfWXmZRyqb0nnYsDnK_qJB0ITmuNVGshaFYSRht-PkjQN6emaT-lUJqfeCJ6Bo3znXP0O8pCO4qyjPZ2GxO8-cMQlJYG9J7F8_TnM2Qh9CfWqb88jR3YCUTaAYEPwwZMrL920JsSXjnWZdD-p5YQulpcjJWHRrfyRbScFYwSi_A5fPLL7Dr0MirBaVvuK-6d-9YU4XYYhDzJrxidBrqksFReNTyn2s3_ghJC3J3DEKDcIyZXY9GQ",
           "cookie": null
         }
       },
@@ -178,23 +180,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "hdJ4PrORQWi_teiCzOpcdg",
+                  "process_worker_id": "gLL0s_tzSFCCzqZKpC-BlA",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:04.12",
+                  "timestamp": "2022-09-28 09:52.38",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.03489971160888672",
+                  "exec_time": "0.0048465728759765625",
                   "input_size": "205",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "hdJ4PrORQWi_teiCzOpcdg",
+                  "process_worker_id": "gLL0s_tzSFCCzqZKpC-BlA",
                   "parser": "parsers/archive",
                   "step": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:04.12",
+                  "timestamp": "2022-09-28 09:52.38",
                   "level": "INFO"
                 },
                 {
@@ -203,24 +205,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "hdJ4PrORQWi_teiCzOpcdg",
+                  "process_worker_id": "gLL0s_tzSFCCzqZKpC-BlA",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:04.12",
+                  "timestamp": "2022-09-28 09:52.38",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.006978750228881836",
+                  "exec_time": "0.0014107227325439453",
                   "input_size": "205",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "hdJ4PrORQWi_teiCzOpcdg",
+                  "process_worker_id": "gLL0s_tzSFCCzqZKpC-BlA",
                   "parser": "parsers/archive",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:04.12",
+                  "timestamp": "2022-09-28 09:52.38",
                   "level": "INFO"
                 },
                 {
@@ -229,46 +231,46 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "hdJ4PrORQWi_teiCzOpcdg",
+                  "process_worker_id": "gLL0s_tzSFCCzqZKpC-BlA",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:04.12",
+                  "timestamp": "2022-09-28 09:52.38",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0020966529846191406",
+                  "exec_time": "0.0005040168762207031",
                   "input_size": "205",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "hdJ4PrORQWi_teiCzOpcdg",
+                  "process_worker_id": "gLL0s_tzSFCCzqZKpC-BlA",
                   "parser": "parsers/archive",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:04.12",
+                  "timestamp": "2022-09-28 09:52.38",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.00430607795715332",
+                  "exec_time": "0.009896278381347656",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "hdJ4PrORQWi_teiCzOpcdg",
+                  "process_worker_id": "gLL0s_tzSFCCzqZKpC-BlA",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:04.12",
+                  "timestamp": "2022-09-28 09:52.38",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.03902721405029297",
+                  "exec_time": "0.011065483093261719",
                   "event": "entry metadata indexed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "hdJ4PrORQWi_teiCzOpcdg",
+                  "process_worker_id": "gLL0s_tzSFCCzqZKpC-BlA",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:04.12",
+                  "timestamp": "2022-09-28 09:52.38",
                   "level": "INFO"
                 }
               ],
@@ -282,12 +284,12 @@
               },
               "metadata": {
                 "upload_id": "archive_browser_test",
-                "upload_create_time": "2022-09-13T09:04:11.431000+00:00",
+                "upload_create_time": "2022-09-28T07:52:37.858000+00:00",
                 "entry_id": "QoV6GTCH0lT4ArliEfO6ytXa9ihg",
                 "entry_name": "inter-entry.archive.json",
                 "entry_type": "MySection",
-                "entry_hash": "48SMuV92Jos4sCQ0M7eyT1fZdd_-",
-                "entry_create_time": "2022-09-13T09:04:11.774000+00:00",
+                "entry_hash": "srEyCwv0JJL0lJkum8ujQHpwWMoW",
+                "entry_create_time": "2022-09-28T07:52:37.995000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "inter-entry.archive.json",
                 "files": [
@@ -298,9 +300,11 @@
                   "inheriting-schema.archive.yaml",
                   "intra-entry.archive.json",
                   "intra-entry.archive.yaml",
+                  "polymorphy.archive.yaml",
                   "pvd_process.csv",
                   "schema.archive.json",
                   "simple-schema.archive.yaml",
+                  "with-default-values.archive.yaml",
                   "with-problems.archive.yaml",
                   "xrd_measurement.xrdml"
                 ],
@@ -309,9 +313,9 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-09-13T09:04:12.165846+00:00",
+                "last_processing_time": "2022-09-28T07:52:38.104885+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.1.3",
+                "nomad_version": "1.1.4",
                 "nomad_commit": "d0778d6a",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -378,7 +382,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "7100",
+          "content-length": "7188",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -400,7 +404,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwNzc3ODlmNi1jYTI0LTRhZDYtODE5MC1lODU0MWNmNmMyN2YiLCJleHAiOjE2NjMwOTU4MzQsIm5iZiI6MCwiaWF0IjoxNjYzMDU5ODgxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6Ijg0ZmZkM2JkLWVhNGYtNDRhZS05YzM2LWM2NDFmNDc4ODg4MCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.dKxGO8SCzDgkOvzQobpxXFMGCWGSK9tKh8BB9lxIljUzrgmKRxIFp_6e3TVov22Z1Bdj-JeyaLgf2kZOcs2DwbdUXuQU9x66oKhOQSj8RCzWn5nZis2QFJpGBYpQUfl2AqWtGEyGVIi2XHXA4fE7I2GMHKdiv13OW9yiPBxVCU1x06QYnAZXFE2S09R3UuUzalxSbksSbj3MHKZQBVfoNAqhih4_Tcv17cb2tqQWEYf7JzmPbf0wHvNwC2JsnrdUqHcbDdfsN2T_tAI4-FsFGjmb92cm7LxV5-3UmJjtNeXnWrG1RpAob4xEO0fz0kRxVpFH7K0Ni8bHd6CuNukxBQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjMTQ0ODA1NC1mYTZiLTQzZDYtOTk5YS1hOTJlMmE3NDZlZjMiLCJleHAiOjE2NjQzODc1NDcsIm5iZiI6MCwiaWF0IjoxNjY0MzUxNTY1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImEzNTdkMWE0LTg5MzktNDZiNS05Y2I5LTdmODliNDM3MjNjNyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.PQsb1K7U2Swk3vrcoirtNbmfivvDIXYecDoAimRrtyLnKwOZ2sxkDYCl6TLuwDnWWRmByH8KiUnjdQCePA-lBOgkrlSXFotlgUUoFm3uHMANMpPSCwkBUovj4M6y1Dea3ivuqjYru4T4YmVYatK3x3AO1Fl9mwTzwozNRUvWNa5xakgfLxtzgZtLp_8bf8NQBFtzLZqdoDV_TzKSrhNgMdYdSs5BBdk-9RbUj2gMUzVyOM_rHbGqqVSHwpwdLziipijgfdQ4-tLTKZ6uC93hgRhFtoae5kpQPbnO4PzzuWfg_KmRrNO6rR76VElEeCVqHE6Ur25WghE5IdYkBcGF5w",
           "cookie": null
         }
       },
@@ -461,12 +465,12 @@
               },
               "metadata": {
                 "upload_id": "archive_browser_test",
-                "upload_create_time": "2022-09-13T09:04:11.431000+00:00",
+                "upload_create_time": "2022-09-28T07:52:37.858000+00:00",
                 "entry_id": "EdNTmfG89xq927d5Zcq-hMlLWaa2",
                 "entry_name": "A name for the package",
                 "entry_type": "Schema",
-                "entry_hash": "sT2mYMsSu-ZhdVIspAb7gifcMwaj",
-                "entry_create_time": "2022-09-13T09:04:11.853000+00:00",
+                "entry_hash": "vJnaUIz1qI56WChO64J70bgi0kkr",
+                "entry_create_time": "2022-09-28T07:52:38.025000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "schema.archive.json",
                 "files": [
@@ -478,8 +482,10 @@
                   "inter-entry.archive.json",
                   "intra-entry.archive.json",
                   "intra-entry.archive.yaml",
+                  "polymorphy.archive.yaml",
                   "pvd_process.csv",
                   "simple-schema.archive.yaml",
+                  "with-default-values.archive.yaml",
                   "with-problems.archive.yaml",
                   "xrd_measurement.xrdml"
                 ],
@@ -488,9 +494,9 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-09-13T09:04:12.829684+00:00",
+                "last_processing_time": "2022-09-28T07:52:38.328882+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.1.3",
+                "nomad_version": "1.1.4",
                 "nomad_commit": "d0778d6a",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -563,7 +569,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5277",
+          "content-length": "5360",
           "content-type": "application/json",
           "server": "uvicorn"
         }

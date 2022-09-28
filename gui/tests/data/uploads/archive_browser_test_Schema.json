@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5Yjk1YjkwNy00MGFkLTQyZmUtODA0NS02MmI4MDYxOTA5ZDkiLCJleHAiOjE2NjMwOTU3ODEsIm5iZiI6MCwiaWF0IjoxNjYzMDU5ODAyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImU3OTAxZDZmLTMxMGMtNGY0MS1iNjM4LTM3MDUyN2E1NjUwZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.f8QQLWNie6sF0PM2p3tEt45psoKwpwUU2w30rSaYxArIeuzMhwrVcSp-dK4YDkxN7qEKyrk_PBzfu4gvmuEsJVDor83MB2MHpwkUqQI01Nxju6M6T6Dg8bSuWUMUB1GYej3GBSzloJBGiZt5W5Z0H0AGd6nUq8pV2x-Az4hStWKXifPN6lP8UFMe9rZ13RZ2jlwo1wsD64LZH5ROkKeEpyx0BAYfDwPosIXHU0__mvTRm0rATrKOMjSJUjLiR0GrAIy6eb3QMtpFxNxmMRVk5DFf0gA1TRWlr-Y6o0kWG9qX6sL6N63wHKZJgeoK_KoEGGuDHUrho4k9xuatcIjYVA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyOGEwNTg2MC0yYWM1LTQwNTktOGM3NC1mZjVhNzk5NTM1NGYiLCJleHAiOjE2NjQzODc1MTksIm5iZiI6MCwiaWF0IjoxNjY0MzUxNTMzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImVmZmQ2NjRkLTAxM2ItNDg0Yi04YjZjLTRkZjYwOWRhYzkyYiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.OVKCxrhBDPLpjcaVHGSViHWtbHIh08rYtF8d1N8tPjtv3EVQOTh3GhjFFUjz74_wqf2Q6_t0r1iywPfgMKb0DjwwExHrGNMXRUMNYzek6P-iA-mkzTCHzcKylf2cKu-vQxdVfpbnM1t0N484Pr1tv-WFpWiEjEVeH9lg2ngURWJxByS8RrgV_7LqFROfgNz7iYDmT3TNFJyBSBYUDslqk15zbDJ8guzexYRyOOr1Dxtho2lAGGwUUQop3poXltDobsZuS2WnQ4BHobp1qA2WgsEIqW_ZQFHXlIhrIwWqBQFyU6wPbMfOGx3ka04fc78nRvVF6HbzD8IqW7ITIs9rkg",
           "cookie": null
         }
       },
@@ -66,8 +66,8 @@
             ],
             "datasets": [],
             "n_quantities": 45,
-            "nomad_version": "1.1.3",
-            "upload_create_time": "2022-09-13T09:03:17.764000+00:00",
+            "nomad_version": "1.1.4",
+            "upload_create_time": "2022-09-28T07:52:10.069000+00:00",
             "nomad_commit": "d0778d6a",
             "processing_errors": [],
             "results": {
@@ -76,7 +76,7 @@
               }
             },
             "entry_name": "A name for the package",
-            "last_processing_time": "2022-09-13T09:03:18.695000+00:00",
+            "last_processing_time": "2022-09-28T07:52:10.455000+00:00",
             "parser_name": "parsers/archive",
             "calc_id": "EdNTmfG89xq927d5Zcq-hMlLWaa2",
             "published": false,
@@ -119,7 +119,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2022-09-13T09:03:18.098000+00:00",
+            "entry_create_time": "2022-09-28T07:52:10.251000+00:00",
             "with_embargo": false,
             "files": [
               "schema.archive.json",
@@ -130,8 +130,10 @@
               "inter-entry.archive.json",
               "intra-entry.archive.json",
               "intra-entry.archive.yaml",
+              "polymorphy.archive.yaml",
               "pvd_process.csv",
               "simple-schema.archive.yaml",
+              "with-default-values.archive.yaml",
               "with-problems.archive.yaml",
               "xrd_measurement.xrdml"
             ],
@@ -152,7 +154,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "4083",
+          "content-length": "4158",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -170,7 +172,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1NTQzNDYzMi1kYTlhLTQyOGEtYWUwNC0yYmZkMmE1N2ZiMDAiLCJleHAiOjE2NjMwOTU3ODEsIm5iZiI6MCwiaWF0IjoxNjYzMDU5ODAyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImU3OTAxZDZmLTMxMGMtNGY0MS1iNjM4LTM3MDUyN2E1NjUwZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.dZQxh4yU8fxCSv6Tag-FBZYojYtEQQSWp5lIxon6u7g6-fg6B1l2nadr0FJ7nPOuAeRNi7SSpxk-XtKeirXHAYUPWGf0CpPLSEl5ZtSRDgfC0fgNFavoAik2PfxzvrnnO_tLS3Wd-pMt7jLiLs9DX-d3k7Ms5BsZHTLDjp6IMztdY-ljUeKCVzxwGU5Yt2j6OsfqXQTs7SUYqnIA7hTpnjhHNt1Ytjqw-VpjEZhlkifFHD2v2hK6gvsyIlM0nvKvK_CwLs165ToY7T9gj7DkucU7j5pjLUxMI-EECuiO1xuCCrkkfOM7EnyJl4zJ7I0iFk3ypfXOKdiHuE6LnSRfVw",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkYjc2NzRiZi05MTA1LTQ0NWQtOTc5MC1mOTQyZDdjYzk4OGEiLCJleHAiOjE2NjQzODc1MTksIm5iZiI6MCwiaWF0IjoxNjY0MzUxNTMzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImVmZmQ2NjRkLTAxM2ItNDg0Yi04YjZjLTRkZjYwOWRhYzkyYiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.TFbUg9wIOCoOxEkvhVT09hBFSIpUCzvooEkAg1CzdnmfRMPZJwPkb2fJmDL-cH1t3_E6rv1FSE-DyPjXP8sYGSVbviYYh11eG15AU1k0prHgAYMoBKrM6Z72HFoz1mXm1DukfT8z80b3lmaSN6ZE_u6MFfKtkwioyzxVd59c5O1ryX3tB96PjvEjQO4xjx1ulJk01fJXylwx6PL0661oZOMVVx94Vz9D2lvRe4YhoElNscj-FcSr74x8UzfeOHQD5S6zralVjyqam3Z61nKouaY-bhHGw9T5QsnKCd8OvZUa5EiDbcPShcOn6TBt_64xNgxOAALFRbI-XrUGYdV5gw",
           "cookie": null
         }
       },
@@ -189,23 +191,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "dGEGHcO_S92AZw2wUpKvVw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:03.18",
+                  "timestamp": "2022-09-28 09:52.10",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.018758296966552734",
+                  "exec_time": "0.0023620128631591797",
                   "input_size": "705",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "dGEGHcO_S92AZw2wUpKvVw",
                   "parser": "parsers/archive",
                   "step": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:03.18",
+                  "timestamp": "2022-09-28 09:52.10",
                   "level": "INFO"
                 },
                 {
@@ -214,24 +216,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "dGEGHcO_S92AZw2wUpKvVw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:03.18",
+                  "timestamp": "2022-09-28 09:52.10",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0028142929077148438",
+                  "exec_time": "0.0015137195587158203",
                   "input_size": "705",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "dGEGHcO_S92AZw2wUpKvVw",
                   "parser": "parsers/archive",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:03.18",
+                  "timestamp": "2022-09-28 09:52.10",
                   "level": "INFO"
                 },
                 {
@@ -240,57 +242,57 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "dGEGHcO_S92AZw2wUpKvVw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:03.18",
+                  "timestamp": "2022-09-28 09:52.10",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0018281936645507812",
+                  "exec_time": "0.000446319580078125",
                   "input_size": "705",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "dGEGHcO_S92AZw2wUpKvVw",
                   "parser": "parsers/archive",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:03.18",
+                  "timestamp": "2022-09-28 09:52.10",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0021469593048095703",
+                  "exec_time": "0.0027625560760498047",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "dGEGHcO_S92AZw2wUpKvVw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:03.18",
+                  "timestamp": "2022-09-28 09:52.10",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.03715801239013672",
+                  "exec_time": "0.0116119384765625",
                   "event": "entry metadata indexed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "dGEGHcO_S92AZw2wUpKvVw",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:03.18",
+                  "timestamp": "2022-09-28 09:52.10",
                   "level": "INFO"
                 }
               ],
               "metadata": {
                 "upload_id": "archive_browser_test",
-                "upload_create_time": "2022-09-13T09:03:17.764000+00:00",
+                "upload_create_time": "2022-09-28T07:52:10.069000+00:00",
                 "entry_id": "EdNTmfG89xq927d5Zcq-hMlLWaa2",
                 "entry_name": "A name for the package",
                 "entry_type": "Schema",
-                "entry_hash": "sT2mYMsSu-ZhdVIspAb7gifcMwaj",
-                "entry_create_time": "2022-09-13T09:03:18.098000+00:00",
+                "entry_hash": "vJnaUIz1qI56WChO64J70bgi0kkr",
+                "entry_create_time": "2022-09-28T07:52:10.251000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "schema.archive.json",
                 "files": [
@@ -302,8 +304,10 @@
                   "inter-entry.archive.json",
                   "intra-entry.archive.json",
                   "intra-entry.archive.yaml",
+                  "polymorphy.archive.yaml",
                   "pvd_process.csv",
                   "simple-schema.archive.yaml",
+                  "with-default-values.archive.yaml",
                   "with-problems.archive.yaml",
                   "xrd_measurement.xrdml"
                 ],
@@ -312,9 +316,9 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-09-13T09:03:18.695234+00:00",
+                "last_processing_time": "2022-09-28T07:52:10.455451+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.1.3",
+                "nomad_version": "1.1.4",
                 "nomad_commit": "d0778d6a",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -433,7 +437,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "8761",
+          "content-length": "8843",
           "content-type": "application/json",
           "server": "uvicorn"
         }
