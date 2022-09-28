@@ -124,6 +124,10 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
 def assert_normalized(entry_archive: datamodel.EntryArchive):
 
     metadata = entry_archive.metadata
+
+    if metadata.parser_name == 'parsers/nexus':
+        return
+
     results = entry_archive.results
     metadata.apply_archvie_metadata(entry_archive)
     parser_name = metadata.parser_name
