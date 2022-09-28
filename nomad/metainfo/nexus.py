@@ -22,7 +22,7 @@ import re
 import sys
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 from toposort import toposort_flatten
@@ -292,7 +292,7 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Propert
         nx_enum = __get_enumeration(attribute)
         if nx_enum:
             nx_type = nx_enum
-            nx_shape = []
+            nx_shape: List[str] = []
         else:
             nx_type = __NX_TYPES[attribute.get('type', 'NX_CHAR')]  # type: ignore
             has_bound = False
@@ -361,9 +361,9 @@ def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
     dimensions = xml_node.find('nx:dimensions', __XML_NAMESPACES)
     if dimensions is not None:
         for dimension in dimensions.findall('nx:dim', __XML_NAMESPACES):
-            dimension_value: str = dimension.attrib.get('value', '0..*')
+            dimension_value: Union[str, int] = dimension.attrib.get('value', '0..*')
             if dimension_value.isdigit():
-                dimension_value: int = int(dimension_value)
+                dimension_value = int(dimension_value)
             elif dimension_value == 'n':
                 dimension_value = '0..*'
 
