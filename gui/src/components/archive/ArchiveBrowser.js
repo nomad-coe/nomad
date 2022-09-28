@@ -30,9 +30,8 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane, browserContext, ItemChip } from './Browser'
 import { RawFileAdaptor } from './FileBrowser'
 import {
-  AttributeMDef,
-  isEditable, PackageMDef, QuantityMDef, quantityUsesFullStorage, removeSubSection, SectionMDef, SubSectionMDef,
-  useMetainfo, getUrlFromDefinition
+  AttributeMDef, isReference, isEditable, PackageMDef, QuantityMDef, quantityUsesFullStorage,
+  removeSubSection, SectionMDef, SubSectionMDef, useMetainfo, getUrlFromDefinition
 } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
@@ -502,7 +501,7 @@ class SectionAdaptor extends ArchiveAdaptor {
       return subSectionAdaptor
     } else if (property.m_def === QuantityMDef) {
       // References: sections and quantities
-      if (property.type.type_kind === 'reference') {
+      if (property.type.type_kind === 'reference' || property.type.type_kind === 'quantity_reference') {
         let reference = null
         if (property.shape.length === 0) {
           reference = value
@@ -518,8 +517,8 @@ class SectionAdaptor extends ArchiveAdaptor {
           const resolvedUrl = resolveNomadUrl(reference, this.parsedBaseUrl)
           if (resolvedUrl.type === refType.archive) {
             const {archive} = await this.dataStore.getEntryAsync(resolvedUrl.installationUrl, resolvedUrl.entryId, false, '*')
+            const resolvedDef = property.type._referencedDefinition
             const resolvedObj = resolveInternalRef('/' + (resolvedUrl.path || ''), archive)
-            const resolvedDef = property.type._referencedSection
             return this.adaptorFactory(resolvedUrl, resolvedObj, resolvedDef)
           }
           throw new Error('Unhandled reference type')
@@ -590,7 +589,7 @@ class AttributeAdaptor extends ArchiveAdaptor {
 
 function QuantityItemPreview({value, def}) {
   const units = useUnits()
-  if (def.type.type_kind === 'reference') {
+  if (isReference(def)) {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
     </Box>
@@ -940,7 +939,9 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
   const otherProps = (laneWidth ? {minWidth: laneWidth, maxWidth: laneWidth} : undefined)
   return (
     <Content {...otherProps}>
-      <InheritingSections def={def} section={section} lane={lane}/>
+      {sectionIsEditable && sectionIsInEln && (
+        <InheritingSections def={def} section={section} lane={lane}/>
+      )}
       <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions} />
       <Overview section={section} def={def}/>
       {contents}
@@ -1265,8 +1266,8 @@ Attribute.propTypes = ({
 })
 
 function UnresolvedReference({value, def}) {
-  const refTypeName = def?.type?._referencedSection?.name
-  const refTypeQualifiedName = def?.type?._referencedSection?._qualifiedName
+  const refTypeName = def?.type?._referencedDefinition?.name
+  const refTypeQualifiedName = def?.type?._referencedDefinition?._qualifiedName
   const isOk = ['nomad.metainfo.metainfo.User'].includes(refTypeQualifiedName) // expected to not be resolvable
   return <Content>
     <ArchiveTitle def={def} data={value} kindLabel="value" />

@@ -187,7 +187,7 @@ class MetainfoAdaptor extends Adaptor {
 
   async itemAdaptor(key) {
     if (key === '_reference') {
-      return metainfoAdaptorFactory(this.def.type._referencedSection)
+      return metainfoAdaptorFactory(this.def.type._referencedDefinition)
     } else if (key.startsWith('_category:')) {
       const categoryName = key.split(':')[1]
       return metainfoAdaptorFactory(this.def.categories.find(categoryDef => categoryDef.name === categoryName))
