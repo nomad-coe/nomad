@@ -361,13 +361,13 @@ def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
     dimensions = xml_node.find('nx:dimensions', __XML_NAMESPACES)
     if dimensions is not None:
         for dimension in dimensions.findall('nx:dim', __XML_NAMESPACES):
-            dimension_value: Union[str, int] = dimension.attrib.get('value', '0..*')
+            dimension_value: str = dimension.attrib.get('value', '0..*')
             if dimension_value.isdigit():
-                dimension_value = int(dimension_value)
+                shape.append(int(dimension_value))
             elif dimension_value == 'n':
-                dimension_value = '0..*'
-
-            shape.append(dimension_value)
+                shape.append('0..*')
+            else:
+                shape.append(dimension_value)
 
     value_quantity: Quantity = None  # type: ignore
 
