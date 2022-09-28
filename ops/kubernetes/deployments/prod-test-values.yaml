@@ -61,7 +61,7 @@ volumes:
   archiveVersionSuffix: v1
 
 mail:
-  enabled: true
+  enabled: false
   host: "mailrelay.mpcdf.mpg.de"
   port: 25
   from: "webmaster@nomad-coe.eu"
