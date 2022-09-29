@@ -25,8 +25,8 @@ import re
 import sys
 from collections.abc import Iterable as IterableABC
 from functools import reduce
-from typing import Any, Callable as TypingCallable, Dict, Iterable, List, Optional, Set, Tuple, Type, \
-    TypeVar, Union, cast
+from typing import (
+    Any, Callable as TypingCallable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union, cast)
 
 import docstring_parser
 import jmespath
@@ -35,11 +35,11 @@ import pandas as pd
 import pint
 
 from nomad.config import process
-from nomad.metainfo.metainfo_utility import Annotation, DefinitionAnnotation, MEnum, MQuantity, MRegEx, \
-    MSubSectionList, MTypes, ReferenceURL, SectionAnnotation, _delta_symbols, check_dimensionality, \
-    check_unit, convert_to, default_hash, dict_to_named_list, normalize_datetime, resolve_variadic_name, \
-    retrieve_attribute, split_python_definition, to_dict, to_numpy, to_section_def, validate_shape, \
-    validate_url
+from nomad.metainfo.metainfo_utility import (
+    Annotation, DefinitionAnnotation, MEnum, MQuantity, MRegEx, MSubSectionList, MTypes, ReferenceURL,
+    SectionAnnotation, _delta_symbols, check_dimensionality, check_unit, convert_to, default_hash, dict_to_named_list,
+    normalize_datetime, resolve_variadic_name, retrieve_attribute, split_python_definition, to_dict, to_numpy,
+    to_section_def, validate_shape, validate_url)
 from nomad.units import ureg as units
 
 m_package: Optional['Package'] = None

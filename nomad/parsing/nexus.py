@@ -29,8 +29,6 @@ from nomad.parsing import MatchingParser
 from nomad.units import ureg
 from nomad.utils import get_logger
 
-__logger = get_logger(__name__)
-
 
 def _to_group_name(nx_node: ET.Element):
     '''
@@ -111,86 +109,6 @@ def _get_value(hdf_node):
     return val
 
 
-def _populate_data(depth: int, nx_path: list, nx_def: str, hdf_node, current: MSection):
-    '''
-    Populate attributes and fields
-    '''
-
-    if depth < len(nx_path):
-        # it is an attribute of either field or group
-        nx_attr = nx_path[depth]
-        nx_parent: ET.Element = nx_path[depth - 1]
-
-        if isinstance(nx_attr, str):
-            if nx_attr != 'units':
-                # no need to handle units here
-                # as all quantities have flexible units
-                print(nx_attr)
-        else:
-            # get the name of parent (either field or group)
-            # which will be used to set attribute
-            # this is required by the syntax of metainfo mechanism
-            # due to variadic/template quantity names
-            parent_type = nx_parent.get('type').replace('NX', '').upper()
-            parent_name = nx_parent.get('name', parent_type)  # type: ignore
-
-            attr_name = nx_attr.get('name')
-            # by default, we assume it is a 1D array
-            attr_value = hdf_node.attrs[attr_name]
-            if not isinstance(attr_value, str):
-                attr_value = [value for value in attr_value]
-                if len(attr_value) == 1:
-                    attr_value = attr_value[0]
-
-            current = _to_section(attr_name, nx_def, nx_attr, current)
-
-            try:
-                if nx_parent.tag.endswith('group'):
-                    current.m_set_section_attribute(attr_name, attr_value)
-                else:
-                    current.m_set_quantity_attribute(parent_name, attr_name, attr_value)
-            except Exception as e:
-                __logger.warning('Error while setting attribute.', target_name=attr_name, exe_info=str(e))
-    else:
-        # it is a field
-        field = _get_value(hdf_node)
-
-        # need to remove
-        if hdf_node[...].dtype.kind in 'iufc' and isinstance(field, np.ndarray) and field.size > 1:
-            field = np.array([np.mean(field), np.var(field), np.min(field), np.max(field)])
-
-        # get the corresponding field name
-        field_name = nx_path[-1].get('name')
-        metainfo_def = resolve_variadic_name(current.m_def.all_properties, field_name)
-
-        # check if unit is given
-        unit = hdf_node.attrs.get('units', None)
-
-        pint_unit: Optional[ureg.Unit] = None
-
-        if unit:
-            try:
-                if unit != 'counts':
-                    pint_unit = ureg.parse_units(unit)
-                else:
-                    pint_unit = ureg.parse_units('1')
-                field = ureg.Quantity(field, pint_unit)
-            except ValueError:
-                pass
-
-        if metainfo_def.use_full_storage:
-            field = MQuantity.wrap(field, hdf_node.name.split('/')[-1])
-        elif metainfo_def.unit is None and pint_unit is not None:
-            metainfo_def.unit = pint_unit
-
-        # may need to check if the given unit is in the allowable list
-
-        try:
-            current.m_set(metainfo_def, field)
-        except Exception as e:
-            __logger.warning('Error while setting field.', target_name=field_name, exe_info=str(e))
-
-
 class NexusParser(MatchingParser):
     '''
     NexusParser doc
@@ -205,6 +123,86 @@ class NexusParser(MatchingParser):
         )
         self.archive: Optional[EntryArchive] = None
         self.nx_root = None
+        self._logger = None
+
+    def _populate_data(self, depth: int, nx_path: list, nx_def: str, hdf_node, current: MSection):
+        '''
+        Populate attributes and fields
+        '''
+
+        if depth < len(nx_path):
+            # it is an attribute of either field or group
+            nx_attr = nx_path[depth]
+            nx_parent: ET.Element = nx_path[depth - 1]
+
+            if isinstance(nx_attr, str):
+                if nx_attr != 'units':
+                    # no need to handle units here
+                    # as all quantities have flexible units
+                    print(nx_attr)
+            else:
+                # get the name of parent (either field or group)
+                # which will be used to set attribute
+                # this is required by the syntax of metainfo mechanism
+                # due to variadic/template quantity names
+                parent_type = nx_parent.get('type').replace('NX', '').upper()
+                parent_name = nx_parent.get('name', parent_type)  # type: ignore
+
+                attr_name = nx_attr.get('name')
+                # by default, we assume it is a 1D array
+                attr_value = hdf_node.attrs[attr_name]
+                if not isinstance(attr_value, str):
+                    attr_value = [value for value in attr_value]
+                    if len(attr_value) == 1:
+                        attr_value = attr_value[0]
+
+                current = _to_section(attr_name, nx_def, nx_attr, current)
+
+                try:
+                    if nx_parent.tag.endswith('group'):
+                        current.m_set_section_attribute(attr_name, attr_value)
+                    else:
+                        current.m_set_quantity_attribute(parent_name, attr_name, attr_value)
+                except Exception as e:
+                    self._logger.warning('Error while setting attribute.', target_name=attr_name, exe_info=str(e))
+        else:
+            # it is a field
+            field = _get_value(hdf_node)
+
+            # need to remove
+            if hdf_node[...].dtype.kind in 'iufc' and isinstance(field, np.ndarray) and field.size > 1:
+                field = np.array([np.mean(field), np.var(field), np.min(field), np.max(field)])
+
+            # get the corresponding field name
+            field_name = nx_path[-1].get('name')
+            metainfo_def = resolve_variadic_name(current.m_def.all_properties, field_name)
+
+            # check if unit is given
+            unit = hdf_node.attrs.get('units', None)
+
+            pint_unit: Optional[ureg.Unit] = None
+
+            if unit:
+                try:
+                    if unit != 'counts':
+                        pint_unit = ureg.parse_units(unit)
+                    else:
+                        pint_unit = ureg.parse_units('1')
+                    field = ureg.Quantity(field, pint_unit)
+                except ValueError:
+                    pass
+
+            if metainfo_def.use_full_storage:
+                field = MQuantity.wrap(field, hdf_node.name.split('/')[-1])
+            elif metainfo_def.unit is None and pint_unit is not None:
+                metainfo_def.unit = pint_unit
+
+            # may need to check if the given unit is in the allowable list
+
+            try:
+                current.m_set(metainfo_def, field)
+            except Exception as e:
+                self._logger.warning('Error while setting field.', target_name=field_name, exe_info=str(e))
 
     def __nexus_populate(self, params: dict, attr=None):  # pylint: disable=W0613
         '''
@@ -229,12 +227,13 @@ class NexusParser(MatchingParser):
             current = _to_section(name, nx_def, nx_node, current)
             depth += 1
 
-        _populate_data(depth, nx_path, nx_def, hdf_node, current)
+        self._populate_data(depth, nx_path, nx_def, hdf_node, current)
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
         self.archive = archive
         self.archive.m_create(nexus.NeXus)  # type: ignore # pylint: disable=no-member
         self.nx_root = self.archive.nexus
+        self._logger = logger if logger else get_logger(__name__)
 
         nexus_helper = read_nexus.HandleNexus(logger, [mainfile])
         nexus_helper.process_nexus_master_file(self.__nexus_populate)

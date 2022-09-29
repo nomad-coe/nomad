@@ -29,8 +29,8 @@ from toposort import toposort_flatten
 
 from nexusparser.tools import nexus
 from nomad.datamodel import EntryArchive
-from nomad.metainfo import Attribute, Bytes, Datetime, Definition, MEnum, Package, Property, Quantity, Section, \
-    SubSection
+from nomad.metainfo import (
+    Attribute, Bytes, Datetime, Definition, MEnum, Package, Property, Quantity, Section, SubSection)
 from nomad.utils import get_logger, strip
 
 # __URL_REGEXP from
