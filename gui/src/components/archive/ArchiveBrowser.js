@@ -135,7 +135,7 @@ export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
         disabled={!archiveHasChanges || disabled} color="primary"
         onClick={handleClick}
       >
-        <Tooltip title="Save archive">
+        <Tooltip title="Save entry">
           <SaveIcon/>
         </Tooltip>
       </IconButton>
@@ -198,7 +198,7 @@ export const ArchiveDeleteButton = React.memo(function ArchiveDeleteButton(props
   return editable ? (
     <React.Fragment>
       <IconButton color="primary" onClick={handleClick}>
-        <Tooltip title="Delete archive">
+        <Tooltip title="Delete entry">
           <DeleteIcon/>
         </Tooltip>
       </IconButton>
@@ -501,7 +501,7 @@ class SectionAdaptor extends ArchiveAdaptor {
       return subSectionAdaptor
     } else if (property.m_def === QuantityMDef) {
       // References: sections and quantities
-      if (property.type.type_kind === 'reference' || property.type.type_kind === 'quantity_reference') {
+      if (isReference(property)) {
         let reference = null
         if (property.shape.length === 0) {
           reference = value
