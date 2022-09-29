@@ -163,15 +163,27 @@ def parser_metadata():
     print(json.dumps(code_metadata, indent=2, sort_keys=True))
 
 
-def get_gui_config():
+def get_gui_config(proxy: bool = False) -> str:
     '''Create a simplified and strippped version of the nomad.yaml contents that
     is used by the GUI.
+
+    Args:
+        proxy: Whether the build is using a proxy. Affects whether calls to different
+          services use an explicit host+port+path as configured in the config, or whether
+          they simply use a relative path that a proxy can resolve.
     '''
     from nomad import config
 
+    if proxy:
+        appBase = f'{config.services.api_base_path.rstrip("/")}'
+        northBase = f'{config.services.api_base_path.rstrip("/")}/north'
+    else:
+        appBase = f'{"https" if config.services.https else "http"}://{config.services.api_host}:{config.services.api_port}{config.services.api_base_path.rstrip("/")}'
+        northBase = f'{"https" if config.services.https else "http"}://{config.north.hub_host}:{config.north.hub_port}{config.services.api_base_path.rstrip("/")}/north'
+
     return f'''window.nomadEnv = {{
-    'appBase': '{"https" if config.services.https else "http"}://{config.services.api_host}:{config.services.api_port}{config.services.api_base_path.rstrip("/")}',
-    'northBase': '{"https" if config.services.https else "http"}://{config.north.hub_host}:{config.north.hub_port}{config.services.api_base_path.rstrip("/")}/north',
+    'appBase': '{appBase}',
+    'northBase': '{northBase}',
     'keycloakBase': '{config.keycloak.public_server_url}',
     'keycloakRealm': '{config.keycloak.realm_name}',
     'keycloakClientId': '{config.keycloak.client_id}',
@@ -186,7 +198,7 @@ def get_gui_config():
 }};'''
 
 
-@dev.command(help='Generates a JS file that contains a subset of the nomad.yaml config needed by the GUI.')
+@dev.command(help='Generates the GUI development config JS file based on NOMAD config.')
 def gui_config():
     print(get_gui_config())
 

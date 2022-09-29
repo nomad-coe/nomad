@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 import { createTheme } from '@material-ui/core'
+import { urlAbs } from './utils'
 
 window.nomadEnv = window.nomadEnv || {}
 export const version = window.nomadEnv.version
-export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
+export const appBase = urlAbs(window.nomadEnv.appBase.replace(/\/$/, ''))
 export const apiBase = `${appBase}/api`
-export const northBase = window.nomadEnv.northBase
+export const northBase = urlAbs(window.nomadEnv.northBase)
 export const guiBase = process.env.PUBLIC_URL
 export const ui = window.nomadEnv.ui
 export const servicesUploadLimit = window.nomadEnv.servicesUploadLimit
