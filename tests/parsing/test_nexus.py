@@ -19,12 +19,12 @@
 # limitations under the License.
 #
 
-from typing import Any, cast
+from typing import Any
 
 import pytest
 
 from nomad.datamodel import EntryArchive
-from nomad.metainfo import Definition, Section
+from nomad.metainfo import Section
 from nomad.metainfo.nexus import nexus_metainfo_package
 from nomad.parsing.nexus import NexusParser
 from nomad.units import ureg
@@ -56,7 +56,7 @@ def test_assert_nexus_metainfo(path: str, value: Any):
     for name in path.split('.'):
         for content in current.m_contents():
             if getattr(content, 'name', None) == name:
-                current = cast(Definition, content)
+                current = content  # type: ignore
                 break
 
         else:
