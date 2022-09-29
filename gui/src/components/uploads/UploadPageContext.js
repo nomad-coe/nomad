@@ -32,6 +32,7 @@ export function useUploadPageContext() {
 
 const UploadPageContext = React.memo(function UploadPageContext({uploadId, children}) {
   const dataStore = useDataStore()
+  dataStore.resetIfNeeded(uploadId)
   const [uploadStoreObj, setUploadStoreObj] = useState(dataStore.getUpload(apiBase, uploadId))
 
   const onUploadStoreUpdated = useCallback((oldStoreObj, newStoreObj) => {

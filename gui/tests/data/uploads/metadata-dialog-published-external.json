@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJlNTE4NjVmOS04MWRlLTRlZjktYWEwYi02YzI1ZDhjYTVkODAiLCJleHAiOjE2NjMwOTk0NjgsIm5iZiI6MCwiaWF0IjoxNjYzMDYzNDk1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYzk3ZmFjYzItOTJlYy00ZmE2LTgwY2YtYTA4ZWQ5NTcyNTViIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjgyMmI5ZTI3LTU1OWYtNGRiMC04ZmQ2LTZjY2FhMGJhMGU1YyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsibWFuYWdlLXVzZXJzIiwidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IkFkbWluIEFkbWluaXN0cmF0b3IiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJhZG1pbiIsImdpdmVuX25hbWUiOiJBZG1pbiIsImZhbWlseV9uYW1lIjoiQWRtaW5pc3RyYXRvciIsImVtYWlsIjoibWFya3VzLnNjaGVpZGdlbkBwaHlzaWsuaHUtYmVybGluLmRlIn0.GfTHxBLlZMdz1SnMIGErI5xSTqZt99Dyfr0AFNJtqe45WOgFXz-cMspud7Chj5_f6fO5ReWcn2OLtSU7Y3wwZM1bQ16wQyatx-kg5sPUWCpHOMLLhQFx8Io1hC95TuCqh5_sci0b9UJF3hEUA6JKZ5YxZryyfr7k45FwmQEftLQaN7TdqA0T-cInPbwTRo2Sq4Q5CUG48SfSxrt4ajxiONZvyAw0isgL9OslgWNZsW9WaxQJlmZ6mNxXKkyTzAhOhTKvU-s0LXDceDDmqCIdYWbzBoJXPSuRTFKwvS9JKelBE_8k6cJUEwCzrcyaep7XPj9ri1p3Og-7mV9gPNXUDA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJmYmY1NzU3Yy05OGMyLTQ2OGItYTdmMC1kNmU2YmEyMzQ2YzkiLCJleHAiOjE2NjQzMjkwNTgsIm5iZiI6MCwiaWF0IjoxNjY0MjkzMDc2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYzk3ZmFjYzItOTJlYy00ZmE2LTgwY2YtYTA4ZWQ5NTcyNTViIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImVlMzllODUzLTEyYWUtNGI3MS05ZWE3LTYyODgyNzlmMjE1YiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsibWFuYWdlLXVzZXJzIiwidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IkFkbWluIEFkbWluaXN0cmF0b3IiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJhZG1pbiIsImdpdmVuX25hbWUiOiJBZG1pbiIsImZhbWlseV9uYW1lIjoiQWRtaW5pc3RyYXRvciIsImVtYWlsIjoibWFya3VzLnNjaGVpZGdlbkBwaHlzaWsuaHUtYmVybGluLmRlIn0.jQnQ3UCHRm_kCMm-DqHmOsX47k_ZUw9l7kFlWwY2DByn6-HxdskzWJ0mexOG_Q77aFpsXjlh6njqcxr58S-KpoGZGD8tt2e5EwYzKAot1gasTEi_cAK9-LAmmgJbbMpzMz0UBLnzUQGipqyICsdHYBUcjsADdMVvs19st4YR-AIf2epGHypJW9_iMRS-loshXL3ZhfALB1mGmo-3Qu8bmnm2cJLEXmRxdNmcbWrRJ9kKMJVBfS8VYSExvdYBQfdV4Vy187P7JWyiR5PiPb_ecvs6pRpdRmtOs5XFKOXJqEVUt4NN8HCukuwvctn0Y1K7zreiRgQyjCUieqbL9D1pDw",
           "cookie": null
         }
       },
@@ -33,7 +33,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJlNTE4NjVmOS04MWRlLTRlZjktYWEwYi02YzI1ZDhjYTVkODAiLCJleHAiOjE2NjMwOTk0NjgsIm5iZiI6MCwiaWF0IjoxNjYzMDYzNDk1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYzk3ZmFjYzItOTJlYy00ZmE2LTgwY2YtYTA4ZWQ5NTcyNTViIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjgyMmI5ZTI3LTU1OWYtNGRiMC04ZmQ2LTZjY2FhMGJhMGU1YyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsibWFuYWdlLXVzZXJzIiwidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IkFkbWluIEFkbWluaXN0cmF0b3IiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJhZG1pbiIsImdpdmVuX25hbWUiOiJBZG1pbiIsImZhbWlseV9uYW1lIjoiQWRtaW5pc3RyYXRvciIsImVtYWlsIjoibWFya3VzLnNjaGVpZGdlbkBwaHlzaWsuaHUtYmVybGluLmRlIn0.GfTHxBLlZMdz1SnMIGErI5xSTqZt99Dyfr0AFNJtqe45WOgFXz-cMspud7Chj5_f6fO5ReWcn2OLtSU7Y3wwZM1bQ16wQyatx-kg5sPUWCpHOMLLhQFx8Io1hC95TuCqh5_sci0b9UJF3hEUA6JKZ5YxZryyfr7k45FwmQEftLQaN7TdqA0T-cInPbwTRo2Sq4Q5CUG48SfSxrt4ajxiONZvyAw0isgL9OslgWNZsW9WaxQJlmZ6mNxXKkyTzAhOhTKvU-s0LXDceDDmqCIdYWbzBoJXPSuRTFKwvS9JKelBE_8k6cJUEwCzrcyaep7XPj9ri1p3Og-7mV9gPNXUDA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJmYmY1NzU3Yy05OGMyLTQ2OGItYTdmMC1kNmU2YmEyMzQ2YzkiLCJleHAiOjE2NjQzMjkwNTgsIm5iZiI6MCwiaWF0IjoxNjY0MjkzMDc2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYzk3ZmFjYzItOTJlYy00ZmE2LTgwY2YtYTA4ZWQ5NTcyNTViIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImVlMzllODUzLTEyYWUtNGI3MS05ZWE3LTYyODgyNzlmMjE1YiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsibWFuYWdlLXVzZXJzIiwidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IkFkbWluIEFkbWluaXN0cmF0b3IiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJhZG1pbiIsImdpdmVuX25hbWUiOiJBZG1pbiIsImZhbWlseV9uYW1lIjoiQWRtaW5pc3RyYXRvciIsImVtYWlsIjoibWFya3VzLnNjaGVpZGdlbkBwaHlzaWsuaHUtYmVybGluLmRlIn0.jQnQ3UCHRm_kCMm-DqHmOsX47k_ZUw9l7kFlWwY2DByn6-HxdskzWJ0mexOG_Q77aFpsXjlh6njqcxr58S-KpoGZGD8tt2e5EwYzKAot1gasTEi_cAK9-LAmmgJbbMpzMz0UBLnzUQGipqyICsdHYBUcjsADdMVvs19st4YR-AIf2epGHypJW9_iMRS-loshXL3ZhfALB1mGmo-3Qu8bmnm2cJLEXmRxdNmcbWrRJ9kKMJVBfS8VYSExvdYBQfdV4Vy187P7JWyiR5PiPb_ecvs6pRpdRmtOs5XFKOXJqEVUt4NN8HCukuwvctn0Y1K7zreiRgQyjCUieqbL9D1pDw",
           "cookie": null
         }
       },
@@ -57,9 +57,9 @@
             "process_status": "SUCCESS",
             "errors": [],
             "warnings": [],
-            "complete_time": "2022-09-13T10:04:46.984000",
+            "complete_time": "2022-09-27T15:37:51.229000",
             "upload_id": "dft_upload",
-            "upload_create_time": "2022-09-13T10:04:46.983000",
+            "upload_create_time": "2022-09-27T15:37:51.228000",
             "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
             "coauthors": [
               "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
@@ -78,7 +78,7 @@
             ],
             "published": true,
             "published_to": [],
-            "publish_time": "2022-09-13T10:04:46.986000",
+            "publish_time": "2022-09-27T15:37:51.231000",
             "with_embargo": false,
             "embargo_length": 0,
             "license": "CC BY 4.0",
@@ -91,7 +91,7 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk",
-              "entry_create_time": "2022-09-13T10:04:46.987000",
+              "entry_create_time": "2022-09-27T15:37:51.232000",
               "mainfile": "vasp.xml",
               "upload_id": "dft_upload",
               "parser_name": "parsers/vasp",
@@ -104,9 +104,9 @@
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-09-13T10:04:46.983732+00:00",
+                "upload_create_time": "2022-09-27T15:37:51.228830+00:00",
                 "nomad_commit": "bf3c06fa",
-                "publish_time": "2022-09-13T10:04:46.986732+00:00",
+                "publish_time": "2022-09-27T15:37:51.231830+00:00",
                 "results": {
                   "material": {
                     "symmetry": {
@@ -288,7 +288,7 @@
                     "name": "Test Tester"
                   }
                 ],
-                "entry_create_time": "2022-09-13T10:04:46.987732+00:00",
+                "entry_create_time": "2022-09-27T15:37:51.232830+00:00",
                 "with_embargo": false,
                 "domain": "dft",
                 "comment": "Mocked",

@@ -31,7 +31,7 @@ import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, lan
 import { RawFileAdaptor } from './FileBrowser'
 import {
   isEditable, PackageMDef, QuantityMDef, removeSubSection, SectionMDef, SubSectionMDef,
-  useMetainfo, getMetainfoFromDefinition, getUrlFromDefinition
+  useMetainfo, getUrlFromDefinition
 } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
@@ -419,7 +419,6 @@ class ArchiveAdaptor extends Adaptor {
     this.isInEln = isInEln === undefined && def.m_def === SectionMDef ? isEditable(def) : isInEln
     this.obj = obj // The data in the archive tree to display
     this.def = def
-    this.unsubscriberFunctions = []
   }
 
   async initialize(api, dataStore) {
@@ -428,19 +427,6 @@ class ArchiveAdaptor extends Adaptor {
     const {editable} = await dataStore.getEntryAsync(
       this.parsedBaseUrl.installationUrl, this.parsedBaseUrl.entryId, false, '*')
     this.entryIsEditable = editable
-    // Subscribe to the store objects we depend on
-    const cb = () => {}
-    this.unsubscriberFunctions = [
-      dataStore.subscribeToEntry(
-        this.parsedBaseUrl.installationUrl, this.parsedBaseUrl.entryId, cb, false, '*'),
-      dataStore.subscribeToMetainfo(
-        getMetainfoFromDefinition(this.def)._url, cb)
-    ]
-  }
-
-  cleanup() {
-    // Cancel subscriptions
-    this.unsubscriberFunctions?.forEach(fn => { if (fn) fn() })
   }
 
   async adaptorFactory(baseUrl, obj, def) {
