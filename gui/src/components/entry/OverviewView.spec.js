@@ -19,7 +19,7 @@
 import React from 'react'
 import 'regenerator-runtime/runtime'
 import { waitFor, within } from '@testing-library/dom'
-import { render, screen, expectQuantity, readArchive, startAPI, closeAPI, waitForGUI } from '../conftest.spec'
+import { render, screen, expectQuantity, readArchive, startAPI, closeAPI } from '../conftest.spec'
 import { expectPlotButtons } from '../visualization/conftest.spec'
 import {
   expectComposition,
@@ -30,12 +30,15 @@ import OverviewView from './OverviewView'
 import EntryPageContext from './EntryPageContext'
 import {fireEvent} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { act } from 'react-dom/test-utils'
 
 test('correctly renders metadata and all properties', async () => {
   await startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
-  render(<EntryPageContext entryId={'dft_bulk'}>
-    <OverviewView />
-  </EntryPageContext>)
+  await act(async () => render(
+    <EntryPageContext entryId={'dft_bulk'}>
+      <OverviewView />
+    </EntryPageContext>
+  ))
 
   // Wait to load the entry metadata, i.e. wait for some of the text to appear
   await screen.findByText('VASP')
@@ -152,15 +155,17 @@ function expectQuantityToBe(name, label, value, root = screen) {
 
 test('eln overview as a reviewer', async () => {
   await startAPI('tests.states.entry.eln', 'tests/data/entry/eln-reviewer', 'ttester', 'password')
-  render(<EntryPageContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
-    <OverviewView />
-  </EntryPageContext>)
+  await act(async () => render(
+    <EntryPageContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
+      <OverviewView />
+    </EntryPageContext>
+  ))
 
-  await screen.findByText('HotplateAnnealing')
+  await waitFor(() => expect(screen.getByText('HotplateAnnealing')).toBeInTheDocument())
 
   expect(screen.queryByTitle("Replace this entry's mainfile")).not.toBeInTheDocument()
-  expect(screen.queryByTitle('Save archive')).not.toBeInTheDocument()
-  expect(screen.queryByTitle('Delete archive')).not.toBeInTheDocument()
+  expect(screen.queryByTitle('Save entry')).not.toBeInTheDocument()
+  expect(screen.queryByTitle('Delete entry')).not.toBeInTheDocument()
 
   const sectionCards = screen.queryAllByTestId('property-card')
   expect(sectionCards.length).toBe(3)
@@ -226,13 +231,15 @@ test.each([
   ]
 ])('eln overview as %s', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  render(<EntryPageContext entryId={entryId}>
-    <OverviewView />
-  </EntryPageContext>)
+  await act(async () => render(
+    <EntryPageContext entryId={entryId}>
+      <OverviewView />
+    </EntryPageContext>
+  ))
 
-  await screen.findByText('HotplateAnnealing')
+  await waitFor(() => expect(screen.getByText('HotplateAnnealing')).toBeInTheDocument())
 
-  const saveButton = screen.queryByTitle('Save archive').closest('button')
+  const saveButton = screen.queryByTitle('Save entry').closest('button')
   expect(saveButton).toBeInTheDocument()
   expect(saveButton).toBeDisabled()
 
@@ -240,7 +247,7 @@ test.each([
   expect(reUploadButton).toBeInTheDocument()
   expect(reUploadButton).toBeEnabled()
 
-  const deleteButton = screen.queryByTitle('Delete archive').closest('button')
+  const deleteButton = screen.queryByTitle('Delete entry').closest('button')
   expect(deleteButton).toBeInTheDocument()
   expect(deleteButton).toBeEnabled()
 
@@ -279,30 +286,39 @@ test.each([
   ]
 ])('eln concurrent editing', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  const screen1 = await render(<EntryPageContext entryId={entryId}>
-    <OverviewView />
-  </EntryPageContext>)
+  let screen1
+  await act(async () => {
+    screen1 = render(
+      <EntryPageContext entryId={entryId}>
+        <OverviewView />
+      </EntryPageContext>
+    )
+  })
 
-  await screen1.findByText('HotplateAnnealing')
+  await waitFor(() => expect(screen1.getByText('HotplateAnnealing')).toBeInTheDocument())
 
-  const saveButton1 = screen1.queryByTitle('Save archive').closest('button')
+  const saveButton1 = screen1.queryByTitle('Save entry').closest('button')
   expect(saveButton1).toBeInTheDocument()
   expect(saveButton1).toBeDisabled()
 
-  const deleteButton1 = screen1.queryByTitle('Delete archive').closest('button')
+  const deleteButton1 = screen1.queryByTitle('Delete entry').closest('button')
   expect(deleteButton1).toBeEnabled()
-  await userEvent.click(deleteButton1)
-  await waitForGUI()
-  const deleteButtons = screen1.queryAllByText(/delete mainfile/i)
-  const deleteButton = deleteButtons[0]
+  await act(async () => userEvent.click(deleteButton1))
+  await waitFor(() => expect(screen1.getByRole('button', {name: 'Delete mainfile'})).toBeInTheDocument())
+  const deleteMainfileButton = screen1.getByRole('button', {name: 'Delete mainfile'})
 
-  const screen2 = await render(<EntryPageContext entryId={entryId}>
-    <OverviewView />
-  </EntryPageContext>)
+  let screen2
+  await act(async () => {
+    screen2 = render(
+      <EntryPageContext entryId={entryId}>
+        <OverviewView />
+      </EntryPageContext>
+    )
+  })
 
-  await screen2.findByText('HotplateAnnealing')
+  await waitFor(() => expect(screen2.getByText('HotplateAnnealing')).toBeInTheDocument())
 
-  const saveButton2 = screen2.queryByTitle('Save archive').closest('button')
+  const saveButton2 = screen2.queryByTitle('Save entry').closest('button')
   expect(saveButton2).toBeInTheDocument()
   expect(saveButton2).toBeDisabled()
 
@@ -310,15 +326,15 @@ test.each([
   expect(sectionCards2.length).toBe(3)
   const cardSample2 = sectionCards2[0]
   const inputTextField2 = within(cardSample2).queryAllByRole('textbox', { hidden: true })
-  fireEvent.change(inputTextField2[0], { target: { value: 'new text 2' } })
+  await act(async () => fireEvent.change(inputTextField2[0], { target: { value: 'new text 2' } }))
 
-  await userEvent.click(deleteButton)
-  await waitForGUI()
+  await act(async () => userEvent.click(deleteMainfileButton))
 
   expect(saveButton2).toBeEnabled()
-  await userEvent.click(saveButton2)
+  await act(async () => userEvent.click(saveButton2))
+  await waitFor(() => expect(screen.getByText(
+    'The changes cannot be saved. The content has been modified by someone else.'
+  )).toBeInTheDocument())
 
-  await waitForGUI()
-  expect(await screen2.queryByText('The changes cannot be saved. The content has been modified by someone else.')).toBeInTheDocument()
   closeAPI()
 })

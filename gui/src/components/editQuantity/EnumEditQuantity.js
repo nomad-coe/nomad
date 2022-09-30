@@ -22,8 +22,8 @@ import {getFieldProps, TextFieldWithHelp} from './StringEditQuantity'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 
 export const EnumEditQuantity = React.memo((props) => {
-  const {quantityDef, value, onChange, ...otherProps} = props
-  const {suggestions, ...fieldProps} = getFieldProps(quantityDef)
+  const {quantityDef, value, onChange, suggestions, ...otherProps} = props
+  const fieldProps = getFieldProps(quantityDef)
 
   const handleChange = useCallback(value => {
     if (onChange) {
@@ -34,7 +34,7 @@ export const EnumEditQuantity = React.memo((props) => {
   if ((quantityDef.type?.type_kind === 'python' && quantityDef.type?.type_data === 'str') || quantityDef.type === undefined) {
     return <AutoComplete
       freeSolo
-      options={suggestions}
+      options={suggestions || []}
       onChange={(event, value) => handleChange(value)}
       onBlur={(event) => handleChange(event.target.value)}
       ListboxProps={{style: {maxHeight: '150px'}}}

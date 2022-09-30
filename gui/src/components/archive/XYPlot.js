@@ -36,7 +36,8 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
       }
       const value = resolveInternalRef(relativePath, section)
       if (value === undefined || value === null) {
-        throw new XYPlotError(`Could not resolve the data for ${path}`)
+        // there is not data yet
+        return [undefined, undefined]
       }
       const unit = resolvedQuantityDef?.unit
       if (unit) {

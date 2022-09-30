@@ -27,7 +27,7 @@ import { ItemButton } from '../archive/Browser'
 import { getFieldProps } from './StringEditQuantity'
 import { isWaitingForUpdateTestId, refType, resolveNomadUrl } from '../../utils'
 import AddIcon from '@material-ui/icons/AddCircle'
-import { getUrlFromDefinition } from '../archive/metainfo'
+import { getUrlFromDefinition, QuantityMDef } from '../archive/metainfo'
 import { useDataStore } from '../DataStore'
 
 const filter = createFilterOptions()
@@ -35,6 +35,12 @@ const filter = createFilterOptions()
 const useStyles = makeStyles(theme => ({
   icon: {marginRight: theme.spacing(0.5)}
 }))
+
+function getReferencedSection(quantityDef) {
+  const referencedDefinition = quantityDef.type._referencedDefinition
+  const referencedSection = referencedDefinition.m_def === QuantityMDef ? referencedDefinition._section : referencedDefinition
+  return referencedSection
+}
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const styles = useStyles()
@@ -50,7 +56,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const fetchedSuggestionsFor = useRef()
 
   const referencedSectionQualifiedNames = useMemo(() => {
-    return [...dataStore.getAllInheritingSections(quantityDef.type._referencedSection).map(section => section._qualifiedName), quantityDef.type._referencedSection._qualifiedName]
+    const referencedSection = getReferencedSection(quantityDef)
+    return [...dataStore.getAllInheritingSections(referencedSection).map(section => section._qualifiedName), referencedSection._qualifiedName]
   }, [dataStore, quantityDef])
   const fetchSuggestions = useCallback(input => {
     if (fetchedSuggestionsFor.current === input) {
@@ -148,7 +155,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const createNewEntry = useCallback((fileName) => {
     const archive = {
       data: {
-        m_def: getUrlFromDefinition(quantityDef.type._referencedSection, {installationUrl, uploadId}, true)
+        m_def: getUrlFromDefinition(getReferencedSection(quantityDef), {installationUrl, uploadId}, true)
       }
     }
     return new Promise((resolve, reject) => {
@@ -169,7 +176,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
           reject(new Error(error))
         })
     })
-  }, [api, quantityDef.type._referencedSection, installationUrl, uploadId])
+  }, [api, quantityDef, installationUrl, uploadId])
 
   const handleValueChange = useCallback((event, value) => {
     if (value?.createNewEntry) {

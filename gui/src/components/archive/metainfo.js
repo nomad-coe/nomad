@@ -437,8 +437,8 @@ export class Metainfo {
       if (property.m_def === QuantityMDef) {
         property.shape = property.shape || []
         if (isReference(property)) {
-          const referencedSection = await this.resolveDefinition(property.type.type_data)
-          property.type._referencedSection = referencedSection
+          const referencedDefinition = await this.resolveDefinition(property.type.type_data)
+          property.type._referencedDefinition = referencedDefinition
         }
       } else if (property.m_def === SubSectionMDef) {
         property.sub_section = await this.resolveDefinition(property.sub_section)
@@ -600,7 +600,9 @@ export function refPath(ref) {
 }
 
 export function isReference(property) {
-  return property.type && property.type.type_kind === 'reference'
+  return property.type && (
+    property.type.type_kind === 'reference' ||
+    property.type.type_kind === 'quantity_reference')
 }
 
 /**
