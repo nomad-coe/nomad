@@ -1,0 +1,9 @@
+definitions:
+  sections:
+    TestSection:
+      quantities:
+        my_quantity:
+          type: str
+          m_annotations:
+            eln:
+              component: NumberEditComponent

@@ -31,6 +31,7 @@ class ArchiveSection(metainfo.MSection):
     Base class for sections in a NOMAD archive. Provides a framework for custom
     section normalization via the `normalize` function.
     '''
+
     def normalize(self, archive, logger):
         '''
         Is called during entry normalization. If you overwrite this with custom

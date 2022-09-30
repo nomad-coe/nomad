@@ -13,7 +13,6 @@ import {BoolEditQuantity} from '../editQuantity/BoolEditQuantity'
 import FileEditQuantity from '../editQuantity/FileEditQuantity'
 import RichTextEditQuantity from '../editQuantity/RichTextEditQuantity'
 import ReferenceEditQuantity from '../editQuantity/ReferenceEditQuantity'
-import UserEditQuantity from '../editQuantity/UserEditQuantity'
 import AuthorEditQuantity from '../editQuantity/AuthorEditQuantity'
 import { QuantityMDef } from './metainfo'
 import { RadioEnumEditQuantity } from '../editQuantity/RadioEnumEditQuantity'
@@ -31,7 +30,6 @@ const editQuantityComponents = {
   DateTimeEditQuantity: DateTimeEditQuantity,
   RichTextEditQuantity: RichTextEditQuantity,
   ReferenceEditQuantity: ReferenceEditQuantity,
-  UserEditQuantity: UserEditQuantity,
   AuthorEditQuantity: AuthorEditQuantity
 }
 

@@ -30,7 +30,6 @@ import RichTextEditQuantity from './RichTextEditQuantity'
 import ListEditQuantity from './ListEditQuantity'
 import { Code } from '../buttons/SourceDialogButton'
 import { stripIndent } from '../../utils'
-import UserEditQuantity from './UserEditQuantity'
 import AuthorEditQuantity from './AuthorEditQuantity'
 
 const enumValues = [
@@ -97,6 +96,11 @@ export function EditQuantityExamples() {
   const int = {
     type_kind: 'python',
     type_data: 'int'
+  }
+
+  const user = {
+    type_kind: 'User',
+    type_data: 'User'
   }
 
   return <Box margin={3}>
@@ -415,19 +419,19 @@ export function EditQuantityExamples() {
                 <Grid item>
                   <Example
                     code={`
-                    string:
+                    author:
                       type: User
                       m_annotations:
                         eln:
-                          component: UserEditQuantity`}
+                          component: AuthorEditQuantity`}
                   >
-                    <UserEditQuantity {...createDefaultProps('User')} />
+                    <AuthorEditQuantity {...createDefaultProps('User', {type: user})} />
                   </Example>
                 </Grid>
                 <Grid item>
                   <Example
                     code={`
-                    string:
+                    author:
                       type: Author
                       m_annotations:
                         eln:

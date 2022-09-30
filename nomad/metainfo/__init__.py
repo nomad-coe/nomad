@@ -31,6 +31,7 @@ including JSON, (HDF5), mongodb, and elastic search.
 
 
 from .metainfo import (
+    MTypes,
     MSectionBound,
     MSection,
     MCategory,

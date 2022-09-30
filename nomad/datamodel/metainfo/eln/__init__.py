@@ -113,13 +113,8 @@ class ElnActivityBaseSection(ElnBaseSection):
         description='A short consistent handle for the applied method.')
 
     user = Quantity(
-        type=user_reference,
-        description='A user registered in Nomad.',
-        a_eln=dict(component='UserEditQuantity'))
-
-    author = Quantity(
         type=author_reference,
-        description='An author that may or not be a Nomad user.',
+        description='The corresponding user for the activity.',
         a_eln=dict(component='AuthorEditQuantity'))
 
     def normalize(self, archive, logger):

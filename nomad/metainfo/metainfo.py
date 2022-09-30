@@ -51,7 +51,6 @@ SectionDefOrCls = Union['Section', 'SectionProxy', Type['MSection']]
 T = TypeVar('T')
 
 _unset_value = '__UNSET__'
-
 _HASH_OBJ = Type['hashlib._Hash']  # type: ignore
 
 
@@ -400,9 +399,6 @@ class _QuantityType(DataType):
 
         if isinstance(value, Quantity):
             return QuantityReference(value)
-
-        if value.__name__ == 'UserReference' or value.__name__ == 'AuthorReference':
-            return value
 
         if isinstance(value, MProxy):
             value.m_proxy_section = section
@@ -2499,6 +2495,24 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         ''' Evaluates all constraints and shapes of this section and returns a list of errors. '''
         errors: List[str] = []
         warnings: List[str] = []
+        if self.m_parent and hasattr(self.m_parent, 'all_base_sections'):
+            for base_sections in self.m_parent.all_base_sections:
+                for constraint_name in base_sections.constraints:
+                    constraint = getattr(base_sections.section_cls, constraint_name, None)
+                    if constraint is None:
+                        raise MetainfoError(
+                            f'Could not find implementation for constraint {constraint_name} of section {self.m_def}.')
+                    try:
+                        constraint(self)
+                    except AssertionError as e:
+                        error_str = str(e).strip()
+                        if error_str == '':
+                            error_str = f'Constraint {constraint_name} violated.'
+                        if getattr(constraint, 'm_warning', False):
+                            warnings.append(error_str)
+                        else:
+                            errors.append(error_str)
+
         for constraint_name in self.m_def.constraints:
             constraint = getattr(self, constraint_name, None)
             if constraint is None:
@@ -2773,6 +2787,12 @@ class Definition(MSection):
         class after the class was created. If metainfo definitions are created without
         a class context, this method must be called manually on all definitions.
         '''
+
+        # for base_section in self.all_base_sections:
+        #     for constraint in base_section.constraints:
+        #         constraints.add(constraint)
+        #     for event_handler in base_section.event_handlers:
+        #         event_handlers.add(event_handler)
 
         # initialize definition annotations
         for annotation in self.m_get_annotations(DefinitionAnnotation, as_list=True):
@@ -3180,6 +3200,14 @@ class Quantity(Property):
         if len(self.shape) > 1:
             assert self.type in MTypes.numpy, \
                 f'Higher dimensional quantities ({self}) need a dtype and will be treated as numpy arrays.'
+
+    @constraint
+    def annotations_are_valid(self):
+        # TODO this should be replaced with a proper mechanism for defining and
+        # validating annotation types
+        if 'eln' in self.m_annotations:
+            from nomad.datamodel.metainfo.eln.annotations import validate_eln_quantity_annotations
+            validate_eln_quantity_annotations(self)
 
     def _hash_seed(self) -> str:
         '''
@@ -3702,57 +3730,6 @@ class Section(Definition):
                     f'All names (incl. aliases) in a section must be unique. ' \
                     f'Alias {alias} of {definition} in {definition.m_parent} already exists in {self}.'
                 names.add(alias)
-
-    @constraint
-    def compatible_eln_annotation(self):
-        def assert_component(component_name, quantity_name, quantity_type, accepted_components):
-            assert component_name in accepted_components, \
-                f'The component `{component_name}` is not compatible with the quantity `{quantity_name}` ' \
-                f'of the type `{quantity_type}`. Accepted components: {", ".join(accepted_components)}.'
-
-        for definition in itertools.chain(self.quantities, self.sub_sections):
-            if not definition.m_annotations or 'eln' not in definition.m_annotations or not \
-                    definition.m_annotations['eln'] or 'component' not in definition.m_annotations['eln']:
-                continue
-            component = definition.m_annotations['eln']['component']
-            if not component:
-                continue
-            if isinstance(definition.type, type):
-                if definition.type.__name__ == 'str':
-                    assert_component(
-                        component, definition.name, definition.type.__name__, MTypes.eln_component['str'])
-                elif definition.type.__name__ == 'bool':
-                    assert_component(
-                        component, definition.name, definition.type.__name__, MTypes.eln_component['bool'])
-                elif definition.type in MTypes.num_python:
-                    assert_component(
-                        component, definition.name, definition.type.__name__, MTypes.eln_component['number'])
-                elif definition.type in MTypes.num_numpy:
-                    assert_component(
-                        component, definition.name, f'np.{definition.type.__name__}', MTypes.eln_component['number'])
-                elif definition.type.__name__ == 'User':
-                    assert_component(
-                        component, definition.name, definition.type.__name__, MTypes.eln_component['user'])
-                elif definition.type.__name__ == 'Author':
-                    assert_component(
-                        component, definition.name, definition.type.__name__, MTypes.eln_component['author'])
-            elif isinstance(definition.type, _Datetime):
-                assert_component(
-                    component, definition.name, type(definition.type).__name__, MTypes.eln_component['datetime'])
-            elif isinstance(definition.type, MEnum):
-                assert_component(
-                    component, definition.name, type(definition.type).__name__, MTypes.eln_component['enum'])
-            elif isinstance(definition.type, Reference):
-                target_class = definition.type.target_section_def.section_cls
-                if target_class.__name__ == 'User':
-                    assert_component(
-                        component, definition.name, target_class.__name__, MTypes.eln_component['user'])
-                elif target_class.__name__ == 'Author':
-                    assert_component(
-                        component, definition.name, target_class.__name__, MTypes.eln_component['author'])
-                else:
-                    assert_component(
-                        component, definition.name, type(definition.type).__name__, MTypes.eln_component['reference'])
 
     @constraint
     def resolved_base_sections(self):
