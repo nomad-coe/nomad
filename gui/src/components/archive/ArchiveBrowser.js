@@ -30,7 +30,8 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane, browserContext, ItemChip } from './Browser'
 import { RawFileAdaptor } from './FileBrowser'
 import {
-  isEditable, PackageMDef, QuantityMDef, removeSubSection, SectionMDef, SubSectionMDef,
+  AttributeMDef,
+  isEditable, PackageMDef, QuantityMDef, quantityUsesFullStorage, removeSubSection, SectionMDef, SubSectionMDef,
   useMetainfo, getUrlFromDefinition
 } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
@@ -457,6 +458,10 @@ class ArchiveAdaptor extends Adaptor {
       return new QuantityAdaptor(baseUrl, obj, def)
     }
 
+    if (def.m_def === AttributeMDef) {
+      return new AttributeAdaptor(baseUrl, obj, def)
+    }
+
     throw new Error('not implemented')
   }
 
@@ -472,8 +477,11 @@ class ArchiveAdaptor extends Adaptor {
 class SectionAdaptor extends ArchiveAdaptor {
   async itemAdaptor(key) {
     const [name, index] = key.split(':')
-    const property = this.def._properties[name]
-    const value = this.obj[name] || property?.default
+    const property = this.def._properties[name] || (name === 'm_attributes' && this.def.attributes.find(attr => attr.name === index))
+    let value = this.obj[name] || property?.default
+    if (property.m_def === QuantityMDef && quantityUsesFullStorage(property)) {
+      value = value[index]
+    }
     if (!property) {
       return super.itemAdaptor(key)
     } else if (property.m_def === SubSectionMDef) {
@@ -532,6 +540,8 @@ class SectionAdaptor extends ArchiveAdaptor {
         }
       }
       return this.adaptorFactory(this.parsedBaseUrl, value, property)
+    } else if (property.m_def === AttributeMDef) {
+      return this.adaptorFactory(this.parsedBaseUrl, this.obj?.m_attributes[index], property)
     } else {
       throw new Error('Unknown metainfo meta definition')
     }
@@ -553,8 +563,28 @@ class UnresolvedReferenceAdaptor extends ArchiveAdaptor {
 }
 
 class QuantityAdaptor extends ArchiveAdaptor {
+  async itemAdaptor(key) {
+    const attribute = this.def?.attributes?.find(attr => attr.name === key)
+    if (attribute) {
+      const value = this.obj?.m_attributes?.[key]
+      return await this.adaptorFactory(this.parsedBaseUrl, value, attribute)
+    }
+
+    return super.itemAdaptor(key)
+  }
+
   render() {
-    return <Quantity value={this.obj} def={this.def} />
+    if (quantityUsesFullStorage(this.def)) {
+      return <FullStorageQuantity value={this.obj} def={this.def} />
+    } else {
+      return <Quantity value={this.obj} def={this.def} />
+    }
+  }
+}
+
+class AttributeAdaptor extends ArchiveAdaptor {
+  render() {
+    return <Attribute value={this.obj} def={this.def}/>
   }
 }
 
@@ -572,22 +602,26 @@ function QuantityItemPreview({value, def}) {
   }
   if (def.shape.length > 0) {
     const dimensions = []
-    let current = value
-    for (let i = 0; i < def.shape.length; i++) {
-      dimensions.push(current.length)
-      current = current[0]
-    }
-    let typeLabel
-    if (def.type.type_kind === 'python') {
-      typeLabel = 'list'
-    } else {
-      if (dimensions.length === 1) {
-        typeLabel = 'vector'
-      } else if (dimensions.length === 2) {
-        typeLabel = 'matrix'
-      } else {
-        typeLabel = 'tensor'
+    let typeLabel = 'unknown'
+    try {
+      let current = value
+      for (let i = 0; i < def.shape.length; i++) {
+        dimensions.push(current.length)
+        current = current[0]
       }
+      if (def.type.type_kind === 'python') {
+        typeLabel = 'list'
+      } else {
+        if (dimensions.length === 1) {
+          typeLabel = 'vector'
+        } else if (dimensions.length === 2) {
+          typeLabel = 'matrix'
+        } else {
+          typeLabel = 'tensor'
+        }
+      }
+    } catch (e) {
+      console.error('Quantity shape did not fit quantity value.', e)
     }
     return <Box component="span" whiteSpace="nowrap" fontStyle="italic">
       <Typography component="span">
@@ -617,19 +651,24 @@ QuantityItemPreview.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
-const QuantityValue = React.memo(function QuantityValue({value, def}) {
+const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
   const units = useUnits()
 
   const getRenderValue = useCallback(value => {
     let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? formatTimestamp(value) : value)
     let finalUnit
     if (def.unit) {
-      const a = new Q(finalValue, def.unit).toSystem(units)
-      finalValue = a.value()
-      finalUnit = a.label()
+      const systemUnitQ = new Q(finalValue, def.unit).toSystem(units)
+      finalValue = systemUnitQ.value()
+      finalUnit = systemUnitQ.label()
+      if (more.unit) {
+        const customUnitQ = systemUnitQ.to(more.unit)
+        finalValue = customUnitQ.value()
+        finalUnit = customUnitQ.label()
+      }
     }
     return [finalValue, finalUnit]
-  }, [def, units])
+  }, [def, more, units])
 
   const isMathValue = def.type.type_kind === 'numpy'
   if (isMathValue) {
@@ -673,7 +712,8 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
 })
 QuantityValue.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired
+  def: PropTypes.object.isRequired,
+  unit: PropTypes.string
 })
 
 const InheritingSections = React.memo(function InheritingSections({def, section, lane}) {
@@ -783,20 +823,15 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
     </Grid>
   }, [navEntryId, setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged, section])
 
-  const renderQuantity = useCallback(quantityDef => {
-    const key = quantityDef.name
-    const value = section[key] || quantityDef.default
+  const renderQuantityItem = useCallback((key, quantityName, quantityDef, value, disabled) => {
+    const itemKey = quantityName ? `${key}:${quantityName}` : key
     const isDefault = value && !section[key]
-    const disabled = value === undefined
-    if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
-      return <ReferenceValuesList key={key} quantityDef={quantityDef} />
-    }
     return (
-      <Item key={key} itemKey={key} disabled={disabled}>
+      <Item key={itemKey} itemKey={itemKey} disabled={disabled}>
         <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
           <Typography component="span">
             <Box fontWeight="bold" component="span">
-              {quantityDef.name}
+              {quantityName || quantityDef.name}
             </Box>
           </Typography>{!disabled &&
             <span>&nbsp;=&nbsp;
@@ -811,6 +846,25 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
       </Item>
     )
   }, [section])
+
+  const renderQuantity = useCallback(quantityDef => {
+    const key = quantityDef.name
+    const value = section[key] || quantityDef.default
+    const disabled = value === undefined
+    if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
+      return <ReferenceValuesList key={key} quantityDef={quantityDef} />
+    }
+    if (quantityUsesFullStorage(quantityDef)) {
+      const storage = section[quantityDef.name] || {}
+      return <React.Fragment key={key}>
+        {Object.keys(storage).map(quantityName =>
+          renderQuantityItem(key, quantityName, quantityDef, storage[quantityName]?.m_value, disabled)
+        )}
+      </React.Fragment>
+    } else {
+      return renderQuantityItem(key, null, quantityDef, value, disabled)
+    }
+  }, [section, renderQuantityItem])
 
   if (!section) {
     console.error('section is not available')
@@ -863,6 +917,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
       {def.m_annotations?.plot && <SectionPlots sectionDef={def} section={section}/>}
     </React.Fragment>
   } else {
+    const attributes = section?.m_attributes || {}
     contents = <React.Fragment>
       {subSectionCompartment}
       <Compartment title="quantities">
@@ -872,6 +927,11 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
           .map(renderQuantity)
         }
       </Compartment>
+      {Object.keys(attributes).length > 0 && <Compartment title="attributes">
+        {Object.keys(attributes).map(key => (
+          <Item key={key} itemKey={`m_attributes:${key}`}>{key}</Item>
+        ))}
+      </Compartment>}
       {def.m_annotations?.plot && <SectionPlots sectionDef={def} section={section}/>}
     </React.Fragment>
   }
@@ -908,7 +968,12 @@ function SubSection({subSectionDef, section, editable}) {
         sectionDef._properties[key] && sectionDef._properties[key].m_def === QuantityMDef
       ))
     }
-    const labelQuantity = itemLabelKey && sectionDef._properties[itemLabelKey]
+    let labelQuantity = itemLabelKey && sectionDef._properties[itemLabelKey]
+    if (labelQuantity && quantityUsesFullStorage(labelQuantity)) {
+      // We do not yet support label quantities that use full storage
+      labelQuantity = undefined
+      itemLabelKey = undefined
+    }
     const getItemLabel = item => {
       if (labelQuantity) {
         const value = item[itemLabelKey]
@@ -1132,7 +1197,22 @@ SectionPlots.propTypes = {
   section: PropTypes.object
 }
 
-function Quantity({value, def}) {
+function FullStorageQuantity({value, def}) {
+  const attributes = value.m_attributes || {}
+  return <Quantity value={value.m_value} def={def} unit={value.m_unit}>
+    {Object.keys(attributes).length > 0 && <Compartment title="attributes">
+      {Object.keys(attributes).map(key => (
+        <Item key={key} itemKey={key}>{key}</Item>
+      ))}
+    </Compartment>}
+  </Quantity>
+}
+FullStorageQuantity.propTypes = ({
+  value: PropTypes.any,
+  def: PropTypes.object.isRequired
+})
+
+function Quantity({value, def, unit, children}) {
   const {prev} = useLane()
   return <Content>
     <ArchiveTitle def={def} data={value} kindLabel="value" />
@@ -1150,12 +1230,36 @@ function Quantity({value, def}) {
       <QuantityValue
         value={value}
         def={def}
+        unit={unit}
+      />
+    </Compartment>
+    {children}
+    <Meta def={def} />
+  </Content>
+}
+Quantity.propTypes = ({
+  value: PropTypes.any,
+  def: PropTypes.object.isRequired,
+  unit: PropTypes.string,
+  children: PropTypes.oneOfType([
+      PropTypes.arrayOf(PropTypes.node),
+      PropTypes.node
+  ])
+})
+
+function Attribute({value, def}) {
+  return <Content>
+    <ArchiveTitle def={def} data={value} kindLabel="attribute" />
+    <Compartment title="value">
+      <QuantityValue
+        value={value}
+        def={def}
       />
     </Compartment>
     <Meta def={def} />
   </Content>
 }
-Quantity.propTypes = ({
+Attribute.propTypes = ({
   value: PropTypes.any,
   def: PropTypes.object.isRequired
 })

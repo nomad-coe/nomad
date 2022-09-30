@@ -29,7 +29,7 @@ from nomad.datamodel.context import Context, ClientContext
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 from .tabular import TabularDataParser
-from nexusparser.parser import NexusParser
+from .nexus import NexusParser
 
 
 try:
@@ -642,7 +642,10 @@ for parser in parsers:
             code_name != 'currupted mainfile' and \
             code_name != 'Template':
         code_names.append(code_name)
-        code_metadata[code_name] = parser.metadata.dict()
+        if parser.metadata:
+            code_metadata[code_name] = parser.metadata.dict()
+        else:
+            code_metadata[code_name] = {}
 code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
 results.Simulation.program_name.a_elasticsearch[0].values = code_names + [
     config.services.unavailable_value, config.services.not_processed_value]

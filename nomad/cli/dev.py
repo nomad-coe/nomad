@@ -86,7 +86,7 @@ def _all_metainfo_packages():
     entry_type.create_mapping(EntryArchive.m_def)
 
     # TODO this is otherwise not imported and will add nexus to the Package.registry
-    from nexusparser.metainfo import nexus  # pylint: disable=unused-import
+    from nomad.metainfo import nexus  # pylint: disable=unused-import
 
     # TODO we call __init_metainfo__() for all packages where this has been forgotten
     # by the package author. Ideally this would not be necessary and we fix the

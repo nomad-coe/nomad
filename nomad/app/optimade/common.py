@@ -23,8 +23,7 @@ from nomad.metainfo.metainfo import (
     Reference,
     Datetime,
     MEnum,
-    _types_int,
-    _types_float
+    MTypes
 )
 from nomad.metainfo.elasticsearch_extension import SearchQuantity, entry_type
 
@@ -42,9 +41,9 @@ def create_provider_field(name, definition):
         type = 'boolean'
     elif definition.type == Datetime:
         type = 'timestamp'
-    elif definition.type in _types_float:
+    elif definition.type in MTypes.float:
         type = 'float'
-    elif definition.type in _types_int:
+    elif definition.type in MTypes.int:
         type = 'integer'
     else:
         raise NotImplementedError(

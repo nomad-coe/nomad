@@ -31,8 +31,7 @@ from nomad.metainfo.metainfo import (
     Capitalized,
     Bytes,
     URL,
-    _types_float,
-    _types_int,
+    MTypes
 )
 
 
@@ -107,11 +106,14 @@ def test_normalization_string(def_type, orig_value, normalized_value):
 
 @pytest.mark.parametrize(
     'def_type, unit, shape, input, output, valid',
-    [pytest.param(x, None, [], 1, 1, True, id=f'0D type without unit: {x.__name__}') for x in _types_int]
-    + [pytest.param(x, None, [], 1.0, 1.0, True, id=f'0D type without unit: {x.__name__}') for x in _types_float]
-    + [pytest.param(x, 'm', [], 100 * units('cm'), 1 * units('m'), True, id=f'0D type with unit: {x.__name__}') for x in _types_int - {int}]
-    + [pytest.param(int, 'm', [], 100 * units('m'), 100 * units('m'), False, id="precision loss: 0D int to int with unit")]
-    + [pytest.param(x, 'm', [], 100.0 * units('cm'), 1.0 * units('m'), True, id=f'0D type with unit: {x.__name__}') for x in _types_float]
+    [pytest.param(x, None, [], 1, 1, True, id=f'0D type without unit: {x.__name__}') for x in MTypes.int]
+    + [pytest.param(x, None, [], 1.0, 1.0, True, id=f'0D type without unit: {x.__name__}') for x in MTypes.float]
+    + [pytest.param(x, 'm', [], 100 * units('cm'), 1 * units('m'), True, id=f'0D type with unit: {x.__name__}') for x in
+       MTypes.int - {int}]
+    + [pytest.param(int, 'm', [], 100 * units('m'), 100 * units('m'), False,
+                    id="precision loss: 0D int to int with unit")]
+    + [pytest.param(x, 'm', [], 100.0 * units('cm'), 1.0 * units('m'), True, id=f'0D type with unit: {x.__name__}') for
+       x in MTypes.float]
 )
 def test_normalization_number(def_type, unit, shape, input, output, valid):
     '''Numeric quantities with a unit should always return a full pint.Quantity

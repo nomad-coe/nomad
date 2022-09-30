@@ -146,6 +146,11 @@ export const SectionMDef = 'nomad.metainfo.metainfo.Section'
 export const QuantityMDef = 'nomad.metainfo.metainfo.Quantity'
 export const SubSectionMDef = 'nomad.metainfo.metainfo.SubSection'
 export const CategoryMDef = 'nomad.metainfo.metainfo.Category'
+export const AttributeMDef = 'nomad.metainfo.metainfo.Attribute'
+
+export function quantityUsesFullStorage(def) {
+  return def.repeats || def.variable || def.attributes?.length
+}
 
 /**
  * Represents and manages schema data.
@@ -353,23 +358,30 @@ export class Metainfo {
 
   async _getAllProperties(sectionDef) {
     const results = {}
-    function addProperties(sectionDef) {
-      sectionDef.quantities.forEach(
-        property => {
-          property.m_def = QuantityMDef
-          results[property.name] = property
+    function createAddProperties(inherited) {
+      return (sectionDef) => {
+        function createAddProperty(m_def) {
+          return (property) => {
+            const propertyToAdd = inherited ? {} : property
+            if (inherited) {
+              Object.assign(propertyToAdd, property)
+              propertyToAdd._inherited = true
+            } else {
+              if (results[property.name]) {
+                propertyToAdd._overwritten = true
+              }
+            }
+            property.m_def = m_def
+            results[property.name] = propertyToAdd
+          }
         }
-      )
-      sectionDef.sub_sections.forEach(
-        property => {
-          property.m_def = SubSectionMDef
-          results[property.name] = property
-        }
-      )
+        sectionDef.quantities.forEach(createAddProperty(QuantityMDef))
+        sectionDef.sub_sections.forEach(createAddProperty(SubSectionMDef))
+      }
     }
     sectionDef = await this._initSection(sectionDef)
-    sectionDef._allBaseSections.forEach(addProperties)
-    addProperties(sectionDef)
+    sectionDef._allBaseSections.forEach(createAddProperties(true))
+    createAddProperties(false)(sectionDef)
     return Object.keys(results).map(key => results[key])
   }
 
@@ -417,6 +429,10 @@ export class Metainfo {
       property._parentIndex = index
       property._qualifiedName = `${sectionDef._qualifiedName}.${property.name}`
       property._package = pkg
+      property._parent = sectionDef
+      for (const attribute of (property?.attributes || [])) {
+        attribute._parent = property
+      }
       await this._addDef(property)
       if (property.m_def === QuantityMDef) {
         property.shape = property.shape || []
@@ -432,6 +448,9 @@ export class Metainfo {
         subSectionsSectionDef._parentSubSections.push(property)
         property._section = sectionDef
       }
+    }
+    for (const attribute of (sectionDef?.attributes || [])) {
+      attribute._parent = sectionDef
     }
     for (const def of sectionDef.quantities) {
       await addNewProperty(def, 'quantities', index)
