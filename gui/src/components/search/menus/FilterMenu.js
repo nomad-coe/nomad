@@ -617,6 +617,7 @@ const useFilterSubMenuStyles = makeStyles(theme => ({
 
 export const FilterSubMenu = React.memo(({
   id,
+  label,
   size,
   actions,
   children
@@ -631,7 +632,7 @@ export const FilterSubMenu = React.memo(({
   }, [size, visible, onSizeChange])
 
   return <div className={clsx(styles.root, !visible && styles.hidden)}>
-    <FilterMenuHeader title={selected} actions={actions}/>
+    <FilterMenuHeader title={label} actions={actions}/>
     <div className={styles.content}>
       <Scrollable>
         {children}
@@ -641,6 +642,7 @@ export const FilterSubMenu = React.memo(({
 })
 FilterSubMenu.propTypes = {
   id: PropTypes.string,
+  label: PropTypes.string,
   size: PropTypes.oneOf(['small', 'medium', 'large']),
   actions: PropTypes.node,
   children: PropTypes.node
