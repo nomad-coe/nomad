@@ -71,6 +71,13 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi):
     integrationtests(_create_auth(ctx), skip_parsers, skip_publish, skip_doi)
 
 
+@client.command(help='Metainfo compatibility tests against data in a NOMAD installation.')
+@click.pass_context
+def datatests(ctx):
+    from .datatests import datatests
+    datatests(_create_auth(ctx))
+
+
 @client.command(
     help='Upload files to nomad. The given path can be a single file or a directory. '
     'All .zip files in a directory will be uploaded.')

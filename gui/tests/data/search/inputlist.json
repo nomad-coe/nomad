@@ -86,7 +86,7 @@
                   },
                   {
                     "count": 0,
-                    "value": "AFlow"
+                    "value": "AFLOW"
                   },
                   {
                     "count": 0,
@@ -110,10 +110,6 @@
                   },
                   {
                     "count": 0,
-                    "value": "AtomistixToolKit"
-                  },
-                  {
-                    "count": 0,
                     "value": "BigDFT"
                   },
                   {
@@ -122,7 +118,7 @@
                   },
                   {
                     "count": 0,
-                    "value": "Charmm"
+                    "value": "CHARMM"
                   },
                   {
                     "count": 0,
@@ -134,7 +130,7 @@
                   },
                   {
                     "count": 0,
-                    "value": "Crystal"
+                    "value": "CRYSTAL"
                   },
                   {
                     "count": 0,
@@ -150,11 +146,15 @@
                   },
                   {
                     "count": 0,
-                    "value": "elastic"
+                    "value": "EELSDB"
                   },
                   {
                     "count": 0,
-                    "value": "elk"
+                    "value": "ElaStic"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Elk"
                   },
                   {
                     "count": 0,
@@ -166,11 +166,11 @@
                   },
                   {
                     "count": 0,
-                    "value": "fleur"
+                    "value": "FLEUR"
                   },
                   {
                     "count": 0,
-                    "value": "fplo"
+                    "value": "FPLO"
                   },
                   {
                     "count": 0,
@@ -186,15 +186,15 @@
                   },
                   {
                     "count": 0,
-                    "value": "Gromacs"
+                    "value": "GROMACS"
                   },
                   {
                     "count": 0,
-                    "value": "Gromos"
+                    "value": "GROMOS"
                   },
                   {
                     "count": 0,
-                    "value": "gulp"
+                    "value": "GULP"
                   },
                   {
                     "count": 0,
@@ -210,11 +210,11 @@
                   },
                   {
                     "count": 0,
-                    "value": "MOF Structures"
+                    "value": "MOFStructures"
                   },
                   {
                     "count": 0,
-                    "value": "MOLCAS"
+                    "value": "Molcas"
                   },
                   {
                     "count": 0,
@@ -222,11 +222,11 @@
                   },
                   {
                     "count": 0,
-                    "value": "Namd"
+                    "value": "NAMD"
                   },
                   {
                     "count": 0,
-                    "value": "NEXUS"
+                    "value": "NeXus"
                   },
                   {
                     "count": 0,
@@ -254,7 +254,7 @@
                   },
                   {
                     "count": 0,
-                    "value": "Phonopy"
+                    "value": "phonopy"
                   },
                   {
                     "count": 0,
@@ -262,31 +262,31 @@
                   },
                   {
                     "count": 0,
-                    "value": "qball"
+                    "value": "Qball"
                   },
                   {
                     "count": 0,
-                    "value": "qbox"
+                    "value": "Qbox"
                   },
                   {
                     "count": 0,
-                    "value": "Quantum Espresso"
+                    "value": "QuantumATK"
                   },
                   {
                     "count": 0,
-                    "value": "Siesta"
+                    "value": "QuantumESPRESSO"
                   },
                   {
                     "count": 0,
-                    "value": "tabular data"
+                    "value": "SIESTA"
                   },
                   {
                     "count": 0,
-                    "value": "TINKER"
+                    "value": "Tinker"
                   },
                   {
                     "count": 0,
-                    "value": "turbomole"
+                    "value": "TURBOMOLE"
                   },
                   {
                     "count": 0,
@@ -312,7 +312,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5255",
+          "content-length": "5241",
           "content-type": "application/json",
           "server": "uvicorn"
         }

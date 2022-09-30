@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJmM2E5ZTVlOS0xNGU0LTRjN2MtYTU1NS0wZDE5MzI4OTU4NDIiLCJleHAiOjE2NjMwOTU3MzIsIm5iZiI6MCwiaWF0IjoxNjYzMDU5NzUyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjFkOGIxYjZiLWVhYTYtNDQzYy05MDhhLWI1MmZhN2JiMmQzOCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.HSI2VHGScoDwIARkJh7vg8uYmAZ-EPAhEMqoqnZfikH5USDsS2_e-SZqx4m_xiNb_sapfXxmiuUhSJmksaT_-Z7AxqtN9Tng3ScHrMnTHWch2XQs1qiJIeifvyM8z6v0W2o20yuan3wNFpLWRpj8dXB_69EtpxEGyIMSmWLeUaw6IlP4TYFE4HQU8SUfUyxwfP8f_qC_3i9pdpplLjfh228s7Hb4LXsHy_EBJjXJYZBph4IPdLudLx-qnYu6LD_H4TYJMr6oXgfq8c1wrW4YHeRqhNrIWwrTqhraLGZZQXYOrt8UIx6CxdIC5Vf6edpnXYld6SIkCgwY5kRJ7c9oFA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5MzBkNzZlNS0zZDc3LTQ2ZjAtYTE2Ny1kMWM3YjhkNDNjODEiLCJleHAiOjE2NjQzODc0OTIsIm5iZiI6MCwiaWF0IjoxNjY0MzUxNTA2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjAzNThjMTE0LTliMmMtNDc2ZS1iYWU3LTFhMWEzM2EwMjExNSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.QXRCn6hWAgUaCYnFVZANYOfcmSl5cys2BD2y8b9c8Xm67XkUZQo7fwS2mvFEuTEbjw3UQ9UD7n-MTQy6YwKBe1_3CdrWycuoK-8Y2riIpNXBIunkoaOSsXS76nZJJ7BJj3pUhQICSqcJbE5tWPifDCGM58lMLe33Ed9Ws9XE2ub2GVr7MuGPEbRgn0p0NIF8papgEmo1X-M6EL1J_eJWYkQ3j5NojZ5L7kBqSPIsWebDMg5PpPcmF89Exh7fTCgdT0YdeX_lejsVovO36x3OS5h_tMcaae_RGPzjgF6elnva363alIgp-sT_JzJmYJaR-EbwK7wfcaqMb-4C2CQlSA",
           "cookie": null
         }
       },
@@ -56,8 +56,8 @@
             ],
             "datasets": [],
             "n_quantities": 31,
-            "nomad_version": "1.1.3",
-            "upload_create_time": "2022-09-13T09:02:28.772000+00:00",
+            "nomad_version": "1.1.4",
+            "upload_create_time": "2022-09-28T07:51:43.598000+00:00",
             "nomad_commit": "d0778d6a",
             "processing_errors": [],
             "results": {
@@ -66,7 +66,7 @@
               }
             },
             "entry_name": "O2",
-            "last_processing_time": "2022-09-13T09:02:29.163000+00:00",
+            "last_processing_time": "2022-09-28T07:51:43.838000+00:00",
             "parser_name": "parsers/archive",
             "calc_id": "8mYi1m21s3k2LdjIUt0EnLyQ-_-c",
             "published": false,
@@ -107,7 +107,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2022-09-13T09:02:28.936000+00:00",
+            "entry_create_time": "2022-09-28T07:51:43.710000+00:00",
             "with_embargo": false,
             "files": [
               "chemical.archive.json",
@@ -117,9 +117,11 @@
               "inter-entry.archive.json",
               "intra-entry.archive.json",
               "intra-entry.archive.yaml",
+              "polymorphy.archive.yaml",
               "pvd_process.csv",
               "schema.archive.json",
               "simple-schema.archive.yaml",
+              "with-default-values.archive.yaml",
               "with-problems.archive.yaml",
               "xrd_measurement.xrdml"
             ],
@@ -140,7 +142,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "3501",
+          "content-length": "3576",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -158,7 +160,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJhNGM2MWFkMC1kOWZiLTRjNGYtODY4MS1jNGE1MGNiZmVhMmMiLCJleHAiOjE2NjMwOTU3MzIsIm5iZiI6MCwiaWF0IjoxNjYzMDU5NzUyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjFkOGIxYjZiLWVhYTYtNDQzYy05MDhhLWI1MmZhN2JiMmQzOCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.DAppqMnVhx4KLq6KfLFp6MAsiCwkxdULFXyN45eeOhXGdU3Jj3YFIDevov_xBP-66kPwKN5fpkY1qka-8YFccCmdUxvMCTO6mg_yEdkoqCJjq0B9kg3iqUBdGa1S6KX57ojoBMm7YZLkZ0_dmwfij0aUHTPuq3jJpT1pTWCg-WtfiYi87ARauhE0DlXwSCFUguF5z1zqkNZdb5X8psR8vR0h64gZGpIa2J_Ge8Kpo8nEtI9GjjNI6pnX9GIBt1w79wlZoz6jupptyEmvJzVjyTyMPHgaO6NZYDTfgxrrKmr9tj8yjScVA2aUBQ1hK6TFY5iVB40SsMIXIiZ_532j5w",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyZmM4NWUwNS1iOTE3LTQwY2UtYWE2Mi0zZjNlOWZkMzI2YTgiLCJleHAiOjE2NjQzODc0OTIsIm5iZiI6MCwiaWF0IjoxNjY0MzUxNTA2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjAzNThjMTE0LTliMmMtNDc2ZS1iYWU3LTFhMWEzM2EwMjExNSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.KEX9KKSXBPSaAAO50Kf-EQTcYCY4nJorkCX6rTehy2yMg0f8n3bQiCKA-LTOydm5dru4cnEgqy-2LdSGf34Z_gVFwFBXqDulVNVy86ZrEbSrUEta0hdXSZnOCWOHjnxr1QS9noXyaetmtwZ_vQrQkj-p0Gtmw17viWBki8GI713845-rELKTdFbRnTFLR-BgGKHmshnVQXytniqDOxQxf-Ohv5Ow-i1-RpBmotnqja5TmKFAUhjB-KUN5BezW2vm--OSETVsGBkkYyUjKBKKWEV9vxgrD42dpF9mMOTMQzt1NS2Aaer7jxY32qJ3dtfx-BlWrPm_reSf6LZxt3tdhw",
           "cookie": null
         }
       },
@@ -177,23 +179,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "EQa_tMjwSSCrObKtAyeN9w",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:02.29",
+                  "timestamp": "2022-09-28 09:51.43",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.0028810501098632812",
+                  "exec_time": "0.000518798828125",
                   "input_size": "148",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "EQa_tMjwSSCrObKtAyeN9w",
                   "parser": "parsers/archive",
                   "step": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:02.29",
+                  "timestamp": "2022-09-28 09:51.43",
                   "level": "INFO"
                 },
                 {
@@ -202,24 +204,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "EQa_tMjwSSCrObKtAyeN9w",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:02.29",
+                  "timestamp": "2022-09-28 09:51.43",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0015087127685546875",
+                  "exec_time": "0.001262664794921875",
                   "input_size": "148",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "EQa_tMjwSSCrObKtAyeN9w",
                   "parser": "parsers/archive",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:02.29",
+                  "timestamp": "2022-09-28 09:51.43",
                   "level": "INFO"
                 },
                 {
@@ -228,46 +230,46 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "EQa_tMjwSSCrObKtAyeN9w",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:02.29",
+                  "timestamp": "2022-09-28 09:51.43",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0007793903350830078",
+                  "exec_time": "0.0005617141723632812",
                   "input_size": "148",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "EQa_tMjwSSCrObKtAyeN9w",
                   "parser": "parsers/archive",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:02.29",
+                  "timestamp": "2022-09-28 09:51.43",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0017631053924560547",
+                  "exec_time": "0.0010614395141601562",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "EQa_tMjwSSCrObKtAyeN9w",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:02.29",
+                  "timestamp": "2022-09-28 09:51.43",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.017733335494995117",
+                  "exec_time": "0.03934884071350098",
                   "event": "entry metadata indexed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "yKJ0Zz2FQ6mNvd53rdZ8sQ",
+                  "process_worker_id": "EQa_tMjwSSCrObKtAyeN9w",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-13 11:02.29",
+                  "timestamp": "2022-09-28 09:51.43",
                   "level": "INFO"
                 }
               ],
@@ -277,12 +279,12 @@
               },
               "metadata": {
                 "upload_id": "archive_browser_test",
-                "upload_create_time": "2022-09-13T09:02:28.772000+00:00",
+                "upload_create_time": "2022-09-28T07:51:43.598000+00:00",
                 "entry_id": "8mYi1m21s3k2LdjIUt0EnLyQ-_-c",
                 "entry_name": "O2",
                 "entry_type": "Chemical",
-                "entry_hash": "gvujoLXk9eJQLW5BQCwy9nDHQxQO",
-                "entry_create_time": "2022-09-13T09:02:28.936000+00:00",
+                "entry_hash": "dYGPPqFF7xAvoF9R3hCjXHXCx7KQ",
+                "entry_create_time": "2022-09-28T07:51:43.710000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "chemical.archive.json",
                 "files": [
@@ -293,9 +295,11 @@
                   "inter-entry.archive.json",
                   "intra-entry.archive.json",
                   "intra-entry.archive.yaml",
+                  "polymorphy.archive.yaml",
                   "pvd_process.csv",
                   "schema.archive.json",
                   "simple-schema.archive.yaml",
+                  "with-default-values.archive.yaml",
                   "with-problems.archive.yaml",
                   "xrd_measurement.xrdml"
                 ],
@@ -304,9 +308,9 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-09-13T09:02:29.163824+00:00",
+                "last_processing_time": "2022-09-28T07:51:43.838551+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.1.3",
+                "nomad_version": "1.1.4",
                 "nomad_commit": "d0778d6a",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -372,7 +376,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "6910",
+          "content-length": "6987",
           "content-type": "application/json",
           "server": "uvicorn"
         }

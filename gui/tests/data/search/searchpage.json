@@ -42,10 +42,10 @@
           },
           "data": [
             {
-              "upload_id": "k5_X2bQtRkGPLSv6Oob-uw",
+              "upload_id": "-a-nAHWgQgymHObz7K-i8A",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "m7fNWksjSMK3rUwglYP0uQ",
+              "calc_id": "8mI3ZTAYRNm-SNChD3X44A",
               "published": true,
               "writers": [
                 {
@@ -55,7 +55,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-09-23T08:43:34.189237+00:00",
+              "upload_create_time": "2022-09-27T15:56:13.900163+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -68,80 +68,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-09-23T08:43:34.193237+00:00",
-              "publish_time": "2022-09-23T08:43:34.192237+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C",
-                    "H"
-                  ],
-                  "elements_exclusive": "C H",
-                  "chemical_formula_anonymous": "AB2",
-                  "material_id": "test_material_id",
-                  "structural_type": "molecule / cluster",
-                  "chemical_formula_reduced": "CH3",
-                  "n_elements": 2,
-                  "chemical_formula_descriptive": "CH3",
-                  "chemical_formula_hill": "CH3"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "GGA_X_PBE_SOL",
-                        "GGA_C_PBE_SOL"
-                      ]
-                    },
-                    "program_name": "VASP"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "m7fNWksjSMK3rUwglYP0uQ",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "k5_X2bQtRkGPLSv6Oob-uw",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "E5TXC654S1CeAxiy9F29eQ",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-09-23T08:43:34.189237+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-09-23T08:43:34.194237+00:00",
-              "publish_time": "2022-09-23T08:43:34.192237+00:00",
+              "entry_create_time": "2022-09-27T15:56:13.905163+00:00",
+              "publish_time": "2022-09-27T15:56:13.903163+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -175,7 +103,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "E5TXC654S1CeAxiy9F29eQ",
+              "entry_id": "8mI3ZTAYRNm-SNChD3X44A",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -185,10 +113,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "k5_X2bQtRkGPLSv6Oob-uw",
+              "upload_id": "-a-nAHWgQgymHObz7K-i8A",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "C0q53EgRRSmUIICDMEopaQ",
+              "calc_id": "78qRYqXkTmGj2K75o6DfFQ",
               "published": true,
               "writers": [
                 {
@@ -198,7 +126,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-09-23T08:43:34.189237+00:00",
+              "upload_create_time": "2022-09-27T15:56:13.900163+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -211,8 +139,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-09-23T08:43:34.195237+00:00",
-              "publish_time": "2022-09-23T08:43:34.192237+00:00",
+              "entry_create_time": "2022-09-27T15:56:13.906163+00:00",
+              "publish_time": "2022-09-27T15:56:13.903163+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -250,7 +178,79 @@
                 },
                 "properties": {}
               },
-              "entry_id": "C0q53EgRRSmUIICDMEopaQ",
+              "entry_id": "78qRYqXkTmGj2K75o6DfFQ",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "-a-nAHWgQgymHObz7K-i8A",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "4lJ8vXRKSFGIj1QubUEfPw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-09-27T15:56:13.900163+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-09-27T15:56:13.904163+00:00",
+              "publish_time": "2022-09-27T15:56:13.903163+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C",
+                    "H"
+                  ],
+                  "elements_exclusive": "C H",
+                  "chemical_formula_anonymous": "AB2",
+                  "material_id": "test_material_id",
+                  "structural_type": "molecule / cluster",
+                  "chemical_formula_reduced": "CH3",
+                  "n_elements": 2,
+                  "chemical_formula_descriptive": "CH3",
+                  "chemical_formula_hill": "CH3"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "4lJ8vXRKSFGIj1QubUEfPw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -306,10 +306,10 @@
           },
           "data": [
             {
-              "upload_id": "k5_X2bQtRkGPLSv6Oob-uw",
+              "upload_id": "-a-nAHWgQgymHObz7K-i8A",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "C0q53EgRRSmUIICDMEopaQ",
+              "calc_id": "4lJ8vXRKSFGIj1QubUEfPw",
               "published": true,
               "writers": [
                 {
@@ -319,7 +319,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-09-23T08:43:34.189237+00:00",
+              "upload_create_time": "2022-09-27T15:56:13.900163+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -332,8 +332,80 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-09-23T08:43:34.195237+00:00",
-              "publish_time": "2022-09-23T08:43:34.192237+00:00",
+              "entry_create_time": "2022-09-27T15:56:13.904163+00:00",
+              "publish_time": "2022-09-27T15:56:13.903163+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C",
+                    "H"
+                  ],
+                  "elements_exclusive": "C H",
+                  "chemical_formula_anonymous": "AB2",
+                  "material_id": "test_material_id",
+                  "structural_type": "molecule / cluster",
+                  "chemical_formula_reduced": "CH3",
+                  "n_elements": 2,
+                  "chemical_formula_descriptive": "CH3",
+                  "chemical_formula_hill": "CH3"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "4lJ8vXRKSFGIj1QubUEfPw",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "-a-nAHWgQgymHObz7K-i8A",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "78qRYqXkTmGj2K75o6DfFQ",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-09-27T15:56:13.900163+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-09-27T15:56:13.906163+00:00",
+              "publish_time": "2022-09-27T15:56:13.903163+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -371,7 +443,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "C0q53EgRRSmUIICDMEopaQ",
+              "entry_id": "78qRYqXkTmGj2K75o6DfFQ",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -381,10 +453,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "k5_X2bQtRkGPLSv6Oob-uw",
+              "upload_id": "-a-nAHWgQgymHObz7K-i8A",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "E5TXC654S1CeAxiy9F29eQ",
+              "calc_id": "8mI3ZTAYRNm-SNChD3X44A",
               "published": true,
               "writers": [
                 {
@@ -394,7 +466,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-09-23T08:43:34.189237+00:00",
+              "upload_create_time": "2022-09-27T15:56:13.900163+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -407,8 +479,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-09-23T08:43:34.194237+00:00",
-              "publish_time": "2022-09-23T08:43:34.192237+00:00",
+              "entry_create_time": "2022-09-27T15:56:13.905163+00:00",
+              "publish_time": "2022-09-27T15:56:13.903163+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -442,79 +514,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "E5TXC654S1CeAxiy9F29eQ",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "k5_X2bQtRkGPLSv6Oob-uw",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "m7fNWksjSMK3rUwglYP0uQ",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-09-23T08:43:34.189237+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-09-23T08:43:34.193237+00:00",
-              "publish_time": "2022-09-23T08:43:34.192237+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C",
-                    "H"
-                  ],
-                  "elements_exclusive": "C H",
-                  "chemical_formula_anonymous": "AB2",
-                  "material_id": "test_material_id",
-                  "structural_type": "molecule / cluster",
-                  "chemical_formula_reduced": "CH3",
-                  "n_elements": 2,
-                  "chemical_formula_descriptive": "CH3",
-                  "chemical_formula_hill": "CH3"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "GGA_X_PBE_SOL",
-                        "GGA_C_PBE_SOL"
-                      ]
-                    },
-                    "program_name": "VASP"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "m7fNWksjSMK3rUwglYP0uQ",
+              "entry_id": "8mI3ZTAYRNm-SNChD3X44A",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -570,7 +570,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* SIGNED_FLOAT\n\t* SIGNED_INT\n\t* ESCAPED_STRING\n\t* IDENTIFIER\n\t* NOT\n\t* LPAR\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* LPAR\n\t* IDENTIFIER\n\t* SIGNED_INT\n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
               "type": "value_error.exception"
             }
           ]

@@ -25,28 +25,14 @@ import { getUrlFromDefinition, Metainfo } from './archive/metainfo'
 import currentSystemMetainfoData from '../metainfo'
 import YAML from 'yaml'
 
-function addSubscription(storeObj, cb, options) {
-  storeObj._subscriptions.push({cb, ...options})
-  storeObj._subscribeCounter = (storeObj._subscribeCounter || 0) + 1
+function addSubscription(storeObj, cb) {
+  storeObj._subscriptions.push(cb)
 }
 
 function removeSubscription(store, key, cb) {
   const storeObj = store[key]
   if (storeObj) {
-    storeObj._subscriptions = storeObj._subscriptions.filter(subscription => subscription.cb !== cb)
-    if (!storeObj._subscriptions.length) {
-      // No subscribers. Wait for 5 seconds, then check again
-      const oldSubscribeCount = storeObj._subscribeCounter
-      setTimeout(() => {
-        if (store) {
-          const storeObj = store[key]
-          if (storeObj && storeObj._subscribeCounter === oldSubscribeCount) {
-            // Noone has subscribed to it during this time window. Delete it.
-            delete store[key]
-          }
-        }
-      }, 5000)
-    }
+    storeObj._subscriptions = storeObj._subscriptions.filter(subscription => subscription !== cb)
   }
 }
 
@@ -67,6 +53,7 @@ const DataStore = React.memo(({children}) => {
   const {api, user} = useApi()
   const userRef = useRef()
   userRef.current = user // The logged in user may change during component lifecycle
+  const storeKey = useRef() // A key used to determine when the caches should be cleared
   const selectedEntry = useRef() // stores identity of the selected entry (used to determine if editable)
 
   const uploadStore = useRef({}) // The upload store objects
@@ -77,7 +64,7 @@ const DataStore = React.memo(({children}) => {
   /**
    * Gets an upload object from the store, creating it if it doesn't exist (in which case
    * an object with default values, mostly undefined or nulls, will be returned). Note, it
-   * does not cause the store to fetch any data; for that, a subscription is necessary.
+   * does not cause the store to fetch any data, it just returns what's currently in the store.
    */
   function getUpload(installationUrl, uploadId) {
     if (!uploadId) return undefined
@@ -107,7 +94,8 @@ const DataStore = React.memo(({children}) => {
         // ReadOnly - Managed by the store
         error: undefined, // If we had an api error from the last store refresh
         isRefreshing: false,
-        refreshOptions: null, // The options used at the last store refresh
+        requestOptions: {requireUpload: false, requireEntriesPage: false}, // Options specifying data requested
+        refreshOptions: null, // Options specifying data actually fetched (or attempted to fetch) at last refresh
         _subscriptions: [],
 
         // Convenience methods
@@ -121,9 +109,7 @@ const DataStore = React.memo(({children}) => {
 
   /**
    * Gets an upload from the store asychronously, waiting for the store to refresh if needed.
-   * If the store needs to be refreshed, the call will set up a temporary subscription, which
-   * will be removed when finished. Note that to keep the object in the store and watch it
-   * also after this call has ended, you need to set up a subscription.
+   * If the required data has already been fetched, we return the store object immediately.
    */
   async function getUploadAsync(installationUrl, uploadId, requireUpload, requireEntriesPage) {
     if (!uploadId) return undefined
@@ -153,7 +139,11 @@ const DataStore = React.memo(({children}) => {
       throw Error('Store error: missing upload subscription parameter')
     }
     const uploadStoreObj = getUpload(installationUrl, uploadId)
-    addSubscription(uploadStoreObj, cb, {requireUpload, requireEntriesPage})
+    // Update requestOptions
+    uploadStoreObj.requestOptions.requireUpload = uploadStoreObj.requestOptions.requireUpload || requireUpload
+    uploadStoreObj.requestOptions.requireEntriesPage = uploadStoreObj.requestOptions.requireEntriesPage || requireEntriesPage
+    // Add subscription and trigger refresh if needed
+    addSubscription(uploadStoreObj, cb)
     initiateUploadRefreshIfNeeded(installationUrl, uploadId)
     return function unsubscriber() { removeSubscription(uploadStore.current, uploadId, cb) }
   }
@@ -185,9 +175,9 @@ const DataStore = React.memo(({children}) => {
     uploadStore.current[uploadId] = newStoreObj
 
     // Notify subscribers
-    for (const subscription of [...newStoreObj._subscriptions]) {
+    for (const cb of newStoreObj._subscriptions) {
       try {
-        subscription.cb(oldStoreObj, newStoreObj)
+        cb(oldStoreObj, newStoreObj)
       } catch (error) {
         console.error('DataStore: failed to notify subscriber: ' + error.message)
       }
@@ -208,7 +198,7 @@ const DataStore = React.memo(({children}) => {
   async function refreshUpload(installationUrl, uploadId) {
     // Internal use: refresh an upload store obj with data from the API.
     const uploadStoreObj = getUpload(installationUrl, uploadId)
-    const refreshOptions = uploadOptions(uploadStoreObj)
+    const refreshOptions = {...uploadStoreObj.requestOptions}
     const {requireUpload, requireEntriesPage} = refreshOptions
     if (!requireUpload && !requireEntriesPage) return
     // There's something that can be refreshed
@@ -261,7 +251,7 @@ const DataStore = React.memo(({children}) => {
       uploadStoreObj = getUpload(installationUrl, uploadId)
     }
     // Determine if a refresh is needed or not
-    const {requireUpload, requireEntriesPage} = uploadOptions(uploadStoreObj)
+    const {requireUpload, requireEntriesPage} = uploadStoreObj.requestOptions
     const uploadDataMissing = requireUpload && !uploadStoreObj.upload
     const entryDataMissing = requireEntriesPage && !uploadStoreObj.entries
     const pag = uploadStoreObj.pagination
@@ -278,7 +268,7 @@ const DataStore = React.memo(({children}) => {
   /**
    * Gets an entry object from the store, creating it if it doesn't exist (in which case
    * an object with default values, mostly undefined or nulls, will be returned). Note, it
-   * does not cause the store to fetch any data; for that, a subscription is necessary.
+   * does not cause the store to fetch any data, it just returns what's currently in the store.
    */
   function getEntry(installationUrl, entryId) {
     if (!entryId) return undefined
@@ -306,7 +296,8 @@ const DataStore = React.memo(({children}) => {
 
         error: undefined, // If we had an api error from the last store refresh
         isRefreshing: false,
-        refreshOptions: null, // The options used at the last store refresh
+        requestOptions: {requireMetadata: false, requireArchive: undefined}, // Options specifying data requested
+        refreshOptions: null, // Options specifying data actually fetched (or attempted to fetch) at last refresh
         _subscriptions: [],
 
         // Convenience methods
@@ -321,9 +312,7 @@ const DataStore = React.memo(({children}) => {
 
   /**
    * Gets an entry from the store asychronously, waiting for the store to refresh if needed.
-   * If the store needs to be refreshed, the call will set up a temporary subscription, which
-   * will be removed when finished. Note that to keep the object in the store and watch it
-   * also after this call has ended, you need to set up a subscription.
+   * If the required data has already been fetched, we return the store object immediately.
    */
   async function getEntryAsync(installationUrl, entryId, requireMetadata, requireArchive) {
     if (!entryId) return undefined
@@ -353,7 +342,12 @@ const DataStore = React.memo(({children}) => {
       throw Error('Store error: bad subscription parameter supplied')
     }
     const entryStoreObj = getEntry(installationUrl, entryId)
-    addSubscription(entryStoreObj, cb, {requireMetadata, requireArchive})
+    // Update requestOptions
+    entryStoreObj.requestOptions.requireMetadata = entryStoreObj.requestOptions.requireMetadata || requireMetadata
+    entryStoreObj.requestOptions.requireArchive = mergeArchiveFilter(
+      entryStoreObj.requestOptions.requireArchive, requireArchive)
+    // Add subscription and trigger refresh if needed
+    addSubscription(entryStoreObj, cb)
     initiateEntryRefreshIfNeeded(installationUrl, entryId)
     return function unsubscriber() { removeSubscription(entryStore.current, entryId, cb) }
   }
@@ -373,9 +367,9 @@ const DataStore = React.memo(({children}) => {
     entryStore.current[entryId] = newStoreObj
 
     // Notify subscribers
-    for (const subscription of [...newStoreObj._subscriptions]) {
+    for (const cb of newStoreObj._subscriptions) {
       try {
-        subscription.cb(oldStoreObj, newStoreObj)
+        cb(oldStoreObj, newStoreObj)
       } catch (error) {
         console.error('DataStore: failed to notify subscriber: ' + error.message)
       }
@@ -392,7 +386,7 @@ const DataStore = React.memo(({children}) => {
   async function refreshEntry(installationUrl, entryId) {
     // Internal use: refresh an entry store obj with data from the API.
     let entryStoreObj = getEntry(installationUrl, entryId)
-    let refreshOptions = entryOptions(entryStoreObj)
+    let refreshOptions = {...entryStoreObj.requestOptions}
     let {requireMetadata, requireArchive} = refreshOptions
     if (!requireMetadata && !requireArchive) return
     // There's something that can be refreshed
@@ -411,7 +405,7 @@ const DataStore = React.memo(({children}) => {
         Object.assign(dataToUpdate, {metadataApiData, metadata, uploadId, editable, isProcessing, error: undefined})
         // Fetch the options again, in case some subscriptions were added while waiting for the api call
         entryStoreObj = getEntry(installationUrl, entryId)
-        refreshOptions = entryOptions(entryStoreObj)
+        refreshOptions = {...entryStoreObj.requestOptions}
         requireArchive = refreshOptions.requireArchive
         dataToUpdate.refreshOptions.requireArchive = requireArchive
       }
@@ -458,7 +452,7 @@ const DataStore = React.memo(({children}) => {
       entryStoreObj = getEntry(installationUrl, entryId)
     }
     // Determine if a refresh is needed or not
-    const {requireMetadata, requireArchive} = entryOptions(entryStoreObj)
+    const {requireMetadata, requireArchive} = entryStoreObj.requestOptions
     const lastRefreshSatisfiesOptions = entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArchive)
     if (!entryStoreObj.error && (!lastRefreshSatisfiesOptions || entryStoreObj.isProcessing)) {
       // Need to fetch data from the api
@@ -495,6 +489,7 @@ const DataStore = React.memo(({children}) => {
         api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}&wait_for_processing=true&entry_hash=${archive.metadata.entry_hash}`, stringifiedArchive || newArchive, config)
           .then(response => {
             requestRefreshEntry(installationUrl, entryId)
+            resolve()
           })
           .catch(error => {
             if (error?.status === 409) {
@@ -519,8 +514,8 @@ const DataStore = React.memo(({children}) => {
   /**
    * Gets a parsed metainfo object from the store, asynchronously.
    * The url can be a string or a parsed Url object. If it is empty, null will be returned.
-   * Note, this method always returns the whole data object. I.e. if the url specifies a
-   * particular section definition, we return the metainfo data object which *contains* this
+   * Note, this method always returns the whole metainfo object. I.e. if the url specifies a
+   * particular section definition, we return the metainfo object which *contains* this
    * definition, not just the definition itself.
    */
   async function getMetainfoAsync(url) {
@@ -534,7 +529,6 @@ const DataStore = React.memo(({children}) => {
       metainfoData = await fetchMetainfoData(parsedMetainfoBaseurl)
       metainfoData._url = metainfoBaseUrl
       metainfoData._parsedUrl = parsedMetainfoBaseurl
-      metainfoData._subscriptions = []
       metainfoDataStore.current[metainfoBaseUrl] = metainfoData
     }
     // If needed, create metainfo (which will also initiate parsing)
@@ -560,33 +554,6 @@ const DataStore = React.memo(({children}) => {
       return metainfo.getDefByPath(parsedUrl.path)
     }
     throw new Error(`Expected metainfo definition url, got: ${url}`)
-  }
-
-  /**
-   * Subscribes the callback cb to a metainfo, and returns a function to be called to unsubscribe.
-   * The main purpose of the subscriptions is to tell the store that it needs to keep this
-   * metainfo object in the cache. If a metainfo object is not subscribed to by anyone, it will
-   * eventually be removed from the cache (with the exception of the system metainfo, which is
-   * always kept). If the url is empty, or refers to the system metainfo, we do nothing and
-   * return null.
-   */
-  function subscribeToMetainfo(url, cb) {
-    if (!url) return null
-    const metainfoBaseUrl = getMetainfoBaseUrl(url)
-    if (metainfoBaseUrl === systemMetainfoUrl) return null
-    const metainfoData = metainfoDataStore.current[metainfoBaseUrl]
-    for (const url of metainfoData._metainfo._dependencies) {
-      const dependency = metainfoDataStore.current[url]
-      if (dependency) {
-        addSubscription(dependency, cb)
-      }
-    }
-    return function unsubscriber() {
-      const metainfoData = metainfoDataStore.current[metainfoBaseUrl]
-      for (const url of metainfoData._metainfo._dependencies) {
-        removeSubscription(metainfoDataStore.current, url, cb)
-      }
-    }
   }
 
   function getMetainfoBaseUrl(url) {
@@ -649,6 +616,23 @@ const DataStore = React.memo(({children}) => {
     return rv
   }
 
+  /**
+   * Used to reset the data store (i.e. clear its caches). If the provided newStoreKey is
+   * non-empty and different from the current storeKey, we clear everything.
+   */
+  function resetIfNeeded(newStoreKey) {
+    if (newStoreKey && newStoreKey !== storeKey.current) {
+      if (storeKey.current) {
+        // Reset!
+        uploadStore.current = {}
+        entryStore.current = {}
+        metainfoDataStore.current = {}
+        externalInheritanceCache.current = {}
+      }
+      storeKey.current = newStoreKey
+    }
+  }
+
   const contextValue = {
     getUpload,
     getUploadAsync,
@@ -661,8 +645,8 @@ const DataStore = React.memo(({children}) => {
     selectedEntry,
     getMetainfoAsync,
     getMetainfoDefAsync,
-    subscribeToMetainfo,
-    getAllInheritingSections
+    getAllInheritingSections,
+    resetIfNeeded
   }
 
   return <dataStoreContext.Provider value={contextValue}>
@@ -730,17 +714,6 @@ function filteredEntryStoreObj(entryStoreObj, requireMetadata, requireArchive) {
   return entryStoreObj
 }
 
-function uploadOptions(uploadStoreObj) {
-  // Internal use: Determine the options of the upload, based on the subscriptions
-  let requireUpload = false
-  let requireEntriesPage = false
-  for (const subscription of uploadStoreObj._subscriptions) {
-    requireUpload = requireUpload || subscription.requireUpload
-    requireEntriesPage = requireEntriesPage || subscription.requireEntriesPage
-  }
-  return {requireUpload, requireEntriesPage}
-}
-
 function uploadRefreshSatisfiesOptions(uploadStoreObj, requireUpload, requireEntriesPage) {
   // Internal use: Determine if the last store refresh satisfies the given options.
   const refreshOptions = uploadStoreObj?.refreshOptions
@@ -748,17 +721,6 @@ function uploadRefreshSatisfiesOptions(uploadStoreObj, requireUpload, requireEnt
     return (refreshOptions.requireUpload || !requireUpload) || (refreshOptions.requireEntriesPage || !requireEntriesPage)
   }
   return false
-}
-
-function entryOptions(entryStoreObj) {
-  // Internal use: Determine the options of the entry, based on the subscriptions
-  let requireMetadata = false
-  let requireArchive
-  for (const subscription of entryStoreObj._subscriptions) {
-    requireMetadata = requireMetadata || subscription.requireMetadata
-    requireArchive = mergeArchiveFilter(requireArchive, subscription.requireArchive)
-  }
-  return {requireMetadata, requireArchive}
 }
 
 function entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArchive) {

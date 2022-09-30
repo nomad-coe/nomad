@@ -29,13 +29,14 @@ export const useEntryPageContext = (requireArchive) => {
 }
 
 const EntryPageContext = React.memo(function EntryContext({entryId, children}) {
-  const {selectedEntry} = useDataStore()
+  const dataStore = useDataStore()
+  dataStore.resetIfNeeded(entryId)
 
   useEffect(() => {
     // Inform the Store of the selected entry
-    selectedEntry.current = `${apiBase}:${entryId}`
-    return () => { selectedEntry.current = undefined }
-  }, [selectedEntry, entryId])
+    dataStore.selectedEntry.current = `${apiBase}:${entryId}`
+    return () => { dataStore.selectedEntry.current = undefined }
+  }, [dataStore, entryId])
 
   return <entryPageContext.Provider value={entryId}>
     {children}

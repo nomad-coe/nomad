@@ -108,13 +108,6 @@ export function useMetainfo(url) {
       })
   }, [url, dataStore, raiseError, setMetainfo])
 
-  useEffect(() => {
-    // Manage subscriptions
-    if (metainfo) {
-      return dataStore.subscribeToMetainfo(metainfo._url, () => {})
-    }
-  }, [metainfo, dataStore])
-
   return metainfo
 }
 
@@ -144,13 +137,6 @@ export function useMetainfoDef(url) {
         })
     }
   }, [url, setMetainfoDef, dataStore, raiseError])
-
-  useEffect(() => {
-    // Manage subscriptions
-    if (metainfoDef) {
-      return dataStore.subscribeToMetainfo(getMetainfoFromDefinition(metainfoDef)._url, () => {})
-    }
-  }, [metainfoDef, dataStore])
 
   return metainfoDef
 }
@@ -200,7 +186,6 @@ export class Metainfo {
     this._defsByNameCache = null
     this._packagePrefixCache = null
     this._rootSectionsCache = null
-    this._dependencies = new Set([this._url]) // Set of all metainfo urls (base urls [str]) on which this schema depends (including this._url)
 
     // Initiate a single call to _parse, using a promise
     this._isParsed = false
@@ -586,12 +571,6 @@ export class Metainfo {
     } else if (resolvedUrl.entryId) {
       // Reference to entry metainfo
       const metainfo = await this._getMetainfoAsync(resolvedUrl)
-      if (metainfo._url !== systemMetainfoUrl && !this._isParsed) {
-        if (!this._dependencies.has(metainfo._url)) {
-          // Add this metainfo and all its dependencies to our dependencies
-          metainfo._dependencies.forEach(url => this._dependencies.add(url))
-        }
-      }
       return metainfo.getDefByPath(resolvedUrl.path)
     }
     throw new Error(`Bad reference encountered: ${reference}`)

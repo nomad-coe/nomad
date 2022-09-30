@@ -199,24 +199,9 @@ class MetainfoAdaptor extends Adaptor {
   }
 
   async initialize(api, dataStore) {
-    // Subscribe to the metainfo containing this def
-    if (this.def.m_def) {
-      // A normal definition provided (note, the PackagePrefixAdaptor is not passed a normal
-      // metainfo definition, so in that case, m_def will be unset (but we also don't need to
-      // subscribe to anything).
-      const metainfoBaseUrl = getMetainfoFromDefinition(this.def)._url
-      await dataStore.getMetainfoAsync(metainfoBaseUrl)
-      this.unsubscriber = dataStore.subscribeToMetainfo(metainfoBaseUrl, () => {})
-
-      if (this.def.m_def === SectionMDef || this.def.m_def === SubSectionMDef) {
-        this.inheritingSections = dataStore.getAllInheritingSections(this.def.sub_section || this.def)
-      }
+    if (this.def.m_def === SectionMDef || this.def.m_def === SubSectionMDef) {
+      this.inheritingSections = dataStore.getAllInheritingSections(this.def.sub_section || this.def)
     }
-  }
-
-  cleanup() {
-    // Clean up subscriptions
-    if (this.unsubscriber) this.unsubscriber()
   }
 }
 

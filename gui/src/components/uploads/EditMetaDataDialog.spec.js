@@ -122,6 +122,7 @@ const testDatasetForPublished = async () => {
   await waitFor(() => expect(within(dialog).queryByText('add entry to new dataset')).not.toBeInTheDocument())
   const rows = within(dialog).queryAllByTestId('datatable-row')
   expect(rows.length).toBe(1)
+  await waitFor(() => expect(within(dialog).queryByText('Open in new tab')).not.toBeInTheDocument())
 
   expect(within(rows[0]).queryByText('new dataset (1)')).toBeInTheDocument()
   expect(within(rows[0]).queryByTestId('dataset-delete-action')).toBeEnabled()
