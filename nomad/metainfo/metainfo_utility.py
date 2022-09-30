@@ -34,9 +34,6 @@ import pytz
 from nomad.units import ureg
 
 __hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
-
-_storage_suffix = ''
-
 _delta_symbols = {'delta_', 'Δ'}
 
 
@@ -88,7 +85,7 @@ class MTypes:
     eln = {
         'str': ['str', 'string'],
         'bool': ['bool', 'boolean'],
-        'number': [x.__name__ for x in num_python] + [f'np.{x.__name__}' for x in num_numpy],
+        'number': [x.__name__ for x in num_python] + [f'np.{x.__name__}' for x in num_numpy],  # type: ignore
         'datetime': ['Datetime'],
         'enum': ['{type_kind: Enum, type_data: [Operator, Responsible_person]}'],
         'user': ['User'],

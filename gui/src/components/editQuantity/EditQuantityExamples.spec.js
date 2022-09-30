@@ -127,14 +127,17 @@ test('correctly renders edit quantities', async () => {
   await waitFor(() => expect(redirectButton()).toBeInTheDocument())
 })
 
-test('Test UserEditQuantity', async () => {
+test('Test AuthorEditQuantity', async () => {
   await startAPI('tests.states.uploads.empty', 'tests/data/editquantity/user')
   render(<EditQuantityExamples />)
 
   // Wait to load the entry metadata, i.e. wait for some texts to appear
-  await screen.findByText('User')
+  await screen.findByText('User account')
 
-  const userField = screen.getByTestId('user-edit-quantity')
+  const userFields = screen.getAllByTestId('user-edit-quantity')
+  expect(userFields.length).toBe(2)
+
+  const userField = userFields[1]
   const userFieldInput = within(userField).getByRole('textbox')
   userField.focus()
   // assign an incomplete value to the input field
@@ -146,6 +149,26 @@ test('Test UserEditQuantity', async () => {
   fireEvent.keyDown(userField, { key: 'Enter' })
   await waitForGUI()
   await waitFor(() => expect(userFieldInput.value).toEqual('Markus Scheidgen (FHI)'))
+
+  const firstNameField = screen.getByText('First name').parentElement
+  const firstNameFieldInput = within(firstNameField).getByRole('textbox')
+  await waitFor(() => expect(firstNameFieldInput.value).toEqual('Markus'))
+
+  const lastNameField = screen.getByText('Last name').parentElement
+  const lastNameFieldInput = within(lastNameField).getByRole('textbox')
+  await waitFor(() => expect(lastNameFieldInput.value).toEqual('Scheidgen'))
+
+  const affiliationField = screen.getByText('Affiliation').parentElement
+  const affiliationFieldInput = within(affiliationField).getByRole('textbox')
+  await waitFor(() => expect(affiliationFieldInput.value).toEqual('FHI'))
+
+  const emailField = screen.getByText('Email').parentElement
+  const emailFieldInput = within(emailField).getByRole('textbox')
+  await waitFor(() => expect(emailFieldInput.value).toEqual(''))
+
+  const addressField = screen.getByText('Address').parentElement
+  const addressFieldInput = within(addressField).getByRole('textbox')
+  await waitFor(() => expect(addressFieldInput.value).toEqual('Berlin'))
 
   closeAPI()
 })

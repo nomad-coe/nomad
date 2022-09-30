@@ -304,9 +304,9 @@ class Api {
     }
   }
 
-  async getUsers(prefix) {
+  async getUsers(query) {
     // no loading indicator, because this is only used in the background of the edit dialog
-    return this.get('users', {prefix: prefix}, {noLoading: true}).then(response => response.data)
+    return this.get('users', query, {noLoading: true}).then(response => response.data)
   }
 
   async inviteUser(user) {

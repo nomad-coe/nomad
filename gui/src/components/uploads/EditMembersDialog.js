@@ -192,7 +192,7 @@ function MembersTable() {
 
 export const fetchUsers = (api, previousQuery, newQuery) => {
   return new Promise((resolve, reject) => {
-    api.getUsers(newQuery)
+    api.getUsers({prefix: newQuery})
       .then(users => {
         const withQueryInName = users.filter(user => user.name.toLowerCase().indexOf(newQuery) !== -1)
         withQueryInName.sort((a, b) => {
