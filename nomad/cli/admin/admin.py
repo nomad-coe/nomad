@@ -225,7 +225,7 @@ def springer_update(max_n_query, retry_time):
 #     similarity.ingest(input_path, batch_size, verbose)
 
 
-@ops.command(help='Configures the GUIs based on NOMAD config.')
+@ops.command(help='Configures the GUI for production based on NOMAD config.')
 def gui_config():
     import os.path
     from nomad import config
@@ -244,7 +244,7 @@ def gui_config():
     env_js_file = os.path.join(run_gui_folder, 'env.js')
     if not os.path.exists(env_js_file):
         with open(env_js_file, 'wt') as f:
-            conf = get_gui_config()
+            conf = get_gui_config(proxy=True)
             f.write(conf)
 
     # replace base path in all GUI files
