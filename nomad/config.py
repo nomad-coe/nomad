@@ -487,6 +487,7 @@ ui = NomadConfig(
                 'pagination': {
                     'order_by': 'upload_create_time',
                     'order': 'desc',
+                    'page_size': 20,
                 },
                 'columns': {
                     'enable': [

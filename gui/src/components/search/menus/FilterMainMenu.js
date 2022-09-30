@@ -70,7 +70,7 @@ const menuMap = {
   author: FilterSubMenuAuthor,
   dataset: FilterSubMenuDataset,
   access: FilterSubMenuAccess,
-  id: FilterSubMenuIDs,
+  ids: FilterSubMenuIDs,
   processed_data_quantities: FilterSubMenuArchive,
   optimade: FilterSubMenuOptimade
 }
@@ -119,7 +119,12 @@ const FilterMainMenu = React.memo(({
         .filter(option => has(menuMap, option.key))
         .map(option => {
           const Comp = menuMap[option.key]
-          return <Comp key={option.key} id={option.key} size={option.size} />
+          return <Comp
+            key={option.key}
+            id={option.key}
+            label={option.label}
+            size={option.size}
+          />
         })
       : null
   }, [filterMenus])
