@@ -123,10 +123,11 @@ const useFilterMenuHeaderStyles = makeStyles(theme => {
 export const FilterMenuHeader = React.memo(({
   title,
   actions,
-  className
+  className,
+  'data-testid': testID
 }) => {
   const styles = useFilterMenuHeaderStyles()
-  return <div className={clsx(className, styles.root)}>
+  return <div className={clsx(className, styles.root)} data-testid={testID}>
     <Actions>
       <ActionHeader>
         <Typography className={styles.title} variant="button">{title}</Typography>
@@ -141,7 +142,8 @@ FilterMenuHeader.propTypes = {
   title: PropTypes.string,
   topAction: PropTypes.node,
   actions: PropTypes.node,
-  className: PropTypes.string
+  className: PropTypes.string,
+  'data-testid': PropTypes.string
 }
 
 const useFilterMenuStyles = makeStyles(theme => {
@@ -411,9 +413,15 @@ FilterMenuItems.propTypes = {
   children: PropTypes.node
 }
 
+const levelIndent = 1.8
+const leftGutter = 3.0
+const rightGutter = 2.35
+const itemHeight = 2.6
 const useFilterMenuItemStyles = makeStyles(theme => {
   return {
-    root: {},
+    root: {
+      minHeight: `${itemHeight}rem`
+    },
     label: {
       textTransform: 'capitalize'
     },
@@ -426,12 +434,18 @@ const useFilterMenuItemStyles = makeStyles(theme => {
       fontSize: '1.5rem'
     },
     gutters: {
-      paddingLeft: theme.spacing(3.0),
-      paddingRight: theme.spacing(2.35)
+      paddingLeft: theme.spacing(leftGutter),
+      paddingRight: theme.spacing(rightGutter)
     },
     listItem: {
       position: 'relative',
-      height: '2.6rem'
+      height: `${itemHeight}rem`
+    },
+    actions: {
+      display: 'flex',
+      flexDirection: 'column',
+      paddingLeft: theme.spacing(leftGutter),
+      paddingRight: theme.spacing(rightGutter)
     },
     divider: {
       width: '100%',
@@ -444,6 +458,7 @@ export const FilterMenuItem = React.memo(({
   label,
   group,
   onClick,
+  actions,
   disableButton,
   level
 }) => {
@@ -454,28 +469,36 @@ export const FilterMenuItem = React.memo(({
   const handleClick = disableButton ? undefined : (onClick || onChange)
   const opened = open && id === selected
 
-  return <>
+  return <div className={styles.root}>
+    {(label || handleClick) &&
     <ListItem
       button={!!handleClick}
       className={styles.listItem}
       classes={{gutters: styles.gutters}}
       onClick={handleClick && (() => handleClick(id))}
     >
-      <ListItemText
-        style={{marginLeft: theme.spacing(level * 1.8)}}
+      {label && <ListItemText
+        style={{marginLeft: theme.spacing(level * levelIndent)}}
         primaryTypographyProps={{
           color: opened ? 'primary' : 'initial',
           className: styles.label
         }}
         primary={label}
-      />
+        data-testid={`menu-item-label-${id}`}
+      />}
       {handleClick && <ListItemIcon className={styles.listIcon}>
         <NavigateNextIcon color={opened ? 'primary' : 'action'} className={styles.arrow}/>
       </ListItemIcon>}
-    </ListItem>
+    </ListItem>}
+    {actions && <div
+      className={styles.actions}
+      style={{marginLeft: theme.spacing(level * levelIndent)}}
+    >
+      {actions}
+    </div>}
     {groupFinal && <FilterSummary quantities={groupFinal}/>}
     <Divider className={styles.divider}/>
-  </>
+  </div>
 })
 
 FilterMenuItem.propTypes = {
@@ -483,6 +506,7 @@ FilterMenuItem.propTypes = {
   label: PropTypes.string,
   group: PropTypes.string,
   onClick: PropTypes.func,
+  actions: PropTypes.node,
   disableButton: PropTypes.bool,
   level: PropTypes.number
 }
@@ -632,7 +656,7 @@ export const FilterSubMenu = React.memo(({
   }, [size, visible, onSizeChange])
 
   return <div className={clsx(styles.root, !visible && styles.hidden)}>
-    <FilterMenuHeader title={label} actions={actions}/>
+    <FilterMenuHeader title={label} actions={actions} data-testid={`filter-menu-header-${id}`}/>
     <div className={styles.content}>
       <Scrollable>
         {children}

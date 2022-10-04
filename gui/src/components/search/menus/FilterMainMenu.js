@@ -25,6 +25,8 @@ import {
   FilterMenuItems,
   FilterSubMenus
 } from './FilterMenu'
+import { Tooltip } from '@material-ui/core'
+import { makeStyles } from '@material-ui/core/styles'
 import FilterSubMenuMaterial from './FilterSubMenuMaterial'
 import FilterSubMenuElements from './FilterSubMenuElements'
 import FilterSubMenuSymmetry from './FilterSubMenuSymmetry'
@@ -49,6 +51,7 @@ import FilterSubMenuOptimade from './FilterSubMenuOptimade'
 import { useSearchContext } from '../SearchContext'
 import { delay } from '../../../utils'
 import FilterSubMenuGeometryOptimization from './FilterSubMenuGeometryOptimization'
+import InputCheckbox from '../input/InputCheckbox'
 
 const menuMap = {
   material: FilterSubMenuMaterial,
@@ -75,6 +78,11 @@ const menuMap = {
   optimade: FilterSubMenuOptimade
 }
 
+const useFilterMainMenuStyles = makeStyles(theme => ({
+  combine: {
+  }
+}))
+
 /**
  * Swipable menu that shows the available filters on the left side of the
  * screen.
@@ -88,6 +96,7 @@ const FilterMainMenu = React.memo(({
   const [value, setValue] = React.useState()
   const {filterMenus} = useSearchContext()
   const [loaded, setLoaded] = useState(false)
+  const styles = useFilterMainMenuStyles()
 
   // Rendering the submenus is delayed on the event queue: this makes loading
   // the search page more responsive by first loading everything else.
@@ -105,18 +114,31 @@ const FilterMainMenu = React.memo(({
           label={option.label}
           level={option.level}
           disableButton={!has(menuMap, option.key)}
+          actions={option?.actions && option.actions
+            .map((action) => {
+              const content = action.type === 'checkbox'
+                ? <InputCheckbox
+                  quantity={action.quantity}
+                  label={action.label}
+                  className={styles.combine}
+                ></InputCheckbox>
+                : null
+              return <Tooltip key={action.key} title={action.tooltip || ''}>
+                <span>{content}</span>
+              </Tooltip>
+          })}
         />
       })
     : <Alert severity="warning">
       No search menus defined within this search context. Ensure that all GUI artifacts are created.
     </Alert>
-  }, [filterMenus])
+  }, [filterMenus, styles])
 
   // The shown submenus
   const subMenus = useMemo(() => {
     return filterMenus
       ? filterMenus
-        .filter(option => has(menuMap, option.key))
+        .filter(option => option.menu_items)
         .map(option => {
           const Comp = menuMap[option.key]
           return <Comp
@@ -141,7 +163,7 @@ const FilterMainMenu = React.memo(({
       {menuItems}
     </FilterMenuItems>
     <FilterSubMenus>
-      {loaded ? subMenus : null}
+      {loaded && subMenus}
     </FilterSubMenus>
   </FilterMenu>
 })

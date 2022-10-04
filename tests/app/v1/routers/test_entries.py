@@ -337,7 +337,7 @@ def test_entries_all_metrics(client, example_data):
 
 @pytest.mark.parametrize(
     'aggregation, total, size, status_code, user',
-    aggregation_test_parameters(entity_id='entry_id', material_prefix='results.material.', entry_prefix='', total=23) + [
+    aggregation_test_parameters(entity_id='entry_id', resource='entries', total=23) + [
         pytest.param(
             {
                 'terms': {

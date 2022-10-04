@@ -37,6 +37,7 @@ over defaults.
 
 import logging
 import os
+import inspect
 import os.path
 import yaml
 import warnings
@@ -441,7 +442,7 @@ archive = NomadConfig(
 
 ui = NomadConfig(
     search_contexts={
-        "include": ["entries"],
+        "include": ["entries", "materials"],
         "exclude": [],
         "options": {
             "entries": {
@@ -449,40 +450,40 @@ ui = NomadConfig(
                 'path': "entries",
                 'resource': 'entries',
                 'breadcrumb': "Entries search",
-                'description': "Search individual database entries",
+                'description': "Search individual entries",
                 'help': {
                     'title': 'Entries search',
-                    'content': r'''
-    This page allows you to **search entries** within NOMAD. Entries represent
-    individual calculations or experiments that have bee uploaded into NOMAD.
+                    'content': inspect.cleandoc(r'''
+                        This page allows you to **search entries** within NOMAD. Entries represent
+                        individual calculations or experiments that have bee uploaded into NOMAD.
 
-    The search page consists of three main elements: the filter panel, the search
-    bar, and the result list.
+                        The search page consists of three main elements: the filter panel, the search
+                        bar, and the result list.
 
-    The filter panel on the left allows you to graphically explore and enter
-    different search filters. It also gives a visual indication of the currently
-    active search filters for each category. This is a good place to start exploring
-    the available search filters and their meaning.
+                        The filter panel on the left allows you to graphically explore and enter
+                        different search filters. It also gives a visual indication of the currently
+                        active search filters for each category. This is a good place to start exploring
+                        the available search filters and their meaning.
 
-    The search bar allows you to specify filters by typing them in and pressing
-    enter. You can also start by simply typing keywords of interest, which will
-    toggle a list of suggestions. For numerical data you can also use range queries,
-    e.g. \`0.0 < band_gap <= 0.1\`.
+                        The search bar allows you to specify filters by typing them in and pressing
+                        enter. You can also start by simply typing keywords of interest, which will
+                        toggle a list of suggestions. For numerical data you can also use range queries,
+                        e.g. \`0.0 < band_gap <= 0.1\`.
 
-    Notice that the units used in the filter panel and in the queries can be changed
-    using the **units** button on the top right corner. When using the search bar,
-    you can also specify a unit by typing the unit abbreviations, e.g. \`band_gap >=
-    0.1 Ha\`
+                        Notice that the units used in the filter panel and in the queries can be changed
+                        using the **units** button on the top right corner. When using the search bar,
+                        you can also specify a unit by typing the unit abbreviations, e.g. \`band_gap >=
+                        0.1 Ha\`
 
-    The result list on the right is automatically updated according to the filters
-    you have specified. You can browse through the results by scrolling through the
-    available items and loading more results as you go. Here you can also change the
-    sorting of the results, modify the displayed columns, access individual entries
-    or even download the raw data or the archive document by selecting individual
-    entries and pressing the download button that appears. The ellipsis button shown
-    for each entry will navigate you to that entry's page. This entry page will show
-    more metadata, raw files, the entry's archive, and processing logs.
-    ''',
+                        The result list on the right is automatically updated according to the filters
+                        you have specified. You can browse through the results by scrolling through the
+                        available items and loading more results as you go. Here you can also change the
+                        sorting of the results, modify the displayed columns, access individual entries
+                        or even download the raw data or the archive document by selecting individual
+                        entries and pressing the download button that appears. The ellipsis button shown
+                        for each entry will navigate you to that entry's page. This entry page will show
+                        more metadata, raw files, the entry's archive, and processing logs.
+                    '''),
                 },
                 'pagination': {
                     'order_by': 'upload_create_time',
@@ -549,6 +550,17 @@ ui = NomadConfig(
                         'published': {'label': 'Access'}
                     }
                 },
+                'rows': {
+                    'actions': {
+                        'enable': True
+                    },
+                    'details': {
+                        'enable': True
+                    },
+                    'selection': {
+                        'enable': True
+                    }
+                },
                 'filter_menus': {
                     'include': [
                         'material',
@@ -578,30 +590,189 @@ ui = NomadConfig(
                     ],
                     'exclude': [],
                     'options': {
-                        'material': {'label': 'Material', 'level': 0, 'size': 'small'},
-                        'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large'},
-                        'symmetry': {'label': 'Symmetry', 'level': 1, 'size': 'small'},
-                        'method': {'label': 'Method', 'level': 0, 'size': 'small'},
-                        'simulation': {'label': 'Simulation', 'level': 1, 'size': 'small'},
-                        'dft': {'label': 'DFT', 'level': 2, 'size': 'small'},
-                        'gw': {'label': 'GW', 'level': 2, 'size': 'small'},
+                        'material': {'label': 'Material', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large', 'menu_items': {}},
+                        'symmetry': {'label': 'Symmetry', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'method': {'label': 'Method', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'simulation': {'label': 'Simulation', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'dft': {'label': 'DFT', 'level': 2, 'size': 'small', 'menu_items': {}},
+                        'gw': {'label': 'GW', 'level': 2, 'size': 'small', 'menu_items': {}},
                         'experiment': {'label': 'Experiment', 'level': 1, 'size': 'small'},
-                        'eels': {'label': 'EELS', 'level': 2, 'size': 'small'},
+                        'eels': {'label': 'EELS', 'level': 2, 'size': 'small', 'menu_items': {}},
                         'properties': {'label': 'Properties', 'level': 0, 'size': 'small'},
-                        'electronic': {'label': 'Electronic', 'level': 1, 'size': 'small'},
-                        'optoelectronic': {'label': 'Optoelectronic', 'level': 1, 'size': 'small'},
-                        'vibrational': {'label': 'Vibrational', 'level': 1, 'size': 'small'},
-                        'mechanical': {'label': 'Mechanical', 'level': 1, 'size': 'small'},
-                        'spectroscopy': {'label': 'Spectroscopy', 'level': 1, 'size': 'small'},
-                        'thermodynamic': {'label': 'Thermodynamic', 'level': 1, 'size': 'small'},
-                        'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1, 'size': 'small'},
-                        'eln': {'label': 'Electronic Lab Notebook', 'level': 0, 'size': 'small'},
-                        'author': {'label': 'Author / Origin', 'level': 0, 'size': 'medium'},
-                        'dataset': {'label': 'Dataset', 'level': 0, 'size': 'small'},
-                        'access': {'label': 'Access', 'level': 0, 'size': 'small'},
-                        'ids': {'label': 'IDs', 'level': 0, 'size': 'small'},
-                        'processed_data_quantities': {'label': 'Processed Data Quantities', 'level': 0, 'size': 'medium'},
-                        'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium'},
+                        'electronic': {'label': 'Electronic', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'optoelectronic': {'label': 'Optoelectronic', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'vibrational': {'label': 'Vibrational', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'mechanical': {'label': 'Mechanical', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'spectroscopy': {'label': 'Spectroscopy', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'thermodynamic': {'label': 'Thermodynamic', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'eln': {'label': 'Electronic Lab Notebook', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'author': {'label': 'Author / Origin', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                        'dataset': {'label': 'Dataset', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'access': {'label': 'Access', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'ids': {'label': 'IDs', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'processed_data_quantities': {'label': 'Processed Data Quantities', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                        'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                    }
+                }
+            },
+            "materials": {
+                'label': "Materials",
+                'path': "materials",
+                'resource': 'materials',
+                'breadcrumb': "Materials search",
+                'description': "Search materials that are identified from the entries",
+                'help': {
+                    'title': 'Materials search',
+                    'content': inspect.cleandoc(r'''
+                        This page allows you to **search materials** within NOMAD. NOMAD can
+                        automatically detect the material from individual entries and can then group the
+                        data by using these detected materials. This allows you to search individual
+                        materials which have properties that are aggregated from several entries.
+
+                        The search page consists of three main elements: the filter panel, the search
+                        bar, and the result list.
+
+                        The filter panel on the left allows you to graphically explore and enter
+                        different search filters. It also gives a visual indication of the currently
+                        active search filters for each category. This is a good place to start exploring
+                        the available search filters and their meaning.
+
+                        The search bar allows you to specify filters by typing them in and pressing
+                        enter. You can also start by simply typing keywords of interest, which will
+                        toggle a list of suggestions. For numerical data you can also use range queries,
+                        e.g. \`0.0 < band_gap <= 0.1\`.
+
+                        The units used in the filter panel and in the queries can be changed
+                        using the **units** button on the top right corner. When using the search bar,
+                        you can also specify a unit by typing the unit abbreviations, e.g. \`band_gap >=
+                        0.1 Ha\`.
+
+                        Notice that by default the properties that you search can be combined from
+                        several different entries. If instead you wish to search for a material with an
+                        individual entry fullfilling your search criteria, uncheck the **combine results
+                        from several entries**-checkbox.
+
+                        The result list on the right is automatically updated according to the filters
+                        you have specified. You can scroll through the available items and load more
+                        results as you go. Here you can also change the sorting of the results, modify
+                        the displayed columns and access individual materials. The ellipsis button shown
+                        for each material will navigate you into the material overview page within the
+                        NOMAD Encyclopedia. This page will show a more detailed overview for that
+                        specific material.
+                    '''),
+                },
+                'pagination': {
+                    'order_by': 'chemical_formula_hill',
+                    'order': 'asc'
+                },
+                'columns': {
+                    'enable': [
+                        'chemical_formula_hill',
+                        'structural_type',
+                        'symmetry.structure_name',
+                        'symmetry.space_group_number',
+                        'symmetry.crystal_system',
+                    ],
+                    'include': [
+                        'chemical_formula_hill',
+                        'structural_type',
+                        'symmetry.structure_name',
+                        'symmetry.crystal_system',
+                        'symmetry.space_group_symbol',
+                        'symmetry.space_group_number',
+                        'material_id',
+                    ],
+                    'exclude': [],
+                    'options': {
+                        'chemical_formula_hill': {'label': 'Formula', 'align': 'left'},
+                        'structural_type': {'label': 'Structural type'},
+                        'symmetry.structure_name': {'label': 'Structure name'},
+                        'symmetry.crystal_system': {'label': 'Crystal system'},
+                        'symmetry.space_group_symbol': {'label': 'Space group symbol'},
+                        'symmetry.space_group_number': {'label': 'Space group number'},
+                        'material_id': {'label': 'Material ID'},
+                    }
+                },
+                'rows': {
+                    'actions': {
+                        'enable': True
+                    },
+                    'details': {
+                        'enable': False
+                    },
+                    'selection': {
+                        'enable': False
+                    }
+                },
+                'filter_menus': {
+                    'include': [
+                        'material',
+                        'elements',
+                        'symmetry',
+                        'method',
+                        'simulation',
+                        'dft',
+                        'gw',
+                        'experiment',
+                        'eels',
+                        'properties',
+                        'electronic',
+                        'optoelectronic',
+                        'vibrational',
+                        'mechanical',
+                        'spectroscopy',
+                        'thermodynamic',
+                        'geometry_optimization',
+                        'eln',
+                        'author',
+                        'dataset',
+                        'access',
+                        'ids',
+                        'processed_data_quantities',
+                        'optimade',
+                        'combine',
+                    ],
+                    'exclude': [],
+                    'options': {
+                        'material': {'label': 'Material', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large', 'menu_items': {}},
+                        'symmetry': {'label': 'Symmetry', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'method': {'label': 'Method', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'simulation': {'label': 'Simulation', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'dft': {'label': 'DFT', 'level': 2, 'size': 'small', 'menu_items': {}},
+                        'gw': {'label': 'GW', 'level': 2, 'size': 'small', 'menu_items': {}},
+                        'experiment': {'label': 'Experiment', 'level': 1, 'size': 'small'},
+                        'eels': {'label': 'EELS', 'level': 2, 'size': 'small', 'menu_items': {}},
+                        'properties': {'label': 'Properties', 'level': 0, 'size': 'small'},
+                        'electronic': {'label': 'Electronic', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'optoelectronic': {'label': 'Optoelectronic', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'vibrational': {'label': 'Vibrational', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'mechanical': {'label': 'Mechanical', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'spectroscopy': {'label': 'Spectroscopy', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'thermodynamic': {'label': 'Thermodynamic', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'eln': {'label': 'Electronic Lab Notebook', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'author': {'label': 'Author / Origin', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                        'dataset': {'label': 'Dataset', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'access': {'label': 'Access', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'ids': {'label': 'IDs', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'processed_data_quantities': {'label': 'Processed Data Quantities', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                        'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                        'combine': {
+                            'actions': {
+                                'include': ['combine'],
+                                'options': {
+                                    'combine': {
+                                        'type': 'checkbox',
+                                        'label': "Combine results from several entries",
+                                        'quantity': 'combine',
+                                        'tooltip': 'If selected, your filters may be matched from several entries that contain the same material. When unchecked, the material has to have a single entry that matches all your filters.'
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

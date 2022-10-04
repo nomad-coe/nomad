@@ -27,6 +27,7 @@ import {
 } from '../datatable/Datatable'
 import EntryDownloadButton from '../entry/EntryDownloadButton'
 import EntryDetails, { EntryRowActions } from '../entry/EntryDetails'
+import { MaterialRowActions } from '../material/MaterialDetails'
 import { pluralize, formatInteger } from '../../utils'
 import { useSearchContext } from './SearchContext'
 
@@ -34,7 +35,7 @@ import { useSearchContext } from './SearchContext'
  * Displays the list of search results.
  */
 const SearchResults = React.memo(function SearchResults() {
-  const {columns, useResults, useQuery} = useSearchContext()
+  const {columns, resource, rows, useResults, useQuery} = useSearchContext()
   const {data, pagination, setPagination} = useResults()
   const searchQuery = useQuery()
   const [selected, setSelected] = useState([])
@@ -60,6 +61,18 @@ const SearchResults = React.memo(function SearchResults() {
     return <Typography>searching ...</Typography>
   }
 
+  // Select components based on the targeted resource
+  let details
+  let actions
+  let buttons
+  if (resource === "entries") {
+    details = EntryDetails
+    actions = EntryRowActions
+    buttons = <EntryDownloadButton tooltip="Download files" query={query} />
+  } else if (resource === "materials") {
+    actions = MaterialRowActions
+  }
+
   return <Paper>
     <Datatable
       data={data}
@@ -67,15 +80,20 @@ const SearchResults = React.memo(function SearchResults() {
       onPaginationChanged={setPagination}
       columns={columns?.options}
       shownColumns={columns?.enable}
-      selected={selected}
-      onSelectedChanged={setSelected}
+      selected={rows?.selection?.enable ? selected : undefined}
+      onSelectedChanged={rows?.selection?.enable ? setSelected : undefined}
     >
       <DatatableToolbar title={`${formatInteger(data.length)}/${pluralize('result', pagination.total, true, true, 'search')}`}>
-        <DatatableToolbarActions selection>
-          <EntryDownloadButton tooltip="Download files" query={query} />
-        </DatatableToolbarActions>
+        {rows?.selection?.enable &&
+          <DatatableToolbarActions selection>
+            {buttons}
+          </DatatableToolbarActions>
+        }
       </DatatableToolbar>
-      <DatatableTable actions={EntryRowActions} details={EntryDetails}>
+      <DatatableTable
+        actions={rows?.actions?.enable ? actions : undefined}
+        details={rows?.details?.enable ? details : undefined}
+      >
         <DatatableLoadMorePagination color="primary">load more</DatatableLoadMorePagination>
       </DatatableTable>
     </Datatable>

@@ -31,6 +31,7 @@ material_h2o = {
     'chemical_formula_reduced': 'CH3',
 }
 material_high_entropy_alloy = {
+    'material_id': 'aLzu5XmhATsTfEA4sGIiL45caCMq',
     'structural_type': 'bulk',
     'elements': ['Hf', 'Nb', 'Ta', 'Ti', 'Zr'],
     'chemical_formula_hill': 'HfNbTaTiZr',
@@ -39,6 +40,7 @@ material_high_entropy_alloy = {
     'chemical_formula_reduced': 'HfNbTaTiZr',
 }
 material_graphene = {
+    'material_id': 'jPcWsq-Rb0gtgx2krJDmLvQUxpcL',
     'structural_type': '2D',
     'elements': ['C'],
     'chemical_formula_hill': 'C',

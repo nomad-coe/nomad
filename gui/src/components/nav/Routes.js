@@ -202,6 +202,7 @@ const searchRoutes = ui?.search_contexts?.include
             resource={context.resource}
             initialPagination={context.pagination}
             initialColumns={context.columns}
+            initialRows={context.rows}
             initialFilterMenus={context.filter_menus}
           >
             <SearchPage/>
@@ -568,20 +569,24 @@ UploadButton.propTypes = {
  * @param {string} materialId
  * @param {elementType} component The component to use to render the button. Default is Button.
  */
-export const MaterialButton = ({materialId, component, tooltip, ...rest}) => {
+export const MaterialButton = React.forwardRef(({materialId, component, tooltip, ...rest}, ref) => {
   const href = `${encyclopediaBase}/material/${materialId}`
   const props = component
     ? {href: href, ...rest}
     : {href: href, color: 'primary', ...rest}
-  const comp = React.createElement(component || Button, props)
+  const comp = React.createElement(component || Button, {...props, ref})
 
+  // The portal is disabled for this tooltip because this button causes a
+  // navigation that otherwise leaves the popup opened (the Tooltip state does
+  // not get updated since the page is cached and a new page is shown
+  // immediately).
   if (tooltip) {
-    return <Tooltip title={tooltip}>
+    return <Tooltip title={tooltip} PopperProps={{disablePortal: true}}>
       {comp}
     </Tooltip>
   }
   return comp
-}
+})
 
 MaterialButton.propTypes = {
   materialId: PropTypes.string.isRequired,

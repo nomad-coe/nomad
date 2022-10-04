@@ -169,11 +169,17 @@ def pagination_test_parameters(elements: str, n_elements: str, crystal_system: s
     ]
 
 
-def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_prefix: str, total: int):
+def quantity(name, resource):
+    material_prefix = 'results.material.'
+    if name.startswith(material_prefix) and resource == 'materials':
+        name = name[len(material_prefix):]
+    elif resource == "materials":
+        name = f'entries.{name}'
+    return name
+
+
+def aggregation_test_parameters(entity_id: str, resource: str, total: int):
     n_code_names = results.Simulation.program_name.a_elasticsearch[0].default_aggregation_size
-    program_name = f'{entry_prefix}results.method.simulation.program_name'
-    n_calculations = f'{entry_prefix}results.properties.n_calculations'
-    upload_create_time = f'{entry_prefix}upload_create_time'
 
     return [
         pytest.param(
@@ -183,39 +189,39 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             3, 3, 200, 'test_user', id='statistics'
         ),
         pytest.param(
-            {'terms': {'quantity': f'{entry_prefix}upload_id'}},
+            {'terms': {'quantity': quantity('upload_id', resource)}},
             8, 8, 200, 'test_user', id='default'),
         pytest.param(
             {
                 'terms': {
-                    'quantity': f'{entry_prefix}upload_id',
-                    'pagination': {'order_by': f'{entry_prefix}main_author.user_id'}
+                    'quantity': quantity('upload_id', resource),
+                    'pagination': {'order_by': quantity('main_author.user_id', resource)}
                 }
             },
             8, 8, 200, 'test_user', id='order-str'),
         pytest.param(
             {
                 'terms': {
-                    'quantity': f'{entry_prefix}upload_id',
-                    'pagination': {'order_by': upload_create_time}
+                    'quantity': quantity('upload_id', resource),
+                    'pagination': {'order_by': quantity('upload_create_time', resource)}
                 }
             },
             8, 8, 200, 'test_user', id='order-date'),
         pytest.param(
             {
                 'terms': {
-                    'quantity': f'{entry_prefix}upload_id',
-                    'pagination': {'order_by': f'{entry_prefix}results.properties.n_calculations'}
+                    'quantity': quantity('upload_id', resource),
+                    'pagination': {'order_by': quantity('results.properties.n_calculations', resource)}
                 }
             },
             8, 8, 200, 'test_user', id='order-int'),
         pytest.param(
-            {'terms': {'quantity': f'{material_prefix}symmetry.structure_name'}},
+            {'terms': {'quantity': quantity('results.material.symmetry.structure_name', resource)}},
             0, 0, 200, 'test_user', id='no-results'),
         pytest.param(
             {
                 'terms': {
-                    'quantity': f'{entry_prefix}upload_id',
+                    'quantity': quantity('upload_id', resource),
                     'pagination': {'page_after_value': 'id_published'}
                 }
             },
@@ -223,44 +229,44 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
         pytest.param(
             {
                 'terms': {
-                    'quantity': f'{entry_prefix}upload_id',
+                    'quantity': quantity('upload_id', resource),
                     'pagination': {
-                        'order_by': f'{entry_prefix}main_author.name',
+                        'order_by': quantity('main_author.name', resource),
                         'page_after_value': 'Sheldon Cooper:id_published'
                     }
                 }
             },
             8, 3, 200, 'test_user', id='after-order'),
         pytest.param(
-            {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10}}},
+            {'terms': {'quantity': quantity('upload_id', resource), 'entries': {'size': 10}}},
             8, 8, 200, 'test_user', id='entries'),
         pytest.param(
-            {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 1}}},
+            {'terms': {'quantity': quantity('upload_id', resource), 'entries': {'size': 1}}},
             8, 8, 200, 'test_user', id='entries-size'),
         pytest.param(
-            {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 0}}},
+            {'terms': {'quantity': quantity('upload_id', resource), 'entries': {'size': 0}}},
             -1, -1, 422, 'test_user', id='bad-entries'),
         pytest.param(
             {
                 'terms': {
-                    'quantity': f'{entry_prefix}upload_id',
+                    'quantity': quantity('upload_id', resource),
                     'entries': {
                         'size': 10,
                         'required': {
-                            'include': [f'{entry_prefix}entry_id', f'{entry_prefix}main_author.*']
+                            'include': [quantity('entry_id', resource), quantity('main_author.*', resource)]
                         }
                     }
                 }
             },
             8, 8, 200, 'test_user', id='entries-include'),
         pytest.param(
-            {'terms': {'quantity': program_name}},
+            {'terms': {'quantity': quantity('results.method.simulation.program_name', resource)}},
             n_code_names, n_code_names, 200, None, id='fixed-values'),
         pytest.param(
-            {'terms': {'quantity': program_name, 'metrics': ['n_uploads']}},
+            {'terms': {'quantity': quantity('results.method.simulation.program_name', resource), 'metrics': ['n_uploads']}},
             n_code_names, n_code_names, 200, None, id='metrics'),
         pytest.param(
-            {'terms': {'quantity': program_name, 'metrics': ['does not exist']}},
+            {'terms': {'quantity': quantity('results.method.simulation.program_name', resource), 'metrics': ['does not exist']}},
             -1, -1, 422, None, id='bad-metric'),
         pytest.param(
             {'terms': {'quantity': entity_id, 'size': 1000}},
@@ -280,7 +286,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
         pytest.param(
             {
                 'terms': {
-                    'quantity': f'{entry_prefix}upload_id',
+                    'quantity': quantity('upload_id', resource),
                     'pagination': {'order': 'asc'}
                 }
             },
@@ -289,67 +295,62 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             {'terms': {'quantity': 'does not exist'}},
             -1, -1, 422, None, id='bad-quantity'),
         pytest.param(
-            {'date_histogram': {'quantity': upload_create_time}},
+            {'date_histogram': {'quantity': quantity('upload_create_time', resource)}},
             1, 1, 200, 'test-user', id='date-histogram'
         ),
         pytest.param(
-            {'date_histogram': {'quantity': upload_create_time, 'metrics': ['n_uploads']}},
+            {'date_histogram': {'quantity': quantity('upload_create_time', resource), 'metrics': ['n_uploads']}},
             1, 1, 200, 'test-user', id='date-histogram-metrics'
         ),
         pytest.param(
-            {'date_histogram': {'quantity': upload_create_time, 'interval': '1s'}},
+            {'date_histogram': {'quantity': quantity('upload_create_time', resource), 'interval': '1s'}},
             1, 1, 200, 'test-user', id='date-histogram-interval'
         ),
         pytest.param(
-            {'date_histogram': {'quantity': 'upload_id'}},
+            {'date_histogram': {'quantity': quantity('upload_id', resource)}},
             -1, -1, 422, 'test-user', id='date-histogram-no-date'
         ),
         pytest.param(
-            {'date_histogram': {'quantity': 'upload_id', 'interval': '1xy'}},
+            {'date_histogram': {'quantity': quantity('upload_id', resource), 'interval': '1xy'}},
             -1, -1, 422, 'test-user', id='date-histogram-bad-interval'
         ),
         pytest.param(
-            {'histogram': {'quantity': n_calculations, 'interval': 1}},
-            1, 1, 200, None, id='histogram'
+            {'histogram': {'quantity': quantity('results.properties.n_calculations', resource), 'interval': 1}},
+            1, 1, 200, None, id='histogram-interval'
         ),
         pytest.param(
-            {'histogram': {'quantity': n_calculations, 'interval': 1, 'metrics': ['n_uploads']}},
+            {'histogram': {'quantity': quantity('results.properties.n_calculations', resource), 'interval': 1, 'metrics': ['n_uploads']}},
             1, 1, 200, None, id='histogram-metric'
         ),
         pytest.param(
-            {'histogram': {'quantity': n_calculations}},
+            {'histogram': {'quantity': quantity('upload_create_time', resource), 'buckets': 10}},
+            1, 1, 200, 'test-user', id='histogram-buckets'
+        ),
+        pytest.param(
+            {'histogram': {'quantity': quantity('results.properties.n_calculations', resource)}},
             -1, -1, 422, None, id='histogram-no-interval-or-buckets'
         ),
         pytest.param(
-            {'histogram': {'quantity': 'upload_id'}},
+            {'histogram': {'quantity': quantity('upload_id', resource)}},
             -1, -1, 422, None, id='histogram-no-number'
         ),
         pytest.param(
-            {'min_max': {'quantity': n_calculations}},
+            {'min_max': {'quantity': quantity('results.properties.n_calculations', resource)}},
             1, 1, 200, None, id='min-max'
         ),
         pytest.param(
-            {'min_max': {'quantity': 'upload_id'}},
+            {'min_max': {'quantity': quantity('upload_id', resource)}},
             -1, -1, 422, None, id='min-max-no-number'
         ),
     ]
 
 
 def aggregation_exclude_from_search_test_parameters(resource: str, total_per_entity: int, total: int):
-    if resource == "materials":
-        entry_prefix = "entries."
-        material_prefix = ""
-    elif resource == "entries":
-        entry_prefix = ""
-        material_prefix = "results.material."
-    else:
-        raise ValueError("invalid resource")
-
-    entry_id = f'{entry_prefix}entry_id'
-    upload_id = f'{entry_prefix}upload_id'
-    program_name = f'{entry_prefix}results.method.simulation.program_name'
-    n_elements = f'{material_prefix}n_elements'
-    band_gap = f'{entry_prefix}results.properties.electronic.band_structure_electronic.band_gap.value'
+    entry_id = quantity('entry_id', resource)
+    upload_id = quantity('upload_id', resource)
+    program_name = quantity('results.method.simulation.program_name', resource)
+    n_elements = quantity('results.material.n_elements', resource)
+    band_gap = quantity('results.properties.electronic.band_structure_electronic.band_gap.value', resource)
 
     def make_aggs(aggs):
         """Given a list of aggregation definitions, returns the API-compatible
