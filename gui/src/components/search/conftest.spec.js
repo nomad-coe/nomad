@@ -19,10 +19,11 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import assert from 'assert'
-import { waitFor } from '@testing-library/dom'
+import { within, waitFor } from '@testing-library/dom'
 import elementData from '../../elementData.json'
 import { screen, WrapperDefault } from '../conftest.spec'
 import { render } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { SearchContext } from './SearchContext'
 import { filterData } from './FilterRegistry'
 import { format } from 'date-fns'
@@ -214,13 +215,45 @@ export async function expectFilterMainMenu(context, root = screen) {
     // Check that menu title is displayed
     expect(screen.getByText(`${context.resource} search`)).toBeInTheDocument()
 
-    // Check that menu items are displayed
+    // Check that menu item labels are displayed
     const menuConfig = context.filter_menus
-    const menus = menuConfig.include
+    const menuItems = menuConfig.include
       .filter(key => !menuConfig.exclude.includes(key))
-      .map(key => menuConfig.options[key].label)
-    for (const menu of menus) {
-      expect(screen.getByText(menu, {selector: 'span'})).toBeInTheDocument()
+      .map(key => ({key, ...menuConfig.options[key]}))
+    for (const menuItem of menuItems) {
+      const label = menuItem.label
+      if (label) {
+        const labelElement = screen.getByTestId(`menu-item-label-${menuItem.key}`)
+        expect(labelElement).toBeInTheDocument()
+        expect(within(labelElement).getByText(label)).toBeInTheDocument()
+      }
+    }
+
+    // Check that action labels are displayed
+    const actionItems = []
+    for (const menuItem of menuItems) {
+      for (const key of menuItem?.actions?.include || []) {
+        actionItems.push(menuItem.actions.options[key])
+      }
+    }
+    for (const actionItem of actionItems) {
+      const actionLabel = actionItem.label
+      if (actionLabel) {
+        const labelElement = screen.getByText(actionLabel)
+        expect(labelElement).toBeInTheDocument()
+        expect(within(labelElement).getByText(actionLabel)).toBeInTheDocument()
+      }
+    }
+
+    // Check that clicking the menu items with a submenu opens up the menu
+    for (const menuItem of menuItems) {
+      if (menuItem.menu_items) {
+        const labelMenu = screen.getByTestId(`menu-item-label-${menuItem.key}`)
+        const labelSubMenu = await screen.findByTestId(`filter-menu-header-${menuItem.key}`)
+        expect(labelSubMenu).not.toBeVisible()
+        await userEvent.click(labelMenu)
+        expect(labelSubMenu).toBeVisible()
+      }
     }
 }
 
@@ -235,8 +268,8 @@ export async function expectSearchResults(context, root = screen) {
 
     // Check that correct columns are displayed
     const columnConfig = context.columns
-    const columns = columnConfig.enable.map(key => columnConfig.options[key].label)
-    for (const column of columns) {
-      expect(screen.getByText(column)).toBeInTheDocument()
+    const columnLabels = columnConfig.enable.map(key => columnConfig.options[key].label)
+    for (const columnLabel of columnLabels) {
+      expect(screen.getByText(columnLabel)).toBeInTheDocument()
     }
 }

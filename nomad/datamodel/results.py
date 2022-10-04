@@ -36,7 +36,6 @@ from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
     material_type,
     material_entry_type,
-    entry_type as search_entry_type,
     get_tokenizer
 )
 
@@ -2323,7 +2322,7 @@ class ELN(MSection):
             The type of sections used in entries to search for. By default these are the names
             of the used section definitions.
         ''',
-        a_elasticsearch=Elasticsearch(search_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     tags = Quantity(
         type=str, shape=['*'],
@@ -2331,7 +2330,7 @@ class ELN(MSection):
             Short tags that are useful to quickly search based on various
             user defined criteria.
         ''',
-        a_elasticsearch=Elasticsearch(search_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     names = Quantity(
         type=str, shape=['*'],
@@ -2339,14 +2338,14 @@ class ELN(MSection):
             Short human readable and descriptive names that appear in
             ELN entries.
         ''',
-        a_elasticsearch=Elasticsearch(search_entry_type, mapping='text'))
+        a_elasticsearch=Elasticsearch(material_entry_type, mapping='text'))
 
     descriptions = Quantity(
         type=str, shape=['*'],
         description='''
             'Human descriptions that appear in ELN entries.
         ''',
-        a_elasticsearch=Elasticsearch(search_entry_type, mapping='text'))
+        a_elasticsearch=Elasticsearch(material_entry_type, mapping='text'))
 
     instruments = Quantity(
         type=str, shape=['*'],
@@ -2354,14 +2353,14 @@ class ELN(MSection):
             The name or type of instrument used in an activity, e.g. process or
             measurement.
         ''',
-        a_elasticsearch=Elasticsearch(search_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     methods = Quantity(
         type=str, shape=['*'],
         description='''
             The name or the applied method in an activity, e.g. process or measurement
         ''',
-        a_elasticsearch=Elasticsearch(search_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     lab_ids = Quantity(
         type=str, shape=['*'],
@@ -2369,7 +2368,7 @@ class ELN(MSection):
             The laboratory specific id for any item, e.g. sample, chemical, instrument.
         ''',
         a_elasticsearch=[
-            Elasticsearch(search_entry_type),
+            Elasticsearch(material_entry_type),
             Elasticsearch(suggestion='default')])
 
 

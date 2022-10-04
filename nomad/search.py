@@ -363,10 +363,10 @@ class QueryValidationError(Exception):
 
 
 def validate_quantity(
-        quantity_name: str, value: Value = None, doc_type: DocumentType = None,
+        quantity_name: str, doc_type: DocumentType = None,
         loc: List[str] = None) -> SearchQuantity:
     '''
-    Validates the given quantity name and value against the given document type.
+    Validates the given quantity name against the given document type.
 
     Returns:
         A metainfo elasticsearch extension SearchQuantity object.
@@ -558,7 +558,7 @@ def validate_api_query(
                     loc=[name])
 
         # TODO non keyword quantities, type checks
-        quantity = validate_quantity(name, value, doc_type=doc_type)
+        quantity = validate_quantity(name, doc_type=doc_type)
         normalizer = quantity.annotation.normalizer
         if normalizer:
             value = normalizer(value)
@@ -581,7 +581,7 @@ def validate_api_query(
         elif isinstance(value, models.Range):
             if prefix is not None:
                 name = f'{prefix}.{name}'
-            quantity = validate_quantity(name, None, doc_type=doc_type)
+            quantity = validate_quantity(name, doc_type=doc_type)
             return Q('range', **{quantity.search_field: value.dict(
                 exclude_unset=True,
             )})
@@ -1089,7 +1089,7 @@ def _buckets_to_interval(
             max_value = extended_bounds.max if max_value is None else max(max_value, extended_bounds.max)
         if min_value is not None and max_value is not None:
             interval = 0 if max_value == min_value else ((1 + 1e-8) * max_value - min_value) / agg.buckets
-            quantity = index.doc_type.quantities.get(agg.quantity)
+            quantity = validate_quantity(agg.quantity, doc_type=index.doc_type)
             # Discretized fields require a 'ceiled' interval in order to not
             # return bins with floating point values and in order to prevent
             # binning inaccuracies

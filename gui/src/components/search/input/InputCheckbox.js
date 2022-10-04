@@ -38,6 +38,10 @@ const useStyles = makeStyles(theme => ({
     boxSizing: 'border-box'
   }
 }))
+
+/**
+ * A checkbox where the selection controls a true/false value within a quantity.
+ */
 const InputCheckbox = React.memo(({
   quantity,
   label,
@@ -90,6 +94,9 @@ InputCheckbox.propTypes = {
 
 export default InputCheckbox
 
+/**
+ * A checkbox where the selection activates a specific value within a quantity.
+ */
 const useInputCheckboxValueStyles = makeStyles(theme => ({
   root: {
     '& > :last-child': {

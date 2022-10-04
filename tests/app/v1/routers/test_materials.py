@@ -31,7 +31,7 @@ from .common import (
 from tests.conftest import example_data  # pylint: disable=unused-import
 
 '''
-These are the tests for all API operations below ``entries``. The tests are organized
+These are the tests for all API operations below ``materials``. The tests are organized
 using the following type of methods: fixtures, ``perform*_test``, ``assert_*``, and
 ``test_*``. While some ``test_*`` methods test individual API operations, some
 test methods will test multiple API operations that use common aspects like
@@ -52,7 +52,8 @@ program_name = 'entries.results.method.simulation.program_name'
 @pytest.mark.parametrize(
     'aggregation, total, size, status_code, user',
     aggregation_test_parameters(
-        entity_id='material_id', material_prefix='', entry_prefix='entries.', total=6))
+        entity_id='material_id', resource='materials', total=6
+    ))
 def test_materials_aggregations(client, example_data, test_user_auth, aggregation, total, size, status_code, user):
     headers = {}
     if user == 'test_user':

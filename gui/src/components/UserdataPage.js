@@ -80,6 +80,7 @@ const UserdataPage = React.memo(() => {
     resource={context?.resource}
     initialPagination={context?.pagination}
     initialColumns={context?.columns}
+    initialRows={context?.rows}
     initialFilterMenus={context?.filter_menus}
     filtersLocked={filtersLocked}
   >

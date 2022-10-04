@@ -57,8 +57,7 @@ import {
   filterData as filterDataGlobal,
   filterAbbreviations,
   filterFullnames,
-  materialNames,
-  entryNames
+  materialNames
 } from './FilterRegistry'
 
 /**
@@ -102,6 +101,7 @@ export const SearchContext = React.memo(({
   resource,
   filtersLocked,
   initialColumns,
+  initialRows,
   initialFilterMenus,
   initialPagination,
   initialStatistics,
@@ -186,12 +186,27 @@ export const SearchContext = React.memo(({
     }
   }, [initialColumns])
 
+  // The final row setup
+  const rows = useMemo(() => {
+    return initialRows || undefined
+  }, [initialRows])
+
   // The final filtered set of menus
   const filterMenus = useMemo(() => {
-    return initialFilterMenus?.include
-      ? initialFilterMenus.include
-        .filter(key => !initialFilterMenus.exclude.includes(key))
-        .map(key => ({key, ...initialFilterMenus.options[key]}))
+    const filterMenus = cloneDeep(initialFilterMenus)
+    return filterMenus?.include
+      ? filterMenus.include
+        .filter(key => !filterMenus?.exclude?.includes(key))
+        .map(key => {
+          const data = filterMenus.options[key]
+          if (data.actions) {
+            const actions = data.actions
+            data.actions = actions.include
+              .filter(action => !actions?.exclude?.includes(action))
+              .map(action => ({key, ...actions.options[action]}))
+          }
+          return {key, ...data}
+        })
       : undefined
   }, [initialFilterMenus])
 
@@ -1077,6 +1092,7 @@ export const SearchContext = React.memo(({
     return {
       resource,
       columns,
+      rows,
       filterMenus,
       useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
       useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
@@ -1110,6 +1126,7 @@ export const SearchContext = React.memo(({
     }
   }, [
     resource,
+    rows,
     columns,
     filterMenus,
     useFilterValue,
@@ -1152,6 +1169,7 @@ SearchContext.propTypes = {
   resource: PropTypes.string,
   filtersLocked: PropTypes.object,
   initialColumns: PropTypes.object,
+  initialRows: PropTypes.object,
   initialFilterMenus: PropTypes.object,
   initialPagination: PropTypes.object,
   initialStatistics: PropTypes.object,
@@ -1526,20 +1544,27 @@ export function toGUIFilterSingle(key, value, units = undefined, path = undefine
 function toAPIAgg(aggs, resource) {
   const apiAggs = {}
   for (const [key, agg] of Object.entries(aggs)) {
-    const filter_name = key.split(':')[0]
+    const filterName = key.split(':')[0]
     if (agg.update) {
-      const exclusive = filterDataGlobal[filter_name].exclusive
+      const exclusive = filterDataGlobal[filterName].exclusive
       const type = agg.type
-      const name = resource === 'materials' ? materialNames[filter_name] : filter_name
-      const apiAgg = apiAggs[name] || {}
+      const apiAgg = apiAggs[key] || {}
       const aggSet = agg.set
       const finalAgg = aggSet ? aggSet(agg) : agg
+      const quantity = finalAgg.quantity || filterName
+
+      // The targeted quantity is decided based on the resource as materials
+      // search need to target slightly different fields.
+      const finalQuantity = resource === 'materials'
+        ? materialNames[quantity]
+        : quantity
+
       apiAgg[type] = {
-        quantity: name,
         // Exclusive quantities (quantities that have one value per entry) are
         // always fetched with exclude_from_search
         exclude_from_search: exclusive,
-        ...finalAgg
+        ...finalAgg,
+        quantity: finalQuantity
       }
       apiAggs[key] = apiAgg
     }
@@ -1562,27 +1587,14 @@ function toGUIAgg(aggs, aggsToUpdate, resource) {
   if (isEmpty(aggs)) {
     return {}
   }
-  // Modify keys according to target resource (entries/materials).
-  let aggsNormalized
-  if (resource === 'materials') {
-    aggsNormalized = {}
-    for (const key of Object.keys(aggs)) {
-      const filter_name = key.split(':')[0]
-      const name = resource === 'materials' ? entryNames[filter_name] : filter_name
-      aggs[key].quantity = name
-      aggsNormalized[key] = aggs[key]
-    }
-  } else {
-    aggsNormalized = aggs
-  }
 
   // Perform custom transformations
   const aggsCustomized = {}
   for (const key of aggsToUpdate) {
     const filter_name = key.split(':')[0]
-    aggs = aggsNormalized[key]
-    if (!isNil(aggs)) {
-      for (const [type, agg] of Object.entries(aggs)) {
+    const aggConfig = aggs[key]
+    if (!isNil(aggConfig)) {
+      for (const [type, agg] of Object.entries(aggConfig)) {
         const aggGet = filterDataGlobal[filter_name]?.aggs?.[type].get
         const aggFinal = aggGet ? aggGet(agg) : agg
         // Add flag for if all terms have been returned, and the total number of

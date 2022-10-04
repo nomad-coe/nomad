@@ -64,6 +64,7 @@ const DatasetPage = React.memo(({match}) => {
       resource={context?.resource}
       initialPagination={context?.pagination}
       initialColumns={context?.columns}
+      initialRows={context?.rows}
       initialFilterMenus={context?.filter_menus}
       filtersLocked={datasetFilter}
     >
