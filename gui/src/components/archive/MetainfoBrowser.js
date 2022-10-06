@@ -306,7 +306,12 @@ const Metainfo = React.memo(function Metainfo(props) {
         <Typography>Entry</Typography>
       </Item>
     </Compartment>
-    <Compartment title="other root sections">
+    <Compartment title="sources">
+      {Object.keys(globalMetainfo.getPackagePrefixes()).map(key => <Item key={key} itemKey={key}>
+        <Typography>{key.replace(/parser$/, '')}</Typography>
+      </Item>)}
+    </Compartment>
+    <Compartment title="other root sections" startCollapsed>
       {globalMetainfo.getRootSectionDefinitions().filter(def => def.name !== 'EntryArchive').map((def, i) => (
         <Item key={i} itemKey={def._qualifiedName}>
           <Typography>
@@ -314,11 +319,6 @@ const Metainfo = React.memo(function Metainfo(props) {
           </Typography>
         </Item>
       ))}
-    </Compartment>
-    <Compartment title="sources">
-      {Object.keys(globalMetainfo.getPackagePrefixes()).map(key => <Item key={key} itemKey={key}>
-        <Typography>{key.replace(/parser$/, '')}</Typography>
-      </Item>)}
     </Compartment>
   </Content>
 })
@@ -477,11 +477,12 @@ function SectionDefContent({def, inheritingSections}) {
       </Compartment>
     }
     <Compartment title="sub section definitions">
-      {def.sub_sections.filter(filter)
+      {def._allProperties.filter(prop => prop.m_def === SubSectionMDef).filter(filter)
         .map(subSectionDef => {
           const key = subSectionDef.name
           const categories = subSectionDef.categories
           const unused = categories?.find(c => c.name === 'Unused')
+          const inherited = subSectionDef._parent !== def
           return <Item key={key} itemKey={key}>
             <Typography component="span" color={unused && 'error'}>
               <Box fontWeight="bold" component="span">
@@ -489,7 +490,7 @@ function SectionDefContent({def, inheritingSections}) {
               </Box>
               {subSectionDef.repeats && <ItemChip label="repeats"/>}
               {subSectionDef._overwritten && <ItemChip label="overwritten" />}
-              {subSectionDef._inherited && <ItemChip label="inherited" />}
+              {inherited && <ItemChip label="inherited" />}
             </Typography>
           </Item>
         })
@@ -501,6 +502,7 @@ function SectionDefContent({def, inheritingSections}) {
           const key = quantityDef.name
           const categories = quantityDef.categories
           const unused = categories?.find(c => c.name === 'Unused')
+          const inherited = quantityDef._parent !== def
           return <Item key={key} itemKey={key}>
             <Box component="span" whiteSpace="nowrap">
               <Typography component="span" color={unused && 'error'}>
@@ -509,7 +511,7 @@ function SectionDefContent({def, inheritingSections}) {
                 </Box>
               </Typography>
               {quantityDef._overwritten && <ItemChip label="overwritten" />}
-              {quantityDef._inherited && <ItemChip label="inherited" />}
+              {inherited && <ItemChip label="inherited" />}
             </Box>
           </Item>
         })

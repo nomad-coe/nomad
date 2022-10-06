@@ -362,17 +362,11 @@ export class Metainfo {
       return (sectionDef) => {
         function createAddProperty(m_def) {
           return (property) => {
-            const propertyToAdd = inherited ? {} : property
-            if (inherited) {
-              Object.assign(propertyToAdd, property)
-              propertyToAdd._inherited = true
-            } else {
-              if (results[property.name]) {
-                propertyToAdd._overwritten = true
-              }
+            if (!inherited && results[property.name]) {
+                property._overwritten = true
             }
             property.m_def = m_def
-            results[property.name] = propertyToAdd
+            results[property.name] = property
           }
         }
         sectionDef.quantities.forEach(createAddProperty(QuantityMDef))
