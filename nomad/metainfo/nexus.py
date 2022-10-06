@@ -575,13 +575,19 @@ def __create_package_from_nxdl_directories(nexus_section: Section) -> Package:
     paths = [os.path.join(
         nexus.get_nexus_definitions_path(), folder) for folder in folder_list]
 
+    sections = []
     for nxdl_file in __sort_nxdl_files(paths):
         section = __add_section_from_nxdl(nxdl_file)
-        if section is None:
-            continue
+        if section is not None:
+            sections.append(section)
+
+    sections.sort(key=lambda x: x.name)
+
+    for section in sections:
         package.section_definitions.append(section)
-        nexus_section.sub_sections.append(
-            SubSection(section_def=section, name=section.name))
+        if section.nx_category == 'application':
+            nexus_section.sub_sections.append(
+                SubSection(section_def=section, name=section.name))
 
     return package
 
