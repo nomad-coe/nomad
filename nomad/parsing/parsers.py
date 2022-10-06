@@ -29,7 +29,6 @@ from nomad.datamodel.context import Context, ClientContext
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 from .tabular import TabularDataParser
-from .nexus import NexusParser
 
 
 try:
@@ -587,7 +586,13 @@ parsers = [
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_contents_re=r'openkim|OPENKIM|OpenKIM'
     ),
-    NexusParser(),
+    MatchingParserInterface(
+        'nomad.parsing.nexus.NexusParser',
+        metadata_path=os.path.join(os.path.dirname(__file__), 'metadata.yaml'),
+        mainfile_mime_re=r'(application/.*)|(text/.*)',
+        mainfile_name_re=r'.*\.nxs',
+        supported_compressions=['gz', 'bz2', 'xz']),
+
     TabularDataParser(),
     ArchiveParser()
 ]

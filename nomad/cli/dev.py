@@ -65,11 +65,50 @@ def gui_qa(skip_tests: bool):
     sys.exit(ret_code)
 
 
+@dev.command(help=(
+    'Generates all python-based GUI artifacts: metainfo.json, searchQuantities.json, '
+    'unitsData.js, parserMetadata.json, toolkitMetadata.json, exampleUploads.json, '
+    'and northTools.json.'))
+@click.option(
+    '--output-directory', type=str, default='gui/src',
+    help='The output directory for generated files. Default is gui/src')
+def gui_artifacts(output_directory):
+    all_metainfo_packages = _all_metainfo_packages()
+
+    with open(os.path.join(output_directory, 'searchQuantities.json'), 'wt') as f:
+        json.dump(_generate_search_quantities(), f, indent=2)
+
+    with open(os.path.join(output_directory, 'metainfo.json'), 'wt') as f:
+        json.dump(_generate_metainfo(all_metainfo_packages), f, indent=2)
+
+    with open(os.path.join(output_directory, 'parserMetadata.json'), 'wt') as f:
+        from nomad.parsing.parsers import code_metadata
+        json.dump(code_metadata, f, indent=2, sort_keys=True)
+
+    with open(os.path.join(output_directory, 'toolkitMetadata.json'), 'wt') as f:
+        json.dump(_generate_toolkit_metadata(), f, indent=2)
+
+    with open(os.path.join(output_directory, 'unitsData.js'), 'wt') as f:
+        f.write(_generate_units(all_metainfo_packages))
+        f.write('\n')
+
+    with open(os.path.join(output_directory, 'exampleUploads.json'), 'wt') as f:
+        json.dump(_generate_example_upload_metadata(), f, indent=2)
+
+    import shutil
+    shutil.copyfile(
+        'dependencies/nomad-remote-tools-hub/tools.json',
+        os.path.join(output_directory, 'northTools.json'))
+
+
+def _generate_metainfo(all_metainfo_packages):
+    return all_metainfo_packages.m_to_dict(with_meta=True)
+
+
 @dev.command(help='Generates a JSON with all metainfo.')
 def metainfo():
     export = _all_metainfo_packages()
-    metainfo_data = export.m_to_dict(with_meta=True)
-    print(json.dumps(metainfo_data, indent=2))
+    print(json.dumps(_generate_metainfo(export), indent=2))
 
 
 def _all_metainfo_packages():
@@ -84,9 +123,6 @@ def _all_metainfo_packages():
     # Create the ES mapping to populate ES annoations with search keys.
     from nomad.search import entry_type
     entry_type.create_mapping(EntryArchive.m_def)
-
-    # TODO this is otherwise not imported and will add nexus to the Package.registry
-    from nomad.metainfo import nexus  # pylint: disable=unused-import
 
     # TODO we call __init_metainfo__() for all packages where this has been forgotten
     # by the package author. Ideally this would not be necessary and we fix the
@@ -103,9 +139,7 @@ def _all_metainfo_packages():
     return export
 
 
-@dev.command(help='Generates a JSON with all search quantities.')
-def search_quantities():
-    _all_metainfo_packages()
+def _generate_search_quantities():
     # Currently only quantities with "entry_type" are included.
     from nomad.metainfo.elasticsearch_extension import entry_type, Elasticsearch
     from nomad.datamodel import EntryArchive
@@ -153,7 +187,13 @@ def search_quantities():
             get_sections(sub_section_def.sub_section, full_name, repeats_child)
     get_sections(EntryArchive.results.sub_section, 'results')
 
-    print(json.dumps(export, indent=2))
+    return export
+
+
+@dev.command(help='Generates a JSON with all search quantities.')
+def search_quantities():
+    _all_metainfo_packages()
+    print(json.dumps(_generate_search_quantities(), indent=2))
 
 
 @dev.command(help='Generates a JSON file that compiles all the parser metadata from each parser project.')
@@ -203,20 +243,18 @@ def gui_config():
     print(get_gui_config())
 
 
+def _generate_example_upload_metadata():
+    import yaml
+    with open('examples/data/uploads/example_uploads.yml') as infile:
+        return yaml.load(infile, Loader=yaml.FullLoader)
+
+
 @dev.command(help='Generates a JSON file from example-uploads metadata in the YAML file.')
 def example_upload_metadata():
-    import yaml
-
-    os_list = {}
-
-    with open('examples/data/uploads/example_uploads.yml') as infile:
-        os_list = yaml.load(infile, Loader=yaml.FullLoader)
-
-    print(json.dumps(os_list, indent=2))
+    print(json.dumps(_generate_example_upload_metadata(), indent=2))
 
 
-@dev.command(help='Generate toolkit tutorial metadata from analytics submodules.')
-def toolkit_metadata():
+def _generate_toolkit_metadata():
     import requests
     import re
     modules = requests.get(
@@ -237,7 +275,12 @@ def toolkit_metadata():
             except Exception:
                 print('Could not get metadata for %s. Project is probably not public.' % match.group(1), file=sys.stderr)
 
-    print(json.dumps(dict(tutorials=tutorials), indent=2))
+    return dict(tutorials=tutorials)
+
+
+@dev.command(help='Generate toolkit tutorial metadata from analytics submodules.')
+def toolkit_metadata():
+    print(json.dumps(_generate_toolkit_metadata(), indent=2))
 
 
 @dev.command(help=(
@@ -369,11 +412,10 @@ def example_data(username: str):
     return data
 
 
-@dev.command(help='Creates a Javascript source file containing the required unit conversion factors.')
-@click.pass_context
-def units(ctx):
+def _generate_units(all_metainfo):
     import re
     from nomad.units import ureg
+    from nomad import utils
 
     # TODO: Check that all units are unambiguously defined, and that there are
     # no clashes. Pint will issue a warning if something is wrong with the
@@ -504,7 +546,6 @@ def units(ctx):
         for alias in unit.get('aliases', []):
             unit_names.add(alias)
 
-    all_metainfo = _all_metainfo_packages()
     units = set()
     packages = all_metainfo.m_to_dict(with_meta=True)['packages']
     for package in packages:
@@ -536,37 +577,41 @@ def units(ctx):
         )
 
     # Print unit conversion table and unit systems as a Javascript source file
-    output = '''/*
- * Copyright The NOMAD Authors.
- *
- * This file is part of NOMAD. See https://nomad-lab.eu for further info.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-// Generated by NOMAD CLI. Do not edit manually.
-'''
-    output += 'export const unitList = '
-    json_string = json.dumps(unit_list, indent=2)
-    json_string = re.sub(r'(?<!: )"(\S+)":', '\\1:', json_string)
-    json_string = json_string.replace("\"", "'")
-    output += json_string
-    output += '\n'
-    output += 'export const prefixes = '
-    json_string = json.dumps(prefixes, indent=2)
-    json_string = re.sub(r'(?<!: )"(\S+)":', '\\1:', json_string)
-    json_string = json_string.replace("\"", "'")
-    output += json_string
-    print(output)
+    def to_json(value):
+        json_str = json.dumps(value, indent=2)
+        json_str = re.sub(r'(?<!: )"(\S+)":', '\\1:', json_str)
+        return json_str.replace("\"", "'")
+
+    preamble = utils.strip('''
+        /*
+         * Copyright The NOMAD Authors.
+         *
+         * This file is part of NOMAD. See https://nomad-lab.eu for further info.
+         *
+         * Licensed under the Apache License, Version 2.0 (the "License");
+         * you may not use this file except in compliance with the License.
+         * You may obtain a copy of the License at
+         *
+         *     http://www.apache.org/licenses/LICENSE-2.0
+         *
+         * Unless required by applicable law or agreed to in writing, software
+         * distributed under the License is distributed on an "AS IS" BASIS,
+         * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+         * See the License for the specific language governing permissions and
+         * limitations under the License.
+         */
+
+        // Generated by NOMAD CLI. Do not edit manually.''')
+
+    return (
+        f'{preamble}\n\n'
+        f'export const unitList = {to_json(unit_list)}\n'
+        f'export const prefixes = {to_json(prefixes)}')
+
+
+@dev.command(help='Creates a Javascript source file containing the required unit conversion factors.')
+def units():
+    print(_generate_units(_all_metainfo_packages()))
 
 
 @dev.command(help='Generate vscode extension for nomad schema.')
