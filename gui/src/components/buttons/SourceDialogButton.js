@@ -234,7 +234,11 @@ SourceJsonDialogButton.propTypes = {
 export const SourceJson = React.memo(function SourceJson({data, ...props}) {
   const dataToRender = typeof data === 'object' ? data : {data: data}
   // serialized json has "private" values that might contain circles removed
-  const code = JSON.stringify(data, (name, value) => name.startsWith('_') ? undefined : value, 2)
+  // might still have circles and fail
+  let code
+  try {
+    code = JSON.stringify(data, (name, value) => name.startsWith('_') ? undefined : value, 2)
+  } catch {}
 
   return <Box display="flex" flexDirection="row" alignItems="start">
     <Box flexGrow={1}>
@@ -246,7 +250,7 @@ export const SourceJson = React.memo(function SourceJson({data, ...props}) {
         {...props}
       />
     </Box>
-    <CopyToClipboardButton code={code} />
+    {code && <CopyToClipboardButton code={code} />}
   </Box>
 })
 SourceJson.propTypes = {
