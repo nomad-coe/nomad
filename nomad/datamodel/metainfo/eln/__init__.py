@@ -356,7 +356,9 @@ class PublicationReference(ArchiveSection):
                         archive.metadata = EntryMetadata()
                     if not archive.metadata.references:
                         archive.metadata.references = []
-                    archive.metadata.references.append(self.DOI_number)
+                    if self.DOI_number not in archive.metadata.references:
+                        archive.metadata.references.append(self.DOI_number)
+
                 else:
                     logger.warning(f'Could not parse DOI number {self.DOI_number}')
             except Exception as e:
