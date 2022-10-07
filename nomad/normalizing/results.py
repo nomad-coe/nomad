@@ -19,15 +19,14 @@
 import re
 from nomad.datamodel.metainfo.workflow import Workflow
 import numpy as np
-from typing import Dict, List, Union, Any, Set, Optional
+from typing import List, Union, Any, Set, Optional
 import ase.data
-from ase import Atoms
 from matid import SymmetryAnalyzer
 import matid.geometry
 
 from nomad import config
-from nomad.units import ureg
 from nomad import atomutils
+from nomad.normalizing.common import structure_from_ase_atoms, structure_from_nomad_atoms
 from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
@@ -51,12 +50,6 @@ from nomad.datamodel.results import (
     StructuralProperties,
     Structures,
     Structure,
-    StructureOriginal,
-    StructurePrimitive,
-    StructureConventional,
-    StructureOptimized,
-    LatticeParameters,
-    WyckoffSet,
     EnergyVolumeCurve,
     BulkModulus,
     ShearModulus,
@@ -414,7 +407,7 @@ class ResultsNormalizer(Normalizer):
                 geo_opt_wf = workflow.geometry_optimization
                 geo_opt.trajectory = workflow.calculations_ref
                 system_ref = workflow.calculation_result_ref.system_ref
-                structure_optimized = self.nomad_system_to_structure(StructureOptimized, system_ref)
+                structure_optimized = structure_from_nomad_atoms(system_ref)
                 if structure_optimized:
                     geo_opt.structure_optimized = structure_optimized
                 if geo_opt_wf is not None:
@@ -560,10 +553,10 @@ class ResultsNormalizer(Normalizer):
                 elif structural_type == "1D":
                     conv_atoms, prim_atoms = self.structures_1d(original_atoms)
 
-                struct_orig = self.ase_atoms_to_structure(StructureOriginal, original_atoms)
-                struct_prim = self.ase_atoms_to_structure(StructurePrimitive, prim_atoms)
+                struct_orig = structure_from_ase_atoms(original_atoms, logger=self.logger)
+                struct_prim = structure_from_ase_atoms(prim_atoms, logger=self.logger)
                 wyckoff_sets_serialized = wyckoff_sets if structural_type == "bulk" else None
-                struct_conv = self.ase_atoms_to_structure(StructureConventional, conv_atoms, wyckoff_sets_serialized)
+                struct_conv = structure_from_ase_atoms(conv_atoms, wyckoff_sets_serialized, logger=self.logger)
 
         if struct_orig or struct_prim or struct_conv:
             structures = Structures()
@@ -642,22 +635,6 @@ class ResultsNormalizer(Normalizer):
         properties.n_calculations = n_calc
 
         return properties, conv_atoms, wyckoff_sets, spg_number
-
-    def wyckoff_sets(self, struct: StructureConventional, wyckoff_sets: Dict) -> None:
-        """Populates the Wyckoff sets in the given structure.
-        """
-        for group in wyckoff_sets:
-            wset = struct.m_create(WyckoffSet)
-            if group.x is not None or group.y is not None or group.z is not None:
-                if group.x is not None:
-                    wset.x = float(group.x)
-                if group.y is not None:
-                    wset.y = float(group.y)
-                if group.z is not None:
-                    wset.z = float(group.z)
-            wset.indices = group.indices
-            wset.element = group.element
-            wset.wyckoff_letter = group.wyckoff_letter
 
     def structures_bulk(self, repr_symmetry):
         """The symmetry of bulk structures has already been analyzed. Here we
@@ -811,75 +788,6 @@ class ResultsNormalizer(Normalizer):
                 exc_info=e
             )
         return conv_atoms, prim_atoms
-
-    def ase_atoms_to_structure(self, structure_class, atoms: Atoms, wyckoff_sets: dict = None):
-        """Returns a populated instance of the given structure class from an
-        ase.Atoms-object.
-        """
-        if not atoms or not structure_class:
-            return None
-        struct = structure_class()
-        struct.species_at_sites = atoms.get_chemical_symbols()
-        self.species(atoms.get_chemical_symbols(), atoms.get_atomic_numbers(), struct)
-        struct.cartesian_site_positions = atoms.get_positions() * ureg.angstrom
-        lattice_vectors = atoms.get_cell()
-        if lattice_vectors is not None:
-            lattice_vectors = (lattice_vectors * ureg.angstrom).to(ureg.meter).magnitude
-            struct.dimension_types = [1 if x else 0 for x in atoms.get_pbc()]
-            struct.lattice_vectors = lattice_vectors
-            cell_volume = atomutils.get_volume(lattice_vectors)
-            struct.cell_volume = cell_volume
-            if atoms.get_pbc().all() and cell_volume:
-                mass = atomutils.get_summed_atomic_mass(atoms.get_atomic_numbers())
-                struct.mass_density = mass / cell_volume
-                struct.atomic_density = len(atoms) / cell_volume
-            if wyckoff_sets:
-                self.wyckoff_sets(struct, wyckoff_sets)
-            struct.lattice_parameters = self.lattice_parameters(lattice_vectors)
-        return struct
-
-    def nomad_system_to_structure(self, structure_class, system: System) -> Structure:
-        """Returns a populated instance of the given structure class from a
-        NOMAD System-section.
-        """
-        if not system or not structure_class:
-            return None
-
-        struct = structure_class()
-        struct.cartesian_site_positions = system.atoms.positions
-        struct.species_at_sites = system.atoms.labels
-        self.species(system.atoms.labels, system.atoms.species, struct)
-        lattice_vectors = system.atoms.lattice_vectors
-        if lattice_vectors is not None:
-            lattice_vectors = lattice_vectors.magnitude
-            struct.dimension_types = np.array(system.atoms.periodic).astype(int)
-            struct.lattice_vectors = lattice_vectors
-            cell_volume = atomutils.get_volume(lattice_vectors)
-            struct.cell_volume = cell_volume
-            if all(system.atoms.periodic) and cell_volume:
-                if system.atoms.species is not None:
-                    mass = atomutils.get_summed_atomic_mass(system.atoms.species)
-                    struct.mass_density = mass / cell_volume
-                struct.atomic_density = len(system.atoms.labels) / cell_volume
-            struct.lattice_parameters = self.lattice_parameters(lattice_vectors)
-        return struct
-
-    def lattice_parameters(self, lattice_vectors) -> LatticeParameters:
-        """Converts the given cell into LatticeParameters. Undefined angle
-        values are not stored.
-        """
-        param_values = atomutils.cell_to_cellpar(lattice_vectors)
-        params = LatticeParameters()
-        params.a = float(param_values[0])
-        params.b = float(param_values[1])
-        params.c = float(param_values[2])
-        alpha = float(param_values[3])
-        params.alpha = None if np.isnan(alpha) else alpha
-        beta = float(param_values[4])
-        params.beta = None if np.isnan(beta) else beta
-        gamma = float(param_values[5])
-        params.gamma = None if np.isnan(gamma) else gamma
-        return params
 
     def energy_volume_curves(self) -> List[EnergyVolumeCurve]:
         """Returns a list containing the found EnergyVolumeCurves.

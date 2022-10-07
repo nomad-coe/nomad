@@ -565,6 +565,19 @@ UploadButton.propTypes = {
 }
 
 /**
+ * A link that allows to navigate to the material page (currently an external link).
+ * @param {string} materialId
+ */
+export const MaterialLink = React.forwardRef(({materialId, ...rest}, ref) => {
+  const href = `${encyclopediaBase}/material/${materialId}`
+  return <Link href={href} {...rest} />
+})
+
+MaterialLink.propTypes = {
+  materialId: PropTypes.string.isRequired
+}
+
+/**
  * A button that allows to navigate to the material page (currently an external link).
  * @param {string} materialId
  * @param {elementType} component The component to use to render the button. Default is Button.

@@ -160,8 +160,8 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
         {hasStructures
           ? <Structure
             data={structure}
-            materialType={index.results?.material?.structural_type}
-            structureType={structureType.split('_').pop()}
+            structuralType={index.results?.material?.structural_type}
+            cellType={structureType.split('_').pop()}
             m_path={m_path}
             data-testid="viewer-material"
           />

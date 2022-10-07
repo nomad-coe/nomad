@@ -42,7 +42,8 @@ import NoData from './visualization/NoData'
 import { formatNumber, formatTimestamp, authorList, serializeMetainfo } from '../utils'
 import { Quantity as Q, Unit, useUnits } from '../units'
 import { filterData } from './search/FilterRegistry'
-import { RouteLink } from './nav/Routes'
+// eslint-disable-next-line no-unused-vars
+import { MaterialLink, RouteLink } from './nav/Routes'
 
 /**
  * Component for showing a metainfo quantity value together with a name and
@@ -152,7 +153,15 @@ const Quantity = React.memo((props) => {
     </Typography>
   }, [])
 
-  const children = props.children || (presets.render && presets.render(data)) || (quantity?.name && quantity.type && getRenderFromType(quantity, data))
+  // Determine the rendered children. They may have been given explicitly, or
+  // this quantity may have a default rendering function for a value, or this
+  // quantity may have a default rendering function for data, or the data type
+  // may be associated with a particular rendering function.
+  const children = props.children ||
+    ((presets.render && !isNil(data)) && presets.render(data)) ||
+    ((presets.renderValue && !isNil(value)) && presets.renderValue(value)) ||
+    ((quantity?.name && !isNil(quantity.type)) && getRenderFromType(quantity, data))
+
   const units = useUnits()
   let content = null
   let clipboardContent = null
@@ -394,7 +403,33 @@ const quantityPresets = {
   },
   'results.material.material_id': {
     noWrap: true,
-    withClipboard: true
+    hideIfUnavailable: true,
+    placeholder: 'unavailable',
+    withClipboard: true,
+    render: (data) => {
+      return data?.results?.material?.material_id
+        ? <Box flexGrow={1}>
+          <Typography noWrap>
+            <MaterialLink materialId={data.results.material.material_id}>{data.results.material.material_id}</MaterialLink>
+          </Typography>
+        </Box>
+        : null
+    }
+  },
+  'results.material.topology.material_id': {
+    noWrap: true,
+    hideIfUnavailable: true,
+    placeholder: 'unavailable',
+    withClipboard: true,
+    renderValue: (value) => {
+      return value
+        ? <Box flexGrow={1}>
+          <Typography noWrap>
+            <MaterialLink materialId={value}>{value}</MaterialLink>
+          </Typography>
+        </Box>
+        : null
+    }
   },
   mainfile: {
     noWrap: true,

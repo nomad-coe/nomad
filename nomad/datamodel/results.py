@@ -386,44 +386,7 @@ class Structure(MSection):
     )
     species = SubSection(sub_section=OptimadeSpecies.m_def, repeats=True)
     lattice_parameters = SubSection(sub_section=LatticeParameters.m_def)
-
-
-class StructureOriginal(Structure):
-    m_def = Section(
-        description='''
-        Contains a selected representative structure from the the original
-        data.
-        '''
-    )
-
-
-class StructurePrimitive(Structure):
-    m_def = Section(
-        description='''
-        Contains the primitive structure that is derived from
-        structure_original. This primitive stucture has been idealized and the
-        conventions employed by spglib are used.
-        '''
-    )
-
-
-class StructureConventional(Structure):
-    m_def = Section(
-        description='''
-        Contains the conventional structure that is derived from
-        structure_original. This conventional stucture has been idealized and
-        the conventions employed by spglib are used.
-        '''
-    )
     wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
-
-
-class StructureOptimized(Structure):
-    m_def = Section(
-        description='''
-        Contains a structure that is the result of a geometry optimization.
-        '''
-    )
 
 
 class Structures(MSection):
@@ -434,15 +397,29 @@ class Structures(MSection):
         ''',
     )
     structure_original = SubSection(
-        sub_section=StructureOriginal.m_def,
+        description='''
+        Contains a selected representative structure from the the original
+        data.
+        ''',
+        sub_section=Structure.m_def,
         repeats=False,
     )
     structure_conventional = SubSection(
-        sub_section=StructureConventional.m_def,
+        description='''
+        Contains the conventional structure that is derived from
+        structure_original. This conventional stucture has been idealized and
+        the conventions employed by spglib are used.
+        ''',
+        sub_section=Structure.m_def,
         repeats=False,
     )
     structure_primitive = SubSection(
-        sub_section=StructurePrimitive.m_def,
+        description='''
+        Contains the primitive structure that is derived from
+        structure_original. This primitive stucture has been idealized and the
+        conventions employed by spglib are used.
+        ''',
+        sub_section=Structure.m_def,
         repeats=False,
     )
 
@@ -889,103 +866,6 @@ class Species(MSection):
     )
 
 
-class Atoms(MSection):
-    '''
-    Describes the atomic structure of the physical system. This includes the atom
-    positions, lattice vectors, etc.
-    '''
-    m_def = Section(validate=False)
-
-    concentrations = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_atoms'],
-        description='''
-        Concentrations of the species defined by labels which can be assigned for systems
-        with variable compositions.
-        '''
-    )
-    labels = Quantity(
-        type=str,
-        shape=['n_atoms'],
-        description='''
-        List containing the labels of the atoms. In the usual case, these correspond to
-        the chemical symbols of the atoms. One can also append an index if there is a
-        need to distinguish between species with the same symbol, e.g., atoms of the
-        same species assigned to different atom-centered basis sets or pseudo-potentials,
-        or simply atoms in different locations in the structure such as those in the bulk
-        and on the surface. In the case where a species is not an atom, and therefore
-        cannot be representated by a chemical symbol, the label can simply be the name of
-        the particles.
-        '''
-    )
-    positions = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_atoms', 3],
-        unit='meter',
-        description='''
-        Positions of all the species, in cartesian coordinates. This metadata defines a
-        configuration and is therefore required. For alloys where concentrations of
-        species are given for each site in the unit cell, it stores the position of the
-        sites.
-        '''
-    )
-    velocities = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_atoms', 3],
-        unit='meter / second',
-        description='''
-        Velocities of the nuclei, defined as the change in cartesian coordinates of the
-        nuclei with respect to time.
-        '''
-    )
-    lattice_vectors = Quantity(
-        type=np.dtype(np.float64),
-        shape=[3, 3],
-        unit='meter',
-        description='''
-        Lattice vectors in cartesian coordinates of the simulation cell. The
-        last (fastest) index runs over the $x,y,z$ Cartesian coordinates, and the first
-        index runs over the 3 lattice vectors.
-        '''
-    )
-    lattice_vectors_reciprocal = Quantity(
-        type=np.dtype(np.float64),
-        shape=[3, 3],
-        unit='1/meter',
-        description='''
-        Reciprocal lattice vectors in cartesian coordinates of the simulation cell. The
-        first index runs over the $x,y,z$ Cartesian coordinates, and the second index runs
-        over the 3 lattice vectors.
-        '''
-    )
-    local_rotations = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_atoms', 3, 3],
-        description='''
-        A rotation matrix defining the orientation of each atom. If the rotation matrix
-        cannot be specified for an atom, the remaining atoms should set it to
-        the zero matrix (not the identity!)
-        '''
-    )
-    periodic = Quantity(
-        type=bool,
-        shape=[3],
-        description='''
-        Denotes if periodic boundary condition is applied to each of the lattice vectors.'
-        '''
-    )
-    supercell_matrix = Quantity(
-        type=np.dtype(np.int32),
-        shape=[3, 3],
-        description='''
-        Specifies the matrix that transforms the unit-cell into the super-cell in which
-        the actual calculation is performed.
-        '''
-    )
-    species = SubSection(sub_section=Species.m_def, repeats=False)
-    wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
-
-
 class Relation(MSection):
     '''
     Contains information about the relation between two different systems.
@@ -1180,7 +1060,15 @@ class System(MSection):
         ''',
         a_elasticsearch=Elasticsearch(material_type)
     )
-    atoms = Quantity(
+    atoms = SubSection(
+        description='''
+        The atomistic structure that is associated with this
+        system'.
+        ''',
+        sub_section=Structure.m_def,
+        repeats=False
+    )
+    atoms_ref = Quantity(
         type=Structure,
         description='''
         Reference to an atomistic structure that is associated with this
@@ -1891,7 +1779,10 @@ class GeometryOptimization(MSection):
         ''',
     )
     structure_optimized = SubSection(
-        sub_section=StructureOptimized.m_def,
+        description='''
+        Contains a structure that is the result of a geometry optimization.
+        ''',
+        sub_section=Structure.m_def,
         repeats=False,
     )
     type = MGeometryOptimization.type.m_copy()

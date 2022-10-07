@@ -115,8 +115,8 @@ const Structure = React.memo(({
   classes,
   data,
   options,
-  materialType,
-  structureType,
+  structuralType,
+  cellType,
   m_path,
   captureName,
   sizeLimit,
@@ -130,32 +130,82 @@ const Structure = React.memo(({
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
-  const [showLatticeConstants, setShowLatticeConstants] = useState(true)
-  const [showCell, setShowCell] = useState(true)
+  const [showLatticeConstants, setShowLatticeConstantsState] = useState(true)
+  const [showCell, setShowCellState] = useState(true)
   const [center, setCenter] = useState('COP')
   const [fit, setFit] = useState('full')
-  const [wrap, setWrap] = useState(true)
+  const [wrap, setWrapState] = useState(true)
   const [showPrompt, setShowPrompt] = useState(false)
   const [accepted, setAccepted] = useState(false)
-  const [showBonds, setShowBonds] = useState(true)
+  const [showBonds, setShowBondsState] = useState(true)
   const [species, setSpecies] = useState()
   const [loading, setLoading] = useState(true)
+  const [ready, setReady] = useState(false)
   const throwError = useAsyncError()
+
+  const setShowBonds = useCallback((value, render = false) => {
+    setShowBondsState(value)
+    if (refViewer?.current) {
+      try {
+        refViewer.current.bonds({enabled: value})
+        if (render) refViewer.current.render()
+      } catch (e) {
+      }
+    }
+  }, [])
+
+  const setWrap = useCallback((value, showBonds, render = false) => {
+    setWrapState(value)
+    if (refViewer?.current) {
+      try {
+          refViewer.current.wrap(value)
+          refViewer.current.bonds({enabled: showBonds})
+        if (render) refViewer.current.render()
+      } catch (e) {
+      }
+    }
+  }, [])
+
+  const setShowLatticeConstants = useCallback((value, render = false) => {
+    setShowLatticeConstantsState(value)
+    if (refViewer?.current) {
+      try {
+          refViewer.current.latticeConstants({enabled: value})
+        if (render) refViewer.current.render()
+      } catch (e) {
+      }
+    }
+  }, [])
+
+  const setShowCell = useCallback((value, render = false) => {
+    setShowCellState(value)
+    if (refViewer?.current) {
+      try {
+          refViewer.current.cell({enabled: value})
+        if (render) refViewer.current.render()
+      } catch (e) {
+      }
+    }
+  }, [])
 
   // Variables
   const history = useHistory()
   const open = Boolean(anchorEl)
+  const readyRef = useRef(true)
   const refViewer = useRef(null)
   const refCanvasDiv = useRef(null)
-  const originalCenter = useRef()
-  const firstLoad = useRef(true)
   const styles = useStyles(classes)
   const hasSelection = !isEmpty(selection?.selection)
-  const nAtoms = useMemo(() => data?.positions.length, [data])
+  const nAtoms = useMemo(() => data?.positions?.length, [data])
   const hasCell = useMemo(() => {
-    return !data?.cell
+    const hasCell = !data?.cell
       ? false
       : !flattenDeep(data.cell).every(v => v === 0)
+    // If there is no valid cell, the property is set as undefined
+    if (!hasCell && data) {
+      data.cell = undefined
+    }
+    return hasCell
   }, [data])
 
   // In order to properly detect changes in a reference, a reference callback is
@@ -191,6 +241,7 @@ const Structure = React.memo(({
     await delay(() => {
       // Initialize the viewer. A new viewer is used for each system as the
       // render settings may differ.
+      const nAtoms = system?.positions?.length
       const isHighQuality = nAtoms <= 3000
       const options = {
         renderer: {
@@ -204,80 +255,14 @@ const Structure = React.memo(({
           outline: {enabled: isHighQuality}
         },
         bonds: {
-          enabled: showBonds,
+          enabled: false,
           smoothness: isHighQuality ? 145 : 130,
           outline: {enabled: isHighQuality}
         }
       }
       refViewer.current = new StructureViewer(undefined, options)
-
-      // If there is no valid cell, the property is set as undefined
-      if (!hasCell) {
-        system.cell = undefined
-      }
-
-      // Determine the orientation and view centering based on material type and
-      // the structure type.
-      let centerValue = 'COP'
-      let rotations = [
-        [0, 1, 0, 60],
-        [1, 0, 0, 30]
-      ]
-      let alignments = hasCell
-        ? [
-          ['up', 'c'],
-          ['right', 'b']
-        ]
-        : undefined
-      if (structureType === 'conventional' || structureType === 'primitive') {
-        if (materialType === 'bulk') {
-          centerValue = 'COC'
-          alignments = [
-            ['up', 'c'],
-            ['right', 'b']
-          ]
-        } else if (materialType === '2D') {
-          centerValue = 'COC'
-          alignments = [
-            ['right', 'a'],
-            ['up', 'b']
-          ]
-          rotations = [
-            [1, 0, 0, -60]
-          ]
-        } else if (materialType === '1D') {
-          centerValue = 'COC'
-          alignments = [
-            ['right', 'a']
-          ]
-          rotations = [
-            [1, 0, 0, -60],
-            [0, 1, 0, 30],
-            [1, 0, 0, 30]
-          ]
-        }
-      }
-
       refViewer.current.load(system)
-      refViewer.current.setRotation([1, 0, 0, 0])
-      refViewer.current.atoms()
-      refViewer.current.bonds({enabled: showBonds})
-      if (hasCell) {
-        refViewer.current.wrap(wrap)
-        refViewer.current.cell({enabled: showCell})
-        refViewer.current.latticeConstants({enabled: showLatticeConstants})
-        refViewer.current.align(alignments)
-      }
-      refViewer.current.rotate(rotations)
       refViewer.current.controls({resetOnDoubleClick: false})
-      originalCenter.current = centerValue
-      const fitValue = 'full'
-      refViewer.current.center(centerValue)
-      refViewer.current.fit(fitValue, fitMargin)
-      setCenter(centerValue)
-      setFit(fitValue)
-      refViewer.current.render()
-      refViewer.current.saveCameraReset()
 
       // Get a list of all species ordered by atomic number
       const species = Object.entries(refViewer.current.elements)
@@ -290,18 +275,18 @@ const Structure = React.memo(({
         .sort((a, b) => a.atomicNumber - b.atomicNumber)
       setSpecies(species)
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [structureType, materialType, hasCell])
+  }, [])
 
   // Called whenever the system changes. Loads the structure asynchronously.
   useEffect(() => {
     if (!data) return
+    readyRef.current = false
+    setReady(false)
     setLoading(true)
 
+    // If the system is very large, ask the user first for permission to attempt
+    // to visualize it.
     if (!accepted) {
-      if (nAtoms > bondLimit) {
-        setShowBonds(false)
-      }
       if (nAtoms > sizeLimit) {
         setShowPrompt(true)
         return
@@ -313,56 +298,110 @@ const Structure = React.memo(({
     loadSystem(data, refViewer)
       .catch(throwError)
       .finally(() => {
-        setLoading(false)
-        firstLoad.current = false
+        setReady(true)
+        readyRef.current = true
       })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, nAtoms, accepted, sizeLimit, bondLimit])
+  }, [data, nAtoms, accepted, sizeLimit, throwError, loadSystem])
 
-  // Handles selections. If a selection is given, the selected atoms will be
-  // higlighted. Additionally the view will be centered on the selection if this
-  // is requested.
+  // Once the system is loaded, this effect will determine the final visual
+  // layout. By monitoring the ready-state, the selections are updated correctly
+  // once the system is loaded. By also monitoring the readyRef-reference, this
+  // effect can know the status within the same render cycle as well.
   useEffect(() => {
-    if (firstLoad.current) {
+    if (!ready || !readyRef.current) {
       return
     }
 
-    // No selection: show all
+    // Reset camera and system rotations
     refViewer.current.resetCamera()
-    let center
-    let fit
+    refViewer.current.setRotation([1, 0, 0, 0])
+
+    // Determine the orientation and view centering based on material type and
+    // the structure type.
+    let center = 'COP'
+    let fit = 'full'
+    let showBondsValue = nAtoms < bondLimit
+    let rotations = [
+      [0, 1, 0, 60],
+      [1, 0, 0, 30]
+    ]
+    let alignments = hasCell
+      ? [
+        ['up', 'c'],
+        ['right', 'b']
+      ]
+      : undefined
+    if (cellType === 'conventional' || cellType === 'primitive') {
+      if (structuralType === 'bulk') {
+        center = 'COC'
+        alignments = [
+          ['up', 'c'],
+          ['right', 'b']
+        ]
+      } else if (structuralType === '2D') {
+        center = 'COC'
+        alignments = [
+          ['right', 'a'],
+          ['up', 'b']
+        ]
+        rotations = [
+          [1, 0, 0, -60]
+        ]
+      } else if (structuralType === '1D') {
+        center = 'COC'
+        alignments = [
+          ['right', 'a']
+        ]
+        rotations = [
+          [1, 0, 0, -60],
+          [0, 1, 0, 30],
+          [1, 0, 0, 30]
+        ]
+      }
+    }
+
+    // No selection: show all
     if (isEmpty(selection?.selection)) {
-      center = originalCenter.current
-      fit = 'full'
-      refViewer.current.center(center)
-      refViewer.current.fit(fit, fitMargin)
       refViewer.current.atoms()
-      refViewer.current.bonds({enabled: showBonds})
-      refViewer.current.cell({enabled: showCell})
-      refViewer.current.latticeConstants({enabled: showLatticeConstants})
+      showBondsValue = nAtoms < bondLimit
+      setShowBonds(showBondsValue, false)
+      if (hasCell) {
+        setShowCell(true)
+        setShowLatticeConstants(true)
+      }
     // Focused selection: show only selected atoms
     } else {
-      center = selection.isSubsystem ? selection.focus : originalCenter.current
+      center = selection.isSubsystem ? selection.focus : center
       fit = selection.isSubsystem ? selection.focus : 'full'
-      refViewer.current.center(center)
-      refViewer.current.fit(fit, fitMargin)
       refViewer.current.atoms([
         {opacity: 0},
         {opacity: 0.1, include: selection.transparent},
         {opacity: 1, include: selection.selection}
       ])
-      refViewer.current.bonds({enabled: false})
-      refViewer.current.cell({enabled: !selection.isSubsystem})
-      refViewer.current.latticeConstants({enabled: !selection.isSubsystem})
-      setFit(fit)
-      setCenter(center)
+      // Bonds are not shown for selections
+      if (!selection.isSubsystem) {
+        showBondsValue = false
+        setShowBonds(showBondsValue, false)
+      }
+      if (hasCell) {
+        setShowCell(!selection.isSubsystem)
+        setShowLatticeConstants(!selection.isSubsystem)
+      }
     }
+    if (hasCell) {
+      setWrap(true, showBondsValue, false)
+      refViewer.current.align(alignments)
+    }
+    refViewer.current.rotate(rotations)
+    refViewer.current.center(center)
+    refViewer.current.fit(fit, fitMargin)
     refViewer.current.render()
     refViewer.current.saveCameraReset()
     setFit(fit)
     setCenter(center)
+    setLoading(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selection])
+  }, [selection, ready])
 
   // Memoized callbacks
   const openMenu = useCallback((event) => {
@@ -478,11 +517,7 @@ const Structure = React.memo(({
               <Checkbox
                 checked={hasSelection ? false : showBonds}
                 disabled={hasSelection}
-                onChange={(event) => {
-                  setShowBonds(!showBonds)
-                  refViewer.current.bonds({enabled: !showBonds})
-                  refViewer.current.render()
-                }}
+                onChange={(event) => { setShowBonds(!showBonds, true) }}
                 color='primary'
               />
             }
@@ -495,11 +530,7 @@ const Structure = React.memo(({
               <Checkbox
                 checked={!hasCell ? false : (hasSelection ? !selection.isSubsystem : showLatticeConstants)}
                 disabled={!hasCell ? true : hasSelection}
-                onChange={(event) => {
-                  setShowLatticeConstants(!showLatticeConstants)
-                  refViewer.current.latticeConstants({enabled: !showLatticeConstants})
-                  refViewer.current.render()
-                }}
+                onChange={(event) => { setShowLatticeConstants(!showLatticeConstants, true) }}
                 color='primary'
               />
             }
@@ -512,11 +543,7 @@ const Structure = React.memo(({
               <Checkbox
                 checked={!hasCell ? false : (hasSelection ? !selection.isSubsystem : showCell)}
                 disabled={!hasCell ? true : hasSelection}
-                onChange={(event) => {
-                  setShowCell(!showCell)
-                  refViewer.current.cell({enabled: !showCell})
-                  refViewer.current.render()
-                }}
+                onChange={(event) => { setShowCell(!showCell, true) }}
                 color='primary'
               />
             }
@@ -529,12 +556,7 @@ const Structure = React.memo(({
               <Checkbox
                 checked={!hasCell ? false : wrap}
                 disabled={!hasCell ? true : hasSelection}
-                onChange={(event) => {
-                  setWrap(!wrap)
-                  refViewer.current.wrap(!wrap)
-                  refViewer.current.bonds({enabled: showBonds})
-                  refViewer.current.render()
-                }}
+                onChange={(event) => { setWrap(!wrap, showBonds, true) }}
                 color='primary'
               />
             }
@@ -555,8 +577,8 @@ Structure.propTypes = {
     PropTypes.object
   ]),
   options: PropTypes.object, // Viewer options
-  materialType: PropTypes.oneOf(['bulk', '2D', '1D', 'molecule / cluster', 'unavailable']),
-  structureType: PropTypes.oneOf(['original', 'conventional', 'primitive']),
+  structuralType: PropTypes.oneOf(['bulk', 'surface', '2D', '1D', 'molecule / cluster', 'unavailable']),
+  cellType: PropTypes.oneOf(['original', 'conventional', 'primitive']),
   m_path: PropTypes.string, // Path of the structure data in the metainfo
   captureName: PropTypes.string, // Name of the file that the user can download
   sizeLimit: PropTypes.number, // Maximum system size before a prompt is shown

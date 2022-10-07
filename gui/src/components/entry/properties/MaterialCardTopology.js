@@ -17,7 +17,7 @@
  */
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import PropTypes from 'prop-types'
-import { isEmpty, range, flattenDeep, isEqual } from 'lodash'
+import { isEmpty, isString, range, flattenDeep, isEqual, has } from 'lodash'
 import { PropertyCard, PropertyGrid, PropertySubGrid, PropertyItem } from './PropertyCard'
 import { Tab, Tabs, Typography, Box } from '@material-ui/core'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
@@ -55,38 +55,58 @@ const MaterialCardTopology = React.memo(({index, properties, archive}) => {
   const [selected, setSelected] = useState(topologyTree.system_id)
   const [tab, setTab] = useState(0)
   const [structure, setStructure] = useState()
-  const structureRef = useRef()
+  const [structuralType, setStructuralType] = useState('unavailable')
+  const [cellType, setCellType] = useState('original')
+  const structureMap = useRef({})
   const [selection, setSelection] = useState()
+
+  // Returns a reference to a structure in the given topology if one can be found
+  const resolveAtomRef = useCallback((top) => {
+    return isString(top.atoms) ? top.atoms : top.atoms_ref
+  }, [])
+
+  // Used to resolve a structure for the given topology item
+  const resolveStructure = useCallback((top, archive) => {
+    const atomsRef = resolveAtomRef(top)
+    const atoms = top.atoms
+    const id = top.system_id
+    if (!has(structureMap.current, id)) {
+      let structure
+      if (atomsRef) {
+        const atoms = resolveInternalRef(atomsRef, archive)
+        structure = toMateriaStructure(atoms)
+      } else if (atoms) {
+        structure = toMateriaStructure(atoms)
+      } else if (top.indices) {
+        const parent = topologyMap[top.parent_system]
+        structure = resolveStructure(parent, archive)
+      }
+      structureMap.current[id] = structure
+    }
+    return structureMap.current[id]
+  }, [resolveAtomRef, topologyMap])
 
   // When archive is loaded, this effect handles changes in visualizing the
   // selected system
   useEffect(() => {
     if (!archive) return
     const top = topologyMap[selected]
-    const atomsRef = top.atoms
     const indices = top.indices
+    let structure
     let transparent
     let selection
     let focus
     let isSubsystem
-    if (atomsRef) {
-      transparent = undefined
-      selection = undefined
-      focus = undefined
-      if (atomsRef !== structureRef.current) {
-        const atoms = resolveInternalRef(top.atoms, archive)
-        const structure = toMateriaStructure(atoms)
-        structureRef.current = atomsRef
-        setStructure(structure)
-      }
-      setSelection(undefined)
-    } else if (indices) {
+
+    // If the topology has indices, visualize a subsection of the parent system
+    if (indices) {
       const structuralType = top.structural_type
       const isMonomer = structuralType === 'monomer'
       const child_types = top.child_systems ? new Set(top.child_systems.map(x => x.structural_type)) : new Set()
       const isMonomerGroup = structuralType === 'group' && isEqual(child_types, new Set(['monomer']))
       const isMolecule = structuralType === 'molecule'
       const parent = topologyMap[top.parent_system]
+      structure = resolveStructure(parent, archive)
 
       // Set the opaque atoms
       selection = ((isMolecule || isMonomer)
@@ -107,14 +127,17 @@ const MaterialCardTopology = React.memo(({index, properties, archive}) => {
         ? indices[0]
         : indices).flat()
       isSubsystem = isMolecule || isMonomer || isMonomerGroup
-      setSelection({
-        transparent,
-        selection,
-        focus,
-        isSubsystem
-      })
+    } else {
+      transparent = undefined
+      selection = undefined
+      focus = undefined
+      structure = resolveStructure(top, archive)
     }
-  }, [archive, selected, topologyMap])
+    setStructuralType(top?.label === 'conventional cell' ? 'bulk' : 'unavailable')
+    setCellType(top?.label === 'conventional cell' ? 'conventional' : 'original')
+    setStructure(structure)
+    setSelection({transparent, selection, focus, isSubsystem})
+  }, [archive, selected, topologyMap, resolveStructure])
 
   // Handle tab change
   const handleTabChange = useCallback((event, value) => {
@@ -132,6 +155,8 @@ const MaterialCardTopology = React.memo(({index, properties, archive}) => {
             data={structure}
             selection={selection}
             data-testid="viewer-material"
+            structuralType={structuralType}
+            cellType={cellType}
           />
           : <NoData/>
         }
@@ -314,19 +339,31 @@ TopologyItem.propTypes = {
 /**
  * Displays the information that is present for a single node within tabs.
  */
+const useMaterialTabsStyles = makeStyles(theme => ({
+  noData: {
+    height: 116.81 // The height of two QuantityRows
+  }
+}))
 const MaterialTabs = React.memo(({value, onChange, node}) => {
-  const cellTab = {...(node?.cell || {})}
-  const symmetryTab = {...(node?.symmetry || {})}
-  const prototypeTab = {...(node?.prototype || {})}
-  const wyckoffTab = {...(node?.atoms?.wyckoff_sets || {})}
-  const hasTopology = !isEmpty(node)
-  const hasCell = !isEmpty(cellTab)
-  const hasSymmetry = !isEmpty(symmetryTab)
-  const hasPrototype = !isEmpty(prototypeTab)
-  const hasWyckoff = !isEmpty(wyckoffTab)
+  const styles = useMaterialTabsStyles()
   const nElems = node?.n_elements
   const nElemsLabel = nElementMap[nElems]
   const n_elements = `${nElems}${nElemsLabel ? ` (${nElemsLabel})` : ''}`
+  const tabMap = useMemo(() => {
+    const cellTab = {...(node?.cell || {})}
+    const symmetryTab = {...(node?.symmetry || {})}
+    const prototypeTab = {...(node?.prototype || {})}
+    const hasTopology = !isEmpty(node)
+    const hasCell = !isEmpty(cellTab)
+    const hasSymmetry = !isEmpty(symmetryTab)
+    const hasPrototype = !isEmpty(prototypeTab)
+    return {
+      0: {disabled: !hasTopology, label: 'Composition'},
+      1: {disabled: !hasCell, label: 'Cell'},
+      2: {disabled: !hasSymmetry, label: 'Symmetry'},
+      3: {disabled: !hasPrototype, label: 'Prototype'}
+    }
+  }, [node])
 
   return <>
     <Tabs
@@ -335,14 +372,14 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
       indicatorColor="primary"
       textColor="primary"
     >
-      <Tab label="Composition" disabled={!hasTopology}/>
-      <Tab label="Cell" disabled={!hasCell}/>
-      <Tab label="Symmetry" disabled={!hasSymmetry}/>
-      <Tab label="Prototype" disabled={!hasPrototype}/>
-      <Tab label="Wyckoff" disabled={!hasWyckoff}/>
+      <Tab {...tabMap[0]}/>
+      <Tab {...tabMap[1]}/>
+      <Tab {...tabMap[2]}/>
+      <Tab {...tabMap[3]}/>
     </Tabs>
-    {hasTopology && <MaterialTab value={value} index={0}>
-      <QuantityTable wrap>
+    <MaterialTab value={value} index={0}>
+      {!tabMap[0].disabled
+        ? <QuantityTable wrap>
         <QuantityRow>
           <QuantityCell value={node?.formula_hill} quantity="results.material.topology.formula_hill"/>
           <QuantityCell value={node?.formula_anonymous} quantity="results.material.topology.formula_anonymous"/>
@@ -362,9 +399,11 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
           <QuantityCell value={node?.material_name} quantity="results.material.topology.material_name" hideIfUnavailable/>
         </QuantityRow>
       </QuantityTable>
-    </MaterialTab>}
-    {hasCell && <MaterialTab value={value} index={1}>
-      <QuantityTable>
+      : <NoData className={styles.noData}/>}
+    </MaterialTab>
+    <MaterialTab value={value} index={1}>
+    {!tabMap[1].disabled
+      ? <QuantityTable>
         <QuantityRow>
           <QuantityCell value={node?.cell?.a} quantity="results.material.topology.cell.a"/>
           <QuantityCell value={node?.cell?.b} quantity="results.material.topology.cell.b"/>
@@ -379,33 +418,38 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
           <QuantityCell value={node?.cell?.atomic_density} quantity="results.material.topology.cell.atomic_density"/>
         </QuantityRow>
       </QuantityTable>
-    </MaterialTab>}
-    {hasSymmetry && <MaterialTab value={value} index={2}>
-      <QuantityTable>
-        <QuantityRow>
-          <QuantityCell value={node?.symmetry?.crystal_system} quantity="results.material.topology.symmetry.crystal_system"/>
-          <QuantityCell value={node?.symmetry?.bravais_lattice} quantity="results.material.topology.symmetry.bravais_lattice"/>
-          <QuantityCell value={node?.symmetry?.strukturbericht_designation} quantity="results.material.topology.symmetry.strukturbericht_designation"/>
-          <QuantityCell value={node?.symmetry?.space_group_symbol} quantity="results.material.topology.symmetry.space_group_symbol"/>
-        </QuantityRow>
-        <QuantityRow>
-          <QuantityCell value={node?.symmetry?.space_group_number} quantity="results.material.topology.symmetry.space_group_number"/>
-          <QuantityCell value={node?.symmetry?.point_group} quantity="results.material.topology.symmetry.point_group"/>
-          <QuantityCell value={node?.symmetry?.hall_number} quantity="results.material.topology.symmetry.hall_number"/>
-          <QuantityCell value={node?.symmetry?.hall_symbol} quantity="results.material.topology.symmetry.hall_symbol"/>
-        </QuantityRow>
-      </QuantityTable>
-    </MaterialTab>}
-    {hasPrototype && <MaterialTab value={value} index={3}>
-      <QuantityTable>
-        <QuantityRow>
-          <QuantityCell value={node?.prototype?.name} quantity="results.material.topology.prototype.name"/>
-          <QuantityCell value={node?.prototype?.aflow_id} quantity="results.material.topology.prototype.aflow_id"/>
-          <QuantityCell value={node?.prototype?.formula} quantity="results.material.topology.prototype.formula"/>
-        </QuantityRow>
-      </QuantityTable>
-    </MaterialTab>}
-    {hasWyckoff && <MaterialTab value={value} index={4} data={wyckoffTab} prefix="results.material.topology.atoms.wyckoff_sets"/>}
+      : <NoData className={styles.noData}/>}
+    </MaterialTab>
+    <MaterialTab value={value} index={2}>
+      {!tabMap[2].disabled
+        ? <QuantityTable>
+            <QuantityRow>
+              <QuantityCell value={node?.symmetry?.crystal_system} quantity="results.material.topology.symmetry.crystal_system"/>
+              <QuantityCell value={node?.symmetry?.bravais_lattice} quantity="results.material.topology.symmetry.bravais_lattice"/>
+              <QuantityCell value={node?.symmetry?.strukturbericht_designation} quantity="results.material.topology.symmetry.strukturbericht_designation"/>
+              <QuantityCell value={node?.symmetry?.space_group_symbol} quantity="results.material.topology.symmetry.space_group_symbol"/>
+            </QuantityRow>
+            <QuantityRow>
+              <QuantityCell value={node?.symmetry?.space_group_number} quantity="results.material.topology.symmetry.space_group_number"/>
+              <QuantityCell value={node?.symmetry?.point_group} quantity="results.material.topology.symmetry.point_group"/>
+              <QuantityCell value={node?.symmetry?.hall_number} quantity="results.material.topology.symmetry.hall_number"/>
+              <QuantityCell value={node?.symmetry?.hall_symbol} quantity="results.material.topology.symmetry.hall_symbol"/>
+            </QuantityRow>
+          </QuantityTable>
+        : <NoData className={styles.noData}/>
+      }
+    </MaterialTab>
+    <MaterialTab value={value} index={3}>
+    {!tabMap[3].disabled
+      ? <QuantityTable>
+          <QuantityRow>
+            <QuantityCell value={node?.prototype?.name} quantity="results.material.topology.prototype.name"/>
+            <QuantityCell value={node?.prototype?.aflow_id} quantity="results.material.topology.prototype.aflow_id"/>
+            <QuantityCell value={node?.prototype?.formula} quantity="results.material.topology.prototype.formula"/>
+          </QuantityRow>
+        </QuantityTable>
+      : <NoData className={styles.noData}/>}
+    </MaterialTab>
   </>
 })
 MaterialTabs.propTypes = {
