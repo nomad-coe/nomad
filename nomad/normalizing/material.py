@@ -3,14 +3,14 @@
 #
 # This file is part of NOMAD. See https://nomad-lab.eu for further info.
 #
-# Licensed under the Apache License, Version 2.0 (the 'License');
+# Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an 'AS IS' BASIS,
+# distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
@@ -28,10 +28,12 @@ import matid.geometry
 from matid.classification.structureclusterer import StructureClusterer
 from matid import Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D, Unknown
-
-from nomad.datamodel.results import Symmetry, Material, System, Cell, Relation, StructureOriginal
+from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer
+from nomad.datamodel.results import Symmetry, Material, System, Relation, Structure, Prototype
 from nomad import atomutils
 from nomad.utils import hash
+from nomad.units import ureg
+from nomad.normalizing.common import cell_from_ase_atoms, cell_from_structure, structure_from_ase_atoms
 
 
 class MaterialNormalizer():
@@ -428,13 +430,15 @@ class MaterialNormalizer():
         except Exception:
             return None
 
-        topology, original, structure_original = self._init_orig_topology(material)
+        topology = {}
+        top_id_original = f'/results/material/topology/0'
+        original, structure_original = self._create_orig_topology(material, top_id_original)
+
         if structure_original is None:
             return []
 
-        top_id = 0
-        top_id_original = f'/results/material/topology/{top_id}'
-        top_id += 1
+        topology[top_id_original] = original
+        top_id = 1
         if groups:
             label_to_instances: Dict[str, List] = defaultdict(list)
             label_to_id: Dict[str, str] = {}
@@ -549,74 +553,56 @@ class MaterialNormalizer():
         '''
         if material.structural_type not in {'2D', 'surface', 'unavailable'}:
             return None
-        topology, original, structure_original = self._init_orig_topology(material)
+        topologies = []
+        id_original = f'/results/material/topology/0'
+        original, structure_original = self._create_orig_topology(material, id_original)
         if structure_original is None:
             return None
+        # TODO: MatID does not currently support non-periodic structures
         if structure_original.nperiodic_dimensions == 0:
             return None
         # TODO: It still needs to be decided what this limit should be.
         n_atoms = len(structure_original.species_at_sites)
         if n_atoms > 500:
             return None
-        top_id = 1
-        top_id_str = f'/results/material/topology/{top_id}'
-
-        # Perform clustering
         clusters = self._perform_matid_clustering(structure_original)
 
+        cluster_indices_list, cluster_symmetries = self._filter_clusters(clusters)
+
         # Add all meaningful clusters to the topology
-        cluster_indices_list = self._filter_clusters(clusters)
-        for indices in cluster_indices_list:
-            system_type = self._system_type_analysis(structure_original, indices)
-            if system_type not in {"2D", "surface"}:
+        topologies.append(original)
+        for indices, symm in zip(cluster_indices_list, cluster_symmetries):
+            id_subsystem = f'/results/material/topology/{len(topologies)}'
+            subsystem = self._create_subsystem(
+                structure_original, indices, id_subsystem, id_original)
+            if subsystem.structural_type not in {"2D", "surface"}:
                 continue
-            subsystem = self._create_subsystem(structure_original, indices, system_type, top_id)
+            topologies.append(subsystem)
+            original = self._add_child_system(original, id_subsystem)
+            if subsystem.structural_type == 'surface':
+                id_conv = f'/results/material/topology/{len(topologies)}'
+                symmsystem = self._create_conv_cell_system(symm, id_conv, id_subsystem)
+                topologies.append(symmsystem)
+                subsystem = self._add_child_system(subsystem, id_conv)
 
-            topology[top_id_str] = subsystem
-            parent_children = original.child_systems if original.child_systems else []
-            parent_children.append(top_id_str)
-            original.child_systems = parent_children
-            top_id += 1
-            top_id_str = f'/results/material/topology/{top_id}'
-
-            # TODO: Analyze the connected cells
-            # (matid.core.linkedunits.LinkedUnitCollection) in the subsystem to
-            # figure out the structure type, conventional cell, orientation,
-            # etc. This data should be stored as children of the subsystem
-            # within the topology.
-
-        # If the returned clusters contain more than one 2D/surface component,
-        # the topology is accepted and returned. TODO: This should be extended
-        # to also output more complex topologies.
-        if len(topology) < 3:
+        # If the returned clusters contain more than one 2D/surface subsystems,
+        # the topology is accepted and returned. TODO: This should be modified
+        # in the future to also accept other kind of topologies besides
+        # heterostructures.
+        if len([x for x in topologies if (x.structural_type in ('surface', '2D') and x.label == "subsystem")]) < 2:
             return None
+        return topologies
 
-        return list(topology.values())
-
-    def _init_orig_topology(self, material: Material) -> Tuple[Dict[str, System], System, StructureOriginal]:
-        topology: Dict[str, System] = {}
-
+    def _create_orig_topology(self, material: Material, top_id: str) -> Tuple[System, Structure]:
+        '''
+        Creates a new topology item for the original structure.
+        '''
         structure_original = self._check_original_structure()
         if structure_original is None:
-            return None, None, None
+            return None, None
 
-        top_id = 0
-        original = self._add_orig_topology_as_root(material, top_id)
-
-        if structure_original:
-            original.cell = self._create_cell(structure_original)
-            original.atoms = structure_original
-            original.n_atoms = structure_original.n_sites
-        topology[str(top_id)] = original
-
-        return topology, original, structure_original
-
-    def _add_orig_topology_as_root(self, material: Material, top_id: int) -> System:
-        '''Adds the original system topology as root
-        '''
-        top_id_str = f'/results/material/topology/{top_id}'
         original = System(
-            system_id=top_id_str,
+            system_id=top_id,
             method='parser',
             label='original',
             description='A representative system chosen from the original simulation.',
@@ -631,29 +617,80 @@ class MaterialNormalizer():
             elements=material.elements,
         )
 
-        return original
+        if structure_original:
+            original.cell = cell_from_structure(structure_original)
+            original.atoms_ref = structure_original
+            original.n_atoms = structure_original.n_sites
+        return original, structure_original
 
-    def _check_original_structure(self) -> StructureOriginal:
+    def _create_subsystem(self, structure_original: Structure, indices: List[int], top_id: str, parent_id: str) -> System:
+        '''
+        Creates a new subsystem as detected by MatID.
+        '''
+        subsystem = System(
+            system_id=top_id,
+            method='matid',
+            label='subsystem',
+            description='Automatically detected subsystem.',
+            system_relation=Relation(type='subsystem'),
+            parent_system=parent_id
+        )
+        system_type = self._system_type_analysis(structure_original, indices)
+        subsystem.structural_type = system_type
+        subsystem.indices = [indices]
+        subspecies = np.array(structure_original.species_at_sites)[indices]
+        subsystem = self._add_subsystem_properties(subspecies, subsystem)
+        return subsystem
+
+    def _add_child_system(self, subsystem: System, top_id_str: str) -> System:
+        parent_children_subsystem = subsystem.child_systems if subsystem.child_systems else []
+        parent_children_subsystem.append(top_id_str)
+        subsystem.child_systems = parent_children_subsystem
+        return subsystem
+
+    def _create_conv_cell_system(self, symm, top_id: str, parent_id: str):
+        '''
+        Creates a new topology item for a conventional cell.
+        '''
+        symmsystem = System(
+            system_id=top_id,
+            method='matid',
+            label='conventional cell',
+            description='The conventional cell of the bulk material from which the surface is constructed from.',
+            system_relation=Relation(type='subsystem'),
+            parent_system=parent_id
+        )
+        conv_system = symm.get_conventional_system()
+        wyckoff_sets = symm.get_wyckoff_sets_conventional()
+        symmsystem.atoms = structure_from_ase_atoms(conv_system, wyckoff_sets, logger=self.logger)
+        subspecies = conv_system.get_chemical_symbols()
+        symmsystem.structural_type = 'bulk'
+        symmsystem = self._add_subsystem_properties(subspecies, symmsystem)
+        symmsystem = self._create_symmsystem(symm, symmsystem)
+        return symmsystem
+
+    def _check_original_structure(self) -> Optional[Structure]:
         '''
         Checks if original system is available and if system size is processable. The
         topology is created only if structural_type == unavailable and a meaningful
         topology can be extracted.
         '''
+        structure_original = None
         try:
             structure_original = self.properties.structures.structure_original
         except Exception:
-            return None
+            pass
 
         return structure_original
 
-    def _perform_matid_clustering(self, structure_original: StructureOriginal) -> list:
+    def _perform_matid_clustering(self, structure_original: Structure) -> List:
         '''
         Creates an ase.atoms and performs the clustering with MatID
         '''
         system = Atoms(
             symbols=structure_original.species_at_sites,
-            positions=structure_original.cartesian_site_positions * 1e10,
-            cell=complete_cell(structure_original.lattice_vectors * 1e10),
+            positions=structure_original.cartesian_site_positions.to(ureg.angstrom),
+            cell=complete_cell(structure_original.lattice_vectors.to(ureg.angstrom)),
             pbc=np.array(structure_original.dimension_types, dtype=bool)
         )
 
@@ -669,24 +706,7 @@ class MaterialNormalizer():
         )
         return clusters
 
-    def _create_cell(self, structure_original: StructureOriginal) -> Cell:
-        '''
-        Creates a Cell from the given structure.
-        '''
-        cell = Cell(
-            a=structure_original.lattice_parameters.a,
-            b=structure_original.lattice_parameters.b,
-            c=structure_original.lattice_parameters.c,
-            alpha=structure_original.lattice_parameters.alpha,
-            beta=structure_original.lattice_parameters.beta,
-            gamma=structure_original.lattice_parameters.gamma,
-            volume=structure_original.cell_volume,
-            atomic_density=structure_original.atomic_density,
-            mass_density=structure_original.mass_density,
-        )
-        return cell
-
-    def _filter_clusters(self, clusters: StructureClusterer) -> List[List[int]]:
+    def _filter_clusters(self, clusters: StructureClusterer) -> Tuple[List[List[int]], List[Symmetry]]:
         '''
         Filters all clusters < 2 atoms and creates a cluster indices list of the remaining
         clusters
@@ -702,13 +722,25 @@ class MaterialNormalizer():
         # would be grouped into one cluster?
         filtered_cluster = filter(lambda x: len(x.indices) > 1, clusters)
         cluster_indices_list: List[List[int]] = []
+        cluster_symmetries: List[Symmetry] = []
         for cluster in filtered_cluster:
             indices = list(cluster.indices)
             cluster_indices_list += [indices]
+            regions = cluster.regions
+            number_of_atoms: List[int] = []
+            for region in regions:
+                if region:
+                    number_of_atoms.append(region.cell.get_number_of_atoms())
 
-        return cluster_indices_list
+            # TODO: What happens when there are 2 regions that have the same size?
+            largest_region_index = number_of_atoms.index(max(number_of_atoms))
+            largest_region_system = regions[largest_region_index].cell
+            # TODO: only SymmetryAnalyzer for 2D and surface
+            symm = SymmetryAnalyzer(largest_region_system)
+            cluster_symmetries += [symm]
+        return cluster_indices_list, cluster_symmetries
 
-    def _system_type_analysis(self, structure_original: StructureOriginal, indices: List[int]) -> matid.classifications:
+    def _system_type_analysis(self, structure_original: Structure, indices: List[int]) -> matid.classifications:
         '''
         Classifies ase.atoms and returns the MatID system type as a string.
         '''
@@ -722,8 +754,8 @@ class MaterialNormalizer():
         # Create the system as ASE.Atoms
         cluster_atoms = Atoms(
             symbols=np.array(structure_original.species_at_sites)[indices],
-            positions=np.array(structure_original.cartesian_site_positions)[indices] * 1e10,
-            cell=complete_cell(structure_original.lattice_vectors * 1e10),
+            positions=structure_original.cartesian_site_positions.to(ureg.angstrom)[indices],
+            cell=complete_cell(structure_original.lattice_vectors.to(ureg.angstrom)),
             pbc=np.array(structure_original.dimension_types, dtype=bool)
         )
         try:
@@ -743,31 +775,77 @@ class MaterialNormalizer():
                 system_type = 'unavailable'
         return system_type
 
-    def _create_subsystem(self, structure_original: StructureOriginal, indices: List[int], system_type: str, top_id: int) -> System:
-        '''
-        Creates the subsystem with system type
-        '''
-        subspecies = np.array(structure_original.species_at_sites)[indices]
-        formula = atomutils.Formula(''.join(subspecies))
+    def _add_subsystem_properties(self, subspecies: List[str], subsystem) -> System:
+        formula = atomutils.Formula("".join(subspecies))
         formula_hill = formula.format('hill')
         formula_anonymous = formula.format('anonymous')
         formula_reduced = formula.format('reduce')
         elements = formula.elements()
-        top_id_str = f'/results/material/topology/{top_id}'
-
-        subsystem = System(
-            system_id=top_id_str,
-            method='matid',
-            label='subsystem',
-            description='Automatically detected subsystem.',
-            structural_type=system_type,
-            indices=[indices],
-            system_relation=Relation(type='subsystem'),
-            formula_hill=formula_hill,
-            formula_anonymous=formula_anonymous,
-            formula_reduced=formula_reduced,
-            elements=elements,
-            parent_system='/results/material/topology/0',
-            n_atoms=len(indices)
-        )
+        subsystem.formula_hill = formula_hill
+        subsystem.formula_anonymous = formula_anonymous
+        subsystem.formula_reduced = formula_reduced
+        subsystem.elements = elements
         return subsystem
+
+    def _create_symmsystem(self, symm: SymmetryAnalyzer, subsystem: System) -> System:
+        """
+        Creates the subsystem with the symmetry information of the conventional cell
+        """
+        conv_system = symm.get_conventional_system()
+        subsystem.cell = cell_from_ase_atoms(conv_system)
+        symmetry = self._create_symmetry(subsystem, symm)
+        subsystem.symmetry = symmetry
+        prototype = self._create_prototype(symm, conv_system)
+        spg_number = symm.get_space_group_number()
+        subsystem.prototype = prototype
+        wyckoff_sets = symm.get_wyckoff_sets_conventional()
+        material_id = self.material_id_bulk(spg_number, wyckoff_sets)
+        subsystem.material_id = material_id
+        return subsystem
+
+    def _create_symmetry(self, subsystem: System, symm: SymmetryAnalyzer) -> Symmetry:
+        international_short = symm.get_space_group_international_short()
+
+        sec_symmetry = Symmetry()
+        sec_symmetry.symmetry_method = 'MatID'
+        sec_symmetry.space_group_number = symm.get_space_group_number()
+        sec_symmetry.space_group_symbol = international_short
+        sec_symmetry.hall_number = symm.get_hall_number()
+        sec_symmetry.hall_symbol = symm.get_hall_symbol()
+        sec_symmetry.international_short_symbol = international_short
+        sec_symmetry.point_group = symm.get_point_group()
+        sec_symmetry.crystal_system = symm.get_crystal_system()
+        sec_symmetry.bravais_lattice = symm.get_bravais_lattice()
+        sec_symmetry.origin_shift = symm._get_spglib_origin_shift()
+        sec_symmetry.transformation_matrix = symm._get_spglib_transformation_matrix()
+        return sec_symmetry
+
+    def _create_prototype(self, symm: SymmetryAnalyzer, conv_system: System) -> Prototype:
+        spg_number = symm.get_space_group_number()
+        atom_species = conv_system.get_atomic_numbers()
+        wyckoffs = conv_system.wyckoff_letters
+        norm_wyckoff = atomutils.get_normalized_wyckoff(atom_species, wyckoffs)
+        protoDict = atomutils.search_aflow_prototype(spg_number, norm_wyckoff)
+
+        if protoDict is not None:
+            aflow_prototype_name = protoDict["Prototype"]
+            aflow_strukturbericht_designation = protoDict["Strukturbericht Designation"]
+            prototype_label = '%d-%s-%s' % (
+                spg_number,
+                aflow_prototype_name,
+                protoDict.get("Pearsons Symbol", "-")
+            )
+            prototype = Prototype()
+            prototype.label = prototype_label
+
+            prototype.formula = atomutils.Formula("".join(protoDict['atom_labels'])).format('hill')
+            prototype.aflow_id = protoDict["aflow_prototype_id"]
+            prototype.aflow_url = protoDict["aflow_prototype_url"]
+            prototype.assignment_method = "normalized-wyckoff"
+            prototype.m_cache["prototype_notes"] = protoDict["Notes"]
+            prototype.m_cache["prototype_name"] = aflow_prototype_name
+            if aflow_strukturbericht_designation != "None":
+                prototype.m_cache["strukturbericht_designation"] = aflow_strukturbericht_designation
+        else:
+            prototype = None
+        return prototype

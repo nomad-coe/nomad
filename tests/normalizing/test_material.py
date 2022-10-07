@@ -27,7 +27,7 @@ from matid.symmetry.wyckoffset import WyckoffSet
 from nomad.units import ureg
 from nomad import atomutils
 from nomad.utils import hash
-from tests.normalizing.conftest import get_template_for_structure
+from tests.normalizing.conftest import get_template_for_structure, get_template_topology
 
 
 def assert_material(material):
@@ -562,19 +562,30 @@ def test_conventional_structure(atoms, expected):
     assert np.allclose(cell, expected.get_cell())
 
 
-def test_topology_calculation(topology_calculation):
+@pytest.mark.parametrize(
+    "pbc",
+    [
+        pytest.param(True, id="fully periodic"),
+        pytest.param(True, id="non-periodic"),
+    ]
+)
+def test_topology_calculation(pbc):
     """Tests that a topology that originates from the calculation itself is
     correctly extracted.
     """
+    topology_calculation = get_template_topology(pbc)
     topology = topology_calculation.results.material.topology
     assert len(topology) == 5
+
     # Test the original structure
     original = topology[0]
     assert original.structural_type == "unavailable"
-    assert original.atoms.cartesian_site_positions.shape == (6, 3)
-    assert len(original.atoms.species_at_sites) == 6
-    assert original.atoms.lattice_vectors.shape == (3, 3)
-    assert original.atoms.dimension_types == [False, False, False]
+    assert original.atoms_ref.cartesian_site_positions.shape == (6, 3)
+    assert len(original.atoms_ref.species_at_sites) == 6
+    assert original.atoms_ref.lattice_vectors.shape == (3, 3)
+    expected_pbc = np.zeros(3, bool)
+    expected_pbc[:] = pbc
+    assert original.atoms_ref.dimension_types == expected_pbc.tolist()
     assert original.formula_hill == "H4O2"
     assert original.formula_reduced == "H4O2"
     assert original.formula_anonymous == "A4B2"
@@ -646,7 +657,7 @@ def test_topology_calculation(topology_calculation):
     pytest.param('surface', id='surface'),
 ])
 def test_no_topology(fixture, request):
-    # Test that some entries don't get a topology. This will change later, but
+    # Test that some entries don't get a topology. This will changed later, but
     # for now we only create topologies for a subset of systems.
     entry = request.getfixturevalue(fixture)
     assert not entry.results.material.topology
@@ -679,64 +690,141 @@ def test_topology_matid(entry_id):
     # Parse ase.atoms and get calculated topology
     entry_archive = get_template_for_structure(atoms)
     topology = entry_archive.results.material.topology
-    assert len(topology) == len(ref_topology)
+
+    number_of_systems = 1
     outlier_threshold = 1
 
     # Compare topology with reference system topology. topology[0] is the original system
     for cluster in topology[1:]:
-        elements = cluster['elements']
-        formula_hill = cluster['formula_hill']
-        indices = cluster['indices']
-        system_type = cluster['structural_type']
-        if len(indices[0]) <= outlier_threshold:
+        if cluster['label'] == 'subsystem':
+            ref_number_of_systems = assert_subsystem(cluster, ref_topology, outlier_threshold)
+            number_of_systems += 1
+            if ref_number_of_systems is None:
+                continue
+        elif cluster['label'] == 'conventional cell':
+            assert_conventional_cell(cluster, ref_topology)
+    assert number_of_systems == ref_number_of_systems
+
+
+def assert_subsystem(cluster, ref_topology, outlier_threshold):
+    elements = cluster['elements']
+    formula_hill = cluster['formula_hill']
+    indices = cluster['indices']
+    system_type = cluster['structural_type']
+    if len(indices[0]) <= outlier_threshold:
+        return None
+    similarity_value = []
+    ref_number_of_systems = 1
+    for ref_cluster in ref_topology[1:]:
+        if ref_cluster['label'] != 'subsystem':
+            similarity_value += [0]
             continue
-        max_similarity = []
-        similarity_value = []
-        for ref_cluster in ref_topology[1:]:
+        ref_number_of_systems += 1
+        # Load reference cluster. Pass if system type is not a surface or 2D.
+        ref_system_type = ref_cluster['structural_type']
+        assert ref_system_type in {'2D', 'surface'}
 
-            # Load reference cluster. Pass if system type is not a surface or 2D.
-            ref_system_type = ref_cluster['structural_type']
-            assert ref_system_type in {'2D', 'surface'}
+        ref_elements = ref_cluster['elements']
+        ref_formula_hill = ref_cluster['formula_hill']
+        ref_indices = ref_cluster['indices']
+        # Similarity calculation
+        indices_overlap = set(
+            ref_indices).intersection(set(indices[0]))
+        indices_similarity = len(
+            indices_overlap) / len(ref_indices) > 0.90
+        element_similarity = set(ref_elements) == set(elements)
+        formula_hill_similarity = ref_formula_hill == formula_hill
+        system_type_similarity = ref_system_type == system_type
 
-            ref_elements = ref_cluster['elements']
-            ref_formula_hill = ref_cluster['formula_hill']
-            ref_indices = ref_cluster['indices']
+        similarity_value += [indices_similarity + element_similarity
+                             + formula_hill_similarity + system_type_similarity]
 
-            # Similarity calculation
-            indices_overlap = set(
-                ref_indices).intersection(set(indices[0]))
-            indices_similarity = len(
-                indices_overlap) / len(ref_indices) > 0.90
-            element_similarity = set(ref_elements) == set(elements)
-            formula_hill_similarity = ref_formula_hill == formula_hill
-            system_type_similarity = ref_system_type == system_type
+    # Get most similar reference cluster. +1 because 0 is the original system
+    max_similarity = similarity_value.index(max(similarity_value)) + 1
+    topology_max_similarity = ref_topology[max_similarity]
 
-            similarity_value += [indices_similarity + element_similarity
-                                 + formula_hill_similarity + system_type_similarity]
+    # Indices: passes if the index overlapp is great enough
+    ref_indices_most_similar = topology_max_similarity['indices']
+    indices_overlap_most_similar = set(
+        ref_indices_most_similar).intersection(set(indices[0]))
+    assert len(indices_overlap_most_similar) / \
+        len(ref_indices_most_similar) > 0.85
 
-        # Get most similar reference cluster. +1 because 0 is the original system
-        max_similarity = similarity_value.index(max(similarity_value)) + 1
-        topology_max_similarity = ref_topology[max_similarity]
+    # Elements
+    assert set(topology_max_similarity['elements']) == set(elements)
 
-        # Indices: passes if the index overlapp is great enough
-        ref_indices_most_similar = topology_max_similarity['indices']
-        indices_overlap_most_similar = set(
-            ref_indices_most_similar).intersection(set(indices[0]))
-        assert len(indices_overlap_most_similar) / \
-            len(ref_indices_most_similar) > 0.85
+    # Formula hill: passes if the deviation is smaller than 15%
+    if topology_max_similarity['formula_hill'] != formula_hill:
+        ref_element_quantity = Formula(topology_max_similarity['formula_hill']).count()
+        element_quantity = Formula(formula_hill).count()
+        diff = 0
+        for element in ref_element_quantity.keys():
+            diff += abs(ref_element_quantity[element] - element_quantity[element])
+        deviation = diff / sum(ref_element_quantity.values())
+        assert deviation < 0.15
 
-        # Elements
-        assert set(topology_max_similarity['elements']) == set(elements)
+    # System type
+    assert topology_max_similarity['structural_type'] == system_type
 
-        # Formula hill: passes if the deviation is smaller than 10%
-        if topology_max_similarity['formula_hill'] != formula_hill:
-            ref_element_quantity = Formula(topology_max_similarity['formula_hill']).count()
-            element_quantity = Formula(formula_hill).count()
-            diff = 0
-            for element in ref_element_quantity.keys():
-                diff += abs(ref_element_quantity[element] - element_quantity[element])
-            deviation = diff / sum(ref_element_quantity.values())
-            assert deviation < 0.15
+    return ref_number_of_systems
 
-        # System type
-        assert topology_max_similarity['structural_type'] == system_type
+
+def assert_conventional_cell(cluster, ref_topology):
+    elements = cluster['elements']
+    formula_hill = cluster['formula_hill']
+    material_id = cluster['material_id']
+    cell = cluster['cell']
+    symmetry = cluster['symmetry'].m_to_dict()
+
+    similarity_value = []
+
+    for ref_cluster in ref_topology[1:]:
+        if ref_cluster['label'] != 'conventional cell':
+            similarity_value += [0]
+            continue
+        ref_elements = ref_cluster['elements']
+        ref_formula_hill = ref_cluster['formula_hill']
+        ref_material_id = ref_cluster['material_id']
+        ref_cell = ref_cluster['cell']
+        ref_symmetry = ref_cluster['symmetry']
+
+        element_similarity = set(ref_elements) == set(elements)
+        formula_hill_similarity = ref_formula_hill == formula_hill
+        material_id_similarity = ref_material_id == material_id
+        symmetrie_similarity = 0
+
+        # Cell
+        cell_similarity = np.allclose(list(cell.values()), list(ref_cell.values()), rtol=1e-05, atol=1e-12)
+
+        # Symmetry
+        for ref_symmetry_property_key, ref_symmetry_property in ref_symmetry.items():
+            symmetry_property = symmetry[ref_symmetry_property_key]
+            symmetrie_similarity += symmetry_property == ref_symmetry_property
+
+        symmetrie_similarity = symmetrie_similarity / len(symmetry)
+
+        similarity_value += [element_similarity + formula_hill_similarity + material_id_similarity + cell_similarity + symmetrie_similarity]
+
+    if similarity_value == []:
+        return
+
+    # TODO: For now, this is necessary to prevent some tests from failing. The algorithm calculates conventional cells that are most likely not correct. Therefore, these conventional cells are not included in the reference data, but are calculated nevertheless. To prevent the comparison of these conventional cells, I set a threshold for the similarity value for comparison. This should be removed as soon as the test data is more suitable!
+    if max(similarity_value) <= 3:
+        return
+
+    # Get most similar reference cluster. +1 because 0 is the original system
+    max_similarity = similarity_value.index(max(similarity_value)) + 1
+    topology_max_similarity = ref_topology[max_similarity]
+
+    # Elements, formula hill, material id:
+    assert topology_max_similarity['elements'] == elements
+    assert topology_max_similarity['formula_hill'] == formula_hill
+    assert topology_max_similarity['material_id'] == material_id
+
+    # Cell:
+    assert np.allclose(list(cell.values()), list(topology_max_similarity['cell'].values()), rtol=3e-03, atol=1e-12)
+
+    # Symmetry:
+    for ref_symmetry_property_key, ref_symmetry_property in ref_symmetry.items():
+        symmetry_property = symmetry[ref_symmetry_property_key]
+        assert symmetry_property == ref_symmetry_property

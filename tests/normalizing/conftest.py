@@ -628,8 +628,7 @@ def molecular_dynamics() -> EntryArchive:
     return run_normalize(template)
 
 
-@pytest.fixture(scope='session')
-def topology_calculation() -> EntryArchive:
+def get_template_topology(pbc=False) -> EntryArchive:
     template = get_template_dft()
     run = template.run[0]
     del run.system[0]
@@ -640,8 +639,8 @@ def topology_calculation() -> EntryArchive:
     water2.translate([5, 0, 0])
     sys = water1 + water2
     sys.set_cell([10, 10, 10])
-    sys.set_pbc(True)
-    system = get_section_system(water1 + water2)
+    sys.set_pbc(pbc)
+    system = get_section_system(sys)
     run.m_add_sub_section(Run.system, system)
 
     # Topology
