@@ -581,6 +581,20 @@ parsers = [
         mainfile_contents_re=r'MOF Structures'
     ),
     MatchingParserInterface(
+        'workflowparsers.QuantumEspressoPhononParser',
+        metadata_path=f'{prefix_workflow}/quantum_espresso_phonon/metadata.yaml',
+        mainfile_contents_re=(
+            r'Program PHONON.+\s*'
+            r'This program is part of the open-source Quantum ESPRESSO suite')
+    ),
+    MatchingParserInterface(
+        'workflowparsers.QuantumEspressoEPWParser',
+        metadata_path=f'{prefix_workflow}/quantum_espresso_epw/metadata.yaml',
+        mainfile_contents_re=(
+            r'Program EPW.+\s*'
+            r'This program is part of the open-source Quantum ESPRESSO suite')
+    ),
+    MatchingParserInterface(
         'databaseparsers.OpenKIMParser',
         metadata_path=f'{prefix_database}/openkim/metadata.yaml',
         mainfile_mime_re=r'(application/json)|(text/.*)',
