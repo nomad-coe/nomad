@@ -58,23 +58,3 @@ chart provides a sense of various ways that data can be entered into NOMAD:
 
 There are various interface to provide or retrieve Archive data and Metainfo schemas.
 The following documentation sections will explain a few of them.
-
-
-## Old
-
-As you have already seen in the example, we must first define how data can look like (schema),
-before we can actually program with them. Since schema and data are often discussed in the
-same context, it is of utmost importance to clearly distingish between the two. For example, if we
-just say "system", it is unclear what we refer to. We could mean the idea of a system, i.e. all
-possible systems, a data structure that comprises a lattice, or atoms with their elements and
-positions in the lattice. Or we mean a specific system of a specific calculation, with
-a concrete set of atoms, and real numbers for lattice vectors and atom positions as concrete data.
-
-The NOMAD Metainfo is just a collection of definitions that describe what material science
-data might look like (a schema). The NOMAD Archive is all the data that we extract from all data
-provided to NOMAD. The data in the NOMAD Archive follows the definitions of the NOMAD metainfo.
-
-Similarely, we need to distingish between the NOMAD Metainfo as a collection of definitions
-and the Metainfo system that defines how to define a section or a quantity. In this sense,
-we have a three layout model where the Archive (data) is an instance of the Metainfo (schema)
-and the Metainfo is an instance of the Metainfo system (schema of the schema).
