@@ -476,7 +476,7 @@ parsers = [
     MatchingParserInterface(
         'atomisticparsers.GromacsParser',
         metadata_path=f'{prefix_atomistic}/gromacs/metadata.yaml',
-        mainfile_contents_re=r'gmx mdrun, (VERSION|version)'
+        mainfile_contents_re=r'gmx mdrun, (VERSION|version)[\s\S]*Input Parameters:'
     ),
     MatchingParserInterface(
         'atomisticparsers.GromosParser',
