@@ -346,3 +346,9 @@ above:
 ```yaml
 --8<-- "examples/docs/references/multiple_files/data.archive.yaml"
 ```
+
+!!! attention
+    You cannot create definitions that lead to circular loading of `*.archive.yaml` files.
+    Each `definitions` section in an NOMAD entry represents a schema *package*. Each *package*
+    needs to be fully loaded and analyzed before it can be used by other *packages* in other entries.
+    Therefore, two *packages* in two entries cannot reference each other.
