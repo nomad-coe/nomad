@@ -24,7 +24,7 @@ import pytz
 
 from nomad.metainfo import MSection, Quantity, Attribute, MEnum, Reference, Datetime
 from nomad.metainfo.metainfo import MQuantity, Definition
-from nomad.metainfo.metainfo_utility import validate_allowable_unit
+from nomad.metainfo.util import validate_allowable_unit
 from nomad.units import ureg
 
 

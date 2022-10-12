@@ -27,9 +27,11 @@ from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type, entry_type as es_entry_type
+from .util import parse_path
+from ..metainfo import Definition, MProxy, MSection, Quantity, Reference, SectionProxy
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
-# due to the next imports requireing the m_package already, this would be too late.
+# due to the next imports requiring the m_package already, this would be too late.
 m_package = metainfo.Package()
 
 from .results import Results  # noqa
@@ -88,7 +90,7 @@ class Dataset(metainfo.MSection):
     Args:
         dataset_id: The unique identifier for this dataset as a string. It should be
             a randomly generated UUID, similar to other nomad ids.
-        dataset_name: The human readable name of the dataset as string. The dataset name must be
+        dataset_name: The human-readable name of the dataset as string. The dataset name must be
             unique for the user.
         user_id: The unique user_id of the owner and creator of this dataset. The owner
             must not change after creation.
@@ -220,6 +222,35 @@ def derive_authors(entry: 'EntryMetadata') -> List[User]:
     return authors
 
 
+class EntryArchiveReference(metainfo.MSection):
+    m_def = metainfo.Section(label='ArchiveReference')
+
+    target_reference = metainfo.Quantity(
+        type=str,
+        description='The full url like reference of the the target.',
+        a_elasticsearch=Elasticsearch())
+    target_entry_id = metainfo.Quantity(
+        type=str,
+        description='The id of the entry containing the target.',
+        a_elasticsearch=Elasticsearch())
+    target_name = metainfo.Quantity(
+        type=str,
+        description='The name of the target quantity/section.',
+        a_elasticsearch=Elasticsearch())
+    target_path = metainfo.Quantity(
+        type=str,
+        description='The path of the target quantity/section in its archive.',
+        a_elasticsearch=Elasticsearch())
+    source_name = metainfo.Quantity(
+        type=str,
+        description='The name of the source (self) quantity/section in its archive.',
+        a_elasticsearch=Elasticsearch())
+    source_path = metainfo.Quantity(
+        type=str,
+        description='The path of the source (self) quantity/section in its archive.',
+        a_elasticsearch=Elasticsearch())
+
+
 class EntryMetadata(metainfo.MSection):
     '''
     Attributes:
@@ -251,7 +282,7 @@ class EntryMetadata(metainfo.MSection):
         processed: Boolean indicating if this entry was successfully processed and archive
             data and entry metadata is available.
         last_processing_time: The date and time of the last processing.
-        processing_errors: Errors that occured during processing.
+        processing_errors: Errors that occurred during processing.
         nomad_version: A string that describes the version of the nomad software that was
             used to do the last successful processing.
         nomad_commit: The NOMAD commit used for the last processing.
@@ -550,12 +581,78 @@ class EntryMetadata(metainfo.MSection):
         description='All sections that are present in this entry.',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    def apply_archvie_metadata(self, archive):
+    archive_references = metainfo.SubSection(
+        sub_section=EntryArchiveReference,
+        repeats=True,
+        a_elasticsearch=Elasticsearch())
+
+    def _append_reference(self, url_reference: str, current_def: Definition, quantity_path: str):
+        try:
+            parse_result = parse_path(url_reference, self.upload_id)
+        except Exception:  # type: ignore
+            return
+
+        if parse_result is None:
+            return
+
+        _, _, entry_id, _, path = parse_result
+        if entry_id is None:
+            return
+
+        target_name = path
+        for name in reversed(path.split('/')):
+            if not name.isdigit():
+                target_name = name
+                break
+
+        ref_item = EntryArchiveReference()
+        ref_item.target_reference = url_reference
+        ref_item.target_entry_id = entry_id
+        ref_item.target_name = target_name
+        ref_item.target_path = path
+        ref_item.source_name = current_def.name
+        ref_item.source_path = quantity_path
+
+        self.archive_references.append(ref_item)
+
+    def _collect_reference(self, current_section: MSection, current_def: Definition, quantity_path: str):
+        '''
+        Receives a definition of a quantity 'current_def' and checks if it is a reference to another entry.
+        If yes, add the value to 'ref_pool'.
+        '''
+        if isinstance(current_def, Quantity):
+            # for quantities
+            if not isinstance(current_def.type, Reference):
+                return
+
+            try:
+                current_value = current_section.m_get(current_def)
+            except Exception:
+                return
+        else:
+            # for subsections
+            target_section = current_def.section_def
+            if not isinstance(target_section, SectionProxy):
+                return
+
+            current_value = target_section
+
+        ref_list: list = []
+        if isinstance(current_value, MProxy):
+            ref_list = [current_value]
+        elif isinstance(current_value, list):
+            ref_list = [v for v in current_value if isinstance(v, MProxy)]
+
+        for ref in ref_list:
+            self._append_reference(ref.m_proxy_value, current_def, quantity_path)
+
+    def apply_archive_metadata(self, archive):
         quantities = set()
         sections = set()
         n_quantities = 0
 
         section_paths = {}
+        self.archive_references = []
 
         def get_section_path(section):
             section_path = section_paths.get(section)
@@ -584,6 +681,8 @@ class EntryMetadata(metainfo.MSection):
             quantity_path = f'{section_path}.{property_def.name}' if section_path else property_def.name
             quantities.add(quantity_path)
             n_quantities += 1
+
+            self._collect_reference(section, property_def, quantity_path)
 
         self.quantities = list(quantities)
         self.quantities.sort()

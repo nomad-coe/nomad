@@ -533,7 +533,19 @@ def example_data_with_reference(elastic_module, raw_files_module, mongo_module, 
             entry_id=f'id_{index + 1:02d}',
             entry_archive=EntryArchive.m_from_dict(json_dict))
 
+    for archive in data.archives.values():
+        archive.metadata.apply_archive_metadata(archive)
+
     data.save(with_files=True, with_es=True, with_mongo=True)
+
+    from nomad.search import search
+    results = search().data
+    assert len(results) == 6
+    for i in {0, 1, 5}:
+        assert 'archive_references' not in results[i]
+    for i in {2, 3, 4}:
+        assert 'archive_references' in results[i]
+
     yield data
     data.delete()
 
@@ -740,7 +752,7 @@ def test_partial_archive(archive):
     assert_partial_archive(partial_archive)
 
 
-def test_parital_archive_read_write(archive, mongo):
+def test_partial_archive_read_write(archive, mongo):
     write_partial_archive_to_mongo(archive)
     assert_partial_archive(read_partial_archive_from_mongo('test_id'))
 

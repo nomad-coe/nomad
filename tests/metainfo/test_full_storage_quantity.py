@@ -18,7 +18,7 @@
 import pytest
 
 from nomad.metainfo import MSection, Quantity, Attribute, SubSection, MetainfoError, Section
-from nomad.metainfo.metainfo_utility import MQuantity
+from nomad.metainfo.util import MQuantity
 from nomad.units import ureg
 
 
