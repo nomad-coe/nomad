@@ -1,0 +1,23 @@
+definitions:
+  sections:
+    Composition:
+      quantities:
+        composition:
+          type: str
+        base_composition:
+          type: Composition
+      sub_sections:
+        elements:
+          section: Element
+          repeats: True
+    Element:
+      quantities:
+        label:
+          type: str
+    Solution:
+      quantities:
+        solvent:
+          type: Composition
+      sub_sections:
+        solute:
+          section: Composition

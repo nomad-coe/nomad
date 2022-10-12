@@ -318,3 +318,31 @@ Here are a few other build-in section definitions and packages of definitions:
 |nomad.parsing.tabular.TableData|Allows to inherit parsing of references .csv and .xls files.|
 |nomad.datamodel.metainfo.simulation.*|A package of section definitions use by NOMAD's electronic structure code parsers to produce simulator "run" based data|
 |nomad.metainfo.*|A package that contains all *definitions* of *definitions*, e.g. NOMAD's "schema language". Here you find *definitions* for what a sections, quantity, sub-sections, etc. is.|
+
+
+## Separating data and schema
+
+As we saw above, a NOMAD entry can contain schema `definitions` and `data` at the
+same time. To organize your schemas and data efficiently, it is often necessary to re-use
+schemas and certain data in other entries. You can use *references* to spread your
+schemas and data over multiple entries and connect the pieces via *references*.
+
+Here is a simple schema, stored in a NOMAD entry with mainfile name `schema.archive.yaml`:
+
+```yaml
+--8<-- "examples/docs/references/multiple_files/schema.archive.yaml"
+```
+
+Now, we can re-use this schema in many entries via *references*. Here, we extend
+the schema and instantiate definitions is a separate mainfile `data-and-schema.archive.yaml`:
+
+```yaml
+--8<-- "examples/docs/references/multiple_files/data-and-schema.archive.yaml"
+```
+
+Here is a last example that re-uses the schema and references data from the two entries
+above:
+
+```yaml
+--8<-- "examples/docs/references/multiple_files/data.archive.yaml"
+```
