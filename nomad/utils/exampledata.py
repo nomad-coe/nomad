@@ -291,7 +291,7 @@ class ExampleData:
 
         entry_metadata = archive.metadata
         entry_metadata.domain = 'dft'
-        entry_metadata.apply_archvie_metadata(archive)
+        entry_metadata.apply_archive_metadata(archive)
 
         if not optimade:
             entry_metadata.optimade = None

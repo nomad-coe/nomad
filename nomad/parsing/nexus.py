@@ -24,7 +24,7 @@ import numpy as np
 from nexusparser.tools import nexus as read_nexus
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import MSection, nexus
-from nomad.metainfo.metainfo_utility import MQuantity, resolve_variadic_name
+from nomad.metainfo.util import MQuantity, resolve_variadic_name
 from nomad.parsing import MatchingParser
 from nomad.units import ureg
 from nomad.utils import get_logger

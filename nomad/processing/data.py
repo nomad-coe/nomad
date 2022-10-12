@@ -1032,7 +1032,7 @@ class Entry(Proc):
                     'could not apply entry metadata to entry', exc_info=e)
 
             try:
-                self._entry_metadata.apply_archvie_metadata(self._parser_results)
+                self._entry_metadata.apply_archive_metadata(self._parser_results)
             except Exception as e:
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
@@ -1129,7 +1129,7 @@ class Entry(Proc):
         self.set_last_status_message('Archiving')
         logger = self.get_logger()
 
-        self._entry_metadata.apply_archvie_metadata(self._parser_results)
+        self._entry_metadata.apply_archive_metadata(self._parser_results)
         self._entry_metadata.processed = True
 
         if self.upload.publish_directly:

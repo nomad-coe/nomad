@@ -35,7 +35,7 @@ import pandas as pd
 import pint
 
 from nomad.config import process
-from nomad.metainfo.metainfo_utility import (
+from nomad.metainfo.util import (
     Annotation, DefinitionAnnotation, MEnum, MQuantity, MRegEx, MSubSectionList, MTypes, ReferenceURL,
     SectionAnnotation, _delta_symbols, check_dimensionality, check_unit, convert_to, default_hash, dict_to_named_list,
     normalize_datetime, resolve_variadic_name, retrieve_attribute, split_python_definition, to_dict, to_numpy,
