@@ -286,39 +286,32 @@ test.each([
   ]
 ])('eln concurrent editing', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  let screen1
-  await act(async () => {
-    screen1 = render(
-      <EntryPageContext entryId={entryId}>
-        <OverviewView />
-      </EntryPageContext>
-    )
-  })
+  const screen1 = render(
+    <EntryPageContext entryId={entryId}>
+      <OverviewView />
+    </EntryPageContext>
+  )
 
-  await waitFor(() => expect(screen1.getByText('HotplateAnnealing')).toBeInTheDocument())
+  await screen1.findByText('HotplateAnnealing')
 
-  const saveButton1 = screen1.queryByTitle('Save entry').closest('button')
+  const saveButton1 = screen1.getByTitle('Save entry').closest('button')
   expect(saveButton1).toBeInTheDocument()
   expect(saveButton1).toBeDisabled()
 
-  const deleteButton1 = screen1.queryByTitle('Delete entry').closest('button')
+  const deleteButton1 = screen1.getByTitle('Delete entry').closest('button')
   expect(deleteButton1).toBeEnabled()
-  await act(async () => userEvent.click(deleteButton1))
-  await waitFor(() => expect(screen1.getByRole('button', {name: 'Delete mainfile'})).toBeInTheDocument())
-  const deleteMainfileButton = screen1.getByRole('button', {name: 'Delete mainfile'})
+  await userEvent.click(deleteButton1)
+  const deleteMainfileButton = await screen1.findByRole('button', {name: 'Delete mainfile'})
 
-  let screen2
-  await act(async () => {
-    screen2 = render(
-      <EntryPageContext entryId={entryId}>
-        <OverviewView />
-      </EntryPageContext>
-    )
-  })
+  const screen2 = render(
+    <EntryPageContext entryId={entryId}>
+      <OverviewView />
+    </EntryPageContext>
+  )
 
-  await waitFor(() => expect(screen2.getByText('HotplateAnnealing')).toBeInTheDocument())
+  await screen2.findByText('HotplateAnnealing')
 
-  const saveButton2 = screen2.queryByTitle('Save entry').closest('button')
+  const saveButton2 = screen2.getByTitle('Save entry').closest('button')
   expect(saveButton2).toBeInTheDocument()
   expect(saveButton2).toBeDisabled()
 
@@ -326,15 +319,13 @@ test.each([
   expect(sectionCards2.length).toBe(3)
   const cardSample2 = sectionCards2[0]
   const inputTextField2 = within(cardSample2).queryAllByRole('textbox', { hidden: true })
-  await act(async () => fireEvent.change(inputTextField2[0], { target: { value: 'new text 2' } }))
+  await fireEvent.change(inputTextField2[0], { target: { value: 'new text 2' } })
 
-  await act(async () => userEvent.click(deleteMainfileButton))
+  await userEvent.click(deleteMainfileButton)
 
   expect(saveButton2).toBeEnabled()
-  await act(async () => userEvent.click(saveButton2))
-  await waitFor(() => expect(screen.getByText(
-    'The changes cannot be saved. The content has been modified by someone else.'
-  )).toBeInTheDocument())
+  await userEvent.click(saveButton2)
+  await screen2.findByText('The changes cannot be saved. The content has been modified by someone else.')
 
   closeAPI()
 })
