@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Any, Tuple, List, Dict
+from typing import Any, Tuple, List, Dict, NamedTuple
 import logging
 import time
 import os
@@ -146,6 +146,14 @@ class ProcessFailure(Exception):
         self._kwargs = kwargs
 
 
+class ProcessFlags(NamedTuple):
+    ''' Flags defined by the @process and @process_local decorators. '''
+    is_blocking: bool
+    clear_queue_on_failure: bool
+    is_child: bool
+    is_local: bool
+
+
 class Proc(Document):
     '''
     Base class for objects that are subject to processing and need persistent processing
@@ -235,6 +243,12 @@ class Proc(Document):
         return dict(process_status__in=ProcessStatus.STATUSES_PROCESSING)
 
     @property
+    def current_process_flags(self) -> ProcessFlags:
+        if not self.current_process:
+            return None
+        return process_flags[self.__class__.__name__][self.current_process]
+
+    @property
     def queue_blocked(self) -> bool:
         '''
         If the queue is blocked (i.e. no new @process can be invoked on this object).
@@ -242,11 +256,13 @@ class Proc(Document):
         mongo, not neccesarily the current state.
         '''
         if self.process_status in ProcessStatus.STATUSES_PROCESSING:
-            blocking_processes = all_blocking_processes[self.__class__.__name__]
-            if self.current_process in blocking_processes:
+            # Check current process
+            if self.current_process_flags.is_blocking:
                 return True
+            # Check queued processes
             for item in self.queue:
-                if item[0] in blocking_processes:
+                func_name = item[0]
+                if process_flags[self.__class__.__name__][func_name].is_blocking:
                     return True
         return False
 
@@ -388,7 +404,7 @@ class Proc(Document):
 
         self.process_status = ProcessStatus.FAILURE
         if complete:
-            self._sync_complete_process()
+            self._sync_complete_process(force_clear_queue_on_failure=True)
 
     def warning(self, *warnings, log_level=logging.WARNING, **kwargs):
         ''' Allows to save warnings. Takes strings or exceptions as args. '''
@@ -634,7 +650,7 @@ class Proc(Document):
             time.sleep(0.1)
             self.reload()
 
-    def _sync_complete_process(self) -> Tuple[str, List[Any], Dict[str, Any]]:
+    def _sync_complete_process(self, force_clear_queue_on_failure=False) -> Tuple[str, List[Any], Dict[str, Any]]:
         '''
         Used to complete a process (when done, successful or not). Returns a triple
         containing information about the next process to run (if any), of the
@@ -644,7 +660,10 @@ class Proc(Document):
             1)  There is something in the queue, and the current process was successful
                 -> We set status to PENDING and return the next process.
             2)  There is something in the queue, and the current process FAILED:
-                -> We clear the queue, set status to FAILURE and return None.
+                -> Behaviour depends on the process decorator flag `clear_queue_on_failure`
+                   and the parameter `force_clear_queue_on_failure`:
+                        If either is True: We clear the queue, set status to FAILURE and return None.
+                        Otherwise: We set status to PENDING and return the next process.
             3)  There is nothing in the queue:
                 -> We set the status to the provided value and return None
 
@@ -658,13 +677,16 @@ class Proc(Document):
         self.process_status = ProcessStatus.RUNNING
         self.save()
         self.process_status = process_status
-
+        clear_queue_on_failure = (
+            force_clear_queue_on_failure or self.current_process_flags.clear_queue_on_failure)
         try_counter = 0
         while True:
             next_process = None
             mongo_update = {'$set': {'sync_counter': self.sync_counter + 1}}
             if self.queue:
-                if process_status == ProcessStatus.SUCCESS:
+                # Something in the queue
+                if not clear_queue_on_failure or process_status == ProcessStatus.SUCCESS:
+                    # Move on to the next process
                     next_process = self.queue[0]
                     next_func_name = next_process[0]
                     mongo_update['$pop'] = {'queue': -1}  # pops the first element
@@ -673,7 +695,7 @@ class Proc(Document):
                         last_status_message='Pending: ' + next_func_name,
                         current_process=next_func_name)
                 else:
-                    # Failed - clear the queue
+                    # Failed and clear_queue_on_failure is set to True - clear the queue
                     mongo_update['$set'].update(process_status=process_status, queue=[])
             else:
                 mongo_update['$set'].update(process_status=process_status)
@@ -703,8 +725,8 @@ def all_subclasses(cls):
 all_proc_cls = {cls.__name__: cls for cls in all_subclasses(Proc)}
 ''' Name dictionary for all Proc classes. '''
 
-all_blocking_processes: Dict[str, List[str]] = defaultdict(list)
-''' { <proc class name>: <list of all blocking processes defined for this class> } '''
+process_flags: Dict[str, Dict[str, ProcessFlags]] = defaultdict(dict)
+''' { <Proc class name>: { <process func name>: ProcessFlags } } '''
 
 
 class NomadCeleryRequest(Request):
@@ -813,7 +835,6 @@ def proc_task(task, cls_name, self_id, func_name, args, kwargs):
 
     # unwrap the process decorator
     unwrapped_func = getattr(func, '__process_unwrapped', None)
-    is_child = getattr(func, '__is_child', False)
     if unwrapped_func is None:  # "Should not happen"
         logger.error('called function was not decorated with @process')
         proc.fail('called function %s was not decorated with @process' % func_name)
@@ -821,6 +842,7 @@ def proc_task(task, cls_name, self_id, func_name, args, kwargs):
 
     # call the process function
     try:
+        is_child = process_flags[cls_name][func_name].is_child
         os.chdir(config.fs.working_directory)
         with utils.timer(logger, 'process executed on worker', log_memory=True):
             # Set state to RUNNING
@@ -875,9 +897,15 @@ def proc_task(task, cls_name, self_id, func_name, args, kwargs):
 
     # The proc is done running
     if is_child and proc.process_status in ProcessStatus.STATUSES_COMPLETED:
-        # Save and "switch" to the parent to try to join.
         try:
-            proc._sync_complete_process()  # Child processes are blocking, so their queues should be empty
+            next_process = proc._sync_complete_process()
+            if next_process:
+                # More jobs in the queue
+                func_name, args, kwargs = next_process
+                proc._send_to_worker(func_name, *args, **kwargs)
+                return
+            # Processing finished (successful or not)
+            # Switch to the parent to try to join.
             proc = proc.parent()
             logger = proc.get_logger()
             try_to_join = True
@@ -935,7 +963,7 @@ def proc_task(task, cls_name, self_id, func_name, args, kwargs):
             proc.fail(e)
 
 
-def process(is_blocking: bool = False, is_child: bool = False):
+def process(is_blocking: bool = False, clear_queue_on_failure: bool = True, is_child: bool = False):
     '''
     The decorator for process functions that will be queued up and executed async via celery.
     To transfer state, the instance will be saved to the database and loading on
@@ -948,18 +976,21 @@ def process(is_blocking: bool = False, is_child: bool = False):
             If True, this is a *blocking process*. After a blocking process has been scheduled,
             no other processes can be scheduled, until this process has finished. Attempts to
             invoke another process will in this case result in an exception.
+        clear_queue_on_failure:
+            If True and the process fails, we'll clear the queue, thus skipping any pending jobs.
         is_child:
-            If this is a child process, which should try to join with the parent process when done.
-            Child processes are implicitly blocking.
+            If this is a child process, which should try to join with the parent process when done
+            (= when the queue is empty).
     '''
-    if is_child:
-        is_blocking = True
-
     def process_decorator(func):
         # Determine canonical class name
         cls_name, func_name = func.__qualname__.split('.')
-        if is_blocking:
-            all_blocking_processes[cls_name].append(func_name)
+
+        process_flags[cls_name][func_name] = ProcessFlags(
+            is_blocking,
+            clear_queue_on_failure,
+            is_child,
+            is_local=False)
 
         @functools.wraps(func)
         def wrapper(self: Proc, *args, **kwargs):
@@ -969,7 +1000,6 @@ def process(is_blocking: bool = False, is_child: bool = False):
                 self._send_to_worker(func_name, *args, **kwargs)
 
         setattr(wrapper, '__process_unwrapped', func)
-        setattr(wrapper, '__is_child', is_child)
         return wrapper
     return process_decorator
 
@@ -980,16 +1010,24 @@ def process_local(func):
     marked with the `@process` decorator, but they are executed directly, in the current
     thread, not via celery. Consequently, they can only be started if no other process is
     running. They are also implicitly blocking, i.e. while running, no other process
-    (local or celery-based) can be started or scheduled. If successful, a local process can
-    return a value to the caller (unlike celery processes). Invoking a local process should
-    only throw exceptions if it was not possible to start the process (because some other
-    process is running). Any other errors that happen during the running of the process are
-    handled in the usual way, by setting self.errors etc. The Proc object should not have
-    any unsaved changes when a local process is invoked.
+    (local or celery-based) can be started or scheduled on the same object. It can also not
+    spawn child processes and wait for them using the WAITING_FOR_RESULT mechanism, or itself
+    be a child process (as this means joining with a parent process when done).
+
+    If successful, a local process can return a value to the caller (unlike celery processes).
+    Invoking a local process should only throw exceptions if it was not possible to start the
+    process (because some other process is running). Any other errors that happen during the
+    running of the process are handled in the usual way, by setting self.errors etc. The Proc
+    object should not have any unsaved changes when a local process is invoked.
     '''
     # Determine canonical class name
     cls_name, func_name = func.__qualname__.split('.')
-    all_blocking_processes[cls_name].append(func_name)
+
+    process_flags[cls_name][func_name] = ProcessFlags(
+        is_blocking=True,
+        clear_queue_on_failure=False,  # Not relevant, since local processes are always blocking
+        is_child=False,
+        is_local=True)
 
     def wrapper(self: Proc, *args, **kwargs):
         logger = self.get_logger()

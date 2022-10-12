@@ -228,6 +228,23 @@ class ServerContext(Context):
     def raw_file(self, *args, **kwargs):
         return self.upload_files.raw_file(*args, **kwargs)
 
+    def raw_path_exists(self, path):
+        return self.upload_files.raw_path_exists(path)
+
+    def process_updated_raw_file(self, path, allow_modify=False):
+        '''
+        Use when a raw file is added or updated during parsing or normalizing. Call this method
+        from the parse/normalize method after adding/updating the file. The provided path
+        should denote the file in question. If it matches a parser, we will process it
+        (synchronously or asynchronously, depending on if we're processing locally or not).
+
+        Note, that modifying existing files is discouraged, as this needs to be done with
+        care to avoid infinite loops etc. If you still want to modify existing files, you
+        must set the `allow_modify` flag, otherwise the call will raise an exception.
+        Modifying the current mainfile is not supported.
+        '''
+        self.upload.process_updated_raw_file(path, allow_modify)
+
     def retrieve_package_by_section_definition_id(self, definition_reference: str, definition_id: str) -> dict:
         if '://' not in definition_reference:
             # not a valid url, may be just a plain python name or reference name

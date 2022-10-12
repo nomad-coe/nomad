@@ -113,6 +113,7 @@
             "directory": "gui"
         }
     ],
+    "python.testing.pytestPath": ".pyenv/bin/pytest",
     "python.testing.pytestArgs": [
         "tests"
     ],
