@@ -101,7 +101,6 @@ const InputField = React.memo(({
     useAgg,
     useAggCall,
     useFilterState,
-    useFilterLocked,
     useIsStatisticsEnabled
   } = useSearchContext()
   const isStatisticsEnabled = useIsStatisticsEnabled()
@@ -136,9 +135,8 @@ const InputField = React.memo(({
   const aggCall = useAggCall(quantity, 'scroll')
   const receivedAggSize = agg?.data?.length
   const [filter, setFilter] = useFilterState(quantity)
-  const locked = useFilterLocked(quantity)
   const unavailable = disableOptions ? false : !(agg?.data && agg.data.length > 0)
-  const disabled = locked || unavailable
+  const disabled = unavailable
 
   // Form the final list of options. If no fixed options are available, the
   // options are gathered from the aggregation.
@@ -174,7 +172,7 @@ const InputField = React.memo(({
         const key = value.value
         const selected = filter ? filter.has(key) : false
         const oldState = opt[key]
-        const disabled = locked || (selected ? false : value.count === 0)
+        const disabled = selected ? false : value.count === 0
         if (oldState) {
           oldState.count = value.count
           oldState.disabled = disabled
@@ -182,7 +180,7 @@ const InputField = React.memo(({
       }
     }
     setVisibleOptions(opt)
-  }, [agg, filter, finalOptions, locked, disableStatistics, formatLabels])
+  }, [agg, filter, finalOptions, disableStatistics, formatLabels])
 
   // Show more values
   const handleShowMore = useCallback(() => {
@@ -220,7 +218,7 @@ const InputField = React.memo(({
   const searchComponent = useMemo(() => {
     return disableSearch
       ? null
-      : <InputTooltip locked={locked} unavailable={unavailable}>
+      : <InputTooltip unavailable={unavailable}>
         <div className={styles.container}>
           <InputTextQuantity
             className={styles.textField}
@@ -231,7 +229,7 @@ const InputField = React.memo(({
           />
         </div>
       </InputTooltip>
-  }, [disableSearch, locked, unavailable, styles, quantity, disabled, disableSuggestions])
+  }, [disableSearch, unavailable, styles, quantity, disabled, disableSuggestions])
 
   // Create the options component
   const optionsComponent = useMemo(() => {

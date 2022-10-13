@@ -80,7 +80,7 @@ const StatisticsBar = React.memo(({
       <div className={styles.container}>
         <div className={styles.rectangle} style={{
           transform: vertical ? `scaleY(${finalScale})` : `scaleX(${finalScale})`,
-          backgroundColor: selected ? theme.palette.primary.veryLight : theme.palette.secondary.veryLight
+          backgroundColor: disabled ? theme.palette.action.disabledBackground : (selected ? theme.palette.primary.veryLight : theme.palette.secondary.veryLight)
         }}></div>
         {!disableValue && <Typography className={styles.value} style={{color: disabled ? theme.palette.text.disabled : undefined}}>{finalCount}</Typography>}
       </div>

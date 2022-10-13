@@ -23,23 +23,20 @@ import PropTypes from 'prop-types'
  * The quantity label shown by all filter components.
  */
 const InputTooltip = React.memo(({
-  locked,
   unavailable,
-  children
+  ...rest
 }) => {
+  let title = rest?.title || ''
+  if (unavailable) title = 'No options available with current query.'
+
   return <Tooltip
-    title={locked
-      ? 'This filter is locked.'
-      : unavailable ? 'No options available with current query.' : ''
-    }
     placement="bottom"
-  >
-    {children}
-  </Tooltip>
+    {...rest}
+    title={title}
+  />
 })
 
 InputTooltip.propTypes = {
-  locked: PropTypes.bool,
   unavailable: PropTypes.bool,
   children: PropTypes.node
 }

@@ -86,7 +86,7 @@ export const InputTextQuantity = React.memo(({
   ...TextFieldProps
 }) => {
   const theme = useTheme()
-  const { filterData, useSetFilter, useFilterLocked } = useSearchContext()
+  const { filterData, useSetFilter } = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [inputValue, setInputValue] = useState('')
   const [suggestionInput, setSuggestionInput] = useState('')
@@ -105,8 +105,7 @@ export const InputTextQuantity = React.memo(({
 
   // Attach the filter hook
   const setFilter = useSetFilter(quantity)
-  const locked = useFilterLocked(quantity)
-  const disabled = locked || TextFieldProps.disabled
+  const disabled = TextFieldProps.disabled
 
   // Sets the input value and calls the callback if given
   const handleChange = useCallback((input) => {

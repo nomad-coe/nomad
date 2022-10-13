@@ -63,9 +63,8 @@ const useDefinitionStyles = makeStyles(theme => ({
 const Definition = React.memo(function Definition({node, name, path, className}) {
   const classes = useDefinitionStyles()
   const [open, setOpen] = useState(!path)
-  const { useFilterState, useFilterLocked } = useSearchContext()
+  const { useFilterState } = useSearchContext()
   const [filter, setFilter] = useFilterState('quantities')
-  const locked = useFilterLocked('quantities')
 
   const handleSelect = useCallback((event) => {
     event.stopPropagation()
@@ -114,7 +113,6 @@ const Definition = React.memo(function Definition({node, name, path, className})
       <InputItem
         value={path}
         label={name}
-        disabled={locked}
         selected={filter?.has(path) || false}
         onChange={handleSelect}
         variant="checkbox"

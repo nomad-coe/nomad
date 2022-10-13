@@ -19,7 +19,7 @@ import React from 'react'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import LockIcon from '@material-ui/icons/Lock'
-import { Chip } from '@material-ui/core'
+import { Chip, Tooltip, Typography } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import InputTitle from './input/InputTitle'
 
@@ -49,13 +49,15 @@ export const FilterChip = React.memo(({
   const styles = useStyles()
 
   return <div className={clsx(className, styles.root)}>
-    <Chip
-      label={label}
-      onDelete={locked ? undefined : onDelete}
-      color={color}
-      className={styles.chip}
-      icon={locked ? <LockIcon/> : undefined}
-    />
+    <Tooltip title={locked ? 'This filter is locked in the current search context: it cannot be removed or modified.' : ''}>
+      <Chip
+        label={label}
+        onDelete={locked ? undefined : onDelete}
+        color={locked ? undefined : color}
+        className={styles.chip}
+        icon={locked ? <LockIcon/> : undefined}
+      />
+    </Tooltip>
   </div>
 })
 
@@ -86,6 +88,7 @@ const useFilterChipGroupStyles = makeStyles(theme => ({
     display: 'flex',
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     width: '100%',
     boxSizing: 'border-box'
   },
@@ -122,3 +125,29 @@ FilterChipGroup.propTypes = {
 FilterChipGroup.defaultProps = {
   color: 'primary'
 }
+
+/**
+ * Operators between filter chips.
+ */
+const useFilterOpStyles = makeStyles(theme => ({
+  root: {
+    fontSize: '0.65rem'
+  }
+}))
+const FilterOp = React.memo(({className, children}) => {
+  const styles = useFilterOpStyles()
+  return <Typography variant="caption" className={clsx(className, styles.root)}>{children}</Typography>
+})
+
+FilterOp.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node
+}
+
+export const FilterAnd = React.memo(() => {
+  return <FilterOp>AND</FilterOp>
+})
+
+export const FilterOr = React.memo(() => {
+  return <FilterOp>OR</FilterOp>
+})

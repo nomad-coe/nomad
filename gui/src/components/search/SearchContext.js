@@ -47,12 +47,13 @@ import { v4 as uuidv4 } from 'uuid'
 import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
 import { useApi } from '../api'
-import { setToArray, authorList, formatTimestamp } from '../../utils'
-import { Quantity } from '../../units'
+import { setToArray, authorList, formatTimestamp, getDeep, formatNumber, getDatatype } from '../../utils'
+import { Quantity, Unit } from '../../units'
 import { useErrors } from '../errors'
 import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
 import { Published } from '../entry/EntryDetails'
 import { inputSectionContext } from './input/InputSection'
+import searchQuantities from '../../searchQuantities'
 import {
   filterData as filterDataGlobal,
   filterAbbreviations,
@@ -99,7 +100,7 @@ function clearEmpty(value) {
 export const searchContext = React.createContext()
 export const SearchContext = React.memo(({
   resource,
-  filtersLocked,
+  initialFiltersLocked,
   initialColumns,
   initialRows,
   initialFilterMenus,
@@ -129,6 +130,35 @@ export const SearchContext = React.memo(({
     let options = columns.include
       .filter(key => !columns?.exclude?.includes(key))
       .map(key => ({key, ...columns.options[key]}))
+
+    // Add unit information if one is defined. This unit is currently fixed and
+    // not affected by global unit system.
+    options.forEach(option => {
+      const unit = option.unit
+      if (unit) {
+        option.unit = new Unit(unit)
+        option.label = `${option.label} (${option.unit.label()})`
+      }
+    })
+
+    // Determine the final render function
+    options.forEach(option => {
+      option.render = (data) => {
+        let value = getDeep(data, option.key)
+        if (isNil(value)) return value
+        const unit = option.unit
+        const format = option.format
+        if (unit) {
+          const originalUnit = searchQuantities[option.key].unit
+          value = new Quantity(value, originalUnit).to(option.unit).value()
+        }
+        if (format) {
+          const dtype = getDatatype(option.key)
+          value = formatNumber(value, dtype, format?.mode, format?.decimals)
+        }
+        return value
+      }
+    })
 
     // Custom render and sortability is enforced for a subset of columns.
     const overrides = {
@@ -253,12 +283,12 @@ export const SearchContext = React.memo(({
       }
     }
     return [
-      {...queryURL, ...toGUIFilter(filtersLocked)},
+      queryURL,
       initialAggs,
       finalStatistics,
       filterDefaults
     ]
-  }, [filterData, filters, filtersLocked, initialStatistics])
+  }, [filterData, filters, initialStatistics])
 
   // Initialize a bunch of Recoil.js states and hooks. Notice how we are not using a set
   // of global states, but instead each SearchContext gets it's own states. This
@@ -298,7 +328,7 @@ export const SearchContext = React.memo(({
       key: `queryFamily_${contextID}`,
       default: (name) => initialQuery[name]
     })
-    // Used to get/set the locked state of all filters at once
+    // Used to get/set the state of all filters at once
     const filtersState = selector({
       key: `filtersState_${contextID}`,
       get: ({get}) => {
@@ -314,10 +344,10 @@ export const SearchContext = React.memo(({
       }
     })
 
-    const guiLocked = toGUIFilter(filtersLocked)
+    const guiLocked = toGUIFilter(initialFiltersLocked)
     const lockedFamily = atomFamily({
       key: `lockedFamily_${contextID}`,
-      default: (name) => !isNil(guiLocked?.[name])
+      default: (name) => guiLocked?.[name]
     })
 
     // Used to set the locked state of several filters at once
@@ -327,7 +357,7 @@ export const SearchContext = React.memo(({
         const locks = {}
         for (const key of filters) {
           const filter = get(lockedFamily(key))
-          locks[key] = filter
+          if (!isNil(filter)) locks[key] = filter
         }
         return locks
       }
@@ -609,13 +639,12 @@ export const SearchContext = React.memo(({
     const useUpdateQueryString = () => {
       const history = useHistory()
       const query = useRecoilValue(queryState)
-      const locked = useRecoilValue(lockedState)
       const statistics = useRecoilValue(statisticsState)
 
       return useCallback(() => {
-        const queryString = searchToQs(query, locked, statistics)
+        const queryString = searchToQs(query, statistics)
         history.replace(history.location.pathname + '?' + queryString)
-      }, [history, locked, query, statistics])
+      }, [history, query, statistics])
     }
 
     /**
@@ -624,14 +653,11 @@ export const SearchContext = React.memo(({
      * @returns Function for resetting all filters.
      */
     const useResetFilters = () => {
-      const locked = useRecoilValue(lockedState)
       const reset = useRecoilCallback(({set}) => () => {
         for (const filter of filters) {
-          if (!locked[filter]) {
-            set(queryFamily(filter), undefined)
-          }
+          set(queryFamily(filter), undefined)
         }
-      }, [locked])
+      }, [])
       return reset
     }
 
@@ -832,13 +858,14 @@ export const SearchContext = React.memo(({
       useAgg,
       useSetFilters
     ]
-  }, [contextID, initialQuery, filters, filtersLocked, finalStatistics, initialAggs, initialPagination, filterData])
+  }, [contextID, initialQuery, filters, initialFiltersLocked, finalStatistics, initialAggs, initialPagination, filterData])
 
   const setResults = useSetRecoilState(resultsState)
   const setApiData = useSetRecoilState(apiDataState)
   const updateAggsResponse = useSetRecoilState(aggsResponseState)
   const aggs = useRecoilValue(aggsState)
   const query = useRecoilValue(queryState)
+  const filtersLocked = useFiltersLocked()
   const [pagination, setPagination] = useRecoilState(paginationState)
   const resultsUsed = useRecoilValue(resultsUsedState)
   const updateQueryString = useUpdateQueryString()
@@ -919,9 +946,22 @@ export const SearchContext = React.memo(({
         }
       }
     }
+
+    // The locked filters are applied as a parallel AND query. This is the only
+    // way to consistently apply them. If we mix them inside 'regular' filters,
+    // they can be accidentally overwritten with an OR statement.
+    const customQuery = toAPIFilter(apiQuery, resource)
+    const lockedQuery = toAPIFilter(filtersLocked, resource)
+    let finalQuery = customQuery
+    if (!isEmpty(lockedQuery)) {
+      finalQuery = {
+        and: [lockedQuery, customQuery]
+      }
+    }
+
     const search = {
-      owner: apiQuery.visibility,
-      query: toAPIFilter(apiQuery, resource),
+      owner: filtersLocked?.visibility || apiQuery.visibility,
+      query: finalQuery,
       aggregations: toAPIAgg(
         aggs,
         resource
@@ -980,7 +1020,7 @@ export const SearchContext = React.memo(({
         raiseError(error)
         callback && callback(undefined, error)
       })
-  }, [filterDefaults, resource, api, raiseError, resolve])
+  }, [filterDefaults, filtersLocked, resource, api, raiseError, resolve])
 
   // This is a debounced version of apiCall.
   const apiCallDebounced = useMemo(() => debounce(apiCall, 400), [apiCall])
@@ -1167,7 +1207,7 @@ export const SearchContext = React.memo(({
 
 SearchContext.propTypes = {
   resource: PropTypes.string,
-  filtersLocked: PropTypes.object,
+  initialFiltersLocked: PropTypes.object,
   initialColumns: PropTypes.object,
   initialRows: PropTypes.object,
   initialFilterMenus: PropTypes.object,
@@ -1214,20 +1254,15 @@ function qsToSearch(queryString) {
  * @param {object} search Object representing the currently active search
  * context.
  *  - query: Object representing the active search filters.
- *  - locked: Object representing the currently locked filters.
  *  - statistics: Object containing the currently shown statistics
  * @returns {object} An object that can e.g. be serialized into a query string.
  */
 export function searchToQsData(search) {
   const query = search.query
-  const locked = search.locked || {}
   const statistics = search.statistics
 
   // Used to recursively convert the query into a serializable format.
   function convert(key, value, path) {
-    if (locked[key]) {
-      return undefined
-    }
     // If the key is an operator, the filter name is read from the path.
     const opKeys = new Set(['lte', 'lt', 'gte', 'gt'])
     const fullPath = path ? `${path}.${key}` : key
@@ -1284,13 +1319,12 @@ export function searchToQsData(search) {
 /**
  * Converts a query into a valid query string.
  * @param {object} query Query object representing the currently active
- * @param {object} locked Object containing the locked status of quantities.
  * @param {object} statistics Object containing which filter statistics are docked.
  * filters.
  * @returns URL querystring, not encoded if possible to improve readability.
  */
-function searchToQs(query, locked, statistics) {
-  const queryData = searchToQsData({query, locked, statistics, abbreviate: true})
+function searchToQs(query, statistics) {
+  const queryData = searchToQsData({query, statistics, abbreviate: true})
   return qs.stringify(queryData, {indices: false, encode: false})
 }
 
@@ -1317,13 +1351,10 @@ export function toAPIFilter(query, resource) {
   function customize(key, value, parent, subKey = undefined) {
     const data = filterDataGlobal[key]
 
-    // Filters that affect the GUI only do not need to be considered
-    const guiOnly = data?.guiOnly
-    if (guiOnly) {
-      return
-    }
+    // Global filters are not serialized into the API call.
+    if (data?.global) return
 
-    // Sections need to be recursively handled. Notice that we cant directly
+    // Sections need to be recursively handled. Notice that we can't directly
     // write to an recoil Atom and create a new object for storing the values.
     const section = data?.section
     if (section) {
@@ -1344,7 +1375,9 @@ export function toAPIFilter(query, resource) {
     }
   }
   for (const [k, v] of Object.entries(query)) {
-    customize(k, v, queryCustomized)
+    if (!isNil(v)) {
+      customize(k, v, queryCustomized)
+    }
   }
 
   // Create the API-compatible keys and values.
@@ -1674,4 +1707,20 @@ function reduceAggs(aggs, oldAggs, queryChanged, updatedFilters) {
     reducedAggs[key] = newAgg
   }
   return [reducedAggs, updateAggs]
+}
+
+/**
+ * Returns the final value that should be shown for the given filter.
+ *
+ * @param {*} def The quantity definition
+ * @param {*} filter The current filter value in the search context
+ * @param {*} filterLocked The current locked filter value in the search context
+ * @param {*} initialValue Initial value that overrides any default specified in
+ *   the FilterRegistry
+ * @returns The final value for the filter.
+ */
+export function getValue(def, filter, filterLocked, initialValue) {
+  const defaultValue = isNil(initialValue) ? def.default : initialValue
+  const val = (def.global && !isNil(filterLocked)) ? filterLocked : filter
+  return isNil(val) ? defaultValue : val
 }

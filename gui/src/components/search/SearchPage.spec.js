@@ -39,6 +39,7 @@ describe('', () => {
           initialColumns={context.columns}
           initialRows={context.rows}
           initialFilterMenus={context.filter_menus}
+          initialFiltersLocked={context.filters_locked}
       >
         <SearchPage />
       </SearchContext>

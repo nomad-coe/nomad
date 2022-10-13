@@ -26,7 +26,7 @@ import {
 import PropTypes from 'prop-types'
 import { isNil } from 'lodash'
 import clsx from 'clsx'
-import { useSearchContext } from '../SearchContext'
+import { useSearchContext, getValue } from '../SearchContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -55,13 +55,14 @@ const InputCheckbox = React.memo(({
   const styles = useStyles({classes: classes, theme: theme})
   const {filterData, useFilterState, useFilterLocked} = useSearchContext()
   const [filter, setFilter] = useFilterState(quantity)
-  const locked = useFilterLocked(quantity)
+  const filterLocked = useFilterLocked(quantity)
 
   // Determine the description and units
   const def = filterData[quantity]
   const descFinal = description || def?.description || ''
   const labelFinal = label || def?.label
-  const disabled = locked
+  const locked = !isNil(filterLocked) && def.global
+  const val = getValue(def, filter, filterLocked, initialValue)
 
   const handleChange = useCallback((event, value) => {
     setFilter(value)
@@ -72,8 +73,8 @@ const InputCheckbox = React.memo(({
       <FormControlLabel
         control={<Checkbox
           color="primary"
-          disabled={disabled}
-          checked={isNil(filter) ? (isNil(initialValue) ? filterData[quantity].default : initialValue) : filter}
+          disabled={locked}
+          checked={val}
           onChange={handleChange}
         />}
         label={<Typography>{labelFinal}</Typography>}
@@ -117,14 +118,12 @@ export const InputCheckboxValue = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useInputCheckboxValueStyles({classes: classes, theme: theme})
-  const {filterData, useFilterState, useFilterLocked} = useSearchContext()
+  const {filterData, useFilterState} = useSearchContext()
   const [filter, setFilter] = useFilterState(quantity)
-  const locked = useFilterLocked(quantity)
 
   // Determine the description and units
   const def = filterData[quantity]
   const descFinal = description || def?.description || ''
-  const disabled = locked
 
   const handleChange = useCallback(() => {
     setFilter(old => {
@@ -137,7 +136,6 @@ export const InputCheckboxValue = React.memo(({
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <Tooltip title={descFinal}>
       <Checkbox
-        disabled={disabled}
         color="primary"
         checked={filter ? filter.has(value) : false}
         onChange={handleChange}

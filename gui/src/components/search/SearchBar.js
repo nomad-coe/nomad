@@ -247,7 +247,7 @@ const SearchBar = React.memo(({
     }
 
     // Check if filter is locked
-    if (filtersLocked[quantityFullname]) {
+    if (!isNil(filtersLocked[quantityFullname]) && filterData[quantityFullname].global) {
       setError(`Cannot change the filter as it is locked in the current search context.`)
       return
     }
@@ -263,7 +263,7 @@ const SearchBar = React.memo(({
     } else {
       setError(`Invalid query`)
     }
-  }, [inputValue, filtersLocked, checkMetainfo, units, setFilter, filterData])
+  }, [inputValue, checkMetainfo, units, setFilter, filterData, filtersLocked])
 
   // Handle clear button
   const handleClose = useCallback(() => {

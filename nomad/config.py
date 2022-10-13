@@ -767,8 +767,7 @@ ui = NomadConfig(
                                     'combine': {
                                         'type': 'checkbox',
                                         'label': "Combine results from several entries",
-                                        'quantity': 'combine',
-                                        'tooltip': 'If selected, your filters may be matched from several entries that contain the same material. When unchecked, the material has to have a single entry that matches all your filters.'
+                                        'quantity': 'combine'
                                     }
                                 }
                             }

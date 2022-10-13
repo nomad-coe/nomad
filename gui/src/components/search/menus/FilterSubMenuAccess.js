@@ -35,7 +35,6 @@ const FilterSubMenuAccess = React.memo(({
         <InputRadio
           quantity="visibility"
           label="Visibility"
-          description="The visibility of the entry."
           initialValue={authenticated ? 'visible' : 'public'}
           options={{
             all: {label: 'All', disabled: !authenticated, tooltip: 'Consider all entries.'},
