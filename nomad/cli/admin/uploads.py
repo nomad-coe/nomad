@@ -222,7 +222,14 @@ def _query_uploads(
     if processing_incomplete_entries or processing_incomplete or processing_necessary:
         entries_mongo_query_q &= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
-    mongo_entry_based_uploads = set(proc.Entry.objects(entries_mongo_query_q).distinct(field="upload_id"))
+    if entries_mongo_query_q == Q():
+        # If there is no entry based query, we get the list of all uploads from the upload
+        # and not the entry collection. This ensures that we will also catch uploads that
+        # do not have an entry.
+        mongo_entry_based_uploads = set(proc.Upload.objects().distinct(field="upload_id"))
+    else:
+        mongo_entry_based_uploads = set(proc.Entry.objects(entries_mongo_query_q).distinct(field="upload_id"))
+
     if entries_query_uploads is not None:
         entries_query_uploads = entries_query_uploads.intersection(mongo_entry_based_uploads)
     else:
