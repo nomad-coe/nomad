@@ -157,7 +157,7 @@ export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
   </React.Fragment>
 })
 
-export const ArchiveReloadButton = React.memo(function ArchiveSaveButton(props) {
+export const ArchiveReloadButton = React.memo(function ArchiveReloadButton(props) {
   const {reload} = useEntryPageContext()
 
   return <React.Fragment>

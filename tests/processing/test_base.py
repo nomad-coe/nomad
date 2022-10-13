@@ -35,7 +35,6 @@ events: List[str] = []
 
 @pytest.fixture(scope='function')
 def reset_events():
-    global events
     events.clear()
 
 
@@ -48,7 +47,6 @@ def assert_proc(proc, current_process, process_status=ProcessStatus.SUCCESS, err
 
 
 def assert_events(expected_events: List[Union[str, List[str]]]):
-    global events
     ind = 0
     for expected in expected_events:
         if type(expected) == str:
@@ -150,7 +148,13 @@ class ChildProc(Proc):
         return cls.get_by_id(id, 'child_id')
 
     @process(is_child=True)
-    def child_proc(self, succeed: bool):
+    def child_proc(self, succeed: bool, new_child_id: str = None, delay=0.1):
+        time.sleep(delay)
+        if new_child_id:
+            # For testing adding new children during processing
+            events.append(f'{self.child_id}:child_proc:add_child')
+            new_child = ChildProc.create(child_id=new_child_id, parent_id=self.parent_id)
+            new_child.child_proc(True)
         if not succeed:
             events.append(f'{self.child_id}:child_proc:fail')
             assert False, 'failing child'
@@ -174,7 +178,7 @@ class ParentProc(Proc):
     @process()
     def spawn(
             self, fail_spawn: bool = False, suffix: str = '', delay=0.1,
-            child_args: List[bool] = [], join_args: List[Any] = []):
+            child_args: List[Any] = [], join_args: List[Any] = []):
         '''
         Arguments:
             fail_spawn: if we should fail after we have spawned the child processes
@@ -182,14 +186,15 @@ class ParentProc(Proc):
             join_args: list of parameters controlling the behaviour when joining. `fail` mean
                 fail the join. A boolean or list of booleans result in new children spawned.
         '''
-        global events
         events.append(f'{self.parent_id}:spawn:start{suffix}')
         self.join_args = join_args
         self.current_slot = 0
         child_count = 0
-        for succeed in child_args:
+        for child_arg in child_args:
+            if not isinstance(child_arg, list):
+                child_arg = [child_arg]
             child = ChildProc.create(child_id=str(child_count), parent_id=self.parent_id)
-            child.child_proc(succeed)
+            child.child_proc(*child_arg)
             child_count += 1
         if fail_spawn:
             events.append(f'{self.parent_id}:spawn:fail{suffix}')
@@ -202,7 +207,6 @@ class ParentProc(Proc):
         return ChildProc
 
     def join(self):
-        global events
         if self.join_args:
             if self.current_slot < len(self.join_args):
                 # One more join arg to process
@@ -225,21 +229,18 @@ class ParentProc(Proc):
 
     @process(is_blocking=True)
     def blocking(self, delay=0.1):
-        global events
         events.append(f'{self.parent_id}:blocking:start')
         time.sleep(delay)
         events.append(f'{self.parent_id}:blocking:succ')
 
     @process(is_blocking=False)
     def non_blocking(self, delay=0.1):
-        global events
         events.append(f'{self.parent_id}:non_blocking:start')
         time.sleep(delay)
         events.append(f'{self.parent_id}:non_blocking:succ')
 
     @process_local
     def local_process(self, delay=0.1, fail=False):
-        global events
         events.append(f'{self.parent_id}:local_process:start')
         time.sleep(delay)
         if fail:
@@ -291,7 +292,14 @@ class ParentProc(Proc):
             'p:join:waiting', 'rejoin1.0:child_proc:succ',
             'p:join:waiting', 'rejoin2.0:child_proc:fail',
             'p:join:fail'],
-        id='join-multiple-then-fail')])
+        id='join-multiple-then-fail'),
+    pytest.param(
+        dict(child_args=[[True, 'new_child']], join_args=[]),
+        [
+            'p:spawn:start',
+            ['p:spawn:waiting', '0:child_proc:add_child', '0:child_proc:succ', 'new_child:child_proc:succ'],
+            'p:join:succ'],
+        id='add-child-while-processing')])
 def test_parent_child(worker, mongo, reset_events, spawn_kwargs, expected_events):
     child_args = spawn_kwargs.get('child_args', [])
     join_args = spawn_kwargs.get('join_args', [])
@@ -371,7 +379,6 @@ def test_local_blocked(worker, mongo, reset_events):
     p = ParentProc.create(parent_id='p')
 
     def other_call():
-        global events
         time.sleep(0.5)
         p2 = ParentProc.get(parent_id='p')
         try:
@@ -392,7 +399,6 @@ def test_local_blocking(worker, mongo, reset_events):
     p = ParentProc.create(parent_id='p')
 
     def other_call():
-        global events
         time.sleep(0.5)
         p2 = ParentProc.get(parent_id='p')
         try:

@@ -133,6 +133,29 @@ class Context(MetainfoContext):
         ''' Loads a raw file based on the given upload and path. Interpret as metainfo data. '''
         raise NotImplementedError()
 
+    def raw_path_exists(self, path: str) -> bool:
+        ''' Use to check if a raw path already exists. '''
+        raise NotImplementedError()
+
+    def process_updated_raw_file(self, path, allow_modify=False):
+        '''
+        Use when parsing or normalizing a file causes another file to be added or modified.
+        Call this method from the parse/normalize method for the first file, after adding/updating
+        the other file is complete. The provided path should denote the added/modified file.
+        If we have a ServerContext and the added/modified file matches a parser, we will
+        trigger processing of this file (synchronously or asynchronously, depending on if
+        we're processing locally or not). For non-ServerContexts, the method does nothing.
+
+        Note, that *modifying* existing files is discouraged, as this needs to be done with
+        care to avoid infinite loops of files modifyin each other etc. We would thus recommend
+        to only use this method for *adding* files. If you still want to modify existing
+        files, you must set the `allow_modify` flag, otherwise the call will raise an exception
+        if the entry already exists. Also note that this method should not be used to modify
+        the same file (i.e. the file that you're currently parsing/normalizing), only when
+        adding/modifying other files.
+        '''
+        pass
+
     def _parse_url(self, url: str) -> tuple:
         url_results = parse_path(f'{url}#/placeholder', self.upload_id)
         if url_results is None:
@@ -227,6 +250,12 @@ class ServerContext(Context):
 
     def raw_file(self, *args, **kwargs):
         return self.upload_files.raw_file(*args, **kwargs)
+
+    def raw_path_exists(self, path) -> bool:
+        return self.upload_files.raw_path_exists(path)
+
+    def process_updated_raw_file(self, path, allow_modify=False):
+        self.upload.process_updated_raw_file(path, allow_modify)
 
     def retrieve_package_by_section_definition_id(self, definition_reference: str, definition_id: str) -> dict:
         if '://' not in definition_reference:

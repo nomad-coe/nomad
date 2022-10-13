@@ -32,6 +32,8 @@ from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.parsing.parser import Parser
 from nomad.parsing import parsers
 from nomad.datamodel import ServerContext
+from nomad.datamodel.data import EntryData
+from nomad.metainfo import Package, Quantity, Reference
 from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.search import search, refresh as search_refresh
 from nomad.utils.exampledata import ExampleData
@@ -39,6 +41,61 @@ from nomad.utils.exampledata import ExampleData
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files, example_file_mainfile, example_file_aux
 from tests.utils import create_template_upload_file, set_upload_entry_metadata
+
+
+# Package with some metainfo schemas used only for testing.
+m_package = Package(name='test_schemas')
+
+
+class TestBatchSample(EntryData):
+    batch_id = Quantity(
+        type=str,
+        description='Id for the batch')
+    sample_number = Quantity(
+        type=int,
+        description='Sample index')
+    comments = Quantity(
+        type=str,
+        description='Comments',
+        a_eln=dict(component='RichTextEditQuantity'))
+
+
+class TestBatch(EntryData):
+    batch_id = Quantity(
+        type=str,
+        description='Id for the batch',
+        a_eln=dict(component='StringEditQuantity'))
+    n_samples = Quantity(
+        type=int,
+        description='Number of samples in batch',
+        a_eln=dict(component='NumberEditQuantity'))
+    sample_refs = Quantity(
+        type=Reference(TestBatchSample.m_def),
+        shape=['*'],
+        descriptions='The samples in the batch.')
+
+    def normalize(self, archive, logger):
+        super(TestBatch, self).normalize(archive, logger)
+        if not self.n_samples:
+            return
+        sample_refs = []
+        for idx in range(self.n_samples):
+            file_name = f'{self.batch_id}_{idx}.archive.json'
+            if not archive.m_context.raw_path_exists(file_name):
+                # Create new sample file
+                sample = TestBatchSample(
+                    batch_id=self.batch_id,
+                    sample_number=idx)
+                sample_entry = sample.m_to_dict(with_root_def=True)
+                with archive.m_context.raw_file(file_name, 'w') as outfile:
+                    json.dump({"data": sample_entry}, outfile)
+                # Tell nomad to process it
+                archive.m_context.process_updated_raw_file(file_name)
+            sample_refs.append(f'../upload/archive/mainfile/{file_name}#data')
+        self.sample_refs = sample_refs
+
+
+m_package.__init_metainfo__()
 
 
 def test_generate_entry_id():
@@ -744,6 +801,39 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
     upload.block_until_complete()
     assert upload.process_status == ProcessStatus.SUCCESS
     assert upload.total_entries_count == 0
+
+
+@pytest.mark.timeout(config.tests.default_timeout)
+def test_creating_new_entries_during_processing(proc_infra, test_user):
+    '''
+    Tests a use-case where a schema has a normalizer that adds new mainfiles during processing.
+    '''
+    upload_id = 'test_create_during_processing'
+    upload = Upload.create(
+        upload_id=upload_id, main_author=test_user)
+    upload_files = StagingUploadFiles(upload_id, create=True)
+    with upload_files.raw_file('batch.archive.json', 'w') as outfile:
+        json.dump(
+            {
+                'data': {
+                    'm_def': 'tests.processing.test_data.TestBatch',
+                    'batch_id': 'my_batch',
+                    'n_samples': 5
+                }
+            },
+            outfile)
+    upload.process_upload()
+    upload.block_until_complete()
+    assert upload.process_status == ProcessStatus.SUCCESS
+    assert upload.total_entries_count == 6
+    assert upload.failed_entries_count == 0
+    for entry in upload.entries_sublist(0, 6):
+        assert entry.process_status == ProcessStatus.SUCCESS
+        if entry.mainfile.startswith('my_batch_'):
+            idx = int(entry.mainfile.split('.')[0].split('_')[-1])
+            archive = upload_files.read_archive(entry.entry_id)[entry.entry_id]
+            assert archive['data']['batch_id'] == 'my_batch'
+            assert archive['data']['sample_number'] == idx
 
 
 @pytest.mark.timeout(config.tests.default_timeout)

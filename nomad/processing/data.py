@@ -901,7 +901,7 @@ class Entry(Proc):
 
         return wrap_logger(logger, processors=_log_processors + [save_to_entry_log])
 
-    @process(is_child=True)
+    @process(is_blocking=False, clear_queue_on_failure=False, is_child=True)
     def process_entry(self):
         ''' Processes or reprocesses an entry. '''
         self._process_entry_local()
@@ -1794,36 +1794,15 @@ class Upload(Proc):
 
                 with utils.timer(logger, 'matching completed'):
                     for mainfile, mainfile_key, parser in self.match_mainfiles(path_filter, updated_files):
-                        entry_id = utils.generate_entry_id(self.upload_id, mainfile, mainfile_key)
+                        entry, was_created, metadata_handler = self._get_or_create_entry(
+                            mainfile, mainfile_key, parser,
+                            raise_if_exists=False,
+                            can_create=not self.published or reprocess_settings.add_matched_entries_to_published,
+                            metadata_handler=metadata_handler,
+                            logger=logger)
 
-                        try:
-                            entry = Entry.get(entry_id)
-                            # Matching entry already exists.
-                            # Ensure that we update the parser if in staging
-                            if not self.published and parser.name != entry.parser_name:
-                                entry.parser_name = parser.name
-                                entry.save()
-
-                            old_entries.remove(entry_id)
-                        except KeyError:
-                            # No existing entry found
-                            if not self.published or reprocess_settings.add_matched_entries_to_published:
-                                # Create new entry
-                                entry = Entry.create(
-                                    entry_id=entry_id,
-                                    mainfile=mainfile,
-                                    mainfile_key=mainfile_key,
-                                    parser_name=parser.name,
-                                    worker_hostname=self.worker_hostname,
-                                    upload_id=self.upload_id)
-                                # Apply entry level metadata from files, if provided
-                                if not metadata_handler:
-                                    metadata_handler = MetadataEditRequestHandler(
-                                        logger, self.main_author_user, self.staging_upload_files, self.upload_id)
-                                entry_metadata = metadata_handler.get_entry_mongo_metadata(self, entry)
-                                for quantity_name, mongo_value in entry_metadata.items():
-                                    setattr(entry, quantity_name, mongo_value)
-                                entry.save()
+                        if not was_created:
+                            old_entries.remove(entry.entry_id)
 
                     # Delete old entries
                     if len(old_entries) > 0:
@@ -1854,6 +1833,43 @@ class Upload(Proc):
             if self.published:
                 self._cleanup_staging_files()
             raise
+
+    def _get_or_create_entry(
+            self, mainfile: str, mainfile_key: str, parser: Parser, raise_if_exists: bool, can_create: bool,
+            metadata_handler: MetadataEditRequestHandler, logger) -> Tuple[Entry, bool, MetadataEditRequestHandler]:
+        entry_id = utils.generate_entry_id(self.upload_id, mainfile, mainfile_key)
+        entry = None
+        was_created = False
+        try:
+            entry = Entry.get(entry_id)
+            # Matching entry already exists.
+            if raise_if_exists:
+                assert False, f'An entry already exists for mainfile {mainfile}'
+            # Ensure that we update the parser if in staging
+            if not self.published and parser.name != entry.parser_name:
+                entry.parser_name = parser.name
+                entry.save()
+        except KeyError:
+            # No existing entry found
+            if can_create:
+                # Create new entry
+                entry = Entry.create(
+                    entry_id=entry_id,
+                    mainfile=mainfile,
+                    mainfile_key=mainfile_key,
+                    parser_name=parser.name,
+                    worker_hostname=self.worker_hostname,
+                    upload_id=self.upload_id)
+                # Apply entry level metadata from files, if provided
+                if not metadata_handler:
+                    metadata_handler = MetadataEditRequestHandler(
+                        logger, self.main_author_user, self.staging_upload_files, self.upload_id)
+                entry_metadata = metadata_handler.get_entry_mongo_metadata(self, entry)
+                for quantity_name, mongo_value in entry_metadata.items():
+                    setattr(entry, quantity_name, mongo_value)
+                entry.save()
+                was_created = True
+        return entry, was_created, metadata_handler
 
     def parse_next_level(self, min_level: int, path_filter: str = None, updated_files: Set[str] = None) -> bool:
         '''
@@ -1894,6 +1910,38 @@ class Upload(Proc):
             if self.published:
                 self._cleanup_staging_files()
             raise
+
+    def process_updated_raw_file(self, path: str, allow_modify: bool):
+        '''
+        Used when parsers add/modify raw files during processing.
+        '''
+        assert self.upload_files.raw_path_is_file(path), 'Provided path does not denote a file'
+        logger = self.get_logger()
+        metadata_handler = None
+
+        for mainfile, mainfile_key, parser in self.match_mainfiles(path, None):
+            # File matched!
+            entry, _was_created, metadata_handler = self._get_or_create_entry(
+                mainfile, mainfile_key, parser,
+                raise_if_exists=not allow_modify or self.published,
+                can_create=not self.published,
+                metadata_handler=metadata_handler,
+                logger=logger)
+            if entry:
+                if self.current_process_flags.is_local:
+                    # Running locally
+                    if entry.process_running:
+                        # Should not happen, but if it does happen (which suggests that some jobs
+                        # have been interrupted abnormally or the like) we reset it, to avoid problems.
+                        logger.warn('Running locally and entry is already processing, will reset it.', entry_id=entry.entry_id)
+                        entry.reset(force=True, worker_hostname=self.worker_hostname, process_status=ProcessStatus.FAILURE)
+                        entry.save()
+                    # Run also this entry processing locally
+                    entry.process_entry_local()
+                else:
+                    # Running normally, using the worker/queue system
+                    if self.parser_level >= parser.level:
+                        entry.process_entry()  # Will queue the job if already running.
 
     def child_cls(self):
         return Entry
