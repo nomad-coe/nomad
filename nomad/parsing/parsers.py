@@ -144,6 +144,9 @@ class ParserContext(Context):
     def raw_file(self, path, *args, **kwargs):
         return open(os.path.join(self._mainfile_dir, path), *args, **kwargs)
 
+    def raw_path_exists(self, path: str) -> bool:
+        return os.path.exists(os.path.join(self._mainfile_dir, path))
+
 
 def run_parser(
         mainfile_path: str, parser: Parser, mainfile_keys: List[str] = None,
