@@ -1,0 +1,29 @@
+definitions:
+  sections:
+    BaseSection:
+      base_section: nomad.datamodel.EntryData
+      quantities:
+        name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+    DerivedSection:
+      base_section: BaseSection
+      quantities:
+        description:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+    ContainerSection:
+      base_section: nomad.datamodel.EntryData
+      quantities:
+        reference:
+          type: BaseSection
+          m_annotations:
+            eln:
+              component: ReferenceEditQuantity
+      sub_sections:
+        my_sub_section:
+          section: BaseSection
