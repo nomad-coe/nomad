@@ -68,3 +68,16 @@ def test_inheritance():
     archive = _parse_archive('inheritance/specialized.archive.yaml')
     assert archive.data.processes[0].pressure == 100 * ureg('Pa')
     assert archive.data.processes[1].temperature == 342 * ureg('K')
+
+
+def test_multiple_files():
+    archive = _parse_archive('references/multiple_files/schema.archive.yaml')
+    assert len(archive.definitions.sections) == 3
+
+    archive = _parse_archive('references/multiple_files/data-and-schema.archive.yaml')
+    assert archive.data.elements[0].label == 'H'
+    assert archive.data.elements[1].label == 'O'
+
+    archive = _parse_archive('references/multiple_files/data.archive.yaml')
+    assert archive.data.solvent.elements[0].label == 'H'
+    assert archive.data.solute.elements[0].label == 'Na'

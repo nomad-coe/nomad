@@ -1,0 +1,20 @@
+definitions:
+  sections:
+    SpecialElement:
+      # Extending the definition from another entry
+      base_section: '../upload/raw/schema.archive.yaml#Element'
+      quantities:
+        atomic_weight:
+          type: float
+          unit: 'g/mol'
+data:
+  # Instantiating the definition from another entry
+  m_def: '../upload/raw/schema.archive.yaml#Composition'
+  composition: 'H2O'
+  elements:
+    # Implicitly instantiate Element as defined for Composition.elements
+    - label: H
+    # Explicitly instantiate SpecialElement as a polymorph substitute
+    - m_def: SpecialElement
+      label: O
+      atomic_weight: 15.9994
