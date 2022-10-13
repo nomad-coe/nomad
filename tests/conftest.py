@@ -209,7 +209,6 @@ def mongo_function(mongo_infra):
 @pytest.fixture(scope='function')
 def mongo(mongo_infra):
     ''' Provides a cleaned mocked mongo per function. '''
-    print('setup mongo worker')
     return clear_mongo(mongo_infra)
 
 
