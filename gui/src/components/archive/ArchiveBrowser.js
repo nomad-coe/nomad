@@ -723,17 +723,32 @@ const InheritingSections = React.memo(function InheritingSections({def, section,
     browser.invalidateLanesFromIndex(lane.index)
   }, [section, browser, lane])
 
-  if (section.m_def) {
+  const allInheritingSections = useMemo(() => {
+    return dataStore.getAllInheritingSections(def)
+  }, [dataStore, def])
+
+  const getSelectionValue = useCallback((def) => {
+    return getUrlFromDefinition(def, {installationUrl: apiBase}, true)
+  }, [])
+
+  const showSelection = useMemo(() => {
+    if (allInheritingSections.length === 0) {
+      return false
+    }
+
+    return true
+  }, [allInheritingSections])
+
+  if (!showSelection) {
     return null
   }
 
-  const allInheritingSections = dataStore.getAllInheritingSections(def)
-  return (allInheritingSections.length > 0 &&
+  return (
     <Box sx={{minWidth: 120}}>
       <FormControl fullWidth >
         <FormHelperText>Multiple specific sections are available</FormHelperText>
         <TextField
-          value=''
+          value={getSelectionValue(def)}
           variant='filled'
           label='Select a section'
           data-testid={`inheriting:${def.name}`}
@@ -741,11 +756,11 @@ const InheritingSections = React.memo(function InheritingSections({def, section,
           size="small"
           select
         >
-          <MenuItem key={0} value={getUrlFromDefinition(def, {installationUrl: apiBase}, true)}>
+          <MenuItem key={0} value={getSelectionValue(def)}>
             {def.name}
           </MenuItem>
           {allInheritingSections.map((inheritingSection, i) => {
-            const sectionValue = getUrlFromDefinition(inheritingSection, {installationUrl: apiBase}, true)
+            const sectionValue = getSelectionValue(inheritingSection)
             return (
               <MenuItem key={i + 1} value={sectionValue}>
                 {inheritingSection.name}
