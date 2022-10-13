@@ -72,7 +72,7 @@ Once you assigned a DOI to a dataset, no entries can be removed or added to the 
 `
 
 const context = ui?.search_contexts?.options?.entries
-const filtersLocked = {
+const initialFiltersLocked = {
   'visibility': 'user'
 }
 const UserdataPage = React.memo(() => {
@@ -82,7 +82,7 @@ const UserdataPage = React.memo(() => {
     initialColumns={context?.columns}
     initialRows={context?.rows}
     initialFilterMenus={context?.filter_menus}
-    filtersLocked={filtersLocked}
+    initialFiltersLocked={initialFiltersLocked}
   >
     <SearchPage/>
   </SearchContext>

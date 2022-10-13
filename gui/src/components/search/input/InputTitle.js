@@ -66,9 +66,9 @@ const InputTitle = React.memo(({
     return label
   }, [filterData, quantity, units, section, anchored])
 
-  const finalDescription = description || filterData[quantity].description
+  const finalDescription = description || filterData[quantity].description || ''
 
-  return <Tooltip title={finalDescription || ''} placement="bottom" {...(TooltipProps || {})}>
+  return <Tooltip title={finalDescription} placement="bottom" {...(TooltipProps || {})}>
     <Typography
       noWrap
       className={clsx(className, styles.root, (!section || anchored) && styles.title)}

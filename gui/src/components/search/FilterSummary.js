@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 
 /*
  * Copyright The NOMAD Authors.
@@ -16,12 +17,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { isNil, isPlainObject } from 'lodash'
-import { FilterChip, FilterChipGroup } from './FilterChip'
+import { isNil, isPlainObject, isEmpty } from 'lodash'
+import { FilterChip, FilterChipGroup, FilterAnd, FilterOr } from './FilterChip'
 import { useSearchContext } from './SearchContext'
 import { filterAbbreviations } from './FilterRegistry'
 import { useUnits } from '../../units'
@@ -47,7 +48,9 @@ const useStyles = makeStyles(theme => {
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'row',
-      flexWrap: 'wrap'
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'center'
     },
     chip: {
       padding: theme.spacing(0.5)
@@ -65,27 +68,32 @@ const FilterSummary = React.memo(({
   const theme = useTheme()
   const units = useUnits()
   const styles = useStyles({classes: classes, theme: theme})
-  const chips = []
 
   // Creates a set of chips for a quantity
-  const createChips = useCallback((name, label, filterValue, onDelete) => {
+  const createChips = useCallback((name, label, filterValue, onDelete, locked) => {
     const newChips = []
-    const locked = filtersLocked[name]
     if (isNil(filterValue)) {
       return
     }
-    // Is query has multiple elements, we display a chip for each. For
+    // If query has multiple elements, we display a chip for each. For
     // numerical values we also display the quantity name.
     const metaType = filterData[name].dtype
     const serializer = filterData[name].serializerPretty
     const isArray = filterValue instanceof Array
     const isSet = filterValue instanceof Set
     const isObj = isPlainObject(filterValue)
+    let op = null
+    if (locked) {
+      op = <FilterAnd/>
+    } else if (filterData[name].queryMode === "any") {
+      op = <FilterOr/>
+    } else if (filterData[name].queryMode === "all") {
+      op = <FilterAnd/>
+    }
     if (isArray || isSet) {
       filterValue.forEach((value, index) => {
         const displayValue = serializer(value, units)
         const item = <FilterChip
-          key={`${name}${index}`}
           locked={locked}
           quantity={name}
           label={typesWithLabel.has(metaType) ? `${label} = ${displayValue}` : displayValue}
@@ -101,7 +109,7 @@ const FilterSummary = React.memo(({
             onDelete(newValue)
           }}
         />
-        newChips.push(item)
+        newChips.push({comp: item, op})
       })
     } else if (isObj) {
       // Range queries
@@ -119,7 +127,6 @@ const FilterSummary = React.memo(({
           content = `${!isNil(gte) ? `${gte} <= ` : ''}${!isNil(gt) ? `${gt} < ` : ''}${label}${!isNil(lte) ? ` <= ${lte}` : ''}${!isNil(lt) ? ` < ${lt}` : ''}`
         }
         const item = <FilterChip
-          key={name}
           locked={locked}
           quantity={name}
           label={content}
@@ -127,11 +134,10 @@ const FilterSummary = React.memo(({
             onDelete(undefined)
           }}
         />
-        newChips.push(item)
+        newChips.push({comp: item, op})
       }
     } else {
       const item = <FilterChip
-        key={name}
         locked={locked}
         quantity={name}
         label={`${label}=${serializer(filterValue)}`}
@@ -139,25 +145,33 @@ const FilterSummary = React.memo(({
           onDelete(undefined)
         }}
       />
-      newChips.push(item)
+      newChips.push({comp: item, op})
     }
-    return newChips
-  }, [filterData, filtersLocked, units])
+    return newChips.map((chip, index) => (
+      <React.Fragment key={`${name}${index}`}>
+        {chip.comp}{index !== newChips.length - 1 && chip.op}
+      </React.Fragment>
+    ))
+  }, [filterData, units])
 
-  if (quantities) {
-    for (const quantity of quantities) {
-      const filterValue = filters[quantity]
-      if (isNil(filterValue)) {
-        continue
-      }
-      // Nested filters
-      const isSection = filterData[quantity].section
-      let newChips
-      if (isSection) {
-        newChips = []
-        for (const [key, value] of Object.entries(filterValue)) {
+  // Create chips for all of the requested quantities
+  const chips = []
+  for (const quantity of quantities || []) {
+    const filterValue = filters[quantity]
+    const filterLockedValue = filtersLocked[quantity]
+    if (isNil(filterValue) && isNil(filterLockedValue)) {
+      continue
+    }
+    // Nested filters
+    const isSection = filterData[quantity].section
+    let newChips = []
+    if (isSection) {
+      function addChipsForSection(data, locked) {
+        if (isNil(data)) return
+        const entries = Object.entries(data)
+        entries.forEach(([key, value], index) => {
           const onDelete = (newValue) => {
-            const newSection = {...filterValue}
+            const newSection = {...data}
             if (newValue === undefined) {
               delete newSection[key]
             } else {
@@ -165,22 +179,38 @@ const FilterSummary = React.memo(({
             }
             setFilter([quantity, newSection])
           }
-          newChips = newChips.concat(createChips(`${quantity}.${key}`, key, value, onDelete))
+          newChips = newChips.concat(createChips(`${quantity}.${key}`, key, value, onDelete, locked))
+          if (index !== entries.length - 1) {
+            newChips.push(<FilterAnd key={`${quantity}-and`}/>)
+          }
+        })
+      }
+      addChipsForSection(filterLockedValue, true)
+      if (!isEmpty(filterValue) && !isEmpty(filterLockedValue)) {
+        newChips.push(<FilterAnd key={`${quantity}-locked-and`}/>)
+      }
+      addChipsForSection(filterValue, false)
+    // Regular non-nested filters
+    } else {
+      const onDelete = (newValue) => setFilter([quantity, newValue])
+      const label = filterAbbreviations[quantity]
+      if (!isNil(filterLockedValue)) {
+        newChips = newChips.concat(createChips(quantity, label, filterLockedValue, onDelete, true))
+        if (!isNil(filterValue)) {
+          newChips.push(<FilterAnd key={`${quantity}-locked-and`}/>)
         }
-      // Regular non-nested filters
-      } else {
-        const onDelete = (newValue) => setFilter([quantity, newValue])
-        const label = filterAbbreviations[quantity]
-        newChips = createChips(quantity, label, filterValue, onDelete)
       }
-      if (newChips.length > 0) {
-        const group = <FilterChipGroup
-          key={quantity}
-          quantity={quantity}
-        >{newChips}
-        </FilterChipGroup>
-        chips.push(group)
-      }
+      newChips = newChips.concat(createChips(quantity, label, filterValue, onDelete, false))
+    }
+
+    // Place the chips in a group
+    if (newChips.length > 0) {
+      const group = <FilterChipGroup
+        key={quantity}
+        quantity={quantity}
+      >{newChips}
+      </FilterChipGroup>
+      chips.push(group)
     }
   }
 

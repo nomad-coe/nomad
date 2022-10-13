@@ -127,8 +127,9 @@ function getEnumOptions(quantity) {
   *  - description: Description of the filter shown e.g. in the tooltips. If no
   *      value is given and the name corresponnds to a metainfo, the metainfo
   *      description is used.
-  *  - guiOnly: Whether this filter is only shown in the GUI and does not get
-  *      serialized into the API call.
+  *  - global: Whether this is a 'global' filter that affects e.g. the
+  *      behaviour of certain queris without being serialized into the query
+  *      itself.
   *  - default: A default value which is implicitly enforced in the API call.
   *      This value will not be serialized in the search bar.
   *  - resources: A list of resources (entries, materials) for which this filter
@@ -165,8 +166,8 @@ function saveFilter(name, group, config, parent) {
     throw Error('Only filters that accept multiple values may have a query mode.')
   }
   data.queryMode = config.queryMode || 'any'
-  data.guiOnly = config.guiOnly
-  if (config.default && !data.guiOnly) {
+  data.global = config.global
+  if (config.default && !data.global) {
     throw Error('Only filters that do not correspond to a metainfo value may have default values set.')
   }
   data.default = config.default
@@ -286,7 +287,7 @@ const termQuantityAll = {aggs: {terms: {size: 5}}, exclusive: false, multiple: t
 const termQuantityAllNonExclusive = {...termQuantityNonExclusive, queryMode: 'all'}
 const noAggQuantity = {}
 const nestedQuantity = {}
-const noQueryQuantity = {guiOnly: true, multiple: false}
+const noQueryQuantity = {multiple: false, global: true}
 const numberHistogramQuantity = {multiple: false, exclusive: false}
 
 // Filters that directly correspond to a metainfo value
@@ -453,18 +454,39 @@ registerFilter(
 
 // Visibility: controls the 'owner'-parameter in the API query, not part of the
 // query itself.
-registerFilter('visibility', idAccess, {...noQueryQuantity, default: 'visible'})
+registerFilter(
+  'visibility',
+  idAccess,
+  {
+    ...noQueryQuantity,
+    default: 'visible',
+    description: 'The visibility of the entry.'
+  }
+)
 
 // Combine: controls whether materials search combines data from several
 // entries.
-registerFilter('combine', undefined, {
-  ...noQueryQuantity,
-  default: true,
-  resources: ['materials']
-})
+registerFilter(
+  'combine',
+  undefined,
+  {
+    ...noQueryQuantity,
+    default: true,
+    resources: ['materials'],
+    description: 'If selected, your filters may be matched from several entries that contain the same material. When unchecked, the material has to have a single entry that matches all your filters.'
+  }
+)
 
 // Exclusive: controls the way elements search is done.
-registerFilter('exclusive', undefined, {...noQueryQuantity, default: false})
+registerFilter(
+  'exclusive',
+  undefined,
+  {
+    ...noQueryQuantity,
+    default: false,
+    description: "Search for entries with compositions that only (exclusively) contain the selected atoms. The default is to return all entries that have at least (inclusively) the selected atoms."
+  }
+)
 
 // In exclusive element query the elements names are sorted and concatenated
 // into a single string.

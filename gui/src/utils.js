@@ -81,6 +81,19 @@ export function traverseDeep(object, fullPath = false) {
 }
 
 /**
+ * Used to resolve a property from a nested object. Also supports indices in the
+ * path.
+ *
+ * @param {object} data The data to traverse.
+ * @param {str} path Path to use
+ * @return The value at the given path or undefined if none can be found.
+ */
+export function getDeep(data, path, separator = '.') {
+    const segments = path.split(separator)
+    return segments.reduce((current, segment) => current && current[segment], data)
+}
+
+/**
  * Map that works on n-dimensional arrays. Implemented with simple for loops for
  * performance.
  *
@@ -314,8 +327,10 @@ export function diffTotal(values) {
  * @param {number} value Number to format
  * @param {string} type Number data type.
  * @param {number} decimals Number of decimals to use. Note
- * @param {string} mode The formatting mode to use. One of: 'scientific', 'separators', 'standard'
- * available for scientific formatting.
+ * @param {string} mode The formatting mode to use. One of:
+ *  - 'scientific'
+ *  - 'separators'
+ *  - 'standard'
  *
  * @return {string} The number as a string with new formatting
  */

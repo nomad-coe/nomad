@@ -92,12 +92,11 @@ const InputList = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
-  const {filterData, useAgg, useFilterState, useFilterLocked} = useSearchContext()
+  const {filterData, useAgg, useFilterState} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [scale, setScale] = useState(initialScale || filterData[quantity].scale)
   const aggIndicator = useRecoilValue(guiState('aggIndicator'))
   const [filter, setFilter] = useFilterState(quantity)
-  const locked = useFilterLocked(quantity)
   const { height, ref } = useResizeDetector()
   // The terms aggregations need to request at least 1 item or an API error is thrown
   const aggSize = useMemo(() => Math.max(Math.floor(height / inputItemHeight), 1), [height])
@@ -145,7 +144,6 @@ const InputList = React.memo(({
               variant="checkbox"
               count={option.count}
               scale={scale}
-              disabled={locked}
             />)
             ++nShown
           }
@@ -156,11 +154,11 @@ const InputList = React.memo(({
       }
     }
     return [aggComp, nShown]
-  }, [agg, aggIndicator, aggConfig, filter, handleChange, locked, max, scale, styles, testID])
+  }, [agg, aggIndicator, aggConfig, filter, handleChange, max, scale, styles, testID])
 
   const count = pluralize('item', nShown, true)
 
-  return <InputTooltip locked={locked}>
+  return <InputTooltip>
     <div className={clsx(className, styles.root)}>
       <InputHeader
         quantity={quantity}
@@ -169,7 +167,6 @@ const InputList = React.memo(({
         scale={scale}
         onChangeScale={setScale}
         anchored={anchored}
-        locked={locked}
       />
       <div ref={ref} className={styles.spacer}>
         {aggComp}

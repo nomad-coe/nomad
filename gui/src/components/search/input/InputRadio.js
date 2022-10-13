@@ -19,9 +19,10 @@ import React, { useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { isNil } from 'lodash'
 import InputHeader from './InputHeader'
 import InputItem from './InputItem'
-import { useSearchContext } from '../SearchContext'
+import { useSearchContext, getValue } from '../SearchContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -47,12 +48,14 @@ const InputRadio = React.memo(({
   const { filterData, useFilterState, useFilterLocked } = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [filter, setFilter] = useFilterState(quantity)
-  const locked = useFilterLocked(quantity)
+  const filterLocked = useFilterLocked(quantity)
 
   // Determine the description and units
   const def = filterData[quantity]
+  const locked = !isNil(filterLocked) && filterData[quantity].global
   const descFinal = description || def?.description || ''
   const labelFinal = label || def?.label
+  const val = getValue(def, filter, filterLocked, initialValue)
 
   const handleChange = useCallback((event, key, selected) => {
     setFilter(key)
@@ -72,7 +75,7 @@ const InputRadio = React.memo(({
         value={key}
         label={value.label}
         disabled={locked || value.disabled}
-        selected={(filter || initialValue) === key}
+        selected={val === key}
         onChange={handleChange}
         tooltip={value.tooltip}
         variant="radio"

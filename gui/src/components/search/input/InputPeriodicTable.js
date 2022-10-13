@@ -382,7 +382,6 @@ const InputPeriodicTable = React.memo(({
         <InputCheckbox
           quantity="exclusive"
           label="only compositions that exclusively contain these atoms"
-          description="Search for entries with compositions that only (exclusively) contain the selected atoms. The default is to return all entries that have at least (inclusively) the selected atoms."
         ></InputCheckbox>
       </div>
     </div>

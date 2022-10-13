@@ -122,13 +122,12 @@ const InputRange = React.memo(({
 }) => {
   const theme = useTheme()
   const units = useUnits()
-  const {filterData, useAgg, useFilterState, useFilterLocked, useIsStatisticsEnabled} = useSearchContext()
+  const {filterData, useAgg, useFilterState, useIsStatisticsEnabled} = useSearchContext()
   const sectionContext = useContext(inputSectionContext)
   const repeats = sectionContext?.repeats
   const isStatisticsEnabled = useIsStatisticsEnabled()
   const styles = useStyles({classes: classes, theme: theme})
   const [filter, setFilter] = useFilterState(quantity)
-  const locked = useFilterLocked(quantity)
   const [minLocal, setMinLocal] = useState()
   const [maxLocal, setMaxLocal] = useState()
   const [plotData, setPlotData] = useState()
@@ -279,7 +278,7 @@ const InputRange = React.memo(({
 
   const stepHistogram = agg?.interval
   const unavailable = isNil(minGlobalSI) || isNil(maxGlobalSI) || isNil(range)
-  const disabled = locked || unavailable
+  const disabled = unavailable
 
   // Determine the step value for sliders. Notice that this does not have to
   // match with the histogram binning.
@@ -644,7 +643,7 @@ const InputRange = React.memo(({
       anchored={anchored}
       actions={actions}
     />
-    <InputTooltip locked={locked} unavailable={unavailable}>
+    <InputTooltip unavailable={unavailable}>
       <div className={styles.column}>
         {!disableHistogram &&
           <PlotHistogram

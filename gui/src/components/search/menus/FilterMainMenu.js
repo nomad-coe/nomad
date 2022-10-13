@@ -25,7 +25,6 @@ import {
   FilterMenuItems,
   FilterSubMenus
 } from './FilterMenu'
-import { Tooltip } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import FilterSubMenuMaterial from './FilterSubMenuMaterial'
 import FilterSubMenuElements from './FilterSubMenuElements'
@@ -118,14 +117,14 @@ const FilterMainMenu = React.memo(({
             .map((action) => {
               const content = action.type === 'checkbox'
                 ? <InputCheckbox
+                  key={action.key}
                   quantity={action.quantity}
+                  description={action.tooltip}
                   label={action.label}
                   className={styles.combine}
                 ></InputCheckbox>
                 : null
-              return <Tooltip key={action.key} title={action.tooltip || ''}>
-                <span>{content}</span>
-              </Tooltip>
+              return content
           })}
         />
       })
