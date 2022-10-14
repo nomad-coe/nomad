@@ -20,6 +20,7 @@ import pytest
 import os
 import os.path
 import pandas as pd
+import re
 
 from nomad import config
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
@@ -28,6 +29,16 @@ from nomad.utils import generate_entry_id, strip
 from nomad.parsing.tabular import TabularDataParser
 from nomad.parsing.parser import ArchiveParser
 from tests.normalizing.conftest import run_normalize
+
+
+def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
+    base_case = f'''{quantity_name}:
+            type: str
+            {shape}
+            m_annotations:
+              tabular:
+                name: {header_name}'''
+    return re.sub(r'\n\s*\n', '\n', base_case)
 
 
 @pytest.mark.parametrize('schema,content', [
@@ -123,7 +134,7 @@ def test_tabular(raw_files, monkeypatch, schema, content):
             definitions:
                 name: 'A test schema for excel file parsing'
                 sections:
-                    MovpeSto_schema:
+                    My_schema:
                         base_section: nomad.datamodel.data.EntryData
                         sub_sections:
                             process:
@@ -132,24 +143,16 @@ def test_tabular(raw_files, monkeypatch, schema, content):
                                     quantities:
                                         data_file:
                                             type: str
-                                            description: |
-                                                A reference to an uploaded .xlsx
                                             m_annotations:
                                                 tabular_parser:
                                                     comment: '#'
-                                                browser:
-                                                    adaptor: RawFileAdaptor
-                                                eln:
-                                                    component: FileEditQuantity
-                                        experiment_identifier:
+                                        quantity_1:
                                             type: str
                                             m_annotations:
                                                 tabular:
-                                                    name: Experiment Identifier
-                                                eln:
-                                                    component: StringEditQuantity
+                                                    name: column_1
             data:
-                m_def: MovpeSto_schema
+                m_def: My_schema
                 process:
                     data_file: Test.xlsx
         '''), id='w/o_sheetName_rowMode'),
@@ -158,7 +161,7 @@ def test_tabular(raw_files, monkeypatch, schema, content):
             definitions:
                 name: 'A test schema for excel file parsing'
                 sections:
-                    MovpeSto_schema:
+                    My_schema:
                         base_section: nomad.datamodel.data.EntryData
                         sub_sections:
                             process:
@@ -167,24 +170,16 @@ def test_tabular(raw_files, monkeypatch, schema, content):
                                     quantities:
                                         data_file:
                                             type: str
-                                            description: |
-                                                A reference to an uploaded .xlsx
                                             m_annotations:
                                                 tabular_parser:
                                                     comment: '#'
-                                                browser:
-                                                    adaptor: RawFileAdaptor
-                                                eln:
-                                                    component: FileEditQuantity
-                                        experiment_identifier:
+                                        quantity_1:
                                             type: str
                                             m_annotations:
                                                 tabular:
-                                                    name: Overview/Experiment Identifier
-                                                eln:
-                                                    component: StringEditQuantity
+                                                    name: sheet_1/column_1
             data:
-                m_def: MovpeSto_schema
+                m_def: My_schema
                 process:
                     data_file: Test.xlsx
         '''), id='w_sheetName_rowMode'),
@@ -193,7 +188,7 @@ def test_tabular(raw_files, monkeypatch, schema, content):
             definitions:
                 name: 'A test schema for excel file parsing'
                 sections:
-                    MovpeSto_schema:
+                    My_schema:
                         base_section: nomad.datamodel.data.EntryData
                         sub_sections:
                             process:
@@ -207,32 +202,28 @@ def test_tabular(raw_files, monkeypatch, schema, content):
                                             m_annotations:
                                                 tabular_parser:
                                                     comment: '#'
-                                                browser:
-                                                    adaptor: RawFileAdaptor
-                                                eln:
-                                                    component: FileEditQuantity
-                                        experiment_identifier:
+                                        quantity_1:
                                             type: str
                                             m_annotations:
                                                 tabular:
-                                                    name: Overview/Experiment Identifier
-                                                eln:
-                                                    component: StringEditQuantity
-                                        pyrotemperature:
+                                                    name: sheet_1/column_1
+                                        quantity_2:
                                             type: np.float64
                                             shape: ['*']
                                             unit: K
-                                            description: My test description here
                                             m_annotations:
                                                 tabular:
-                                                    name: Deposition Control/Pyrotemperature
+                                                    name: sheet_2/column_2
             data:
-                m_def: MovpeSto_schema
+                m_def: My_schema
                 process:
                     data_file: Test.xlsx
         '''), id='w_sheetName_colMode')
 ])
-def test_xlsx_tabular(raw_files, monkeypatch, schema):
+def test_tabular_entry_mode(raw_files, monkeypatch, schema):
+    '''
+    Testing TabularParser parser. This feature creates an entry out of each row from the given excel/csv file
+    '''
     _, schema_file = get_files(schema)
     excel_file = os.path.join(os.path.dirname(__file__), '../../tests/data/parsers/tabular/Test.xlsx')
 
@@ -246,10 +237,209 @@ def test_xlsx_tabular(raw_files, monkeypatch, schema):
     run_normalize(main_archive)
 
     assert main_archive.data is not None
-    assert 'experiment_identifier' in main_archive.data.process
-    assert main_archive.data.process.experiment_identifier == '22-01-21-MA-255'
-    if 'pyrotemperature' in main_archive.data.process:
-        assert len(main_archive.data.process['pyrotemperature']) == 6
+    assert 'quantity_1' in main_archive.data.process
+    assert main_archive.data.process.quantity_1 == 'value_1'
+    if 'quantity_2' in main_archive.data.process:
+        assert len(main_archive.data.process['quantity_2']) == 6
+
+
+@pytest.mark.parametrize('test_case,section_placeholder,sub_sections_placeholder,quantity_placeholder,csv_content', [
+    pytest.param('test_1', '', '', quantity_generator('quantity_0', 'header_0'),
+                 'header_0,header_1\n0_0,0_1\n1_0,1_1', id='simple'),
+    pytest.param('test_2', f'''Mysection:
+        quantities:
+          {quantity_generator('quantity_0', 'header_0')}
+    ''', '''sub_sections:
+          my_substance:
+            section: Mysection''', '', 'header_0,header_1\n0_0,0_1\n1_0,1_1',
+                 id='nested'),
+])
+def test_tabular_column_mode(raw_files, monkeypatch, test_case, section_placeholder, quantity_placeholder,
+                             sub_sections_placeholder, csv_content):
+    '''
+    Testing the TableData normalizer using default mode (column mode). This feature creates a list of values
+    out of the given column in the excel/csv file for the given quantity.
+    '''
+    base_schema = '''definitions:
+    name: 'Eln'
+    sections:
+      <section_placeholder>
+      My_schema:
+        base_sections:
+           - nomad.parsing.tabular.TableData
+        quantities:
+          data_file:
+            type: str
+            description: <description_placeholder>
+            m_annotations:
+              tabular_parser:
+                comment: '#'
+          <quantity_placeholder>
+        <sub_sections_placeholder>
+data:
+  m_def: My_schema
+  data_file: test.my_schema.archive.csv'''
+
+    schema = base_schema.replace('<section_placeholder>', section_placeholder)\
+        .replace('<sub_sections_placeholder>', sub_sections_placeholder)\
+        .replace('<quantity_placeholder>', quantity_placeholder)\
+        .replace('<description_placeholder>', test_case)
+    schema = re.sub(r'\n\s*\n', '\n', schema)
+    csv_file, schema_file = get_files(schema, csv_content)
+
+    class MyContext(ClientContext):
+        def raw_file(self, path, *args, **kwargs):
+            return open(csv_file, *args, **kwargs)
+    context = MyContext(local_dir='')
+
+    main_archive, _ = get_archives(context, schema_file, None)
+    ArchiveParser().parse(schema_file, main_archive)
+    run_normalize(main_archive)
+
+    assert main_archive.data is not None
+    if 'test_1' in schema:
+        assert main_archive.data.quantity_0 == ['0_0', '1_0']
+    elif 'test_2' in schema:
+        assert main_archive.data.my_substance.quantity_0 == ['0_0', '1_0']
+
+
+@pytest.mark.parametrize('test_case,section_placeholder,target_sub_section_placeholder,sub_sections_placeholder,csv_content', [
+    pytest.param('test_1', '', '- my_substance1', '''my_substance1:
+          repeats: true
+          section: Substance1''', 'header_0,header_1\n0_0,0_1\n1_0,1_1', id='simple_1_section'),
+    pytest.param('test_2', f'''Substance2:
+        quantities:
+          {quantity_generator('quantity_2', 'header_2', shape='')}
+    ''', '''- my_substance1
+                - my_substance2''', '''my_substance1:
+          repeats: true
+          section: Substance1
+        my_substance2:
+          repeats: true
+          section: Substance2''', 'header_0,header_1,header_2\n0_0,0_1,0_2\n1_0,1_1,1_2', id='simple_2_sections'),
+    pytest.param('test_3', '', '- subsection_1/my_substance1', f'''subsection_1:
+          section:
+            m_annotations:
+              eln:
+                dict()
+            sub_sections:
+              my_substance1:
+                repeats: true
+                section:
+                  base_section: Substance1''', 'header_0,header_1,header_2\n0_0,0_1,0_2\n1_0,1_1,1_2', id='nested')])
+def test_tabular_row_mode(raw_files, monkeypatch, test_case, section_placeholder, target_sub_section_placeholder,
+                          sub_sections_placeholder, csv_content):
+    '''
+    Testing the TableData normalizer with mode set to row. This feature is used to create a section out of each row in a
+    given sheet_name of an excel file or a csv file, and append it to the repeating (sub)section(s).
+    '''
+    base_schema = f'''definitions:
+  name: 'Eln'
+  sections:
+    Substance1:
+      quantities:
+        {quantity_generator('quantity_4', 'header_0', shape='')}
+    <section_placeholder>
+    My_schema:
+      base_sections:
+       - nomad.parsing.tabular.TableData
+      quantities:
+        data_file:
+          type: str
+          description: <description_placeholder>
+          m_annotations:
+            tabular_parser:
+              comment: '#'
+              mode: row
+              target_sub_section:
+                <target_sub_section_placeholder>
+      sub_sections:
+        <sub_sections_placeholder>
+data:
+  m_def: My_schema
+  data_file: test.my_schema.archive.csv'''
+
+    schema = base_schema.replace('<section_placeholder>', section_placeholder) \
+        .replace('<target_sub_section_placeholder>', target_sub_section_placeholder) \
+        .replace('<sub_sections_placeholder>', sub_sections_placeholder) \
+        .replace('<description_placeholder>', test_case)
+    schema = re.sub(r'\n\s*\n', '\n', schema)
+    csv_file, schema_file = get_files(schema, csv_content)
+
+    class MyContext(ClientContext):
+        def raw_file(self, path, *args, **kwargs):
+            return open(csv_file, *args, **kwargs)
+    context = MyContext(local_dir='')
+
+    main_archive, _ = get_archives(context, schema_file, None)
+    ArchiveParser().parse(schema_file, main_archive)
+    run_normalize(main_archive)
+
+    assert main_archive.data is not None
+    if 'test_1' in schema:
+        assert len(main_archive.data.my_substance1) == 2
+        ii = 0
+        for item in main_archive.data.my_substance1:
+            assert item.quantity_4 == f'{ii}_0'
+            ii += 1
+    elif 'test_2' in schema:
+        assert len(main_archive.data.my_substance2) == 2
+        ii = 0
+        for item in main_archive.data.my_substance2:
+            assert item.quantity_2 == f'{ii}_2'
+            ii += 1
+    elif 'test_3' in schema:
+        assert len(main_archive.data.subsection_1.my_substance1) == 2
+        ii = 0
+        for item in main_archive.data.subsection_1.my_substance1:
+            assert item.quantity_4 == f'{ii}_0'
+            ii += 1
+
+
+@pytest.mark.parametrize('schema,content', [
+    pytest.param(
+        strip('''
+            definitions:
+                sections:
+                    MyTable:
+                        base_section: nomad.parsing.tabular.TableData
+                        quantities:
+                            data_file:
+                              type: str
+                              m_annotations:
+                                tabular_parser:
+                                  comment: '#'
+                                  mode: column
+                            header_0:
+                                type: str
+                            header_1:
+                                type: str
+            data:
+                m_def: MyTable
+                data_file: test.my_schema.archive.csv
+        '''),
+        strip('''
+            header_0, header_1
+            a,b
+        '''), id='space in header'
+    )
+])
+def test_tabular_csv(raw_files, monkeypatch, schema, content):
+    '''Tests that missing data is handled correctly. Pandas by default
+    interprets missing numeric values as NaN, which are incompatible with
+    metainfo.
+    '''
+    csv_file, schema_file = get_files(schema, content)
+
+    class MyContext(ClientContext):
+        def raw_file(self, path, *args, **kwargs):
+            return open(csv_file, *args, **kwargs)
+    context = MyContext(local_dir='')
+
+    main_archive, _ = get_archives(context, schema_file, None)
+    ArchiveParser().parse(schema_file, main_archive)
+    run_normalize(main_archive)
+    assert main_archive.data.header_1 is not None
 
 
 @pytest.mark.parametrize('schema,content,missing', [

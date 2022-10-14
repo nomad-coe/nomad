@@ -1,0 +1,17 @@
+# This schema is specially made for demonstration of implementing a tabular parser with
+# entry mode.
+definitions:
+  name: 'Tabular Parser example schema' # The main section that contains the quantities to be read from an excel file
+  # This name can be changed freely.
+  sections:
+    Tabular_Parser:
+      base_sections:
+        - nomad.parsing.tabular.TableRow # To create entries from each row in the excel file
+        # the base section should inherit from `nomad.parsing.tabular.TableRow`. For this specific case,
+        # the datafile should be accompanied
+      quantities:
+        My_Quantity:
+          type: str
+          m_annotations:
+            tabular:
+              name: My_Column

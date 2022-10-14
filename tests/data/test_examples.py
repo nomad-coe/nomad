@@ -33,3 +33,17 @@ def test_eln(mainfile, assert_xpaths, raw_files, no_warn):
 
     for xpath in assert_xpaths:
         assert archive.m_xpath(xpath) is not None
+
+
+@pytest.mark.parametrize('mainfile, assert_xpaths', [
+    pytest.param('tabular-parser-col-mode.archive.yaml', ['data.My_Quantity'], id='col_mode'),
+    pytest.param('tabular-parser-row-mode.archive.yaml', ['data.My_Subsection.My_Section[4].My_Quantity'],
+                 id='row_mode'),
+    pytest.param('tabular-parser-entry-mode.archive.yaml', [], id='entry_mode'),
+])
+def test_sample_tabular(mainfile, assert_xpaths, raw_files, no_warn):
+    mainfile_directory = 'examples/data/docs'
+    archive = run_processing(mainfile_directory, mainfile)
+
+    for xpath in assert_xpaths:
+        assert archive.m_xpath(xpath) is not None

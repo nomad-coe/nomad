@@ -37,6 +37,14 @@ from nomad.parsing.parser import MatchingParser
 m_package = Package()
 
 
+def to_camel_case(snake_str: str):
+    '''Take as input a snake case variable and return a camel case one'''
+
+    components = snake_str.split('_')
+
+    return ''.join(f'{x[0].upper()}{x[1:].lower().capitalize()}' for x in components)
+
+
 class TableRow(EntryData):
     ''' Represents the data in one row of a table. '''
     table_ref = Quantity(
@@ -61,6 +69,9 @@ class TableData(ArchiveSection):
                 self.tabular_parser(quantity, archive, logger, **tabular_parser_annotation)
 
     def tabular_parser(self, quantity_def: Quantity, archive, logger, **kwargs):
+        if logger is None:
+            logger = utils.get_logger(__name__)
+
         if not quantity_def.is_scalar:
             raise NotImplementedError('CSV parser is only implemented for single files.')
 
@@ -71,7 +82,45 @@ class TableData(ArchiveSection):
         with archive.m_context.raw_file(self.data_file) as f:
             data = read_table_data(self.data_file, f, **kwargs)
 
-        parse_columns(data, self)
+        tabular_parser_mode = 'column' if kwargs.get('mode') is None else kwargs.get('mode')
+        if tabular_parser_mode == 'column':
+            parse_columns(data, self)
+
+        elif tabular_parser_mode == 'row':
+            # Returning one section for each row in the given sheet_name/csv_file
+            sections = parse_table(data, self.m_def, logger=logger)
+
+            # The target_sub_section contains the ref to the location of which the sections are to be appended.
+            # Calling setattr will populate the non-repeating middle sections.
+            section_names: List[str] = kwargs.get('target_sub_section')
+            top_level_section_list: List[str] = []
+            for section_name in section_names:
+                section_name_str = section_name.split('/')[0]
+                if top_level_section_list.count(section_name_str):
+                    continue
+                else:
+                    top_level_section_list.append(section_name_str)
+                    if self.__getattr__(section_name_str) is None:
+                        self.__setattr__(section_name_str, sections[0][section_name_str])
+                        sections.pop(0)
+                    else:
+                        continue
+
+            # For each returned section, navigating to the target (repeating) section in self and appending the section
+            # data to self.
+            for section in sections:
+                for section_name in section_names:
+                    section_name_list = section_name.split('/')
+                    top_level_section = section_name_list.pop(0)
+                    self_updated = self[top_level_section]
+                    section_updated = section[top_level_section]
+                    for section_path in section_name_list:
+                        self_updated = self_updated[section_path]
+                        section_updated = section_updated[section_path]
+                    self_updated.append(section_updated[0])
+
+        else:
+            raise MetainfoError(f'The provided mode {tabular_parser_mode} should be either "column" or "row".')
 
 
 m_package.__init_metainfo__()
@@ -89,7 +138,7 @@ def _create_column_to_quantity_mapping(section_def: Section):
                 continue
             properties.add(quantity)
 
-            tabular_annotation = quantity.m_annotations.get('tabular', None)
+            tabular_annotation = quantity.m_annotations.get('tabular', {})
             if tabular_annotation and 'name' in tabular_annotation:
                 col_name = tabular_annotation['name']
             else:
@@ -105,7 +154,11 @@ def _create_column_to_quantity_mapping(section_def: Section):
             def set_value(section: MSection, value, path=path, quantity=quantity, tabular_annotation=tabular_annotation):
                 import numpy as np
                 for sub_section, section_def in path:
-                    next_section = section.m_get_sub_section(sub_section, -1)
+                    next_section = None
+                    try:
+                        next_section = section.m_get_sub_section(sub_section, -1)
+                    except (KeyError, IndexError):
+                        pass
                     if not next_section:
                         next_section = section_def.section_cls()
                         section.m_add_sub_section(sub_section, next_section, -1)
@@ -140,7 +193,7 @@ def _create_column_to_quantity_mapping(section_def: Section):
             mapping[col_name] = set_value
 
         for sub_section in section_def.all_sub_sections.values():
-            if sub_section in properties or sub_section.repeats:
+            if sub_section in properties:
                 continue
             next_base_section = sub_section.sub_section
             properties.add(sub_section)
@@ -183,22 +236,43 @@ def parse_table(pd_dataframe, section_def: Section, logger):
     section_def for each row. The sections are filled with the cells from
     their respective row.
     '''
+    # section_def = section.m_def
     import pandas as pd
     data: pd.DataFrame = pd_dataframe
     sections: List[MSection] = []
+    main_sheet: Set[Any] = set()
 
     mapping = _create_column_to_quantity_mapping(section_def)  # type: ignore
-    for row_index, row in data.iterrows():
+
+    # data object contains the entire excel file with all of its sheets (given that an
+    # excel file is provided, otherwise it contains the csv file). if a sheet_name is provided,
+    # the corresponding sheet_name from the data is extracted, otherwise its assumed that
+    # the columns are to be extracted from first sheet of the excel file.
+    for column in mapping:
+        if column == 'data_file':
+            continue
+        sheet_name = {column.split('/')[0]} if '/' in column else {0}
+        main_sheet = main_sheet.union(sheet_name)
+        if main_sheet.isdisjoint(sheet_name):
+            raise Exception('The columns for each quantity should be coming from one single sheet')
+
+    assert len(main_sheet) == 1
+    sheet_name = main_sheet.pop()
+    df = pd.DataFrame.from_dict(data.loc[0, sheet_name] if isinstance(sheet_name, str) else data.iloc[0, sheet_name])
+
+    for row_index, row in df.iterrows():
         section = section_def.section_cls()
         try:
-            for column in data:
-                if column in mapping:
+            for column in mapping:
+                col_name = column.split('/')[1] if '/' in column else column
+
+                if col_name in df:
                     try:
-                        mapping[column](section, row[column])
+                        mapping[column](section, row[col_name])
                     except Exception as e:
                         logger.error(
                             f'could not parse cell',
-                            details=dict(row=row_index, column=column), exc_info=e)
+                            details=dict(row=row_index, column=col_name), exc_info=e)
         except Exception as e:
             logger.error(f'could not parse row', details=dict(row=row_index), exc_info=e)
         sections.append(section)
@@ -208,21 +282,32 @@ def parse_table(pd_dataframe, section_def: Section, logger):
 
 def read_table_data(path, file_or_path=None, **kwargs):
     import pandas as pd
+    df = pd.DataFrame()
 
     if file_or_path is None:
         file_or_path = path
+
     if path.endswith('.xls') or path.endswith('.xlsx'):
         excel_file: pd.ExcelFile = pd.ExcelFile(
             file_or_path if isinstance(file_or_path, str) else file_or_path.name)
-        df = pd.DataFrame()
         for sheet_name in excel_file.sheet_names:
             df.loc[0, sheet_name] = [
-                pd.read_excel(excel_file, sheet_name=sheet_name, **kwargs)
-                .to_dict()]
+                pd.read_excel(excel_file, sheet_name=sheet_name,
+                              comment=kwargs.get('comment'),
+                              skiprows=kwargs.get('skiprows')).to_dict()]
     else:
-        df = pd.DataFrame()
+        if kwargs.get('sep') is not None:
+            sep_keyword = kwargs.get('sep')
+        elif kwargs.get('separator') is not None:
+            sep_keyword = kwargs.get('sep')
+        else:
+            sep_keyword = None
         df.loc[0, 0] = [
-            pd.read_csv(file_or_path, engine='python', **kwargs).to_dict()
+            pd.read_csv(file_or_path, engine='python',
+                        comment=kwargs.get('comment'),
+                        sep=sep_keyword,
+                        skipinitialspace=True
+                        ).to_dict()
         ]
 
     return df
@@ -277,7 +362,6 @@ class TabularDataParser(MatchingParser):
         self, mainfile: str, archive: EntryArchive, logger=None,
         child_archives: Dict[str, EntryArchive] = None
     ):
-        import pandas as pd
         if logger is None:
             logger = utils.get_logger(__name__)
 
@@ -305,7 +389,6 @@ class TabularDataParser(MatchingParser):
 
         tabular_parser_annotation = section_def.m_annotations.get('tabular-parser', {})
         data = read_table_data(mainfile, **tabular_parser_annotation)
-        data = pd.DataFrame.from_dict(data.iloc[0, 0])
         child_sections = parse_table(data, section_def, logger=logger)
         assert len(child_archives) == len(child_sections)
 

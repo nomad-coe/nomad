@@ -1,11 +1,11 @@
-# Schemas can be defines as yaml files like this. The archive.yaml format will be
+# Schemas can be defined as yaml files like this. The archive.yaml format will be
 # interpreted by nomad as a nomad archive. Therefore, all definitions have to be
 # put in a top-level section called "definitions"
 definitions:
   # The "definitions" section is interpreted as a nomad schema package
   # Schema packages can have a name:
   name: 'Electronic Lab Notebook example schema'
-  # Schema packages contain section definitions. This is wear the interesting schema
+  # Schema packages contain section definitions. This is where the interesting schema
   # information begins.
   sections:
     # Here we define a section called "Chemical":
@@ -122,7 +122,7 @@ definitions:
           section:
             # The sub-section's section, is itself a section definition
             m_annotations:
-              eln:  # ads the sub-section to the eln and allows users to create new instances of this sub-section
+              eln:  # adds the sub-section to the eln and allows users to create new instances of this sub-section
             # We can also nest sub_sections. It goes aribitrarely deep.
             sub_sections:
               pvd_evaporation:
@@ -152,7 +152,7 @@ definitions:
                         # The tabular_parser annotation, will treat the values of this
                         # quantity as files. It will try to interpret the files and fill
                         # quantities in this section (and sub_section) with the column
-                        # data of .csv or .xlsx files.
+                        # data of .csv or .xlsx files. There is also a mode option that by default, is set to column.
                         tabular_parser:
                           sep: '\t'
                           comment: '#'
@@ -213,5 +213,4 @@ definitions:
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-
 

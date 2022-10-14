@@ -38,7 +38,6 @@ NOMAD's upload page:
 --8<-- "examples/data/eln/schema.archive.yaml"
 ```
 
-
 ## ELN Annotations
 The `eln` annotations can contain the following keys:
 
@@ -53,6 +52,69 @@ ELN edit annotations and components [here]({{ nomad_url() }}/../gui/dev/editquan
 
 
 ## Tabular Annotations
+In order to import your data from a `.csv` or `Excel` file, NOMAD provides three distinct (and separate) ways, that
+with each comes unique options for importing and interacting with your data. To better understand how to use
+NOMAD parsers to import your data, three commented sample schemas are presented below. Also, each section follows
+and extends a general example explained thereafter. Two main components of any tabular parser schema are
+1) using the correct base section as well as 2) providing a `data_file` quantity with the correct `m_annotations`
+(except for the entry mode). Please bear in mind that the schema files should 1) follow the NOMAD naming convention
+(i.e. `My_Name.archive.yaml`), and 2) be accompanied by your data file in order for NOMAD to parse them.
+In the examples provided below, an `Excel` file is assumed to contain all the data, as both NOMAD and
+`Excel` support multiple-sheets data manipulations and imports. Note that the `Excel` file name in each schema
+should match the name of the `Excel` data file, which in case of using a `.csv` data file, it can be replaced by the
+`.csv` file name.
+
+The following sample schema creates one quantity off the entire column of an excel file (`col mode`).
+For example, suppose in an excel sheet, several rows contain information of a chemical product (e.g. `purity` in one
+column). In order to list all the purities under the column `purity` and import them into NOMAD, you can use the
+following schema by substituting `My_Quantity` with any name of your choice (e.g. `Purity`),
+`tabular-parser.data.xlsx` with the name of the csv/excel file where the data lies, and `My_Sheet/My_Column` with
+sheet_name/column_name of your targeted data. The `Tabular_Parser` is also an arbitrary name that can be changed.
+
+Important notes:
+
+- `shape: ['*']` under `My_Quantity` is essential to parse the entire column of the data file.
+- `My_Quantity` can also be defined within another subsection (see next schema sample)
+
+```yaml
+--8<-- "examples/data/docs/tabular-parser-col-mode.archive.yaml"
+```
+
+The sample schema provided below, creates separate instances of a repeated section from each row of an excel file
+(`row mode`). For example, suppose in an excel sheet, you have the information for a chemical product
+(e.g. `name` in one column), and each row contains one entry of the aforementioned chemical product.
+Since each row is separate from others, in order to create instaces of the same product out of all rows
+and import them into NOMAD, you can use the following schema by substituting `My_Subsection`,
+`My_Section` and `My_Quantity` with any appropriate name (e.g. `Substance`, `Chemical_product`
+and `Name` respectively).
+
+Important notes:
+
+- This schema demonstrates how to import data within a subsection of another subsection, meaning the
+targeted quantity should not necessarily go into the main `quantites`.
+- Setting `mode` to `row` signals that for each row in the sheet_name (provided in `My_Quantity`),
+one instance of the corresponding (sub-)section (in this example, `My_Subsection` sub-section as it has the `repeats`
+option set to true), will be appended. Please bear in mind that if this mode is selected, then all other quantities
+should exist in the same sheet_name.
+
+```yaml
+--8<-- "examples/data/docs/tabular-parser-row-mode.archive.yaml"
+```
+
+The following sample schema creates one entry for each row of an excel file (`entry mode`).
+For example, suppose in an excel sheet, you have the information for a chemical product (e.g. `name` in one column),
+and each row contains one entry of the aforementioned chemical product. Since each row is separate from others, in
+order to create multiple archives of the same product out of all rows and import them into NOMAD, you can use the
+following schema by substituting `My_Quantity` with any appropriate name (e.g. `Name`).
+
+Important note:
+
+- For entry mode, the convention for reading data from csv/excel file is to provide only the column name and the
+data are assumed to exist in the first sheet
+
+```yaml
+--8<-- "examples/data/docs/tabular-parser-entry-mode.archive.yaml"
+```
 Tabular annotation accepts the following keys:
 
 {{ get_schema_doc('tabular') }}
@@ -64,7 +126,7 @@ Plot annotation is a wrapper for [plotly](https://plotly.com) library. One can u
 
 which can be customized by using plotly commands. See [plot examples]({{ nomad_url() }}/../gui/dev/plot).
 
-## Build-in base sections for ELNs
+## Built-in base sections for ELNs
 
 Coming soon ...
 
