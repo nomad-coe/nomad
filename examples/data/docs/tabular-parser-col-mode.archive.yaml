@@ -1,0 +1,33 @@
+# This schema is specially made for demonstration of implementing a tabular parser with
+# column mode.
+definitions:
+  name: 'Tabular Parser example schema'
+  sections:
+    Tabular_Parser: # The main section that contains the quantities to be read from an excel file.
+    # This name can be changed freely.
+      base_sections:
+       - nomad.parsing.tabular.TableData
+      quantities:
+        data_file:
+          type: str
+          m_annotations:
+            tabular_parser: # The tabular_parser annotation, will treat the values of this
+          # quantity as files. It will try to interpret the files and fill
+          # quantities in this section (and sub_sections) with the column
+          # data of .csv or .xlsx files.
+              comment: '#' # Skipping lines in csv or excel file that start with the sign `#`
+              mode: column # Here the mode can be set. If removed, by default,
+              # the parser assumes mode to be column
+        My_Quantity:
+          type: str
+          shape: ['*']
+          m_annotations:
+            tabular: # The tabular annotation defines a mapping to column headers used in tabular data files
+              name: My_Sheet/My_Column # Here you can define where the data for the given quantity is to be taken from
+                # The convention for selecting the name is if the data is to be taken from an excel file,
+                # you can specify the sheet_name followed by a forward slash and the column_name to target the desired quantity.
+                # If only a column name is provided, then the first sheet in the excel file (or the .csv file)
+                # is assumed to contain the targeted data.
+data:
+  m_def: Tabular_Parser # this is a reference to the section definition above
+  data_file: tabular-parser.data.xlsx # name of the excel/csv file to be uploaded along with this schema yaml file

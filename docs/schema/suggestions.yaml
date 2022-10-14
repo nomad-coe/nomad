@@ -4,9 +4,13 @@ m_annotations:
   plot: "plot annotations"
 
 tabular:
-  name: "Either < column name > in csv and xls or in the format of < sheet name >/< column name > only for excel files"
+  name: "Either < column name > in `.csv` and `excel` or in the format of < sheet name >/< column name > only for `excel` files"
   unit: "The unit to display the data"
-  comment: "A character denoting the commented lines in excel or csv files"
+  comment: "A character denoting the commented lines in `excel` or `.csv` files"
+  sep: "In case of reading data from a `.csv` file, the separator annotation (e.g. `','` for comma or `'\\t'` for tab) can be specified here."
+  separator: "Aliases for `sep`."
+  mode: "Either `column` or `row`. Use only when setting `TableData` as a base-section. Defaults to `column`."
+  target_sub_section: "List of paths to the targeted repeating subsection < section >/< sub-sections >/ ... /< subsections >"
 
 eln:
   component: "The name of ELN edit component"

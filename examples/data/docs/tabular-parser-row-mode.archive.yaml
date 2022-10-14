@@ -1,0 +1,35 @@
+# This schema is specially made for demonstration of implementing a tabular parser with
+# row mode.
+definitions:
+  name: 'Tabular Parser example schema'
+  sections:
+    Tabular_Parser: # The main section that contains the quantities to be read from an excel file
+    # This name can be changed freely.
+      base_sections:
+       - nomad.parsing.tabular.TableData # Here we specify that we need to acquire the data from a .xlsx or a .csv file
+      quantities:
+        data_file:
+          type: str
+          m_annotations:
+            tabular_parser:
+              comment: '#' # Skipping lines in csv or excel file that start with the sign `#`
+              mode: row # Setting mode to row signals that for each row in the sheet_name (provided in quantity)
+              target_sub_section: # This is the reference to where the targeted (sub-)section lies within this example schema file
+                - My_Subsection/My_Section
+      sub_sections:
+        My_Subsection:
+          section:
+            sub_sections:
+              My_Section:
+                repeats: true # The repeats option set to true means there can be multiple instances of this
+                # section
+                section:
+                  quantities:
+                    My_Quantity:
+                      type: str
+                      m_annotations:
+                        tabular: # The tabular annotation defines a mapping to column headers used in tabular data files
+                          name: My_Sheet/My_Column # sheet_name and column name of the targeted data in csv/xlsx file
+data:
+  m_def: Tabular_Parser # this is a reference to the section definition above
+  data_file: tabular-parser.data.xlsx # name of the excel/csv file to be uploaded along with this schema yaml file
