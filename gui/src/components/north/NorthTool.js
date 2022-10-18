@@ -55,8 +55,8 @@ export const NorthToolButtons = React.memo(function NorthToolButton() {
   const {name, launch, stop, state} = useNorthTool()
   return (
     <Box display="flex" flexDirection="row">
-      <LaunchButton fullWidth name={name} onClick={launch} disabled={state === 'stopping' || state === 'launching'}>
-        {launchButtonLabels[state]}
+      <LaunchButton fullWidth name={name} onClick={launch} disabled={state === 'stopping' || state === 'launching' || !state}>
+        {launchButtonLabels[state] || 'not available'}
       </LaunchButton>
       {(state === 'running' || state === 'stopping') && (
         <Box marginLeft={1}>
@@ -95,7 +95,7 @@ const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}
   const {northApi, user} = useApi()
   const {raiseError} = useErrors()
 
-  const [state, setState] = useState('idle')
+  const [state, setState] = useState()
 
   const toolUrl = useMemo(() => {
     if (!user) {
@@ -131,8 +131,10 @@ const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}
       .catch(error => {
         if (error?.response?.status === 404 || error?.response?.status === 400) {
           return 'idle'
+        } else if (error.code === 'ERR_NETWORK') {
+          // north is unavailable
+          return undefined
         } else {
-          setState('idle')
           raiseError(error)
         }
       })
