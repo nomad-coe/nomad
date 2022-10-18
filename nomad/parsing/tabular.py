@@ -236,11 +236,10 @@ def parse_table(pd_dataframe, section_def: Section, logger):
     section_def for each row. The sections are filled with the cells from
     their respective row.
     '''
-    # section_def = section.m_def
     import pandas as pd
     data: pd.DataFrame = pd_dataframe
     sections: List[MSection] = []
-    main_sheet: Set[Any] = set()
+    sheet_name = 0
 
     mapping = _create_column_to_quantity_mapping(section_def)  # type: ignore
 
@@ -251,13 +250,9 @@ def parse_table(pd_dataframe, section_def: Section, logger):
     for column in mapping:
         if column == 'data_file':
             continue
-        sheet_name = {column.split('/')[0]} if '/' in column else {0}
-        main_sheet = main_sheet.union(sheet_name)
-        if main_sheet.isdisjoint(sheet_name):
-            raise Exception('The columns for each quantity should be coming from one single sheet')
+        if '/' in column:
+            sheet_name = column.split('/')[0]
 
-    assert len(main_sheet) == 1
-    sheet_name = main_sheet.pop()
     df = pd.DataFrame.from_dict(data.loc[0, sheet_name] if isinstance(sheet_name, str) else data.iloc[0, sheet_name])
 
     for row_index, row in df.iterrows():
