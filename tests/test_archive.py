@@ -623,7 +623,7 @@ def test_required_reader_with_remote_reference(
         # if not resolved inplace, the target archive is copied to the current archive,
         # so the reference is overwritten by the following pattern,
         # whether the target destination is another reference is not controlled by this reference.
-        assert ref_result == f'../entries/{entry_id}/archive#/workflow/0'
+        assert ref_result.endswith(f'/archive/{entry_id}#/workflow/0')
 
         from nomad.datamodel import ClientContext
         archive_obj = EntryArchive.m_from_dict(results, m_context=ClientContext())
