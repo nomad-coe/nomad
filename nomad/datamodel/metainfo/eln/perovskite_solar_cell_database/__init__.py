@@ -47,6 +47,9 @@ def addSolarCell(archive):
 
 
 class Ref(MSection):
+    """Information about the source of the data. It describes who curated the data,
+     the journal in which the data was published,
+     the DOI number of the publication, the lead author and the publication date."""
 
     m_def = Section(
         a_eln=dict(lane_width='800px'))
@@ -173,20 +176,24 @@ Unpublished
 
 
 class Cell(MSection):
+    """
+    General information about the solar cell. It includes the device area,
+    the layer stack sequence and the device architecture.
+    """
 
     stack_sequence = Quantity(
         type=str,
         shape=[],
         description="""
     The stack sequence describing the cell. Use the following formatting guidelines
-• Start with the substrate to the left and list the materials in each layer of the device
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with  semicolons, as in (A; B)
-• The perovskite layer is stated as “Perovskite”, regardless of composition, mixtures, dimensionality etc. There are plenty of other fields specifically targeting the perovskite.
-• If a material is doped, or have an additive, state the pure material here and specify the doping in the columns specifically targeting the doping of those layers.
-• There is no sharp well-defined boundary between a when a material is best considered as doped to when it is best considered as a mixture of two materials. When in doubt if your material is doped or a mixture, use the notation that best capture the metaphysical essence of the situation
-• Use common abbreviations when possible but spell it out when there is risk for confusion. For consistency, please pay attention to the abbreviation specified under the headline Abbreviations found earlier in this document.
-• There are several thousand stack sequences described in the literature. Try to find your one in the list of alternatives in the data template. If it is not there (i.e. you may have done something new) define a new stack sequence according to the instructions.
+- Start with the substrate to the left and list the materials in each layer of the device
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with  semicolons, as in (A; B)
+- The perovskite layer is stated as “Perovskite”, regardless of composition, mixtures, dimensionality etc. There are plenty of other fields specifically targeting the perovskite.
+- If a material is doped, or have an additive, state the pure material here and specify the doping in the columns specifically targeting the doping of those layers.
+- There is no sharp well-defined boundary between a when a material is best considered as doped to when it is best considered as a mixture of two materials. When in doubt if your material is doped or a mixture, use the notation that best capture the metaphysical essence of the situation
+- Use common abbreviations when possible but spell it out when there is risk for confusion. For consistency, please pay attention to the abbreviation specified under the headline Abbreviations found earlier in this document.
+- There are several thousand stack sequences described in the literature. Try to find your one in the list of alternatives in the data template. If it is not there (i.e. you may have done something new) define a new stack sequence according to the instructions.
 ExampleBelow are the 16 most common device stacks which represent close to half of all reported devices.
 SLG | FTO | TiO2-c | TiO2-mp | Perovskite | Spiro-MeOTAD | Au
 SLG | FTO | TiO2-c | Perovskite | Spiro-MeOTAD | Au
@@ -242,8 +249,8 @@ SLG | ITO | NiO-c | Perovskite | PCBM-60 | BCP | Ag
         shape=[],
         description="""
     The cell architecture with respect to the direction of current flow and the order in which layers are deposited. The two most common are nip (also referred to as normal) and pin (also referred to as inverted) but there are also a few others, e.g. Back contacted
-• nip architecture means that the electrons are collected at the substrate side. The typical example is when a TiO2 electron selective contact is deposited between the perovskite and the substrate (e.g. SLG | FTO | TiO2-c |Perovskite | …)
-• pin architecture means that it instead is the holes that are collected at the substrate side. The typical example is when a PEDOT:PSS hole selective contact is deposited between the perovskite and the substrate (e.g. SLG | FTO | PEDOT:PSS |Perovskite | …)
+- nip architecture means that the electrons are collected at the substrate side. The typical example is when a TiO2 electron selective contact is deposited between the perovskite and the substrate (e.g. SLG | FTO | TiO2-c |Perovskite | …)
+- pin architecture means that it instead is the holes that are collected at the substrate side. The typical example is when a PEDOT:PSS hole selective contact is deposited between the perovskite and the substrate (e.g. SLG | FTO | PEDOT:PSS |Perovskite | …)
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['Unknown', 'Pn-Heterojunction', 'Front contacted', 'Back contacted', 'pin', 'nip', 'Schottky'])))
@@ -302,7 +309,7 @@ Example:
         shape=[],
         description="""
     A link to where the data file for the measurement is stored
-• This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw data.
+- This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw data.
                     """)
 
     def normalize(self, archive, logger):
@@ -319,6 +326,9 @@ Example:
 
 
 class Module(MSection):
+    """
+    Specific section containing information if the reported device is a module.
+    """
 
     Module = Quantity(
         type=bool,
@@ -369,17 +379,21 @@ class Module(MSection):
 
 
 class Substrate(MSection):
+    """
+    Information about the substrate used in the device. It describes the substrate material,
+    the substrate area, the substrate thickness, and its provenance or fabrication method.
+    """
 
     stack_sequence = Quantity(
         type=str,
         shape=[],
         description="""
     The stack sequence describing the substrate.
-• With the substrate, we refer to any layer below the electron transport layer in a nip-device, and any layer below the hole transport layer in a pin-device.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
-• Use common abbreviations when appropriate but spell it out if risk for confusion.
-• There are a lot of stack sequences described in the literature. Try to find your one in the list. If it is not there (i.e. you may have done something new) define a new stack sequence according to the instructions.
+- With the substrate, we refer to any layer below the electron transport layer in a nip-device, and any layer below the hole transport layer in a pin-device.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
+- Use common abbreviations when appropriate but spell it out if risk for confusion.
+- There are a lot of stack sequences described in the literature. Try to find your one in the list. If it is not there (i.e. you may have done something new) define a new stack sequence according to the instructions.
 ExampleBelow are some of the most common substrates
 SLG | FTO
 SLG | ITO
@@ -396,12 +410,12 @@ PET | IZO
         shape=[],
         description="""
     A list of thicknesses of the individual layers in the stack. Use the following guidelines
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous filed.
-• State thicknesses in nm
-• Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
-• If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
-• If you only know the total thickness, e.g. you have a 2 mm thick commercial FTO substrate and you do not know how thick the FTO layer is, state that as ‘2 | nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- The layers must line up with the previous filed.
+- State thicknesses in nm
+- Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
+- If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
+- If you only know the total thickness, e.g. you have a 2 mm thick commercial FTO substrate and you do not know how thick the FTO layer is, state that as ‘2 | nan’
 Example
 2.2 | 0.1
 2 | nan
@@ -425,9 +439,9 @@ nan | nan | nan
         shape=[],
         description="""
     . The supplier of the substrate.
-• Most substrates in the perovskite field are bought commercially, but if it is made in the lab, state this as “lab made”
-• If the supplier is unknown, stat that as‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Most substrates in the perovskite field are bought commercially, but if it is made in the lab, state this as “lab made”
+- If the supplier is unknown, stat that as‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 Lab made
 NGO
@@ -441,7 +455,7 @@ Pilkington
         shape=[],
         description="""
     . The specific brand name of the substrate. e.g NGO11, TEC15, etc.
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', 'TCO-XY15', 'Unknown', 'TEC15', 'TEC8', 'TEC14', 'Trizact 3000', 'FTO22-7', 'TEC7', 'TEC7.5', 'NSG10', 'DHS-FTO22-15N', 'TEC9', 'TCO22-7', 'TECS'])))
@@ -451,12 +465,12 @@ Pilkington
         shape=[],
         description="""
     . A list of the deposition procedures for the substrate
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• Make sure that you describe as many layers as there are layers in the stack. Otherwise it will be difficult to interpret which layer the deposition procedure is referring to. It should thus be as many vertical bars in this field as when describing the substrate stack.
-• When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the deposition procedure for a layer unknown, state that as‘Unknown’
-• If a substrate is bought commercially and you do not know, indicate this by the label “Commercial”
-• This category was included after the initial project release wherefor the list of reported purities are short, so be prepared to expand on the given list of alternatives in the extraction protocol.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- Make sure that you describe as many layers as there are layers in the stack. Otherwise it will be difficult to interpret which layer the deposition procedure is referring to. It should thus be as many vertical bars in this field as when describing the substrate stack.
+- When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the deposition procedure for a layer unknown, state that as‘Unknown’
+- If a substrate is bought commercially and you do not know, indicate this by the label “Commercial”
+- This category was included after the initial project release wherefor the list of reported purities are short, so be prepared to expand on the given list of alternatives in the extraction protocol.
 Example
 Commercial | Commercial
 Commercial | Sputtered >> Sputtered
@@ -471,7 +485,7 @@ Commercial | ALD
         shape=[],
         description="""
     The root mean square value (RMS) of the surface roughness expressed in nm
-• If not known, leave this field blank
+- If not known, leave this field blank
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -481,8 +495,8 @@ Commercial | ALD
         shape=[],
         description="""
     . For the most common substrates, i.e. FTO and ITO it is common that part of the conductive layer is removed before perovskite deposition. State the method by which it was removed
-• If there is more than one cleaning step involved, separate the steps by a double forward angel bracket (‘ >> ‘)
-• This category was included after the initial project release wherefor the list of reported purities are short, so be prepared to expand on the given list of alternatives in the extraction protocol.
+- If there is more than one cleaning step involved, separate the steps by a double forward angel bracket (‘ >> ‘)
+- This category was included after the initial project release wherefor the list of reported purities are short, so be prepared to expand on the given list of alternatives in the extraction protocol.
 Example
 Zn-powder; HCl >> Mecanical scrubbing
 Laser etching
@@ -495,9 +509,9 @@ Laser etching
         shape=[],
         description="""
     . The schematic cleaning sequence of the substrate. The Extraction protocol does not capture the fine details in the cleaning procedures, e.g. times, temperatures, etc. but state the general sequence. Refers to the cleaning of the entire substrate before the deposition of the rest of the cell stack starts.
-• If there is more than one cleaning step involved, separate the steps by a double forward angel bracket (‘ >> ‘)
-• If more than one procedure is occurring simultaneously, e.g. Soap washing an ultrasonic bath, separate simultaneously occurring steps with a semicolon.
-• This category was included after the initial project release wherefor the list of reported purities are short, so be prepared to expand on the given list of alternatives in the extraction protocol.
+- If there is more than one cleaning step involved, separate the steps by a double forward angel bracket (‘ >> ‘)
+- If more than one procedure is occurring simultaneously, e.g. Soap washing an ultrasonic bath, separate simultaneously occurring steps with a semicolon.
+- This category was included after the initial project release wherefor the list of reported purities are short, so be prepared to expand on the given list of alternatives in the extraction protocol.
 Example
 Helmanex >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Acetone >> UV-ozone
 Piranha solutionion
@@ -518,20 +532,23 @@ Unknown
 
 
 class ETL(MSection):
+    """
+    A section to describe information related to the Electron Transport Layer **ETL**.
+    """
 
     stack_sequence = Quantity(
         type=str,
         shape=[],
         description="""
     The stack sequence describing the electron transport layer. Use the following formatting guidelines
-• With the ETL, we refer to any layer between the substrate and the perovskite in a nip-device, and any layer between the perovskite and the back contact in a pin-device.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
-• If no electron transport layer, state that as ‘non’
-• Use common abbreviations when appropriate but spell it out if risk for confusion.
-• If a material is doped, or have an additive, state the pure material here and specify the doping in the columns specifically targeting the doping of those layers.
-• There is no sharp well-defined boundary between when a material is best considered as doped or as a mixture of two materials. When in doubt if your material is best described as doped or as a mixture, use the notation that best capture the metaphysical essence of the situation.
-• There are a lot of stack sequences described in the literature. Try to find your one in the list. If it is not there (i.e. you may have done something new) define a new stack sequence according to the instructions.
+- With the ETL, we refer to any layer between the substrate and the perovskite in a nip-device, and any layer between the perovskite and the back contact in a pin-device.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
+- If no electron transport layer, state that as ‘non’
+- Use common abbreviations when appropriate but spell it out if risk for confusion.
+- If a material is doped, or have an additive, state the pure material here and specify the doping in the columns specifically targeting the doping of those layers.
+- There is no sharp well-defined boundary between when a material is best considered as doped or as a mixture of two materials. When in doubt if your material is best described as doped or as a mixture, use the notation that best capture the metaphysical essence of the situation.
+- There are a lot of stack sequences described in the literature. Try to find your one in the list. If it is not there (i.e. you may have done something new) define a new stack sequence according to the instructions.
 ExampleBelow are some of the most common electron transport layers
 TiO2-c | TiO2-mp
 TiO2-c
@@ -553,10 +570,10 @@ PCBM-60 | LiF
         shape=[],
         description="""
     A list of thicknesses of the individual layers in the stack. Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous filed.
-• State thicknesses in nm
-• Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
-• If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
+- The layers must line up with the previous filed.
+- State thicknesses in nm
+- Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
+- If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
 Example
 200
 nan |250
@@ -570,11 +587,11 @@ nan |250
         shape=[],
         description="""
     List of the dopants and additives that are in each layer of the ETL-stack
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous fields.
-• If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolons, as in (A; B)
-• If no dopants/additives, state that as “Undoped”
-• If the doping situation is unknown, stat that as‘Unknown’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- The layers must line up with the previous fields.
+- If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolons, as in (A; B)
+- If no dopants/additives, state that as “Undoped”
+- If the doping situation is unknown, stat that as‘Unknown’
 Example
 Undoped | Li-TFSI
 TiCl4
@@ -589,18 +606,18 @@ Undoped | Undoped | Undoped
         shape=[],
         description="""
     The concentration of the dopants/additives.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
-• For each dopant/additive in the layer, state the concentration.
-• The order of the dopants/additives must be the same as in the previous filed.
-• For layers with no dopants/additives, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
-• The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
+- For each dopant/additive in the layer, state the concentration.
+- The order of the dopants/additives must be the same as in the previous filed.
+- For layers with no dopants/additives, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
+- The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
 o wt%, mol%, vol%, ppt, ppm, ppb
-• When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
+- When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 5 vol%; nan | 10 mg/ml
@@ -614,10 +631,10 @@ Example
         shape=[],
         description="""
     The deposition procedures for the ETL stack.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
-• Please read the instructions under “Perovskite. Deposition. Procedure” for descriptions and distinctions between common deposition procedures and how they should be labelled for consistency in the database.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
+- Please read the instructions under “Perovskite. Deposition. Procedure” for descriptions and distinctions between common deposition procedures and how they should be labelled for consistency in the database.
 Example
 Spin-coating
 Spin-coating | Spin-coating
@@ -637,13 +654,13 @@ Spray-pyrolys >> CBD | Spin-coating >> CBD
         shape=[],
         description="""
     The physical state of the reactants
-• The three basic categories are Solid/Liquid/Gas
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
+- The three basic categories are Solid/Liquid/Gas
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
 o For a spray-coating procedure, it is droplets of liquid that enters the substrate (thus a liquid phase reaction)
 o For sputtering and thermal evaporation, it is species in gas phase that reaches the substrate (thus a gas phase reaction)
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Liquid
 Gas | Liquid
@@ -657,14 +674,14 @@ Liquid | Liquid >> Liquid
         shape=[],
         description="""
     The synthesis atmosphere
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 N2
 Vacuum | N2
@@ -678,13 +695,13 @@ Air | Ar; H2O >> Ar
         shape=[],
         description="""
     The total pressure during each synthesis step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
 o atm, bar, mbar, mmHg, Pa, torr, psi
-• If a pressure is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
+- If a pressure is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
 Example
 1 atm
 0.002 torr | 10000 Pa
@@ -698,11 +715,11 @@ Example
         shape=[],
         description="""
     The partial pressures for the gases present during each reaction step.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
-• In cases where no gas mixtures are used, this field will be the same as the previous filed.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
+- In cases where no gas mixtures are used, this field will be the same as the previous filed.
 Example
 1 atm
 0.002 torr | 10000 Pa
@@ -716,11 +733,11 @@ nan >> 0.99 atm; 0.01 atm | 1 atm
         shape=[],
         description="""
     The relative humidity during each deposition step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns
-• If the relative humidity for a step is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns
+- If the relative humidity for a step is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
 Example
 35
 0 | 20
@@ -734,14 +751,14 @@ Example
         shape=[],
         description="""
     The solvents used in each deposition procedure for each layer in the stack
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• For non-liquid processes with no solvents, state the solvent as ‘none’
-• If the solvent is not known, state this as ‘Unknown’
-• Use common abbreviations when appropriate but spell it out when risk for confusion
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- For non-liquid processes with no solvents, state the solvent as ‘none’
+- If the solvent is not known, state this as ‘Unknown’
+- Use common abbreviations when appropriate but spell it out when risk for confusion
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 DMF
 Acetonitil; Ethanol | Ethanol
@@ -756,14 +773,14 @@ H2O >> H2O | Methanol
         shape=[],
         description="""
     The mixing ratios for mixed solvents
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• For pure solvents, state the mixing ratio as 1
-• For non-solvent processes, state the mixing ratio as 1
-• For unknown mixing ratios, state the mixing ratio as ‘nan’
-• For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
-• The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- For pure solvents, state the mixing ratio as 1
+- For non-solvent processes, state the mixing ratio as 1
+- For unknown mixing ratios, state the mixing ratio as ‘nan’
+- For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
+- The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
 Example
 9; 0.6; 0.4 | 1
 1 >> 1 | 1
@@ -777,13 +794,13 @@ Example
         shape=[],
         description="""
     The suppliers of all the solvents.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• For non-liquid processes with no solvents, mark the supplier as ‘none’
-• If the supplier for a solvent is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- For non-liquid processes with no solvents, mark the supplier as ‘none’
+- If the supplier for a solvent is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -797,14 +814,14 @@ none >> Sigma Aldrich; Sigma Aldrich | Unknown
         shape=[],
         description="""
     The purity of the solvents used.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For non-liquid processes with no solvents, state the purity as ‘none’
-• If the purity for a solvent is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For non-liquid processes with no solvents, state the purity as ‘none’
+- If the purity for a solvent is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 Puris; Puris| Tecnical
@@ -818,17 +835,17 @@ none >> Pro analysis; Pro analysis | Unknown
         shape=[],
         description="""
     The non-solvent precursor chemicals used in each reaction step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
-• Note that also dopants/additives should be included
-• When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
-• The number and order of layers and reaction steps must line up with the previous columns.
-• For gas phase reactions, state the reaction gases as if they were in solution.
-• For solid-state reactions, state the compounds as if they were in solution.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• If the compounds for a deposition step is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
+- Note that also dopants/additives should be included
+- When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
+- The number and order of layers and reaction steps must line up with the previous columns.
+- For gas phase reactions, state the reaction gases as if they were in solution.
+- For solid-state reactions, state the compounds as if they were in solution.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- If the compounds for a deposition step is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Titanium diisopropoxide bis(acetylacetonate) | TiO2-np
 C60 | BCP
@@ -842,16 +859,16 @@ Titanium diisopropoxide bis(acetylacetonate) | TiO2-np >> Li-TFSI
         shape=[],
         description="""
     The suppliers of the non-solvent chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
-• For solid state reactions, state the suppliers for the compounds in the same way.
-• For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
-• For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
-• If the supplier for a compound is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
+- For solid state reactions, state the suppliers for the compounds in the same way.
+- For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
+- For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
+- If the supplier for a compound is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Dysole; Sigma Aldrich; Dyenamo; Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -865,14 +882,14 @@ Lab made (EPFL) | Sigma Aldrich >> none
         shape=[],
         description="""
     The purity of the non-solvent chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
-• If the purity for a compound is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
+- If the purity for a compound is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 99.999; Puris| Tecnical
@@ -886,15 +903,15 @@ Unknown >> Pro analysis; Pro analysis | none
         shape=[],
         description="""
     The concentration of the non-solvent precursor chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
-• The order of the compounds must be the same as in the previous filed.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
+- The order of the compounds must be the same as in the previous filed.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml, wt%, mol%, vol%, ppt, ppm, ppb
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 0.2 M; 0.15 M| 10 mg/ml
@@ -908,11 +925,11 @@ Example
         shape=[],
         description="""
     The volume of the reaction solutions
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
-• For reaction steps without solvents, state the volume as ‘nan’
-• When volumes are unknown, state that as ‘nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
+- For reaction steps without solvents, state the volume as ‘nan’
+- When volumes are unknown, state that as ‘nan’
 Example
 0.1
 0.1 >> 0.05 | 0.05
@@ -926,12 +943,12 @@ nan | 0.15
         shape=[],
         description="""
     The age of the solutions
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
-• When the age of a solution is not known, state that as ‘nan’
-• For reaction steps where no solvents are involved, state this as ‘nan’
-• For solutions that is stored a long time, an order of magnitude estimate is adequate.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
+- When the age of a solution is not known, state that as ‘nan’
+- For reaction steps where no solvents are involved, state this as ‘nan’
+- For solutions that is stored a long time, an order of magnitude estimate is adequate.
 Example
 2
 0.25 |1000 >> 10000
@@ -945,13 +962,13 @@ nan | nan
         shape=[],
         description="""
     The temperature of the reaction solutions.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
-• When the temperature of a solution is unknown, state that as ‘nan’
-• For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume an undetermined room temperature to be 25
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
+- When the temperature of a solution is unknown, state that as ‘nan’
+- For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume an undetermined room temperature to be 25
 Example
 25
 100; 50 | 25
@@ -965,13 +982,13 @@ nan | 25 >> 25
         shape=[],
         description="""
     The temperature of the substrate.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the temperatures of the substrates (i.e. the last deposited layer) associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The temperature of the substrate refers to the temperature when the deposition of the layer is occurring.
-• If a substrate undergoes a temperature program before the deposition, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• When the temperature of a substrate is not known, state that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume that an undetermined room temperature is 25
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the temperatures of the substrates (i.e. the last deposited layer) associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The temperature of the substrate refers to the temperature when the deposition of the layer is occurring.
+- If a substrate undergoes a temperature program before the deposition, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- When the temperature of a substrate is not known, state that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume that an undetermined room temperature is 25
 Example
 125; 325; 375; 450 | 25 >> 25
 100
@@ -985,12 +1002,12 @@ nan
         shape=[],
         description="""
     The temperatures of the thermal annealing program associated with depositing the layers
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
-• If the thermal annealing program is not known, state that by ‘nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
+- If the thermal annealing program is not known, state that by ‘nan’
 Example
 450 | 125; 325; 375; 450 >> 125; 325; 375; 450
 50 | 25
@@ -1004,13 +1021,13 @@ nan
         shape=[],
         description="""
     The time program associated to the thermal annealing program.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
-• The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
-• If a time is not known, state that by ‘nan’
-• If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
+- The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
+- If a time is not known, state that by ‘nan’
+- If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
 Example
 30 | 5; 5; 5; 30 >> 5; 5; 5; 30
 60 | 1000
@@ -1024,15 +1041,15 @@ nan
         shape=[],
         description="""
     The atmosphere during thermal annealing
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the atmospheres associated to each annealing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
-• This is often the same as the atmosphere under which the deposition is occurring, but not always.
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the atmospheres associated to each annealing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
+- This is often the same as the atmosphere under which the deposition is occurring, but not always.
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 N2
@@ -1047,7 +1064,7 @@ Air | Ar >> Ar
         shape=[],
         description="""
     The time between the HTL stack is finalised and the next layer is deposited
-• If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
+- If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', '1.0', '0.25', '0.1', '0.16', '0.3'])))
@@ -1070,7 +1087,7 @@ Vacuum
         shape=[],
         description="""
     The relive humidity under which the sample with the finalised HTL stack is stored until next deposition step
-• If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
+- If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', '40.0', '0.9', '30.0', '20.0'])))
@@ -1080,9 +1097,9 @@ Vacuum
         shape=[],
         description="""
     Description of any type of surface treatment or other treatment the sample with the finalised ETL-stack undergoes before the next deposition step.
-• If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
-• If no special treatment, state that as ‘none’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
+- If no special treatment, state that as ‘none’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 none
@@ -1098,6 +1115,11 @@ Ar plasma
 
 
 class Perovskite(MSection):
+    """
+    This section contains informaiton aboout the properties of the absorber layer. It descirbes
+    the chemical formula, the structural dimensionality, the bandgap,
+    or the list of the dopants and additives that are in the perovskite layer.
+    """
 
     single_crystal = Quantity(
         type=bool,
@@ -1158,9 +1180,9 @@ class Perovskite(MSection):
         shape=[],
         description="""
     A list of the perovskite dimensionalities
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• In most cases, there will be only one layer
-• For a perovskite that is a mixture of a 2D and a 3D phase, mark this is as2.5
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- In most cases, there will be only one layer
+- For a perovskite that is a mixture of a 2D and a 3D phase, mark this is as2.5
 Example
 3
 3 | 2
@@ -1174,8 +1196,8 @@ Example
         shape=[],
         description="""
     TRUE if the photo-absorber has a perovskite structure
-• The typical perovskite has an ABC3 structure and that is clearly a TRUE
-• This category is inclusive in the sense that also 2D perovskite analogues should be labelled as TRUE
+- The typical perovskite has an ABC3 structure and that is clearly a TRUE
+- This category is inclusive in the sense that also 2D perovskite analogues should be labelled as TRUE
                     """,
         a_eln=dict(
             component='BoolEditQuantity'))
@@ -1194,11 +1216,11 @@ Example
         shape=[],
         description="""
     List of the A-site ions in the perovskite structure
-• We have experimented with letting users write the perovskite structure and from that extract ions and coefficients. Due to the multitude of formatting variations, that has not worked out very well, wherefor we now define the perovskite ion by ion.
-• List all the A-site ions in alphabetic order and separate them by semicolons
-• For ions which labels are three characters or longer, enclose them in parenthesis. That improves readability and simplifies downstream data treatment.
-• In case of a layered perovskite structure, separate layers by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• Only include ions that go into the perovskite structure. Ions that only are found in secondary phases, or amorphous grain boundaries, or that disappears during synthesis, should instead be added as dopants/additives in the field dedicated to dopants and additives.
+- We have experimented with letting users write the perovskite structure and from that extract ions and coefficients. Due to the multitude of formatting variations, that has not worked out very well, wherefor we now define the perovskite ion by ion.
+- List all the A-site ions in alphabetic order and separate them by semicolons
+- For ions which labels are three characters or longer, enclose them in parenthesis. That improves readability and simplifies downstream data treatment.
+- In case of a layered perovskite structure, separate layers by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- Only include ions that go into the perovskite structure. Ions that only are found in secondary phases, or amorphous grain boundaries, or that disappears during synthesis, should instead be added as dopants/additives in the field dedicated to dopants and additives.
 o On example is Rb in MAFAPbBrI-perovskites. As far as we know, Rb does not go into the perovskite structure, even if that was believed to be the case in the beginning, but rather form secondary phases. For MAFAPbBrI-perovskites, Rb should thus not be considered as a A-site cation, but as a dopant/additive.
 Example:
 MA
@@ -1215,11 +1237,11 @@ Cs; FA; MA | (PEA)
         shape=[],
         description="""
     A list of the perovskite coefficients for the A-site ions
-• The list of coefficients must line up with the list of the A-site ions
-• If a coefficient is unknown, state that with an ‘x’
-• If there are uncertainties in the coefficient, only state the best estimate, e.g. write 0.4 and not 0.3-0.5.
-• A common notation is ‘1-x’. Write that as x
-• If the coefficients are not known precisely, a good guess is worth more than to state that we have absolutely no idea.
+- The list of coefficients must line up with the list of the A-site ions
+- If a coefficient is unknown, state that with an ‘x’
+- If there are uncertainties in the coefficient, only state the best estimate, e.g. write 0.4 and not 0.3-0.5.
+- A common notation is ‘1-x’. Write that as x
+- If the coefficients are not known precisely, a good guess is worth more than to state that we have absolutely no idea.
 Examples:
 1
 0.83; 0.17
@@ -1234,10 +1256,10 @@ Examples:
         shape=[],
         description="""
     List of the B-site ions in the perovskite structure
-• We have experimented with letting users write the perovskite structure and from that extract ions and coefficients. Due to the multitude of formatting variations, that has not worked out very well, wherefor we now define the perovskite ion by ion.
-• List all the B-site ions in alphabetic order and separate them by semicolons
-• In case of a layered perovskite structure, separate layers by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• Only include ions that go into the perovskite structure. Ions that only are found in secondary phases, or amorphous grain boundaries, or that disappears during synthesis, should instead be added as dopants/additives in the field dedicated to dopants and additives.
+- We have experimented with letting users write the perovskite structure and from that extract ions and coefficients. Due to the multitude of formatting variations, that has not worked out very well, wherefor we now define the perovskite ion by ion.
+- List all the B-site ions in alphabetic order and separate them by semicolons
+- In case of a layered perovskite structure, separate layers by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- Only include ions that go into the perovskite structure. Ions that only are found in secondary phases, or amorphous grain boundaries, or that disappears during synthesis, should instead be added as dopants/additives in the field dedicated to dopants and additives.
 Example:
 Pb
 Sn
@@ -1253,11 +1275,11 @@ Pb | Pb
         shape=[],
         description="""
     A list of the perovskite coefficients for the B-site ions
-• The list of coefficients must line up with the list of the B-site ions
-• If a coefficient is unknown, mark that with an ‘x’
-• If there are uncertainties in the coefficient, only state the best estimate, e.g. write 0.4 and not 0.3-0.5.
-• A common notation is ‘1-x’. Write that as x
-• If the coefficients are not known precisely, a good guess is worth more than to state that we have absolutely no idea.
+- The list of coefficients must line up with the list of the B-site ions
+- If a coefficient is unknown, mark that with an ‘x’
+- If there are uncertainties in the coefficient, only state the best estimate, e.g. write 0.4 and not 0.3-0.5.
+- A common notation is ‘1-x’. Write that as x
+- If the coefficients are not known precisely, a good guess is worth more than to state that we have absolutely no idea.
 Examples:
 1
 0.83; 0.17
@@ -1272,11 +1294,11 @@ x; x
         shape=[],
         description="""
     List of the C-site ions in the perovskite structure
-• We have experimented with letting users write the perovskite structure and from that extract ions and coefficients. Due to the multitude of formatting variations, that has not worked out very well, wherefor we now define the perovskite ion by ion.
-• List all the A-site ions in alphabetic order and separate them by semicolons
-• For ions which labels are three characters or longer, enclose them in parenthesis. That improves readability and simplifies downstream data treatment.
-• In case of a layered perovskite structure, separate layers by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• Only include ions that go into the perovskite structure. Ions that only are found in secondary phases, or amorphous grain boundaries, or that disappears during synthesis, should instead be added as dopants/additives in the field dedicated to dopants and additives.
+- We have experimented with letting users write the perovskite structure and from that extract ions and coefficients. Due to the multitude of formatting variations, that has not worked out very well, wherefor we now define the perovskite ion by ion.
+- List all the A-site ions in alphabetic order and separate them by semicolons
+- For ions which labels are three characters or longer, enclose them in parenthesis. That improves readability and simplifies downstream data treatment.
+- In case of a layered perovskite structure, separate layers by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- Only include ions that go into the perovskite structure. Ions that only are found in secondary phases, or amorphous grain boundaries, or that disappears during synthesis, should instead be added as dopants/additives in the field dedicated to dopants and additives.
 o One example is chloride in MAPbI3. As far as we know, Cl does not go into the perovskite structure even if that was believed to be the case in the beginning. For MAPbI3 Cl should thus not be considered as a C-site cation, but as a dopant/additive.
 Example:
 I
@@ -1292,26 +1314,26 @@ Br; I| I
         shape=[],
         description="""
     A list of the perovskite coefficients for the C-site ions
-• The list of coefficients must line up with the list of the C-site ions
-• If a coefficient is unknown, mark that with an ‘x’
-• If there are uncertainties in the coefficient, only state the best estimate, e.g. write 0.4 and not 0.3-0.5.
-• A common notation is ‘1-x’. Write that as x
-• If the coefficients are not known precisely, a good guess is worth more than to state that we have absolutely no idea.
+- The list of coefficients must line up with the list of the C-site ions
+- If a coefficient is unknown, mark that with an ‘x’
+- If there are uncertainties in the coefficient, only state the best estimate, e.g. write 0.4 and not 0.3-0.5.
+- A common notation is ‘1-x’. Write that as x
+- If the coefficients are not known precisely, a good guess is worth more than to state that we have absolutely no idea.
 Examples:
 3
 0.51; 2.49
 0.51; 2.49 | x
                     """,
         a_eln=dict(
-            component='EnumEditQuantity', props=dict(suggestions=['', '0.45; 1', '1; 2 | 3.2; 0.8', '0.34; 2.66', '0.256; 0.744', '0.3; 2.7', '2', '0.075; 2.925', '1.83; 1.17', '3 | 3 | 0.3; 2.7 | 0.7; 2.3 | 1; 2', '1.5; 1.5 | 1.5; 1.5', '2.64; 0.36', '0.237; 2.763', '0.15; 2.85 | 0.15; 2.85', '16', '0.45; 2.5075', '1; 2', '0.2; 2.7', '0.45; 19.04', '0.5; 2.5', '0; 63', '6; 3', '0.25; 2.79', '0.38; 2.62', '1; 2.955', '0.22; 1', '3; 7', '4.8; 11.2', '11.5', '0.6; 2.40', '2.91; 0.09', '0.06; 2.96', '0.63; 2.37', '3.15; 59.85', '301', '1.2; 2.8', '0.4; 2.6', '3 | 3 | 0.3; 2.7', '1.05; 1.95', '0.01; 2.99', '0.57; 2.32', '8', '0.17; 0.83', '5.7', '1.6; 1.4', '0.3; 2.9', '1.98; 1.02', '1; 1; 1', '0.4845; 2.51555', '0.09; 2.91', '0.36; 2.64', '0.69; 2.31', '40.33; 80.67', '0.56; 2.44', '0.66; 2.34', '1; 1.72; 0.28', '0.13; 2.88', '1.99; 1.01', '3 | x; x', '4; 180', '2.5; 0.5', '1.5; 0.5; 1', '0.1; 2.9 | 0.1; 2.9', '0.60; 2.40', '0.15; 2.75', '241', '0.06; 2.24', '3 | 3 | 0.3; 2.7 | 0.7; 2.3', '1.8; 1.2', '0.045; 2.955', '2; 1 | 3', 'x', '0.45; 2.45', '0.06; 2.94', '0.51; 2.49 | 4', '0.13; 2.83', '0.51; 2.59', '3.25', '0.55; 2.45', '120.67; 60.33', '1; 0.28; 1.72', '0.369; 2.631', '0.48; 2.42', '1; 2 | 1; 2', '10.5', '2; 1', '01.51; 2.85', '3.9; 9.1', '0.47; 2.53', '2.90; 0.1', '0.45', '0.41; 2.59', '3 | 5', '0.45; 2.5', '0.45; 29.24', '1; 5', '0.75; 2.25', '9.45; 53.55', '0.45; 2.70', '0.55; 2.55', '0.81; 2.19', '0.84; 2.16', '15', '0.1; 0.9', '0.35; 2.65', '0.31; 2.7', '1; 2 | 1; 6', '0.25; 2.78', '2.85; 0.15', '1.05; 5.95', '0.10; 2.90', '13', '0.45; 23.97', '0.24; 0.76', '3.33', '0.11; 2.89', '0.48; 2.52', '8.5', '3.3; 29.7', '3 | 3', '0.315; 2.685', '0.3; 2.70', '0.5; 1.5', '14', '2; 2', '7', '0.22; 2.78', '0.51; 2.5', '0.066; 2.93', '0.5; 2.49', '0.36; 2.54', '0.45; 18.7', '0.1; 2.9', '1.8; 0.2; 1', '2.7; 0.3', '0.135; 2.865', '0.54; 2.46', '5.5', '0.095; 0.905', '0.50; 2.5', '3.5; 0.5', '0.285; 2.565', '2.25; 0.75', '28', '0.13; 2.91', '0.31; 2.69', '0.4845; 2.4155', '6', '0.51; 0.249', '0.033; 2.97', '0.42; 2.58', '0.13; 2.90', '2.1; 0.9', '0.42; 2.58 | 4', '0.39; 2.48 | 4', '0.015; 2.985', '60.33; 120.67', '2; 10', '3 | 1; 2', '0.87; 2.13', '184', '0.46; 2.54', '0.78; 2.22', '0.45; 24.31', '0.13; 2.87', '0.51; 2.49', '1.25; 75', '1; 10', '2.55 | 28.4', '0.45; 8.5', '2.80; 0.2', '0.0; 2.51', '0.12; 2.88', '0.44; 2.56', '9.3; 83.7', '22', '1.7; 1.3', '4 | 3 | 4', '2.46', '0.52; 2.48', '9.5', '4 | 0.39; 2.48 | 4', '1.5; 1.5', '3 | ', '0.27; 2.73', '2.88; 0.12', '2.8; 0.2', '0.03; 2.7', '3 | 2; 1', '0.45; 23.375', '0.16; 2.84', '0.43; 2.57', '25', '9', '5.4', '5.6', '2.95', '1', '124', '2.94; 0.09', '2.67; 0.33', '1.14; 1.86', '0.075; 2.95', '0.6; 0.24', '2.1; 4.9', '0.16; 0.84', '10.33; 20.67', '0.57; 2.43', '0.32; 2.68', '0.39; 2.48', '2; 3', '3 | 310', '0.30; 2.7', '2.16; 0.84', '0.9; 2.1', '0.25; 2.75', '0.4', '1.26; 1.74', '0.551; 2.49', '0.7; 2.3', '0.13; 2.92', '3 | 1.2; 1.8', '2.51; 2.49', '1.74; 1.26', '3 | 4', '0.13; 2.93', '19', '0.15; 0.85', '3 | 1.5; 1.5', '0.51; 2.51', '0.27; 2.29', '0.96; 2.04', '0.8; 2.2', '0.03; 2.97', '0.45; 22.95', '0.40; 2.6', '0.28; 2.72', '3', '4.65; 26.35', '3.0', '3.2', '2.52; 0.48', '0.083; 2.92', '0.15; 2.85', '0.07; 2.97', '0.13; 2.89', '2.49; 0.51', '0.49; 2.51', '0.45; 2.55 | 1.85; 1.15', '0.51; 2.49 | 3', '3 | 2', '0.18; 2.82', '2.55; 0.45', '34', '2.4; 0.6', '61', '0.08; 2.92', '0.19; 2.81', '2; 4', '2.95; 0.05', '1.9; 1.1', '0.17; 2.83', '1.62; 1.38', '1.25; 0.25; 1.5', '0.75; 1.25', '0.33; 2.66', '0.06; 1', '1.25; 0.35; 1.45', '0.025; 2.975', '3; 3', '0.42; 2.38', '1; 2.86', '0.09; 2.91 | 4', '5.8', '3 | 10', '12.3; 110.7', '11.2; 16.8', '0.09; 2.1', '0.02; 2.98', '11', '0.45; 0.85', '0.03; 2.91', '0.66; 2.33', '0.2; 0.8', '0.6; 2.4', '1.7; 0.83', '121', '0.30; 2.70', '0.4845; 2.5155', '91', '1.2; 1.8', '0.39; 2.61', '0.15; 2.85 | 4', '2; 10 | 2', '2.17; 28.83', '2.9; 0.1', '0.33; 2.67', '0.45; 24.14', '0.50; 2.50', '0.21; 2.79', '0.51; 1', '0.45; 2.55', '3; 6', '0.25; 2.80', '1.96; 1.04', '4 | 3', '4', '0.25; 2.77', '10', '0.51', '0.51; 2.61', '0.25; 2.76', '2.43; 0.57', '31', '0.24; 2.76 | 4', '12.6; 57.54', '0.45; 2.51', '2.97; 0.03', '12', '0.9; 1', '0.05; 2.95', '2.13; 0.87', '2.59; 0.51', '0.2; 2.8', '0.45; 23.8', '2.6; 0.4', '0.04; 2.96', '1; 3', '1; 0.12; 1.88', '0.375; 2.625', '0.43; 2.42', '0.13; 2.94', '1; 2.8', 'x; x', '1; 1.88; 0.12', '1.77; 1.23', '2.55', '1; 0.22; 1.78', '0.45; 2.55 | 4', '1.2; 2.6', '0.45; 13.6', '1; 2.91', '1; 1.78; 0.22', '13.65; 77.35', '5', '1; 1', '0.45; 8.84', '0.65; 2.35', '17', '0.37; 2.63', '181', '0.24; 2.76', '1.71; 1.29', '0.45; 28.9', '0.226; 2.774', '18.15; 102.85', '0.14; 2.86', '0.225; 2.775', '5.9', '2.2; 0.8', '0.45; 13.94', '6.3; 56.7', '1.16; 1.74', '0.45; 34', '9.15; 51.85', '3 | 0.9; 2.1', '0.45; 39.1', '2.33', '1.41; 1.59', '0.53; 2.47', '0.451; 2.55'])))
+            component='EnumEditQuantity', props=dict(suggestions=[''])))
 
     composition_none_stoichiometry_components_in_excess = Quantity(
         type=str,
         shape=[],
         description="""
     Components that are in excess in the perovskite synthesis. E.g. to form stoichiometric MAPbI3, PbI2 and MAI are mixed in the proportions 1:1. If one of them are in excess compared to the other, then that component is considered to be in excess. This information can be inferred from data entered on the concentration for all reaction solutions but this gives a convenient shorthand filtering option.
-• If more than one component is in excess, order them in alphabetic order and separate them by semicolons.
-• It there are no components that are in excess, write Stoichiometric
+- If more than one component is in excess, order them in alphabetic order and separate them by semicolons.
+- It there are no components that are in excess, write Stoichiometric
 Examples:
 PbI2
 MAI
@@ -1370,11 +1392,11 @@ Stoichiometric
         shape=[],
         description="""
     List of the dopants and additives that are in the perovskite
-• If the perovskite is layered (e.g. 3D perovskite with a 2D caping layer), separate the layers by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolonsas in (A; B)
-• If no dopants/additives, state that as “Undoped”
-• If the doping situation is unknown, stat that as‘Unknown’
-• Include any non-solvent that does not go into the perovskite structure. This includes compounds that are found in secondary phases, or amorphous grain boundaries, or that disappears during synthesis.
+- If the perovskite is layered (e.g. 3D perovskite with a 2D caping layer), separate the layers by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolonsas in (A; B)
+- If no dopants/additives, state that as “Undoped”
+- If the doping situation is unknown, stat that as‘Unknown’
+- Include any non-solvent that does not go into the perovskite structure. This includes compounds that are found in secondary phases, or amorphous grain boundaries, or that disappears during synthesis.
 o One example is Rb in MAFAPbBrI-perovskites. As far as we know, Rb does not go into the perovskite structure, even if that was believed to be the case in the beginning, but rather form secondary phases. For MAFAPbBrI-perovskites, Rb should thus not be considered as a A-site cation, but as a dopant/additive.
 o One other example is chloride in MAPbI3. As far as we know, Cl does not go into the perovskite structure even if that was believed to be the case in the beginning. For MAPbI3 Cl should thus not be considered as a C-site cation, but as a dopant/additive.
 Example
@@ -1393,18 +1415,18 @@ Rb
         shape=[],
         description="""
     The concentration of the dopants/additives.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
-• For each dopant/additive in the layer, state the concentration.
-• The order of the dopants/additives must be the same as in the previous filed.
-• For layers with no dopants/additives, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
-• The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
+- For each dopant/additive in the layer, state the concentration.
+- The order of the dopants/additives must be the same as in the previous filed.
+- For layers with no dopants/additives, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
+- The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
 o wt%, mol%, vol%, ppt, ppm, ppb
-• When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
+- When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 5 vol%; nan | 10 mg/ml
@@ -1418,11 +1440,11 @@ Example
         shape=[],
         description="""
     The thickness of the perovskite layer
-• If the perovskite contains more than one layer, separate those by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• State thicknesses in nm
-• Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
-• If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
-• For cells where the perovskite infiltrates a mesoporous scaffold, state the thickness as starting from the bottom of the infiltrated mesoporous layer to the top of the perovskite layer (i.e. include the thickness of the infiltrated mesoporous layer)
+- If the perovskite contains more than one layer, separate those by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- State thicknesses in nm
+- Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
+- If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
+- For cells where the perovskite infiltrates a mesoporous scaffold, state the thickness as starting from the bottom of the infiltrated mesoporous layer to the top of the perovskite layer (i.e. include the thickness of the infiltrated mesoporous layer)
 Example
 200
 500 |20
@@ -1436,8 +1458,8 @@ Example
         shape=[],
         description="""
     The band gap of the perovskite
-• If the perovskite contains more than one layer, separate the band gaps for the respective layer by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If there are uncertainties, state the best estimate, e.g. write 1.62 and not 1.6-1.64
+- If the perovskite contains more than one layer, separate the band gaps for the respective layer by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If there are uncertainties, state the best estimate, e.g. write 1.62 and not 1.6-1.64
 Example
 1.62
 1.57 | 2.3
@@ -1472,7 +1494,7 @@ Composition
         shape=[],
         description="""
     The maximum from steady-state PL measurements
-• If more than one PL-max, separate those by a semicolon
+- If more than one PL-max, separate those by a semicolon
 Example
 780
 550; 770
@@ -1485,7 +1507,7 @@ Example
         shape=[],
         description="""
     The time between the perovskite stack is finalised and the next layer is deposited
-• If there are uncertainties, state the best estimate, e.g. write 35 and not 20-50.
+- If there are uncertainties, state the best estimate, e.g. write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['1200.0', '144.0', '300.0', '1440.0', '24.0', '2400.0', '3120.0', '2160.0', '960.0', '120.0', 'Unknown', '12.0', '72.0', '240.0', '720.0', '1920.0', '432.0', '480.0', '168.0', '48.0', '2880.0', '1680.0', '192.0', '4.0'])))
@@ -1508,7 +1530,7 @@ Vacuum
         shape=[],
         description="""
     The time between the perovskite stack is finalised and the next layer is deposited
-• If there are uncertainties, state the best estimate, e.g write 35 and not 20-50.
+- If there are uncertainties, state the best estimate, e.g write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', '40.0', '30.0', '20.0', '75.0', '45.0', '90.0', '24.0', '60.0', '50.0', '10.0', '70.0', '80.0', '35.0'])))
@@ -1518,9 +1540,9 @@ Vacuum
         shape=[],
         description="""
     Description of any type of surface treatment or other treatment the sample with the finalised perovskite stack undergoes before the next deposition step.
-• If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
-• If no special treatment, state that as ‘none’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
+- If no special treatment, state that as ‘none’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Examples:
 none
@@ -1584,16 +1606,19 @@ Ozone
 
 
 class PerovskiteDeposition(MSection):
+    """
+    This section contains information about the deposition of the perovskite layer.
+    """
 
     number_of_deposition_steps = Quantity(
         type=np.dtype(np.int64),
         shape=[],
         description="""
     The number of production steps involved in making the perovskite-stack
-• A spin coating program that are composed of several segments with different spin speed are still counted as one step (1)
-• A spin coating program involving an antisolvent step counts as a 1-step method (1).
-• Depositing PbI2 first and subsequently converting it to a perovskite count as a 2-step procedure (2)
-• Thermal annealing is considered separately. The motivation for this is that every step is considered to have its own thermal history.
+- A spin coating program that are composed of several segments with different spin speed are still counted as one step (1)
+- A spin coating program involving an antisolvent step counts as a 1-step method (1).
+- Depositing PbI2 first and subsequently converting it to a perovskite count as a 2-step procedure (2)
+- Thermal annealing is considered separately. The motivation for this is that every step is considered to have its own thermal history.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -1603,54 +1628,54 @@ class PerovskiteDeposition(MSection):
         shape=[],
         description="""
     The deposition procedures for the perovskite block.
-• The perovskite stack is considered as one block/layer when we consider the synthesis. Thus, even if the perovskite is layered, consider it as one block, i.e. no vertical bars in this field
-• When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• There should be as many reaction steps described here as indicated in the field “Perovskite. Deposition. Number of deposition steps”
-• Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
-• Antisolvent treatment is considered in a separate filed. The motivation for that is that it usually is conducted simultaneously as a spin-coating procedure, and thus acts as an additional aspect of reaction step already accounted for. Exception to this is if there is an antisolvent step that is distinctly separated in time, e.g. a film with a spin-coated perovskite solution is immersed in an antisolvent. In that case, this could eb added as a dipp-coating event, while also being reported in the antisolvent field.
-• Even if the most common deposition procedures have been used for 95 % of all reported devise, do not be surprised if you do not find your deposition procedure in the list of reported deposition procedure, as the original dataset tended to use a simplified notation.
-• A few clarifications
-• Air brush spray
+- The perovskite stack is considered as one block/layer when we consider the synthesis. Thus, even if the perovskite is layered, consider it as one block, i.e. no vertical bars in this field
+- When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- There should be as many reaction steps described here as indicated in the field “Perovskite. Deposition. Number of deposition steps”
+- Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
+- Antisolvent treatment is considered in a separate filed. The motivation for that is that it usually is conducted simultaneously as a spin-coating procedure, and thus acts as an additional aspect of reaction step already accounted for. Exception to this is if there is an antisolvent step that is distinctly separated in time, e.g. a film with a spin-coated perovskite solution is immersed in an antisolvent. In that case, this could eb added as a dipp-coating event, while also being reported in the antisolvent field.
+- Even if the most common deposition procedures have been used for 95 % of all reported devise, do not be surprised if you do not find your deposition procedure in the list of reported deposition procedure, as the original dataset tended to use a simplified notation.
+- A few clarifications
+- Air brush spray
 - Deposition with something looking like an old perfume bottle. Classified as a solution technique.
-• Brush painting
+- Brush painting
 o A precursor ink is applied with a brush
-• CBD
+- CBD
 - Chemical bath deposition. Refers to procedures where a film has been immersed in a solution where a reaction occurs. The typical example is when a PbI2 film is immerse in an IPA solution with MAI in which the PbI2 is converted to the perovskite.
-• Co-evaporation
+- Co-evaporation
 - Simultaneous evaporation from multiple sources with line of sight deposition.
-• CVD
+- CVD
 o Chemical vapour deposition. A gas phase process where a chemical reaction is occurring in the gas phase. If a MA-containing compound is evaporated and reacted with PbI2 where another species is released to the gas phase, it is labeled as CVD. A process where MAI in gas phase react with PbI2 in gas phase is labelled as CVD. A process where MAI or MA gas is reacting with solid PbI2 is instead labelled as a gas reaction as no chemical reaction is occurring the gas phase. Note that all reactions labelled as CVD in the literature may not be CVD even if it is conducted in a CVD reactor, and should instead be labelled as a gas reaction.
-• Diffusion
+- Diffusion
 o Solid state reaction where two solid components are mixed. E.g. solid MAI is bought in direct contact with solid PbI2
-• Diffusion-gas reaction
+- Diffusion-gas reaction
 - A special case. Where one compound, e.g. MAI is placed on top of another e.g. PbI2 where it is evaporated. It is thus a combination of a gas phase reaction and solid-solid diffusion.
-• Dipp-coating
+- Dipp-coating
 o The thing that separates dipp-coating from CBD is the occurrence of a reaction. If you have component A in solution, dip your substrate in the solution, take it up and you have component A on your substrate, then you have done a dipp-coating. If you have substance A in solution, dip your substrate in the solution, take it up and have something else than A on your substrate, you have done a CBD (e.g. PbI2 dipped in MAI/IPA which gives MAPbI3 and not MAI on the substrate)
-• Dropcasting
+- Dropcasting
 o A drop is applied to a substrate where it is left to dry without any additional procedures.
-• Drop-infiltration
+- Drop-infiltration
 - A mesoporous scaffold in which a drop of the precursor solution is infiltrated without the aid of spin-coating.
-• Doctor blading
+- Doctor blading
 - There is a family of related techniques, but if it could be described as doctor blading, that is the label to use.
-• Evaporation
+- Evaporation
 - Refers to thermal evaporation with line-of-sigh deposition. i.e. PVD
-• Flash evaporation
+- Flash evaporation
 - Fast evaporation (in a flash) of a perovskite that sublimes on another substrate. Line of sight deposition.
-• Closed space sublimation
+- Closed space sublimation
 - Evaporation of a well controlled amount of substance (usually in the form of a thin film) in a small container containing the final substrate.
-• Gas reaction
+- Gas reaction
 - A gas phase reaction. Not a line of sight deposition. In the typical case, MAI is evaporated and the MAI gas builds up a pressure in the reaction chamber in which it reacts with a PbI2 film forming the perovskite.
-• Ion exchange
+- Ion exchange
 - One perovskite is dipped into a solution (or exposed to a gas) which leads to an ion exchange, e.g. I is replaced by Br.
-• Lamination
+- Lamination
 - A readymade film is transferred directly to the device stack. A rather broad concept. An everyday kitchen related example of lamination would eb to place a thin plastic film over a slice of pie.
-• Recrystallization
+- Recrystallization
 - A perovskite that already have been formed is deformed and then recrystallised. E.g. MAPbI3 is exposed to Methylamine gas for a short while which dissolved the perovskite which then can crystallize again
-• Rinsing
+- Rinsing
 - Cleaning step with a solvent
-• Sandwiching
+- Sandwiching
 - When a readymade top stack simply is placed on top of the device stack. Could be held together with clams.
-• Ultrasonic spray
+- Ultrasonic spray
 - A bit like air brush spray but with better control of droplet size. Classified as a solution technique.
 Example
 Spin-coating
@@ -1674,10 +1699,10 @@ Spray-coating
         shape=[],
         description="""
     The physical state of the reactants
-• The three basic categories are Solid/Liquid/Gas
-• The perovskite stack is considered as one block/layer when we consider the synthesis. Thus, even if the perovskite is layered, consider it as one block, i.e. no vertical bars in this field
-• When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
+- The three basic categories are Solid/Liquid/Gas
+- The perovskite stack is considered as one block/layer when we consider the synthesis. Thus, even if the perovskite is layered, consider it as one block, i.e. no vertical bars in this field
+- When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
 o For a spray-coating procedure, it is droplets of liquid that enters the substrate (thus a liquid phase reaction)
 o For sputtering and thermal evaporation, it is species in gas phase that reaches the substrate (thus a gas phase reaction)
 Example
@@ -1693,13 +1718,13 @@ Liquid >> Liquid >> Liquid
         shape=[],
         description="""
     The synthesis atmosphere
-• When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 N2
 Air
@@ -1714,12 +1739,12 @@ Vacuum
         shape=[],
         description="""
     The total gas pressure during each reaction step
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of deposition steps must line up with the previous columns.
-• Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of deposition steps must line up with the previous columns.
+- Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
 o atm, bar, mbar, mmHg, Pa, torr, psi
-• If a pressure is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
+- If a pressure is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
 Example
 1 atm
 0.002 torr
@@ -1733,10 +1758,10 @@ Example
         shape=[],
         description="""
     The partial pressures for the gases present during each reaction step.
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
-• In cases where no gas mixtures are used, this field will be the same as the previous filed.
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
+- In cases where no gas mixtures are used, this field will be the same as the previous filed.
 Example
 1 atm
 0.002 torr; 0.03 torr
@@ -1750,10 +1775,10 @@ Example
         shape=[],
         description="""
     The relative humidity during each deposition step
-• When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of deposition steps must line up with the previous columns
-• If the relative humidity for a step is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
+- When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of deposition steps must line up with the previous columns
+- If the relative humidity for a step is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
 Example
 35
 0 >> 20
@@ -1767,13 +1792,13 @@ Example
         shape=[],
         description="""
     The solvents used in each deposition procedure for each layer in the stack
-• When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
-• The number and order of deposition steps must line up with the previous columns.
-• For non-liquid processes with no solvents, state the solvent as ‘none’
-• If the solvent is not known, state this as ‘Unknown’
-• Use common abbreviations when appropriate but spell it out when risk for confusion
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
+- The number and order of deposition steps must line up with the previous columns.
+- For non-liquid processes with no solvents, state the solvent as ‘none’
+- If the solvent is not known, state this as ‘Unknown’
+- Use common abbreviations when appropriate but spell it out when risk for confusion
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 DMF; DMSO
 GBL
@@ -1789,32 +1814,32 @@ DMF; DMSO >> IPA
         shape=[],
         description="""
     The mixing ratios of the solvents used in each deposition procedure for each layer in the stack
-• When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of deposition steps must line up with the previous columns.
-• For pure solvents, state the mixing ratio as 1
-• For non-solvent processes, state the mixing ratio as 1
-• For unknown mixing ratios, state the mixing ratio as ‘nan’
-• For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
-• The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
+- When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of deposition steps must line up with the previous columns.
+- For pure solvents, state the mixing ratio as 1
+- For non-solvent processes, state the mixing ratio as 1
+- For unknown mixing ratios, state the mixing ratio as ‘nan’
+- For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
+- The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
 Example
 1
 4; 1 >> 1
 1 >> 5; 2; 0.3 >> 2; 1
                     """,
         a_eln=dict(
-            component='EnumEditQuantity', props=dict(suggestions=['', '10; 1', '1 >> 1', '5; 3', '45; 105', '1; 99', '7; 3; 0.05', '25; 4', '2; 8; 1', '4; 0.5; 0.5', '4; 6', '140; 10 >> 1', '2.3; 1', '9; 1 >> 1 >> 1', '2; 8 >> 1', '1 >> 1 >> 1 >> 1', '8.22; 1 >> nan', '1000; 9', '84; 6; 10', '1; 2', '1 >> nan', '1000; 88', '8.8; 1', '4; 17', '6.4; 1.6; 1 >> 1', '1; 13 >> 1', '190; 50 >> 1', '100; 4', '4; 15', '1.5; 8.8', '4; 7', '0.40; 0.60', '3; 7', '3; 2; 6', '4; 1 >> 1', '1; 11', '1 >> 1; 1', '0.94; 0.06', '1 >> 9; 1000', '7; 1 >> 1', '100; 12 >> 1', '230; 10 >> 1', '1000; 7', '4; 1; 0.5', '26; 4', '0.4; 8; 2', '6.5; 1', '5; 1; 0.2', '3; 59', '6; 7; 7 >> 1', '4; 0.2; 0.8', '1; 1; 1', '3; 2', '10; 0', '1 | 1', '1; 0.08', '1; 7', '4; 14', '3; 7 >> 1', '0.95; 0.05', '9; 3', '10.5; 1', '9.5; 1 >> 1', '6.7; 1 >> nan', '1; 0.08 >> 1', '1 >> 1 >> 9; 1', '2; 2; 1', '1 >> 1 | 1', '95; 1 >> 1', '1000; 3', '0.50; 0.50', '4; 1 >> 1 >> 1', '9.5; 0.5 >> nan', '200; 40 >> 1', '10; 9', '30; 70', '1 >> 9; 91', '3; 1; 1', '900; 105 >> 1', '1.5; 8.6', '1 >> 300; 75', '3; 1', '1 >> 100; 1', '1 >> 1; 4', '1; 1; 0.05 >> 1', '5; 95', '100; 9', '9; 5', '3.5; 96.5', '915; 85 >> 1', '95; 11', '1000; 167 >> 1', '1 >> 1; 5', '1 >> 1 >> 1000; 5', '5; 4', '1 >> 4; 96', '7; 2; 0.05', '1; 0.79 >> 1', '10; 90', '0.5; 8; 2', '530; 73', '1 >> 1; 9', '1 >> 1 >> 50; 1', '0.42; 0.58', '0.60; 0.40', '0.90; 0.10', '4; 22', '8.94; 1', '2; 1', '21; 9', '4; 1; 0.12', '635; 71', '570; 73 >> 1', '4.5; 21; 9 >> 1', '1; 1.2', '1; 8; 2', '5; 3 >> 1', '8.22; 1', '9; 1 >> nan', '5; 1 >> 3; 7', '40; 60', '3; 7; 1', '9; 20', '1.5; 8.10', '3.5; 1', '28; 26; 46', '17; 3 >> 0.2; 99.8', '1; 5', '5.28; 1', '5; 8', '15; 85', '11; 1 >> 1', '17; 3', '1000; 79', '90; 10', '1 >> 24; 1000', '4; 1; 0.25', '14; 86', '1 >> 0.1; 9.9', '4; 1 >> 1 | 1', '1000; 35', '12.5; 1 >> 1', '9; 1 >> 1 >> 1 >> 1', '60; 7 >> 1', '3; 1 >> 4; 1', '4; 1 >> 4; 1 >> 1 >> 1 | 1', '1 | 2; 98', '4; 0.1; 0.9', '1; 1.1', '19; 1 >> nan', '1.5; 8.5', '9; 4', '0.97; 0.03', '1 >> 7; 3', '15.4; 1', '9; 2', '7.7; 1', '4; 0.3; 0.7', 'nan >> nan >> nan', '1; 0.079', '8; 2 >> 1', '1.5; 8.9', '9; 8', '2; 59', '4; 20', '1 | 1 | 1 | 1', '8.9; 1', '19; 1', '1000; 95', '4; 1; 0.35', '4.9; 1 >> 1', '6.9; 1', '3.3; 1', '95; 12', '1; 0.04', '2; 3; 1', '4; 8', '4; 0.9; 0.1', '2; 2', '85; 15 >> 1', '0.95; 05', '9; 1 >> 1; 5', '25; 75', '1 | 1 | 1', '1; 0.1', '6; 7; 7', '7; 3; 4', '3; 1 >> 1 >> 1', '7; 93', '9.5; 0.5 >> 1', '0.80; 0.20', '10; 1 | 1', '9; 1 >> 95; 5', 'nan >> 1; 99', '210; 30 >> 1', '1 >> 1 >> 1 >> 1 >> 1', '1 >> 3; 97 >> 1', '1; 0.02', '1; 0.89', '12.5; 1 >> 3; 1', '3.4; 2.26; 1', '4; 23', '0.8; 0.2', '12; 1', '8; 1', '1; 9.2; 1.3', '2; 5', '3.5; 6.5', '1; 9 >> 1; 1', '71; 633', '4; 1 >> 1; 200', '60; 1', '825; 175 >> 1', '7.7; 1 >> 1', '5; 1 >> 1', '1000; 71', '4; 0.4; 0.6', '220; 20 >> 1', '9; 1; 1', '97; 7 >> 1', '1; 20', '100; 2', '6; 1', '1; 2 >> 1', '1 >> 1 >> 20; 1', '1; 2.3', '7.5; 1', '1; 0.078', '9; 1 >> 1', '95; 5 >> 1', '1; 10', '3; 16', '65; 35', '2; 1; 1', '1; 0.0722', '1000; 1', '6; 1 >> 1', '92.5; 7.5', '4; 4', '50; 1', '1; 1.5', '1; 1; 0.05', '4; 3; 3', '1; 0.01', '1000; 426', '3; 17', '10; 1 >> 1 >> 1', '1000; 128', '7; 3 >> 1 >> 1', '7; 3 >> 50; 1', '0.87; 0.13', '6; 2', '23; 2 >> 1; 3', '30; 4', '5; 1; 0.25', '15; 1', '1; 1.4', 'nan >> 2; 98', '1 >> 9; 1', '8; 1 >> nan', '1; 0.07 >> 1', '86; 800; 114', '9; 7', '4.5; 1; 4', '6.66; 1', '1; 4', '1 >> 1; 3', '64; 16', '5; 2', '1', '76; 24', '1 | 1; 99', '1; 2.2', '1 >> 2; 98 >> 1', '2; 5; 3', '6.02; 1', '8.2; 1', '7.33; 1', '4; 10', '1000; 142', '4; 2', '19; 1 >> 1 >> 1', '8; 1 >> 1', '57; 75', '1 >> 5; 5', '0.16; 0.84', '3; 2 >> 1', '4; 6 >> 1', '12.8; 1', '2; 3', '923; 77 >> 1', '95; 5 | 1', '1.5; 8.11', '70; 30', '7; 3', '3; 5', '17; 3 >> 1; 99', '7; 2; 0.03', '9; 0.8', '12.5; 1 >> 1; 1', '14; 1 >> 1', '33; 28; 33; 5', '1; 3; 1', '98; 2', '1; 6', '3; 7; 0.25', '3; 4; 3', '93; 7', '7; 2; 0.01', '1 >> 1; 99 >> 1', '7; 7', '13; 1 >> 1', '85; 15', '1 >> 2; 98', '3; 1 >> 1', '77; 18; 5', '97; 7', '6.66; 1 >> 1', '1; 0.13', '17; 1 >> 1', '1 >> 300; 25', '13; 2', '50; 50', '1 >> 9.8; 0.2', '19; 1 >> 1', '6.25; 1 >> 1', '2; 1 >> 1', '1 >> 10; 90', '0.3; 8; 2', '1; 1; nan', '14; 6; 3 >> 1', '3; 7; 3', 'nan >> nan', '1 >> 95; 5', '5; 7', '4; 21', '6; 7', '9; 1 >> 1; 100', '7; 3 >> 1', '1 >> 5; 95', '4; 16', '1 >> 1; 200', '10; 7', '8.9; 1.1', '1; 9', '7.8; 3 >> 1', '3; 7; 0.5', '5; 6', '95; 5', '89; 6; 5', '92; 8 >> 1', '3.54; 1', '1.5; 8.12', '12; 1 >> 1', '0.62; 0.38', '17; 3 >> 1 >> 1', '4; 3', '0.92; 0.08 >> 1', '16; 3', '1 >> 3; 1', '5; 1', '1000; 71 >> 1', '14; 1', '5.5; 4.5', '6; 4', 'nan >> 1', '1 >> 3; 7', '15; 2', '87; 13', '9; 1; 0.1', '119; 1', '9; 1.1', '8.2; 2', '100; 7.2', '4.75; 1', '94; 6 >> 1', '318; 39', '5.3; 1', '8; 7', '1000; 107', '4; 9', '1; 1 >> 1 >> 1', '6; 4 >> 1', '9; 1 >> 9; 1', '17; 3 >> 1', '1 >> 25; 3', '100; 6', '20; 1 >> 1', '1 >> nan >> 1', '1; 3 >> 1', '1 | 4; 96', '3; 3', '78; 22', '2.85; 6.65; 0.5', '7.26; 1', '8; 9', '13; 4; 1', '8.43; 1 >> 1', '1; 8', '7.6; 1', '235; 5 >> 1', '250; 39', '4; 13', '9; 1.2', '0.53; 0.47', '1; 1; 3', '8; 3', '1; 0.079 >> 1', '8.5; 1.5', '17; 3 >> 5; 95', '90; 10 >> 1', '600; 78', '94; 6', '723; 81', '8; 2', '8.5; 1', '1; 59', '100; 13', '95; 13', '1 >> 4; 96 >> 1', '8; 1 >> 3; 97', '1; 1.35; 1.1', '13; 1', '99; 1', '1; 0.126 >> 1', '18; 1 >> 1', '4; 12', '1 >> 1 >> 1 >> 1 >> 1 >> 1 >> 1', '1 >> 8; 2', '50; 8 >> 1', '8.26; 1', '2; 7', '4; 1 >> 4; 1', '8.43; 1', '1 >> 1; 2', '1; 0.03', '7; 2', '1 >> 1 >> 1', '1; 19 >> 1', '825; 175', '17; 1', '9; 2 >> 1', '4; 11', '1 >> 1 >> 200; 1', '92; 8 >> 25; 75', '1 >> 0.5; 9.5', '25; 4 >> 1', '1; 3.3', '100; 2.5 >> 1', '570; 73', '9; 1 >> 1; 9', '1; 4 >> 1', '1000; 284', '2; 8', '1 >> 1; 2.5', '1 >> 0.7; 9.3', '1 >> 1; 100', '0.8; 0.1', '1; 1 >> 1', '1 >> 300; 50', '640; 75', '100; 8 >> 1', '9; 1.4', '9; 1', '560; 97', '4; 1', '1; 20; 6.2', '4; 1 | 1', '18; 1', '11; 1', '1 >> 1; 99', '4; 0.5', '0.70; 0.30', '7; 1', '43; 55; 2', '4; 5', '83; 12; 5', '4; 7 >> 1', '100; 7', '97; 3', '86; 700; 114 >> 1', '0.29; 0.71', '560; 97 >> 1', '7.69; 1', '39; 1 >> 1', '6.6; 1', '2; 3 >> 1', '8.2; 4', '1; 3', '10; 1.125', '63; 7', '4; 18', '9; 1; 0.25 >> 1', '922; 78 >> 1', '1 >> 1 >> 1 >> 1 >> 1 >> 1', '6.25; 1 >> 1 >> 1', '3; 7 >> 3; 7', '10; 3', '1000; 5', '1 >> 1; 1000', '1; 0.089', '15; 35', '9; 1 >> 5; 95', '1; 1', '1 >> 1 >> 70; 1000', '4; 19', '1; 0.071 >> 1', '1; 0.5', '71; 779', '1 >> 6; 4', '0.71; 0.29', '20; 3', '19; 1 >> 25; 1000', '0.98; 0.02 >> 1', '9; 6', '5; 5', '1.5; 8.7', '10; 1 >> 1', '1; 1 >> 1; 1', '1; 0.092 >> 1', '1 | 1; 100', '1 >> 4; 1', '71; 24; 5', '97.5; 2.5', '9.6; 1', '8.2; 3', '7; 3 >> 1 >> nan', '20; 1', 'nan >> 4; 96'])))
+            component='EnumEditQuantity', props=dict(suggestions=[])))
 
     solvents_supplier = Quantity(
         type=str,
         shape=[],
         description="""
     The suppliers of all the solvents.
-• When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of reaction steps and solvents must line up with the previous columns.
-• For non-liquid processes with no solvents, mark the supplier as ‘none’
-• If the supplier for a solvent is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of reaction steps and solvents must line up with the previous columns.
+- For non-liquid processes with no solvents, mark the supplier as ‘none’
+- If the supplier for a solvent is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Sigma Aldrich
 Sigma Aldrich; Fisher >> Acros
@@ -1828,13 +1853,13 @@ none >> Sigma Aldrich; Sigma Aldrich >> Unknown
         shape=[],
         description="""
     The purity of the solvents used.
-• When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For non-liquid processes with no solvents, state the purity as ‘none’
-• If the purity for a solvent is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For non-liquid processes with no solvents, state the purity as ‘none’
+- If the purity for a solvent is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 Puris; Puris>> Tecnical
@@ -1848,16 +1873,16 @@ none >> Pro analysis; Pro analysis >> Unknown
         shape=[],
         description="""
     The non-solvent precursor chemicals used in each deposition procedure
-• When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
-• Note that also dopants/additives should be included
-• When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
-• The number and order of reaction steps must line up with the previous columns.
-• For gas phase reactions, state the reaction gases as if they were in solution.
-• For solid-state reactions, state the compounds as if they were in solution.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• If the compounds for a deposition step is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
+- Note that also dopants/additives should be included
+- When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
+- The number and order of reaction steps must line up with the previous columns.
+- For gas phase reactions, state the reaction gases as if they were in solution.
+- For solid-state reactions, state the compounds as if they were in solution.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- If the compounds for a deposition step is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 CsI; FAI; MAI; PbBr2; PbI2
 PbI2 >> MAI
@@ -1871,15 +1896,15 @@ PbBr2; PbI2 >> FAI; MAI >> none
         shape=[],
         description="""
     The suppliers of the non-solvent chemicals.
-• When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of reaction steps and solvents must line up with the previous columns.
-• For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
-• For solid state reactions, state the suppliers for the compounds in the same way.
-• For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
-• For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
-• If the supplier for a compound is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of reaction steps and solvents must line up with the previous columns.
+- For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
+- For solid state reactions, state the suppliers for the compounds in the same way.
+- For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
+- For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
+- If the supplier for a compound is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Dysole; Sigma Aldrich; Dyenamo; Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -1893,13 +1918,13 @@ Lab made (EPFL) | Sigma Aldrich >> none
         shape=[],
         description="""
     The purity of the chemicals used.
-• When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of reaction steps and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
-• If the purity for a compound is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of reaction steps and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
+- If the purity for a compound is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 99.999; Puris| Tecnical
@@ -1913,18 +1938,18 @@ Unknown >> Pro analysis; Pro analysis | none
         shape=[],
         description="""
     The concentration of the non-solvent precursor chemicals.
-• When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of deposition steps and chemicals must line up with the previous columns.
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
-• The order of the chemicals must line up to the chemicals in the previous column.
-• The order of the compounds must be the same as in the previous filed.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• For gas phase reactions, state the concentration as ‘none’
-• For solid-state reactions, state the concentration as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
+- When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of deposition steps and chemicals must line up with the previous columns.
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
+- The order of the chemicals must line up to the chemicals in the previous column.
+- The order of the compounds must be the same as in the previous filed.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- For gas phase reactions, state the concentration as ‘none’
+- For solid-state reactions, state the concentration as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml, wt%, mol%, vol%, ppt, ppm, ppb
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 0.063 M; 1.25 M; 1.25 M; 1.14 M; 1.14 M
 1.25 M; 1.25 M >> 1.14 M; 1.14 M; 10 mg/ml
@@ -1938,10 +1963,10 @@ Example
         shape=[],
         description="""
     The volume of the reaction solutions used. used in each deposition procedure
-• When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
-• For reaction steps without solvents, state the volume as ‘nan’
-• When volumes are unknown, state that as ‘nan’
+- When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
+- For reaction steps without solvents, state the volume as ‘nan’
+- When volumes are unknown, state that as ‘nan’
 Example
 0.04
 nan >> 0.1
@@ -1955,11 +1980,11 @@ nan >> 10
         shape=[],
         description="""
     The age of the solutions used in the deposition
-• When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
-• When the age of a solution is not known, state that as ‘nan’
-• For reaction steps where no solvents are involved, state this as ‘nan’
-• For solutions that is stored a long time, an order of magnitude estimate is adequate.
+- When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
+- When the age of a solution is not known, state that as ‘nan’
+- For reaction steps where no solvents are involved, state this as ‘nan’
+- For solutions that is stored a long time, an order of magnitude estimate is adequate.
 Example
 0.5
 nan >> 10
@@ -1973,11 +1998,11 @@ nan >> 10
         shape=[],
         description="""
     The temperature of the reaction solutions.
-• If there is more than one reaction step involved, list the solution temperatures and separate the data for each step by a double forward angel bracket (‘ >> ‘)
-• If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with a semicolon (e.g. heated to 80°C and cooled to room temperature before used would be80; 25)
-• When the temperature of a solution is not known, state that as ‘nan’
-• For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise mark this with ‘nan’
-• Assume that an undetermined room temperature is 25
+- If there is more than one reaction step involved, list the solution temperatures and separate the data for each step by a double forward angel bracket (‘ >> ‘)
+- If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with a semicolon (e.g. heated to 80°C and cooled to room temperature before used would be80; 25)
+- When the temperature of a solution is not known, state that as ‘nan’
+- For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise mark this with ‘nan’
+- Assume that an undetermined room temperature is 25
 Example
 25
 nan >> 50
@@ -1991,12 +2016,12 @@ nan >> 50
         shape=[],
         description="""
     The temperature of the substrate on which the perovskite is deposited.
-• When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
-• When the temperature of a solution is unknown, state that as ‘nan’
-• For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume an undetermined room temperature to be 25
+- When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
+- When the temperature of a solution is unknown, state that as ‘nan’
+- For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume an undetermined room temperature to be 25
 Example
 25
 70 >> 25
@@ -2010,9 +2035,9 @@ nan >> 40
         shape=[],
         description="""
     TRUE is measures were taken to discontinuously accelerate the crystallisation process without significantly changing the temperature. i.e. an antisolvent treatment or an analogue process was used.
-• The most common case is the antisolvent treatment where a volume of a solvent in which the perovskite is not soluble is poured on the substrate during spin coating.
-• The same effect can also be achieved by blowing a gas on the sample
-• If the sample quickly after spin coating is subjected to a vacuum, this also counts as quenched induced crystallisation
+- The most common case is the antisolvent treatment where a volume of a solvent in which the perovskite is not soluble is poured on the substrate during spin coating.
+- The same effect can also be achieved by blowing a gas on the sample
+- If the sample quickly after spin coating is subjected to a vacuum, this also counts as quenched induced crystallisation
                     """,
         a_eln=dict(
             component='BoolEditQuantity'))
@@ -2022,11 +2047,11 @@ nan >> 40
         shape=[],
         description="""
     The solvents used in the antisolvent treatment
-• If the antisolvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolonsas in (A; B)
-• If gas quenching was used, state the gas used
-• If the sample quickly after spin coating was subjected to a vacuum, state this as ‘Vacuum’
-• If an antisolvent was used but it is unknown which one, stat this as “Antisolvent”
-• If no antisolvent was used, leave this field blank
+- If the antisolvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolonsas in (A; B)
+- If gas quenching was used, state the gas used
+- If the sample quickly after spin coating was subjected to a vacuum, state this as ‘Vacuum’
+- If an antisolvent was used but it is unknown which one, stat this as “Antisolvent”
+- If no antisolvent was used, leave this field blank
 Example
 Chlorobenzene
 Toluene
@@ -2044,11 +2069,11 @@ Anisole
         shape=[],
         description="""
     The mixing ratios of the antisolvent
-• The order of the solvent must line up with the previous column
-• For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
-• The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
-• For pure solvents, give the mixing ratio as 1
-• For non-solvent processes, give the mixing ratio as 1
+- The order of the solvent must line up with the previous column
+- For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
+- The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
+- For pure solvents, give the mixing ratio as 1
+- For non-solvent processes, give the mixing ratio as 1
 Example
 1
 4; 1
@@ -2061,8 +2086,8 @@ Example
         shape=[],
         description="""
     The volume of the antisolvent
-• For gas and vacuum assisted quenching, stat the volume as ‘nan’
-• If the sample is dipped or soaked in the antisolvent, state the volume of the entire solution
+- For gas and vacuum assisted quenching, stat the volume as ‘nan’
+- If the sample is dipped or soaked in the antisolvent, state the volume of the entire solution
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['40.0', '90.0', '300.0', '350.0', '50.0', '425.0', '125.0', '0.6', '600.0', '120.0', 'Unknown', '450.0', '180.0', '45.0', '100.0', '900.0', '130.0', '400.0', '140.0', '240.0', '30000.0', '70.0', '110.0', '80.0', '250.0', '190.0', '30.0', '500.0', '150.0', '750.0', '700.0', '1.0', '1000.0', '20.0', '160.0', '200.0'])))
@@ -2072,8 +2097,8 @@ Example
         shape=[],
         description="""
     List of the dopants and additives in the antisolvent
-• If several dopants/additives, e.g. A and B, are present, list the dopants/additives in alphabetic order and separate them with semicolonsas in (A; B)
-• If no dopants/additives, leave the field blank
+- If several dopants/additives, e.g. A and B, are present, list the dopants/additives in alphabetic order and separate them with semicolonsas in (A; B)
+- If no dopants/additives, leave the field blank
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', 'FABr', 'CsPbBr3-QDs', 'F-PDI', '2,9,16,23-tetra-tert-butyl-29H,31H-phthalocyanine', 'Poly(TA)', 'K2Rrubrene', 'L‐Leucine', 'Undoped', 'Acetylene black', 'ITIC', 'CsI', 'MAI', 'PbS-QDs', 'MABr', '6TIC-4F', 'Poly(9-vinylcarbazole)', 'Hex', 'PDMS', 'AQ310', 'P3HT', 'FAI', 'Cl-functionalized C-np', 'ITIC; PCBM-60', 'ThFAI; MAI, MACl', 'SM', 'Au-np', 'Rubrene', 'PEG', 'PCBM-60', 'Graphdiyne', 'Carbon black', 'MEH-PPV', 'FAI; MABr', 'PAMS', 'Graphydine-QDs', 'SWCNTs', 'bis-PCBM-60', 'La:BaSnO3-np', 'NPB', 'Spiro-MeOTAD', 'FAPbBr3-QDs', 'C60', 'BAI', 'MAPbBr3-QDs', 'PS', 'PBTI', 'BiFeO3-np', 'BHT', 'DF-C60', 'CuPc', 'tFM-PMAI', 'PTB7; ITIC', 'PTAA', 'IDIC-Th', 'CsPbBr3-np', 'PBDB-T', 'Carbon-nt', 'PCBM-60; TIPD', 'PABr', 'ADAHCl', 'MACl', '[M4N]BF4', 'IEICO-4F', 'H2O', 'HI', 'PEAI', 'Au@CdS', 'I2', 'PFA', 'TPFPB', 'IDIC', 'Br passivated C-np', 'DPPS', 'HEA', 'Polyurethane', 'EABr', 'MA', 'F16CuPc', 'C60; PEG', 'PTB7', 'AQ', 'PMMA', 'MAPbI3-QDs', '(PEA)2PbI4'])))
@@ -2083,15 +2108,15 @@ Example
         shape=[],
         description="""
     The concentration of the dopants/additives in the antisolvent
-• If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
-• For each dopant/additive, state the concentration.
-• The order of the dopants/additives must be the same as in the previous filed.
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
-• The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
+- If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
+- For each dopant/additive, state the concentration.
+- The order of the dopants/additives must be the same as in the previous filed.
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
+- The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
 o wt%, mol%, vol%, ppt, ppm, ppb
-• When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
+- When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', '0.1 mg/ml', '9 mg/ml', '0.024 mM', '40 mg/ml', '0.24 mg/ml; 0.24 mg/ml', '25 mg/ml', '20 mg/ml', '0.32 mg/ml; 0.16 mg/ml', '20 vol%', '1 vol%', '0.25 M', '0.00001 M', '0.5 mg/ml', '0.05', '0.005', '0.5 vol%', '8 mg/ml', '0.001 M', '1 mg/ml', '0.25 mg/ml', '4 vol%', '5 mg/ml', '0.36 mg/ml; 0.12 mg/ml', '0.1 M', '0.015', '2 mg/ml', '0.3 mg/ml', '6 mg/ml', '0.03', '0.000001 M', '15 mg/ml', '12 mg/ml', '30 mg/ml', '2 vol%', '10 mg/ml', '10 wt%', '3 mg/ml', '0.0001 M', '5 wt%', '0.7 mg/ml', '4 mg/ml', '0.5 M'])))
@@ -2101,11 +2126,11 @@ o M, mM, molal; g/ml, mg/ml, µg/ml
         shape=[],
         description="""
     The temperatures of the thermal annealing program associated with each deposition step
-• When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
-• If the thermal annealing program is not known, state that by ‘nan’
+- When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
+- If the thermal annealing program is not known, state that by ‘nan’
 Example
 100
 70; 100 >> 100
@@ -2119,12 +2144,12 @@ Example
         shape=[],
         description="""
     The time program associated to the thermal annealing.
-• When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
-• The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
-• If a time is not known, state that by ‘nan’
-• If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
+- When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
+- The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
+- If a time is not known, state that by ‘nan’
+- If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
 Example
 60
 5; 30 >> 60
@@ -2138,14 +2163,14 @@ Example
         shape=[],
         description="""
     The atmosphere in which the thermal annealing is conducted.
-• When more than one reaction step, separate the atmospheres associated to each annealing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of deposition steps must line up with the previous columns.
-• If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
-• This is often the same as the atmosphere under which the deposition is occurring, but not always.
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- When more than one reaction step, separate the atmospheres associated to each annealing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of deposition steps must line up with the previous columns.
+- If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
+- This is often the same as the atmosphere under which the deposition is occurring, but not always.
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 N2
@@ -2160,10 +2185,10 @@ Ar
         shape=[],
         description="""
     The relative humidity during the thermal annealing
-• If there is more than one annealing step involved, list the associate relative humidity in the surrounding atmosphere and separate them by a double forward angel bracket (‘ >> ‘)
-• The number and order of annealing steps must line up with the previous column
-• If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
-• If a humidity is not known, stat that as ‘nan’
+- If there is more than one annealing step involved, list the associate relative humidity in the surrounding atmosphere and separate them by a double forward angel bracket (‘ >> ‘)
+- The number and order of annealing steps must line up with the previous column
+- If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
+- If a humidity is not known, stat that as ‘nan’
 Example
 0
 35 >> 0
@@ -2177,12 +2202,12 @@ nan
         shape=[],
         description="""
     The atmospheric pressure during the thermal annealing
-• If there is more than one annealing step involved, list the associate atmospheric pressures and separate them by a double forward angel bracket (‘ >> ‘)
-• The number and order of annealing steps must line up with the previous column
-• Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
+- If there is more than one annealing step involved, list the associate atmospheric pressures and separate them by a double forward angel bracket (‘ >> ‘)
+- The number and order of annealing steps must line up with the previous column
+- Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
 o atm, bar, mbar, mmHg, Pa, torr, psi
-• If a pressure is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
+- If a pressure is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
 Example
 1 atm
 1 atm >> 0.002 torr
@@ -2205,9 +2230,9 @@ Example
         shape=[],
         description="""
     The timing of the solvent annealing with respect to the thermal annealing step under which the perovskite is formed. There are three options.
-• The solvent annealing is conducted before the perovskite is formed.
-• The solvent annealing is conducted under the same annealing step in which the perovskite is formed
-• The solvent annealing is conducted after the perovskite has formed.
+- The solvent annealing is conducted before the perovskite is formed.
+- The solvent annealing is conducted under the same annealing step in which the perovskite is formed
+- The solvent annealing is conducted after the perovskite has formed.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', 'Under', 'Before', 'After'])))
@@ -2217,7 +2242,7 @@ Example
         shape=[],
         description="""
     The solvents used in the solvent annealing step
-• If the solvent atmosphere is a mixture of different solvents and gases, e.g. A and B, list them in alphabetic order and separate them with semicolonsas in (A; B)
+- If the solvent atmosphere is a mixture of different solvents and gases, e.g. A and B, list them in alphabetic order and separate them with semicolonsas in (A; B)
 Example
 DMSO
 DMF
@@ -2231,8 +2256,8 @@ DMF; DMSO
         shape=[],
         description="""
     The extend of the solvent annealing step in minutes
-• If the time is not known, state that by ‘nan’
-• If the solvent annealing involves a temperature program with multiple temperature stages, list the associated times at each temperature and separate them with a semicolon (e.g. 5; 10)
+- If the time is not known, state that by ‘nan’
+- If the solvent annealing involves a temperature program with multiple temperature stages, list the associated times at each temperature and separate them with a semicolon (e.g. 5; 10)
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['40.0', '90.0', '2.5', '50.0', '10.0', '60.0', '5.0', '120.0', 'Unknown', '180.0', '0.16666666666666666', '80.0', '480.0', '1.5', '0.25', '30.0', '0.3', '2.0', '1.0', '20.0', '0.08333333333333333', '15.0'])))
@@ -2242,9 +2267,9 @@ DMF; DMSO
         shape=[],
         description="""
     The temperature during the solvent annealing step
-• The temperature refers to the temperature of the sample
-• If the solvent annealing involves a temperature program with multiple temperature stages, list the associated temperatures and separate them with a semicolon (e.g. 5; 10) and make sure they align with the times in the previous field.
-• If the temperature is not known, state that by ‘nan’
+- The temperature refers to the temperature of the sample
+- If the solvent annealing involves a temperature program with multiple temperature stages, list the associated temperatures and separate them with a semicolon (e.g. 5; 10) and make sure they align with the times in the previous field.
+- If the temperature is not known, state that by ‘nan’
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['200', '120.0', 'Unknown', '90.0', '100', '90', '100.0', '20', '110.0', '150.0'])))
@@ -2283,20 +2308,23 @@ Examples:
 
 
 class HTL(MSection):
+    """
+    A section to describe information related to the Hole Transport Layer **HTL**.
+    """
 
     stack_sequence = Quantity(
         type=str,
         shape=[],
         description="""
     The stack sequence describing the hole transport layer. Use the following formatting guidelines
-• With the HTL, we refer to any layer between the substrate and the perovskite in a pin-device, and any layer between the perovskite and the back contact in a nip-device.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
-• If no hole transport layer, state that as ‘non’
-• Use common abbreviations when appropriate but spell it out if risk for confusion.
-• If a material is doped, or have an additive, state the pure material here and specify the doping in the columns specifically targeting the doping of those layers.
-• There is no sharp well-defined boundary between when a material is best considered as doped or as a mixture of two materials. When in doubt if your material is best described as doped or as a mixture, use the notation that best capture the metaphysical essence of the situation.
-• There are a lot of stack sequences described in the literature. Try to find your one in the list. If it is not there (i.e. you may have done something new) define a new stack sequence according to the instructions.
+- With the HTL, we refer to any layer between the substrate and the perovskite in a pin-device, and any layer between the perovskite and the back contact in a nip-device.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
+- If no hole transport layer, state that as ‘non’
+- Use common abbreviations when appropriate but spell it out if risk for confusion.
+- If a material is doped, or have an additive, state the pure material here and specify the doping in the columns specifically targeting the doping of those layers.
+- There is no sharp well-defined boundary between when a material is best considered as doped or as a mixture of two materials. When in doubt if your material is best described as doped or as a mixture, use the notation that best capture the metaphysical essence of the situation.
+- There are a lot of stack sequences described in the literature. Try to find your one in the list. If it is not there (i.e. you may have done something new) define a new stack sequence according to the instructions.
 Example:
 Spiro-MeOTAD
 PEDOT:PSS
@@ -2312,11 +2340,11 @@ PTAA
         shape=[],
         description="""
     A list of thicknesses of the individual layers in the stack.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous filed.
-• State thicknesses in nm
-• Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
-• If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- The layers must line up with the previous filed.
+- State thicknesses in nm
+- Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
+- If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
 Example
 200
 nan |250
@@ -2330,11 +2358,11 @@ nan |250
         shape=[],
         description="""
     List of the dopants and additives that are in each layer of the HTL-stack
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous fields.
-• If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolons, as in (A; B)
-• If no dopants/additives, state that as “Undoped”
-• If the doping situation is unknown, stat that as‘Unknown’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- The layers must line up with the previous fields.
+- If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolons, as in (A; B)
+- If no dopants/additives, state that as “Undoped”
+- If the doping situation is unknown, stat that as‘Unknown’
 Example
 Li-TFSI; TBP
 FK209; Li-TFSI; TBP
@@ -2350,18 +2378,18 @@ Cu | Ag; Cu
         shape=[],
         description="""
     The concentration of the dopants/additives.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
-• For each dopant/additive in the layer, state the concentration.
-• The order of the dopants/additives must be the same as in the previous filed.
-• For layers with no dopants/additives, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
-• The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
+- For each dopant/additive in the layer, state the concentration.
+- The order of the dopants/additives must be the same as in the previous filed.
+- For layers with no dopants/additives, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
+- The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
 o wt%, mol%, vol%, ppt, ppm, ppb
-• When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
+- When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 5 vol%; nan | 10 mg/ml
@@ -2375,10 +2403,10 @@ Example
         shape=[],
         description="""
     The deposition procedures for the HTL-stack.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
-• Please read the instructions under “Perovskite. Deposition. Procedure” for descriptions and distinctions between common deposition procedures and how they should be labelled for consistency in the database.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
+- Please read the instructions under “Perovskite. Deposition. Procedure” for descriptions and distinctions between common deposition procedures and how they should be labelled for consistency in the database.
 Example
 Spin-coating
 Spin-coating | Spin-coating
@@ -2393,13 +2421,13 @@ Spray-pyrolys
         shape=[],
         description="""
     The physical state of the reactants.
-• The three basic categories are Solid/Liquid/Gas
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
+- The three basic categories are Solid/Liquid/Gas
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
 o For a spray-coating procedure, it is droplets of liquid that enters the substrate (thus a liquid phase reaction)
 o For sputtering and thermal evaporation, it is species in gas phase that reaches the substrate (thus a gas phase reaction)
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Liquid
 Gas | Liquid
@@ -2413,14 +2441,14 @@ Liquid | Liquid >> Liquid
         shape=[],
         description="""
     The synthesis atmosphere.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 N2
 Vacuum | N2
@@ -2434,13 +2462,13 @@ Air | Ar; H2O >> Ar
         shape=[],
         description="""
     The total gas pressure during each reaction step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
 o atm, bar, mbar, mmHg, Pa, torr, psi
-• If a pressure is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
+- If a pressure is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
 Example
 1 atm
 0.002 torr | 10000 Pa
@@ -2454,11 +2482,11 @@ nan >> 1 atm | 1 atm
         shape=[],
         description="""
     The partial pressures for the gases present during each reaction step.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
-• In cases where no gas mixtures are used, this field will be the same as the previous filed.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
+- In cases where no gas mixtures are used, this field will be the same as the previous filed.
 Example
 1 atm
 0.002 torr | 10000 Pa
@@ -2472,11 +2500,11 @@ nan >> 0.99 atm; 0.01 atm | 1 atm
         shape=[],
         description="""
     The relative humidity during each deposition step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns
-• If the relative humidity for a step is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns
+- If the relative humidity for a step is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
 Example
 35
 0 | 20
@@ -2490,14 +2518,14 @@ nan >> 25 | 0
         shape=[],
         description="""
     The solvents used in each deposition procedure for each layer in the stack
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• For non-liquid processes with no solvents, state the solvent as ‘none’
-• If the solvent is not known, state this as ‘Unknown’
-• Use common abbreviations when appropriate but spell it out when risk for confusion
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- For non-liquid processes with no solvents, state the solvent as ‘none’
+- If the solvent is not known, state this as ‘Unknown’
+- Use common abbreviations when appropriate but spell it out when risk for confusion
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Chlorobenzene
 Acetonitile; Ethanol | Chlorobenzene
@@ -2511,14 +2539,14 @@ none >> Ethanol; Methanol; H2O | DMF; DMSO
         shape=[],
         description="""
     The mixing ratios for mixed solvents
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• For pure solvents, state the mixing ratio as 1
-• For non-solvent processes, state the mixing ratio as 1
-• For unknown mixing ratios, state the mixing ratio as ‘nan’
-• For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
-• The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- For pure solvents, state the mixing ratio as 1
+- For non-solvent processes, state the mixing ratio as 1
+- For unknown mixing ratios, state the mixing ratio as ‘nan’
+- For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
+- The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
 Example
 1
 4; 1 | 1
@@ -2532,13 +2560,13 @@ Example
         shape=[],
         description="""
     The suppliers of all the solvents.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• For non-liquid processes with no solvents, mark the supplier as ‘none’
-• If the supplier for a solvent is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- For non-liquid processes with no solvents, mark the supplier as ‘none’
+- If the supplier for a solvent is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -2552,14 +2580,14 @@ none >> Sigma Aldrich; Sigma Aldrich | Unknown
         shape=[],
         description="""
     The purity of the solvents used.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For non-liquid processes with no solvents, state the purity as ‘none’
-• If the purity for a solvent is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For non-liquid processes with no solvents, state the purity as ‘none’
+- If the purity for a solvent is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 Puris; Puris| Tecnical
@@ -2573,17 +2601,17 @@ none >> Pro analysis; Pro analysis | Unknown
         shape=[],
         description="""
     The non-solvent precursor chemicals used in each reaction step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
-• Note that also dopants/additives should be included
-• When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
-• The number and order of layers and reaction steps must line up with the previous columns.
-• For gas phase reactions, state the reaction gases as if they were in solution.
-• For solid-state reactions, state the compounds as if they were in solution.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• If the compounds for a deposition step is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
+- Note that also dopants/additives should be included
+- When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
+- The number and order of layers and reaction steps must line up with the previous columns.
+- For gas phase reactions, state the reaction gases as if they were in solution.
+- For solid-state reactions, state the compounds as if they were in solution.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- If the compounds for a deposition step is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 FK209; Li-TFSI; Spiro-MeOTAD; TBP
 NiO-np
@@ -2597,16 +2625,16 @@ PTAA | CuSCN
         shape=[],
         description="""
     The suppliers of the non-solvent chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
-• For solid state reactions, state the suppliers for the compounds in the same way.
-• For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
-• For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
-• If the supplier for a compound is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
+- For solid state reactions, state the suppliers for the compounds in the same way.
+- For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
+- For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
+- If the supplier for a compound is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Dysole; Sigma Aldrich; Dyenamo; Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -2620,14 +2648,14 @@ Lab made (EPFL) | Sigma Aldrich >> none
         shape=[],
         description="""
     The purity of the non-solvent chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
-• If the purity for a compound is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
+- If the purity for a compound is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 99.999; Puris| Tecnical
@@ -2641,15 +2669,15 @@ Unknown >> Pro analysis; Pro analysis | none
         shape=[],
         description="""
     The concentration of the non-solvent precursor chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
-• The order of the compounds must be the same as in the previous filed.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
+- The order of the compounds must be the same as in the previous filed.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml, wt%, mol%, vol%, ppt, ppm, ppb
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 0.2 M; 0.15 M| 10 mg/ml
@@ -2663,11 +2691,11 @@ Example
         shape=[],
         description="""
     The volume of the reaction solutions
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
-• For reaction steps without solvents, state the volume as ‘nan’
-• When volumes are unknown, state that as ‘nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
+- For reaction steps without solvents, state the volume as ‘nan’
+- When volumes are unknown, state that as ‘nan’
 Example
 0.1
 0.1 >> 0.05 | 0.05
@@ -2681,12 +2709,12 @@ nan | 0.15
         shape=[],
         description="""
     The age of the solutions
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
-• When the age of a solution is not known, state that as ‘nan’
-• For reaction steps where no solvents are involved, state this as ‘nan’
-• For solutions that is stored a long time, an order of magnitude estimate is adequate.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
+- When the age of a solution is not known, state that as ‘nan’
+- For reaction steps where no solvents are involved, state this as ‘nan’
+- For solutions that is stored a long time, an order of magnitude estimate is adequate.
 Example
 2
 0.25 |1000 >> 10000
@@ -2700,13 +2728,13 @@ nan | nan
         shape=[],
         description="""
     The temperature of the reaction solutions.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
-• When the temperature of a solution is unknown, state that as ‘nan’
-• For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume an undetermined room temperature to be 25
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
+- When the temperature of a solution is unknown, state that as ‘nan’
+- For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume an undetermined room temperature to be 25
 Example
 25
 100; 50 | 25
@@ -2720,13 +2748,13 @@ nan | 25 >> 25
         shape=[],
         description="""
     The temperature of the substrate.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the temperatures of the substrates (i.e. the last deposited layer) associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The temperature of the substrate refers to the temperature when the deposition of the layer is occurring.
-• If a substrate undergoes a temperature program before the deposition, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• When the temperature of a substrate is not known, state that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume that an undetermined room temperature is 25
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the temperatures of the substrates (i.e. the last deposited layer) associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The temperature of the substrate refers to the temperature when the deposition of the layer is occurring.
+- If a substrate undergoes a temperature program before the deposition, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- When the temperature of a substrate is not known, state that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume that an undetermined room temperature is 25
 Example
 25
 nan
@@ -2740,12 +2768,12 @@ nan
         shape=[],
         description="""
     The temperatures of the thermal annealing program associated with depositing the layers
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
-• If the thermal annealing program is not known, state that by ‘nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
+- If the thermal annealing program is not known, state that by ‘nan’
 Example
 25
 50 | nan
@@ -2759,13 +2787,13 @@ Example
         shape=[],
         description="""
     The time program associated to the thermal annealing program.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
-• The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
-• If a time is not known, state that by ‘nan’
-• If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
+- The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
+- If a time is not known, state that by ‘nan’
+- If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
 Example
 nan
 60 | 1000
@@ -2779,15 +2807,15 @@ nan
         shape=[],
         description="""
     The atmosphere during thermal annealing
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the atmospheres associated to each annealing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
-• This is often the same as the atmosphere under which the deposition is occurring, but not always.
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the atmospheres associated to each annealing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
+- This is often the same as the atmosphere under which the deposition is occurring, but not always.
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 N2
@@ -2802,7 +2830,7 @@ Air | Ar >> Ar
         shape=[],
         description="""
     The time between the HTL stack is finalised and the next layer is deposited
-• If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
+- If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['12.0', 'Unknown', '20.0', '24.0', '4.0', '15.0'])))
@@ -2825,7 +2853,7 @@ Vacuum
         shape=[],
         description="""
     The relive humidity under which the sample with the finalised HTL stack is stored until next deposition step
-• If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
+- If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', '20.0', '10.0'])))
@@ -2835,9 +2863,9 @@ Vacuum
         shape=[],
         description="""
     Description of any type of surface treatment or other treatment the sample with the finalised HTL stack undergoes before the next deposition step.
-• If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
-• If no special treatment, state that as ‘none’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
+- If no special treatment, state that as ‘none’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 none
@@ -2854,19 +2882,22 @@ UV-ozone
 
 
 class Backcontact(MSection):
+    """
+    A section to describe information related to the back contact of the solar cell.
+    """
 
     stack_sequence = Quantity(
         type=str,
         shape=[],
         description="""
     The stack sequence describing the back contact.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
-• If no back contact, state that as ‘non’
-• Use common abbreviations when appropriate but spell it out if risk for confusion.
-• If a material is doped, or have an additive, state the pure material here and specify the doping in the columns specifically targeting the doping of those layers.
-• There is no sharp well-defined boundary between when a material is best considered as doped or as a mixture of two materials. When in doubt if your material is best described as doped or as a mixture, use the notation that best capture the metaphysical essence of the situation.
-• There are a lot of stack sequences described in the literature. Try to find your one in the list. If it is not there (i.e. you may have done something new) define a new stack sequence according to the instructions.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
+- If no back contact, state that as ‘non’
+- Use common abbreviations when appropriate but spell it out if risk for confusion.
+- If a material is doped, or have an additive, state the pure material here and specify the doping in the columns specifically targeting the doping of those layers.
+- There is no sharp well-defined boundary between when a material is best considered as doped or as a mixture of two materials. When in doubt if your material is best described as doped or as a mixture, use the notation that best capture the metaphysical essence of the situation.
+- There are a lot of stack sequences described in the literature. Try to find your one in the list. If it is not there (i.e. you may have done something new) define a new stack sequence according to the instructions.
 Example:
 Au
 Ag
@@ -2882,11 +2913,11 @@ MoO3 | Ag
         shape=[],
         description="""
     A list of thicknesses of the individual layers in the stack.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous filed.
-• State thicknesses in nm
-• Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
-• If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- The layers must line up with the previous filed.
+- State thicknesses in nm
+- Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
+- If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
 Example
 100
 10 | 80
@@ -2900,12 +2931,12 @@ nan | 100
         shape=[],
         description="""
     List of the dopants and additives that are in each layer of the HTL-stack
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous fields.
-• If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolons, as in (A; B)
-• If no dopants/additives, state that as “Undoped”
-• If the doping situation is unknown, stat that as‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- The layers must line up with the previous fields.
+- If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolons, as in (A; B)
+- If no dopants/additives, state that as “Undoped”
+- If the doping situation is unknown, stat that as‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template, even if to most common back contacts is undoped metals
 Example
 CuS
@@ -2920,18 +2951,18 @@ Au-np | Undoped
         shape=[],
         description="""
     The concentration of the dopants/additives.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
-• For each dopant/additive in the layer, state the concentration.
-• The order of the dopants/additives must be the same as in the previous filed.
-• For layers with no dopants/additives, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
-• The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
+- For each dopant/additive in the layer, state the concentration.
+- The order of the dopants/additives must be the same as in the previous filed.
+- For layers with no dopants/additives, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
+- The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
 o wt%, mol%, vol%, ppt, ppm, ppb
-• When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
+- When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 5 vol%; nan | 10 mg/ml
@@ -2945,14 +2976,14 @@ Example
         shape=[],
         description="""
     The deposition procedures for the HTL-stack.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
-• Please read the instructions under “Perovskite. Deposition. Procedure” for descriptions and distinctions between common deposition procedures and how they should be labelled for consistency in the database.
-• A few additional clarifications:
-• Lamination
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
+- Please read the instructions under “Perovskite. Deposition. Procedure” for descriptions and distinctions between common deposition procedures and how they should be labelled for consistency in the database.
+- A few additional clarifications:
+- Lamination
 o A readymade film is transferred directly to the device stack. A rather broad concept. An everyday kitchen related example of lamination would eb to place a thin plastic film over a slice of pie.
-• Sandwiching
+- Sandwiching
 o When a readymade top stack simply is placed on top of the device stack. Could be held together with clams. The typical example is a when a “Carbon | FTO | SLG” is placed on top of the device stack. Standard procedure in the DSSC filed.
 Example
 Evaporation
@@ -2972,13 +3003,13 @@ Sandwiching
         shape=[],
         description="""
     The physical state of the reactants.
-• The three basic categories are Solid/Liquid/Gas
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
+- The three basic categories are Solid/Liquid/Gas
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
 o For a spray-coating procedure, it is droplets of liquid that enters the substrate (thus a liquid phase reaction)
 o For sputtering and thermal evaporation, it is species in gas phase that reaches the substrate (thus a gas phase reaction)
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Liquid
 Gas | Liquid
@@ -2992,14 +3023,14 @@ Liquid | Liquid >> Liquid
         shape=[],
         description="""
     The synthesis atmosphere.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Vacuum
 Vacuum | N2
@@ -3013,13 +3044,13 @@ Air | Ar; H2O >> Ar
         shape=[],
         description="""
     The total gas pressure during each reaction step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
 o atm, bar, mbar, mmHg, Pa, torr, psi
-• If a pressure is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
+- If a pressure is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
 Example
 1 atm
 0.002 torr | 10000 Pa
@@ -3033,11 +3064,11 @@ nan >> 1 atm | 1 atm
         shape=[],
         description="""
     The partial pressures for the gases present during each reaction step.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
-• In cases where no gas mixtures are used, this field will be the same as the previous filed.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
+- In cases where no gas mixtures are used, this field will be the same as the previous filed.
 Example
 1 atm
 0.002 torr | 10000 Pa
@@ -3051,11 +3082,11 @@ nan >> 0.99 atm; 0.01 atm | 1 atm
         shape=[],
         description="""
     The relative humidity during each deposition step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns
-• If the relative humidity for a step is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns
+- If the relative humidity for a step is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
 Example
 35
 0 | 20
@@ -3069,14 +3100,14 @@ nan >> 25 | 0
         shape=[],
         description="""
     The solvents used in each deposition procedure for each layer in the stack
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• For non-liquid processes with no solvents, state the solvent as ‘none’
-• If the solvent is not known, state this as ‘Unknown’
-• Use common abbreviations when appropriate but spell it out when risk for confusion
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- For non-liquid processes with no solvents, state the solvent as ‘none’
+- If the solvent is not known, state this as ‘Unknown’
+- Use common abbreviations when appropriate but spell it out when risk for confusion
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 none
 Acetonitile; Ethanol | Chlorobenzene
@@ -3090,14 +3121,14 @@ none >> Ethanol; Methanol; H2O | DMF; DMSO
         shape=[],
         description="""
     The mixing ratios for mixed solvents
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• For pure solvents, state the mixing ratio as 1
-• For non-solvent processes, state the mixing ratio as 1
-• For unknown mixing ratios, state the mixing ratio as ‘nan’
-• For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
-• The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- For pure solvents, state the mixing ratio as 1
+- For non-solvent processes, state the mixing ratio as 1
+- For unknown mixing ratios, state the mixing ratio as ‘nan’
+- For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
+- The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
 Example
 1
 4; 1 | 1
@@ -3111,13 +3142,13 @@ Example
         shape=[],
         description="""
     The suppliers of all the solvents.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• For non-liquid processes with no solvents, mark the supplier as ‘none’
-• If the supplier for a solvent is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- For non-liquid processes with no solvents, mark the supplier as ‘none’
+- If the supplier for a solvent is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -3131,14 +3162,14 @@ none >> Sigma Aldrich; Sigma Aldrich | Unknown
         shape=[],
         description="""
     The purity of the solvents used.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For non-liquid processes with no solvents, state the purity as ‘none’
-• If the purity for a solvent is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For non-liquid processes with no solvents, state the purity as ‘none’
+- If the purity for a solvent is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 Puris; Puris| Tecnical
@@ -3152,17 +3183,17 @@ none >> Pro analysis; Pro analysis | Unknown
         shape=[],
         description="""
     The non-solvent precursor chemicals used in each reaction step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
-• Note that also dopants/additives should be included
-• When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
-• The number and order of layers and reaction steps must line up with the previous columns.
-• For gas phase reactions, state the reaction gases as if they were in solution.
-• For solid-state reactions, state the compounds as if they were in solution.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• If the compounds for a deposition step is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
+- Note that also dopants/additives should be included
+- When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
+- The number and order of layers and reaction steps must line up with the previous columns.
+- For gas phase reactions, state the reaction gases as if they were in solution.
+- For solid-state reactions, state the compounds as if they were in solution.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- If the compounds for a deposition step is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Au
 CuI
@@ -3176,16 +3207,16 @@ Ag
         shape=[],
         description="""
     The suppliers of the non-solvent chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
-• For solid state reactions, state the suppliers for the compounds in the same way.
-• For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
-• For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
-• If the supplier for a compound is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
+- For solid state reactions, state the suppliers for the compounds in the same way.
+- For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
+- For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
+- If the supplier for a compound is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Dysole; Sigma Aldrich; Dyenamo; Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -3199,14 +3230,14 @@ Lab made (EPFL) | Sigma Aldrich >> none
         shape=[],
         description="""
     The purity of the non-solvent chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
-• If the purity for a compound is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
+- If the purity for a compound is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 99.999; Puris| Tecnical
@@ -3220,15 +3251,15 @@ Unknown >> Pro analysis; Pro analysis | none
         shape=[],
         description="""
     The concentration of the non-solvent precursor chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
-• The order of the compounds must be the same as in the previous filed.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
+- The order of the compounds must be the same as in the previous filed.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml, wt%, mol%, vol%, ppt, ppm, ppb
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 0.2 M; 0.15 M| 10 mg/ml
@@ -3242,11 +3273,11 @@ Example
         shape=[],
         description="""
     The volume of the reaction solutions
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
-• For reaction steps without solvents, state the volume as ‘nan’
-• When volumes are unknown, state that as ‘nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
+- For reaction steps without solvents, state the volume as ‘nan’
+- When volumes are unknown, state that as ‘nan’
 Example
 0.1
 0.1 >> 0.05 | 0.05
@@ -3260,12 +3291,12 @@ nan | 0.15
         shape=[],
         description="""
     The age of the solutions
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
-• When the age of a solution is not known, state that as ‘nan’
-• For reaction steps where no solvents are involved, state this as ‘nan’
-• For solutions that is stored a long time, an order of magnitude estimate is adequate.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
+- When the age of a solution is not known, state that as ‘nan’
+- For reaction steps where no solvents are involved, state this as ‘nan’
+- For solutions that is stored a long time, an order of magnitude estimate is adequate.
 Example
 2
 0.25 |1000 >> 10000
@@ -3279,13 +3310,13 @@ nan | nan
         shape=[],
         description="""
     The temperature of the reaction solutions.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
-• When the temperature of a solution is unknown, state that as ‘nan’
-• For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume an undetermined room temperature to be 25
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
+- When the temperature of a solution is unknown, state that as ‘nan’
+- For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume an undetermined room temperature to be 25
 Example
 25
 100; 50 | 25
@@ -3299,13 +3330,13 @@ nan | 25 >> 25
         shape=[],
         description="""
     The temperature of the substrate.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the temperatures of the substrates (i.e. the last deposited layer) associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The temperature of the substrate refers to the temperature when the deposition of the layer is occurring.
-• If a substrate undergoes a temperature program before the deposition, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• When the temperature of a substrate is not known, state that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume that an undetermined room temperature is 25
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the temperatures of the substrates (i.e. the last deposited layer) associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The temperature of the substrate refers to the temperature when the deposition of the layer is occurring.
+- If a substrate undergoes a temperature program before the deposition, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- When the temperature of a substrate is not known, state that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume that an undetermined room temperature is 25
 Example
 25
 nan
@@ -3319,12 +3350,12 @@ nan
         shape=[],
         description="""
     The temperatures of the thermal annealing program associated with depositing the layers
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
-• If the thermal annealing program is not known, state that by ‘nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
+- If the thermal annealing program is not known, state that by ‘nan’
 Example
 25
 50 | nan
@@ -3338,13 +3369,13 @@ Example
         shape=[],
         description="""
     The time program associated to the thermal annealing program.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
-• The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
-• If a time is not known, state that by ‘nan’
-• If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
+- The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
+- If a time is not known, state that by ‘nan’
+- If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
 Example
 nan
 60 | 1000
@@ -3358,15 +3389,15 @@ nan
         shape=[],
         description="""
     The atmosphere during thermal annealing
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the atmospheres associated to each annelaing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
-• This is often the same as the atmosphere under which the deposition is occurring, but not always.
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the atmospheres associated to each annelaing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
+- This is often the same as the atmosphere under which the deposition is occurring, but not always.
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 N2
@@ -3381,8 +3412,8 @@ Air | Ar >> Ar
         shape=[],
         description="""
     The time between the back contact is finalised and the next layer is deposited
-• If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
-• If this is the last layer in the stack, state this as ‘nan’
+- If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
+- If this is the last layer in the stack, state this as ‘nan’
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['Unknown', '24.0'])))
@@ -3405,7 +3436,7 @@ Vacuum
         shape=[],
         description="""
     The relive humidity under which the sample with the finalised back contact is stored until the next deposition step or device performance measurement
-• If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
+- If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', '5.0', '10', '10.0'])))
@@ -3415,9 +3446,9 @@ Vacuum
         shape=[],
         description="""
     Description of any type of surface treatment or other treatment the sample with the finalised back contact is stored until the next deposition step or device performance measurement
-• If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
-• If no special treatment, state that as ‘none’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
+- If no special treatment, state that as ‘none’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 none
@@ -3434,6 +3465,10 @@ UV-ozone
 
 
 class Add(MSection):
+    """
+    A section to define an **additional layer** present in the device besides the Substrate, ETL, Perovskite, HTL
+    and back contact are present in the device.
+    """
 
     lay_front = Quantity(
         type=bool,
@@ -3449,8 +3484,8 @@ class Add(MSection):
         shape=[],
         description="""
     The function of the additional layers on the substrate side
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If a layer has more than one function, e.g. A and B, list the functions in order and separate them with semicolons, as in (A; B)
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If a layer has more than one function, e.g. A and B, list the functions in order and separate them with semicolons, as in (A; B)
 Example:
 A.R.C.
 Back reflection
@@ -3467,11 +3502,11 @@ Upconversion
         shape=[],
         description="""
     The stack sequence describing the additional layers on the substrate side
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
-• Use common abbreviations when appropriate but spell it out if risk for confusion.
-• There are separate filed for doping. Indicate doping with colons. E.g. wither aluminium doped NiO-np as Al:NiO-np
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
+- Use common abbreviations when appropriate but spell it out if risk for confusion.
+- There are separate filed for doping. Indicate doping with colons. E.g. wither aluminium doped NiO-np as Al:NiO-np
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 MgF2
 Au-np
@@ -3485,11 +3520,11 @@ NaYF4:Eu-np
         shape=[],
         description="""
     A list of thicknesses of the individual layers in the stack.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous filed.
-• State thicknesses in nm
-• Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
-• If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- The layers must line up with the previous filed.
+- State thicknesses in nm
+- Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
+- If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
 Example
 200
 nan |250
@@ -3503,12 +3538,12 @@ nan |250
         shape=[],
         description="""
     List of the dopants and additives that are in each layer of the HTL-stack
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous fields.
-• If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolons, as in (A; B)
-• If no dopants/additives, state that as “Undoped”
-• If the doping situation is unknown, stat that as‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- The layers must line up with the previous fields.
+- If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolons, as in (A; B)
+- If no dopants/additives, state that as “Undoped”
+- If the doping situation is unknown, stat that as‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template, even if to most common back contacts is undoped metals
 Example
 CuS
@@ -3523,18 +3558,18 @@ Au-np | Undoped
         shape=[],
         description="""
     The concentration of the dopants/additives.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
-• For each dopant/additive in the layer, state the concentration.
-• The order of the dopants/additives must be the same as in the previous filed.
-• For layers with no dopants/additives, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
-• The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
+- For each dopant/additive in the layer, state the concentration.
+- The order of the dopants/additives must be the same as in the previous filed.
+- For layers with no dopants/additives, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
+- The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
 o wt%, mol%, vol%, ppt, ppm, ppb
-• When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
+- When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 5 vol%; nan | 10 mg/ml
@@ -3548,14 +3583,14 @@ Example
         shape=[],
         description="""
     The deposition procedures for the HTL-stack.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
-• Please read the instructions under “Perovskite. Deposition. Procedure” for descriptions and distinctions between common deposition procedures and how they should be labelled for consistency in the database.
-• A few additional clarifications:
-• Lamination
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
+- Please read the instructions under “Perovskite. Deposition. Procedure” for descriptions and distinctions between common deposition procedures and how they should be labelled for consistency in the database.
+- A few additional clarifications:
+- Lamination
 o A readymade film is transferred directly to the device stack. A rather broad concept. An everyday kitchen related example of lamination would eb to place a thin plastic film over a slice of pie.
-• Sandwiching
+- Sandwiching
 o When a readymade top stack simply is placed on top of the device stack. Could be held together with clams. The typical example is a when a “Carbon | FTO | SLG” is placed on top of the device stack. Standard procedure in the DSSC filed.
 Example
 Evaporation
@@ -3575,13 +3610,13 @@ Sandwiching
         shape=[],
         description="""
     The physical state of the reactants.
-• The three basic categories are Solid/Liquid/Gas
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
+- The three basic categories are Solid/Liquid/Gas
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
 o For a spray-coating procedure, it is droplets of liquid that enters the substrate (thus a liquid phase reaction)
 o For sputtering and thermal evaporation, it is species in gas phase that reaches the substrate (thus a gas phase reaction)
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Liquid
 Gas | Liquid
@@ -3595,14 +3630,14 @@ Liquid | Liquid >> Liquid
         shape=[],
         description="""
     The synthesis atmosphere.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Vacuum
 Vacuum | N2
@@ -3616,13 +3651,13 @@ Air | Ar; H2O >> Ar
         shape=[],
         description="""
     The total gas pressure during each reaction step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
 o atm, bar, mbar, mmHg, Pa, torr, psi
-• If a pressure is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
+- If a pressure is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
 Example
 1 atm
 0.002 torr | 10000 Pa
@@ -3636,11 +3671,11 @@ nan >> 1 atm | 1 atm
         shape=[],
         description="""
     The partial pressures for the gases present during each reaction step.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
-• In cases where no gas mixtures are used, this field will be the same as the previous filed.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
+- In cases where no gas mixtures are used, this field will be the same as the previous filed.
 Example
 1 atm
 0.002 torr | 10000 Pa
@@ -3654,11 +3689,11 @@ nan >> 0.99 atm; 0.01 atm | 1 atm
         shape=[],
         description="""
     The relative humidity during each deposition step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns
-• If the relative humidity for a step is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns
+- If the relative humidity for a step is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
 Example
 35
 0 | 20
@@ -3672,14 +3707,14 @@ nan >> 25 | 0
         shape=[],
         description="""
     The solvents used in each deposition procedure for each layer in the stack
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• For non-liquid processes with no solvents, state the solvent as ‘none’
-• If the solvent is not known, state this as ‘Unknown’
-• Use common abbreviations when appropriate but spell it out when risk for confusion
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- For non-liquid processes with no solvents, state the solvent as ‘none’
+- If the solvent is not known, state this as ‘Unknown’
+- Use common abbreviations when appropriate but spell it out when risk for confusion
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 none
 Acetonitile; Ethanol | Chlorobenzene
@@ -3693,14 +3728,14 @@ none >> Ethanol; Methanol; H2O | DMF; DMSO
         shape=[],
         description="""
     The mixing ratios for mixed solvents
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• For pure solvents, state the mixing ratio as 1
-• For non-solvent processes, state the mixing ratio as 1
-• For unknown mixing ratios, state the mixing ratio as ‘nan’
-• For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
-• The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- For pure solvents, state the mixing ratio as 1
+- For non-solvent processes, state the mixing ratio as 1
+- For unknown mixing ratios, state the mixing ratio as ‘nan’
+- For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
+- The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
 Example
 1
 4; 1 | 1
@@ -3714,13 +3749,13 @@ Example
         shape=[],
         description="""
     The suppliers of all the solvents.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• For non-liquid processes with no solvents, mark the supplier as ‘none’
-• If the supplier for a solvent is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- For non-liquid processes with no solvents, mark the supplier as ‘none’
+- If the supplier for a solvent is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -3734,14 +3769,14 @@ none >> Sigma Aldrich; Sigma Aldrich | Unknown
         shape=[],
         description="""
     The purity of the solvents used.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For non-liquid processes with no solvents, state the purity as ‘none’
-• If the purity for a solvent is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For non-liquid processes with no solvents, state the purity as ‘none’
+- If the purity for a solvent is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 Puris; Puris| Tecnical
@@ -3755,17 +3790,17 @@ none >> Pro analysis; Pro analysis | Unknown
         shape=[],
         description="""
     The non-solvent precursor chemicals used in each reaction step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
-• Note that also dopants/additives should be included
-• When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
-• The number and order of layers and reaction steps must line up with the previous columns.
-• For gas phase reactions, state the reaction gases as if they were in solution.
-• For solid-state reactions, state the compounds as if they were in solution.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• If the compounds for a deposition step is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
+- Note that also dopants/additives should be included
+- When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
+- The number and order of layers and reaction steps must line up with the previous columns.
+- For gas phase reactions, state the reaction gases as if they were in solution.
+- For solid-state reactions, state the compounds as if they were in solution.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- If the compounds for a deposition step is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Au
 CuI
@@ -3779,16 +3814,16 @@ Ag
         shape=[],
         description="""
     The suppliers of the non-solvent chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
-• For solid state reactions, state the suppliers for the compounds in the same way.
-• For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
-• For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
-• If the supplier for a compound is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
+- For solid state reactions, state the suppliers for the compounds in the same way.
+- For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
+- For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
+- If the supplier for a compound is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Dysole; Sigma Aldrich; Dyenamo; Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -3802,14 +3837,14 @@ Lab made (EPFL) | Sigma Aldrich >> none
         shape=[],
         description="""
     The purity of the non-solvent chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
-• If the purity for a compound is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
+- If the purity for a compound is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 99.999; Puris| Tecnical
@@ -3823,15 +3858,15 @@ Unknown >> Pro analysis; Pro analysis | none
         shape=[],
         description="""
     The concentration of the non-solvent precursor chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
-• The order of the compounds must be the same as in the previous filed.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
+- The order of the compounds must be the same as in the previous filed.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml, wt%, mol%, vol%, ppt, ppm, ppb
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 0.2 M; 0.15 M| 10 mg/ml
@@ -3845,11 +3880,11 @@ Example
         shape=[],
         description="""
     The volume of the reaction solutions
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
-• For reaction steps without solvents, state the volume as ‘nan’
-• When volumes are unknown, state that as ‘nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
+- For reaction steps without solvents, state the volume as ‘nan’
+- When volumes are unknown, state that as ‘nan’
 Example
 0.1
 0.1 >> 0.05 | 0.05
@@ -3863,12 +3898,12 @@ nan | 0.15
         shape=[],
         description="""
     The age of the solutions
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
-• When the age of a solution is not known, state that as ‘nan’
-• For reaction steps where no solvents are involved, state this as ‘nan’
-• For solutions that is stored a long time, an order of magnitude estimate is adequate.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
+- When the age of a solution is not known, state that as ‘nan’
+- For reaction steps where no solvents are involved, state this as ‘nan’
+- For solutions that is stored a long time, an order of magnitude estimate is adequate.
 Example
 2
 0.25 |1000 >> 10000
@@ -3882,13 +3917,13 @@ nan | nan
         shape=[],
         description="""
     The temperature of the reaction solutions.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
-• When the temperature of a solution is unknown, state that as ‘nan’
-• For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume an undetermined room temperature to be 25
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
+- When the temperature of a solution is unknown, state that as ‘nan’
+- For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume an undetermined room temperature to be 25
 Example
 25
 100; 50 | 25
@@ -3902,13 +3937,13 @@ nan | 25 >> 25
         shape=[],
         description="""
     The temperature of the substrate.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the temperatures of the substrates (i.e. the last deposited layer) associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The temperature of the substrate refers to the temperature when the deposition of the layer is occurring.
-• If a substrate undergoes a temperature program before the deposition, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• When the temperature of a substrate is not known, state that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume that an undetermined room temperature is 25
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the temperatures of the substrates (i.e. the last deposited layer) associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The temperature of the substrate refers to the temperature when the deposition of the layer is occurring.
+- If a substrate undergoes a temperature program before the deposition, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- When the temperature of a substrate is not known, state that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume that an undetermined room temperature is 25
 Example
 25
 nan
@@ -3922,12 +3957,12 @@ nan
         shape=[],
         description="""
     The temperatures of the thermal annealing program associated with depositing the layers
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
-• If the thermal annealing program is not known, state that by ‘nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
+- If the thermal annealing program is not known, state that by ‘nan’
 Example
 25
 50 | nan
@@ -3941,13 +3976,13 @@ Example
         shape=[],
         description="""
     The time program associated to the thermal annealing program.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
-• The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
-• If a time is not known, state that by ‘nan’
-• If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
+- The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
+- If a time is not known, state that by ‘nan’
+- If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
 Example
 nan
 60 | 1000
@@ -3961,15 +3996,15 @@ nan
         shape=[],
         description="""
     The atmosphere during thermal annealing
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the atmospheres associated to each annelaing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
-• This is often the same as the atmosphere under which the deposition is occurring, but not always.
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the atmospheres associated to each annelaing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
+- This is often the same as the atmosphere under which the deposition is occurring, but not always.
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 N2
@@ -3984,8 +4019,8 @@ Air | Ar >> Ar
         shape=[],
         description="""
     The time between the back contact is finalised and the next layer is deposited
-• If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
-• If this is the last layer in the stack, state this as ‘nan’
+- If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
+- If this is the last layer in the stack, state this as ‘nan’
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['Unknown'])))
@@ -4008,7 +4043,7 @@ Vacuum
         shape=[],
         description="""
     The relive humidity under which the sample with the finalised back contact is stored until the next deposition step or device performance measurement
-• If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
+- If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=[''])))
@@ -4018,9 +4053,9 @@ Vacuum
         shape=[],
         description="""
     Description of any type of surface treatment or other treatment the sample with the finalised back contact is stored until the next deposition step or device performance measurement
-• If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
-• If no special treatment, state that as ‘none’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
+- If no special treatment, state that as ‘none’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 none
@@ -4044,8 +4079,8 @@ UV-ozone
         shape=[],
         description="""
     The function of the additional layers on the backcontact side.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If a layer has more than one function, e.g. A and B, list the functions in order and separate them with semicolons, as in (A; B)
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If a layer has more than one function, e.g. A and B, list the functions in order and separate them with semicolons, as in (A; B)
 Example:
 A.R.C.
 Back reflection
@@ -4062,11 +4097,11 @@ Upconversion
         shape=[],
         description="""
     The stack sequence describing the additional layers on the backcontact side.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
-• Use common abbreviations when appropriate but spell it out if risk for confusion.
-• There are now separate filed for doping. Indicate doping with colons. E.g. wither aluminium doped NiO-np as Al:NiO-np
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
+- Use common abbreviations when appropriate but spell it out if risk for confusion.
+- There are now separate filed for doping. Indicate doping with colons. E.g. wither aluminium doped NiO-np as Al:NiO-np
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['MgF2', 'Unknown'])))
@@ -4076,11 +4111,11 @@ Upconversion
         shape=[],
         description="""
     A list of thicknesses of the individual layers in the stack.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous filed.
-• State thicknesses in nm
-• Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
-• If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- The layers must line up with the previous filed.
+- State thicknesses in nm
+- Every layer in the stack have a thickness. If it is unknown, state this as ‘nan’
+- If there are uncertainties, state the best estimate, e.g write 100 and not 90-110
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', '105.0', '90.0'])))
@@ -4090,12 +4125,12 @@ Upconversion
         shape=[],
         description="""
     List of the dopants and additives that are in each layer of the HTL-stack
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• The layers must line up with the previous fields.
-• If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolons, as in (A; B)
-• If no dopants/additives, state that as “Undoped”
-• If the doping situation is unknown, stat that as‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- The layers must line up with the previous fields.
+- If several dopants/additives, e.g. A and B, are present in one layer, list the dopants/additives in alphabetic order and separate them with semicolons, as in (A; B)
+- If no dopants/additives, state that as “Undoped”
+- If the doping situation is unknown, stat that as‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template, even if to most common back contacts is undoped metals
 Example
 CuS
@@ -4110,18 +4145,18 @@ Au-np | Undoped
         shape=[],
         description="""
     The concentration of the dopants/additives.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
-• For each dopant/additive in the layer, state the concentration.
-• The order of the dopants/additives must be the same as in the previous filed.
-• For layers with no dopants/additives, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
-• The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If more than one dopant/additive in the layer, e.g. A and B, separate the concentration for each dopant/additive with semicolons, as in (A; B)
+- For each dopant/additive in the layer, state the concentration.
+- The order of the dopants/additives must be the same as in the previous filed.
+- For layers with no dopants/additives, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used.
+- The preferred way to state the concentration of a dopant/additive is to refer to the amount in the final product, i.e. the material in the layer. When possible, use on the preferred units
 o wt%, mol%, vol%, ppt, ppm, ppb
-• When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
+- When the concentration of the dopant/additive in the final product is unknown, but where the concentration of the dopant/additive in the solution is known, state that concentration instead. When possible, use on the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 5 vol%; nan | 10 mg/ml
@@ -4135,14 +4170,14 @@ Example
         shape=[],
         description="""
     The deposition procedures for the HTL-stack.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
-• Please read the instructions under “Perovskite. Deposition. Procedure” for descriptions and distinctions between common deposition procedures and how they should be labelled for consistency in the database.
-• A few additional clarifications:
-• Lamination
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate them by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Thermal annealing is generally not considered as an individual reaction step. The philosophy behind this is that every deposition step has a thermal history, which is specified in a separate filed. In exceptional cases with thermal annealing procedures clearly disconnected from other procedures, state ‘Thermal annealing’ as a separate reaction step.
+- Please read the instructions under “Perovskite. Deposition. Procedure” for descriptions and distinctions between common deposition procedures and how they should be labelled for consistency in the database.
+- A few additional clarifications:
+- Lamination
 o A readymade film is transferred directly to the device stack. A rather broad concept. An everyday kitchen related example of lamination would eb to place a thin plastic film over a slice of pie.
-• Sandwiching
+- Sandwiching
 o When a readymade top stack simply is placed on top of the device stack. Could be held together with clams. The typical example is a when a “Carbon | FTO | SLG” is placed on top of the device stack. Standard procedure in the DSSC filed.
 Example
 Evaporation
@@ -4162,13 +4197,13 @@ Sandwiching
         shape=[],
         description="""
     The physical state of the reactants.
-• The three basic categories are Solid/Liquid/Gas
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
+- The three basic categories are Solid/Liquid/Gas
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the aggregation state associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- Most cases are clear cut, e.g. spin-coating involves species in solution and evaporation involves species in gas phase. For less clear-cut cases, consider where the reaction really is happening as in:
 o For a spray-coating procedure, it is droplets of liquid that enters the substrate (thus a liquid phase reaction)
 o For sputtering and thermal evaporation, it is species in gas phase that reaches the substrate (thus a gas phase reaction)
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Liquid
 Gas | Liquid
@@ -4182,14 +4217,14 @@ Liquid | Liquid >> Liquid
         shape=[],
         description="""
     The synthesis atmosphere.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the atmospheres associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Vacuum
 Vacuum | N2
@@ -4203,13 +4238,13 @@ Air | Ar; H2O >> Ar
         shape=[],
         description="""
     The total gas pressure during each reaction step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- Pressures can be stated in different units suited for different situations. Therefore, specify the unit. The preferred units are:
 o atm, bar, mbar, mmHg, Pa, torr, psi
-• If a pressure is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
+- If a pressure is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 100 pa and not 80-120 pa.
 Example
 1 atm
 0.002 torr | 10000 Pa
@@ -4223,11 +4258,11 @@ nan >> 1 atm | 1 atm
         shape=[],
         description="""
     The partial pressures for the gases present during each reaction step.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
-• In cases where no gas mixtures are used, this field will be the same as the previous filed.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the pressures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the synthesis atmosphere is a mixture of different gases, e.g. A and B, list the partial pressures and separate them with semicolons, as in (A; B). The list of partial pressures must line up with the gases they describe.
+- In cases where no gas mixtures are used, this field will be the same as the previous filed.
 Example
 1 atm
 0.002 torr | 10000 Pa
@@ -4241,11 +4276,11 @@ nan >> 0.99 atm; 0.01 atm | 1 atm
         shape=[],
         description="""
     The relative humidity during each deposition step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns
-• If the relative humidity for a step is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the relative humidity associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns
+- If the relative humidity for a step is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
 Example
 35
 0 | 20
@@ -4259,14 +4294,14 @@ nan >> 25 | 0
         shape=[],
         description="""
     The solvents used in each deposition procedure for each layer in the stack
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• For non-liquid processes with no solvents, state the solvent as ‘none’
-• If the solvent is not known, state this as ‘Unknown’
-• Use common abbreviations when appropriate but spell it out when risk for confusion
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvents associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the solvents in alphabetic order and separate them with semicolons, as in (A; B)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- For non-liquid processes with no solvents, state the solvent as ‘none’
+- If the solvent is not known, state this as ‘Unknown’
+- Use common abbreviations when appropriate but spell it out when risk for confusion
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 none
 Acetonitile; Ethanol | Chlorobenzene
@@ -4280,14 +4315,14 @@ none >> Ethanol; Methanol; H2O | DMF; DMSO
         shape=[],
         description="""
     The mixing ratios for mixed solvents
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• For pure solvents, state the mixing ratio as 1
-• For non-solvent processes, state the mixing ratio as 1
-• For unknown mixing ratios, state the mixing ratio as ‘nan’
-• For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
-• The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent mixing ratios associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- For pure solvents, state the mixing ratio as 1
+- For non-solvent processes, state the mixing ratio as 1
+- For unknown mixing ratios, state the mixing ratio as ‘nan’
+- For solvent mixtures, i.e. A and B, state the mixing ratios by using semicolons, as in (VA; VB)
+- The preferred metrics is the volume ratios. If that is not available, mass or mol ratios can be used instead, but it the analysis the mixing ratios will be assumed to be based on volumes.
 Example
 1
 4; 1 | 1
@@ -4301,13 +4336,13 @@ Example
         shape=[],
         description="""
     The suppliers of all the solvents.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• For non-liquid processes with no solvents, mark the supplier as ‘none’
-• If the supplier for a solvent is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- For non-liquid processes with no solvents, mark the supplier as ‘none’
+- If the supplier for a solvent is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -4321,14 +4356,14 @@ none >> Sigma Aldrich; Sigma Aldrich | Unknown
         shape=[],
         description="""
     The purity of the solvents used.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For non-liquid processes with no solvents, state the purity as ‘none’
-• If the purity for a solvent is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the solvent purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solvent is a mixture of different solvents, e.g. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For non-liquid processes with no solvents, state the purity as ‘none’
+- If the purity for a solvent is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 Puris; Puris| Tecnical
@@ -4342,17 +4377,17 @@ none >> Pro analysis; Pro analysis | Unknown
         shape=[],
         description="""
     The non-solvent precursor chemicals used in each reaction step
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
-• Note that also dopants/additives should be included
-• When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
-• The number and order of layers and reaction steps must line up with the previous columns.
-• For gas phase reactions, state the reaction gases as if they were in solution.
-• For solid-state reactions, state the compounds as if they were in solution.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• If the compounds for a deposition step is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the non-solvent chemicals associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several compounds, e.g. A and B, list the associated compounds in alphabetic order and separate them with semicolons, as in (A; B)
+- Note that also dopants/additives should be included
+- When several precursor solutions are made and mixed before the reaction step, it is the properties of the final mixture used in the reaction we here describe.
+- The number and order of layers and reaction steps must line up with the previous columns.
+- For gas phase reactions, state the reaction gases as if they were in solution.
+- For solid-state reactions, state the compounds as if they were in solution.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- If the compounds for a deposition step is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Au
 CuI
@@ -4366,16 +4401,16 @@ Ag
         shape=[],
         description="""
     The suppliers of the non-solvent chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
-• For solid state reactions, state the suppliers for the compounds in the same way.
-• For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
-• For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
-• If the supplier for a compound is unknown, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the non-solvent chemical suppliers associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated suppliers and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- For gas phase reactions, state the suppliers for the gases or the targets/evaporation sources that are evaporated/sputtered/etc.
+- For solid state reactions, state the suppliers for the compounds in the same way.
+- For reaction steps involving only pure solvents, state the supplier as ‘none’ (as that that is entered in a separate filed)
+- For chemicals that are lab made, state that as “Lab made” or “Lab made (name of lab)”
+- If the supplier for a compound is unknown, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Dysole; Sigma Aldrich; Dyenamo; Sigma Aldrich
 Sigma Aldrich; Fisher | Acros
@@ -4389,14 +4424,14 @@ Lab made (EPFL) | Sigma Aldrich >> none
         shape=[],
         description="""
     The purity of the non-solvent chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
-• The number and order of layers, reaction steps, and solvents must line up with the previous columns.
-• Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
-• For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
-• If the purity for a compound is not known, state this as ‘Unknown’
-• This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the compound purities associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, i.e. A and B, list the associated purities and separate them with semicolons, as in (A; B)
+- The number and order of layers, reaction steps, and solvents must line up with the previous columns.
+- Use standard nomenclature for purities, e.g. pro analysis, puris, extra dry, etc.
+- For reaction steps involving only pure solvents, state this as ‘none’ (as that is stated in another field)
+- If the purity for a compound is not known, state this as ‘Unknown’
+- This category was included after the projects initial phase wherefor the list of reported categories is short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Pro analysis
 99.999; Puris| Tecnical
@@ -4410,15 +4445,15 @@ Unknown >> Pro analysis; Pro analysis | none
         shape=[],
         description="""
     The concentration of the non-solvent precursor chemicals.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
-• The order of the compounds must be the same as in the previous filed.
-• For reaction steps involving only pure solvents, state this as ‘none’
-• When concentrations are unknown, state that as ‘nan’
-• Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the concentrations associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a solution contains several dissolved compounds, e.g. A and B, list the associated concentrations and separate them with semicolons, as in (A; B)
+- The order of the compounds must be the same as in the previous filed.
+- For reaction steps involving only pure solvents, state this as ‘none’
+- When concentrations are unknown, state that as ‘nan’
+- Concentrations can be stated in different units suited for different situations. Therefore, specify the unit used. When possible, use one of the preferred units
 o M, mM, molal; g/ml, mg/ml, µg/ml, wt%, mol%, vol%, ppt, ppm, ppb
-• For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
+- For values with uncertainties, state the best estimate, e.g write 4 wt% and not 3-5 wt%.
 Example
 4 wt%
 0.2 M; 0.15 M| 10 mg/ml
@@ -4432,11 +4467,11 @@ Example
         shape=[],
         description="""
     The volume of the reaction solutions
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
-• For reaction steps without solvents, state the volume as ‘nan’
-• When volumes are unknown, state that as ‘nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the volumes associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The volumes refer the volumes used, not the volume of the stock solutions. Thus if 0.15 ml of a solution is spin-coated, the volume is 0.15 ml
+- For reaction steps without solvents, state the volume as ‘nan’
+- When volumes are unknown, state that as ‘nan’
 Example
 0.1
 0.1 >> 0.05 | 0.05
@@ -4450,12 +4485,12 @@ nan | 0.15
         shape=[],
         description="""
     The age of the solutions
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
-• When the age of a solution is not known, state that as ‘nan’
-• For reaction steps where no solvents are involved, state this as ‘nan’
-• For solutions that is stored a long time, an order of magnitude estimate is adequate.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the age of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- As a general guideline, the age refers to the time from the preparation of the final precursor mixture to the reaction procedure.
+- When the age of a solution is not known, state that as ‘nan’
+- For reaction steps where no solvents are involved, state this as ‘nan’
+- For solutions that is stored a long time, an order of magnitude estimate is adequate.
 Example
 2
 0.25 |1000 >> 10000
@@ -4469,13 +4504,13 @@ nan | nan
         shape=[],
         description="""
     The temperature of the reaction solutions.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
-• When the temperature of a solution is unknown, state that as ‘nan’
-• For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume an undetermined room temperature to be 25
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the temperatures of the solutions associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If a reaction solution undergoes a temperature program, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons, e.g. 25; 100
+- When the temperature of a solution is unknown, state that as ‘nan’
+- For reaction steps where no solvents are involved, state the temperature of the gas or the solid if that make sense. Otherwise state this as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume an undetermined room temperature to be 25
 Example
 25
 100; 50 | 25
@@ -4489,13 +4524,13 @@ nan | 25 >> 25
         shape=[],
         description="""
     The temperature of the substrate.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the temperatures of the substrates (i.e. the last deposited layer) associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The temperature of the substrate refers to the temperature when the deposition of the layer is occurring.
-• If a substrate undergoes a temperature program before the deposition, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• When the temperature of a substrate is not known, state that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• Assume that an undetermined room temperature is 25
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the temperatures of the substrates (i.e. the last deposited layer) associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The temperature of the substrate refers to the temperature when the deposition of the layer is occurring.
+- If a substrate undergoes a temperature program before the deposition, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- When the temperature of a substrate is not known, state that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- Assume that an undetermined room temperature is 25
 Example
 25
 nan
@@ -4509,12 +4544,12 @@ nan
         shape=[],
         description="""
     The temperatures of the thermal annealing program associated with depositing the layers
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
-• For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
-• If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
-• If the thermal annealing program is not known, state that by ‘nan’
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the annealing temperatures associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the temperatures (e.g. start, end, and other important points) and separate them with semicolons (e.g. 25; 100)
+- For values with uncertainties, state the best estimate, e.g. write 120 and not 110-130.
+- If no thermal annealing is occurring after the deposition of a layer, state that by stating the room temperature (assumed to 25°C if not further specified)
+- If the thermal annealing program is not known, state that by ‘nan’
 Example
 25
 50 | nan
@@ -4528,13 +4563,13 @@ Example
         shape=[],
         description="""
     The time program associated to the thermal annealing program.
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
-• The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
-• If a time is not known, state that by ‘nan’
-• If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the annealing times associated to each reaction step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the thermal annealing involves a temperature program with multiple temperature stages, list the associated times at those temperatures and separate them with semicolons.
+- The annealing times must align in terms of layers¸ reaction steps and annealing temperatures in the previous filed.
+- If a time is not known, state that by ‘nan’
+- If no thermal annealing is occurring after the deposition of a layer, state that by ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 20 and not 10-30.
 Example
 nan
 60 | 1000
@@ -4548,15 +4583,15 @@ nan
         shape=[],
         description="""
     The atmosphere during thermal annealing
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• When more than one reaction step, separate the atmospheres associated to each annelaing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• The number and order of layers and deposition steps must line up with the previous columns.
-• If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
-• This is often the same as the atmosphere under which the deposition is occurring, but not always.
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- When more than one reaction step, separate the atmospheres associated to each annelaing step by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- The number and order of layers and deposition steps must line up with the previous columns.
+- If the atmosphere is a mixture of different gases, i.e. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas.
+- This is often the same as the atmosphere under which the deposition is occurring, but not always.
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 N2
@@ -4571,8 +4606,8 @@ Air | Ar >> Ar
         shape=[],
         description="""
     The time between the back contact is finalised and the next layer is deposited
-• If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
-• If this is the last layer in the stack, state this as ‘nan’
+- If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
+- If this is the last layer in the stack, state this as ‘nan’
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['Unknown'])))
@@ -4595,7 +4630,7 @@ Vacuum
         shape=[],
         description="""
     The relive humidity under which the sample with the finalised back contact is stored until the next deposition step or device performance measurement
-• If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
+- If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=[''])))
@@ -4605,9 +4640,9 @@ Vacuum
         shape=[],
         description="""
     Description of any type of surface treatment or other treatment the sample with the finalised back contact is stored until the next deposition step or device performance measurement
-• If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
-• If no special treatment, state that as ‘none’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If more than one treatment, list the treatments and separate them by a double forward angel bracket (‘ >> ‘)
+- If no special treatment, state that as ‘none’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 none
@@ -4619,6 +4654,7 @@ UV-ozone
 
 
 class Encapsulation(MSection):
+    """A section to describe information about the encapsulation of the device."""
 
     Encapsulation = Quantity(
         type=bool,
@@ -4634,10 +4670,10 @@ class Encapsulation(MSection):
         shape=[],
         description="""
     The stack sequence of the encapsulation
-• Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
-• If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
-• Use common abbreviations when appropriate but spell it out if risk for confusion.
-• There are now separate filed for doping. Indicate doping with colons. E.g. wither aluminium doped NiO-np as Al:NiO-np
+- Every layer should be separated by a space, a vertical bar, and a space, i.e. (‘ | ‘)
+- If two materials, e.g. A and B, are mixed in one layer, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
+- Use common abbreviations when appropriate but spell it out if risk for confusion.
+- There are now separate filed for doping. Indicate doping with colons. E.g. wither aluminium doped NiO-np as Al:NiO-np
 Example:
 SLG
 Epoxy
@@ -4652,7 +4688,7 @@ PMMA
         shape=[],
         description="""
     Edge sealing materials
-• If two materials, e.g. A and Bare used, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
+- If two materials, e.g. A and Bare used, list the materials in alphabetic order and separate them with semicolons, as in (A; B)
 Example:
 Epoxy
 Surlyn
@@ -4666,10 +4702,10 @@ UV-glue
         shape=[],
         description="""
     The surrounding atmosphere during encapsulation.
-• If the surrounding atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
+- If the surrounding atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
 Example
 N2
 Vacuum
@@ -4683,7 +4719,7 @@ Air
         shape=[],
         description="""
     The water vapour transmission rate trough the encapsulation.
-• If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
+- If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -4693,7 +4729,7 @@ Air
         shape=[],
         description="""
     The oxygen transmission rate trough the encapsulation.
-• If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
+- If there are uncertainties, only state the best estimate, e.g. write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -4738,6 +4774,11 @@ class JVcurve(MSection):
 
 
 class JV(MSection):
+    """
+    This section descirbes the current density *J* and voltage *V* characteristics
+    of the solar cell. It includes the device parameters and information about how the
+    measurements were performed.
+    """
 
     data_file = Quantity(
         type=str,
@@ -4758,9 +4799,9 @@ class JV(MSection):
         shape=[],
         description="""
     The number of cells the reported IV data is based on.
-• The preferred way to enter data is to give every individual cell its own entry in the data template/data base. If that is done, the data is an average over 1 cell.
-• If the reported IV data is not the data from one individual cell, but an average over N cells. Give the number of cells.
-• If the reported value is an average, but it is unknown over how many cells the value has been averaged (and no good estimate is available), state the number of cells as 2, which is the smallest number of cells that qualifies for an averaging procedure.
+- The preferred way to enter data is to give every individual cell its own entry in the data template/data base. If that is done, the data is an average over 1 cell.
+- If the reported IV data is not the data from one individual cell, but an average over N cells. Give the number of cells.
+- If the reported value is an average, but it is unknown over how many cells the value has been averaged (and no good estimate is available), state the number of cells as 2, which is the smallest number of cells that qualifies for an averaging procedure.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -4792,7 +4833,7 @@ KIER, Korea Institute of Energy Research
         shape=[],
         description="""
     The age of the cell with respect to when the last deposition step was finalised.
-• If there are uncertainties, only state the best estimate, e.g. write 3 and not 1-5.
+- If there are uncertainties, only state the best estimate, e.g. write 3 and not 1-5.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['1.0', 'Unknown', '7.0', '4.0', '2.0', '28.0', '58.0', '8.0', '0.01', '0.5', '5.0', '6.0'])))
@@ -4802,12 +4843,12 @@ KIER, Korea Institute of Energy Research
         shape=[],
         description="""
     The atmosphere in which the sample was stored between the device finalisation and the IV measurement.
-• If the atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
-• If the atmosphere has changed during the storing time, separate the different atmospheres by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If the atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
+- If the atmosphere has changed during the storing time, separate the different atmospheres by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 N2
@@ -4822,9 +4863,9 @@ N2 >> Air
         shape=[],
         description="""
     The relative humidity in the atmosphere in which the sample was stored between the device finalisation and the IV measurement.
-• If the relative humidity has changed during the storing time, separate the different relative humidity by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
-• If the relative humidity is not known, stat that as ‘nan’
-• For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
+- If the relative humidity has changed during the storing time, separate the different relative humidity by a double forward angel bracket with one blank space on both sides (‘ >> ‘)
+- If the relative humidity is not known, stat that as ‘nan’
+- For values with uncertainties, state the best estimate, e.g. write 35 and not 30-40.
 Example
 35
 0
@@ -4838,10 +4879,10 @@ Example
         shape=[],
         description="""
     The atmosphere in which the IV measurement is conducted
-• If the atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
+- If the atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
 Example
 Air
 N2
@@ -4855,8 +4896,8 @@ Vacuum
         shape=[],
         description="""
     The relive humidity in which the IV measurement is conducted
-• If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
-• If the relative humidity is not known, stat that as ‘nan’
+- If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
+- If the relative humidity is not known, stat that as ‘nan’
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -4867,8 +4908,8 @@ Vacuum
         shape=[],
         description="""
     The temperature of the device during the IV-measurement
-• If the temperature is not controlled and not is known, assume a standard room temperature of 25°C.
-• If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
+- If the temperature is not controlled and not is known, assume a standard room temperature of 25°C.
+- If there are uncertainties, only state the best estimate, e.g write 35 and not 20-50.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -4878,9 +4919,9 @@ Vacuum
         shape=[],
         description="""
     The type of light source used during the IV-measurement
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
-• The category Solar simulator should only be used when you do not really know which type of light source you have in your solar simulator.
+- The category Solar simulator should only be used when you do not really know which type of light source you have in your solar simulator.
 Example:
 Laser
 Metal halide
@@ -4898,7 +4939,7 @@ Xenon plasma
         shape=[],
         description="""
     The brand name and model number of the light source/solar simulator used
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 Newport model 91192
@@ -4913,7 +4954,7 @@ Atlas suntest
         shape=[],
         description="""
     The class of the solar simulator
-• A three-letter code of As, Bs, and Cs. The order of the letters represents the quality ofspectral match, spatial non-uniformity, and temporal instability
+- A three-letter code of As, Bs, and Cs. The order of the letters represents the quality ofspectral match, spatial non-uniformity, and temporal instability
 Example
 AAA
 ABB
@@ -4928,9 +4969,9 @@ CAB
         shape=[],
         description="""
     The light intensity during the IV measurement
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• Standard AM 1.5 illumination correspond to 100 mW/cm2
-• If you need to convert from illumination given in lux; at 550 nm, 1 mW/cm2 corresponds to 6830 lux. Be aware that the conversion change with the spectrum used. As a rule of thumb for general fluorescent/LED light sources, around 0.31mW corresponded to 1000 lux. If your light intensity is measured in lux, it probably means that your light spectra deviates quite a lot from AM 1.5, wherefore it is very important that you also specify the light spectra in the next column.
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- Standard AM 1.5 illumination correspond to 100 mW/cm2
+- If you need to convert from illumination given in lux; at 550 nm, 1 mW/cm2 corresponds to 6830 lux. Be aware that the conversion change with the spectrum used. As a rule of thumb for general fluorescent/LED light sources, around 0.31mW corresponded to 1000 lux. If your light intensity is measured in lux, it probably means that your light spectra deviates quite a lot from AM 1.5, wherefore it is very important that you also specify the light spectra in the next column.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -4956,10 +4997,10 @@ UV
         shape=[],
         description="""
     The wavelength range of the light source
-• Separate the lower and upper bound by a semicolon.
-• For monochromatic light sources, only give the constant value.
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• State unknown values as ‘nan’
+- Separate the lower and upper bound by a semicolon.
+- For monochromatic light sources, only give the constant value.
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- State unknown values as ‘nan’
 Example:
 330; 1000
 400; nan
@@ -4973,9 +5014,9 @@ Example:
         shape=[],
         description="""
     The direction of the illumination with respect to the device stack
-• If the cell is illuminated trough the substrate, state this as ‘Substrate’
-• If the cell is illuminated trough the top contact, state this as ‘Superstrate’
-• For back contacted cells illuminated from the non-contacted side, state this as ‘Superstrate’
+- If the cell is illuminated trough the substrate, state this as ‘Substrate’
+- If the cell is illuminated trough the top contact, state this as ‘Superstrate’
+- For back contacted cells illuminated from the non-contacted side, state this as ‘Superstrate’
 Example
 Substrate
 Superstrate
@@ -4998,8 +5039,8 @@ Superstrate
         shape=[],
         description="""
     The area of the opening in the mask trough with the cell is illuminated (if there is a mask)
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• If there is no light mask, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- If there is no light mask, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5020,9 +5061,9 @@ Superstrate
         shape=[],
         description="""
     The time at each potential value before integration in the potential sweep.
-• For some potentiostats you need to specify this value, whereas for others it is set automatically and is not directly accessible.
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• If unknown, leave this field empty.
+- For some potentiostats you need to specify this value, whereas for others it is set automatically and is not directly accessible.
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- If unknown, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5033,9 +5074,9 @@ Superstrate
         shape=[],
         description="""
     The integration time at each potential value in the potential sweep.
-• For some potentiostats you need to specify this value, whereas for others it is set automatically and is not directly accessible.
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• If unknown, leave this field empty.
+- For some potentiostats you need to specify this value, whereas for others it is set automatically and is not directly accessible.
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- If unknown, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5046,7 +5087,7 @@ Superstrate
         shape=[],
         description="""
     The distance between the measurement point in the potential sweep
-• If unknown, leave this field empty.
+- If unknown, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5056,9 +5097,9 @@ Superstrate
         shape=[],
         description="""
     Any preconditioning protocol done immediately before the IV measurement
-• If no preconditioning was done, state this as ‘none’
-• If more than one preconditioning protocol was conducted in parallel, separate them with semicolons
-• If more than one preconditioning protocol was conducted in sequence, separate them by a double forward angel bracket (‘ >> ‘)
+- If no preconditioning was done, state this as ‘none’
+- If more than one preconditioning protocol was conducted in parallel, separate them with semicolons
+- If more than one preconditioning protocol was conducted in sequence, separate them by a double forward angel bracket (‘ >> ‘)
 Example
 Cooling
 Heeting
@@ -5075,8 +5116,8 @@ Potential biasing
         shape=[],
         description="""
     The duration of the preconditioning protocol
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5087,8 +5128,8 @@ Potential biasing
         shape=[],
         description="""
     The potential at any potential biasing step
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5099,8 +5140,8 @@ Potential biasing
         shape=[],
         description="""
     The light intensity at any light soaking step
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5111,9 +5152,9 @@ Potential biasing
         shape=[],
         description="""
     The open circuit potential, Voc, at the reverse voltage sweep (when U scanned from Voc to 0)
-• Give Voc in volts [V]
-• If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
-• If unknown or not applicable, leave this field empty.
+- Give Voc in volts [V]
+- If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5124,9 +5165,9 @@ Potential biasing
         shape=[],
         description="""
     The short circuit current, Jsc, at the reverse voltage sweep (when U scanned from Voc to 0)
-• Give Jsc in mA/cm2
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give Jsc in mA/cm2
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5136,9 +5177,9 @@ Potential biasing
         shape=[],
         description="""
     The fill factor, FF, at the reverse voltage sweep (when U scanned from Voc to 0)
-• Give FF as the ratio between Vmp*Jmp/(Voc*Jsc) which gives it a value between 0 and 1
-• If there are uncertainties, only state the best estimate, e.g. write 0.73 and not 0.7-0.76
-• If unknown or not applicable, leave this field empty.
+- Give FF as the ratio between Vmp*Jmp/(Voc*Jsc) which gives it a value between 0 and 1
+- If there are uncertainties, only state the best estimate, e.g. write 0.73 and not 0.7-0.76
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5148,9 +5189,9 @@ Potential biasing
         shape=[],
         description="""
     The efficiency, PCE, at the reverse voltage sweep (when U scanned from Voc to 0)
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5161,9 +5202,9 @@ Potential biasing
         shape=[],
         description="""
     The potential at the maximum power point, Vmp, at the reverse voltage sweep (when U scanned from Voc to 0)
-• Give Vmp in volts [V]
-• If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
-• If unknown or not applicable, leave this field empty.
+- Give Vmp in volts [V]
+- If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5174,9 +5215,9 @@ Potential biasing
         shape=[],
         description="""
     The current density at the maximum power point, Jmp, at the reverse voltage sweep (when U scanned from Voc to 0)
-• Give Jmp in mA/cm2
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give Jmp in mA/cm2
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5207,9 +5248,9 @@ Potential biasing
         shape=[],
         description="""
     The open circuit potential, Voc, at the forward voltage sweep (when U scanned from 0 to Voc)
-• Give Voc in volts [V]
-• If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
-• If unknown or not applicable, leave this field empty.
+- Give Voc in volts [V]
+- If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5220,9 +5261,9 @@ Potential biasing
         shape=[],
         description="""
     The short circuit current, Jsc, at the forward voltage sweep (when U scanned from 0 to Voc)
-• Give Jsc in mA/cm2
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give Jsc in mA/cm2
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5232,9 +5273,9 @@ Potential biasing
         shape=[],
         description="""
     The fill factor, FF, at the forward voltage sweep (when U scanned from 0 to Voc)
-• Give FF as the ratio between Vmp*Jmp/(Voc*Jsc) which gives it a value between 0 and 1
-• If there are uncertainties, only state the best estimate, e.g. write 0.73 and not 0.7-0.76
-• If unknown or not applicable, leave this field empty.
+- Give FF as the ratio between Vmp*Jmp/(Voc*Jsc) which gives it a value between 0 and 1
+- If there are uncertainties, only state the best estimate, e.g. write 0.73 and not 0.7-0.76
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5244,9 +5285,9 @@ Potential biasing
         shape=[],
         description="""
     The efficiency, PCE, at the forward voltage sweep (when U scanned from 0 to Voc)
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5257,9 +5298,9 @@ Potential biasing
         shape=[],
         description="""
     The potential at the maximum power point, Vmp, at the forward voltage sweep (when U scanned from 0 to Voc)
-• Give Vmp in volts [V]
-• If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
-• If unknown or not applicable, leave this field empty.
+- Give Vmp in volts [V]
+- If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5270,9 +5311,9 @@ Potential biasing
         shape=[],
         description="""
     The current density at the maximum power point, Jmp, at the forward voltage sweep (when U scanned from 0 to Voc)
-• Give Jmp in mA/cm2
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give Jmp in mA/cm2
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5302,7 +5343,7 @@ Potential biasing
         shape=[],
         description="""
     A link to where the data file for the IV-data is stored
-• This is a beta feature. The plan is to create a file repository where the raw files for IV data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw IV-data.
+- This is a beta feature. The plan is to create a file repository where the raw files for IV data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw IV-data.
                     """)
 
     default_Voc = Quantity(
@@ -5451,13 +5492,16 @@ Potential biasing
 
 
 class Stabilised(MSection):
+    """
+    A section describing if a stabilised efficiency has been measured in the solar cell.
+    """
 
     performance_measured = Quantity(
         type=bool,
         shape=[],
         description="""
     TRUE if a stabilised cell efficiency has been measured
-• A stabilised efficiency requires a continuous measurement. Measuring an IV-curve, storing the cell in the dark for a while, and then measure a new IV-curve does thus not count as a stabilised efficiency measurement.
+- A stabilised efficiency requires a continuous measurement. Measuring an IV-curve, storing the cell in the dark for a while, and then measure a new IV-curve does thus not count as a stabilised efficiency measurement.
                     """,
         a_eln=dict(
             component='BoolEditQuantity'))
@@ -5482,9 +5526,9 @@ Short circuit
         shape=[],
         description="""
     The metrics associated to the load condition in the previous filed
-• For measurement under constant current, state the current in mA/cm2
-• For measurement under constant potential. State the potential in V
-• For a measurement under constant resistive load, state the resistance in ohm
+- For measurement under constant current, state the current in mA/cm2
+- For measurement under constant potential. State the potential in V
+- For a measurement under constant resistive load, state the resistance in ohm
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', '0.8', '0.82', '0.885', '0.99', '0.64', '0.91', '0.757', '0.97', '0.76', '0.92', '0.7959999999999999', '0.895', '0.96', '1.19', '0.85', '0.94', '0.61', '0.83', '1.31', '0.87', '0.9', '0.86', '0.78', '0.93', '0.74', '0.79', '0.867', '0.98', '0.73', '1.3', '0.8140000000000001', '0.8740000000000001', '0.8590000000000001', '1.23', '0.81', '0.818', '0.71', '0.75', '1.0', '0.62', '0.66', '0.88', '0.84', '0.95', '0.72', '0.77', '1.35'])))
@@ -5504,9 +5548,9 @@ Short circuit
         shape=[],
         description="""
     The stabilised efficiency, PCE
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5517,9 +5561,9 @@ Short circuit
         shape=[],
         description="""
     The stabilised Vmp
-• Give Vmp in volts [V]
-• If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
-• If unknown or not applicable, leave this field empty.
+- Give Vmp in volts [V]
+- If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5530,9 +5574,9 @@ Short circuit
         shape=[],
         description="""
     The stabilised Jmp
-• Give Jmp in mA/cm2
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give Jmp in mA/cm2
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5542,13 +5586,19 @@ Short circuit
         shape=[],
         description="""
     A link to where the data file for the stability measurement is stored
-• This is a beta feature. The plan is to create a file repository where the raw files for IV data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw IV-data.
+- This is a beta feature. The plan is to create a file repository where the raw files for IV data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw IV-data.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', 'false', 'www.testsite…'])))
 
 
 class EQE(MSection):
+    """
+    A section describing the External Quantum Efficiency **EQE** of the solar cell
+    and additional parameteres derived from it. If used as an ELN, a file containing
+    the EQE spectrum in columns can be uploaded in the quantity `data_file` to process
+    automatic calculations of several parameteres like the `bandgap` or `Urbach energy`.
+    """
 
     m_def = Section(
         a_eln=dict(lane_width='600px'),
@@ -5598,8 +5648,8 @@ class EQE(MSection):
         shape=[],
         description="""
     The light intensity of any bias light during the EQE measurement
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5620,9 +5670,9 @@ class EQE(MSection):
         shape=[],
         description="""
     The integrated current from the EQE measurement
-• Give Jsc in mA/cm2
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give Jsc in mA/cm2
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5633,9 +5683,9 @@ class EQE(MSection):
         shape=[],
         description="""
     The integrated J<sub>{0, Rad}</sub> from the EQE measurement
-• Give J<sub>{0, Rad}</sub> in mA/cm2
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give J<sub>{0, Rad}</sub> in mA/cm2
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5727,7 +5777,7 @@ class EQE(MSection):
         shape=[],
         description="""
     A link to where the data file for the EQE measurement is stored
-• This is a beta feature. The plan is to create a file repository where the raw files for IV data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw IV-data.
+- This is a beta feature. The plan is to create a file repository where the raw files for IV data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw IV-data.
                     """)
 
     def normalize(self, archive, logger):
@@ -5756,13 +5806,16 @@ class EQE(MSection):
 
 
 class Stability(MSection):
+    """
+    A section decsirbing the stability measurements performed in the device.
+    """
 
     measured = Quantity(
         type=bool,
         shape=[],
         description="""
     TRUE if some kind of stability measurement has been done.
-• There is no sharp boundary between a stability measurement and a measurement of stabilised efficiency. Generally, a measurement under a few minutes is considered as a measurement of stabilised efficiency, whereas a stability measurement is sufficiently long for degradation to be seen (unless the device is really good)
+- There is no sharp boundary between a stability measurement and a measurement of stabilised efficiency. Generally, a measurement under a few minutes is considered as a measurement of stabilised efficiency, whereas a stability measurement is sufficiently long for degradation to be seen (unless the device is really good)
                     """,
         a_eln=dict(
             component='BoolEditQuantity'))
@@ -5772,7 +5825,7 @@ class Stability(MSection):
         shape=[],
         description="""
     The stability protocol used for the stability measurement.
-• For a more detailed discussion on protocols and standard nomenclature for stability measurements, please see the following paper:
+- For a more detailed discussion on protocols and standard nomenclature for stability measurements, please see the following paper:
 o Consensus statement for stability assessment and reporting for perovskite photovoltaics based on ISOS procedures byM. V. Khenkin et al. Nat. Energ. 2020. DOI10.1038/s41560-019-0529-5
 Example:
 ISOS-D-1
@@ -5789,9 +5842,9 @@ IEC 61215
         shape=[],
         description="""
     The number of cells the reported stability data is based on.
-• The preferred way to enter data is to give every individual cell its own entry in the data template/data base. If that is done, the data is an average over 1 cell.
-• If the reported stability data is not the data from one individual cell, but an average over N cells. Give the number of cells.
-• If the reported value is an average, but it is unknown over how many cells the value has been averaged (and no good estimate is available), state the number of cells as 2, which is the smallest number of cells that qualifies for an averaging procedure.
+- The preferred way to enter data is to give every individual cell its own entry in the data template/data base. If that is done, the data is an average over 1 cell.
+- If the reported stability data is not the data from one individual cell, but an average over N cells. Give the number of cells.
+- If the reported value is an average, but it is unknown over how many cells the value has been averaged (and no good estimate is available), state the number of cells as 2, which is the smallest number of cells that qualifies for an averaging procedure.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5801,7 +5854,7 @@ IEC 61215
         shape=[],
         description="""
     The type of light source used during the stability measurement
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 Laser
@@ -5820,7 +5873,7 @@ Xenon plasma
         shape=[],
         description="""
     The brand name and model number of the light source/solar simulator used
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 Newport model 91192
@@ -5835,7 +5888,7 @@ Atlas suntest
         shape=[],
         description="""
     The class of the solar simulator
-• A three-letter code of As, Bs, and Cs. The order of the letters represents the quality ofspectral match, spatial non-uniformity, and temporal instability
+- A three-letter code of As, Bs, and Cs. The order of the letters represents the quality ofspectral match, spatial non-uniformity, and temporal instability
 Example
 AAA
 ABB
@@ -5850,9 +5903,9 @@ CAB
         shape=[],
         description="""
     The light intensity during the stability measurement
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• Standard AM 1.5 illumination correspond to 100 mW/cm2
-• If you need to convert from illumination given in lux; at 550 nm, 1 mW/cm2 corresponds to 6830 lux
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- Standard AM 1.5 illumination correspond to 100 mW/cm2
+- If you need to convert from illumination given in lux; at 550 nm, 1 mW/cm2 corresponds to 6830 lux
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -5862,7 +5915,7 @@ CAB
         shape=[],
         description="""
     The light spectrum used (or simulated as best as possible) during the stability measurement
-• For an unspecified light spectra (that not is dark), state this as ‘Light’
+- For an unspecified light spectra (that not is dark), state this as ‘Light’
 Example
 AM 1.0
 AM 1.5
@@ -5879,10 +5932,10 @@ UV
         shape=[],
         description="""
     The wavelength range of the light source
-• Separate the lower and upper bound by a semicolon.
-• For monochromatic light sources, only give the constant value.
-• If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
-• State unknown values as ‘nan’
+- Separate the lower and upper bound by a semicolon.
+- For monochromatic light sources, only give the constant value.
+- If there are uncertainties, only state the best estimate, e.g. write 100 and not 90-100.
+- State unknown values as ‘nan’
 Example:
 330; 1000
 400; nan
@@ -5896,9 +5949,9 @@ Example:
         shape=[],
         description="""
     The direction of the illumination with respect to the device stack
-• If the cell is illuminated trough the substrate, state this as ‘Substrate’
-• If the cell is illuminated trough the top contact, state this as ‘Superstrate’
-• For back contacted cells illuminated from the non-contacted side, state this as ‘Superstrate’
+- If the cell is illuminated trough the substrate, state this as ‘Substrate’
+- If the cell is illuminated trough the top contact, state this as ‘Superstrate’
+- For back contacted cells illuminated from the non-contacted side, state this as ‘Superstrate’
 Example
 Substrate
 Superstrate
@@ -5911,11 +5964,11 @@ Superstrate
         shape=[],
         description="""
     The load situation of the illumination during the stability measurement.
-• If the illumination is constant during the entire stability measurement, or if the cell is stored in the dark, state this as ‘Constant’.
-• If the situation periodically is interrupted by IV-measurements, continue to consider the load condition as constant
-• If there is a cycling between dark and light, state this as ‘Cycled’
-• If the illumination varies in an uncontrolled way, state this as ‘Uncontrolled’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If the illumination is constant during the entire stability measurement, or if the cell is stored in the dark, state this as ‘Constant’.
+- If the situation periodically is interrupted by IV-measurements, continue to consider the load condition as constant
+- If there is a cycling between dark and light, state this as ‘Cycled’
+- If the illumination varies in an uncontrolled way, state this as ‘Uncontrolled’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 Constant
@@ -5931,7 +5984,7 @@ Uncontrolled
         shape=[],
         description="""
     If the illumination load is cycled during the stability measurement, state the time in low light followed by the time in high light for the cycling period.
-• If not applicable, leave blank
+- If not applicable, leave blank
 Example
 12; 12
 6; 10
@@ -5954,7 +6007,7 @@ nan; nan
         shape=[],
         description="""
     The Potentiostatic load condition during the stability measurement
-• When the cell is not connected to anything, state this as ‘Open circuit’
+- When the cell is not connected to anything, state this as ‘Open circuit’
 Examples:
 Constant current
 Constant potential
@@ -5971,11 +6024,11 @@ Short circuit
         shape=[],
         description="""
     The potential range during the stability measurement
-• Separate the lower and upper bound by a semicolon.
-• For constant values, state only that value.
-• For open circuit conditions, state this as ‘nan’
-• If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
-• State unknown values as ‘nan’
+- Separate the lower and upper bound by a semicolon.
+- For constant values, state only that value.
+- For open circuit conditions, state this as ‘nan’
+- If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
+- State unknown values as ‘nan’
 Example:
 0.9; 1.02
 1.5
@@ -5990,9 +6043,9 @@ nan
         shape=[],
         description="""
     The passive resistance in the measurement circuit if a resistor was used
-• Give the value in ohm
-• If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
-• If unknown or not applicable, leave this field empty.
+- Give the value in ohm
+- If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6002,10 +6055,10 @@ nan
         shape=[],
         description="""
     The load situation of the temperature during the stability measurement.
-• If the temperature is constant during the entire stability measurement, state this as ‘Constant’.
-• If there is a cycling between colder and hotter conditions, state this as ‘Cycled’
-• If the temperature varies in an uncontrolled way, state this as ‘Uncontrolled’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If the temperature is constant during the entire stability measurement, state this as ‘Constant’.
+- If there is a cycling between colder and hotter conditions, state this as ‘Cycled’
+- If the temperature varies in an uncontrolled way, state this as ‘Uncontrolled’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 Constant
@@ -6020,10 +6073,10 @@ Cycled
         shape=[],
         description="""
     The temperature range during the stability measurement
-• Separate the lower and upper bound by a semicolon.
-• For constant values, state only that value.
-• If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
-• State unknown values as ‘nan’
+- Separate the lower and upper bound by a semicolon.
+- For constant values, state only that value.
+- If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
+- State unknown values as ‘nan’
 Example:
 30
 25; 85
@@ -6037,10 +6090,10 @@ nan
         shape=[],
         description="""
     If the temperature is cycled during the stability measurement, state the time in low temperature followed by the time in high temperature for the cycling period.
-• If not applicable, leave blank
-• Separate the lower and upper bound by a semicolon.
-• If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
-• State unknown values as ‘nan’
+- If not applicable, leave blank
+- Separate the lower and upper bound by a semicolon.
+- If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
+- State unknown values as ‘nan’
 Example:
 2; 2
 0.5; 10
@@ -6054,8 +6107,8 @@ Example:
         shape=[],
         description="""
     The temperature ramp speed
-• If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6065,10 +6118,10 @@ Example:
         shape=[],
         description="""
     The atmosphere in which the stability measurement is conducted
-• If the atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
-• “Dry air” represent air with low relative humidity but where the relative humidity is not known
-• “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
-• “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
+- If the atmosphere is a mixture of different gases, e.g. A and B, list the gases in alphabetic order and separate them with semicolons, as in (A; B)
+- “Dry air” represent air with low relative humidity but where the relative humidity is not known
+- “Ambient” represent air where the relative humidity is not known. For ambient conditions where the relative humidity is known, state this as “Air”
+- “Vacuum” (of unspecified pressure) is for this purpose considered as an atmospheric gas
 Example
 Air
 N2
@@ -6082,7 +6135,7 @@ Vacuum
         shape=[],
         description="""
     The oxygen concentration in the atmosphere
-• If unknown, leave this field empty.
+- If unknown, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6092,10 +6145,10 @@ Vacuum
         shape=[],
         description="""
     The load situation of the relative humidity during the stability measurement.
-• If the relative humidity is constant during the entire stability measurement, state this as ‘Constant’.
-• If there is a cycling between dryer and damper conditions, state this as ‘Cycled’
-• If the relative humidity varies in an uncontrolled way, i.e. the cell is operated under ambient conditions, state this as ‘Ambient’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If the relative humidity is constant during the entire stability measurement, state this as ‘Constant’.
+- If there is a cycling between dryer and damper conditions, state this as ‘Cycled’
+- If the relative humidity varies in an uncontrolled way, i.e. the cell is operated under ambient conditions, state this as ‘Ambient’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example
 Ambient
@@ -6110,10 +6163,10 @@ Cycled
         shape=[],
         description="""
     The relative humidity range during the stability measurement
-• Separate the lower and upper bound by a semicolon.
-• For constant values, state only that value.
-• If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
-• State unknown values as ‘nan’
+- Separate the lower and upper bound by a semicolon.
+- For constant values, state only that value.
+- If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
+- State unknown values as ‘nan’
 Example:
 45
 35; 65
@@ -6127,8 +6180,8 @@ nan
         shape=[],
         description="""
     The average relative humidity during the stability measurement.
-• If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
-• If unknown, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
+- If unknown, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6139,7 +6192,7 @@ nan
         shape=[],
         description="""
     The total duration of the stability measurement.
-• If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
+- If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6167,9 +6220,9 @@ nan
         shape=[],
         description="""
     The efficiency, PCE, of the cell before the stability measurement routine starts
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6179,7 +6232,7 @@ nan
         shape=[],
         description="""
     TRUE if the performance has a relatively fast initial decay after which the decay rate stabilises at a lower level.
-• There are no sharp boundary between an initial burn in phase an a catastrophic failure, but if the performance of the cell quickly degrade by more than half, it is stretching it a bit to label this as an initial burn in phase.
+- There are no sharp boundary between an initial burn in phase an a catastrophic failure, but if the performance of the cell quickly degrade by more than half, it is stretching it a bit to label this as an initial burn in phase.
                     """,
         a_eln=dict(
             component='BoolEditQuantity'))
@@ -6189,9 +6242,9 @@ nan
         shape=[],
         description="""
     The efficiency, PCE, of the cell at the end of the stability routine
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6202,8 +6255,8 @@ nan
         shape=[],
         description="""
     The time after which the cell performance has degraded by 5 % with respect to the initial performance.
-• If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6214,8 +6267,8 @@ nan
         shape=[],
         description="""
     The time after which the cell performance has degraded by 5 % with respect to the performance after any initial burn in phase.
-• If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6226,8 +6279,8 @@ nan
         shape=[],
         description="""
     The time after which the cell performance has degraded by 20 % with respect to the initial performance.
-• If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6238,8 +6291,8 @@ nan
         shape=[],
         description="""
     The time after which the cell performance has degraded by 20 % with respect to the performance after any initial burn in phase.
-• If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6250,8 +6303,8 @@ nan
         shape=[],
         description="""
     An estimated T80 for cells that were not measured sufficiently long for them to degrade by 20 %. with respect to the initial performance.
-• This value will by definition have a significant uncertainty to it, as it is not measured but extrapolated under the assumption linearity but without a detailed and stabilised extrapolation protocol. This estimate is, however, not without value as it enables a rough comparison between all cells for with the stability has been measured.
-• If there is an experimental T80, leave this field empty.
+- This value will by definition have a significant uncertainty to it, as it is not measured but extrapolated under the assumption linearity but without a detailed and stabilised extrapolation protocol. This estimate is, however, not without value as it enables a rough comparison between all cells for with the stability has been measured.
+- If there is an experimental T80, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6262,8 +6315,8 @@ nan
         shape=[],
         description="""
     An estimated T80s for cells that was not measured sufficiently long for them to degrade by 20 %. with respect to the performance after any initial burn in phase.
-• This value will by definition have a significant uncertainty to it, as it is not measured but extrapolated under the assumption linearity but without a detailed and stabilised extrapolation protocol. This estimate is, however, not without value as it enables a ruff comparison between all cells for with the stability has been measured.
-• If there is an experimental T80s, leave this field empty.
+- This value will by definition have a significant uncertainty to it, as it is not measured but extrapolated under the assumption linearity but without a detailed and stabilised extrapolation protocol. This estimate is, however, not without value as it enables a ruff comparison between all cells for with the stability has been measured.
+- If there is an experimental T80s, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6273,9 +6326,9 @@ nan
         shape=[],
         description="""
     The efficiency, PCE, of the cell after 1000 hours
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6286,8 +6339,8 @@ nan
         shape=[],
         description="""
     The lifetime energy yield
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6316,9 +6369,9 @@ nan
         shape=[],
         description="""
     The efficiency, PCE, of the cell before the mechanical stability measurement routine starts
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6328,9 +6381,9 @@ nan
         shape=[],
         description="""
     The efficiency, PCE, of the cell after the mechanical stability measurement routine
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6340,13 +6393,14 @@ nan
         shape=[],
         description="""
     A link to where the data file for the stability data is stored
-• This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw stability data.
+- This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw stability data.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=['', 'www.testsite…'])))
 
 
 class Outdoor(MSection):
+    """A section describing measurements performed in outdoor conditions"""
 
     tested = Quantity(
         type=bool,
@@ -6362,7 +6416,7 @@ class Outdoor(MSection):
         shape=[],
         description="""
     The protocol used for the outdoor testing.
-• For a more detailed discussion on protocols and standard nomenclature for stability measurements, please see the following paper:
+- For a more detailed discussion on protocols and standard nomenclature for stability measurements, please see the following paper:
 o Consensus statement for stability assessment and reporting for perovskite photovoltaics based on ISOS procedures byM. V. Khenkin et al. Nat. Energ. 2020. DOI10.1038/s41560-019-0529-5
 Example:
 IEC 61853-1
@@ -6379,9 +6433,9 @@ ISOS-O-3
         description="""
     The number of cells the reported outdoor data is based on.
 Example:
-• The preferred way to enter data is to give every individual cell its own entry in the data template/data base. If that is done, the data is an average over 1 cell.
-• If the reported data is not the data from one individual cell, but an average over N cells. Give the number of cells.
-• If the reported value is an average, but it is unknown over how many cells the value has been averaged (and no good estimate is available), state the number of cells as 2, which is the smallest number of cells that qualifies for an averaging procedure.
+- The preferred way to enter data is to give every individual cell its own entry in the data template/data base. If that is done, the data is an average over 1 cell.
+- If the reported data is not the data from one individual cell, but an average over N cells. Give the number of cells.
+- If the reported value is an average, but it is unknown over how many cells the value has been averaged (and no good estimate is available), state the number of cells as 2, which is the smallest number of cells that qualifies for an averaging procedure.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6391,7 +6445,7 @@ Example:
         shape=[],
         description="""
     The country where the outdoor testing was occurring
-• For measurements conducted in space, state this as ’Space International’
+- For measurements conducted in space, state this as ’Space International’
 Example:
 Sweden
 Switzerland
@@ -6414,7 +6468,7 @@ Space International
         shape=[],
         description="""
     The coordinates fort the places where the outdoor testing was occurring.
-• Use decimal degrees (DD) as the format.
+- Use decimal degrees (DD) as the format.
 Example:
 59.839116; 17.647979
 52.428150; 13.532134
@@ -6443,8 +6497,8 @@ Tropical
         shape=[],
         description="""
     The tilt of the installed solar cell.
-• A module lying flat on the ground have a tilt of 0
-• A module standing straight up has a tilt of 90
+- A module lying flat on the ground have a tilt of 0
+- A module standing straight up has a tilt of 90
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6455,10 +6509,10 @@ Tropical
         shape=[],
         description="""
     The cardinal direction of the installed solar cell.
-• North is 0
-• East is 90
-• South is 180
-• West is 270
+- North is 0
+- East is 90
+- South is 180
+- West is 270
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6477,8 +6531,8 @@ Tropical
         shape=[],
         description="""
     The time of year the outdoor testing was occurring.
-• Order the seasons in alphabetic order and separate them with semicolons.
-• For time periods longer than a year, state all four seasons once.
+- Order the seasons in alphabetic order and separate them with semicolons.
+- For time periods longer than a year, state all four seasons once.
 Example:
 Autumn
 Autumn; Summer
@@ -6512,7 +6566,7 @@ Spring; Winter
         shape=[],
         description="""
     The total duration of the outdoor measurement in days.
-• If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
+- If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6522,7 +6576,7 @@ Spring; Winter
         shape=[],
         description="""
     The Potentiostatic load condition during the outdoor measurement
-• When the cell is not connected to anything, state this as ‘Open circuit’
+- When the cell is not connected to anything, state this as ‘Open circuit’
 Examples:
 Constant current
 Constant potential
@@ -6539,11 +6593,11 @@ Short circuit
         shape=[],
         description="""
     The potential range during the outdoor measurement
-• Separate the lower and upper bound by a semicolon.
-• For constant values, state only that value.
-• For open circuit conditions, state this as ‘nan’
-• If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
-• State unknown values as ‘nan’
+- Separate the lower and upper bound by a semicolon.
+- For constant values, state only that value.
+- For open circuit conditions, state this as ‘nan’
+- If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
+- State unknown values as ‘nan’
 Example:
 0.9; 1.02
 1.5
@@ -6558,9 +6612,9 @@ nan
         shape=[],
         description="""
     The passive resistance in the measurement circuit if a resistor was used
-• Give the value in ohm
-• If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
-• If unknown or not applicable, leave this field empty.
+- Give the value in ohm
+- If there are uncertainties, only state the best estimate, e.g. write 1.03 and not 1.01-1.05
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6570,10 +6624,10 @@ nan
         shape=[],
         description="""
     The load situation of the temperature during the outdoor measurement.
-• If the temperature is constant during the entire stability measurement, state this as ‘Constant’.
-• If there is a cycling between colder and hotter conditions, state this as ‘Cycled’
-• If the temperature varies in an uncontrolled way, state this as ‘Uncontrolled’
-• This category was included after the projects initial phase wherefor the list of reported categories is
+- If the temperature is constant during the entire stability measurement, state this as ‘Constant’.
+- If there is a cycling between colder and hotter conditions, state this as ‘Cycled’
+- If the temperature varies in an uncontrolled way, state this as ‘Uncontrolled’
+- This category was included after the projects initial phase wherefor the list of reported categories is
 short. Thus, be prepared to expand the given list of alternatives in the data template.
 Example:
 Constant
@@ -6588,10 +6642,10 @@ Cycled
         shape=[],
         description="""
     The temperature range during the outdoor measurement
-• Separate the lower and upper bound by a semicolon.
-• For constant values, state only that value.
-• If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
-• State unknown values as ‘nan’
+- Separate the lower and upper bound by a semicolon.
+- For constant values, state only that value.
+- If there are uncertainties, only state the best estimate, e.g. write 1 and not 0.90-1.1
+- State unknown values as ‘nan’
 Example:
 30
 -10; 85
@@ -6634,9 +6688,9 @@ nan
         shape=[],
         description="""
     The efficiency, PCE, of the cell before the measurement routine starts
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6655,9 +6709,9 @@ nan
         shape=[],
         description="""
     The efficiency, PCE, of the cell at the end of the experiment
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6668,8 +6722,8 @@ nan
         shape=[],
         description="""
     The time after which the cell performance has degraded by 5 % with respect to the initial performance.
-• If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6680,8 +6734,8 @@ nan
         shape=[],
         description="""
     The time after which the cell performance has degraded by 5 % with respect to the performance after any initial burn in phase.
-• If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6692,8 +6746,8 @@ nan
         shape=[],
         description="""
     The time after which the cell performance has degraded by 20 % with respect to the initial performance.
-• If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6704,8 +6758,8 @@ nan
         shape=[],
         description="""
     The time after which the cell performance has degraded by 20 % with respect to the performance after any initial burn in phase.
-• If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 1000 and not 950-1050
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6716,8 +6770,8 @@ nan
         shape=[],
         description="""
     An estimated T80 for cells that was not measured sufficiently long for them to degrade by 20 %. with respect to the initial performance.
-• This value will by definition have a significant uncertainty to it, as it is not measured but extrapolated under the assumption linearity but without a detailed and stabilised extrapolation protocol. This estimate is, however, not without value as it enables a ruff comparison between all cells for with the stability has been measured.
-• If there is an experimental T80, leave this field empty.
+- This value will by definition have a significant uncertainty to it, as it is not measured but extrapolated under the assumption linearity but without a detailed and stabilised extrapolation protocol. This estimate is, however, not without value as it enables a ruff comparison between all cells for with the stability has been measured.
+- If there is an experimental T80, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6728,8 +6782,8 @@ nan
         shape=[],
         description="""
     An estimated T80s for cells that was not measured sufficiently long for them to degrade by 20 %. with respect to the performance after any initial burn in phase.
-• This value will by definition have a significant uncertainty to it, as it is not measured but extrapolated under the assumption linearity but without a detailed and stabilised extrapolation protocol. This estimate is, however, not without value as it enables a ruff comparison between all cells for with the stability has been measured.
-• If there is an experimental T80s, leave this field empty.
+- This value will by definition have a significant uncertainty to it, as it is not measured but extrapolated under the assumption linearity but without a detailed and stabilised extrapolation protocol. This estimate is, however, not without value as it enables a ruff comparison between all cells for with the stability has been measured.
+- If there is an experimental T80s, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6739,9 +6793,9 @@ nan
         shape=[],
         description="""
     The efficiency, PCE, of the cell after 1000 hours
-• Give the efficiency in %
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- Give the efficiency in %
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6751,8 +6805,8 @@ nan
         shape=[],
         description="""
     The yearly power generated during the measurement period in kWh/year/m^2.
-• If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
-• If unknown or not applicable, leave this field empty.
+- If there are uncertainties, only state the best estimate, e.g. write 20.5 and not 19-20
+- If unknown or not applicable, leave this field empty.
                     """,
         a_eln=dict(
             component='NumberEditQuantity'))
@@ -6762,7 +6816,7 @@ nan
         shape=[],
         description="""
     A link to where the data file for the measurement is stored
-• This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw data.
+- This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw data.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=[''])))
@@ -6781,7 +6835,7 @@ nan
         shape=[],
         description="""
     A link to where the data file for the measurement is stored
-• This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw data.
+- This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw data.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=[''])))
@@ -6800,7 +6854,7 @@ nan
         shape=[],
         description="""
     A link to where the data file for the measurement is stored
-• This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw data.
+- This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw data.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=[''])))
@@ -6819,21 +6873,20 @@ nan
         shape=[],
         description="""
     A link to where the data file for the measurement is stored
-• This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw data.
+- This is a beta feature. The plan is to create a file repository where the raw files for stability data can be stored and disseminated. With the link and associated protocols, it should be possible to programmatically access and analyse the raw data.
                     """,
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=[''])))
 
 
 class PerovskiteSolarCell(EntryData):
+    """
+    This schema is adapted to map the data in the [Perovskite Solar Cell Database
+    Project](https://www.perovskitedatabase.com/). The descriptions in the quantities
+    represent the instructions given to the user who manually curated the data.
+    """
 
     m_def = Section(a_eln=dict(lane_width='400px'))
-
-    # comments = Quantity(
-    #     type=str,
-    #     description='''Remarks, observations and free text about the perovskite solar cell
-    #                 experiments and measurements.''',
-    #     a_eln=dict(component='RichTextEditQuantity'))
 
     ref = SubSection(section_def=Ref)
     cell = SubSection(section_def=Cell)
