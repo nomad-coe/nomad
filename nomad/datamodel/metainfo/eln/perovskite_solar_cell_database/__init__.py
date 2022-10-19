@@ -177,7 +177,7 @@ Unpublished
 
 class Cell(MSection):
     """
-    General information about the solar cell. It includes the device area,
+    General information about the solar cell. It includes information about the device area,
     the layer stack sequence and the device architecture.
     """
 
@@ -380,8 +380,8 @@ class Module(MSection):
 
 class Substrate(MSection):
     """
-    Information about the substrate used in the device. It describes the substrate material,
-    the substrate area, the substrate thickness, and its provenance or fabrication method.
+    Information about the substrate used in the device. It describes the `substrate stack sequence`,
+    the `substrate area`, the `substrate thickness`, and its provenance or fabrication method.
     """
 
     stack_sequence = Quantity(
@@ -533,7 +533,7 @@ Unknown
 
 class ETL(MSection):
     """
-    A section to describe information related to the Electron Transport Layer **ETL**.
+    A section to describe information related to the Electron Transport Layer (**ETL**).
     """
 
     stack_sequence = Quantity(
@@ -1116,9 +1116,9 @@ Ar plasma
 
 class Perovskite(MSection):
     """
-    This section contains informaiton aboout the properties of the absorber layer. It descirbes
-    the chemical formula, the structural dimensionality, the bandgap,
-    or the list of the dopants and additives that are in the perovskite layer.
+    This section contains information about the properties of the absorber layer. It describes
+    the `chemical formula`, the `dimensionality`, the `bandgap`,
+    or the `list of dopants and additives` that are in the perovskite layer.
     """
 
     single_crystal = Quantity(
@@ -2309,7 +2309,7 @@ Examples:
 
 class HTL(MSection):
     """
-    A section to describe information related to the Hole Transport Layer **HTL**.
+    A section to describe information related to the Hole Transport Layer (**HTL**).
     """
 
     stack_sequence = Quantity(
@@ -3466,8 +3466,8 @@ UV-ozone
 
 class Add(MSection):
     """
-    A section to define an **additional layer** present in the device besides the Substrate, ETL, Perovskite, HTL
-    and back contact are present in the device.
+    A section to describe **additional layers** present in the device besides the
+    *Substrate*, *ETL*, *Perovskite*, *HTL* and *back contact*.
     """
 
     lay_front = Quantity(
