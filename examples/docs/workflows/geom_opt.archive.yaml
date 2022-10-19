@@ -1,0 +1,29 @@
+workflow2:
+  name: GeometryOpt
+  inputs:
+    - name: input system
+      section: '#/run/0/system/0'
+  outputs:
+    - name: relaxed system
+      section: '#/run/0/system/-1'
+  tasks:
+    - inputs:
+        - section: '#/run/0/system/0'
+      outputs:
+        - section: '#/run/0/system/1'
+        - section: '#/run/0/calculation/0'
+    - inputs:
+        - section: '#/run/0/system/1'
+      outputs:
+        - section: '#/run/0/system/2'
+        - section: '#/run/0/calculation/1'
+    - inputs:
+        - section: '#/run/0/system/2'
+      outputs:
+        - section: '#/run/0/system/3'
+        - section: '#/run/0/calculation/2'
+run:
+  - program:
+      name: 'VASP'
+    system: [{}, {}, {}]
+    calculation: [{}, {}, {}]

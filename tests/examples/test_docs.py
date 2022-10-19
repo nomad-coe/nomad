@@ -81,3 +81,24 @@ def test_multiple_files():
     archive = _parse_archive('references/multiple_files/data.archive.yaml')
     assert archive.data.solvent.elements[0].label == 'H'
     assert archive.data.solute.elements[0].label == 'Na'
+
+
+def test_workflows():
+    archive = _parse_archive('workflows/simple.archive.yaml')
+    assert archive.workflow2.tasks[0].name == 'GeometryOpt'
+    assert len(archive.workflow2.tasks[1].outputs) == 1
+    assert archive.workflow2.tasks[1].outputs[0] is not None
+
+    def assert_geometry_optimization(workflow):
+        assert len(workflow.tasks) == 3
+        assert workflow.tasks[0].name is None
+        assert workflow.tasks[0].inputs[0] is not None
+
+    archive = _parse_archive('workflows/nested.archive.yaml')
+    assert_geometry_optimization(archive.workflow2.tasks[0])
+
+    archive = _parse_archive('workflows/composed.archive.yaml')
+    assert_geometry_optimization(archive.workflow2.tasks[0].task)
+
+    archive = _parse_archive('workflows/specialized.archive.yaml')
+    assert_geometry_optimization(archive.workflow2)

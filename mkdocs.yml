@@ -15,6 +15,7 @@ nav:
     - schema/basics.md
     - schema/python.md
     - schema/elns.md
+    - schema/workflows.md
   # - Using the AI Toolkit and other remote tools: aitoolkit.md
   - Developing NOMAD:
     - develop/setup.md

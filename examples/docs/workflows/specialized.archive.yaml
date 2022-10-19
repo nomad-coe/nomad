@@ -1,0 +1,42 @@
+definitions:
+  sections:
+    GeometryOptimization:
+      base_section: nomad.datamodel.metainfo.workflow2.Workflow
+      quantities:
+        threshold:
+          type: float
+          unit: eV
+        final_calculation:
+          type: nomad.datamodel.metainfo.simulation.calculation.Calculation
+workflow2:
+  m_def: GeometryOptimization
+  final_calculation: '#/run/0/calculation/-1'
+  threshold: 0.029
+  name: GeometryOpt
+  inputs:
+    - name: input system
+      section: '#/run/0/system/0'
+  outputs:
+    - name: relaxed system
+      section: '#/run/0/system/-1'
+  tasks:
+    - inputs:
+        - section: '#/run/0/system/0'
+      outputs:
+        - section: '#/run/0/system/1'
+        - section: '#/run/0/calculation/0'
+    - inputs:
+        - section: '#/run/0/system/1'
+      outputs:
+        - section: '#/run/0/system/2'
+        - section: '#/run/0/calculation/1'
+    - inputs:
+        - section: '#/run/0/system/2'
+      outputs:
+        - section: '#/run/0/system/3'
+        - section: '#/run/0/calculation/2'
+run:
+  - program:
+      name: 'VASP'
+    system: [{}, {}, {}]
+    calculation: [{}, {}, {}]
