@@ -309,8 +309,9 @@ class RequiredReader:
             if other_archive is None:
                 return path
 
+            other_path = f'../uploads/{upload_id}/archive/{entry_id}'
             other_dataset = RequiredReferencedArchive(
-                upload_id=upload_id, path_prefix=f'../entries/{entry_id}/archive#',
+                upload_id=upload_id, path_prefix=f'{other_path}#',
                 visited_paths=dataset.visited_paths.copy(), ref_result_root=dataset.ref_result_root)
 
             # add the path to the visited paths
@@ -331,7 +332,7 @@ class RequiredReader:
             # need to resolve it again to get relative position correctly
             return_value = self._resolve_ref_local(required, fragment, other_dataset)
 
-            dataset.ref_result_root.update({f'../entries/{entry_id}/archive': other_dataset.result_root})
+            dataset.ref_result_root.update({other_path: other_dataset.result_root})
 
             return return_value
 
