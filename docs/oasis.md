@@ -140,11 +140,13 @@ on the host. This should ensure that the user which runs the hub, has the rights
 
 A few things to notice:
 
+- The app, worker, and north service use the NOMAD docker image. Here we use the `latest` tag, which
+gives you the latest *beta* version of NOMAD. You might want to change this to `stable`,
+a version tag (format is `vX.X.X`, you find all releases [here](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/tags)), or a specific [branch tag](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/branches).
 - All services use docker volumes for storage. This could be changed to host mounts.
 - It mounts two configuration files that need to be provided (see below): `nomad.yaml`, `nginx.conf`.
 - The only exposed port is `80` (proxy service). This could be changed to a desired port if necessary.
 - The NOMAD images are pulled from our gitlab at MPCDF, the other services use images from a public registry (*dockerhub*).
-- The NOMAD images tag determines the image version or `stable`, `latest`, or specific development branches of NOMAD.
 - All containers will be named `nomad_oasis_*`. These names can be used later to reference the container with the `docker` cmd.
 - The services are setup to restart `always`, you might want to change this to `no` while debugging errors to prevent indefinite restarts.
 - Make sure that the `PWD` environment variable is set. NORTH needs to create bind mounts that require absolute paths and we need to pass the current working directory to the configuration from the PWD variable (see hub service in the `docker-compose.yaml`).

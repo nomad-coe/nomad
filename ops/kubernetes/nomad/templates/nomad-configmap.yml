@@ -95,3 +95,6 @@ data:
     datacite:
       enabled: {{ .Values.datacite.enabled }}
       prefix: "{{ .Values.datacite.prefix }}"
+    {{ if .Values.gui.config }}
+    ui: {{ .Values.gui.config | toYaml | nindent 6 }}
+    {{ end }}

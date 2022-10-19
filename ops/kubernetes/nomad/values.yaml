@@ -80,6 +80,17 @@ gui:
   debug: false
   ## automatically gz based on header
   gzip: true
+  ## configuration for the interface, menus, options, etc.
+  config:
+    search_contexts:
+      options:
+        entries:
+          columns:
+            enable:
+              - results.material.chemical_formula_hill
+              - results.method.method_name
+              - upload_create_time
+              - authors
 
 encyclopedia:
   ## enable links to the 'new' encyclopedia

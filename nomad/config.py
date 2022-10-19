@@ -442,7 +442,7 @@ archive = NomadConfig(
 
 ui = NomadConfig(
     search_contexts={
-        "include": ["entries", "materials"],
+        "include": ["entries", "eln", "materials"],
         "exclude": [],
         "options": {
             "entries": {
@@ -589,6 +589,168 @@ ui = NomadConfig(
                         'optimade',
                     ],
                     'exclude': [],
+                    'options': {
+                        'material': {'label': 'Material', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large', 'menu_items': {}},
+                        'symmetry': {'label': 'Symmetry', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'method': {'label': 'Method', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'simulation': {'label': 'Simulation', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'dft': {'label': 'DFT', 'level': 2, 'size': 'small', 'menu_items': {}},
+                        'gw': {'label': 'GW', 'level': 2, 'size': 'small', 'menu_items': {}},
+                        'experiment': {'label': 'Experiment', 'level': 1, 'size': 'small'},
+                        'eels': {'label': 'EELS', 'level': 2, 'size': 'small', 'menu_items': {}},
+                        'properties': {'label': 'Properties', 'level': 0, 'size': 'small'},
+                        'electronic': {'label': 'Electronic', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'optoelectronic': {'label': 'Optoelectronic', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'vibrational': {'label': 'Vibrational', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'mechanical': {'label': 'Mechanical', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'spectroscopy': {'label': 'Spectroscopy', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'thermodynamic': {'label': 'Thermodynamic', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1, 'size': 'small', 'menu_items': {}},
+                        'eln': {'label': 'Electronic Lab Notebook', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'author': {'label': 'Author / Origin', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                        'dataset': {'label': 'Dataset', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'access': {'label': 'Access', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'ids': {'label': 'IDs', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'processed_data_quantities': {'label': 'Processed Data Quantities', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                        'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                    }
+                }
+            },
+            "eln": {
+                'label': "ELN",
+                'path': "eln",
+                'resource': 'entries',
+                'breadcrumb': "ELN entries search",
+                'description': "Search individual ELN entries",
+                'help': {
+                    'title': 'ELN entries search',
+                    'content': inspect.cleandoc(r'''
+                        This page allows you to specifically **search ELN entries** within NOMAD.
+                        It is very similar to the *Entries search*, but with a reduced
+                        filter set and specialized arrangement of default columns.
+                    '''),
+                },
+                'pagination': {
+                    'order_by': 'upload_create_time',
+                    'order': 'desc',
+                    'page_size': 20,
+                },
+                'columns': {
+                    'enable': [
+                        'entry_name',
+                        'entry_type',
+                        'upload_create_time',
+                        'authors'
+                    ],
+                    'include': [
+                        'entry_name',
+                        'results.material.chemical_formula_hill',
+                        'entry_type',
+                        'results.method.method_name',
+                        'results.method.simulation.program_name',
+                        'results.method.simulation.dft.basis_set_name',
+                        'results.method.simulation.dft.xc_functional_type',
+                        'results.material.structural_type',
+                        'results.material.symmetry.crystal_system',
+                        'results.material.symmetry.space_group_symbol',
+                        'results.material.symmetry.space_group_number',
+                        'results.eln.lab_ids',
+                        'results.eln.sections',
+                        'results.eln.methods',
+                        'results.eln.tags',
+                        'results.eln.instruments',
+                        'mainfile',
+                        'upload_create_time',
+                        'authors',
+                        'comment',
+                        'references',
+                        'datasets',
+                        'published',
+                    ],
+                    'exclude': [],
+                    'options': {
+                        'entry_name': {'label': 'Name', 'align': 'left'},
+                        'results.material.chemical_formula_hill': {'label': 'Formula', 'align': 'left'},
+                        'entry_type': {'label': 'Entry type', 'align': 'left'},
+                        'results.method.method_name': {'label': 'Method name'},
+                        'results.method.simulation.program_name': {'label': 'Program name'},
+                        'results.method.simulation.dft.basis_set_name': {'label': 'Basis set name'},
+                        'results.method.simulation.dft.xc_functional_type': {'label': 'XC functional type'},
+                        'results.material.structural_type': {'label': 'Structural type'},
+                        'results.material.symmetry.crystal_system': {'label': 'Crystal system'},
+                        'results.material.symmetry.space_group_symbol': {'label': 'Space group symbol'},
+                        'results.material.symmetry.space_group_number': {'label': 'Space group number'},
+                        'results.eln.lab_ids': {'label': 'Lab IDs'},
+                        'results.eln.sections': {'label': 'Sections'},
+                        'results.eln.methods': {'label': 'Methods'},
+                        'results.eln.tags': {'label': 'Tags'},
+                        'results.eln.instruments': {'label': 'Instruments'},
+                        'mainfile': {'label': 'Mainfile', 'align': 'left'},
+                        'upload_create_time': {'label': 'Upload time', 'align': 'left'},
+                        'authors': {'label': 'Authors', 'align': 'left'},
+                        'comment': {'label': 'Comment', 'align': 'left'},
+                        'references': {'label': 'References', 'align': 'left'},
+                        'datasets': {'label': 'Datasets', 'align': 'left'},
+                        'published': {'label': 'Access'}
+                    }
+                },
+                'rows': {
+                    'actions': {
+                        'enable': True
+                    },
+                    'details': {
+                        'enable': True
+                    },
+                    'selection': {
+                        'enable': True
+                    }
+                },
+                'filter_menus': {
+                    'include': [
+                        'material',
+                        'elements',
+                        'eln',
+                        'symmetry',
+                        'method',
+                        'symmetry',
+                        'dft',
+                        'gw',
+                        'experiment',
+                        'eels',
+                        'properties',
+                        'electronic',
+                        'optoelectronic',
+                        'vibrational',
+                        'mechanical',
+                        'spectroscopy',
+                        'thermodynamic',
+                        'geometry_optimization',
+                        'author',
+                        'dataset',
+                        'access',
+                        'ids',
+                        'processed_data_quantities',
+                        'optimade',
+                    ],
+                    'exclude': [
+                        'symmetry',
+                        'method',
+                        'simulation',
+                        'dft',
+                        'gw',
+                        'experiment',
+                        'eels',
+                        'properties',
+                        'electronic',
+                        'optoelectronic',
+                        'vibrational',
+                        'mechanical',
+                        'spectroscopy',
+                        'thermodynamic',
+                        'geometry_optimization',
+                        'optimade',
+                    ],
                     'options': {
                         'material': {'label': 'Material', 'level': 0, 'size': 'small', 'menu_items': {}},
                         'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large', 'menu_items': {}},
