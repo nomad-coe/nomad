@@ -997,7 +997,11 @@ def process(is_blocking: bool = False, clear_queue_on_failure: bool = True, is_c
             kwargs['_meta_label'] = config.meta.label
             send_to_worker = self._sync_schedule_process(func_name, *args, **kwargs)
             if send_to_worker:
-                self._send_to_worker(func_name, *args, **kwargs)
+                try:
+                    self._send_to_worker(func_name, *args, **kwargs)
+                except Exception as e:
+                    self.fail(e)
+                    raise
 
         setattr(wrapper, '__process_unwrapped', func)
         return wrapper
