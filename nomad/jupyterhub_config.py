@@ -251,9 +251,41 @@ def create_configure_from_tool_json(tool_json):
         if 'cmd' in tools_json:
             spawner.cmd = tools_json['cmd']
 
+        if 'mount_path' not in tool_json:
+            err_msg = 'mount_path missing in tools.json'
+            spawner.log.error(err_msg)
+            raise KeyError(err_msg)
+
         for key, value in spawner.volumes.items():
-            if value.startswith('/prefix') and 'mount_path' in tool_json:
+            if isinstance(value, str) \
+               and value.startswith('/prefix'):
                 spawner.volumes[key] = value.replace('/prefix', tool_json['mount_path'])
+
+        hosts = tool_json.get('extra_hosts', {})
+        spawner.extra_host_config.update({
+            "extra_hosts": hosts
+        })
+
+        mounts = tool_json.get('mounts', {})
+        if not isinstance(mounts, dict):
+            spawner.log.error(f'Mounts entry {mounts} in tools.json is not valid.')
+            return configure
+
+        for key, value in mounts.items():
+            if not (isinstance(value, dict) and 'bind' in value):
+                spawner.log.error(f"{key}:{value} is not a valid mounts entry.")
+                continue
+
+            if not value['bind'].startswith('/prefix'):
+                spawner.log.error(
+                    f'The "bind" key in {key} needs to be preceeded by /prefix'
+                )
+                continue
+
+            spawner.volumes[key] = {
+                'bind': value['bind'].replace('/prefix', tool_json['mount_path']),
+                'mode': value.get('mode', 'r')
+            }
 
     return configure
 
