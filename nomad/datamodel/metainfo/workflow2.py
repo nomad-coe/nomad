@@ -30,9 +30,11 @@ class Link(ArchiveSection):
 
     name = Quantity(type=str, description=(
         'Name of the link. Will be used as a label for the input or output in workflow '
-        'representations.'))
+        'representations.'),
+        a_eln=dict(component='StringEditQuantity'))
     section = Quantity(type=ArchiveSection, description=(
-        'A reference to the section that contains the actual input or output data.'))
+        'A reference to the section that contains the actual input or output data.'),
+        a_eln=dict(component='ReferenceEditQuantity'))
 
 
 class Task(ArchiveSection):
@@ -43,7 +45,8 @@ class Task(ArchiveSection):
 
     name = Quantity(type=str, description=(
         'A name of the task. Will be used as a label for the input or output in workflow '
-        'representations.'))
+        'representations.'),
+        a_eln=dict(component='StringEditQuantity'))
     inputs = SubSection(sub_section=Link, repeats=True, description=(
         'All the links to sections that represent the inputs for this task.'))
     outputs = SubSection(sub_section=Link, repeats=True, description=(
@@ -57,7 +60,8 @@ class TaskReference(Task):
     '''
 
     task = Quantity(type=Task, description=(
-        'A reference to the task that this section is a proxy for.'))
+        'A reference to the task that this section is a proxy for.'),
+        a_eln=dict(component='ReferenceEditQuantity'))
 
 
 class Workflow(Task):
