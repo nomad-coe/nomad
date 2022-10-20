@@ -503,7 +503,7 @@ To run NOMAD, you must run two services. One is the NOMAD app, it serves the API
 
 the second is the NOMAD worker, that runs the NOMAD processing.
 ```
-celery worker -l info -A nomad.processing -Q celery
+celery -A nomad.processing worker -l info -Q celery
 ```
 
 This should give you a working OASIS at `http://<your-host>/<your-path-prefix>`.
@@ -608,7 +608,7 @@ a single core only, you can alter the worker service command in the `docker-comp
 add a `--concurrency` argument:
 
 ```
-command: python -m celery worker -l info -A nomad.processing --concurrency=1 -Q celery
+command: python -m celery -A nomad.processing worker -l info --concurrency=1 -Q celery
 ```
 
 See also the [celery documentation](https://docs.celeryproject.org/en/stable/userguide/workers.html#id1).

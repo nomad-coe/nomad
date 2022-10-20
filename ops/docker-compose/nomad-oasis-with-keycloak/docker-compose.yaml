@@ -115,7 +115,7 @@ services:
     volumes:
       - ./configs/nomad.yaml:/app/nomad.yaml
       - ./.volumes/fs:/app/.volumes/fs
-    command: python -m celery worker -l info -A nomad.processing -Q celery
+    command: python -m celery -A nomad.processing worker -l info -Q celery
 
   # nomad app (api + proxy)
   app:
