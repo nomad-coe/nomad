@@ -297,7 +297,7 @@ class PublicationReference(ArchiveSection):
 
     publication_authors = Quantity(
         type=str,
-        shape=[],
+        shape=['*'],
         description="""
             The authors of the publication.
             If several authors, end with et al. If the DOI number is given correctly,
@@ -345,13 +345,7 @@ class PublicationReference(ArchiveSection):
                 r = requests.get(url, timeout=timeout)
                 if r.status_code == 200:
                     temp_dict = r.json()
-                    authors = []
-                    author_list = temp_dict['message']['author']
-                    for author in range(len(author_list)):
-                        given_name = temp_dict['message']['author'][author]['given']
-                        family_name = temp_dict['message']['author'][author]['family']
-                        authors.append(f'{given_name} {family_name}')
-                    self.publication_authors = ', '.join(authors)
+                    self.publication_authors = [f"{v['given']} {v['family']}" for v in temp_dict['message']['author']]
                     self.journal = temp_dict['message']['container-title'][0]
                     self.publication_title = temp_dict['message']['title'][0]
                     self.publication_date = dateutil.parser.parse(temp_dict['message']['created']['date-time'])
