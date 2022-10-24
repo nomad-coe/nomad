@@ -295,11 +295,11 @@ class PublicationReference(ArchiveSection):
         a_eln=dict(
             component='EnumEditQuantity', props=dict(suggestions=[])))
 
-    lead_author = Quantity(
+    publication_authors = Quantity(
         type=str,
         shape=[],
         description="""
-            The surname of the first author.
+            The authors of the publication.
             If several authors, end with et al. If the DOI number is given correctly,
             this will be extracted automatically from www.crossref.org
         """)
@@ -345,13 +345,16 @@ class PublicationReference(ArchiveSection):
                 r = requests.get(url, timeout=timeout)
                 if r.status_code == 200:
                     temp_dict = r.json()
-
-                    given_name = temp_dict['message']['author'][0]['given']
-                    family_name = temp_dict['message']['author'][0]['family']
+                    authors = []
+                    author_list = temp_dict['message']['author']
+                    for author in range(len(author_list)):
+                        given_name = temp_dict['message']['author'][author]['given']
+                        family_name = temp_dict['message']['author'][author]['family']
+                        authors.append(f'{given_name} {family_name}')
+                    self.publication_authors = ', '.join(authors)
                     self.journal = temp_dict['message']['container-title'][0]
                     self.publication_title = temp_dict['message']['title'][0]
                     self.publication_date = dateutil.parser.parse(temp_dict['message']['created']['date-time'])
-                    self.lead_author = f'{given_name} {family_name}'
                     if not archive.metadata:
                         archive.metadata = EntryMetadata()
                     if not archive.metadata.references:
