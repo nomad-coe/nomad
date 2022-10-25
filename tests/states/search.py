@@ -48,6 +48,16 @@ material_graphene = {
     'chemical_formula_descriptive': 'C',
     'chemical_formula_reduced': 'C',
 }
+material_perovskite = {
+    "material_name": "perovskite",
+    "structural_type": "bulk",
+    "functional_type": ["semiconductor", "solar cell"],
+    "elements": ["C", "H", "I", "N", "Pb"],
+    "chemical_formula_descriptive": "MAPbI3",
+    "chemical_formula_reduced": "H6Pb1C1I3N1",
+    "chemical_formula_hill": "CH6I3NPb"
+}
+
 method_dft_vasp = {
     'simulation': {
         'program_name': 'VASP',
@@ -61,6 +71,29 @@ method_dft_exciting = {
         'program_name': 'exciting',
         'dft': {
             'xc_functional_names': ['LDA_X_PZ', 'LDA_C_PZ']
+        }
+    }
+}
+
+properties_solar_cell = {
+    "available_properties": ["solar_cell", "optoelectronic.band_gap"],
+    "optoelectronic": {
+        "band_gap": [{"value": 2.5634826144e-19}],
+        "solar_cell": {
+            "efficiency": 15.9,
+            "fill_factor": 0.78,
+            "open_circuit_voltage": 1.0,
+            "short_circuit_current_density": 203.0,
+            "illumination_intensity": 1000.0,
+            "device_area": 1.25e-05,
+            "device_architecture": "pin",
+            "device_stack": ["SLG", "ITO", "PEDOT:PSS", "Perovskite", "PCBM-60", "BCP", "Ag"],
+            "absorber": ["MAPbI"],
+            "absorber_fabrication": ["Spin-coating"],
+            "electron_transport_layer": ["PCBM-60", "BCP"],
+            "hole_transport_layer": ["PEDOT:PSS"],
+            "substrate": ["SLG", "ITO"],
+            "back_contact": ["Ag"]
         }
     }
 }
@@ -106,6 +139,16 @@ def search():
             'material': material_high_entropy_alloy,
             'method': method_dft_vasp,
             'properties': {}
+        }
+    )
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=create_uuid(),
+        mainfile='upload/archive.json',
+        results={
+            'material': material_perovskite,
+            'method': {},
+            'properties': properties_solar_cell
         }
     )
 
