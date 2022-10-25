@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 import React, { useState, useMemo } from 'react'
+import PropTypes from 'prop-types'
 import { Paper, Typography } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
 import {
@@ -34,7 +35,7 @@ import { useSearchContext } from './SearchContext'
 /**
  * Displays the list of search results.
  */
-const SearchResults = React.memo(function SearchResults() {
+const SearchResults = React.memo(({'data-testid': testID}) => {
   const {columns, resource, rows, useResults, useQuery} = useSearchContext()
   const {data, pagination, setPagination} = useResults()
   const searchQuery = useQuery()
@@ -73,7 +74,7 @@ const SearchResults = React.memo(function SearchResults() {
     actions = MaterialRowActions
   }
 
-  return <Paper>
+  return <Paper data-testid={testID}>
     <Datatable
       data={data}
       pagination={pagination}
@@ -99,5 +100,13 @@ const SearchResults = React.memo(function SearchResults() {
     </Datatable>
   </Paper>
 })
+
+SearchResults.propTypes = {
+  'data-testid': PropTypes.string
+}
+
+SearchResults.defaultProps = {
+  'data-testid': 'search-results'
+}
 
 export default SearchResults

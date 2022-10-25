@@ -39,14 +39,14 @@
             "page_size": 20,
             "order_by": "upload_create_time",
             "order": "desc",
-            "total": 3
+            "total": 4
           },
           "data": [
             {
-              "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "iFdkkgoqSOCdi25FHOR40A",
+              "calc_id": "jLKvVS_FQ-KiJRXC49wzHw",
               "published": true,
               "writers": [
                 {
@@ -56,7 +56,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -69,8 +69,123 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-03T06:31:01.393674+00:00",
-              "publish_time": "2022-10-03T06:31:01.392674+00:00",
+              "entry_create_time": "2022-10-25T07:20:32.143939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
+                  "elements": [
+                    "C",
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
+                  ],
+                  "elements_exclusive": "C H I N Pb",
+                  "material_id": "test_material_id",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
+                },
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    },
+                    "band_gap": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ]
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap"
+                  ]
+                }
+              },
+              "entry_id": "jLKvVS_FQ-KiJRXC49wzHw",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "fI_rhkLqQ829U8gf_BqZIg",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.140939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -105,7 +220,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "iFdkkgoqSOCdi25FHOR40A",
+              "entry_id": "fI_rhkLqQ829U8gf_BqZIg",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -115,10 +230,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "UWy2PDx9SQq4ouXgdxET8w",
+              "calc_id": "cuJyixjeQSS2-W5ZM8VPJQ",
               "published": true,
               "writers": [
                 {
@@ -128,7 +243,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -141,8 +256,79 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-03T06:31:01.395674+00:00",
-              "publish_time": "2022-10-03T06:31:01.392674+00:00",
+              "entry_create_time": "2022-10-25T07:20:32.141939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C"
+                  ],
+                  "elements_exclusive": "C",
+                  "chemical_formula_anonymous": "A",
+                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
+                  "structural_type": "2D",
+                  "chemical_formula_reduced": "C",
+                  "n_elements": 1,
+                  "chemical_formula_descriptive": "C",
+                  "chemical_formula_hill": "C"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "LDA_X_PZ",
+                        "LDA_C_PZ"
+                      ]
+                    },
+                    "program_name": "exciting"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "cuJyixjeQSS2-W5ZM8VPJQ",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "by5AZNRMTH6Ip5AliZ3glw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.142939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -180,78 +366,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "UWy2PDx9SQq4ouXgdxET8w",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "IwRZawmhT9OR1VOevPs_EA",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-03T06:31:01.394674+00:00",
-              "publish_time": "2022-10-03T06:31:01.392674+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C"
-                  ],
-                  "elements_exclusive": "C",
-                  "chemical_formula_anonymous": "A",
-                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
-                  "structural_type": "2D",
-                  "chemical_formula_reduced": "C",
-                  "n_elements": 1,
-                  "chemical_formula_descriptive": "C",
-                  "chemical_formula_hill": "C"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "LDA_X_PZ",
-                        "LDA_C_PZ"
-                      ]
-                    },
-                    "program_name": "exciting"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "IwRZawmhT9OR1VOevPs_EA",
+              "entry_id": "by5AZNRMTH6Ip5AliZ3glw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -264,7 +379,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "6674",
+          "content-length": "9891",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -303,14 +418,14 @@
             "page_size": 10,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "data": [
             {
-              "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "IwRZawmhT9OR1VOevPs_EA",
+              "calc_id": "by5AZNRMTH6Ip5AliZ3glw",
               "published": true,
               "writers": [
                 {
@@ -320,7 +435,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -333,79 +448,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-03T06:31:01.394674+00:00",
-              "publish_time": "2022-10-03T06:31:01.392674+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C"
-                  ],
-                  "elements_exclusive": "C",
-                  "chemical_formula_anonymous": "A",
-                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
-                  "structural_type": "2D",
-                  "chemical_formula_reduced": "C",
-                  "n_elements": 1,
-                  "chemical_formula_descriptive": "C",
-                  "chemical_formula_hill": "C"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "LDA_X_PZ",
-                        "LDA_C_PZ"
-                      ]
-                    },
-                    "program_name": "exciting"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "IwRZawmhT9OR1VOevPs_EA",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "UWy2PDx9SQq4ouXgdxET8w",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-03T06:31:01.395674+00:00",
-              "publish_time": "2022-10-03T06:31:01.392674+00:00",
+              "entry_create_time": "2022-10-25T07:20:32.142939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -443,7 +487,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "UWy2PDx9SQq4ouXgdxET8w",
+              "entry_id": "by5AZNRMTH6Ip5AliZ3glw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -453,10 +497,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "iFdkkgoqSOCdi25FHOR40A",
+              "calc_id": "cuJyixjeQSS2-W5ZM8VPJQ",
               "published": true,
               "writers": [
                 {
@@ -466,7 +510,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -479,8 +523,79 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-03T06:31:01.393674+00:00",
-              "publish_time": "2022-10-03T06:31:01.392674+00:00",
+              "entry_create_time": "2022-10-25T07:20:32.141939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C"
+                  ],
+                  "elements_exclusive": "C",
+                  "chemical_formula_anonymous": "A",
+                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
+                  "structural_type": "2D",
+                  "chemical_formula_reduced": "C",
+                  "n_elements": 1,
+                  "chemical_formula_descriptive": "C",
+                  "chemical_formula_hill": "C"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "LDA_X_PZ",
+                        "LDA_C_PZ"
+                      ]
+                    },
+                    "program_name": "exciting"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "cuJyixjeQSS2-W5ZM8VPJQ",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "fI_rhkLqQ829U8gf_BqZIg",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.140939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -515,7 +630,122 @@
                 },
                 "properties": {}
               },
-              "entry_id": "iFdkkgoqSOCdi25FHOR40A",
+              "entry_id": "fI_rhkLqQ829U8gf_BqZIg",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "jLKvVS_FQ-KiJRXC49wzHw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.143939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
+                  "elements": [
+                    "C",
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
+                  ],
+                  "elements_exclusive": "C H I N Pb",
+                  "material_id": "test_material_id",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
+                },
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    },
+                    "band_gap": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ]
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap"
+                  ]
+                }
+              },
+              "entry_id": "jLKvVS_FQ-KiJRXC49wzHw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -528,7 +758,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "6680",
+          "content-length": "9897",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -571,7 +801,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* ESCAPED_STRING\n\t* IDENTIFIER\n\t* SIGNED_FLOAT\n\t* SIGNED_INT\n\t* NOT\n\t* LPAR\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_INT\n\t* LPAR\n\t* SIGNED_FLOAT\n\t* IDENTIFIER\n",
               "type": "value_error.exception"
             }
           ]
@@ -665,7 +895,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -681,14 +911,14 @@
                 "size": 7,
                 "data": [
                   {
-                    "count": 1,
-                    "nested_count": 1,
-                    "value": "2D"
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "bulk"
                   },
                   {
                     "count": 1,
                     "nested_count": 1,
-                    "value": "bulk"
+                    "value": "2D"
                   },
                   {
                     "count": 1,
@@ -704,7 +934,18 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "semiconductor"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "solar cell"
+                  }
+                ]
               }
             },
             "results.material.compound_type:scroll": {
@@ -722,7 +963,13 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "perovskite"
+                  }
+                ]
               }
             }
           },
@@ -730,7 +977,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "1522",
+          "content-length": "1883",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -773,7 +1020,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* ESCAPED_STRING\n\t* IDENTIFIER\n\t* SIGNED_FLOAT\n\t* SIGNED_INT\n\t* NOT\n\t* LPAR\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_INT\n\t* LPAR\n\t* SIGNED_FLOAT\n\t* IDENTIFIER\n",
               "type": "value_error.exception"
             }
           ]
@@ -847,7 +1094,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -863,13 +1110,13 @@
                 "size": 119,
                 "data": [
                   {
-                    "count": 2,
-                    "nested_count": 2,
+                    "count": 3,
+                    "nested_count": 3,
                     "value": "C"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "H"
                   },
                   {
@@ -880,7 +1127,22 @@
                   {
                     "count": 1,
                     "nested_count": 1,
+                    "value": "I"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "N"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
                     "value": "Nb"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Pb"
                   },
                   {
                     "count": 1,
@@ -928,8 +1190,8 @@
                     "value": 4
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": 5
                   }
                 ]
@@ -940,7 +1202,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "1996",
+          "content-length": "2312",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -1027,7 +1289,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -1114,7 +1376,7 @@
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
-                "size": 14,
+                "size": 15,
                 "type": "terms",
                 "changed": true,
                 "quantity": "results.method.workflow_name"
@@ -1143,7 +1405,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -1165,7 +1427,7 @@
                 "quantity": "results.method.workflow_name",
                 "exclude_from_search": true,
                 "metrics": [],
-                "size": 14,
+                "size": 15,
                 "data": []
               }
             }
@@ -1231,7 +1493,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -1458,6 +1720,14 @@
                   },
                   {
                     "count": 0,
+                    "value": "QuantumEspressoEPW"
+                  },
+                  {
+                    "count": 0,
+                    "value": "QuantumEspressPhonon"
+                  },
+                  {
+                    "count": 0,
                     "value": "SIESTA"
                   },
                   {
@@ -1492,7 +1762,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5237",
+          "content-length": "5421",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -1589,7 +1859,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -1743,7 +2013,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -1852,7 +2122,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -2011,7 +2281,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -2303,7 +2573,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -2321,7 +2591,18 @@
                   "optoelectronic.band_gap",
                   "solar_cell"
                 ],
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "optoelectronic.band_gap"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "solar_cell"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.band_gap.type:scroll": {
@@ -2339,7 +2620,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 2.5634826144e-19,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 2.5634826144e-19
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.efficiency:default_histogram": {
@@ -2348,7 +2636,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 15.9,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 15.9
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.fill_factor:default_histogram": {
@@ -2357,7 +2652,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 0.78,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 0.78
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.open_circuit_voltage:default_histogram": {
@@ -2366,7 +2668,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 1,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.short_circuit_current_density:default_histogram": {
@@ -2375,7 +2684,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 203,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 203
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.illumination_intensity:default_histogram": {
@@ -2384,7 +2700,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 1000,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1000
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.device_area:default_histogram": {
@@ -2393,7 +2716,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 0.0000125,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 0.0000125
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.device_architecture:scroll": {
@@ -2402,7 +2732,13 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "pin"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.device_stack:scroll": {
@@ -2411,7 +2747,33 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ag"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "BCP"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "ITO"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PCBM-60"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PEDOT:PSS"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.absorber:scroll": {
@@ -2420,7 +2782,13 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "MAPbI"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.absorber_fabrication:scroll": {
@@ -2429,7 +2797,13 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Spin-coating"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.electron_transport_layer:scroll": {
@@ -2438,7 +2812,18 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "BCP"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PCBM-60"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.hole_transport_layer:scroll": {
@@ -2447,7 +2832,13 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PEDOT:PSS"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.substrate:scroll": {
@@ -2456,7 +2847,18 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "ITO"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "SLG"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.back_contact:scroll": {
@@ -2465,7 +2867,13 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ag"
+                  }
+                ]
               }
             }
           },
@@ -2473,7 +2881,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5351",
+          "content-length": "8195",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -2536,7 +2944,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -2676,7 +3084,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -2808,7 +3216,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -2923,7 +3331,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -3052,7 +3460,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -3179,7 +3587,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -3295,7 +3703,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -3318,12 +3726,12 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "offset": 1664778661389,
+                "offset": 1666682432136,
                 "data": [
                   {
-                    "count": 3,
-                    "nested_count": 3,
-                    "value": 1664778661389
+                    "count": 4,
+                    "nested_count": 4,
+                    "value": 1666682432136
                   }
                 ]
               }
@@ -3390,7 +3798,1056 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "datasets.dataset_name:scroll": {
+              "terms": {
+                "quantity": "datasets.dataset_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 10,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "458",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {},
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 20,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "total": 4
+          },
+          "data": [
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "jLKvVS_FQ-KiJRXC49wzHw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.143939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
+                  "elements": [
+                    "C",
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
+                  ],
+                  "elements_exclusive": "C H I N Pb",
+                  "material_id": "test_material_id",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
+                },
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    },
+                    "band_gap": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ]
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap"
+                  ]
+                }
+              },
+              "entry_id": "jLKvVS_FQ-KiJRXC49wzHw",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "fI_rhkLqQ829U8gf_BqZIg",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.140939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C",
+                    "H"
+                  ],
+                  "elements_exclusive": "C H",
+                  "chemical_formula_anonymous": "AB2",
+                  "material_id": "test_material_id",
+                  "structural_type": "molecule / cluster",
+                  "chemical_formula_reduced": "CH3",
+                  "n_elements": 2,
+                  "chemical_formula_descriptive": "CH3",
+                  "chemical_formula_hill": "CH3"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "fI_rhkLqQ829U8gf_BqZIg",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "cuJyixjeQSS2-W5ZM8VPJQ",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.141939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C"
+                  ],
+                  "elements_exclusive": "C",
+                  "chemical_formula_anonymous": "A",
+                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
+                  "structural_type": "2D",
+                  "chemical_formula_reduced": "C",
+                  "n_elements": 1,
+                  "chemical_formula_descriptive": "C",
+                  "chemical_formula_hill": "C"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "LDA_X_PZ",
+                        "LDA_C_PZ"
+                      ]
+                    },
+                    "program_name": "exciting"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "cuJyixjeQSS2-W5ZM8VPJQ",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "by5AZNRMTH6Ip5AliZ3glw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.142939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "Hf",
+                    "Nb",
+                    "Ta",
+                    "Ti",
+                    "Zr"
+                  ],
+                  "elements_exclusive": "Hf Nb Ta Ti Zr",
+                  "chemical_formula_anonymous": "ABCDE",
+                  "material_id": "aLzu5XmhATsTfEA4sGIiL45caCMq",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "HfNbTaTiZr",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "HfNbTaTiZr",
+                  "chemical_formula_hill": "HfNbTaTiZr"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "by5AZNRMTH6Ip5AliZ3glw",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "9891",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.material.structural_type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 7,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.structural_type"
+              }
+            },
+            "results.material.functional_type:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.functional_type"
+              }
+            },
+            "results.material.compound_type:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.compound_type"
+              }
+            },
+            "results.material.material_name:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.material_name"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.material.structural_type:scroll": {
+              "terms": {
+                "quantity": "results.material.structural_type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 7,
+                "data": [
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "bulk"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "2D"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "molecule / cluster"
+                  }
+                ]
+              }
+            },
+            "results.material.functional_type:scroll": {
+              "terms": {
+                "quantity": "results.material.functional_type",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "semiconductor"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "solar cell"
+                  }
+                ]
+              }
+            },
+            "results.material.compound_type:scroll": {
+              "terms": {
+                "quantity": "results.material.compound_type",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.material.material_name:scroll": {
+              "terms": {
+                "quantity": "results.material.material_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "perovskite"
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1883",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.material.elements:default": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 119,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.elements"
+              }
+            },
+            "results.material.n_elements:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "interval": 1,
+                "changed": true,
+                "quantity": "results.material.n_elements"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.material.elements:default": {
+              "terms": {
+                "quantity": "results.material.elements",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 119,
+                "data": [
+                  {
+                    "count": 3,
+                    "nested_count": 3,
+                    "value": "C"
+                  },
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "H"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Hf"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "I"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "N"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Nb"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Pb"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ta"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ti"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Zr"
+                  }
+                ]
+              }
+            },
+            "results.material.n_elements:default_histogram": {
+              "histogram": {
+                "quantity": "results.material.n_elements",
+                "exclude_from_search": true,
+                "metrics": [],
+                "interval": 1,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 2
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 3
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 4
+                  },
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": 5
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "2312",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.eln.sections:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.sections"
+              }
+            },
+            "results.eln.tags:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.tags"
+              }
+            },
+            "results.eln.methods:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.methods"
+              }
+            },
+            "results.eln.instruments:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.instruments"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.eln.sections:scroll": {
+              "terms": {
+                "quantity": "results.eln.sections",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.eln.tags:scroll": {
+              "terms": {
+                "quantity": "results.eln.tags",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.eln.methods:scroll": {
+              "terms": {
+                "quantity": "results.eln.methods",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.eln.instruments:scroll": {
+              "terms": {
+                "quantity": "results.eln.instruments",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1084",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "external_db:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 6,
+                "type": "terms",
+                "changed": true,
+                "quantity": "external_db"
+              }
+            },
+            "upload_create_time:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "upload_create_time"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "external_db:scroll": {
+              "terms": {
+                "quantity": "external_db",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 6,
+                "data": []
+              }
+            },
+            "upload_create_time:default_histogram": {
+              "histogram": {
+                "quantity": "upload_create_time",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 1666682432136,
+                "data": [
+                  {
+                    "count": 4,
+                    "nested_count": 4,
+                    "value": 1666682432136
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "823",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "datasets.dataset_name:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 10,
+                "type": "terms",
+                "changed": true,
+                "quantity": "datasets.dataset_name"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
           },
           "required": {
             "include": [
@@ -3451,14 +4908,14 @@
             "page_size": 10,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "data": [
             {
-              "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "IwRZawmhT9OR1VOevPs_EA",
+              "calc_id": "by5AZNRMTH6Ip5AliZ3glw",
               "published": true,
               "writers": [
                 {
@@ -3468,7 +4925,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -3481,79 +4938,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-03T06:31:01.394674+00:00",
-              "publish_time": "2022-10-03T06:31:01.392674+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C"
-                  ],
-                  "elements_exclusive": "C",
-                  "chemical_formula_anonymous": "A",
-                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
-                  "structural_type": "2D",
-                  "chemical_formula_reduced": "C",
-                  "n_elements": 1,
-                  "chemical_formula_descriptive": "C",
-                  "chemical_formula_hill": "C"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "LDA_X_PZ",
-                        "LDA_C_PZ"
-                      ]
-                    },
-                    "program_name": "exciting"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "IwRZawmhT9OR1VOevPs_EA",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "UWy2PDx9SQq4ouXgdxET8w",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-03T06:31:01.395674+00:00",
-              "publish_time": "2022-10-03T06:31:01.392674+00:00",
+              "entry_create_time": "2022-10-25T07:20:32.142939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -3591,7 +4977,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "UWy2PDx9SQq4ouXgdxET8w",
+              "entry_id": "by5AZNRMTH6Ip5AliZ3glw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -3601,10 +4987,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "iFdkkgoqSOCdi25FHOR40A",
+              "calc_id": "cuJyixjeQSS2-W5ZM8VPJQ",
               "published": true,
               "writers": [
                 {
@@ -3614,7 +5000,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -3627,8 +5013,79 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-03T06:31:01.393674+00:00",
-              "publish_time": "2022-10-03T06:31:01.392674+00:00",
+              "entry_create_time": "2022-10-25T07:20:32.141939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C"
+                  ],
+                  "elements_exclusive": "C",
+                  "chemical_formula_anonymous": "A",
+                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
+                  "structural_type": "2D",
+                  "chemical_formula_reduced": "C",
+                  "n_elements": 1,
+                  "chemical_formula_descriptive": "C",
+                  "chemical_formula_hill": "C"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "LDA_X_PZ",
+                        "LDA_C_PZ"
+                      ]
+                    },
+                    "program_name": "exciting"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "cuJyixjeQSS2-W5ZM8VPJQ",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "fI_rhkLqQ829U8gf_BqZIg",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.140939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -3663,7 +5120,122 @@
                 },
                 "properties": {}
               },
-              "entry_id": "iFdkkgoqSOCdi25FHOR40A",
+              "entry_id": "fI_rhkLqQ829U8gf_BqZIg",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "jLKvVS_FQ-KiJRXC49wzHw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.143939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
+                  "elements": [
+                    "C",
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
+                  ],
+                  "elements_exclusive": "C H I N Pb",
+                  "material_id": "test_material_id",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
+                },
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    },
+                    "band_gap": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ]
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap"
+                  ]
+                }
+              },
+              "entry_id": "jLKvVS_FQ-KiJRXC49wzHw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -3676,7 +5248,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "6680",
+          "content-length": "9897",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -3719,7 +5291,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* ESCAPED_STRING\n\t* IDENTIFIER\n\t* SIGNED_FLOAT\n\t* SIGNED_INT\n\t* NOT\n\t* LPAR\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_INT\n\t* LPAR\n\t* SIGNED_FLOAT\n\t* IDENTIFIER\n",
               "type": "value_error.exception"
             }
           ]
@@ -3769,7 +5341,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* ESCAPED_STRING\n\t* IDENTIFIER\n\t* SIGNED_FLOAT\n\t* SIGNED_INT\n\t* NOT\n\t* LPAR\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_INT\n\t* LPAR\n\t* SIGNED_FLOAT\n\t* IDENTIFIER\n",
               "type": "value_error.exception"
             }
           ]
@@ -3777,6 +5349,1937 @@
         "headers": {
           "connection": "close",
           "content-length": "361",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "results.material.functional_type:any": [
+                  "solar cell"
+                ]
+              },
+              {}
+            ]
+          },
+          "aggregations": {},
+          "pagination": {
+            "order_by": "results.properties.optoelectronic.solar_cell.efficiency",
+            "order": "desc",
+            "page_size": 20
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "name": "results.material.functional_type",
+                "value": {
+                  "any": [
+                    "solar cell"
+                  ]
+                }
+              },
+              {}
+            ]
+          },
+          "pagination": {
+            "page_size": 20,
+            "order_by": "results.properties.optoelectronic.solar_cell.efficiency",
+            "order": "desc",
+            "total": 1
+          },
+          "data": [
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "jLKvVS_FQ-KiJRXC49wzHw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.143939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
+                  "elements": [
+                    "C",
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
+                  ],
+                  "elements_exclusive": "C H I N Pb",
+                  "material_id": "test_material_id",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
+                },
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    },
+                    "band_gap": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ]
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap"
+                  ]
+                }
+              },
+              "entry_id": "jLKvVS_FQ-KiJRXC49wzHw",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "3612",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible"
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": []
+          },
+          "pagination": {
+            "page_size": 10,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "data": [
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "by5AZNRMTH6Ip5AliZ3glw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.142939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "Hf",
+                    "Nb",
+                    "Ta",
+                    "Ti",
+                    "Zr"
+                  ],
+                  "elements_exclusive": "Hf Nb Ta Ti Zr",
+                  "chemical_formula_anonymous": "ABCDE",
+                  "material_id": "aLzu5XmhATsTfEA4sGIiL45caCMq",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "HfNbTaTiZr",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "HfNbTaTiZr",
+                  "chemical_formula_hill": "HfNbTaTiZr"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "by5AZNRMTH6Ip5AliZ3glw",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "cuJyixjeQSS2-W5ZM8VPJQ",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.141939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C"
+                  ],
+                  "elements_exclusive": "C",
+                  "chemical_formula_anonymous": "A",
+                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
+                  "structural_type": "2D",
+                  "chemical_formula_reduced": "C",
+                  "n_elements": 1,
+                  "chemical_formula_descriptive": "C",
+                  "chemical_formula_hill": "C"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "LDA_X_PZ",
+                        "LDA_C_PZ"
+                      ]
+                    },
+                    "program_name": "exciting"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "cuJyixjeQSS2-W5ZM8VPJQ",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "fI_rhkLqQ829U8gf_BqZIg",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.140939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C",
+                    "H"
+                  ],
+                  "elements_exclusive": "C H",
+                  "chemical_formula_anonymous": "AB2",
+                  "material_id": "test_material_id",
+                  "structural_type": "molecule / cluster",
+                  "chemical_formula_reduced": "CH3",
+                  "n_elements": 2,
+                  "chemical_formula_descriptive": "CH3",
+                  "chemical_formula_hill": "CH3"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "fI_rhkLqQ829U8gf_BqZIg",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "jLKvVS_FQ-KiJRXC49wzHw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-10-25T07:20:32.143939+00:00",
+              "publish_time": "2022-10-25T07:20:32.139939+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
+                  "elements": [
+                    "C",
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
+                  ],
+                  "elements_exclusive": "C H I N Pb",
+                  "material_id": "test_material_id",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
+                },
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    },
+                    "band_gap": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ]
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap"
+                  ]
+                }
+              },
+              "entry_id": "jLKvVS_FQ-KiJRXC49wzHw",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "9897",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "verify_only": true,
+          "owner": "public",
+          "query": {
+            "optimade_filter": "."
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "detail": [
+            {
+              "loc": [
+                [
+                  "optimade_filter"
+                ]
+              ],
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_INT\n\t* LPAR\n\t* SIGNED_FLOAT\n\t* IDENTIFIER\n",
+              "type": "value_error.exception"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "361",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "results.material.functional_type:any": [
+                  "solar cell"
+                ]
+              },
+              {}
+            ]
+          },
+          "aggregations": {
+            "results.material.structural_type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 7,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.structural_type"
+              }
+            },
+            "results.material.functional_type:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.functional_type"
+              }
+            },
+            "results.material.compound_type:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.compound_type"
+              }
+            },
+            "results.material.material_name:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.material_name"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "name": "results.material.functional_type",
+                "value": {
+                  "any": [
+                    "solar cell"
+                  ]
+                }
+              },
+              {}
+            ]
+          },
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 1
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.material.structural_type:scroll": {
+              "terms": {
+                "quantity": "results.material.structural_type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 7,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "bulk"
+                  }
+                ]
+              }
+            },
+            "results.material.functional_type:scroll": {
+              "terms": {
+                "quantity": "results.material.functional_type",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "semiconductor"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "solar cell"
+                  }
+                ]
+              }
+            },
+            "results.material.compound_type:scroll": {
+              "terms": {
+                "quantity": "results.material.compound_type",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.material.material_name:scroll": {
+              "terms": {
+                "quantity": "results.material.material_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "perovskite"
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1840",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "verify_only": true,
+          "owner": "public",
+          "query": {
+            "optimade_filter": "."
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "detail": [
+            {
+              "loc": [
+                [
+                  "optimade_filter"
+                ]
+              ],
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_INT\n\t* LPAR\n\t* SIGNED_FLOAT\n\t* IDENTIFIER\n",
+              "type": "value_error.exception"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "361",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "results.material.functional_type:any": [
+                  "solar cell"
+                ]
+              },
+              {}
+            ]
+          },
+          "aggregations": {
+            "results.material.elements:default": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 119,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.elements"
+              }
+            },
+            "results.material.n_elements:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "interval": 1,
+                "changed": true,
+                "quantity": "results.material.n_elements"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "name": "results.material.functional_type",
+                "value": {
+                  "any": [
+                    "solar cell"
+                  ]
+                }
+              },
+              {}
+            ]
+          },
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 1
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.material.elements:default": {
+              "terms": {
+                "quantity": "results.material.elements",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 119,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "C"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "H"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "I"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "N"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Pb"
+                  }
+                ]
+              }
+            },
+            "results.material.n_elements:default_histogram": {
+              "histogram": {
+                "quantity": "results.material.n_elements",
+                "exclude_from_search": true,
+                "metrics": [],
+                "interval": 1,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 5
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1547",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "results.material.functional_type:any": [
+                  "solar cell"
+                ]
+              },
+              {}
+            ]
+          },
+          "aggregations": {
+            "optoelectronic_properties:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "quantity": "results.properties.available_properties",
+                "include": [
+                  "optoelectronic.band_gap",
+                  "solar_cell"
+                ],
+                "update": true,
+                "type": "terms",
+                "size": 2,
+                "changed": true
+              }
+            },
+            "results.properties.optoelectronic.band_gap.type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 2,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.band_gap.type"
+              }
+            },
+            "results.properties.optoelectronic.band_gap.value:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.band_gap.value"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.efficiency:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.fill_factor:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.fill_factor"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.open_circuit_voltage:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.short_circuit_current_density:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.illumination_intensity:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_area:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.device_area"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_architecture:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.device_architecture"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_stack:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.device_stack"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.absorber:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.absorber"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.absorber_fabrication:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.electron_transport_layer:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.hole_transport_layer:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.substrate:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.substrate"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.back_contact:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.back_contact"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "name": "results.material.functional_type",
+                "value": {
+                  "any": [
+                    "solar cell"
+                  ]
+                }
+              },
+              {}
+            ]
+          },
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 1
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "optoelectronic_properties:scroll": {
+              "terms": {
+                "quantity": "results.properties.available_properties",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 2,
+                "include": [
+                  "optoelectronic.band_gap",
+                  "solar_cell"
+                ],
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "optoelectronic.band_gap"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "solar_cell"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.band_gap.type:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.band_gap.type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 2,
+                "data": []
+              }
+            },
+            "results.properties.optoelectronic.band_gap.value:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.band_gap.value",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 2.5634826144e-19,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 2.5634826144e-19
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.efficiency:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.efficiency",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 15.9,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 15.9
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.fill_factor:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.fill_factor",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 0.78,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 0.78
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.open_circuit_voltage:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 1,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.short_circuit_current_density:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 203,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 203
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.illumination_intensity:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 1000,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1000
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_area:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.device_area",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 0.0000125,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 0.0000125
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_architecture:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.device_architecture",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "pin"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_stack:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.device_stack",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ag"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "BCP"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "ITO"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PCBM-60"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PEDOT:PSS"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.absorber:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.absorber",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "MAPbI"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.absorber_fabrication:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Spin-coating"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.electron_transport_layer:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "BCP"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PCBM-60"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.hole_transport_layer:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PEDOT:PSS"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.substrate:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.substrate",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "ITO"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "SLG"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.back_contact:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.back_contact",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ag"
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "8380",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "results.material.functional_type:any": [
+                  "solar cell"
+                ]
+              },
+              {}
+            ]
+          },
+          "aggregations": {
+            "results.eln.sections:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.sections"
+              }
+            },
+            "results.eln.tags:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.tags"
+              }
+            },
+            "results.eln.methods:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.methods"
+              }
+            },
+            "results.eln.instruments:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.instruments"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "name": "results.material.functional_type",
+                "value": {
+                  "any": [
+                    "solar cell"
+                  ]
+                }
+              },
+              {}
+            ]
+          },
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 1
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.eln.sections:scroll": {
+              "terms": {
+                "quantity": "results.eln.sections",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.eln.tags:scroll": {
+              "terms": {
+                "quantity": "results.eln.tags",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.eln.methods:scroll": {
+              "terms": {
+                "quantity": "results.eln.methods",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.eln.instruments:scroll": {
+              "terms": {
+                "quantity": "results.eln.instruments",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1269",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "results.material.functional_type:any": [
+                  "solar cell"
+                ]
+              },
+              {}
+            ]
+          },
+          "aggregations": {
+            "external_db:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 6,
+                "type": "terms",
+                "changed": true,
+                "quantity": "external_db"
+              }
+            },
+            "upload_create_time:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "upload_create_time"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "name": "results.material.functional_type",
+                "value": {
+                  "any": [
+                    "solar cell"
+                  ]
+                }
+              },
+              {}
+            ]
+          },
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 1
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "external_db:scroll": {
+              "terms": {
+                "quantity": "external_db",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 6,
+                "data": []
+              }
+            },
+            "upload_create_time:default_histogram": {
+              "histogram": {
+                "quantity": "upload_create_time",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 1666682432136,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1666682432136
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1008",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "results.material.functional_type:any": [
+                  "solar cell"
+                ]
+              },
+              {}
+            ]
+          },
+          "aggregations": {
+            "datasets.dataset_name:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 10,
+                "type": "terms",
+                "changed": true,
+                "quantity": "datasets.dataset_name"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "name": "results.material.functional_type",
+                "value": {
+                  "any": [
+                    "solar cell"
+                  ]
+                }
+              },
+              {}
+            ]
+          },
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 1
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "datasets.dataset_name:scroll": {
+              "terms": {
+                "quantity": "datasets.dataset_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 10,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "643",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -3784,6 +7287,124 @@
     }
   ],
   "cd2b263727fb2d6704d7b6a1e68a2c83": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/archive/query",
+        "method": "POST",
+        "body": {
+          "owner": "visible",
+          "query": {
+            "quantities": "definitions.section_definitions",
+            "processed": true
+          },
+          "required": {
+            "metadata": {
+              "entry_id": "*"
+            }
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "name": "quantities",
+                "value": "definitions.section_definitions"
+              },
+              {
+                "name": "processed",
+                "value": true
+              }
+            ]
+          },
+          "pagination": {
+            "page_size": 10,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 0
+          },
+          "required": {
+            "metadata": {
+              "entry_id": "*"
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "414",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/archive/query",
+        "method": "POST",
+        "body": {
+          "owner": "visible",
+          "query": {
+            "quantities": "definitions.section_definitions",
+            "processed": true
+          },
+          "required": {
+            "metadata": {
+              "entry_id": "*"
+            }
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": [
+              {
+                "name": "quantities",
+                "value": "definitions.section_definitions"
+              },
+              {
+                "name": "processed",
+                "value": true
+              }
+            ]
+          },
+          "pagination": {
+            "page_size": 10,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 0
+          },
+          "required": {
+            "metadata": {
+              "entry_id": "*"
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "414",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
     {
       "request": {
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/archive/query",
@@ -3948,9 +7569,9 @@
             {
               "entries": [
                 {
-                  "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
+                  "upload_id": "niZzieLKRSqNzBp60NXM9Q",
                   "origin": "Markus Scheidgen",
-                  "calc_id": "IwRZawmhT9OR1VOevPs_EA",
+                  "calc_id": "cuJyixjeQSS2-W5ZM8VPJQ",
                   "published": true,
                   "writers": [
                     {
@@ -3959,7 +7580,7 @@
                     }
                   ],
                   "datasets": [],
-                  "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
+                  "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
                   "main_author": {
                     "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                     "name": "Markus Scheidgen"
@@ -3970,8 +7591,8 @@
                       "name": "Markus Scheidgen"
                     }
                   ],
-                  "entry_create_time": "2022-10-03T06:31:01.394674+00:00",
-                  "publish_time": "2022-10-03T06:31:01.392674+00:00",
+                  "entry_create_time": "2022-10-25T07:20:32.141939+00:00",
+                  "publish_time": "2022-10-25T07:20:32.139939+00:00",
                   "with_embargo": false,
                   "domain": "dft",
                   "results": {
@@ -3993,7 +7614,7 @@
                     },
                     "properties": {}
                   },
-                  "entry_id": "IwRZawmhT9OR1VOevPs_EA",
+                  "entry_id": "cuJyixjeQSS2-W5ZM8VPJQ",
                   "authors": [
                     {
                       "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -4019,9 +7640,9 @@
             {
               "entries": [
                 {
-                  "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
+                  "upload_id": "niZzieLKRSqNzBp60NXM9Q",
                   "origin": "Markus Scheidgen",
-                  "calc_id": "iFdkkgoqSOCdi25FHOR40A",
+                  "calc_id": "fI_rhkLqQ829U8gf_BqZIg",
                   "published": true,
                   "writers": [
                     {
@@ -4030,7 +7651,7 @@
                     }
                   ],
                   "datasets": [],
-                  "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
+                  "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
                   "main_author": {
                     "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                     "name": "Markus Scheidgen"
@@ -4041,8 +7662,8 @@
                       "name": "Markus Scheidgen"
                     }
                   ],
-                  "entry_create_time": "2022-10-03T06:31:01.393674+00:00",
-                  "publish_time": "2022-10-03T06:31:01.392674+00:00",
+                  "entry_create_time": "2022-10-25T07:20:32.140939+00:00",
+                  "publish_time": "2022-10-25T07:20:32.139939+00:00",
                   "with_embargo": false,
                   "domain": "dft",
                   "results": {
@@ -4064,7 +7685,97 @@
                     },
                     "properties": {}
                   },
-                  "entry_id": "iFdkkgoqSOCdi25FHOR40A",
+                  "entry_id": "fI_rhkLqQ829U8gf_BqZIg",
+                  "authors": [
+                    {
+                      "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                      "name": "Markus Scheidgen"
+                    }
+                  ]
+                },
+                {
+                  "upload_id": "niZzieLKRSqNzBp60NXM9Q",
+                  "origin": "Markus Scheidgen",
+                  "calc_id": "jLKvVS_FQ-KiJRXC49wzHw",
+                  "published": true,
+                  "writers": [
+                    {
+                      "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                      "name": "Markus Scheidgen"
+                    }
+                  ],
+                  "datasets": [],
+                  "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
+                  "main_author": {
+                    "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                    "name": "Markus Scheidgen"
+                  },
+                  "viewers": [
+                    {
+                      "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                      "name": "Markus Scheidgen"
+                    }
+                  ],
+                  "entry_create_time": "2022-10-25T07:20:32.143939+00:00",
+                  "publish_time": "2022-10-25T07:20:32.139939+00:00",
+                  "with_embargo": false,
+                  "domain": "dft",
+                  "results": {
+                    "material": {},
+                    "method": {},
+                    "properties": {
+                      "optoelectronic": {
+                        "solar_cell": {
+                          "absorber_fabrication": [
+                            "Spin-coating"
+                          ],
+                          "efficiency": 15.9,
+                          "device_stack": [
+                            "SLG",
+                            "ITO",
+                            "PEDOT:PSS",
+                            "Perovskite",
+                            "PCBM-60",
+                            "BCP",
+                            "Ag"
+                          ],
+                          "short_circuit_current_density": 203,
+                          "hole_transport_layer": [
+                            "PEDOT:PSS"
+                          ],
+                          "fill_factor": 0.78,
+                          "illumination_intensity": 1000,
+                          "electron_transport_layer": [
+                            "PCBM-60",
+                            "BCP"
+                          ],
+                          "device_area": 0.0000125,
+                          "back_contact": [
+                            "Ag"
+                          ],
+                          "absorber": [
+                            "MAPbI"
+                          ],
+                          "open_circuit_voltage": 1,
+                          "substrate": [
+                            "SLG",
+                            "ITO"
+                          ],
+                          "device_architecture": "pin"
+                        },
+                        "band_gap": [
+                          {
+                            "value": 2.5634826144e-19
+                          }
+                        ]
+                      },
+                      "available_properties": [
+                        "solar_cell",
+                        "optoelectronic.band_gap"
+                      ]
+                    }
+                  },
+                  "entry_id": "jLKvVS_FQ-KiJRXC49wzHw",
                   "authors": [
                     {
                       "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -4073,7 +7784,7 @@
                   ]
                 }
               ],
-              "n_entries": 1,
+              "n_entries": 2,
               "elements": [
                 "C",
                 "H"
@@ -4091,9 +7802,9 @@
             {
               "entries": [
                 {
-                  "upload_id": "5AiVc_D6SP66VxfK6g0Ffw",
+                  "upload_id": "niZzieLKRSqNzBp60NXM9Q",
                   "origin": "Markus Scheidgen",
-                  "calc_id": "UWy2PDx9SQq4ouXgdxET8w",
+                  "calc_id": "by5AZNRMTH6Ip5AliZ3glw",
                   "published": true,
                   "writers": [
                     {
@@ -4102,7 +7813,7 @@
                     }
                   ],
                   "datasets": [],
-                  "upload_create_time": "2022-10-03T06:31:01.389674+00:00",
+                  "upload_create_time": "2022-10-25T07:20:32.136939+00:00",
                   "main_author": {
                     "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                     "name": "Markus Scheidgen"
@@ -4113,8 +7824,8 @@
                       "name": "Markus Scheidgen"
                     }
                   ],
-                  "entry_create_time": "2022-10-03T06:31:01.395674+00:00",
-                  "publish_time": "2022-10-03T06:31:01.392674+00:00",
+                  "entry_create_time": "2022-10-25T07:20:32.142939+00:00",
+                  "publish_time": "2022-10-25T07:20:32.139939+00:00",
                   "with_embargo": false,
                   "domain": "dft",
                   "results": {
@@ -4136,7 +7847,7 @@
                     },
                     "properties": {}
                   },
-                  "entry_id": "UWy2PDx9SQq4ouXgdxET8w",
+                  "entry_id": "by5AZNRMTH6Ip5AliZ3glw",
                   "authors": [
                     {
                       "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -4167,7 +7878,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "6947",
+          "content-length": "9790",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -4653,7 +8364,7 @@
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
-                "size": 14,
+                "size": 15,
                 "type": "terms",
                 "changed": true,
                 "quantity": "entries.results.method.workflow_name"
@@ -4704,7 +8415,7 @@
                 "quantity": "entries.results.method.workflow_name",
                 "exclude_from_search": true,
                 "metrics": [],
-                "size": 14,
+                "size": 15,
                 "data": []
               }
             }
@@ -4997,6 +8708,14 @@
                   },
                   {
                     "count": 0,
+                    "value": "QuantumEspressoEPW"
+                  },
+                  {
+                    "count": 0,
+                    "value": "QuantumEspressPhonon"
+                  },
+                  {
+                    "count": 0,
                     "value": "SIESTA"
                   },
                   {
@@ -5031,7 +8750,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5251",
+          "content-length": "5435",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -5860,7 +9579,18 @@
                   "optoelectronic.band_gap",
                   "solar_cell"
                 ],
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "optoelectronic.band_gap"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "solar_cell"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.band_gap.type:scroll": {
@@ -5878,7 +9608,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 2.5634826144e-19,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 2.5634826144e-19
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.efficiency:default_histogram": {
@@ -5887,7 +9624,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 15.9,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 15.9
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.fill_factor:default_histogram": {
@@ -5896,7 +9640,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 0.78,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 0.78
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.open_circuit_voltage:default_histogram": {
@@ -5905,7 +9656,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 1,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.short_circuit_current_density:default_histogram": {
@@ -5914,7 +9672,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 203,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 203
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.illumination_intensity:default_histogram": {
@@ -5923,7 +9688,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 1000,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1000
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.device_area:default_histogram": {
@@ -5932,7 +9704,14 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "data": []
+                "offset": 0.0000125,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 0.0000125
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.device_architecture:scroll": {
@@ -5941,7 +9720,13 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "pin"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.device_stack:scroll": {
@@ -5950,7 +9735,33 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ag"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "BCP"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "ITO"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PCBM-60"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PEDOT:PSS"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.absorber:scroll": {
@@ -5959,7 +9770,13 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "MAPbI"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.absorber_fabrication:scroll": {
@@ -5968,7 +9785,13 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Spin-coating"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.electron_transport_layer:scroll": {
@@ -5977,7 +9800,18 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "BCP"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PCBM-60"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.hole_transport_layer:scroll": {
@@ -5986,7 +9820,13 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PEDOT:PSS"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.substrate:scroll": {
@@ -5995,7 +9835,18 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "ITO"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "SLG"
+                  }
+                ]
               }
             },
             "results.properties.optoelectronic.solar_cell.back_contact:scroll": {
@@ -6004,7 +9855,13 @@
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
-                "data": []
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ag"
+                  }
+                ]
               }
             }
           },
@@ -6012,7 +9869,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5493",
+          "content-length": "8337",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -6857,12 +10714,12 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "offset": 1664778661389,
+                "offset": 1666682432136,
                 "data": [
                   {
-                    "count": 3,
-                    "nested_count": 3,
-                    "value": 1664778661389
+                    "count": 4,
+                    "nested_count": 4,
+                    "value": 1666682432136
                   }
                 ]
               }

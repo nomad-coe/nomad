@@ -442,7 +442,7 @@ archive = NomadConfig(
 
 ui = NomadConfig(
     search_contexts={
-        "include": ["entries", "eln", "materials"],
+        "include": ["entries", "eln", "materials", "solar_cells"],
         "exclude": [],
         "options": {
             "entries": {
@@ -934,6 +934,198 @@ ui = NomadConfig(
                                 }
                             }
                         }
+                    }
+                }
+            },
+            "solar_cells": {
+                'label': "Solar Cells",
+                'path': "solar-cells",
+                'resource': 'entries',
+                'breadcrumb': "Solar cells search",
+                'description': "Search solar cells in NOMAD",
+                'help': {
+                    'title': 'Solar cells search',
+                    'content': inspect.cleandoc(r'''
+                        This page allows you to **search solar cells** within NOMAD.
+                        You can search for solar cells by their properties, by the chemistry of the absorber layer,
+                        preparation method, or their origin.
+
+                        The search page consists of three main elements: the filter panel, the search
+                        bar, and the result list.
+
+                        The filter panel on the left allows you to graphically explore and enter
+                        different search filters. It also gives a visual indication of the currently
+                        active search filters for each category. This is a good place to start exploring
+                        the available search filters and their meaning. But clikcing in the "+" button
+                        you could add the filter widgets to the central part of the page and combine them.
+                        Try adding the periodic table widget to the main pannel and select some elements
+                        contained in the absorber layer.
+
+                        The search bar allows you to specify filters by typing them in and pressing
+                        enter. You can also start by simply typing keywords of interest, which will
+                        toggle a list of suggestions. For numerical data you can also use range queries,
+                        e.g. \`0.0 < efficiency <= 20.1\`.
+
+                        The units used in the filter panel and in the queries can be changed
+                        using the **units** button on the top right corner. When using the search bar,
+                        you can also specify a unit by typing the unit abbreviations, e.g. \`band_gap >=
+                        0.1 Ha\`.
+
+                        The result list on the right is automatically updated according to the filters
+                        you have specified. You can browse through the results by scrolling through the
+                        available items and loading more results as you go. Here you can also change the
+                        sorting of the results, modify the displayed columns, download the raw data
+                        or the archive document by selecting individual entries and pressing the download
+                        cloud button that appears.
+
+                        The ellipsis button (three dots) shown for each entry will navigate
+                        you to that entry's page. This entry page will show more metadata,
+                        raw files, the entry's archive, and processing logs.
+                    '''),
+                },
+                'pagination': {
+                    'order_by': 'results.properties.optoelectronic.solar_cell.efficiency',
+                    'order': 'desc',
+                    'page_size': 20,
+                },
+                'filters_locked': {
+                    'results.material.functional_type': 'solar cell'
+                },
+                'columns': {
+                    'enable': [
+                        'results.material.chemical_formula_descriptive',
+                        'results.properties.optoelectronic.solar_cell.efficiency',
+                        'results.properties.optoelectronic.solar_cell.open_circuit_voltage',
+                        'results.properties.optoelectronic.solar_cell.short_circuit_current_density',
+                        'results.properties.optoelectronic.solar_cell.fill_factor',
+                        'references'
+                    ],
+                    'include': [
+                        'entry_name',
+                        'results.material.chemical_formula_hill',
+                        'results.material.chemical_formula_descriptive',
+                        'results.properties.optoelectronic.solar_cell.efficiency',
+                        'results.properties.optoelectronic.solar_cell.open_circuit_voltage',
+                        'results.properties.optoelectronic.solar_cell.short_circuit_current_density',
+                        'results.properties.optoelectronic.solar_cell.fill_factor',
+                        # 'results.properties.optoelectronic.band_gap[0].value',
+                        'results.properties.optoelectronic.solar_cell.device_stack',
+                        'results.properties.optoelectronic.solar_cell.device_architecture',
+                        'results.properties.optoelectronic.solar_cell.illumination_intensity',
+                        'results.properties.optoelectronic.solar_cell.absorber_fabrication',
+                        'entry_type',
+                        'results.material.structural_type',
+                        'results.eln.lab_ids',
+                        'results.eln.sections',
+                        'results.eln.methods',
+                        'results.eln.tags',
+                        'results.eln.instruments',
+                        'mainfile',
+                        'upload_create_time',
+                        'authors',
+                        'comment',
+                        'references',
+                        'datasets',
+                        'published',
+                    ],
+                    'exclude': [],
+                    'options': {
+                        'entry_name': {'label': 'Name', 'align': 'left'},
+                        'results.material.chemical_formula_hill': {'label': 'Formula', 'align': 'left'},
+                        'results.material.chemical_formula_descriptive': {'label': 'Descriptive Formula', 'align': 'left'},
+                        'entry_type': {'label': 'Entry type', 'align': 'left'},
+                        'results.material.structural_type': {'label': 'Structural type'},
+                        'results.properties.optoelectronic.solar_cell.efficiency': {
+                            'label': 'Efficiency (%)',
+                            'format': {
+                                'decimals': 2,
+                                'mode': 'standard',
+                            },
+                        },
+                        'results.properties.optoelectronic.solar_cell.open_circuit_voltage': {
+                            'label': 'Open circuit voltage',
+                            'unit': 'V',
+                            'format': {
+                                'decimals': 3,
+                                'mode': 'standard',
+                            },
+                        },
+                        'results.properties.optoelectronic.solar_cell.short_circuit_current_density': {
+                            'label': 'Short circuit current density',
+                            'unit': 'A/m**2',
+                            'format': {
+                                'decimals': 3,
+                                'mode': 'standard',
+                            },
+                        },
+                        'results.properties.optoelectronic.solar_cell.fill_factor': {
+                            'label': 'Fill factor',
+                            'format': {
+                                'decimals': 3,
+                                'mode': 'standard',
+                            },
+                        },
+                        'results.properties.optoelectronic.solar_cell.illumination_intensity': {
+                            'label': 'Illum. intensity',
+                            'unit': 'W/m**2',
+                            'format': {
+                                'decimals': 3,
+                                'mode': 'standard',
+                            },
+                        },
+                        # 'results.properties.optoelectronic.band_gap[0].value': {'label': 'Bandgap (eV)'},
+                        'results.eln.lab_ids': {'label': 'Lab IDs'},
+                        'results.eln.sections': {'label': 'Sections'},
+                        'results.eln.methods': {'label': 'Methods'},
+                        'results.eln.tags': {'label': 'Tags'},
+                        'results.eln.instruments': {'label': 'Instruments'},
+                        'mainfile': {'label': 'Mainfile', 'align': 'left'},
+                        'upload_create_time': {'label': 'Upload time', 'align': 'left'},
+                        'authors': {'label': 'Authors', 'align': 'left'},
+                        'comment': {'label': 'Comment', 'align': 'left'},
+                        'references': {'label': 'References', 'align': 'left'},
+                        'datasets': {'label': 'Datasets', 'align': 'left'},
+                        'published': {'label': 'Access'},
+                    },
+                },
+                'rows': {
+                    'actions': {
+                        'enable': True
+                    },
+                    'details': {
+                        'enable': True
+                    },
+                    'selection': {
+                        'enable': True
+                    }
+                },
+                'filter_menus': {
+                    'include': [
+                        'material',
+                        'elements',
+                        'properties',
+                        'optoelectronic',
+                        'eln',
+                        'author',
+                        'dataset',
+                        'access',
+                        'ids',
+                        'processed_data_quantities',
+                        'optimade',
+                    ],
+                    'exclude': [],
+                    'options': {
+                        'material': {'label': 'Material', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'elements': {'label': 'Elements / Formula', 'level': 0, 'size': 'large', 'menu_items': {}},
+                        'properties': {'label': 'Properties', 'level': 0, 'size': 'small'},
+                        'optoelectronic': {'label': 'Solar Cell Properties', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'eln': {'label': 'Electronic Lab Notebook', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'author': {'label': 'Author / Origin', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                        'dataset': {'label': 'Dataset', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'access': {'label': 'Access', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'ids': {'label': 'IDs', 'level': 0, 'size': 'small', 'menu_items': {}},
+                        'processed_data_quantities': {'label': 'Processed Data Quantities', 'level': 0, 'size': 'medium', 'menu_items': {}},
+                        'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium', 'menu_items': {}},
                     }
                 }
             }

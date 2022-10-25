@@ -28,6 +28,7 @@ import { SearchContext } from './SearchContext'
 import { filterData } from './FilterRegistry'
 import { format } from 'date-fns'
 import { DType } from '../../utils'
+import { Unit } from '../../units'
 
 /*****************************************************************************/
 // Renders
@@ -264,12 +265,24 @@ export async function expectFilterMainMenu(context, root = screen) {
  */
 export async function expectSearchResults(context, root = screen) {
     // Wait until search results are in
-    expect(await screen.findByText("search results", {exact: false})).toBeInTheDocument()
+    expect(await screen.findByText("search result", {exact: false})).toBeInTheDocument()
+
+    // We need to focus the search on the table itself because the column labels
+    // are often found on the menu as well, and a single selector is not enough
+    // to specify the target
+    const container = within(screen.getByTestId('search-results'))
 
     // Check that correct columns are displayed
     const columnConfig = context.columns
-    const columnLabels = columnConfig.enable.map(key => columnConfig.options[key].label)
+    const columnLabels = columnConfig.enable.map(key => {
+      const config = columnConfig.options[key]
+      const unit = config.unit
+      const label = config.label
+      return unit
+        ? `${label} (${new Unit(unit).label()})`
+        : label
+    })
     for (const columnLabel of columnLabels) {
-      expect(screen.getByText(columnLabel)).toBeInTheDocument()
+      expect(container.getByText(columnLabel)).toBeInTheDocument()
     }
 }
