@@ -21,7 +21,9 @@ import pytest
 import yaml
 
 from nomad.utils import strip
-from nomad.metainfo import Package, MSection, Quantity, Reference, SubSection, Section, MProxy, MetainfoError
+from nomad.metainfo import (
+    Package, MSection, Quantity, Reference, SubSection, Section, MProxy, MetainfoError,
+    Context)
 
 m_package = Package()
 
@@ -49,40 +51,46 @@ m_package.__init_metainfo__()
 
 
 def yaml_to_package(yaml_str):
+    class MyContext(Context):
+        def create_reference(self, section: 'MSection', quantity_def: 'Quantity', value: 'MSection') -> str:
+            if section.m_root() == value.m_root():  # type: ignore
+                return super().create_reference(section, quantity_def, value)
+            return None
+
     yaml_obj = yaml.safe_load(yaml_str)
-    package = Package.m_from_dict(yaml_obj)
+    package = Package.m_from_dict(yaml_obj, m_context=MyContext())
     return package
 
 
 yaml_schema_example = strip('''
-m_def: 'nomad.metainfo.metainfo.Package'
-sections:
-  Sample:
-    base_section: 'nomad.datamodel.metainfo.measurements.Sample'
-    quantities:
-      sample_id:
-        type: str
-        description: |
-          This is a description with *markup* using [markdown](https://markdown.org).
-          It can have multiple lines, because yaml allows to easily do this.
-        m_annotations:
-          eln:
-            component: StringEditQuantity
-  Process:
-    quantities:
-      samples:
-        type: '#/Sample'
-        shape: ['*']
-    sub_sections:
-      layers:
-        section_def: '#/Sample'
-        repeats: true
-  SpecialProcess:
-    base_section: '#/Process'
-    quantities:
-      values:
-        type: np.float64
-        shape: [3, 3]
+    m_def: 'nomad.metainfo.metainfo.Package'
+    sections:
+        Sample:
+            base_section: 'nomad.datamodel.metainfo.measurements.Sample'
+            quantities:
+                sample_id:
+                    type: str
+                    description: |
+                        This is a description with *markup* using [markdown](https://markdown.org).
+                        It can have multiple lines, because yaml allows to easily do this.
+                    m_annotations:
+                        eln:
+                            component: StringEditQuantity
+        Process:
+            quantities:
+                samples:
+                    type: '#/Sample'
+                    shape: ['*']
+            sub_sections:
+                layers:
+                    section_def: '#/Sample'
+                    repeats: true
+        SpecialProcess:
+            base_section: '#/Process'
+            quantities:
+                values:
+                    type: np.float64
+                    shape: [3, 3]
 ''')
 
 
@@ -145,21 +153,21 @@ def test_yaml_deserialization():
 
 
 yaml_schema_example_extended_types = strip('''
-m_def: 'nomad.metainfo.metainfo.Package'
-sections:
-  Sample:
-    base_section: 'nomad.datamodel.metainfo.measurements.Sample'
-    quantities:
-      method:
-        type: string
-        m_annotations:
-          eln:
-            component: StringEditQuantity
-      spin:
-        type: boolean
-        m_annotations:
-          eln:
-            component: BoolEditQuantity
+    m_def: 'nomad.metainfo.metainfo.Package'
+    sections:
+        Sample:
+            base_section: 'nomad.datamodel.metainfo.measurements.Sample'
+            quantities:
+                method:
+                    type: string
+                    m_annotations:
+                        eln:
+                            component: StringEditQuantity
+                spin:
+                    type: boolean
+                    m_annotations:
+                        eln:
+                            component: BoolEditQuantity
 ''')
 
 
@@ -185,27 +193,27 @@ def test_yaml_extended_types_deserialization():
     pytest.param(strip('''
         m_def: 'nomad.metainfo.metainfo.Package'
         sections:
-          Process:
-            quantities:
-              samples:
-                type: np.float6
+            Process:
+                quantities:
+                    samples:
+                        type: np.float6
     '''), 'float6 is not a valid numpy type.', id='wrong np type'),
     pytest.param(strip('''
         m_def: 'nomad.metainfo.metainfo.Package'
         sections:
-          Process:
-            quantities:
-              samples:
-                type: numpy.int3
+            Process:
+                quantities:
+                    samples:
+                        type: numpy.int3
     '''), 'int3 is not a valid numpy type.', id='wrong numpy type'),
     pytest.param(strip('''
         m_def: 'nomad.metainfo.metainfo.Package'
         sections:
-          Process:
-            quantities:
-              samples:
-                type: float
-                m_annotations: eln
+            Process:
+                quantities:
+                    samples:
+                        type: float
+                        m_annotations: eln
     '''), 'The provided m_annotations is of a wrong type. str was provided.', id='wrong m_annotations')
 ])
 def test_errors(yaml_schema, expected_error):
@@ -219,25 +227,47 @@ def test_errors(yaml_schema, expected_error):
 def test_sub_section_tree():
     yaml = yaml_to_package('''
       sections:
-        Parent:
-          sub_sections:
-            the_child:
-              sub_section:
-                quantities:
-                  quantity:
-                    type: str
+          Parent:
+              sub_sections:
+                  the_child:
+                      sub_section:
+                          quantities:
+                              quantity:
+                                  type: str
     ''')
     reference = yaml_to_package('''
-      sections:
-        Parent:
-          sub_sections:
-            the_child:
-              section: TheChild
-          sections:
-            TheChild:
-              quantities:
-                quantity:
-                  type: str
+        sections:
+            Parent:
+                sub_sections:
+                    the_child:
+                        section: TheChild
+                sections:
+                    TheChild:
+                        quantities:
+                            quantity:
+                                type: str
     ''')
 
     assert yaml.m_to_dict() == reference.m_to_dict()
+
+
+@pytest.mark.parametrize('source_type, target_type', [
+    pytest.param(
+        'nomad.datamodel.data.ArchiveSection',
+        'nomad.datamodel.data.ArchiveSection',
+        id='python'),
+    pytest.param('MySection', '/section_definitions/0', id='yaml'),
+])
+def test_references(source_type, target_type):
+    yaml = yaml_to_package(f'''
+        sections:
+            MySection:
+                quantities:
+                    reference:
+                       type: {source_type}
+    ''')
+
+    assert yaml.m_to_dict()['section_definitions'][0]['quantities'][0]['type'] == {
+        'type_kind': 'reference',
+        'type_data': target_type
+    }
