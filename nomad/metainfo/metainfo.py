@@ -427,9 +427,18 @@ class _QuantityType(DataType):
             if isinstance(value, QuantityReference):
                 return dict(type_kind='quantity_reference', type_data=value.target_quantity_def.m_path())
 
-            context = cast(MSection, section.m_root()).m_context
+            section_root = section.m_root()
+            context = cast(MSection, section_root).m_context
             if context is not None:
-                type_data = context.create_reference(section, quantity_def, value.target_section_def)
+                try:
+                    type_data = context.create_reference(section, quantity_def, value.target_section_def)
+                except AssertionError:
+                    pass
+
+                if type_data is None:
+                    # If no reference could be created from the context, we assume that
+                    # the reference is "external" and only available as a Python-based definition.
+                    type_data = value.target_section_def.qualified_name()
             else:
                 type_data = value.target_section_def.m_path()
 
