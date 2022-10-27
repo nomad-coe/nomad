@@ -35,6 +35,7 @@ from nomad.datamodel.metainfo.simulation.system import System, Symmetry as Syste
 from nomad.datamodel.results import (
     BandGap,
     RadialDistributionFunction,
+    MeanSquaredDisplacement,
     Results,
     Material,
     Method,
@@ -48,6 +49,7 @@ from nomad.datamodel.results import (
     EnergyDynamic,
     Properties,
     StructuralProperties,
+    DynamicalProperties,
     Structures,
     Structure,
     EnergyVolumeCurve,
@@ -117,6 +119,7 @@ class ResultsNormalizer(Normalizer):
             "results.properties.vibrational.heat_capacity_constant_volume": "heat_capacity_constant_volume",
             "results.properties.thermodynamic.trajectory": "trajectory",
             "results.properties.structural.radial_distribution_function": "radial_distribution_function",
+            "results.properties.dynamical.mean_squared_displacement": "mean_squared_displacement",
             "results.properties.geometry_optimization": "geometry_optimization",
             "results.properties.mechanical.bulk_modulus": "bulk_modulus",
             "results.properties.mechanical.shear_modulus": "shear_modulus",
@@ -527,6 +530,43 @@ class ResultsNormalizer(Normalizer):
 
         return rdfs
 
+    def msd(self) -> List[MeanSquaredDisplacement]:
+        """Returns a list of mean squared displacements.
+        """
+        path = ["workflow", "molecular_dynamics", "results", "mean_squared_displacements"]
+        msds = []
+        for msd_workflow in self.traverse_reversed(path):
+            msd_values = msd_workflow.mean_squared_displacement_values
+            if msd_values is not None:
+                for msd_value in msd_values or []:
+                    msd = MeanSquaredDisplacement()
+                    try:
+                        msd.times = msd_value.times
+                        msd.n_times = msd_value.n_times
+                        msd.value = msd_value.value
+                        msd.label = msd_value.label
+                        msd.errors = msd_value.errors
+                        msd.type = msd_workflow.type
+                        msd.direction = msd_workflow.direction
+                        msd.error_type = msd_workflow.error_type
+                        diffusion_constant = msd_value.diffusion_constant
+                        if diffusion_constant is not None:
+                            msd.diffusion_constant_value = diffusion_constant.value
+                            msd.diffusion_constant_error_type = diffusion_constant.error_type
+                            msd.diffusion_constant_errors = diffusion_constant.errors
+
+                        md = self.get_md_methodology(msd_workflow.m_parent.m_parent.m_parent)
+                        if md:
+                            msd.methodology = Methodology(
+                                molecular_dynamics=md
+                            )
+                    except Exception as e:
+                        self.logger.error('error in resolving mean squared displacement data', exc_info=e)
+                    else:
+                        msds.append(msd)
+
+        return msds
+
     def properties(
             self,
             repr_system: System,
@@ -627,6 +667,13 @@ class ResultsNormalizer(Normalizer):
             structural = StructuralProperties()
             structural.radial_distribution_function = rdf
             properties.structural = structural
+
+        # Dynamical
+        msd = self.msd()
+        if msd:
+            dynamical = DynamicalProperties()
+            dynamical.mean_squared_displacement = msd
+            properties.dynamical = dynamical
 
         try:
             n_calc = len(self.section_run.calculation)

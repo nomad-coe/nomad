@@ -343,5 +343,25 @@ def test_rdfs(molecular_dynamics):
     assert rdf.frame_end == 100
 
 
+def test_msds(molecular_dynamics):
+    msds = molecular_dynamics.results.properties.dynamical.mean_squared_displacement
+    n_msds = len(msds)
+    assert n_msds == 1
+    msd = msds[0]
+
+    assert 'mean_squared_displacement' in molecular_dynamics.results.properties.available_properties
+    assert msd.type == 'molecular'
+    assert msd.direction == 'xyz'
+    assert msd.error_type == 'bootstrapping'
+    assert msd.label == 'MOL'
+    assert np.array_equal(msd.times.to(ureg.second).magnitude, [0, 1, 2])
+    assert np.array_equal(msd.value.to(ureg.meter * ureg.meter).magnitude, [0, 1, 2])
+    assert msd.n_times == len(msd.times)
+    assert np.array_equal(msd.errors, [0, 1, 2])
+    assert np.array_equal(msd.diffusion_constant_value.to(ureg.meter * ureg.meter / ureg.second).magnitude, 2.1)
+    assert msd.diffusion_constant_error_type == 'Pearson correlation coefficient'
+    assert np.array_equal(msd.diffusion_constant_errors, 0.98)
+
+
 def test_n_calculations(geometry_optimization):
     assert geometry_optimization.results.properties.n_calculations == 2

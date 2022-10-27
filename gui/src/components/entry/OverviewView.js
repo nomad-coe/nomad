@@ -29,6 +29,7 @@ import VibrationalPropertiesCard from '../entry/properties/VibrationalProperties
 import MechanicalPropertiesCard from '../entry/properties/MechanicalPropertiesCard'
 import ThermodynamicPropertiesCard from '../entry/properties/ThermodynamicPropertiesCard'
 import StructuralProperties from '../entry/properties/StructuralPropertiesCard'
+import DynamicalProperties from '../entry/properties/DynamicalPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 import SpectroscopyCard from './properties/SpectroscopyCard'
 import { MethodMetadata } from './EntryDetails'
@@ -98,6 +99,7 @@ const overviewArchiveFilter = Object.freeze({
     properties: {
       structures: '*',
       structural: '*',
+      dynamical: '*',
       electronic: 'include-resolved',
       mechanical: 'include-resolved',
       spectroscopy: 'include-resolved',
@@ -261,6 +263,9 @@ const OverviewView = React.memo((props) => {
         </ErrorHandler>
         <ErrorHandler message="Could not render structural properties.">
           <StructuralProperties index={index} archive={archive} properties={properties}/>
+        </ErrorHandler>
+        <ErrorHandler message="Could not render dynamical properties.">
+          <DynamicalProperties index={index} archive={archive} properties={properties}/>
         </ErrorHandler>
         <ErrorHandler message="Could not render geometry optimization.">
           <GeometryOptimizationCard index={index} archive={archive} properties={properties}/>

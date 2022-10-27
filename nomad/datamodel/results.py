@@ -30,6 +30,9 @@ from nomad.datamodel.metainfo.workflow import (
     EOSFit,
     RadialDistributionFunction as RDFWorkflow,
     RadialDistributionFunctionValues,
+    MeanSquaredDisplacement as MSDWorkflow,
+    MeanSquaredDisplacementValues,
+    DiffusionConstantValues,
     Workflow
 )
 from nomad.metainfo.elasticsearch_extension import (
@@ -1996,6 +1999,47 @@ class StructuralProperties(MSection):
     )
 
 
+class MeanSquaredDisplacement(PropertySection):
+    m_def = Section(
+        description='''
+        Mean Squared Displacements.
+        ''',
+    )
+    type = MSDWorkflow.type.m_copy()
+    type.m_annotations['elasticsearch'] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default')
+    ]
+    direction = MSDWorkflow.direction.m_copy()
+    error_type = MSDWorkflow.error_type.m_copy()
+    label = MeanSquaredDisplacementValues.label.m_copy()
+    label.m_annotations['elasticsearch'] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default')
+    ]
+    n_times = MeanSquaredDisplacementValues.n_times.m_copy()
+    times = MeanSquaredDisplacementValues.times.m_copy()
+    value = MeanSquaredDisplacementValues.value.m_copy()
+    errors = MeanSquaredDisplacementValues.errors.m_copy()
+
+    diffusion_constant_value = DiffusionConstantValues.value.m_copy()
+    diffusion_constant_error_type = DiffusionConstantValues.error_type.m_copy()
+    diffusion_constant_errors = DiffusionConstantValues.errors.m_copy()
+
+
+class DynamicalProperties(MSection):
+    m_def = Section(
+        description='''
+        Dynamical properties.
+        ''',
+    )
+    mean_squared_displacement = SubSection(
+        sub_section=MeanSquaredDisplacement.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+
+
 class SolarCell(MSection):
     m_def = Section(
         description='''
@@ -2182,6 +2226,7 @@ class Properties(MSection):
         '''
     )
     structural = SubSection(sub_section=StructuralProperties.m_def, repeats=False)
+    dynamical = SubSection(sub_section=DynamicalProperties.m_def, repeats=False)
     structures = SubSection(sub_section=Structures.m_def, repeats=False)
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False)
