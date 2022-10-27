@@ -124,17 +124,17 @@
                   }
                 },
                 "electronic": {
-                  "dos_electronic": {
+                  "dos_electronic": [{
                     "band_gap": []
-                  },
-                  "band_structure_electronic": {
+                  }],
+                  "band_structure_electronic": [{
                     "band_gap": [
                       {
                         "type": "indirect",
                         "value": 1e-19
                       }
                     ]
-                  }
+                  }]
                 },
                 "thermodynamic": {
                   "trajectory": [
@@ -547,7 +547,7 @@
                     }
                   },
                   "electronic": {
-                    "band_structure_electronic": {
+                    "band_structure_electronic": [{
                       "reciprocal_cell": "/run/0/calculation/0/band_structure_electronic/0/reciprocal_cell",
                       "segment": [
                         "/run/0/calculation/0/band_structure_electronic/0/segment/0"
@@ -559,8 +559,8 @@
                           "energy_highest_occupied": 0
                         }
                       ]
-                    },
-                    "dos_electronic": {
+                    }],
+                    "dos_electronic": [{
                       "energies": "/run/0/calculation/0/dos_electronic/0/energies",
                       "total": [
                         "/run/0/calculation/0/dos_electronic/0/total/0"
@@ -570,7 +570,7 @@
                           "energy_highest_occupied": 0
                         }
                       ]
-                    }
+                    }]
                   },
                   "mechanical": {
                     "energy_volume_curve": [

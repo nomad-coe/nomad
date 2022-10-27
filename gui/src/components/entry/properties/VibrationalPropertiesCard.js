@@ -80,10 +80,11 @@ const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
     heatCapacity.m_path = `${urlPrefix}/${refPath(heatCapacityData.heat_capacities)}`
   }
 
+  // TODO implement plotting of multiple dos and bs data
   return <PropertyCard title="Vibrational properties">
     <VibrationalProperties
-      bs={bs}
-      dos={dos}
+      bs={[bs]}
+      dos={[dos]}
       heatCapacity={heatCapacity}
       freeEnergy={energyFree}
       units={units}

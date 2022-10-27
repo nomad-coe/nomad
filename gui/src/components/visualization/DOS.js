@@ -23,6 +23,7 @@ import { add, mergeObjects } from '../../utils'
 import { Quantity, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { msgNormalizationWarning } from '../../config'
+import { getLineStyles } from '../plotting/common'
 
 const energyUnit = new Unit('joule')
 const valueUnit = new Unit('1/joule')
@@ -77,72 +78,72 @@ const DOS = React.memo(({
       return
     }
 
-    // Determine the energy reference.
-    let energyHighestOccupied
-    let normalized
-    if (type === 'vibrational') {
-      energyHighestOccupied = 0
-      normalized = true
-    } else {
-      if (data.energy_highest_occupied === undefined) {
-        energyHighestOccupied = 0
-        normalized = false
-      } else {
-        energyHighestOccupied = new Quantity(data.energy_highest_occupied, energyUnit).toSystem(units).value()
-        normalized = true
-      }
-    }
-
-    // Convert units and determine range
-    const mins = []
-    const maxes = []
-    const nChannels = data.densities.length
-    let energies = new Quantity(data.energies, energyUnit).toSystem(units).value()
-    const values1 = new Quantity(data.densities[0], valueUnit).toSystem(units).value()
-    let values2
-    mins.push(Math.min(...values1))
-    maxes.push(Math.max(...values1))
-    if (nChannels === 2) {
-      values2 = new Quantity(data.densities[1], valueUnit).toSystem(units).value()
-      mins.push(Math.min(...values2))
-      maxes.push(Math.max(...values2))
-    }
-    const range = [Math.min(...mins), Math.max(...maxes)]
-    if (energyHighestOccupied !== 0) {
-      energies = add(energies, -energyHighestOccupied)
-    }
-
     // Create the final data that will be plotted.
     const plotData = []
-    if (nChannels === 2) {
-      plotData.push(
-        {
-          x: values2,
-          y: energies,
-          type: 'scatter',
-          mode: 'lines',
-          showlegend: false,
-          line: {
-            color: theme.palette.secondary.main,
-            width: 2
-          }
-        }
-      )
-    }
-    plotData.push(
-      {
-        x: values1,
-        y: energies,
-        type: 'scatter',
-        mode: 'lines',
-        showlegend: false,
-        line: {
-          color: theme.palette.primary.main,
-          width: 2
+    let normalized
+    const mins = []
+    const maxes = []
+    const channels = data.map(d => d.densities.length)
+    const lines = getLineStyles(channels.reduce((a, b) => a + b, 0), null, channels.length > 0 ? channels[0] : null).values()
+    data.forEach((d, n) => {
+      // Determine the energy reference.
+      let energyHighestOccupied
+      if (type === 'vibrational') {
+        energyHighestOccupied = 0
+        normalized = true
+      } else {
+        if (d.energy_highest_occupied === undefined) {
+          energyHighestOccupied = 0
+          normalized = false
+        } else {
+          energyHighestOccupied = new Quantity(d.energy_highest_occupied, energyUnit).toSystem(units).value()
+          normalized = true
         }
       }
-    )
 
+      // Convert units and determine range
+      const nChannels = d.densities.length
+      let energies = new Quantity(d.energies, energyUnit).toSystem(units).value()
+      const values1 = new Quantity(d.densities[0], valueUnit).toSystem(units).value()
+      let values2
+      mins.push(Math.min(...values1))
+      maxes.push(Math.max(...values1))
+      if (nChannels === 2) {
+        values2 = new Quantity(d.densities[1], valueUnit).toSystem(units).value()
+        mins.push(Math.min(...values2))
+        maxes.push(Math.max(...values2))
+      }
+      if (energyHighestOccupied !== 0) {
+        energies = add(energies, -energyHighestOccupied)
+      }
+
+      const line = lines.next().value
+      if (nChannels === 2) {
+        plotData.push(
+          {
+            x: values2,
+            y: energies,
+            type: 'scatter',
+            mode: 'lines',
+            showlegend: false,
+            line: lines.next().value
+          }
+        )
+      }
+      plotData.push(
+        {
+          x: values1,
+          y: energies,
+          name: d.name,
+          type: 'scatter',
+          mode: 'lines',
+          showlegend: d.name !== undefined,
+          line: line
+        }
+      )
+    })
+
+    const range = [Math.min(...mins), Math.max(...maxes)]
     // Normalization line
     if (type !== 'vibrational' && normalizedToHOE) {
       plotData.push({
@@ -186,7 +187,7 @@ const DOS = React.memo(({
     layout={finalLayout}
     floatTitle="Density of states"
     warning={normalizedToHOE === false ? msgNormalizationWarning : null}
-    metaInfoLink={data?.m_path}
+    metaInfoLink={data ? data[0]?.m_path : null}
     data-testid={testID}
     className={className}
     {...other}
@@ -197,12 +198,13 @@ const DOS = React.memo(({
 DOS.propTypes = {
   data: PropTypes.oneOfType([
     PropTypes.bool, // Set to False to show NoData component
-    PropTypes.shape({
+    PropTypes.arrayOf(PropTypes.shape({
       energies: PropTypes.array.isRequired, // DOS energies array
       densities: PropTypes.array.isRequired, // DOS values array
       energy_highest_occupied: PropTypes.number, // Highest occupied energy.
-      m_path: PropTypes.string // Path of the section containing the data in the Archive
-    })
+      m_path: PropTypes.string, // Path of the section containing the data in the Archive
+      label: PropTypes.string // Label of the data
+    }))
   ]),
   layout: PropTypes.object,
   className: PropTypes.string,

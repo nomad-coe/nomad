@@ -89,14 +89,14 @@ def archive_dft_bulk():
                 'trajectory'
             ],
             'electronic': {
-                'dos_electronic': {
+                'dos_electronic': [{
                     'energies': '/run/0/calculation/0/dos_electronic/0/energies',
                     'total': ['/run/0/calculation/0/dos_electronic/0/total/0'],
                     'band_gap': [{
                         'energy_highest_occupied': 0
                     }]
-                },
-                'band_structure_electronic': {
+                }],
+                'band_structure_electronic': [{
                     'segment': ['/run/0/calculation/0/band_structure_electronic/0/segment/0'],
                     'reciprocal_cell': '/run/0/calculation/0/band_structure_electronic/0/reciprocal_cell',
                     'band_gap': [{
@@ -104,7 +104,7 @@ def archive_dft_bulk():
                         'value': 1e-19,
                         'type': 'indirect'
                     }]
-                }
+                }]
             },
             'structures': {
                 'structure_original': {

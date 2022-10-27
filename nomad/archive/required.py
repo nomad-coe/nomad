@@ -71,7 +71,8 @@ class RequiredReferencedArchive:
     so it is chosen to pass archive explicitly as a method argument instead of
     class member. Otherwise, a new RequiredReader object needs to be created.
     '''
-    upload_id: str = None
+    entry_id: str = None  # The id of the entry that the current reference is in
+    upload_id: str = None  # The id of the upload that the current reference is in
     path_prefix: str = None
     result_root: dict = None
     ref_result_root: dict = None
@@ -218,11 +219,12 @@ class RequiredReader:
         result_root: dict = {}
         ref_result_root: dict = {}
 
-        dataset = RequiredReferencedArchive(upload_id, '', result_root, ref_result_root, archive_root)
+        dataset = RequiredReferencedArchive(entry_id, upload_id, '', result_root, ref_result_root, archive_root)
 
         result = self._apply_required(self.required, archive_root, dataset)
         result_root.update(**cast(dict, result))
 
+        ref_result_root = {k: v for k, v in ref_result_root.items() if v}
         for value in ref_result_root.values():
             if 'm_def' not in value:
                 value['m_def'] = 'nomad.datamodel.EntryArchive'
@@ -281,11 +283,11 @@ class RequiredReader:
         if not path.startswith('/entries') and not path.startswith('/uploads'):
             if path.startswith('/'):
                 # legacy version in the same entry
-                return self._resolve_ref_local(required, path, dataset)
+                return self._resolve_ref_local(required, path, dataset, True)
 
             if path.startswith('#/'):
                 # new version in the same entry
-                return self._resolve_ref_local(required, path[1:], dataset)
+                return self._resolve_ref_local(required, path[1:], dataset, True)
 
         # it appears to be a local path may or may not be the same archive
         url_parts = parse_path(path, dataset.upload_id)
@@ -295,6 +297,10 @@ class RequiredReader:
             return path
 
         installation, upload_id, entry_id, kind, fragment = url_parts
+
+        if entry_id == dataset.entry_id:
+            # it's the same entry, we can resolve it
+            return self._resolve_ref_local(required, fragment, dataset, True)
 
         if installation is None:
             # it is a local archive
@@ -311,7 +317,7 @@ class RequiredReader:
 
             other_path = f'../uploads/{upload_id}/archive/{entry_id}'
             other_dataset = RequiredReferencedArchive(
-                upload_id=upload_id, path_prefix=f'{other_path}#',
+                entry_id=entry_id, upload_id=upload_id, path_prefix=f'{other_path}#',
                 visited_paths=dataset.visited_paths.copy(), ref_result_root=dataset.ref_result_root)
 
             # add the path to the visited paths
@@ -322,19 +328,18 @@ class RequiredReader:
                 other_dataset.archive_root = other_archive
 
                 # need to resolve it again to get relative position correctly
-                return self._resolve_ref_local(required, fragment, other_dataset)
+                return self._resolve_ref_local(required, fragment, other_dataset, False)
 
             # if not resolved inplace
             # need to create a new path in the result to make sure data does not overlap
-            other_dataset.result_root = {}
+            if other_path not in dataset.ref_result_root:
+                dataset.ref_result_root[other_path] = {}
+
+            other_dataset.result_root = dataset.ref_result_root[other_path]
             other_dataset.archive_root = other_archive
 
             # need to resolve it again to get relative position correctly
-            return_value = self._resolve_ref_local(required, fragment, other_dataset)
-
-            dataset.ref_result_root.update({other_path: other_dataset.result_root})
-
-            return return_value
+            return self._resolve_ref_local(required, fragment, other_dataset, False)
 
         # it appears to be a remote reference, won't try to resolve it
         if self.resolve_inplace:
@@ -343,7 +348,7 @@ class RequiredReader:
         # simply return the intact path if not required to resolve in-place
         return path
 
-    def _resolve_ref_local(self, required: dict, path: str, dataset: RequiredReferencedArchive):
+    def _resolve_ref_local(self, required: dict, path: str, dataset: RequiredReferencedArchive, same_entry: bool):
         '''
         On enter, path must be relative to the archive root.
         '''
@@ -384,7 +389,7 @@ class RequiredReader:
 
         target_container[prop_or_index] = resolved_result  # type: ignore
 
-        return dataset.path_prefix + path
+        return path if same_entry else f'{dataset.path_prefix}{path}'
 
     def _apply_required(
             self, required: dict, archive_item: Union[dict, str],

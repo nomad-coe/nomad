@@ -24,6 +24,7 @@ import { add, distance, mergeObjects } from '../../utils'
 import { Quantity, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { msgNormalizationWarning } from '../../config'
+import { getLineStyles } from '../plotting/common'
 
 const BandStructure = React.memo(({
   data,
@@ -39,18 +40,20 @@ const BandStructure = React.memo(({
   const theme = useTheme()
 
   // Determine the energy reference and normalization
-  const [energyHighestOccupied, normalized] = useMemo(() => {
+  const energyHighestOccupiedNormalized = useMemo(() => {
     if (!data) {
-      return [undefined, undefined]
+      return [[undefined, undefined]]
     }
     if (type === 'vibrational') {
-      return [0, true]
+      return [[0, true]]
     } else {
-      if (!isFinite(data.energy_highest_occupied)) {
-        return [0, false]
-      } else {
-        return [new Quantity(data.energy_highest_occupied, energyUnit).toSystem(units).value(), true]
-      }
+      return data.map(d => {
+        if (!isFinite(d.energy_highest_occupied)) {
+          return [0, false]
+        } else {
+          return [new Quantity(d.energy_highest_occupied, energyUnit).toSystem(units).value(), true]
+        }
+      })
     }
   }, [data, energyUnit, units, type])
 
@@ -66,134 +69,138 @@ const BandStructure = React.memo(({
     const energyName = 'energies'
     const kpointName = 'kpoints'
     const plotData = []
-    const nChannels = data.segment[0][energyName].length
-    const nBands = data.segment[0][energyName][0][0].length
+    const channels = data.map(d => d.segment[0][energyName].length)
+    const lines = getLineStyles(channels.reduce((a, b) => a + b, 0), null, channels.length > 0 ? channels[0] : null).values()
+    data.forEach((d, n) => {
+      const nChannels = d.segment[0][energyName].length
+      const nBands = d.segment[0][energyName][0][0].length
 
-    // Calculate distances in k-space if missing. These distances in k-space
-    // define the plot x-axis spacing.
-    const tempSegments = []
-    if (data.segment[0].k_path_distances === undefined) {
-      let length = 0
-      for (const segment of data.segment) {
-        const k_path_distances = []
-        const nKPoints = segment[energyName][0].length
-        const start = segment[kpointName][0]
-        const end = segment[kpointName].slice(-1)[0]
-        const segmentLength = distance(start, end)
-        for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
-          const kPoint = segment[kpointName][iKPoint]
-          const dist = distance(start, kPoint)
-          k_path_distances.push(length + dist)
+      // Calculate distances in k-space if missing. These distances in k-space
+      // define the plot x-axis spacing.
+      const tempSegments = []
+      if (d.segment[0].k_path_distances === undefined) {
+        let length = 0
+        for (const segment of d.segment) {
+          const k_path_distances = []
+          const nKPoints = segment[energyName][0].length
+          const start = segment[kpointName][0]
+          const end = segment[kpointName].slice(-1)[0]
+          const segmentLength = distance(start, end)
+          for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
+            const kPoint = segment[kpointName][iKPoint]
+            const dist = distance(start, kPoint)
+            k_path_distances.push(length + dist)
+          }
+          length += segmentLength
+          segment.k_path_distances = k_path_distances
+          tempSegments.push(k_path_distances)
         }
-        length += segmentLength
-        segment.k_path_distances = k_path_distances
-        tempSegments.push(k_path_distances)
+      } else {
+        for (const segment of d.segment) {
+          tempSegments.push(segment.k_path_distances)
+        }
       }
-    } else {
-      for (const segment of data.segment) {
+      setPathSegments(tempSegments)
+
+      // Path
+      let path = []
+      for (const segment of d.segment) {
+        path = path.concat(segment.k_path_distances)
         tempSegments.push(segment.k_path_distances)
       }
-    }
-    setPathSegments(tempSegments)
 
-    // Path
-    let path = []
-    for (const segment of data.segment) {
-      path = path.concat(segment.k_path_distances)
-      tempSegments.push(segment.k_path_distances)
-    }
+      //  we assign first for spin up
+      const lineUp = lines.next().value
+      // Second spin channel
+      if (nChannels === 2) {
+        const line = lines.next().value
+        const bands = []
+        for (let iBand = 0; iBand < nBands; ++iBand) {
+          bands.push([])
+        }
+        for (const segment of d.segment) {
+          for (let iBand = 0; iBand < nBands; ++iBand) {
+            const nKPoints = segment[energyName][1].length
+            for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
+              bands[iBand].push(segment[energyName][1][iKPoint][iBand])
+            }
+          }
+        }
 
-    // Second spin channel
-    if (nChannels === 2) {
+        // Create plot data entry for each band
+        for (let band of bands) {
+          band = new Quantity(band, energyUnit).toSystem(units).value()
+          if (energyHighestOccupiedNormalized[n][0] !== 0) {
+            band = add(band, -energyHighestOccupiedNormalized[n][0])
+          }
+          plotData.push(
+            {
+              x: path,
+              y: band,
+              type: 'scatter',
+              mode: 'lines',
+              showlegend: false,
+              legendgroup: d.name,
+              line: line
+            }
+          )
+        }
+      }
+
+      // First spin channel
       const bands = []
       for (let iBand = 0; iBand < nBands; ++iBand) {
         bands.push([])
       }
-      for (const segment of data.segment) {
+      for (const segment of d.segment) {
         for (let iBand = 0; iBand < nBands; ++iBand) {
-          const nKPoints = segment[energyName][1].length
+          const nKPoints = segment[energyName][0].length
           for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
-            bands[iBand].push(segment[energyName][1][iKPoint][iBand])
+            bands[iBand].push(segment[energyName][0][iKPoint][iBand])
           }
         }
+        path = path.concat(segment.k_path_distances)
       }
 
       // Create plot data entry for each band
-      for (let band of bands) {
+      for (let [nBand, band] of bands.entries()) {
         band = new Quantity(band, energyUnit).toSystem(units).value()
-        if (energyHighestOccupied !== 0) {
-          band = add(band, -energyHighestOccupied)
+        if (energyHighestOccupiedNormalized[n][0] !== 0) {
+          band = add(band, -energyHighestOccupiedNormalized[n][0])
         }
         plotData.push(
           {
             x: path,
             y: band,
+            name: d.name,
             type: 'scatter',
             mode: 'lines',
-            showlegend: false,
-            line: {
-              color: theme.palette.secondary.main,
-              width: 2
-            }
+            showlegend: nBand === 0 && d.name !== undefined,
+            legendgroup: d.name,
+            line: lineUp
           }
         )
       }
-    }
 
-    // First spin channel
-    const bands = []
-    for (let iBand = 0; iBand < nBands; ++iBand) {
-      bands.push([])
-    }
-    for (const segment of data.segment) {
-      for (let iBand = 0; iBand < nBands; ++iBand) {
-        const nKPoints = segment[energyName][0].length
-        for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
-          bands[iBand].push(segment[energyName][0][iKPoint][iBand])
-        }
-      }
-      path = path.concat(segment.k_path_distances)
-    }
-
-    // Create plot data entry for each band
-    for (let band of bands) {
-      band = new Quantity(band, energyUnit).toSystem(units).value()
-      if (energyHighestOccupied !== 0) {
-        band = add(band, -energyHighestOccupied)
-      }
-      plotData.push(
-        {
-          x: path,
-          y: band,
-          type: 'scatter',
+      // Normalization line
+      if (type !== 'vibrational' && energyHighestOccupiedNormalized[0][1] && n === data.length - 1) {
+        plotData.push({
+          x: [path[0], path[path.length - 1]],
+          y: [0, 0],
+          name: 'Highest occupied',
+          showlegend: true,
+          type: 'line',
           mode: 'lines',
-          showlegend: false,
           line: {
-            color: theme.palette.primary.main,
-            width: 2
+            color: '#000',
+            width: 1
           }
-        }
-      )
-    }
-
-    // Normalization line
-    if (type !== 'vibrational' && normalized) {
-      plotData.push({
-        x: [path[0], path[path.length - 1]],
-        y: [0, 0],
-        name: 'Highest occupied',
-        showlegend: true,
-        type: 'line',
-        mode: 'lines',
-        line: {
-          color: '#000',
-          width: 1
-        }
-      })
-    }
+        })
+      }
+    })
 
     setFinalData(plotData)
-  }, [data, theme, units, energyUnit, type, normalized, energyHighestOccupied])
+  }, [data, theme, units, energyUnit, type, energyHighestOccupiedNormalized])
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -238,8 +245,8 @@ const BandStructure = React.memo(({
     // Set new layout that contains the segment labels
     const labels = []
     const labelKPoints = []
-    for (let iSegment = 0; iSegment < data.segment.length; ++iSegment) {
-      const segment = data.segment[iSegment]
+    for (let iSegment = 0; iSegment < data[0].segment.length; ++iSegment) {
+      const segment = data[0].segment[iSegment]
       const startLabel = segment.endpoints_labels
         ? segment.endpoints_labels[0]
         : ''
@@ -296,8 +303,8 @@ const BandStructure = React.memo(({
     data={finalData}
     layout={finalLayout}
     floatTitle={'Band structure'}
-    warning={normalized ? null : msgNormalizationWarning}
-    metaInfoLink={data?.m_path}
+    warning={energyHighestOccupiedNormalized[0][1] ? null : msgNormalizationWarning}
+    metaInfoLink={data ? data[0]?.m_path : null}
     className={className}
     {...other}
   >
@@ -307,11 +314,11 @@ const BandStructure = React.memo(({
 BandStructure.propTypes = {
   data: PropTypes.oneOfType([
     PropTypes.bool, // Set to False to show NoData component
-    PropTypes.shape({
+    PropTypes.arrayOf(PropTypes.shape({
       segment: PropTypes.array.isRequired, // Array of segments in SI units
       energy_highest_occupied: PropTypes.number, // Highest occupied energy.
       m_path: PropTypes.string // Path of the section containing the data in the Archive
-    })
+    }))
   ]),
   layout: PropTypes.object,
   className: PropTypes.string,

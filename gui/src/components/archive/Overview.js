@@ -54,13 +54,13 @@ const useOverviewDOSStyles = makeStyles({
 })
 export const OverviewDOSElectronic = React.memo(({def, section, units}) => {
   const style = useOverviewDOSStyles()
-  const data = useMemo(() => ({
+  const data = useMemo(() => ([{
     energies: section.energies,
     densities: section.total.map(dos => dos.value),
     energy_highest_occupied: section.band_gap
       ? Math.max(...section.band_gap.map(x => x.energy_highest_occupied))
       : undefined
-  }), [section])
+  }]), [section])
 
   return <DOS
     className={style.root}
@@ -77,10 +77,10 @@ OverviewDOSElectronic.propTypes = ({
 
 export const OverviewDOSPhonon = React.memo(({def, section, units}) => {
   const style = useOverviewDOSStyles()
-  const data = useMemo(() => ({
+  const data = useMemo(() => ([{
     energies: section.energies,
     densities: section.total.map(dos => dos.value)
-  }), [section])
+  }]), [section])
 
   return <DOS
     className={style.root}
@@ -104,10 +104,10 @@ const useOverviewBandstructurePhononStyles = makeStyles({
 })
 export const OverviewBandstructurePhonon = React.memo(({def, section, units}) => {
   const style = useOverviewBandstructurePhononStyles()
-  const data = useMemo(() => ({
+  const data = useMemo(() => ([{
     segment: section.segment,
     reciprocal_cell: section.reciprocal_cell
-  }), [section])
+  }]), [section])
 
   return <BandStructure
     className={style.root}
@@ -140,13 +140,13 @@ export const OverviewBandstructureElectronic = React.memo(({def, section, units}
   }, [setMode])
 
   const style = useOverviewBandstructureElectronicStyles()
-  const data = useMemo(() => ({
+  const data = useMemo(() => ([{
     segment: section.segment,
     reciprocal_cell: section.reciprocal_cell,
     energy_highest_occupied: section.band_gap
       ? Math.max(...section.band_gap.map(x => x.energy_highest_occupied))
       : undefined
-  }), [section])
+  }]), [section])
   const layout = useMemo(() => ({
     yaxis: {
       autorange: false,

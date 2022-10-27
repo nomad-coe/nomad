@@ -34,7 +34,7 @@ def workflow_archive():
 def test_no_workflow(workflow_archive):
     vasp_archive = workflow_archive(
         'parsers/vasp', 'tests/data/parsers/vasp_outcar/OUTCAR_broken')
-    assert not vasp_archive.workflow
+    assert not vasp_archive.workflow[0].calculations_ref
 
 
 def test_single_point_workflow(workflow_archive):
