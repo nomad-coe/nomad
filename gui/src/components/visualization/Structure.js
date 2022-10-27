@@ -56,23 +56,24 @@ const fitMargin = 0.5
 const useStyles = makeStyles((theme) => {
   return {
     root: {},
-    column: {
-      display: 'flex',
+    container: {
+      position: 'relative',
       width: '100%',
-      height: '100%',
+      height: '100%'
+    },
+    content: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      display: 'flex',
       flexDirection: 'column'
     },
     header: {
       display: 'flex',
       flexDirection: 'row',
       zIndex: 1
-    },
-    toggles: {
-      marginBottom: theme.spacing(1),
-      height: '2rem'
-    },
-    toggle: {
-      color: alpha(theme.palette.action.active, 0.87)
     },
     legend: {
       zIndex: 10,
@@ -95,18 +96,6 @@ const useStyles = makeStyles((theme) => {
       zIndex: 0,
       minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
       marginBottom: theme.spacing(1)
-    },
-    switchContainer: {
-      flex: 1,
-      zIndex: 0,
-      minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
-      marginBottom: theme.spacing(1)
-    },
-    switchPlaceholder: {
-      left: theme.spacing(0),
-      right: theme.spacing(0),
-      top: theme.spacing(0.5),
-      bottom: theme.spacing(0.5)
     }
   }
 })
@@ -114,7 +103,6 @@ const Structure = React.memo(({
   className,
   classes,
   data,
-  options,
   structuralType,
   cellType,
   m_path,
@@ -123,10 +111,8 @@ const Structure = React.memo(({
   bondLimit,
   disableLegend,
   selection,
-  'data-testid': testID,
-  placeHolderStyle,
-  noDataStyle}
-) => {
+  'data-testid': testID
+}) => {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -142,6 +128,7 @@ const Structure = React.memo(({
   const [loading, setLoading] = useState(true)
   const [ready, setReady] = useState(false)
   const throwError = useAsyncError()
+  const noData = data === false
 
   const setShowBonds = useCallback((value, render = false) => {
     setShowBondsState(value)
@@ -213,18 +200,12 @@ const Structure = React.memo(({
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
   const refCanvas = useCallback(node => {
-    if (node === null) {
-      return
-    }
-    if (refViewer.current === null) {
-      return
-    }
     // Dependency on 'fit' will make this function run every time it changes
     // (useCallback should not really run the function when the dependency
     // changes, but something weird is going on here.). An extra check is made
     // to check for node change before setting up the canvas to the new div.
-    if (node !== refCanvasDiv.current) {
-      refViewer.current.changeHostElement(node)
+    if (node !== null && refViewer.current !== null && node !== refCanvasDiv.current) {
+      refViewer.current.changeHostElement(node, true)
       refViewer.current.fit(fit, fitMargin)
       refViewer.current.render()
     }
@@ -260,7 +241,7 @@ const Structure = React.memo(({
           outline: {enabled: isHighQuality}
         }
       }
-      refViewer.current = new StructureViewer(undefined, options)
+      refViewer.current = new StructureViewer(refCanvasDiv.current, options)
       refViewer.current.load(system)
       refViewer.current.controls({resetOnDoubleClick: false})
 
@@ -302,6 +283,7 @@ const Structure = React.memo(({
         readyRef.current = true
       })
   }, [data, nAtoms, accepted, sizeLimit, throwError, loadSystem])
+  // }, [])
 
   // Once the system is loaded, this effect will determine the final visual
   // layout. By monitoring the ready-state, the selections are updated correctly
@@ -427,39 +409,29 @@ const Structure = React.memo(({
     refViewer.current.render()
   }, [center, fit])
 
-  // If data is set explicitly to false, we show the NoData component.
-  if (data === false) {
-    return <NoData className={clsx(className, styles.root)} classes={{placeholder: noDataStyle}}/>
-  }
-
-  if (showPrompt) {
-    return <Alert
-      severity="info"
-      action={
-        <Button
-          color="inherit"
-          size="small"
-          onClick={e => {
+  // Decides the possible overlay to display
+  const overlay = useMemo(() => {
+    if (showPrompt) {
+      return <Alert
+        severity="info"
+        action={
+          <Button color="inherit" size="small" onClick={() => {
             setShowPrompt(false)
             setAccepted(true)
-          }}
-        >
-            YES
-        </Button>
-      }
-      data-testid={testID}
-    >
-      {`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
-    </Alert>
-  }
-  if (loading) {
-    return <Placeholder
-      variant="rect"
-      className={clsx(styles.root, className)}
-      data-testid={testID}
-      classes={{placeholder: placeHolderStyle}}
-    />
-  }
+          }}>
+              YES
+          </Button>
+        }
+      >
+        {`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
+      </Alert>
+    } else if (loading) {
+      return <Placeholder margin={0}/>
+    } else if (noData) {
+      return <NoData margin={0}/>
+    }
+    return null
+  }, [loading, nAtoms, noData, showPrompt, sizeLimit])
 
   return <Floatable
     data-testid={testID}
@@ -467,103 +439,107 @@ const Structure = React.memo(({
     float={fullscreen}
     onFloat={toggleFullscreen}
   >
-    <div className={styles.column}>
-      {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
-      {loading
-        ? <Placeholder
-          variant="rect"
-          className={styles.switchContainer}
-          classes={{placeholder: styles.switchPlaceholder}}
-        />
-        : <div className={styles.canvas} ref={refCanvas}>
+    <div className={styles.container}>
+      {/* Overlay that is displayed on top of the viewer */}
+      <div className={styles.content}>
+        {overlay}
+      </div>
+      {/* This contains the actual visualization. Needs to be always in the DOM so we can
+      load the structure into it properly. */}
+      <div
+        className={styles.content}
+        style={{visibility: overlay ? 'hidden' : 'visible'}}
+      >
+        {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
+        <div className={styles.canvas} ref={refCanvas}>
           {!disableLegend &&
             <Species species={species} className={styles.legend}/>
           }
         </div>
-      }
-      <div className={styles.header}>
-        <Actions>
-          <Action tooltip='Reset view' onClick={handleReset}>
-            <Replay/>
-          </Action>
-          <Action tooltip='Toggle fullscreen' onClick={toggleFullscreen}>
-            {fullscreen ? <FullscreenExit/> : <Fullscreen/>}
-          </Action>
-          <Action tooltip='Capture image' onClick={takeScreencapture}>
-            <CameraAlt/>
-          </Action>
-          {m_path &&
-            <Action tooltip='View data in the archive' onClick={() => { history.push(m_path) }}>
-              <ViewList/>
+        <div className={styles.header}>
+          <Actions>
+            <Action tooltip='Reset view' onClick={handleReset}>
+              <Replay/>
             </Action>
-          }
-          <Action tooltip='Options' onClick={openMenu}>
-            <MoreVert/>
-          </Action>
-        </Actions>
-        <Menu
-          id='settings-menu'
-          anchorEl={anchorEl}
-          getContentAnchorEl={null}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          keepMounted
-          open={open}
-          onClose={closeMenu}
-        >
-        <MenuItem key='show-bonds'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={hasSelection ? false : showBonds}
-                disabled={hasSelection}
-                onChange={(event) => { setShowBonds(!showBonds, true) }}
-                color='primary'
-              />
+            <Action tooltip='Toggle fullscreen' onClick={toggleFullscreen}>
+              {fullscreen ? <FullscreenExit/> : <Fullscreen/>}
+            </Action>
+            <Action tooltip='Capture image' onClick={takeScreencapture}>
+              <CameraAlt/>
+            </Action>
+            {m_path &&
+              <Action tooltip='View data in the archive' onClick={() => { history.push(m_path) }}>
+                <ViewList/>
+              </Action>
             }
-            label='Show bonds'
-          />
-        </MenuItem>
-        <MenuItem key='show-axis'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={!hasCell ? false : (hasSelection ? !selection.isSubsystem : showLatticeConstants)}
-                disabled={!hasCell ? true : hasSelection}
-                onChange={(event) => { setShowLatticeConstants(!showLatticeConstants, true) }}
-                color='primary'
-              />
-            }
-            label='Show lattice constants'
-          />
-        </MenuItem>
-        <MenuItem key='show-cell'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={!hasCell ? false : (hasSelection ? !selection.isSubsystem : showCell)}
-                disabled={!hasCell ? true : hasSelection}
-                onChange={(event) => { setShowCell(!showCell, true) }}
-                color='primary'
-              />
-            }
-            label='Show simulation cell'
-          />
-        </MenuItem>
-        <MenuItem key='wrap'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={!hasCell ? false : wrap}
-                disabled={!hasCell ? true : hasSelection}
-                onChange={(event) => { setWrap(!wrap, showBonds, true) }}
-                color='primary'
-              />
-            }
-            label='Wrap positions'
-          />
-        </MenuItem>
-        </Menu>
+            <Action tooltip='Options' onClick={openMenu}>
+              <MoreVert/>
+            </Action>
+          </Actions>
+          <Menu
+            id='settings-menu'
+            anchorEl={anchorEl}
+            getContentAnchorEl={null}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            keepMounted
+            open={open}
+            onClose={closeMenu}
+          >
+          <MenuItem key='show-bonds'>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={hasSelection ? false : showBonds}
+                  disabled={hasSelection}
+                  onChange={(event) => { setShowBonds(!showBonds, true) }}
+                  color='primary'
+                />
+              }
+              label='Show bonds'
+            />
+          </MenuItem>
+          <MenuItem key='show-axis'>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={!hasCell ? false : (hasSelection ? !selection.isSubsystem : showLatticeConstants)}
+                  disabled={!hasCell ? true : hasSelection}
+                  onChange={(event) => { setShowLatticeConstants(!showLatticeConstants, true) }}
+                  color='primary'
+                />
+              }
+              label='Show lattice constants'
+            />
+          </MenuItem>
+          <MenuItem key='show-cell'>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={!hasCell ? false : (hasSelection ? !selection.isSubsystem : showCell)}
+                  disabled={!hasCell ? true : hasSelection}
+                  onChange={(event) => { setShowCell(!showCell, true) }}
+                  color='primary'
+                />
+              }
+              label='Show simulation cell'
+            />
+          </MenuItem>
+          <MenuItem key='wrap'>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={!hasCell ? false : wrap}
+                  disabled={!hasCell ? true : hasSelection}
+                  onChange={(event) => { setWrap(!wrap, showBonds, true) }}
+                  color='primary'
+                />
+              }
+              label='Wrap positions'
+            />
+          </MenuItem>
+          </Menu>
+        </div>
       </div>
     </div>
   </Floatable>
@@ -576,7 +552,6 @@ Structure.propTypes = {
     PropTypes.bool,
     PropTypes.object
   ]),
-  options: PropTypes.object, // Viewer options
   structuralType: PropTypes.oneOf(['bulk', 'surface', '2D', '1D', 'molecule / cluster', 'unavailable']),
   cellType: PropTypes.oneOf(['original', 'conventional', 'primitive']),
   m_path: PropTypes.string, // Path of the structure data in the metainfo
@@ -584,8 +559,6 @@ Structure.propTypes = {
   sizeLimit: PropTypes.number, // Maximum system size before a prompt is shown
   bondLimit: PropTypes.number, // The size at which bonds are turned off
   disableLegend: PropTypes.bool, // Disable the legend showing the species list
-  placeHolderStyle: PropTypes.string, // The CSS class to apply for the Placeholder component.
-  noDataStyle: PropTypes.string, // The CSS class to apply for the NoData component.
   selection: PropTypes.shape({
     /**
      * The atom indices to show.

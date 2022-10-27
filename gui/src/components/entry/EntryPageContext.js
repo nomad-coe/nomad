@@ -16,16 +16,38 @@
  * limitations under the License.
  */
 
-import React, { useContext, useEffect } from 'react'
+import React, { useContext, useState, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { apiBase } from '../../config'
 
 const entryPageContext = React.createContext()
 
-export const useEntryPageContext = (requireArchive) => {
+/**
+ * Hook for fetching data from the current EntryPageContext.
+ *
+ * @param {*} requireArchive Optional query filter
+ * @param {*} update Whether to keep updating the data if changes are made in
+ *   the store. Sometimes the first version of the data should be kept to avoid
+ *   unnecessary re-renders and layout inconsistencies.
+ * @returns
+ */
+export const useEntryPageContext = (requireArchive, update = true) => {
   const entryId = useContext(entryPageContext)
-  return useEntryStoreObj(apiBase, entryId, true, requireArchive)
+  const entryData = useEntryStoreObj(apiBase, entryId, true, requireArchive)
+  const [data, setData] = useState(entryData)
+  const firstRender = useRef(true)
+
+  useEffect(() => {
+    if (update) {
+      setData(entryData)
+    } else if (firstRender.current && entryData.archive) {
+      setData(entryData)
+      firstRender.current = false
+    }
+  }, [entryData, update])
+
+  return data
 }
 
 const EntryPageContext = React.memo(function EntryContext({entryId, children}) {
