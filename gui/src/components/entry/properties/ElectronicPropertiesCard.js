@@ -15,71 +15,113 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
+import { resolveInternalRef } from '../../../utils'
 import { PropertyCard } from './PropertyCard'
-import { getLocation, resolveInternalRef } from '../../../utils'
 import ElectronicProperties from '../../visualization/ElectronicProperties'
-import { refPath } from '../../archive/metainfo'
 
 const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
-  const urlPrefix = `${getLocation()}/data`
+  const [data, setData] = useState([false, false, false, false])
+  const [refArchives, setRefArchives] = useState()
 
   // Find out which properties are present
   const hasDos = properties.has('dos_electronic')
   const hasBs = properties.has('band_structure_electronic')
+
+  // TODO remove refArchives after fixing archive.m_ref_archives not vanishing when switching to data tab
+  useEffect(() => {
+    if (Object.keys(archive.m_ref_archives).length > 0) {
+      const archives = {}
+      // TODO remove this when the path format for the entry is fixed
+      // it changes from ../uploads/upload_id/archive/entry_id to ../uploa/archive/entry_id
+      const pattern = '\\.\\./(?:entries|upload/archive|uploads.+?archive)/(.+)'
+      Object.keys(archive.m_ref_archives).forEach(path => {
+        const match = path.match(pattern)
+        if (match) archives[match[1]] = archive.m_ref_archives[path]
+      })
+      setRefArchives(archives)
+    }
+  }, [archive])
+
+  archive.m_ref_archives = refArchives || archive.m_ref_archives
+
+  // TODO remove useEffect once archive.m_ref_archives is fixed
+  useEffect(() => {
+    const dosReferences = archive?.results?.properties?.electronic?.dos_electronic || []
+    const bsReferences = archive?.results?.properties?.electronic?.band_structure_electronic || []
+    const pattern = '\\.\\./(?:entries|upload/archive|uploads.+?archive)/(.+?)(?:/archive#|#)(.+)'
+
+    // Resolve DOS data
+    let references = dosReferences
+    if (!Array.isArray(references)) references = [references]
+    let dos = []
+    for (const reference of references) {
+      const d = {}
+      const match = reference.energies.match(pattern)
+      const path = match ? match[2] : reference.energies
+      const totalPath = match ? reference.total.map(ref => ref.match(pattern)[2]) : reference.total
+      const sourceArchive = match ? (archive.m_ref_archives[match[1]] || archive.m_ref_archives[reference.energies.split('#')[0]]) : archive
+      if (sourceArchive) {
+        d.energies = resolveInternalRef(path, sourceArchive)
+        d.densities = resolveInternalRef(totalPath, sourceArchive).map(dos => dos.value)
+      }
+      d.name = reference.label
+      if (reference.band_gap) {
+        d.energy_highest_occupied = Math.max(...reference.band_gap.map(x => x.energy_highest_occupied))
+      }
+      d.m_path = `${archive?.metadata?.entry_id}/data/results/properties/electronic/dos_electronic`
+      if (d.energies && d.densities) dos.push(d)
+    }
+    dos = dos.length === 0 ? false : dos
+
+    // Resolve band structure data
+    references = bsReferences
+    if (!Array.isArray(references)) references = [references]
+    let bs = []
+    let band_gap = []
+    let brillouin_zone = false
+    brillouin_zone = false
+    for (const reference of references) {
+      const d = {}
+      const match = reference.reciprocal_cell.match(pattern)
+      const path = match ? match[2] : reference.reciprocal_cell
+      const segmentPath = match ? reference.segment.map(ref => ref.match(pattern)[2]) : reference.segment
+      const sourceArchive = match ? (archive.m_ref_archives[match[1]] || archive.m_ref_archives[reference.reciprocal_cell.split('#')[0]]) : archive
+      d.segment = sourceArchive ? resolveInternalRef(segmentPath, sourceArchive) : null
+      d.name = reference.label
+      d.m_path = `${archive?.metadata?.entry_id}/data/results/properties/electronic/band_structure_electronic`
+      if (reference.band_gap) {
+        d.energy_highest_occupied = Math.max(...reference.band_gap.map(x => x.energy_highest_occupied))
+        d.band_gap = reference.band_gap
+        band_gap.push(...reference.band_gap)
+      }
+      if (d.segment) bs.push(d)
+      const reciprocal_cell = sourceArchive ? resolveInternalRef(path, sourceArchive) : null
+      if (reciprocal_cell) {
+        brillouin_zone = {
+          reciprocal_cell: reciprocal_cell,
+          segment: d.segment
+        }
+      }
+    }
+
+    bs = bs.length === 0 ? false : bs
+    band_gap = band_gap.length === 0 ? false : band_gap
+    setData([dos, bs, brillouin_zone, band_gap])
+  }, [archive])
 
   // Do not show the card if none of the properties are available
   if (!hasDos && !hasBs) {
     return null
   }
 
-  // Resolve DOS data
-  let dos = hasDos ? undefined : false
-  const dosData = archive?.results?.properties?.electronic?.dos_electronic
-  if (dosData) {
-    dos = {}
-    dos.energies = resolveInternalRef(dosData.energies, archive)
-    dos.densities = resolveInternalRef(dosData.total, archive).map(dos => dos.value)
-    if (dosData.band_gap) {
-      dos.energy_highest_occupied = Math.max(...dosData.band_gap.map(x => x.energy_highest_occupied))
-    }
-    dos.m_path = `${urlPrefix}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
-  }
-
-  // Resolve data for band structure, brillouin zone and band gaps.
-  let bs = hasBs ? undefined : false
-  let band_gap = hasBs ? undefined : false
-  const bsData = archive?.results?.properties?.electronic?.band_structure_electronic
-  let brillouin_zone = bsData ? undefined : false
-  if (bsData) {
-    const segments = resolveInternalRef(bsData.segment, archive)
-    bs = {
-      segment: segments,
-      m_path: `${urlPrefix}/${refPath(bsData.segment[0].split('/').slice(0, -2).join('/'))}`
-    }
-
-    if (bsData.band_gap) {
-      bs.energy_highest_occupied = Math.max(...bsData.band_gap.map(x => x.energy_highest_occupied))
-      bs.band_gap = bsData.band_gap
-      band_gap = bsData.band_gap
-    }
-
-    const reciprocal_cell = resolveInternalRef(bsData.reciprocal_cell, archive)
-    brillouin_zone = reciprocal_cell
-      ? {
-        reciprocal_cell: reciprocal_cell,
-        segment: segments
-      }
-      : false
-  }
-
   return <PropertyCard title="Electronic properties">
     <ElectronicProperties
-      bs={bs}
-      dos={dos}
-      brillouin_zone={brillouin_zone}
-      band_gap={band_gap}
+      bs={data[1]}
+      dos={data[0]}
+      brillouin_zone={data[2]}
+      band_gap={data[3]}
     />
   </PropertyCard>
 })

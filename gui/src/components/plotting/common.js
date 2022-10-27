@@ -332,15 +332,16 @@ export function getYAxisLayout(theme) {
  *
  * @param {number} nLines number of lines to plot
  */
-export function getLineStyles(nLines, theme) {
+export function getLineStyles(nLines, theme, nKinds) {
   const styles = []
   const lineStyles = ['solid', 'dot', 'dashdot']
-  const colors = chromaScale([theme.palette.primary.dark, theme.palette.secondary.light])
-    .mode('lch').colors(nLines)
+  const [startColor, endColor] = theme ? [theme.palette.primary.dark, theme.palette.secondary.light] : ['#005271', '#f57c00']
+  const colors = chromaScale([startColor, endColor])
+    .mode('lch').colors(nLines === 1 ? 2 : nLines)
   for (let i = 0; i < nLines; ++i) {
     const line = {
-      dash: nLines <= 5 ? 'solid' : lineStyles[i % lineStyles.length],
-      color: colors[i],
+      dash: nKinds ? lineStyles[(i % nKinds) % lineStyles.length] : nLines <= 5 ? 'solid' : lineStyles[i % lineStyles.length],
+      color: colors[Math.floor(i / nKinds) % colors.length],
       width: 2
     }
     styles.push(line)

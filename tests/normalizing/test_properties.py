@@ -80,7 +80,7 @@ def test_dos_electronic():
 
     # DOS without energy references
     archive = get_template_dos()
-    dos = archive.results.properties.electronic.dos_electronic
+    dos = archive.results.properties.electronic.dos_electronic[0]
     assert dos.spin_polarized is False
     assert dos.total[0].value.shape == (101,)
     assert dos.energies.shape == (101,)
@@ -88,7 +88,7 @@ def test_dos_electronic():
     # Unpolarized DOS with gap:
     efermi = 1.5
     archive = get_template_dos(energy_reference_fermi=efermi)
-    dos = archive.results.properties.electronic.dos_electronic
+    dos = archive.results.properties.electronic.dos_electronic[0]
     assert len(dos.band_gap) == 1
     assert dos.band_gap[0].energy_highest_occupied is not None
     assert dos.band_gap[0].energy_lowest_unoccupied is not None
@@ -99,7 +99,7 @@ def test_dos_electronic():
     # Polarized DOS
     efermi = 1.5
     archive = get_template_dos(fill=[gap_fill, gap_fill], energy_reference_fermi=efermi)
-    dos = archive.results.properties.electronic.dos_electronic
+    dos = archive.results.properties.electronic.dos_electronic[0]
     assert len(dos.band_gap) == 2
     assert dos.band_gap[0].energy_highest_occupied is not None
     assert dos.band_gap[0].energy_lowest_unoccupied is not None
@@ -131,7 +131,7 @@ def test_dos_electronic():
 def test_band_structure_electronic():
     # Band structure without energy reference
     archive = get_template_band_structure([(1, 'direct')], has_references=False)
-    bs = archive.results.properties.electronic.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic[0]
     band_gaps = bs.band_gap
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is False
@@ -141,7 +141,7 @@ def test_band_structure_electronic():
 
     # Unpolarized band structure with no gap
     archive = get_template_band_structure([None])
-    bs = archive.results.properties.electronic.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic[0]
     band_gaps = bs.band_gap
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is False
@@ -156,7 +156,7 @@ def test_band_structure_electronic():
 
     # Polarized band structure with no gap
     archive = get_template_band_structure([None, None])
-    bs = archive.results.properties.electronic.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic[0]
     band_gaps = bs.band_gap
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is True
@@ -177,7 +177,7 @@ def test_band_structure_electronic():
     gap = 1  # eV
     gap_type = 'direct'
     archive = get_template_band_structure([(gap, gap_type)])
-    bs = archive.results.properties.electronic.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic[0]
     band_gaps = bs.band_gap
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is False
@@ -194,7 +194,7 @@ def test_band_structure_electronic():
     gap = 1   # eV
     gap_type = 'indirect'
     archive = get_template_band_structure([(gap, gap_type)])
-    bs = archive.results.properties.electronic.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic[0]
     band_gaps = bs.band_gap
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is False
@@ -212,7 +212,7 @@ def test_band_structure_electronic():
     gap2 = 2  # eV
     gap_type = 'direct'
     archive = get_template_band_structure([(gap1, gap_type), (gap2, gap_type)])
-    bs = archive.results.properties.electronic.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic[0]
     band_gaps = bs.band_gap
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is True
@@ -234,7 +234,7 @@ def test_band_structure_electronic():
     gap2 = 2  # eV
     gap_type = 'indirect'
     archive = get_template_band_structure([(gap1, gap_type), (gap2, gap_type)])
-    bs = archive.results.properties.electronic.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic[0]
     band_gaps = bs.band_gap
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is True

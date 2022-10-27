@@ -295,9 +295,9 @@ def json_dict():
     "results": {
         "properties": {
             "electronic": {
-                "dos_electronic": {
+                "dos_electronic": [{
                     "energies": "/run/0/calculation/1/dos_electronic/0/energies"
-                }
+                }]
             }
         }
     },
@@ -610,7 +610,7 @@ def test_required_reader_with_remote_reference(
     archive_reader = ArchiveReader(BytesIO(packed_archive))
     required_reader = RequiredReader(
         remote_reference_required, resolve_inplace=resolve_inplace, user=test_user)
-    results = required_reader.read(archive_reader, 'entry_id', None)
+    results = required_reader.read(archive_reader, 'entry_id', 'id_published_with_ref')
     ref_result = results['workflow'][0]
 
     while 'workflows_ref' in ref_result:

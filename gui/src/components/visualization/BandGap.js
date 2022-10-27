@@ -38,12 +38,17 @@ const columns = {
  */
 const BandGap = React.memo(({data, section, 'data-testid': testID}) => {
   const units = useUnits()
+  const extendedColumns = {}
+  if (data && data[0].label) {
+    extendedColumns.label = {label: '', align: 'left'}
+  }
+
   return data !== false
     ? data
       ? <SectionTable
         horizontal
         section={section || 'results.properties.electronic.band_structure_electronic.band_gap'}
-        quantities={columns}
+        quantities={{...extendedColumns, ...columns}}
         data={{data: data}}
         units={units}
       />
@@ -56,7 +61,8 @@ BandGap.propTypes = {
     PropTypes.arrayOf(PropTypes.shape({
       index: PropTypes.number,
       value: PropTypes.number,
-      type: PropTypes.string
+      type: PropTypes.string,
+      label: PropTypes.string
     })),
     PropTypes.oneOf([false, undefined]) // False for NoData, undefined for Placeholder,
   ]),

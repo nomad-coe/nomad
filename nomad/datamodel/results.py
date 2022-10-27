@@ -150,13 +150,19 @@ tokenizer_formula = get_tokenizer(r'[A-Z][a-z]?\d*')
 class BandGap(MSection):
     m_def = Section(
         description='''
-        Band gap information for each spin channel.
+        Band gap information.
+        '''
+    )
+    label = Quantity(
+        type=str,
+        description='''
+        Label to identify the band gap data, e.g. method employed.
         '''
     )
     index = Quantity(
         type=np.dtype(np.int32),
         description='''
-        Spin channel index.
+        Index of the data, e.g. spin channel index.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
@@ -180,6 +186,15 @@ class BandGap(MSection):
             Elasticsearch(suggestion='simple')
         ],
     )
+
+
+class BandGapElectronic(BandGap):
+    m_def = Section(
+        description='''
+        Band gap information for electronic structure.
+        '''
+    )
+
     energy_highest_occupied = Quantity(
         type=np.dtype(np.float64),
         unit='joule',
@@ -1522,6 +1537,12 @@ class DOSElectronic(DOS):
         Contains the total electronic density of states.
         ''',
     )
+    label = Quantity(
+        type=str,
+        description='''
+        Label to identify the DOS data, e.g. the method employed.
+        ''')
+
     spin_polarized = Quantity(
         type=bool,
         description='''
@@ -1531,7 +1552,7 @@ class DOSElectronic(DOS):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     band_gap = SubSection(
-        sub_section=BandGap.m_def,
+        sub_section=BandGapElectronic.m_def,
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
@@ -1551,6 +1572,11 @@ class BandStructure(MSection):
         Base class for band structure information.
         ''',
     )
+    label = Quantity(
+        type=str,
+        description='''
+        Label to identify the bandstructure data, e.g. the method employed.
+        ''')
     reciprocal_cell = Quantity(
         type=BandStructureCalculation.reciprocal_cell,
         description='''
@@ -1602,7 +1628,7 @@ class BandStructureElectronic(BandStructure):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     band_gap = SubSection(
-        sub_section=BandGap.m_def,
+        sub_section=BandGapElectronic.m_def,
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
@@ -1826,8 +1852,8 @@ class ElectronicProperties(MSection):
         Electronic properties.
         ''',
     )
-    band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=False)
-    dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=False)
+    band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=True)
+    dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=True)
 
 
 class QuantityDynamic(MSection):

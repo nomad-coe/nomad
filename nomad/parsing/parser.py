@@ -347,6 +347,9 @@ class MatchingParserInterface(MatchingParser):
         return self._mainfile_parser
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
+        # TODO include child_archives in parse
+        if child_archives:
+            self.mainfile_parser._child_archives = child_archives
         self.mainfile_parser.parse(mainfile, archive, logger)
 
     def import_parser_class(self):
@@ -360,6 +363,22 @@ class MatchingParserInterface(MatchingParser):
             raise e
 
         return parser
+
+    def is_mainfile(
+            self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
+            compression: str = None) -> Union[bool, Iterable[str]]:
+        is_mainfile = super().is_mainfile(
+            filename=filename, mime=mime, buffer=buffer,
+            decoded_buffer=decoded_buffer, compression=compression)
+        if is_mainfile:
+            try:
+                # try to resolve mainfile keys from parser
+                mainfile_keys = self.mainfile_parser.get_mainfile_keys(filename)
+                self.creates_children = True
+                return mainfile_keys
+            except Exception:
+                return is_mainfile
+        return is_mainfile
 
 
 class ArchiveParser(MatchingParser):

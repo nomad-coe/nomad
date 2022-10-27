@@ -4,7 +4,7 @@ from nptyping import NDArray
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MEnum, Quantity, Section, SubSection, SectionProxy,
     Reference, derived)
-from nomad.datamodel.metainfo.simulation.calculation import Calculation
+from nomad.datamodel.metainfo.simulation.calculation import Calculation, Dos, BandStructure
 from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.simulation.system import System, Atoms, AtomsGroup
 from .common import FastAccess
@@ -1995,6 +1995,38 @@ class MeanSquaredDisplacement(CorrelationFunction):
     mean_squared_displacement_values = SubSection(sub_section=MeanSquaredDisplacementValues.m_def, repeats=True)
 
 
+class GW(MSection):
+    '''
+    Section containing results of a GW workflow
+    '''
+
+    m_def = Section(validate=False)
+
+    dos_dft = Quantity(
+        type=Reference(Dos),
+        description='''
+        DFT density of states
+        ''')
+
+    dos_gw = Quantity(
+        type=Reference(Dos),
+        description='''
+        GW density of states
+        ''')
+
+    band_structure_dft = Quantity(
+        type=Reference(BandStructure),
+        description='''
+        DFT density of states
+        ''')
+
+    band_structure_gw = Quantity(
+        type=Reference(BandStructure),
+        description='''
+        DFT density of states
+        ''')
+
+
 class SinglePoint(MSection):
     '''
     Section containing results of a single point workflow.
@@ -2127,6 +2159,7 @@ class Workflow(MSection):
 
     type = Quantity(
         type=MEnum([
+            "GW",
             "single_point",
             "geometry_optimization",
             "phonon",
@@ -2215,8 +2248,11 @@ class Workflow(MSection):
 
     single_point = SubSection(
         sub_section=SinglePoint.m_def,
-        # TODO determine if there is a need for this to be a repeating section
-        # such as in the context of fhi-vibes single_point
+        repeats=False,
+        categories=[FastAccess])
+
+    gw = SubSection(
+        sub_section=GW.m_def,
         repeats=False,
         categories=[FastAccess])
 

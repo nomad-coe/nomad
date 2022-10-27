@@ -507,7 +507,9 @@ class WorkflowNormalizer(Normalizer):
         if not self.entry_archive.run:
             return
 
+        created = False
         if not self.entry_archive.workflow:
+            created = True
             self.entry_archive.m_create(Workflow)
 
         for n, sec_workflow in enumerate(self.entry_archive.workflow):
@@ -547,5 +549,6 @@ class WorkflowNormalizer(Normalizer):
             ThermodynamicsNormalizer(self.entry_archive, n).normalize()
 
             # remove the section workflow again, if the parser/normalizer could not produce a result
-            if sec_workflow.calculation_result_ref is None:
+            # we should not remove workflows that are created by parser
+            if sec_workflow.calculation_result_ref is None and created:
                 self.entry_archive.m_remove_sub_section(EntryArchive.workflow, n)

@@ -33,7 +33,7 @@ from nomad.normalizing.material import MaterialNormalizer
 from nomad.datamodel.optimade import Species
 from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
 from nomad.datamodel.results import (
-    BandGap,
+    BandGapElectronic,
     RadialDistributionFunction,
     MeanSquaredDisplacement,
     Results,
@@ -243,7 +243,7 @@ class ResultsNormalizer(Normalizer):
                     i_species.chemical_symbols = [symbol]
                 i_species.concentration = [1.0]
 
-    def band_structure_electronic(self) -> Union[BandStructureElectronic, None]:
+    def band_structure_electronic(self) -> Union[List[BandStructureElectronic], None]:
         """Returns a new section containing an electronic band structure. In
         the case of multiple valid band structures, only the latest one is
         considered.
@@ -252,36 +252,57 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of kpoints.
           - There is a non-empty array of energies.
         """
-        path = ["run", "calculation", "band_structure_electronic"]
-        for bs in self.traverse_reversed(path):
-            if not bs.segment:
-                continue
-            valid = True
-            for segment in bs.segment:
-                energies = segment.energies
-                k_points = segment.kpoints
-                if not valid_array(energies) or not valid_array(k_points):
-                    valid = False
-                    break
-            if valid:
-                # Fill band structure data to the newer, improved data layout
-                bs_new = BandStructureElectronic()
-                bs_new.reciprocal_cell = bs
-                bs_new.segment = bs.segment
-                bs_new.spin_polarized = bs_new.segment[0].energies.shape[0] > 1
-                bs_new.energy_fermi = bs.energy_fermi
-                for info in bs.band_gap:
-                    info_new = bs_new.m_create(BandGap)
-                    info_new.index = info.index
-                    info_new.value = info.value
-                    info_new.type = info.type
-                    info_new.energy_highest_occupied = info.energy_highest_occupied
-                    info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
-                return bs_new
+        def resolve_band_structure(path):
+            for bs in self.traverse_reversed(path):
+                if not bs.segment:
+                    continue
+                valid = True
+                for segment in bs.segment:
+                    energies = segment.energies
+                    k_points = segment.kpoints
+                    if not valid_array(energies) or not valid_array(k_points):
+                        valid = False
+                        break
+                if valid:
+                    # Fill band structure data to the newer, improved data layout
+                    bs_new = BandStructureElectronic()
+                    bs_new.reciprocal_cell = bs
+                    bs_new.segment = bs.segment
+                    bs_new.spin_polarized = bs_new.segment[0].energies.shape[0] > 1
+                    bs_new.energy_fermi = bs.energy_fermi
+                    for info in bs.band_gap:
+                        info_new = bs_new.m_create(BandGapElectronic)
+                        info_new.index = info.index
+                        info_new.value = info.value
+                        info_new.type = info.type
+                        info_new.energy_highest_occupied = info.energy_highest_occupied
+                        info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
+                    return bs_new
+            return None
 
+        try:
+            workflow_type = self.entry_archive.workflow[-1].type
+        except Exception:
+            workflow_type = None
+
+        if workflow_type == 'GW':
+            band_structures = []
+            for method in ['gw', 'dft']:
+                band_structure = resolve_band_structure(["workflow", "gw", f"band_structure_{method}"])
+                if band_structure:
+                    name = method.upper()
+                    band_structure.label = name
+                    for band_gap in band_structure.band_gap:
+                        band_gap.label = name
+                    band_structures.append(band_structure)
+            return band_structures
+        else:
+            band_structure = resolve_band_structure(["run", "calculation", "band_structure_electronic"])
+            if band_structure:
+                return [band_structure]
         return None
 
-    def dos_electronic(self) -> Union[DOSElectronic, None]:
+    def dos_electronic(self) -> Union[List[DOSElectronic], None]:
         """Returns a reference to the section containing an electronic dos. In
         the case of multiple valid DOSes, only the latest one is reported.
 
@@ -289,24 +310,43 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of dos_values_normalized.
           - There is a non-empty array of dos_energies.
         """
-        path = ["run", "calculation", "dos_electronic"]
-        for dos in self.traverse_reversed(path):
-            energies = dos.energies
-            values = np.array([d.value.magnitude for d in dos.total])
-            if valid_array(energies) and valid_array(values):
-                dos_new = DOSElectronic()
-                dos_new.energies = dos
-                dos_new.total = dos.total
-                n_channels = values.shape[0]
-                dos_new.spin_polarized = n_channels > 1
-                dos_new.energy_fermi = dos.energy_fermi
-                for info in dos.band_gap:
-                    info_new = dos_new.m_create(BandGap)
-                    info_new.index = info.index
-                    info_new.energy_highest_occupied = info.energy_highest_occupied
-                    info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
-                return dos_new
 
+        def resolve_dos(path):
+            for dos in self.traverse_reversed(path):
+                energies = dos.energies
+                values = np.array([d.value.magnitude for d in dos.total])
+                if valid_array(energies) and valid_array(values):
+                    dos_new = DOSElectronic()
+                    dos_new.energies = dos
+                    dos_new.total = dos.total
+                    n_channels = values.shape[0]
+                    dos_new.spin_polarized = n_channels > 1
+                    dos_new.energy_fermi = dos.energy_fermi
+                    for info in dos.band_gap:
+                        info_new = dos_new.m_create(BandGapElectronic)
+                        info_new.index = info.index
+                        info_new.energy_highest_occupied = info.energy_highest_occupied
+                        info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
+                    return dos_new
+            return None
+
+        try:
+            workflow_type = self.entry_archive.workflow[-1].type
+        except Exception:
+            workflow_type = None
+
+        if workflow_type == 'GW':
+            doss = []
+            for method in ['gw', 'dft']:
+                dos = resolve_dos(["workflow", "gw", f"dos_{method}"])
+                if dos:
+                    dos.label = method.upper()
+                    doss.append(dos)
+            return doss
+        else:
+            dos = resolve_dos(["run", "calculation", "dos_electronic"])
+            if dos:
+                return [dos]
         return None
 
     def band_structure_phonon(self) -> Union[BandStructurePhonon, None]:

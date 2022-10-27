@@ -35,9 +35,13 @@ const VibrationalProperties = React.memo(({
   // Find minimum and maximum from DOS/BS. Use this range for both plots.
   const range = useMemo(() => {
     let range = [undefined, undefined]
-    if (dos?.energies) {
-      const min = Math.min(...dos.energies)
-      const max = Math.max(...dos.energies)
+    if (dos) {
+      const energies = []
+      dos.forEach(d => {
+        if (d.energies) energies.push(...d.energies)
+      })
+      const min = Math.min(...energies)
+      const max = Math.max(...energies)
       range = new Quantity([min, max], 'joule').toSystem(units).value()
     }
     return range
@@ -68,7 +72,7 @@ const VibrationalProperties = React.memo(({
         onRelayouting={handleBSRelayouting}
         onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
         layoutSubject={dosYSubject}
-        metaInfoLink={bs?.m_path}
+        metaInfoLink={bs ? bs[0].m_path : null}
         type="vibrational"
         data-testid="bs-phonon"
       />
@@ -81,7 +85,7 @@ const VibrationalProperties = React.memo(({
         onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
         units={units}
         layoutSubject={bsYSubject}
-        metaInfoLink={dos?.m_path}
+        metaInfoLink={dos ? dos[0].m_path : null}
         type="vibrational"
         data-testid="dos-phonon"
       />
