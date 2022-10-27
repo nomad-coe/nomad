@@ -1975,6 +1975,13 @@ class MeanSquaredDisplacementValues(CorrelationFunctionValues):
         Msd values.
         ''')
 
+    errors = Quantity(
+        type=np.dtype(np.float64),
+        shape=['*'],
+        description='''
+        Error associated with the determination of the msds.
+        ''')
+
     diffusion_constant = SubSection(sub_section=DiffusionConstantValues.m_def, repeats=False)
 
 

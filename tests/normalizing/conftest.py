@@ -16,12 +16,14 @@
 # limitations under the License.
 #
 
+# from atomisticparsers.utils.mdanalysis import mean_squared_displacement
 import numpy as np
 from typing import List, Union
 import pytest
 from ase import Atoms
 import ase.build
 import yaml
+# from nomad.datamodel.results import MeanSquaredDisplacement
 
 from nomad.utils import strip
 from nomad.units import ureg
@@ -36,7 +38,10 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies)
 from nomad.datamodel.metainfo.workflow import (
+    DiffusionConstantValues,
     IntegrationParameters,
+    MeanSquaredDisplacement,
+    MeanSquaredDisplacementValues,
     MolecularDynamicsResults,
     RadialDistributionFunction,
     RadialDistributionFunctionValues,
@@ -601,20 +606,40 @@ def molecular_dynamics() -> EntryArchive:
     workflow.type = 'molecular_dynamics'
     workflow.calculation_result_ref = calcs[-1]
     workflow.calculations_ref = calcs
+    diff_values = DiffusionConstantValues(
+        value=2.1,
+        error_type='Pearson correlation coefficient',
+        errors=0.98,
+    )
+    msd_values = MeanSquaredDisplacementValues(
+        times=[0, 1, 2],
+        n_times=3,
+        value=[0, 1, 2],
+        label='MOL',
+        errors=[0, 1, 2],
+        diffusion_constant=diff_values,
+    )
+    msd = MeanSquaredDisplacement(
+        type='molecular',
+        direction='xyz',
+        error_type='bootstrapping',
+        mean_squared_displacement_values=[msd_values],
+    )
     rdf_values = RadialDistributionFunctionValues(
         bins=[0, 1, 2],
         n_bins=3,
         value=[0, 1, 2],
         frame_start=0,
         frame_end=100,
-        label='MOL-MOL'
+        label='MOL-MOL',
     )
     rdf = RadialDistributionFunction(
         type='molecular',
-        radial_distribution_function_values=[rdf_values]
+        radial_distribution_function_values=[rdf_values],
     )
     results = MolecularDynamicsResults(
-        radial_distribution_functions=[rdf]
+        radial_distribution_functions=[rdf],
+        mean_squared_displacements=[msd],
     )
     md = MolecularDynamics(
         thermodynamic_ensemble='NVT',
