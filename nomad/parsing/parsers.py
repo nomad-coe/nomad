@@ -604,6 +604,11 @@ parsers = [
         mainfile_contents_re=r'openkim|OPENKIM|OpenKIM'
     ),
     MatchingParserInterface(
+        'electronicparsers.Wannier90Parser',
+        metadata_path=f'{prefix_electronic}/wannier90/metadata.yaml',
+        mainfile_contents_re=r'\|\s*WANNIER90\s*\|'
+    ),
+    MatchingParserInterface(
         'nomad.parsing.nexus.NexusParser',
         metadata_path=os.path.join(os.path.dirname(__file__), 'metadata.yaml'),
         mainfile_mime_re=r'(application/.*)|(text/.*)',

@@ -29,6 +29,7 @@ from nomad.datamodel.results import (
     Electronic,
     Simulation,
     DFT,
+    Projection,
     GW,
     xc_treatments,
 )
@@ -64,6 +65,8 @@ class MethodNormalizer():
             else:
                 if section_method.gw is not None:
                     method_name = "GW"
+                elif section_method.projection is not None:
+                    method_name = "Projection"
             return method_name
 
         # If only one method is specified, use it directly
@@ -112,6 +115,14 @@ class MethodNormalizer():
             gw.type = repr_method.gw.type
             gw.starting_point = repr_method.gw.starting_point.split()
             simulation.gw = gw
+        elif method_name == "Projection":
+            method.method_name = "Projection"
+            projection = Projection()
+            if repr_method.projection.is_maximally_localized:
+                projection.localization_type = 'maximally_localized'
+            else:
+                projection.localization_type = 'single_shot'
+            simulation.projection = projection
         elif method_name in {"DFT", "DFT+U"}:
             method.method_name = "DFT"
             dft = DFT()

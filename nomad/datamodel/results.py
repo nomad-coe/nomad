@@ -63,7 +63,8 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation
 )  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
-    BasisSet, Scf, Electronic, Smearing, GW as GWMethod
+    BasisSet, Scf, Electronic, Smearing,
+    GW as GWMethod
 )  # noqa
 from nomad.datamodel.metainfo.workflow import (
     GeometryOptimization as MGeometryOptimization,
@@ -1348,6 +1349,24 @@ class DFT(MSection):
     )
 
 
+class Projection(MSection):
+    m_def = Section(
+        description='''
+        Methodology for a Projection calculation.
+        '''
+    )
+    localization_type = Quantity(
+        type=MEnum(['single_shot', 'maximally_localized']),
+        description='''
+        Projection method type for the virtual (Wannier) orbitals.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+
+
 class GW(MSection):
     m_def = Section(
         description='''
@@ -1409,6 +1428,7 @@ class Simulation(MSection):
         ],
     )
     dft = SubSection(sub_section=DFT.m_def, repeats=False)
+    projection = SubSection(sub_section=Projection.m_def, repeats=False)
     gw = SubSection(sub_section=GW.m_def, repeats=False)
     quantum_cms = SubSection(sub_section=QuantumCMS.m_def, repeats=False)
 
@@ -1449,7 +1469,7 @@ class Method(MSection):
         ''',
     )
     method_name = Quantity(
-        type=MEnum(['DFT', 'GW', 'EELS', 'XPS', config.services.unavailable_value]),
+        type=MEnum(['DFT', 'Projection', 'GW', 'EELS', 'XPS', config.services.unavailable_value]),
         description='''
         Common name for the used method.
         ''',

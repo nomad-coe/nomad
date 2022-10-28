@@ -678,6 +678,56 @@ class DFT(MSection):
     dft_plus_u = SubSection(sub_section=DFTPlusU.m_def, repeats=True)
 
 
+class Projection(MSection):
+    '''
+    Section containing the various parameters that define a Wannier90-like projection
+    '''
+
+    m_def = Section(validate=False)
+
+    k_mesh = SubSection(sub_section=KMesh.m_def, repeats=False)
+
+    n_projected_orbitals = Quantity(
+        type=np.dtype(np.int32),
+        description='''
+        Number of Wannier orbitals used to fit the DFT band structure
+        ''')
+
+    n_bands = Quantity(
+        type=np.dtype(np.int32),
+        description='''
+        Number of input Bloch bands to calculate the projection matrix.
+        ''')
+
+    is_maximally_localized = Quantity(
+        type=bool,
+        description='''
+        Are the projected orbitals maximally localized or just a single-shot projection?
+        ''')
+
+    convergence_tolerance_max_localization = Quantity(
+        type=np.dtype(np.float64),
+        description='''
+        Convergence tolerance for maximal localization of the projected orbitals.
+        ''')
+
+    energy_window_outer = Quantity(
+        type=np.dtype(np.float64),
+        unit='electron_volt',
+        shape=[2],
+        description='''
+        Bottom and top of the outer energy window used for the projection.
+        ''')
+
+    energy_window_inner = Quantity(
+        type=np.dtype(np.float64),
+        unit='electron_volt',
+        shape=[2],
+        description='''
+        Bottom and top of the inner energy window used for the projection.
+        ''')
+
+
 class GW(MSection):
     '''
     Section containing the various parameters that define a GW calculation.
@@ -1225,6 +1275,8 @@ class Method(MSection):
         categories=[FastAccess])
 
     dft = SubSection(sub_section=DFT.m_def)
+
+    projection = SubSection(sub_section=Projection.m_def)
 
     gw = SubSection(sub_section=GW.m_def)
 
