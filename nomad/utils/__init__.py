@@ -53,7 +53,6 @@ import collections
 import logging
 import inspect
 import orjson
-import resource
 import os
 
 from nomad import config
@@ -248,7 +247,10 @@ def timer(logger, event, method='info', lnr_event: str = None, log_memory: bool 
         The method yields a dictionary that can be used to add further log data.
     '''
     def get_rss():
-        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if os.name != 'nt':
+            import resource
+            return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return 0
 
     kwargs = dict(kwargs)
     start = time.time()
