@@ -18,9 +18,10 @@
 import React, { useContext, useRef, useState, useMemo, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { isNil, isEmpty } from 'lodash'
 import { IconButton, makeStyles, lighten, TableHead, TableRow, TableCell, TableSortLabel,
   Checkbox, TableContainer, Table, TableBody, TablePagination, Box, Collapse, Toolbar, Typography,
-  List, ListItem, ListItemText, Popover, CircularProgress, Button } from '@material-ui/core'
+  List, ListItem, ListItemText, Popover, CircularProgress, Button, Tooltip } from '@material-ui/core'
 import TooltipButton from '../utils/TooltipButton'
 import EditColumnsIcon from '@material-ui/icons/ViewColumn'
 import InfiniteScroll from 'react-infinite-scroller'
@@ -75,6 +76,12 @@ export function addColumnDefaults(columns, moreDefaults) {
     }
     if (column.sortable !== false) {
       column.sortable = true
+    }
+    const multiple = !isEmpty(searchQuantities[column.key]?.shape)
+    if (multiple) {
+      column.sortable = false
+    } else if (isNil(column.sortable)) {
+      column.sortable = !multiple
     }
     if (!column.align) {
       column.align = 'center'
@@ -273,8 +280,13 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
           onChange={handleSelectAllChanged}
         />
       </TableCell>}
-      {columns.map(column => (
-        <TableCell
+      {columns.map(column => {
+        const label = column.label || column.key
+        const description = column.description || ''
+        const columnLabel = <Tooltip title={description} placement="top">
+          <span>{label}</span>
+        </Tooltip>
+        return <TableCell
           classes={{stickyHeader: classes.stickyHeader}}
           key={column.key}
           align={column.align || 'right'}
@@ -286,15 +298,15 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
             onClick={createSortHandler(column)}
             data-testid={`sortable_${column.key}`}
           >
-            {column.label || column.key}
+            {columnLabel}
             {order_by === column.key ? (
               <span className={classes.visuallyHidden}>
                 {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
               </span>
             ) : null}
-          </TableSortLabel> : column.label || column.key}
+          </TableSortLabel> : columnLabel}
         </TableCell>
-      ))}
+      })}
       {actions && <TableCell classes={{stickyHeader: classes.stickyHeader}} />}
     </TableRow>
   </TableHead>

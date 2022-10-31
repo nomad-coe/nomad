@@ -169,11 +169,9 @@ export const SearchContext = React.memo(({
       },
       authors: {
         render: row => authorList(row),
-        align: 'left',
-        sortable: false
+        align: 'left'
       },
       references: {
-        sortable: false,
         render: row => {
           const refs = row.references || []
           if (refs.length > 0) {
@@ -190,7 +188,6 @@ export const SearchContext = React.memo(({
         }
       },
       datasets: {
-        sortable: false,
         render: entry => {
           const datasets = entry.datasets || []
           if (datasets.length > 0) {
