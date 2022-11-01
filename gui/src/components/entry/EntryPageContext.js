@@ -27,24 +27,39 @@ const entryPageContext = React.createContext()
  * Hook for fetching data from the current EntryPageContext.
  *
  * @param {*} requireArchive Optional query filter
- * @param {*} update Whether to keep updating the data if changes are made in
- *   the store. Sometimes the first version of the data should be kept to avoid
- *   unnecessary re-renders and layout inconsistencies.
+ * @param {*} update Whether to keep updating the data for the original entry
+ *   if changes beyond the first successfull archive load are made in the store.
+ *   Sometimes the first version of the data should be kept to avoid unnecessary
+ *   re-renders and layout inconsistencies. Note that if the entry id changes,
+ *   the update is forced.
  * @returns
  */
 export const useEntryPageContext = (requireArchive, update = true) => {
   const entryId = useContext(entryPageContext)
   const entryData = useEntryStoreObj(apiBase, entryId, true, requireArchive)
   const [data, setData] = useState(entryData)
-  const firstRender = useRef(true)
+  const oldEntryId = useRef()
+  const completed = useRef(false)
 
+  // This effect controls how the data returned by this hook is synchronized
+  // with the data coming from the store. If update = true, the data is always
+  // synchronized. If update = false, it is only synchronized until the archive
+  // data is fully set, or the entry changes.
   useEffect(() => {
+    const newEntryId = entryData?.entryId
+    const isNew = newEntryId !== oldEntryId.current
     if (update) {
       setData(entryData)
-    } else if (firstRender.current && entryData.archive) {
+    } else if (isNew || !completed.current) {
       setData(entryData)
-      firstRender.current = false
+      if (isNew) {
+        completed.current = false
+      }
+      if (entryData?.archive) {
+        completed.current = true
+      }
     }
+    oldEntryId.current = newEntryId
   }, [entryData, update])
 
   return data
