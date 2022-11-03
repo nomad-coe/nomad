@@ -144,23 +144,30 @@ export const SearchContext = React.memo(({
     // Determine the final render function
     options.forEach(option => {
       option.render = (data) => {
-        let value = getDeep(data, option.key)
+        const value = getDeep(data, option.key)
         if (isNil(value)) return value
-        const unit = option.unit
-        const format = option.format
-        if (unit) {
-          const originalUnit = searchQuantities[option.key].unit
-          value = new Quantity(value, originalUnit).to(option.unit).value()
+
+        const transform = (value) => {
+          const key = option.key
+          const unit = option.unit
+          const format = option.format
+          if (unit) {
+            const originalUnit = searchQuantities[key].unit
+            value = new Quantity(value, originalUnit).to(unit).value()
+          }
+          if (format) {
+            const dtype = getDatatype(key)
+            value = formatNumber(value, dtype, format?.mode, format?.decimals)
+          }
+          return value
         }
-        if (format) {
-          const dtype = getDatatype(option.key)
-          value = formatNumber(value, dtype, format?.mode, format?.decimals)
-        }
-        return value
+        return isArray(value)
+          ? value.map(transform).join(option?.format?.separator || ', ')
+          : transform(value)
       }
     })
 
-    // Custom render and sortability is enforced for a subset of columns.
+    // Custom render is used for a subset of columns.
     const overrides = {
       upload_create_time: {
         render: row => row?.upload_create_time
