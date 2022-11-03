@@ -19,7 +19,7 @@ import React, {useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, IconButton, Tooltip, TextField } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
-import Dropzone from 'react-dropzone'
+import { useDropzone } from 'react-dropzone'
 import { useApi } from '../api'
 import { ItemButton } from '../archive/Browser'
 import { useEntryPageContext } from '../entry/EntryPageContext'
@@ -45,7 +45,7 @@ const FileEditQuantity = React.memo(props => {
   const {api} = useApi()
   const {raiseError} = useErrors()
 
-  const handleDrop = useCallback(files => {
+  const handleDropFiles = useCallback(files => {
     if (!files[0]?.name) {
       return // Not dropping a file, but something else. Ignore.
     }
@@ -77,11 +77,12 @@ const FileEditQuantity = React.memo(props => {
     }
   }, [onChange])
 
+  const {getRootProps, getInputProps, open, isDragAccept} = useDropzone({onDrop: handleDropFiles, noClick: true})
+  const dropzoneClassName = isDragAccept ? classes.dropzoneActive : classes.dropzone
+
   return (
-    <Dropzone
-      className={classes.dropzone} activeClassName={classes.dropzoneActive}
-      onDrop={handleDrop} disableClick
-    >
+    <div {...getRootProps({className: dropzoneClassName})}>
+      <input {...getInputProps()} />
       <TextField
         value={value || ''} onChange={handleChange}
         size="small" variant="filled" fullWidth
@@ -90,13 +91,11 @@ const FileEditQuantity = React.memo(props => {
         InputProps={{
           endAdornment: (
             <React.Fragment>
-              <Dropzone className={classes.dropzone} onDrop={handleDrop}>
-                <IconButton size="small">
-                  <Tooltip title="upload file (click or drop file)">
-                    <UploadIcon/>
-                  </Tooltip>
-                </IconButton>
-              </Dropzone>
+              <IconButton size="small" onClick={open} >
+                <Tooltip title="upload file (click or drop file)">
+                  <UploadIcon/>
+                </Tooltip>
+              </IconButton>
               {value && (
                 <ItemButton size="small" itemKey={quantityDef.name} />
               )}
@@ -104,7 +103,7 @@ const FileEditQuantity = React.memo(props => {
           )
         }}
       />
-    </Dropzone>
+    </div>
   )
 })
 FileEditQuantity.propTypes = {
