@@ -33,7 +33,8 @@ import FolderIcon from '@material-ui/icons/FolderOutlined'
 import FileIcon from '@material-ui/icons/InsertDriveFileOutlined'
 import ReloadIcon from '@material-ui/icons/Replay'
 import RecognizedFileIcon from '@material-ui/icons/InsertChartOutlinedTwoTone'
-import Dropzone from 'react-dropzone'
+import { useDropzone } from 'react-dropzone'
+import { fromEvent } from 'file-selector'
 import Download from '../entry/Download'
 import Quantity from '../Quantity'
 import FilePreview from './FilePreview'
@@ -128,7 +129,7 @@ class RawDirectoryAdaptor extends Adaptor {
   }
 
   async scrollToNextPage() {
-    if (this.lastPage * this.page_size < this.data.total) {
+    if (this.data?.total && this.lastPage * this.page_size < this.data.total) {
       this.lastPage = this.lastPage + 1
       await this.fetchData()
       return this.data
@@ -160,21 +161,50 @@ class RawDirectoryAdaptor extends Adaptor {
 }
 
 export const CustomDropZone = React.memo((props) => {
-  const {children, onBackgroundColorChange, ...otherProps} = props
-  const classes = useRawDirectoryContentStyles()
+  const {children, onDrop, classNameNormal, classNameActive, ...otherProps} = props
+  const [active, setActive] = useState(false)
+  const dragTargetsRef = useRef([])
 
-  const handleMouseEnter = useCallback(e => {
-    onBackgroundColorChange('grey')
-  }, [onBackgroundColorChange])
-  const handleMouseOut = useCallback(e => {
-    onBackgroundColorChange('white')
-  }, [onBackgroundColorChange])
+  const onDragEnter = useCallback(e => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragTargetsRef.current.push(e.target)
+    setActive(true)
+  }, [setActive])
+
+  const onDragLeave = useCallback(e => {
+    e.preventDefault()
+    e.stopPropagation()
+    const targets = dragTargetsRef.current
+    const targetIdx = targets.indexOf(e.target)
+    if (targetIdx !== -1) {
+      targets.splice(targetIdx, 1)
+      dragTargetsRef.current = targets
+    }
+    if (!targets.length) {
+      setActive(false)
+    }
+  }, [setActive])
+
+  const onDragOver = useCallback(e => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
+  const onDropped = useCallback(e => {
+    e.preventDefault()
+    e.stopPropagation()
+    setActive(false)
+    dragTargetsRef.current = []
+    onDrop(e)
+  }, [onDrop, setActive])
 
   return <div
-    className={classes.dropzoneLane}
-    onDragEnter={handleMouseEnter}
-    onDragEnd={handleMouseOut}
-    onDragLeave={handleMouseOut}
+    className={active ? classNameActive : classNameNormal}
+    onDragEnter={onDragEnter}
+    onDragLeave={onDragLeave}
+    onDragOver={onDragOver}
+    onDrop={onDropped}
     {...otherProps}
   >
     {children}
@@ -182,7 +212,9 @@ export const CustomDropZone = React.memo((props) => {
 })
 CustomDropZone.propTypes = {
   children: PropTypes.any,
-  onBackgroundColorChange: PropTypes.func
+  onDrop: PropTypes.func,
+  classNameNormal: PropTypes.string.isRequired,
+  classNameActive: PropTypes.string.isRequired
 }
 
 const useRawDirectoryContentStyles = makeStyles(theme => ({
@@ -196,6 +228,8 @@ const useRawDirectoryContentStyles = makeStyles(theme => ({
     padding: 0
   },
   dropzoneActive: {
+    width: '100%',
+    minHeight: '100%',
     backgroundColor: theme.palette.grey[300]
   }
 }))
@@ -212,7 +246,6 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
   const [openCreateDirDialog, setOpenCreateDirDialog] = useState(false)
   const [openCopyMoveDialog, setOpenCopyMoveDialog] = useState(false)
   const [fileName, setFileName] = useState('')
-  const [backgroundColor, setBackgroundColor] = useState('white')
   const copyFileName = useRef()
   const createDirName = useRef()
   const { raiseError } = useErrors()
@@ -239,27 +272,31 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     return dataStore.subscribeToUpload(installationUrl, uploadId, refreshIfNeeded, true, false)
   }, [dataStore, installationUrl, uploadId, refreshIfNeeded])
 
-  const handleDrop = (e) => {
-    const files = e.dataTransfer.files
-    const _filePath = e.dataTransfer.getData('URL')
+  const handleDropFiles = useCallback((files) => {
+    // Handles dropping files (not links)
+    const formData = new FormData() // eslint-disable-line no-undef
+    for (const file of files) {
+      formData.append('file', file)
+    }
+    api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData)
+      .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
+      .catch(error => raiseError(error))
+  }, [installationUrl, uploadId, encodedPath, raiseError, api, dataStore])
+
+  const handleDrop = useCallback(async (e) => {
+    // Handles dropping files and links
+    const files = await fromEvent(e)
+    const _filePath = e.dataTransfer?.getData('URL')
     if (files.length) { // files are being transferred
-      e.target.style.backgroundColor = 'white'
-      const formData = new FormData() // eslint-disable-line no-undef
-      for (const file of files) {
-        formData.append('file', file)
-      }
-      api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData)
-        .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
-        .catch(error => raiseError(error))
+      handleDropFiles(files)
     } else if (_filePath) {
       if (_filePath.includes('/files/') &&
       _filePath.includes(history.location.pathname.split('files')[0])) {
-        e.target.style.backgroundColor = 'white'
         setFileName(_filePath.slice(_filePath.indexOf('files')).split('/').slice(1).join('/'))
         setOpenCopyMoveDialog(true)
       }
     }
-  }
+  }, [history.location.pathname, handleDropFiles, setFileName, setOpenCopyMoveDialog])
 
   const handleCopyMoveFile = (e) => {
     setOpenCopyMoveDialog(false)
@@ -295,15 +332,16 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
       .catch(raiseError)
   }
 
+  const { getRootProps, getInputProps } = useDropzone({onDrop: handleDropFiles})
+
   if (!lane.adaptor.data) {
     return <Content key={path}><Typography>loading ...</Typography></Content>
   } else {
     // Data loaded
     const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?compress=true` // TODO: installationUrl need to be considered for external uploads
     return (
-      <CustomDropZone onDrop={handleDrop} onBackgroundColorChange={color => setBackgroundColor(color)}
-      style={{background: backgroundColor}}>
-        <Content key={path} style={{background: 'white'}}>
+      <CustomDropZone onDrop={handleDrop} classNameNormal={classes.dropzoneLane} classNameActive={classes.dropzoneActive}>
+        <Content key={path}>
           <Title
             title={title}
             label="folder"
@@ -329,16 +367,14 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
                 {
                   editable &&
                     <Grid item>
-                      <Dropzone
-                        className={classes.dropzoneTop} activeClassName={classes.dropzoneActive}
-                        onDrop={handleDrop}
-                      >
+                      <div {...getRootProps()}>
+                        <input {...getInputProps()} />
                         <IconButton size="small">
                           <Tooltip title="upload to this folder (click or drop files)">
                             <UploadIcon/>
                           </Tooltip>
                         </IconButton>
-                      </Dropzone>
+                      </div>
                     </Grid>
                 }
                 {
@@ -435,7 +471,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
           </Compartment>
         </Content>
       </CustomDropZone>
-      )
+    )
   }
 }
 RawDirectoryContent.propTypes = {

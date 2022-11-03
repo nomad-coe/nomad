@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
   TextField, Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
   Input, DialogTitle, DialogContent, Dialog, LinearProgress, IconButton, Accordion, AccordionSummary, AccordionDetails} from '@material-ui/core'
-import Dropzone from 'react-dropzone'
+import { useDropzone } from 'react-dropzone'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import { appBase, oasis } from '../../config'
@@ -70,21 +70,23 @@ const useDropButtonStyles = makeStyles(theme => ({
 
 function DropButton({onDrop, ...buttonProps}) {
   const classes = useDropButtonStyles()
-  return <Dropzone
-    className={classes.dropzone}
-    activeClassName={classes.dropzoneAccept}
-    rejectClassName={classes.dropzoneReject}
-    onDrop={onDrop}
-  >
-    <Button
-      variant="contained"
-      color="default"
-      startIcon={<UploadIcon/>}
-      {...buttonProps}
-    >
-      click or drop files
-    </Button>
-  </Dropzone>
+  const {getRootProps, getInputProps, isDragAccept, isDragReject} = useDropzone({onDrop})
+  const className = (isDragAccept && classes.dropzoneAccept) || (isDragReject && classes.dropzoneReject) || classes.dropzone
+  return (
+    <div className={className}>
+      <div {...getRootProps()}>
+        <input {...getInputProps()} />
+        <Button
+          variant="contained"
+          color="default"
+          startIcon={<UploadIcon/>}
+          {...buttonProps}
+        >
+          click or drop files
+        </Button>
+      </div>
+    </div>
+  )
 }
 DropButton.propTypes = {
   onDrop: PropTypes.func
@@ -324,7 +326,7 @@ function UploadOverview(props) {
       })
   }, [api, raiseError, uploadId, uploading, setReadme])
 
-  const handleDrop = (files) => {
+  const handleDropFiles = useCallback(files => {
     if (!files[0]?.name) {
       return // Not dropping a file, but something else. Ignore.
     }
@@ -344,7 +346,7 @@ function UploadOverview(props) {
       .finally(() => {
         setUploading(null)
       })
-  }
+  }, [uploadId, updateUpload, setUploading, api, raiseError])
 
   const handleNameChange = (upload_name) => {
     api.post(`/uploads/${uploadId}/edit`, {metadata: {upload_name: upload_name}})
@@ -498,7 +500,7 @@ function UploadOverview(props) {
                 <DropButton
                   className={classes.stepContent}
                   size="large"
-                  fullWidth onDrop={handleDrop}
+                  fullWidth onDrop={handleDropFiles}
                   disabled={isProcessing} />
               </React.Fragment>
             )}
