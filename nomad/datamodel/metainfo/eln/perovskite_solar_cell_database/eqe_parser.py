@@ -39,6 +39,7 @@ k = 1.38064852e-23  # % [(m^2)kg(s^-2)(K^-1)], Boltzmann constant
 T = temperature
 VT = (k * T) / q  # % [V], 25.8mV thermal voltage at 300K
 c = 299792458  # % [m/s], speed of light c_0
+hc_eVnm = h_Js * c / q * 1e9  # % [eV nm]  Planck's constant for energy to wavelength conversion
 
 
 class EQEAnalyzer():
@@ -71,14 +72,30 @@ class EQEAnalyzer():
         if self.header_lines == 0:  # in case you have a header
             try:
                 df = pd.read_csv(self.file_path, header=None, sep='\t',)
+                if len(df.columns) < 2:
+                    raise IndexError
             except IndexError:
                 df = pd.read_csv(self.file_path, header=None)
         else:
             try:
-                df = pd.read_csv(self.file_path, header=int(self.header_lines - 1), sep='\t')
-
+                df = pd.read_csv(self.file_path, header=int(self.header_lines - 1), sep='\t')  # header_lines - 1 assumes last header line is column names
+                if len(df.columns) < 2:
+                    raise IndexError
             except IndexError:
-                df = pd.read_csv(self.file_path, header=int(self.header_lines - 1))
+                try:  # wrong separator?
+                    df = pd.read_csv(self.file_path, header=int(self.header_lines - 1))
+                    if len(df.columns) < 2:
+                        raise IndexError
+                except IndexError:
+                    try:  # separator was right, but last header_line is not actually column names?
+                        df = pd.read_csv(self.file_path, header=int(self.header_lines), sep='\t')
+                        if len(df.columns) < 2:
+                            raise IndexError
+                    except IndexError:
+                        # Last guess: separator was wrong AND last header_line is not actually column names?
+                        df = pd.read_csv(self.file_path, header=int(self.header_lines))
+                        if len(df.columns) < 2:
+                            raise IndexError
         df = df.apply(pd.to_numeric, errors='coerce')
         df = df.dropna()
         return df
@@ -96,17 +113,14 @@ class EQEAnalyzer():
         """
         df = self.read_file()
         if 'Calculated' in list(df.columns):  # for files from the hzb
-            x = df[df.columns[0]]
+            x = df.iloc[:, 0].values
             y = df['Calculated'].values
         else:
-            x = df[df.columns[0]]
-            y = df[df.columns[1]]
-
-        x = np.array(x)
-        y = np.array(y)
+            x = df.iloc[:, 0].values
+            y = df.iloc[:, 1].values
 
         if any(x > 10):  # check if energy (eV) or wavelength (nm)
-            x = 1240 / x
+            x = hc_eVnm / x
         if any(y > 10):  # check if EQE is given in (%), if so it's translated to abs. numbers
             y = y / 100
         if x[1] - x[2] > 0:  # bring both arrays into correct order (i.e. w.r.t eV increasing) if one started with e.g. wavelength in increasing order e.g. 300nm, 305nm,...
@@ -172,17 +186,26 @@ class EQEAnalyzer():
         start, stop = self.select_range(y, min_eqe_fit, max_eqe_fit)
         self.start = start
         self.stop = stop
-        popt = optimize.curve_fit(
+        popt, pcov = optimize.curve_fit(
             self.linear,
             x[start:stop],
             np.log(y[start:stop]),
-            p0=[min(y) * 8, 0.026])[0]
-        urbach_e = 1 / popt[0]
+            p0=[min(y) * 8, 0.026]
+        )
+        print(popt)
+        print(pcov)
         m = popt[1]
         fit_min, fit_max = x[start], x[stop]
-        # print('Urbach energy: ' + str(urbach_e) + ' eV')
+        urbach_e = 1 / popt[0]
+        # calculate the standard dev of popt[0]
+        perr = np.sqrt(np.diag(pcov))
+        urbach_e_std = perr[0] / (popt[0] ** 2)
 
-        return urbach_e, m, fit_min, fit_max
+        # print('Voc rad: ' + str(voc_rad) + ' V')
+        # if urbach_e <= 0.0:
+        #     raise ValueError('''Failed to estimate a reasonable Urbach Energy.''')
+
+        return urbach_e, m, fit_min, fit_max, urbach_e_std
 
     # Extrapolate with an array of the fitted fitted EQE data to the interpolated eqe at a value of min_eqe_fit
     def extrapolate_eqe(self):
@@ -193,19 +216,23 @@ class EQEAnalyzer():
             photon_energy_extrapolated: array of the extrapolated photon energy values in eV
             eqe_extrapolated: array of the extrapolated eqe values
         '''
-        x, y = self.interpolate_eqe()
-        urbach_e = self.fit_urbach_tail()[0]
-        min_eqe_fit = self.min_eqe_fit
-        x_extrap = np.linspace(-1, 0, 500, endpoint=False) + x[self.stop]
-        y_extrap = y[self.stop] * np.exp((x_extrap - x[self.stop]) * 1 / urbach_e)
-        x_interp = np.linspace(x[self.stop], max(x), 1000, endpoint=True)
-        y_interp = np.interp(x_interp, x[max(self.start, self.stop):], y[max(self.start, self.stop):])
-        x_interp = x_interp[y_interp >= min_eqe_fit]
-        y_interp = y_interp[y_interp >= min_eqe_fit]
-        x_extrap = np.linspace(-1, 0, 500, endpoint=False) + min(x_interp)
-        y_extrap = y_interp[0] * np.exp((x_extrap - min(x_interp)) / urbach_e)
-        photon_energy_extrapolated = np.append(x_extrap, x_interp)
-        eqe_extrapolated = np.append(y_extrap, y_interp)
+        try:
+            x, y = self.interpolate_eqe()
+            urbach_e = self.fit_urbach_tail()[0]
+            min_eqe_fit = self.min_eqe_fit
+            x_extrap = np.linspace(-1, 0, 500, endpoint=False) + x[self.stop]
+            y_extrap = y[self.stop] * np.exp((x_extrap - x[self.stop]) * 1 / urbach_e)
+            x_interp = np.linspace(x[self.stop], max(x), 1000, endpoint=True)
+            y_interp = np.interp(x_interp, x[max(self.start, self.stop):], y[max(self.start, self.stop):])
+            x_interp = x_interp[y_interp >= min_eqe_fit]
+            y_interp = y_interp[y_interp >= min_eqe_fit]
+            x_extrap = np.linspace(-1, 0, 500, endpoint=False) + min(x_interp)
+            y_extrap = y_interp[0] * np.exp((x_extrap - min(x_interp)) / urbach_e)
+            photon_energy_extrapolated = np.append(x_extrap, x_interp)
+            eqe_extrapolated = np.append(y_extrap, y_interp)
+        except ValueError:
+            print('''The eqe could not be extrapolated because it was not possible
+            to estimate the Urbach energy.''')
         return photon_energy_extrapolated, eqe_extrapolated
 
     def calculate_jsc(self):
@@ -250,17 +277,20 @@ class EQEAnalyzer():
             j0rad: radiative saturation current density in A m**(-2)
             EL: EL spectrum
         '''
-        urbach_e = self.fit_urbach_tail()[0]
-        # try to calculate the j0rad and EL spectrum except if the urbach energy is larger than 0.026
-        if urbach_e >= 0.026:
-            raise ValueError('''Urbach energy is > 0.026 eV (~kB*T for T = 300K).
-                           The `j0rad` could not be calculated.''')
+        try:
+            urbach_e = self.fit_urbach_tail()[0]
+            # try to calculate the j0rad and EL spectrum except if the urbach energy is larger than 0.026
+            if urbach_e >= 0.026 or urbach_e <= 0.0:
+                raise ValueError('''Urbach energy is > 0.026 eV (~kB*T for T = 300K), or
+                it could notbe estimated. The `j0rad` could not be calculated.''')
 
-        x, y = self.extrapolate_eqe()
-        phi_BB = (2 * 3.14159265 * q**3 * (x)**2) / (h_Js**3 * c**2 * (np.exp(x / VT) - 1))
-        el = phi_BB * y
-        j0rad = np.trapz(el, x)
-        j0rad = j0rad * q
+            x, y = self.extrapolate_eqe()
+            phi_BB = (2 * np.pi * q**3 * (x)**2) / (h_Js**3 * c**2 * (np.exp(x / VT) - 1))
+            el = phi_BB * y
+            j0rad = np.trapz(el, x)
+            j0rad = j0rad * q
+        except ValueError:
+            raise ValueError('''Failed to estimate a reasonable Urbach Energy.''')
         # print('Radiative saturation current: ' + str(j0rad) + ' A / m^2')
         return j0rad, el
 
@@ -323,10 +353,14 @@ class EQEAnalyzer():
         eqe_dict = {}
         eqe_dict['photon_energy_raw'], eqe_dict['eqe_raw'] = self.arrange_eqe_columns()
         eqe_dict['interpolated_photon_energy'], eqe_dict['interpolated_eqe'] = self.interpolate_eqe()
-        eqe_dict['photon_energy_extrapolated'], eqe_dict['eqe_extrapolated'] = self.extrapolate_eqe()
         eqe_dict['jsc'] = self.calculate_jsc()
         eqe_dict['bandgap'] = self.calculate_bandgap()
-        eqe_dict['urbach_e'] = self.fit_urbach_tail()[0]
+        if self.fit_urbach_tail()[0] <= 0.0 or self.fit_urbach_tail()[0] >= 0.5:
+            print('Failed to estimate a reasonable Urbach Energy')
+        else:
+            eqe_dict['urbach_e'] = self.fit_urbach_tail()[0]
+            eqe_dict['error_urbach_std'] = self.fit_urbach_tail()[4]
+            eqe_dict['photon_energy_extrapolated'], eqe_dict['eqe_extrapolated'] = self.extrapolate_eqe()
         try:
             eqe_dict['j0rad'], eqe_dict['el'] = self.calculate_j0rad()
             eqe_dict['voc_rad'] = self.calculate_voc_rad()
