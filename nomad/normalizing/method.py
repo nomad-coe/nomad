@@ -17,6 +17,7 @@
 #
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+import re
 import numpy as np
 from typing import Tuple, List, Union
 
@@ -141,6 +142,7 @@ class MethodNormalizer():
                 dft.relativity_method = repr_method.electronic.relativity_method
             dft.xc_functional_names = self.xc_functional_names()
             dft.xc_functional_type = self.xc_functional_type(dft.xc_functional_names)
+            dft.exact_exchange_mixing_factor = self.exact_exchange_mixing_factor(dft.xc_functional_names)
             if repr_method.scf is not None:
                 dft.scf_threshold_energy_change = repr_method.scf.threshold_energy_change
             simulation.dft = dft
@@ -386,6 +388,29 @@ class MethodNormalizer():
             return xc_treatments.get(name[:3].lower(), config.services.unavailable_value)
         else:
             return config.services.unavailable_value
+
+    def exact_exchange_mixing_factor(self, xc_functional_names):
+        """Assign the exact exachange mixing factor to `results` section when explicitly stated.
+        Else, fall back on XC functional default."""
+        def scan_patterns(patterns, xc_name) -> bool:
+            return any([x for x in patterns if re.search('_' + x + '$', xc_name)])
+
+        if self.repr_method.dft:
+            xc_functional = self.repr_method.dft.xc_functional
+            for hybrid in xc_functional.hybrid:
+                if hybrid.parameters:
+                    if 'exact_exchange_mixing_factor' in hybrid.parameters.keys():
+                        return hybrid.parameters['exact_exchange_mixing_factor']
+        for xc_name in xc_functional_names:
+            if not re.search('_XC?_', xc_name): continue
+            if re.search('_B3LYP[35]?$', xc_name): return .2
+            elif scan_patterns(['HSE', 'PBEH', 'PBE_MOL0', 'PBE_SOL0'], xc_name): return .25
+            elif re.search('_M05$', xc_name): return .28
+            elif re.search('_PBE0_13$', xc_name): return 1 / 3
+            elif re.search('_PBE38$', xc_name): return 3 / 8
+            elif re.search('_PBE50$', xc_name): return .5
+            elif re.search('_M06_2X$', xc_name): return .54
+            elif scan_patterns(['M05_2X', 'PBE_2X'], xc_name): return .56
 
     def functional_long_name(self) -> str:
         """'Long' form of exchange-correlation functional, list of components

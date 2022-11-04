@@ -575,6 +575,11 @@ class XCFunctional(Model):
 
     contributions = SubSection(sub_section=Functional.m_def, repeats=True)
 
+    def normalize_hybrid(self):
+        for hyb in self.hybrid:
+            if 'exact_exchange_mixing_factor' in hyb.parameters.keys() and not hyb.name:
+                hyb.name += '+alpha'
+
 
 class DFTPlusU(MSection):
     '''
