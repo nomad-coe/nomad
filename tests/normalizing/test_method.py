@@ -59,6 +59,23 @@ def test_method_referenced(dft_method_referenced):
     assert method.simulation.dft.relativity_method == "scalar_relativistic"
 
 
+@pytest.mark.parametrize('entry, expected', [
+    ('dft_exact_exchange', .25),
+    ('dft_b3lyp', .2),
+    ('dft_pbeh', .25),
+    ('dft_m05', .28),
+    ('dft_pbe0_13', 1 / 3),
+    ('dft_pbe38', 3 / 8),
+    ('dft_pbe50', .5),
+    ('dft_m06_2x', .54),
+    ('dft_m05_2x', .56)
+])
+def test_exact_exchange_mixing_factor(entry, expected, request):
+    """Exact exchange mixing factor in hybrid functionals"""
+    entry = request.getfixturevalue(entry)
+    assert entry.results.method.simulation.dft.exact_exchange_mixing_factor == expected
+
+
 def test_method_dft_plus_u(dft_plus_u):
     """Methodology from a DFT+U calculation."""
     method = dft_plus_u.results.method

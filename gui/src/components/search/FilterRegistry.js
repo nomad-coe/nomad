@@ -314,6 +314,7 @@ registerFilter('results.method.simulation.dft.basis_set_type', idDFT, {...termQu
 registerFilter('results.method.simulation.dft.core_electron_treatment', idDFT, termQuantity)
 registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {...termQuantity, scale: '1/2', label: 'XC Functional Type'})
 registerFilter('results.method.simulation.dft.xc_functional_names', idDFT, {...termQuantityNonExclusive, scale: '1/2', label: 'XC Functional Names'})
+registerFilter('results.method.simulation.dft.exact_exchange_mixing_factor', idDFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dft.relativity_method', idDFT, termQuantity)
 registerFilter('results.method.simulation.gw.type', idGW, {...termQuantity, label: 'GW Type'})
 registerFilter('results.eln.sections', idELN, termQuantity)

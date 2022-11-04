@@ -20,6 +20,7 @@ import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
+import InputRange from '../input/InputRange'
 import { InputCheckboxValue } from '../input/InputCheckbox'
 
 const FilterSubMenuDFT = React.memo(({
@@ -50,6 +51,13 @@ const FilterSubMenuDFT = React.memo(({
       <InputGridItem xs={12}>
         <InputField
           quantity="results.method.simulation.dft.xc_functional_names"
+          visible={visible}
+          xs={12}
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputRange
+          quantity="results.method.simulation.dft.exact_exchange_mixing_factor"
           visible={visible}
           xs={12}
         />

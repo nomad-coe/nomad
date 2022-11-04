@@ -1347,6 +1347,11 @@ class DFT(MSection):
             Elasticsearch(suggestion='default')
         ]
     )
+    exact_exchange_mixing_factor = Quantity(
+        type=np.dtype(np.float64),
+        description='Amount of exact exchange mixed in with the XC functional (value range = [0,1]).',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
 
 
 class Projection(MSection):

@@ -22,6 +22,7 @@ from typing import List, Union
 import pytest
 from ase import Atoms
 import ase.build
+import re
 import yaml
 # from nomad.datamodel.results import MeanSquaredDisplacement
 
@@ -357,9 +358,8 @@ def get_template_band_structure(
     return template
 
 
-@pytest.fixture(scope='session')
-def dft() -> EntryArchive:
-    '''DFT calculation.'''
+def set_dft_values(xc_functional_names: list) -> EntryArchive:
+    ''''''
     template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
@@ -374,8 +374,23 @@ def dft() -> EntryArchive:
         relativity_method='scalar_relativistic')
     method_dft.scf = Scf(threshold_energy_change=1e-24)
     method_dft.dft.xc_functional = XCFunctional()
-    method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
-    method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
+    xc = method_dft.dft.xc_functional
+    for xc_functional_name in xc_functional_names:
+        if re.search('^HYB_', xc_functional_name):
+            xc.hybrid.append(Functional(name=xc_functional_name, weight=1.0))
+            continue
+        if re.search('_X?C_', xc_functional_name):
+            xc.correlation.append(Functional(name=xc_functional_name, weight=1.0))
+        if re.search('_XC?_', xc_functional_name):
+            xc.exchange.append(Functional(name=xc_functional_name, weight=1.0))
+        xc.correlation.append(Functional(name=xc_functional_name, weight=1.0))
+    return template
+
+
+@pytest.fixture(scope='session')
+def dft() -> EntryArchive:
+    '''DFT calculation.'''
+    template = set_dft_values(['GGA_C_PBE', 'GGA_X_PBE'])
     return run_normalize(template)
 
 
@@ -400,7 +415,72 @@ def dft_method_referenced() -> EntryArchive:
     method_ref.electronic = Electronic(method='DFT')
     method_ref.core_method_ref = method_dft
     run.calculation[0].method_ref = method_ref
+    return run_normalize(template)
 
+
+@pytest.fixture(scope='session')
+def dft_exact_exchange() -> EntryArchive:
+    ''''''
+    template = set_dft_values(['GGA_C_PBE', 'GGA_X_PBE'])
+    template.run[0].method[0].dft.xc_functional.hybrid.append(Functional())
+    template.run[0].method[0].dft.xc_functional.hybrid[0].parameters = {'exact_exchange_mixing_factor': .25}
+    template.run[0].method[0].dft.xc_functional.hybrid[0].name = '+alpha'
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_b3lyp() -> EntryArchive:
+    ''''''
+    template = set_dft_values(['HYB_GGA_XC_B3LYP'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_pbeh() -> EntryArchive:
+    ''''''
+    template = set_dft_values(['HYB_GGA_XC_PBEH'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_m05() -> EntryArchive:
+    ''''''
+    template = set_dft_values(['MGGA_C_M05', 'HYB_MGGA_X_M05'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_pbe0_13() -> EntryArchive:
+    ''''''
+    template = set_dft_values(['HYB_GGA_XC_PBE0_13'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_pbe38() -> EntryArchive:
+    ''''''
+    template = set_dft_values(['HYB_GGA_XC_PBE38'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_pbe50() -> EntryArchive:
+    ''''''
+    template = set_dft_values(['HYB_GGA_XC_PBE50'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_m06_2x() -> EntryArchive:
+    ''''''
+    template = set_dft_values(['HYB_MGGA_X_M06_2X'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_m05_2x() -> EntryArchive:
+    ''''''
+    template = set_dft_values(['MGGA_C_M05_2X', 'HYB_MGGA_X_M05_2X'])
     return run_normalize(template)
 
 
