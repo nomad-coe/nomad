@@ -64,7 +64,7 @@ from nomad.datamodel.metainfo.simulation.calculation import (
 )  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
     BasisSet, Scf, Electronic, Smearing,
-    GW as GWMethod
+    GW as GWMethod, HubbardModel as Hubbard, AtomParameters
 )  # noqa
 from nomad.datamodel.metainfo.workflow import (
     GeometryOptimization as MGeometryOptimization,
@@ -110,6 +110,8 @@ crystal_systems = [
     'hexagonal',
     'cubic',
 ]
+orbitals = ['s', 'p', 'd', 'f']
+orbitals += ['{}{}'.format(n, orbital) for n in range(1, 10) for orbital in orbitals]
 xc_treatments = {
     'gga': 'GGA',
     'hf_': 'HF',
@@ -1270,6 +1272,25 @@ class Material(MSection):
     )
 
 
+class HubbardModel(MSection):
+    '''
+    Setup of the Hubbard model used in DFT+U
+    '''
+
+    m_def = Section(validate=False)
+
+    atom_label = AtomParameters.label.m_copy()
+    orbital = Hubbard.orbital.m_copy()
+    u_effective = Hubbard.u_effective.m_copy()
+    u_effective.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    u = Hubbard.u.m_copy()
+    u.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    j = Hubbard.j.m_copy()
+    j.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    method = Hubbard.method.m_copy()
+    projection_type = Hubbard.projection_type.m_copy()
+
+
 class DFT(MSection):
     m_def = Section(
         description='''
@@ -1352,6 +1373,8 @@ class DFT(MSection):
         description='Amount of exact exchange mixed in with the XC functional (value range = [0,1]).',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
+    hubbard_model = SubSection(sub_section=HubbardModel.m_def, repeats=True,
+                               a_elasticsearch=[Elasticsearch(material_entry_type, nested=True)])
 
 
 class Projection(MSection):

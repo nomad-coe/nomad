@@ -77,7 +77,7 @@ def test_exact_exchange_mixing_factor(entry, expected, request):
 
 
 def test_method_dft_plus_u(dft_plus_u):
-    """Methodology from a DFT+U calculation."""
+    """Methodology from a DFT+U calculation with a Hubbard model."""
     method = dft_plus_u.results.method
     assert method.method_name == "DFT"
     assert method.simulation.program_name == "VASP"
@@ -92,6 +92,13 @@ def test_method_dft_plus_u(dft_plus_u):
     assert method.simulation.dft.scf_threshold_energy_change == 1e-24 * ureg.joule
     assert method.simulation.dft.van_der_Waals_method == "G06"
     assert method.simulation.dft.relativity_method == "scalar_relativistic"
+    assert method.simulation.dft.hubbard_model[0].atom_label == 'Ti'
+    assert method.simulation.dft.hubbard_model[0].orbital == '3d'
+    assert method.simulation.dft.hubbard_model[0].u_effective == 3.5e-19 * ureg.joule
+    assert method.simulation.dft.hubbard_model[0].u == 4.5e-19 * ureg.joule
+    assert method.simulation.dft.hubbard_model[0].j == 1e-19 * ureg.joule
+    assert method.simulation.dft.hubbard_model[0].method == 'Dudarev'
+    assert method.simulation.dft.hubbard_model[0].projection_type == 'on-site'
 
 
 def test_method_gw(gw):

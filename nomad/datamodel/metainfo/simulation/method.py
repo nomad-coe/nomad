@@ -120,6 +120,60 @@ class Scf(MSection):
         ''')
 
 
+class HubbardModel(MSection):
+    '''
+    Setup of the Hubbard model used in DFT+U
+    '''
+
+    m_def = Section(validate=False)
+
+    orbital = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Orbital label corresponding to the parameter setting following the notation:
+        '(3)d', '(4)f', ...
+        ''')
+
+    u_effective = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the effective U parameter (U-J).
+        ''')
+
+    u = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the on-site Coulomb interaction U
+        ''')
+
+    j = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the exchange interaction J
+        ''')
+
+    method = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of the correction algorithm applied
+        ''')
+
+    projection_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Type of orbitals used for projection in order to calculate occupation numbers.
+        ''')
+
+
 class AtomParameters(MSection):
     '''
     Contains method-related information about a kind of atom identified by label. This
@@ -207,6 +261,8 @@ class AtomParameters(MSection):
         description='''
         Values of the charge corresponding to each orbital.
         ''')
+
+    hubbard_model = SubSection(sub_section=HubbardModel.m_def, repeats=False)
 
 
 class MoleculeParameters(MSection):
@@ -581,65 +637,6 @@ class XCFunctional(Model):
                 hyb.name += '+alpha'
 
 
-class DFTPlusU(MSection):
-    '''
-    Section for DFT+U-settings of a single orbital
-    '''
-
-    m_def = Section(validate=False)
-
-    atom = Quantity(
-        type=np.dtype(np.int32),
-        shape=[],
-        description='''
-        Index of the atom corresponding to the parameter setting
-        ''')
-
-    orbital = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Orbital label corresponding to the parameter setting following the notation:
-        '3d', '4f', ...
-        ''')
-
-    U_effective = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        description='''
-        Value of the effective U parameter (U-J).
-        ''')
-
-    U = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        description='''
-        Value of the on-site Coulomb interaction U
-        ''')
-
-    J = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        description='''
-        Value of the exchange interaction J
-        ''')
-
-    functional = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Type of DFT+U functional (such as DFT/DFT+U double-counting compensation).
-        ''')
-
-    projection_type = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        DFT+U: Type of orbitals used for projection in order to calculate occupation
-        numbers.
-        ''')
-
-
 class DFT(MSection):
     '''
     Section containing the various parameters that define a DFT calculation. These include
@@ -679,8 +676,6 @@ class DFT(MSection):
         ''')
 
     xc_functional = SubSection(sub_section=XCFunctional.m_def)
-
-    dft_plus_u = SubSection(sub_section=DFTPlusU.m_def, repeats=True)
 
 
 class Projection(MSection):

@@ -23,12 +23,14 @@ from typing import Tuple, List, Union
 
 from nomad.units import ureg
 from nomad.metainfo import Section
+from nomad.metainfo.util import MTypes
 from nomad.utils import RestrictedDict
 from nomad import config
 from nomad.datamodel.results import (
     Method,
     Electronic,
     Simulation,
+    HubbardModel,
     DFT,
     Projection,
     GW,
@@ -146,12 +148,43 @@ class MethodNormalizer():
             if repr_method.scf is not None:
                 dft.scf_threshold_energy_change = repr_method.scf.threshold_energy_change
             simulation.dft = dft
+            hubbard_models = self.hubbard_model(methods)
+            simulation.dft.hubbard_model = hubbard_models if len(hubbard_models) else None
 
         method.equation_of_state_id = self.equation_of_state_id(method.method_id, self.material.chemical_formula_hill)
         simulation.program_name = self.run.program.name
         simulation.program_version = self.run.program.version
         method.simulation = simulation
         return method
+
+    def hubbard_model(self, methods) -> List[HubbardModel]:
+        """Generate a list of normalized HubbardModels for `results.method`"""
+        hubbard_models = []
+        for sec_method in methods:
+            for param in sec_method.atom_parameters:
+                if param.hubbard_model is not None:
+                    hubb_run = param.hubbard_model
+                    if all([hubb_run.orbital, hubb_run.method, hubb_run.projection_type]):
+                        hubb_results = HubbardModel()
+                        hubb_results.atom_label = param.label
+                        valid = False
+                        for quant in hubb_run.m_def.quantities:
+                            quant_value = getattr(hubb_run, quant.name)
+                            # all false values, including zero are ignored
+                            if quant_value:
+                                setattr(hubb_results, quant.name, quant_value)
+                                if quant.type in MTypes.num:
+                                    valid = True
+                        # do not save if all parameters are set at 0
+                        if not valid: continue
+                        # U_effective technically only makes sense for Dudarev
+                        # but it is computed anyhow to act as a trigger for DFT+U
+                        if hubb_results.u_effective is None and hubb_results.u is not None:
+                            hubb_results.u_effective = hubb_results.u
+                            if hubb_results.j is not None:
+                                hubb_results.u_effective -= hubb_results.j
+                        hubbard_models.append(hubb_results)
+        return hubbard_models
 
     def workflow_name(self):
         workflow_name = None

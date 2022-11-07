@@ -33,7 +33,7 @@ from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, BasisSet, Electronic, DFT, XCFunctional, Functional,
-    Electronic, Smearing, Scf, XCFunctional, Functional, GW)
+    Electronic, Smearing, Scf, GW, AtomParameters, HubbardModel)
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup, System, Atoms as AtomsSystem)
 from nomad.datamodel.metainfo.simulation.calculation import (
@@ -486,7 +486,7 @@ def dft_m05_2x() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def dft_plus_u() -> EntryArchive:
-    '''DFT+U calculation.'''
+    '''DFT+U calculation with a Hubbard model.'''
     template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
@@ -501,6 +501,9 @@ def dft_plus_u() -> EntryArchive:
     method_dft.dft = DFT(xc_functional=XCFunctional())
     method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
     method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
+    method_dft.atom_parameters.append(AtomParameters(label='Ti'))
+    method_dft.atom_parameters[0].hubbard_model = HubbardModel(orbital='3d', u=4.5e-19,
+                                                               j=1e-19, method='Dudarev', projection_type='on-site')
     return run_normalize(template)
 
 
