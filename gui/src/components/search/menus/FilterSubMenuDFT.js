@@ -63,6 +63,13 @@ const FilterSubMenuDFT = React.memo(({
         />
       </InputGridItem>
       <InputGridItem xs={12}>
+        <InputRange
+          quantity="results.method.simulation.dft.hubbard_model.u_effective"
+          visible={visible}
+          xs={12}
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputField
           quantity="results.method.simulation.dft.basis_set_type"
           visible={visible}
