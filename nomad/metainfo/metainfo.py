@@ -427,7 +427,11 @@ class _QuantityType(DataType):
 
         if isinstance(value, Reference):
             if isinstance(value, QuantityReference):
-                return dict(type_kind='quantity_reference', type_data=value.target_quantity_def.m_path())
+                type_data = value.target_quantity_def.m_path()
+                from nomad import config
+                if config.process.store_package_definition_in_mongo:
+                    type_data += f'@{value.target_quantity_def.definition_id}'
+                return dict(type_kind='quantity_reference', type_data=type_data)
 
             section_root = section.m_root()
             context = cast(MSection, section_root).m_context
@@ -3436,7 +3440,6 @@ class SubSection(Property):
         for item in itertools.chain(
                 self.sub_section.quantities,
                 self.sub_section.base_sections,
-                self.sub_section.extending_sections,
                 self.sub_section.sub_sections,
                 self.sub_section.inner_section_definitions):
             if id(self) != id(item):
@@ -3785,11 +3788,11 @@ class Section(Definition):
             return self._cached_hash
 
         self._cached_hash = super(Section, self)._hash(regenerate)
+        self._cached_hash.update(('T' if self.extends_base_section else 'F').encode('utf-8'))
 
         for item in itertools.chain(
                 self.quantities,
                 self.base_sections,
-                self.extending_sections,
                 self.sub_sections,
                 self.inner_section_definitions):
             if id(self) != id(item):
