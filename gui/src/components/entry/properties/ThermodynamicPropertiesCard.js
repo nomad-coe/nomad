@@ -29,7 +29,7 @@ const ThermodynamicPropertiesCard = React.memo(({index, properties, archive}) =>
   const hasTrajectory = properties.has('trajectory')
   if (!hasTrajectory) return null
 
-  return <PropertyCard title="Thermodynamic">
+  return <PropertyCard title="Thermodynamic properties">
     {hasTrajectory && <Trajectories index={index} archive={archive} />}
   </PropertyCard>
 })

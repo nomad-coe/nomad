@@ -30,6 +30,6 @@ beforeAll(async () => {
 
 test('correctly renders entry with a trajectory', async () => {
   render(<ThermodynamicPropertiesCard index={index} properties={properties} archive={archive}/>)
-  expect(screen.queryByText('Thermodynamic')).toBeInTheDocument()
+  expect(screen.queryByText('Thermodynamic properties')).toBeInTheDocument()
   expectTrajectory(index)
 })

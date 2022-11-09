@@ -30,7 +30,7 @@ const DynamicalPropertiesCard = React.memo(({index, properties, archive}) => {
   const hasMsd = properties.has('mean_squared_displacement')
   if (!hasMsd) return null
 
-  return <PropertyCard title="Dynamical">
+  return <PropertyCard title="Dynamical properties">
     {hasMsd && <MeanSquaredDisplacements index={index} archive={archive}/>}
   </PropertyCard>
 })
