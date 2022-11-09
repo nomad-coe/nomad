@@ -192,8 +192,6 @@ class EQEAnalyzer():
             np.log(y[start:stop]),
             p0=[min(y) * 8, 0.026]
         )
-        print(popt)
-        print(pcov)
         m = popt[1]
         fit_min, fit_max = x[start], x[stop]
         urbach_e = 1 / popt[0]
