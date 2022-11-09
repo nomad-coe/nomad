@@ -18,6 +18,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles, Box, Grid, Divider } from '@material-ui/core'
+import { Alert } from '@material-ui/lab'
 import { resolveNomadUrlNoThrow } from '../../utils'
 import Quantity from '../Quantity'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
@@ -28,8 +29,8 @@ import NexusCard from './properties/NexusCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
 import MechanicalPropertiesCard from '../entry/properties/MechanicalPropertiesCard'
 import ThermodynamicPropertiesCard from '../entry/properties/ThermodynamicPropertiesCard'
-import StructuralProperties from '../entry/properties/StructuralPropertiesCard'
-import DynamicalProperties from '../entry/properties/DynamicalPropertiesCard'
+import DynamicalPropertiesCard from '../entry/properties/DynamicalPropertiesCard'
+import StructuralPropertiesCard from '../entry/properties/StructuralPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 import SpectroscopyCard from './properties/SpectroscopyCard'
 import { MethodMetadata } from './EntryDetails'
@@ -44,6 +45,7 @@ import {
 import { useErrors } from '../errors'
 import DefinitionsCard from './properties/DefinitionsCard'
 import { ErrorHandler } from '../ErrorHandler'
+import { isEmpty } from 'lodash'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -125,7 +127,10 @@ const OverviewView = React.memo((props) => {
     exists,
     editable,
     archive,
-    archiveApiData} = useEntryPageContext(overviewArchiveFilter, false)
+    archiveApiData,
+    overview
+  } = useEntryPageContext(overviewArchiveFilter, false)
+  const classes = useStyles()
   const index = metadata
   const [sections, setSections] = useState([])
   const {raiseError} = useErrors()
@@ -133,10 +138,7 @@ const OverviewView = React.memo((props) => {
   const dataMetainfoDef = useMetainfoDef(dataMetainfoDefUrl)
 
   const properties = useMemo(() => {
-    return new Set(index?.results
-      ? index.results.properties.available_properties
-      : []
-    )
+    return new Set(index?.results?.properties?.available_properties || [])
   }, [index])
 
   useEffect(() => {
@@ -159,7 +161,60 @@ const OverviewView = React.memo((props) => {
     getSections().then(setSections).catch(raiseError)
   }, [archive, dataMetainfoDef, setSections, raiseError])
 
-  const classes = useStyles()
+  // Determine the cards to show
+  const cards = useMemo(() => {
+    if (!exists || !index) return []
+    const cardMap = {
+      definitions: DefinitionsCard,
+      nexus: NexusCard,
+      material: index?.results?.material?.topology
+        ? MaterialCardTopology
+        : MaterialCard,
+      electronic: ElectronicPropertiesCard,
+      optoelectronic: OptoelectronicPropertiesCard,
+      vibrational: VibrationalPropertiesCard,
+      mechanical: MechanicalPropertiesCard,
+      thermodynamic: ThermodynamicPropertiesCard,
+      structural: StructuralPropertiesCard,
+      dynamical: DynamicalPropertiesCard,
+      geometry_optimization: GeometryOptimizationCard,
+      spectroscopy: SpectroscopyCard
+    }
+
+    if (isEmpty(overview?.options)) {
+      return <Alert severity="warning">
+        No overview cards defined in the entry context. Ensure that all GUI artifacts are created.
+      </Alert>
+    }
+
+    return overview.options.map((option) => {
+      let comp = null
+      const msg = option.error || "Could not render card."
+      const key = option.key
+      if (key === 'sections') {
+        comp = <React.Fragment key={key}>
+            {sections
+            .map((section, index) => (
+              <ErrorHandler key={index} message={msg}>
+                <SectionCard
+                  {...section}
+                  archivePath={section.archivePath.replace(/\./g, '/')}
+                  readOnly={!editable}
+                />
+              </ErrorHandler>
+            ))}
+        </React.Fragment>
+      } else {
+        const Comp = cardMap[key]
+        if (Comp) {
+          comp = <ErrorHandler key={key} message={msg}>
+            <Comp index={index} archive={archive} properties={properties}/>
+          </ErrorHandler>
+        }
+      }
+      return comp
+    })
+  }, [exists, index, overview.options, sections, editable, archive, properties])
 
   if (!exists) {
     return <Page>
@@ -224,55 +279,7 @@ const OverviewView = React.memo((props) => {
             <ArchiveDeleteButton />
           </Box>
         )}
-        {sections
-          .map((section, index) => (
-            <ErrorHandler key={index} message="Could not render section card.">
-              <SectionCard
-                {...section}
-                archivePath={section.archivePath.replace(/\./g, '/')}
-                readOnly={!editable}
-              />
-            </ErrorHandler>
-          ))
-        }
-        <ErrorHandler message="Could not render definitions card.">
-          <DefinitionsCard index={index} archive={archive}/>
-        </ErrorHandler>
-        <ErrorHandler message="Could not render Nexus card.">
-          <NexusCard index={index}/>
-        </ErrorHandler>
-        <ErrorHandler message="Could not render materials card.">
-          {index?.results?.material?.topology
-            ? <MaterialCardTopology index={index} archive={archive} properties={properties}/>
-            : <MaterialCard index={index} archive={archive} properties={properties}/>}
-        </ErrorHandler>
-        <ErrorHandler message="Could not render electronic properties.">
-          <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
-        </ErrorHandler>
-        <ErrorHandler message="Could not render opto-electronic properties.">
-          <OptoelectronicPropertiesCard index={index} archive={archive} properties={properties}/>
-        </ErrorHandler>
-        <ErrorHandler message="Could not render vibrational properties.">
-          <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
-        </ErrorHandler>
-        <ErrorHandler message="Could not render mechanical properties.">
-          <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>
-        </ErrorHandler>
-        <ErrorHandler message="Could not render thermodynamic properties.">
-          <ThermodynamicPropertiesCard index={index} archive={archive} properties={properties}/>
-        </ErrorHandler>
-        <ErrorHandler message="Could not render structural properties.">
-          <StructuralProperties index={index} archive={archive} properties={properties}/>
-        </ErrorHandler>
-        <ErrorHandler message="Could not render dynamical properties.">
-          <DynamicalProperties index={index} archive={archive} properties={properties}/>
-        </ErrorHandler>
-        <ErrorHandler message="Could not render geometry optimization.">
-          <GeometryOptimizationCard index={index} archive={archive} properties={properties}/>
-        </ErrorHandler>
-        <ErrorHandler message="Could not render spectroscopy.">
-          <SpectroscopyCard index={index} archive={archive} properties={properties}/>
-        </ErrorHandler>
+        {cards}
       </Grid>
     </Grid>
   </Page>

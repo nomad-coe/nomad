@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
-import React, { useContext, useState, useEffect, useRef } from 'react'
+import React, { useContext, useState, useEffect, useRef, useMemo } from 'react'
 import PropTypes from 'prop-types'
+import { cloneDeep } from 'lodash'
 import { useDataStore, useEntryStoreObj } from '../DataStore'
-import { apiBase } from '../../config'
+import { apiBase, ui } from '../../config'
 
 const entryPageContext = React.createContext()
 
@@ -35,11 +36,22 @@ const entryPageContext = React.createContext()
  * @returns
  */
 export const useEntryPageContext = (requireArchive, update = true) => {
-  const entryId = useContext(entryPageContext)
+  const {entryId, overview} = useContext(entryPageContext)
   const entryData = useEntryStoreObj(apiBase, entryId, true, requireArchive)
   const [data, setData] = useState(entryData)
   const oldEntryId = useRef()
   const completed = useRef(false)
+
+  // Get the overview config
+  const finalOverview = useMemo(() => {
+    const tmpOverview = overview || ui?.entry_context?.overview
+    if (!tmpOverview) return {}
+    const finalOverview = cloneDeep(tmpOverview)
+    const options = finalOverview.include
+      .filter(key => !finalOverview?.exclude?.includes(key))
+      .map(key => ({key, ...finalOverview.options[key]}))
+    return {options}
+  }, [overview])
 
   // This effect controls how the data returned by this hook is synchronized
   // with the data coming from the store. If update = true, the data is always
@@ -62,10 +74,15 @@ export const useEntryPageContext = (requireArchive, update = true) => {
     oldEntryId.current = newEntryId
   }, [entryData, update])
 
-  return data
+  // The final data is memoized in order to avoid unwanted rerenders
+  const context = useMemo(() => {
+    return {...data, overview: finalOverview}
+  }, [data, finalOverview])
+
+  return context
 }
 
-const EntryPageContext = React.memo(function EntryContext({entryId, children}) {
+const EntryPageContext = React.memo(({entryId, overview, children}) => {
   const dataStore = useDataStore()
   dataStore.resetIfNeeded(entryId)
 
@@ -75,12 +92,20 @@ const EntryPageContext = React.memo(function EntryContext({entryId, children}) {
     return () => { dataStore.selectedEntry.current = undefined }
   }, [dataStore, entryId])
 
-  return <entryPageContext.Provider value={entryId}>
+  const value = useMemo(() => {
+    return {
+      entryId,
+      overview
+    }
+  }, [entryId, overview])
+
+  return <entryPageContext.Provider value={value}>
     {children}
   </entryPageContext.Provider>
 })
 EntryPageContext.propTypes = {
   entryId: PropTypes.string.isRequired,
+  overview: PropTypes.object,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node

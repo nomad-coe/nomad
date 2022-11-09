@@ -27,10 +27,37 @@ import {
   expectLatticeParameters
 } from './conftest.spec'
 import OverviewView from './OverviewView'
+import { ui } from '../../config'
 import EntryPageContext from './EntryPageContext'
 import {fireEvent} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { act } from 'react-dom/test-utils'
+
+test.each([
+  ['material', 'material', 'Material'],
+  ['electronic', 'dos_electronic', 'Electronic properties'],
+  ['mechanical', 'bulk_modulus', 'Mechanical properties'],
+  ['thermodynamic', 'trajectory', 'Thermodynamic properties'],
+  ['vibrational', 'dos_phonon', 'Vibrational properties'],
+  ['structural', 'rdf', 'Structural properties']
+])('correctly renders %s card when card is enabled/disabled in config', async (card, state, label) => {
+  await startAPI(`tests.states.entry.${state}`, `tests/data/entry/${card}_card`)
+  const overview = ui.entry_context.overview
+  for (const enabled of [true]) {
+    if (!enabled) overview.exclude = [card]
+    render(
+      <EntryPageContext entryId={'dft_bulk'} overview={overview}>
+        <OverviewView />
+      </EntryPageContext>
+    )
+    if (enabled) {
+      await screen.findByText(label)
+    } else {
+      await screen.findByText(label).not.toBeInTheDocument()
+    }
+  }
+  closeAPI()
+})
 
 test('correctly renders metadata and all properties', async () => {
   await startAPI('tests.states.entry.dft', 'tests/data/entry/dft')

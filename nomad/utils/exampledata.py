@@ -307,7 +307,7 @@ class ExampleData:
             upload_id=upload_id, entry_id='test_entry_id_%d' % id, domain='dft', **kwargs)
 
 
-def create_entry_archive(metadata, results: dict = None, run: dict = None, workflows: List = None):
+def create_entry_archive(metadata: dict = None, results: dict = None, run: dict = None, workflows: List = None):
     '''Creates an entry archive out of python objects.
 
     Args:

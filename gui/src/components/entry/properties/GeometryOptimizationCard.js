@@ -21,7 +21,7 @@ import { PropertyCard } from './PropertyCard'
 import { resolveInternalRef } from '../../../utils'
 import GeometryOptimization from '../../visualization/GeometryOptimization'
 
-export default function GeometryOptimizationCard({index, archive, properties}) {
+const GeometryOptimizationCard = React.memo(({index, archive, properties}) => {
   const geoOptProps = index?.results?.properties?.geometry_optimization
 
   // Find out which properties are present. If only one step is calculated
@@ -57,10 +57,12 @@ export default function GeometryOptimizationCard({index, archive, properties}) {
       convergence={convergence}
     />
   </PropertyCard>
-}
+})
 
 GeometryOptimizationCard.propTypes = {
   index: PropTypes.object.isRequired,
   properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }
+
+export default GeometryOptimizationCard

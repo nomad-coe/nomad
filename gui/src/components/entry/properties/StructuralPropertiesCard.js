@@ -30,7 +30,7 @@ const StructuralPropertiesCard = React.memo(({index, properties, archive}) => {
   const hasRdf = properties.has('radial_distribution_function')
   if (!hasRdf) return null
 
-  return <PropertyCard title="Structural">
+  return <PropertyCard title="Structural properties">
     {hasRdf && <RadialDistributionFunctions index={index} archive={archive}/>}
   </PropertyCard>
 })
