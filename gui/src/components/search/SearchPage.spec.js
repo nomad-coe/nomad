@@ -22,6 +22,7 @@ import { expectFilterMainMenu, expectSearchResults } from './conftest.spec'
 import { ui } from '../../config'
 import { SearchContext } from './SearchContext'
 import SearchPage from './SearchPage'
+import { minutes } from '../../setupTests'
 
 describe('', () => {
   beforeAll(async () => {
@@ -47,5 +48,5 @@ describe('', () => {
 
     await expectFilterMainMenu(context)
     await expectSearchResults(context)
-  })
+  }, 5 * minutes)
 })

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Box, Button, TextField } from '@material-ui/core'
+import { Box, Button, TextField, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@material-ui/core'
 import { Autocomplete } from '@material-ui/lab'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
@@ -19,6 +19,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
   const history = useHistory()
   const location = useLocation()
   const selectedTemplate = template || templates?.[0] || null
+  const [openEntryAlreadyExistsDialog, setOpenEntryAlreadyExistsDialog] = useState(false)
 
   useEffect(() => {
     // TODO this whole thing is quite expensive to repeat on each upload page?
@@ -89,16 +90,36 @@ const CreateEntry = React.memo(function CreateEntry(props) {
   }, [api, raiseError, setTemplates, globalMetainfo, isProcessing, installationUrl, uploadId])
 
   const handleAdd = useCallback(() => {
-    api.put(`uploads/${uploadId}/raw/?file_name=${name}.archive.json&wait_for_processing=true`, selectedTemplate.archive)
+    api.put(`uploads/${uploadId}/raw/?file_name=${name}.archive.json&overwrite_if_exists=false&wait_for_processing=true`, selectedTemplate.archive)
       .then(response => {
         // TODO handle processing errors
         const entryId = response.processing.entry_id
         history.push(getUrl(`entry/id/${entryId}/data/data`, location))
       })
-      .catch(raiseError)
-  }, [api, raiseError, selectedTemplate, name, uploadId, history, location])
+      .catch(error => {
+        if (error.apiMessage?.startsWith('The provided path already exists')) {
+          setOpenEntryAlreadyExistsDialog(true)
+        } else {
+          raiseError(error)
+        }
+      })
+  }, [setOpenEntryAlreadyExistsDialog, api, raiseError, selectedTemplate, name, uploadId, history, location])
 
   return <React.Fragment>
+    <Dialog
+      open={openEntryAlreadyExistsDialog}
+      onClose={() => setOpenEntryAlreadyExistsDialog(false)}
+    >
+      <DialogTitle>Entry already exists</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          A mainfile with the specified name already exists. Please choose a different name.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenEntryAlreadyExistsDialog(false)} autoFocus>OK</Button>
+      </DialogActions>
+    </Dialog>
     <Box display="flex" flexDirection="row" alignItems="center" >
       <Box flexGrow={1} marginRight={2}>
         <TextField

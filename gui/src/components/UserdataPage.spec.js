@@ -21,6 +21,7 @@ import { render, startAPI, closeAPI } from './conftest.spec'
 import { expectFilterMainMenu, expectSearchResults } from './search/conftest.spec'
 import { ui } from '../config'
 import UserDatapage from './UserdataPage'
+import { minutes } from '../setupTests'
 
 test('renders user data search page correctly', async () => {
   const context = ui.search_contexts.options.entries
@@ -30,4 +31,4 @@ test('renders user data search page correctly', async () => {
   await expectFilterMainMenu(context)
   await expectSearchResults(context)
   closeAPI()
-})
+}, 5 * minutes)

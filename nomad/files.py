@@ -974,9 +974,9 @@ class StagingUploadFiles(UploadFiles):
             # copying or moving a file
             if os.path.exists(os_path_target):
                 raise ValueError('A file with the same name already exists.')
-            if copy_or_move == 'copy':
+            if copy_or_move.lower() == 'copy':
                 shutil.copyfile(os_path_exisitng, os_path_target)
-            elif copy_or_move == 'move':
+            elif copy_or_move.lower() == 'move':
                 shutil.move(os_path_exisitng, os_path_target)
 
             if updated_files is not None:

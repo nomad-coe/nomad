@@ -1479,11 +1479,13 @@ class Upload(Proc):
         Arguments:
             file_operations: A list of dictionaries specifying file operation(s) to perform before
                 the actual processing, if any. The dictionaries should contain a key `op` which defines
-                the operation, either "ADD" or "DELETE". The "ADD" operation further expects
+                the operation, "ADD", "DELETE", "COPY" or "MOVE". The "ADD" operation further expects
                 keys named `path` (the path to the source file), `target_dir` (the destination
                 path relative to the raw folder), and `temporary` (if the source file and parent
                 folder should be deleted when done). The "DELETE" operation expects a key named
                 `path` (specifying the path relative to the raw folder which is to be deleted).
+                "COPY" and "MOVE" operations require two arguments: `path_to_existing_file` and
+                `path_to_target_file`.
             reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
@@ -1673,13 +1675,13 @@ class Upload(Proc):
                     self.set_last_status_message('Deleting files')
                     with utils.timer(logger, 'Deleting files or folders from upload'):
                         staging_upload_files.delete_rawfiles(file_operation['path'], updated_files)
-                elif op == 'COPY':
-                    self.set_last_status_message('Copying the file')
-                    with utils.timer(logger, 'Copying the file within the upload'):
+                elif op == 'COPY' or op == 'MOVE':
+                    self.set_last_status_message(f'{op} the file')
+                    with utils.timer(logger, f'{op} the file within the upload'):
                         staging_upload_files.copy_or_move_rawfile(
                             file_operation['path_to_existing_file'],
                             file_operation['path_to_target_file'],
-                            file_operation['copy_or_move'],
+                            op,
                             updated_files)
                 else:
                     raise ValueError(f'Unknown operation {op}')
