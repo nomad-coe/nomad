@@ -633,6 +633,15 @@ const DataStore = React.memo(({children}) => {
     }
   }
 
+  /**
+   * Used to specifically clear the entry and metainfo caches of the data store.
+   */
+  function resetEntryAndMetainfoCaches() {
+    entryStore.current = {}
+    metainfoDataStore.current = {}
+    externalInheritanceCache.current = {}
+  }
+
   const contextValue = {
     getUpload,
     getUploadAsync,
@@ -646,7 +655,8 @@ const DataStore = React.memo(({children}) => {
     getMetainfoAsync,
     getMetainfoDefAsync,
     getAllInheritingSections,
-    resetIfNeeded
+    resetIfNeeded,
+    resetEntryAndMetainfoCaches
   }
 
   return <dataStoreContext.Provider value={contextValue}>
