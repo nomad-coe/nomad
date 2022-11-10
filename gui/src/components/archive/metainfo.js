@@ -38,6 +38,10 @@ export const GlobalMetainfo = React.memo(function GlobalMetainfo({children}) {
     if (allCustomMetainfos && !refresh) {
       return allCustomMetainfos
     }
+    if (allCustomMetainfos) {
+      // Refreshing.
+      dataStore.resetEntryAndMetainfoCaches()
+    }
 
     // TODO paginate?
     // TODO Only grab new ones?
