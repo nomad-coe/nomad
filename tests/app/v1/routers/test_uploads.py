@@ -27,7 +27,7 @@ from typing import List, Dict, Any, Iterable
 from tests.utils import build_url, set_upload_entry_metadata
 
 from tests.test_files import (
-    example_file_mainfile_different_atoms, example_file_vasp_with_binary, example_file_aux, example_file_mainfile,
+    example_file_mainfile_different_atoms, example_file_vasp_with_binary, example_file_aux,
     example_file_unparsable, example_file_corrupt_zip, empty_file,
     assert_upload_files)
 from tests.test_search import assert_search_upload
@@ -129,6 +129,7 @@ def assert_file_upload_and_processing(
     Uploads a file, using the given action (POST or PUT), url, query arguments, and checks
     the results.
     '''
+    source_paths = source_paths or []
     if type(source_paths) == str:
         source_paths = [source_paths]
     user_auth, token = test_auth_dict[user]
@@ -1034,38 +1035,50 @@ def test_get_upload_entry_archive(
         'stream', 'test_user', 'examples_template', example_file_aux, '', {},
         True, False, 400, None, id='stream-no-file_name'),
     pytest.param(
+        'stream', 'test_user', 'id_unpublished_w', example_file_aux, 'test_content/test_embargo_entry',
+        {'file_name': 'mainfile.json', 'overwrite_if_exists': False},
+        True, False, 409, None, id='cannot-overwrite-existing'),
+    pytest.param(
+        'stream', 'test_user', 'id_unpublished_w', None, 'test_content/test_embargo_entry',
+        {
+            'file_name': '2.aux',
+            'copy_or_move_source_path': 'test_content/test_embargo_entry/1.aux',
+            'copy_or_move': 'copy'
+        },
+        True, False, 409, None, id='copy-file-to-rawdir-already-exists'),
+    pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_aux, '', {},
         True, False, 200, ['examples_template/template.json'], id='multipart'),
     pytest.param(
-        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        'stream', 'test_user', 'examples_template', None, '',
         {
             'file_name': 'template.json',
-            "copy_or_move_source_path": 'examples_template/template.json',
-            "copy_or_move": 'copy'
+            'copy_or_move_source_path': 'examples_template/template.json',
+            'copy_or_move': 'copy'
         },
         True, False, 200, {'template.json': True, 'examples_template/template.json': True}, id='copy-file-to-rawdir'),
     pytest.param(
-        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        'stream', 'test_user', 'examples_template', None, '',
         {
             'file_name': 'template_2.json',
-            "copy_or_move_source_path": 'examples_template/template.json',
-            "copy_or_move": 'copy'
+            'copy_or_move_source_path': 'examples_template/template.json',
+            'copy_or_move': 'copy'
         },
         True, False, 200, {'examples_template/template.json': True}, id='copy-with-rename-file-to-rawdir'),
     pytest.param(
-        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        'stream', 'test_user', 'examples_template', None, '',
         {
             'file_name': 'template.json',
-            "copy_or_move_source_path": 'examples_template/template.json',
-            "copy_or_move": 'move'
+            'copy_or_move_source_path': 'examples_template/template.json',
+            'copy_or_move': 'move'
         },
         True, False, 200, {'template.json': True}, id='move-file-to-rawdir'),
     pytest.param(
-        'stream', 'test_user', 'examples_template', example_file_mainfile, '',
+        'stream', 'test_user', 'examples_template', None, '',
         {
             'file_name': 'template_2.json',
-            "copy_or_move_source_path": 'examples_template/template.json',
-            "copy_or_move": 'move'
+            'copy_or_move_source_path': 'examples_template/template.json',
+            'copy_or_move': 'move'
         },
         True, False, 200, None, id='move-with-rename-file-to-rawdir'),
     pytest.param(

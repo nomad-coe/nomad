@@ -850,6 +850,10 @@ async def put_upload_raw_path(
             None,
             description=strip('''
             Specifies the name of the file, when using method 2.''')),
+        overwrite_if_exists: bool = FastApiQuery(
+            True,
+            description=strip('''
+            If set to True (default), overwrites the file if it already exists.''')),
         copy_or_move: str = FastApiQuery(
             None,
             description=strip('''
@@ -939,7 +943,7 @@ async def put_upload_raw_path(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Bad file name provided')
 
-        if copy_or_move_source_path is not None and not is_safe_relative_path(copy_or_move_source_path):
+        if not is_safe_relative_path(copy_or_move_source_path):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Bad source path provided.')
@@ -962,52 +966,51 @@ async def put_upload_raw_path(
                 status_code=status.HTTP_409_CONFLICT,
                 detail='The provided hash did not match the current file.')
 
+    upload_files = StagingUploadFiles(upload_id)
+
     for upload_path in upload_paths:
         decompress = files.auto_decompress(upload_path)
         if decompress == 'error':
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Cannot extract file. Bad file format or file extension?')
+        if not decompress and not overwrite_if_exists:
+            full_path = os.path.join(path, os.path.basename(upload_path))
+            if upload_files.raw_path_exists(full_path):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail='The provided path already exists and overwrite_if_exists is set to False.')
 
     if not wait_for_processing:
         # Process on worker (normal case)
-        if file_name and copy_or_move_source_path:  # the case for move/copy an existing file
-            upload_files = StagingUploadFiles(upload_id)
+        if copy_or_move:  # the case for move/copy an existing file
+            path_to_target_file = os.path.join(path, file_name)
+            if upload_files.raw_path_exists(path_to_target_file):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail='The provided path already exists.')
             if not upload_files.raw_path_exists(path):
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail='No file or folder with that path found.')
-
-            try:
-                new_file_path = os.path.join(path, file_name)
-                # If the flag copy_or_move is set to copy, this operation emulates a copy functionality
-                # and if the flag is set to move, this operation emulates a move functionality
-                upload.process_upload(
-                    file_operations=[
-                        dict(
-                            op='COPY',
-                            path_to_existing_file=copy_or_move_source_path,
-                            path_to_target_file=new_file_path,
-                            copy_or_move=copy_or_move)],
-                    only_updated_files=True)
-
-            except ProcessAlreadyRunning:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='The upload is currently blocked by another process.')
-
+            file_operations: Any = [
+                dict(
+                    op=copy_or_move.upper(),
+                    path_to_existing_file=copy_or_move_source_path,
+                    path_to_target_file=path_to_target_file)]
         else:
-            try:
-                upload.process_upload(
-                    file_operations=[
-                        dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0))
-                        for upload_path in upload_paths],
-                    only_updated_files=True)
-            except ProcessAlreadyRunning:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='The upload is currently blocked by another process.')
+            file_operations = [
+                dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0))
+                for upload_path in upload_paths]
 
+        # Initiate processing
+        try:
+            upload.process_upload(file_operations=file_operations, only_updated_files=True)
+        except ProcessAlreadyRunning:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='The upload is currently blocked by another process.')
+        # Create response
         if request.headers.get('Accept') == 'application/json':
             response = PutRawFileResponse(
                 upload_id=upload_id,
@@ -1019,7 +1022,7 @@ async def put_upload_raw_path(
             media_type = 'text/plain'
     else:
         # Process locally
-        if file_name and copy_or_move_source_path:  # case for move/copy an existing file
+        if copy_or_move:  # case for move/copy an existing file
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Cannot move/copy the file with wait_for_processing set to true.')
