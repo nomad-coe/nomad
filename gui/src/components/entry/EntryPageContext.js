@@ -36,7 +36,7 @@ const entryPageContext = React.createContext()
  * @returns
  */
 export const useEntryPageContext = (requireArchive, update = true) => {
-  const {entryId, overview} = useContext(entryPageContext)
+  const {entryId, overview} = useContext(entryPageContext) || {}
   const entryData = useEntryStoreObj(apiBase, entryId, true, requireArchive)
   const [data, setData] = useState(entryData)
   const oldEntryId = useRef()
