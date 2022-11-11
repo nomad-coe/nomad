@@ -42,7 +42,7 @@ def to_camel_case(snake_str: str):
 
     components = snake_str.split('_')
 
-    return ''.join(f'{x[0].upper()}{x[1:].lower().capitalize()}' for x in components)
+    return ''.join(f'{x[0].upper()}{x[1:].lower()}' for x in components)
 
 
 class TableRow(EntryData):
@@ -87,37 +87,35 @@ class TableData(ArchiveSection):
             parse_columns(data, self)
 
         elif tabular_parser_mode == 'row':
-            # Returning one section for each row in the given sheet_name/csv_file
-            sections = parse_table(data, self.m_def, logger=logger)
-
-            # The target_sub_section contains the ref to the location of which the sections are to be appended.
-            # Calling setattr will populate the non-repeating middle sections.
+            # Getting list of all repeating sections where new instances are going to be read from excel/csv file
+            # and appended.
             section_names: List[str] = kwargs.get('target_sub_section')
+            # A list to track if the top level section has ever been read.
             top_level_section_list: List[str] = []
             for section_name in section_names:
-                section_name_str = section_name.split('/')[0]
+                section_name_list = section_name.split('/')
+                section_name_str = section_name_list[0]
+                section_def = self.__getattribute__(to_camel_case(section_name_str)).m_def
                 if top_level_section_list.count(section_name_str):
                     continue
-                else:
+                elif len(section_name_list) is not 1:
                     top_level_section_list.append(section_name_str)
-                    if self.__getattr__(section_name_str) is None:
-                        self.__setattr__(section_name_str, sections[0][section_name_str])
-                        sections.pop(0)
-                    else:
-                        continue
-
-            # For each returned section, navigating to the target (repeating) section in self and appending the section
-            # data to self.
-            for section in sections:
-                for section_name in section_names:
+                    # The (sub)section needs to be instantiated first
+                    self.__setattr__(section_name_str, section_def.section_cls())
+                sections = parse_table(data, section_def, logger=logger)
+                for section in sections:
                     section_name_list = section_name.split('/')
-                    top_level_section = section_name_list.pop(0)
-                    self_updated = self[top_level_section]
-                    section_updated = section[top_level_section]
+                    top_level_section = section_name_list[0]
+                    self_updated = self.__getattr__(top_level_section)
+                    section_updated = section
+                    section_name_list.pop(0)
                     for section_path in section_name_list:
                         self_updated = self_updated[section_path]
                         section_updated = section_updated[section_path]
-                    self_updated.append(section_updated[0])
+                    if len(section_name_list) == 0:
+                        self_updated.append(section_updated)
+                    else:
+                        self_updated.append(section_updated[0])
 
         else:
             raise MetainfoError(f'The provided mode {tabular_parser_mode} should be either "column" or "row".')

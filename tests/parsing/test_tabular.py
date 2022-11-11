@@ -306,17 +306,20 @@ data:
 @pytest.mark.parametrize('test_case,section_placeholder,target_sub_section_placeholder,sub_sections_placeholder,csv_content', [
     pytest.param('test_1', '', '- my_substance1', '''my_substance1:
           repeats: true
-          section: Substance1''', 'header_0,header_1\n0_0,0_1\n1_0,1_1', id='simple_1_section'),
+          section:
+            base_section: Substance1''', 'header_0,header_1\n0_0,0_1\n1_0,1_1', id='simple_1_section'),
     pytest.param('test_2', f'''Substance2:
         quantities:
           {quantity_generator('quantity_2', 'header_2', shape='')}
     ''', '''- my_substance1
                 - my_substance2''', '''my_substance1:
           repeats: true
-          section: Substance1
+          section:
+            base_section: Substance1
         my_substance2:
           repeats: true
-          section: Substance2''', 'header_0,header_1,header_2\n0_0,0_1,0_2\n1_0,1_1,1_2', id='simple_2_sections'),
+          section:
+            base_section: Substance2''', 'header_0,header_1,header_2\n0_0,0_1,0_2\n1_0,1_1,1_2', id='simple_2_sections'),
     pytest.param('test_3', '', '- subsection_1/my_substance1', f'''subsection_1:
           section:
             m_annotations:
