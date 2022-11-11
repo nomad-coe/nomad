@@ -1803,7 +1803,7 @@ class Upload(Proc):
                             metadata_handler=metadata_handler,
                             logger=logger)
 
-                        if not was_created:
+                        if not was_created and entry is not None:
                             old_entries.remove(entry.entry_id)
 
                     # Delete old entries
