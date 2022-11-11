@@ -663,6 +663,7 @@ def test_no_topology(fixture, request):
     assert not entry.results.material.topology
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize('entry_id', [
     pytest.param('heterostructure_2d_1', id='heterostructure-three-2D'),
     pytest.param('heterostructure_surface_1', id='heterostructure-surface-1'),

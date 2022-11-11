@@ -561,9 +561,10 @@ class MaterialNormalizer():
         # TODO: MatID does not currently support non-periodic structures
         if structure_original.nperiodic_dimensions == 0:
             return None
-        # TODO: It still needs to be decided what this limit should be.
+        # TODO: Currently the topology creation is skipped completely. Needs to
+        # be re-enabled once we work out performance problems.
         n_atoms = len(structure_original.species_at_sites)
-        if n_atoms > 500:
+        if n_atoms > 0:
             return None
         clusters = self._perform_matid_clustering(structure_original)
 
