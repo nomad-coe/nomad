@@ -22,6 +22,7 @@ from typing import List, Set, Any, Optional
 from nptyping import NDArray
 from matid.symmetry.wyckoffset import WyckoffSet as WyckoffSetMatID
 from nomad import atomutils
+from nomad import config
 from nomad.units import ureg
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.datamodel.optimade import Species
@@ -31,6 +32,8 @@ from nomad.datamodel.results import (
     LatticeParameters,
     WyckoffSet,
 )
+from matid import SymmetryAnalyzer
+import matid.geometry
 
 
 def wyckoff_sets_from_matid(wyckoff_sets: List[WyckoffSetMatID]) -> List[WyckoffSet]:
@@ -246,3 +249,76 @@ def structure_from_nomad_atoms(system: System, logger=None) -> Structure:
             struct.atomic_density = len(system.atoms.labels) / cell_volume
         struct.lattice_parameters = lattice_parameters_from_array(lattice_vectors)
     return struct
+
+
+def structures_2d(original_atoms, logger=None):
+    conv_atoms = None
+    prim_atoms = None
+    wyckoff_sets = None
+    spg_number = None
+    try:
+        # Get dimension of system by also taking into account the covalent radii
+        dimensions = matid.geometry.get_dimensions(original_atoms, [True, True, True])
+        basis_dimensions = np.linalg.norm(original_atoms.get_cell(), axis=1)
+        gaps = basis_dimensions - dimensions
+        periodicity = gaps <= config.normalize.cluster_threshold
+
+        # If two axis are not periodic, return. This only happens if the vacuum
+        # gap is not aligned with a cell vector or if the linear gap search is
+        # unsufficient (the structure is "wavy" making also the gap highly
+        # nonlinear).
+        if sum(periodicity) != 2:
+            # TODO: @ Lauri: I'm not sure if this is smart/wise, but the periodicity calculation doesn't seem to work for conventional cell systems. The calculated periodicity is always (True, True, True). At least that's my interpretation of what's happening. This is my quick and dirty and at the moment only solution for this problem.
+            periodicity = original_atoms.pbc
+            # if logger:
+            #     logger.error("could not detect the periodic dimensions in a 2D system")
+            # return conv_atoms, prim_atoms, wyckoff_sets, spg_number
+
+        # Center the system in the non-periodic direction, also taking
+        # periodicity into account. The get_center_of_mass()-function in MatID
+        # takes into account periodicity and can produce the correct CM unlike
+        # the similar function in ASE.
+        pbc_cm = matid.geometry.get_center_of_mass(original_atoms)
+        cell_center = 0.5 * np.sum(original_atoms.get_cell(), axis=0)
+        translation = cell_center - pbc_cm
+        symm_system = original_atoms.copy()
+        symm_system.translate(translation)
+        symm_system.wrap()
+
+        # Set the periodicity according to detected periodicity in order
+        # for SymmetryAnalyzer to use the symmetry analysis designed for 2D
+        # systems.
+        symm_system.set_pbc(periodicity)
+        symmetry_analyzer = SymmetryAnalyzer(
+            symm_system,
+            config.normalize.symmetry_tolerance,
+            config.normalize.flat_dim_threshold
+        )
+
+        spg_number = symmetry_analyzer.get_space_group_number()
+        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=False)
+        conv_atoms = symmetry_analyzer.get_conventional_system()
+        prim_atoms = symmetry_analyzer.get_primitive_system()
+
+        # Reduce cell size to just fit the system in the non-periodic
+        # dimensions.
+        conv_atoms = atomutils.get_minimized_structure(conv_atoms)
+        prim_atoms = atomutils.get_minimized_structure(prim_atoms)
+
+        # Swap the cell axes so that the non-periodic one is always the
+        # last basis (=c)
+        swap_dim = 2
+        for i, periodic in enumerate(conv_atoms.get_pbc()):
+            if not periodic:
+                non_periodic_dim = i
+                break
+        if non_periodic_dim != swap_dim:
+            atomutils.swap_basis(conv_atoms, non_periodic_dim, swap_dim)
+            atomutils.swap_basis(prim_atoms, non_periodic_dim, swap_dim)
+    except Exception as e:
+        if logger:
+            logger.error(
+                'could not construct a conventional system for a 2D material',
+                exc_info=e
+            )
+    return conv_atoms, prim_atoms, wyckoff_sets, spg_number
