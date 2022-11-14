@@ -542,9 +542,9 @@ def example_data_with_reference(elastic_module, raw_files_module, mongo_module, 
     results = search().data
     assert len(results) == 6
     for i in {0, 1, 5}:
-        assert 'archive_references' not in results[i]
+        assert 'entry_references' not in results[i]
     for i in {2, 3, 4}:
-        assert 'archive_references' in results[i]
+        assert 'entry_references' in results[i]
 
     yield data
     data.delete()

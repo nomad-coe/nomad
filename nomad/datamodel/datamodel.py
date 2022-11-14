@@ -22,13 +22,13 @@ from typing import List, Any
 from enum import Enum
 from elasticsearch_dsl import analyzer, tokenizer
 
-from nomad import metainfo
+from nomad import metainfo, utils
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type, entry_type as es_entry_type
 from .util import parse_path
-from ..metainfo import Definition, MProxy, MSection, Quantity, Reference, SectionProxy
+from ..metainfo import Definition, MProxy, MSection, Quantity, Reference
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requiring the m_package already, this would be too late.
@@ -249,6 +249,10 @@ class EntryArchiveReference(metainfo.MSection):
         type=str,
         description='The path of the source (self) quantity/section in its archive.',
         a_elasticsearch=Elasticsearch())
+    source_quantity = metainfo.Quantity(
+        type=str,
+        description='A reference to the quantity definition that defines the reference',
+        a_elasticsearch=Elasticsearch())
 
 
 class EntryMetadata(metainfo.MSection):
@@ -463,7 +467,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch())
 
     processing_errors = metainfo.Quantity(
-        type=str, shape=['*'], description='Errors that occured during processing',
+        type=str, shape=['*'], description='Errors that occurred during processing',
         a_elasticsearch=Elasticsearch())
 
     nomad_version = metainfo.Quantity(
@@ -581,70 +585,10 @@ class EntryMetadata(metainfo.MSection):
         description='All sections that are present in this entry.',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    archive_references = metainfo.SubSection(
+    entry_references = metainfo.SubSection(
         sub_section=EntryArchiveReference,
         repeats=True,
-        a_elasticsearch=Elasticsearch())
-
-    def _append_reference(self, url_reference: str, current_def: Definition, quantity_path: str):
-        try:
-            parse_result = parse_path(url_reference, self.upload_id)
-        except Exception:  # type: ignore
-            return
-
-        if parse_result is None:
-            return
-
-        _, _, entry_id, _, path = parse_result
-        if entry_id is None:
-            return
-
-        target_name = path
-        for name in reversed(path.split('/')):
-            if not name.isdigit():
-                target_name = name
-                break
-
-        ref_item = EntryArchiveReference()
-        ref_item.target_reference = url_reference
-        ref_item.target_entry_id = entry_id
-        ref_item.target_name = target_name
-        ref_item.target_path = path
-        ref_item.source_name = current_def.name
-        ref_item.source_path = quantity_path
-
-        self.archive_references.append(ref_item)
-
-    def _collect_reference(self, current_section: MSection, current_def: Definition, quantity_path: str):
-        '''
-        Receives a definition of a quantity 'current_def' and checks if it is a reference to another entry.
-        If yes, add the value to 'ref_pool'.
-        '''
-        if isinstance(current_def, Quantity):
-            # for quantities
-            if not isinstance(current_def.type, Reference):
-                return
-
-            try:
-                current_value = current_section.m_get(current_def)
-            except Exception:
-                return
-        else:
-            # for subsections
-            target_section = current_def.section_def
-            if not isinstance(target_section, SectionProxy):
-                return
-
-            current_value = target_section
-
-        ref_list: list = []
-        if isinstance(current_value, MProxy):
-            ref_list = [current_value]
-        elif isinstance(current_value, list):
-            ref_list = [v for v in current_value if isinstance(v, MProxy)]
-
-        for ref in ref_list:
-            self._append_reference(ref.m_proxy_value, current_def, quantity_path)
+        a_elasticsearch=Elasticsearch(nested=True, _es_field='archive_references__1'))
 
     def apply_archive_metadata(self, archive):
         quantities = set()
@@ -652,7 +596,7 @@ class EntryMetadata(metainfo.MSection):
         n_quantities = 0
 
         section_paths = {}
-        self.archive_references = []
+        entry_references = []
 
         def get_section_path(section):
             section_path = section_paths.get(section)
@@ -671,6 +615,79 @@ class EntryMetadata(metainfo.MSection):
 
             return section_path
 
+        def create_reference_section(url_reference: str, current_def: Definition, quantity_path: str):
+            try:
+                parse_result = parse_path(url_reference, self.upload_id)
+            except Exception:  # type: ignore
+                return
+
+            if parse_result is None:
+                return
+
+            _, upload_id, entry_id_or_mainfile, kind, path, _file_name = parse_result
+            if entry_id_or_mainfile is None:
+                return
+
+            if not upload_id:
+                upload_id = archive.metadata.upload_id
+
+            target_name = path
+            for name in reversed(path.split('/')):
+                if not name.isdigit():
+                    target_name = name
+                    break
+
+            ref_item = EntryArchiveReference()
+            ref_item.target_reference = url_reference
+            if kind == 'raw':
+                if upload_id:
+                    entry_id = utils.generate_entry_id(upload_id, entry_id_or_mainfile)
+                else:
+                    entry_id = None
+            else:
+                entry_id = entry_id_or_mainfile
+            ref_item.target_entry_id = entry_id
+            ref_item.target_name = target_name
+            ref_item.target_path = path
+            ref_item.source_name = current_def.name
+            ref_item.source_path = quantity_path
+            ref_item.source_quantity = current_def.definition_reference(archive, global_reference=True)
+
+            return ref_item
+
+        def collect_references(current_section: MSection, current_def: Definition, quantity_path: str):
+            '''
+            Receives a definition of a quantity 'current_def' and checks if it is a reference to another entry.
+            If yes, add the value to 'ref_pool'.
+            '''
+            if isinstance(current_def, Quantity):
+                # for quantities
+                if not isinstance(current_def.type, Reference):
+                    return
+
+                try:
+                    current_value = current_section.m_get(current_def)
+                except Exception:
+                    return
+            else:
+                # for subsections
+                target_section = current_def.section_def
+                if not isinstance(target_section, MProxy):
+                    return
+
+                current_value = target_section
+
+            ref_list: list = []
+            if isinstance(current_value, MProxy):
+                ref_list = [current_value]
+            elif isinstance(current_value, list):
+                ref_list = [v for v in current_value if isinstance(v, MProxy)]
+
+            for ref in ref_list:
+                reference_section = create_reference_section(ref.m_proxy_value, current_def, quantity_path)
+                if reference_section:
+                    entry_references.append(reference_section)
+
         for section, property_def, _ in archive.m_traverse():
             sections.add(section.m_def)
 
@@ -682,8 +699,23 @@ class EntryMetadata(metainfo.MSection):
             quantities.add(quantity_path)
             n_quantities += 1
 
-            self._collect_reference(section, property_def, quantity_path)
+            collect_references(section, property_def, quantity_path)
 
+        # We collected entry_references, quantities, and sections before adding these
+        # data to the archive itself. We manually add them here.
+        if len(entry_references) > 0:
+            for archive_reference_quantity in EntryArchiveReference.m_def.quantities:
+                quantities.add(f'metadata.entry_references.{archive_reference_quantity.name}')
+                quantities.add('metadata.entry_references')
+            sections.add(EntryArchiveReference.m_def)
+
+        if len(quantities) > 0:
+            quantities.add('metadata.quantities')
+
+        if len(sections) > 0:
+            quantities.add('metadata.sections')
+
+        self.entry_references.extend(entry_references)
         self.quantities = list(quantities)
         self.quantities.sort()
         self.sections = [section.qualified_name() for section in sections]

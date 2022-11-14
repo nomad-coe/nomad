@@ -456,7 +456,8 @@ ui = NomadConfig(
                 'structural',
                 'dynamical',
                 'geometry_optimization',
-                'spectroscopy'
+                'spectroscopy',
+                'references'
             ],
             'exclude': [],
             'options': {
@@ -472,6 +473,7 @@ ui = NomadConfig(
                 'structural': {'error': 'Could not render structural properties.'},
                 'geometry_optimization': {'error': 'Could not render geometry optimization.'},
                 'spectroscopy': {'error': 'Could not render spectroscopic properties.'},
+                'references': {'error': 'Could not render references card.'},
             }
         }
     },

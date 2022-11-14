@@ -45,6 +45,7 @@ import {
 import { useErrors } from '../errors'
 import DefinitionsCard from './properties/DefinitionsCard'
 import { ErrorHandler } from '../ErrorHandler'
+import ReferenceUsingCard from "./properties/ReferenceCard"
 import { isEmpty } from 'lodash'
 
 function MetadataSection({title, children}) {
@@ -178,7 +179,8 @@ const OverviewView = React.memo((props) => {
       structural: StructuralPropertiesCard,
       dynamical: DynamicalPropertiesCard,
       geometry_optimization: GeometryOptimizationCard,
-      spectroscopy: SpectroscopyCard
+      spectroscopy: SpectroscopyCard,
+      references: ReferenceUsingCard
     }
 
     if (isEmpty(overview?.options)) {

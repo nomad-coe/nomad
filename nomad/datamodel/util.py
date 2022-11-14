@@ -39,12 +39,13 @@ def parse_path(url: str, upload_id: str = None):
     path to mainfile is given.
 
     On exit:
-    Returns None if the path is invalid. Otherwise, returns a tuple of: (installation, upload_id, entry_id, kind, path)
+    Returns None if the path is invalid. Otherwise, returns a tuple of:
+        (installation, upload_id, entry_id_or_mainfile, kind, path, file_name)
 
     If installation is None, indicating it is a local path.
 
     Returns:
-        (installation, upload_id, entry_id, kind, path): successfully parsed path
+        (installation, upload_id, entry_id_or_mainfile, kind, path, file_name): successfully parsed path
         None: fail to parse path
     '''
 
@@ -56,11 +57,11 @@ def parse_path(url: str, upload_id: str = None):
             # not valid
             return None
 
-        entry_id = url_match.group(1)
+        entry_id_or_mainfile = url_match.group(1)
         kind = url_match.group(2)  # archive or raw
         path = url_match.group(3)
 
-        return None, upload_id, entry_id, kind, path
+        return None, upload_id, entry_id_or_mainfile, kind, path, None
 
     installation = url_match.group(1)
     if installation == '':
@@ -72,13 +73,15 @@ def parse_path(url: str, upload_id: str = None):
     other_upload_id = upload_id if url_match.group(2) == '' else url_match.group(2)
 
     kind = url_match.group(3)  # archive or raw
-    entry_id = url_match.group(4)
+    entry_id_or_mainfile = url_match.group(4)
     path = url_match.group(5)
+    file_name: str = None  # type: ignore
 
     if kind == 'archive':
-        if entry_id.startswith('mainfile/'):
-            entry_id = utils.generate_entry_id(other_upload_id, entry_id.replace('mainfile/', ''))
-        elif '/' in entry_id:  # should not contain '/' in entry_id
+        if entry_id_or_mainfile.startswith('mainfile/'):
+            file_name = entry_id_or_mainfile.replace('mainfile/', '')
+            entry_id_or_mainfile = utils.generate_entry_id(other_upload_id, file_name)
+        elif '/' in entry_id_or_mainfile:  # should not contain '/' in entry_id
             return None
 
-    return installation, other_upload_id, entry_id, kind, path
+    return installation, other_upload_id, entry_id_or_mainfile, kind, path, file_name

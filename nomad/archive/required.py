@@ -296,7 +296,7 @@ class RequiredReader:
         if url_parts is None:
             return path
 
-        installation, upload_id, entry_id, kind, fragment = url_parts
+        installation, upload_id, entry_id, kind, fragment, _file_name = url_parts
 
         if entry_id == dataset.entry_id:
             # it's the same entry, we can resolve it

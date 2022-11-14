@@ -56,11 +56,14 @@ class Context(MetainfoContext):
         return None
 
     @staticmethod
-    def _get_ids(root: MSection) -> tuple:
+    def _get_ids(root: MSection, required: bool = True) -> tuple:
+        upload_id, entry_id = None, None
         if isinstance(root, EntryArchive) and root.metadata:
-            return root.metadata.upload_id, root.metadata.entry_id
-
-        return None, None
+            upload_id, entry_id = root.metadata.upload_id, root.metadata.entry_id
+        if required:
+            assert entry_id is not None, 'Only archives with entry_id can be referenced'
+            assert upload_id is not None, 'Only archives with upload_id can be referenced'
+        return upload_id, entry_id
 
     @staticmethod
     def _normalize_fragment(fragment: str) -> str:
@@ -68,11 +71,19 @@ class Context(MetainfoContext):
             fragment = f'/{fragment}'
         return fragment
 
-    def create_reference(self, section: MSection, quantity_def: Quantity, value: MSection) -> str:
+    def create_reference(
+            self, section: MSection, quantity_def: Quantity, value: MSection,
+            global_reference: bool = False
+    ) -> str:
         fragment = value.m_path()
 
         source_root: MSection = section.m_root()
         target_root: MSection = value.m_root()
+
+        if global_reference:
+            upload_id, entry_id = self._get_ids(target_root, required=True)
+
+            return f'../uploads/{upload_id}/archive/{entry_id}#{fragment}'
 
         if source_root == target_root:
             return f'#{fragment}'
@@ -85,16 +96,14 @@ class Context(MetainfoContext):
         if getattr(target_root, 'metadata', None) is None:
             return None  # type: ignore
 
-        upload_id, entry_id = self._get_ids(target_root)
-        assert entry_id is not None, 'Only archives with entry_id can be referenced'
-        assert upload_id is not None, 'Only archives with upload_id can be referenced'
+        upload_id, entry_id = self._get_ids(target_root, required=True)
         assert source_root.m_context == self, 'Can only create references from archives with this context'
         installation_url = getattr(target_root.m_context, 'installation_url', self.installation_url)
 
         if installation_url != self.installation_url:
             return f'{installation_url}/uploads/{upload_id}/archive/{entry_id}#{fragment}'
 
-        source_upload_id, source_entry_id = self._get_ids(source_root)
+        source_upload_id, source_entry_id = self._get_ids(source_root, required=False)
 
         if entry_id == source_entry_id:
             return f'#{fragment}'
@@ -161,23 +170,29 @@ class Context(MetainfoContext):
         if url_results is None:
             raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
 
-        installation_url, upload_id, id_or_path, kind, _fragment = url_results  # _fragment === /placeholder
+        installation_url, upload_id, id_or_path, kind, _fragment, file_name = url_results  # _fragment === /placeholder
 
         if installation_url is None:
             installation_url = self.installation_url
 
-        return installation_url, upload_id, kind, id_or_path
+        return installation_url, upload_id, kind, id_or_path, file_name
 
     def load_url(self, url: str) -> MSection:
-        installation_url, upload_id, kind, id_or_path = self._parse_url(url)
+        installation_url, upload_id, kind, id_or_path, file_name = self._parse_url(url)
+
+        if kind not in ('archive', 'raw'):
+            raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
 
         if kind == 'archive':
-            return self.load_archive(id_or_path, upload_id, installation_url)
-        if kind == 'raw':
-            return self.load_raw_file(id_or_path, upload_id, installation_url)
+            try:
+                return self.load_archive(id_or_path, upload_id, installation_url)
+            except MetainfoReferenceError as e:
+                if file_name is None:
+                    raise e
 
-        # never happens
-        raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
+                id_or_path = file_name
+
+        return self.load_raw_file(id_or_path, upload_id, installation_url)
 
     def resolve_archive_url(self, url: str) -> MSection:
         if url not in self.archives:
@@ -353,9 +368,12 @@ class ClientContext(Context):
         file_path = os.path.join(self.local_dir, path)
         return open(file_path, *args, **kwargs)
 
-    def create_reference(self, section: MSection, quantity_def: Quantity, value: MSection) -> str:
+    def create_reference(
+        self, section: MSection, quantity_def: Quantity, value: MSection,
+        global_reference: bool = False
+    ) -> str:
         try:
-            return super().create_reference(section, quantity_def, value)
+            return super().create_reference(section, quantity_def, value, global_reference)
         except AssertionError:
             return f'<unavailable url>/#{value.m_path()}'
 
