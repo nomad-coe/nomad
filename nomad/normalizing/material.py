@@ -27,13 +27,13 @@ import numpy as np
 import matid.geometry
 from matid.classification.structureclusterer import StructureClusterer
 from matid import Classifier
-from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D, Unknown
+from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D, Class2D, Unknown
 from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer
 from nomad.datamodel.results import Symmetry, Material, System, Relation, Structure, Prototype
 from nomad import atomutils
 from nomad.utils import hash
 from nomad.units import ureg
-from nomad.normalizing.common import cell_from_ase_atoms, cell_from_structure, structure_from_ase_atoms
+from nomad.normalizing.common import cell_from_ase_atoms, cell_from_structure, structure_from_ase_atoms, structures_2d
 
 
 class MaterialNormalizer():
@@ -580,18 +580,11 @@ class MaterialNormalizer():
                 continue
             topologies.append(subsystem)
             original = self._add_child_system(original, id_subsystem)
-            if subsystem.structural_type == 'surface':
+            if subsystem.structural_type == 'surface' or subsystem.structural_type == '2D':
                 id_conv = f'/results/material/topology/{len(topologies)}'
-                symmsystem = self._create_conv_cell_system(symm, id_conv, id_subsystem)
+                symmsystem = self._create_conv_cell_system(symm, id_conv, id_subsystem, subsystem.structural_type)
                 topologies.append(symmsystem)
                 subsystem = self._add_child_system(subsystem, id_conv)
-
-        # If the returned clusters contain more than one 2D/surface subsystems,
-        # the topology is accepted and returned. TODO: This should be modified
-        # in the future to also accept other kind of topologies besides
-        # heterostructures.
-        if len([x for x in topologies if (x.structural_type in ('surface', '2D') and x.label == "subsystem")]) < 2:
-            return None
         return topologies
 
     def _create_orig_topology(self, material: Material, top_id: str) -> Tuple[System, Structure]:
@@ -649,7 +642,7 @@ class MaterialNormalizer():
         subsystem.child_systems = parent_children_subsystem
         return subsystem
 
-    def _create_conv_cell_system(self, symm, top_id: str, parent_id: str):
+    def _create_conv_cell_system(self, symm, top_id: str, parent_id: str, structural_type: str):
         '''
         Creates a new topology item for a conventional cell.
         '''
@@ -657,17 +650,31 @@ class MaterialNormalizer():
             system_id=top_id,
             method='matid',
             label='conventional cell',
-            description='The conventional cell of the bulk material from which the surface is constructed from.',
             system_relation=Relation(type='subsystem'),
             parent_system=parent_id
         )
         conv_system = symm.get_conventional_system()
-        wyckoff_sets = symm.get_wyckoff_sets_conventional()
-        symmsystem.atoms = structure_from_ase_atoms(conv_system, wyckoff_sets, logger=self.logger)
+        if structural_type == 'surface':
+            symmsystem.description = 'The conventional cell of the bulk material from which the surface is constructed from.'
+            symmsystem.structural_type = 'bulk'
+            wyckoff_sets = symm.get_wyckoff_sets_conventional()
+            symmsystem.atoms = structure_from_ase_atoms(conv_system, wyckoff_sets, logger=self.logger)
+        elif structural_type == '2D':
+            symmsystem.description = 'The conventional cell of the 2D material.'
+            symmsystem.structural_type = '2D'
+            wyckoff_sets = None
+            symmsystem.atoms = structure_from_ase_atoms(conv_system, wyckoff_sets, logger=self.logger)
+            symmsystem.atoms.lattice_parameters.c = None
+            symmsystem.atoms.lattice_parameters.alpha = None
+            symmsystem.atoms.lattice_parameters.beta = None
+            symmsystem.atoms.cell_volume = None
+
         subspecies = conv_system.get_chemical_symbols()
-        symmsystem.structural_type = 'bulk'
         symmsystem = self._add_subsystem_properties(subspecies, symmsystem)
-        symmsystem = self._create_symmsystem(symm, symmsystem)
+        if structural_type == 'surface':
+            symmsystem = self._create_symmsystem_surface(symm, symmsystem)
+        elif structural_type == '2D':
+            symmsystem = self._create_symmsystem_2D(symm, symmsystem)
         return symmsystem
 
     def _check_original_structure(self) -> Optional[Structure]:
@@ -732,10 +739,13 @@ class MaterialNormalizer():
             for region in regions:
                 if region:
                     number_of_atoms.append(region.cell.get_number_of_atoms())
+                else:
+                    number_of_atoms.append(-1)
 
-            # TODO: What happens when there are 2 regions that have the same size?
+            # If there are 2 regions with the same size, the one with the smaller index is selected
             largest_region_index = number_of_atoms.index(max(number_of_atoms))
             largest_region_system = regions[largest_region_index].cell
+
             # TODO: only SymmetryAnalyzer for 2D and surface
             symm = SymmetryAnalyzer(largest_region_system)
             cluster_symmetries += [symm]
@@ -749,6 +759,7 @@ class MaterialNormalizer():
                         Atom: 'atom',
                         Class0D: 'molecule / cluster',
                         Class1D: '1D',
+                        Class2D: 'unavailable',
                         Surface: 'surface',
                         Material2D: '2D',
                         Unknown: 'unavailable'}
@@ -788,23 +799,52 @@ class MaterialNormalizer():
         subsystem.elements = elements
         return subsystem
 
-    def _create_symmsystem(self, symm: SymmetryAnalyzer, subsystem: System) -> System:
+    def _create_symmsystem_surface(self, symm: SymmetryAnalyzer, subsystem: System) -> System:
         """
         Creates the subsystem with the symmetry information of the conventional cell
         """
         conv_system = symm.get_conventional_system()
-        subsystem.cell = cell_from_ase_atoms(conv_system)
-        symmetry = self._create_symmetry(subsystem, symm)
-        subsystem.symmetry = symmetry
         prototype = self._create_prototype(symm, conv_system)
         spg_number = symm.get_space_group_number()
         subsystem.prototype = prototype
+        subsystem.cell = cell_from_ase_atoms(conv_system)
+        symmetry = self._create_symmetry(symm)
         wyckoff_sets = symm.get_wyckoff_sets_conventional()
         material_id = self.material_id_bulk(spg_number, wyckoff_sets)
         subsystem.material_id = material_id
+        subsystem.symmetry = symmetry
         return subsystem
 
-    def _create_symmetry(self, subsystem: System, symm: SymmetryAnalyzer) -> Symmetry:
+    def _create_symmsystem_2D(self, symm: SymmetryAnalyzer, subsystem: System) -> System:
+        """
+        Creates the subsystem with the symmetry information of the conventional cell
+        """
+        subsystem_atoms = Atoms(
+            symbols=subsystem.atoms.species_at_sites,
+            positions=subsystem.atoms.cartesian_site_positions.to(ureg.angstrom),
+            cell=complete_cell(subsystem.atoms.lattice_vectors.to(ureg.angstrom)),
+            pbc=np.array(subsystem.atoms.dimension_types, dtype=bool)
+        )
+        conv_atoms, __, wyckoff_sets, spg_number = structures_2d(subsystem_atoms)
+        subsystem.cell = cell_from_ase_atoms(conv_atoms)
+
+        # Here we zero out the irrelevant lattice parameters to correctly handle
+        # 2D systems with nonzero thickness (e.g. MoS2).
+        if subsystem.cell.c:
+            subsystem.cell.c = 0.0
+        if subsystem.cell.alpha:
+            subsystem.cell.alpha = None
+        if subsystem.cell.beta:
+            subsystem.cell.beta = None
+
+        prototype = self._create_prototype(symm, conv_atoms)
+        subsystem.prototype = prototype
+        subsystem.material_id = self.material_id_2d(spg_number, wyckoff_sets)
+        symmetry = None
+        subsystem.symmetry = symmetry
+        return subsystem
+
+    def _create_symmetry(self, symm: SymmetryAnalyzer) -> Symmetry:
         international_short = symm.get_space_group_international_short()
 
         sec_symmetry = Symmetry()
@@ -824,7 +864,10 @@ class MaterialNormalizer():
     def _create_prototype(self, symm: SymmetryAnalyzer, conv_system: System) -> Prototype:
         spg_number = symm.get_space_group_number()
         atom_species = conv_system.get_atomic_numbers()
-        wyckoffs = conv_system.wyckoff_letters
+        if type(conv_system) == Atoms or conv_system.wyckoff_letters is None:
+            wyckoffs = symm.get_wyckoff_letters_conventional()
+        else:
+            wyckoffs = conv_system.wyckoff_letters
         norm_wyckoff = atomutils.get_normalized_wyckoff(atom_species, wyckoffs)
         protoDict = atomutils.search_aflow_prototype(spg_number, norm_wyckoff)
 
