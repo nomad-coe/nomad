@@ -627,7 +627,7 @@ class Elasticsearch(DefinitionAnnotation):
     Attributes:
         name:
             The name of the quantity (plus additional field if set).
-        search_quantity: The entry type SearchQuantity associated with this annoation.
+        search_quantity: The entry type SearchQuantity associated with this annotation.
     '''
     def __init__(
             self,

@@ -906,10 +906,18 @@ class Context:
         '''
         pass
 
-    def create_reference(self, section: MSection, quantity_def: Quantity, value: MSection) -> str:
+    def create_reference(
+        self, section: MSection, quantity_def: Quantity, value: MSection,
+        global_reference: bool = False
+    ) -> str:
         '''
         Returns a reference for the given target section (value) based on the given context.
         Allows subclasses to build references across resources, if necessary.
+
+        Arguments:
+            global_reference: A boolean flag that forces references with upload_ids.
+                Should be used if the reference needs to be used outside the context
+                of the own upload.
 
         Raises: MetainfoReferenceError
         '''
@@ -2002,29 +2010,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             else:
                 return str(annotation)
 
-        def m_def_reference():
-            definition_name = self.m_def.qualified_name()
-            if definition_name.startswith('entry_id:'):
-                # This is not from a python module, use archive reference instead
-                # two cases:
-                # 1. loaded from file so archive.definitions.archive is set by parser
-                # 2. loaded from versioned mongo so entry_id_based_name is set by mongo
-                # second one has no metadata, so do not create reference
-                context = self.m_def.m_root().m_context
-                if context:
-                    relative_name = context.create_reference(self, None, self.m_def)
-                    if relative_name:
-                        definition_name = relative_name
-
-            if process.add_definition_id_to_reference and '@' not in definition_name:
-                definition_name += '@' + self.m_def.definition_id
-
-            return definition_name
-
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
             if with_meta:
-                yield 'm_def', m_def_reference()
+                yield 'm_def', self.m_def.definition_reference(self)
                 if with_def_id:
                     yield 'm_def_id', self.m_def.definition_id
                 if self.m_parent_index != -1:
@@ -2042,7 +2031,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if len(annotations) > 0:
                     yield 'm_annotations', annotations
             elif with_root_def:
-                yield 'm_def', m_def_reference()
+                yield 'm_def', self.m_def.definition_reference(self)
                 if with_def_id:
                     yield 'm_def_id', self.m_def.definition_id
             elif self.m_parent and self.m_parent_sub_section.sub_section != self.m_def:
@@ -2051,7 +2040,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 # from the base section that was used in the subsection def. To allow
                 # clients to recognize the concrete section def, we force the export
                 # of the section def.
-                yield 'm_def', m_def_reference()
+                yield 'm_def', self.m_def.definition_reference(self)
                 if with_def_id:
                     yield 'm_def_id', self.m_def.definition_id
 
@@ -2894,6 +2883,29 @@ class Definition(MSection):
         Returns the hash digest.
         '''
         return self._hash().hexdigest()
+
+    def definition_reference(self, source, **kwargs):
+        '''
+        Creates a reference string that points to this definition from the
+        given source section.
+        '''
+        definition_reference = self.qualified_name()
+        if definition_reference.startswith('entry_id:'):
+            # This is not from a python module, use archive reference instead
+            # two cases:
+            # 1. loaded from file so archive.definitions.archive is set by parser
+            # 2. loaded from versioned mongo so entry_id_based_name is set by mongo
+            # second one has no metadata, so do not create reference
+            context = self.m_root().m_context
+            if context:
+                relative_name = context.create_reference(source, None, self, **kwargs)
+                if relative_name:
+                    definition_reference = relative_name
+
+        if process.add_definition_id_to_reference and '@' not in definition_reference:
+            definition_reference += '@' + self.definition_id
+
+        return definition_reference
 
 
 class Attribute(Definition):

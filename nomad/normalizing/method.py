@@ -520,7 +520,9 @@ def get_basis_set(entry_archive, repr_method, repr_system, logger) -> Restricted
         returns None.
     """
     settings: BasisSet = None
-    program_name = entry_archive.run[0].program.name
+    program_name = None
+    if len(entry_archive.run) > 0 and entry_archive.run[0].program:
+        program_name = entry_archive.run[0].program.name
     if program_name == "exciting":
         settings = BasisSetExciting(entry_archive, repr_method, repr_system, logger)
     elif program_name == "FHI-aims":

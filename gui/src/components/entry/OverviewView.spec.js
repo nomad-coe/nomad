@@ -195,7 +195,7 @@ test('eln overview as a reviewer', async () => {
   expect(screen.queryByTitle('Delete entry')).not.toBeInTheDocument()
 
   const sectionCards = screen.queryAllByTestId('property-card')
-  expect(sectionCards.length).toBe(3)
+  expect(sectionCards.length).toBe(4)
 
   const cardSample = sectionCards[0]
   const cardPvdEvaporation = sectionCards[1]
@@ -279,7 +279,7 @@ test.each([
   expect(deleteButton).toBeEnabled()
 
   const sectionCards = screen.queryAllByTestId('property-card')
-  expect(sectionCards.length).toBe(3)
+  expect(sectionCards.length).toBe(4)
 
   const cardSample = sectionCards[0]
   const cardPvdEvaporation = sectionCards[1]
@@ -343,7 +343,7 @@ test.each([
   expect(saveButton2).toBeDisabled()
 
   const sectionCards2 = screen2.queryAllByTestId('property-card')
-  expect(sectionCards2.length).toBe(3)
+  expect(sectionCards2.length).toBe(4)
   const cardSample2 = sectionCards2[0]
   const inputTextField2 = within(cardSample2).queryAllByRole('textbox', { hidden: true })
   await fireEvent.change(inputTextField2[0], { target: { value: 'new text 2' } })
