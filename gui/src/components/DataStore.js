@@ -21,7 +21,7 @@ import { useApi, DoesNotExist } from './api'
 import { useErrors } from './errors'
 import { apiBase } from '../config'
 import { refType, parseNomadUrl, createEntryUrl, systemMetainfoUrl } from '../utils'
-import { getUrlFromDefinition, Metainfo } from './archive/metainfo'
+import { getMetainfoFromDefinition, getUrlFromDefinition, Metainfo } from './archive/metainfo'
 import currentSystemMetainfoData from '../metainfo'
 import YAML from 'yaml'
 
@@ -59,6 +59,7 @@ const DataStore = React.memo(({children}) => {
   const uploadStore = useRef({}) // The upload store objects
   const entryStore = useRef({}) // The entry store objects
   const metainfoDataStore = useRef({}) // The metainfo data store objects
+  const frozenMetainfoCache = useRef({}) // Stores frozen metainfo objects by their version hash
   const externalInheritanceCache = useRef({}) // Used to keep track of inheritance between metainfos
 
   /**
@@ -520,21 +521,29 @@ const DataStore = React.memo(({children}) => {
    */
   async function getMetainfoAsync(url) {
     if (!url) return null
-    // Get metainfoData
+    // Check cache (different caches, depending on if we have a versionHash or not)
+    let metainfoData
     const metainfoBaseUrl = getMetainfoBaseUrl(url)
-    let metainfoData = metainfoDataStore.current[metainfoBaseUrl]
+    if (metainfoBaseUrl.versionHash) {
+      const frozenDef = frozenMetainfoCache.current[metainfoBaseUrl.versionHash]
+      if (frozenDef) {
+        return await getMetainfoFromDefinition(frozenDef)._result
+      }
+    } else {
+      metainfoData = metainfoDataStore.current[metainfoBaseUrl]
+    }
     if (!metainfoData) {
       // Not found in cache. Fetch data object.
-      const parsedMetainfoBaseurl = parseNomadUrl(metainfoBaseUrl)
-      metainfoData = await fetchMetainfoData(parsedMetainfoBaseurl)
-      metainfoData._url = metainfoBaseUrl
-      metainfoData._parsedUrl = parsedMetainfoBaseurl
-      metainfoDataStore.current[metainfoBaseUrl] = metainfoData
+      metainfoData = await fetchMetainfoData(metainfoBaseUrl)
+      if (!metainfoBaseUrl.versionHash) {
+        metainfoDataStore.current[metainfoBaseUrl] = metainfoData
+      }
     }
     // If needed, create metainfo (which will also initiate parsing)
     if (!metainfoData._metainfo) {
       const parent = metainfoBaseUrl === systemMetainfoUrl ? undefined : await getMetainfoAsync(systemMetainfoUrl)
-      metainfoData._metainfo = new Metainfo(parent, metainfoData, getMetainfoAsync, externalInheritanceCache.current)
+      metainfoData._metainfo = new Metainfo(
+        parent, metainfoData, getMetainfoAsync, frozenMetainfoCache.current, externalInheritanceCache.current)
     }
     // Returned object after parsing is completed.
     return await metainfoData._metainfo._result
@@ -547,8 +556,16 @@ const DataStore = React.memo(({children}) => {
   async function getMetainfoDefAsync(url) {
     if (!url) return null
     const parsedUrl = parseNomadUrl(url)
+    if (parsedUrl.versionHash) {
+      const frozenDef = frozenMetainfoCache.current[parsedUrl.versionHash]
+      if (frozenDef) {
+        return frozenDef
+      }
+    }
     const metainfo = await getMetainfoAsync(parsedUrl)
-    if (parsedUrl.qualifiedName) {
+    if (parsedUrl.versionHash) {
+      return frozenMetainfoCache.current[parsedUrl.versionHash] // If we get here, it should be in the cache
+    } else if (parsedUrl.qualifiedName) {
       return metainfo.getDefByQualifiedName(parsedUrl.qualifiedName)
     } else if (parsedUrl.path) {
       return metainfo.getDefByPath(parsedUrl.path)
@@ -557,18 +574,20 @@ const DataStore = React.memo(({children}) => {
   }
 
   function getMetainfoBaseUrl(url) {
-    // Internal use: computes the *metainfo base url* (string), given an absolute metainfo url.
+    // Internal use: computes the *metainfo base url*, given an absolute metainfo url.
     // The base url is an absolute url, identifying the metainfo data obj to parse
-    // (to get the Metainfo object), and is also used as the cache key to store the resulting
-    // Metainfo object.
+    // (to get the Metainfo object). For urls identifying non-frozen schemas, the
+    // metainfo base url is also used as the cache key to store the resulting Metainfo object.
+    // For urls referring to frozen schemas, we just return the parsed url. The
+    // frozen schemas are stored in a different cache, indexed by versionHashes rather than
+    // by the base url).
     if ((url.url || url) === systemMetainfoUrl) return systemMetainfoUrl
     url = parseNomadUrl(url)
     if (url.type !== refType.metainfo && url.type !== refType.archive) throw new Error(`Cannot get metainfo: bad url type (${url})`)
     if (!url.isResolved) throw new Error(`Url not resolved: ${url}`)
 
     if (url.versionHash) {
-      // TODO
-      throw new Error('Fetching frozen schemas not yet implemented')
+      return url
     } else if (url.entryId) {
       return createEntryUrl(url.installationUrl, url.uploadId, url.entryId, '/definitions')
     } else if (url.qualifiedName) {
@@ -576,12 +595,26 @@ const DataStore = React.memo(({children}) => {
     }
   }
 
-  async function fetchMetainfoData(parsedMetainfoBaseUrl) {
+  async function fetchMetainfoData(metainfoBaseUrl) {
     // Internal use: fetches the metainfo data
-    if (parsedMetainfoBaseUrl.url === systemMetainfoUrl) return currentSystemMetainfoData
+    if (metainfoBaseUrl === systemMetainfoUrl) {
+      currentSystemMetainfoData._url = systemMetainfoUrl
+      currentSystemMetainfoData._parsedUrl = parseNomadUrl(systemMetainfoUrl)
+      return currentSystemMetainfoData
+    }
+    const parsedMetainfoBaseUrl = parseNomadUrl(metainfoBaseUrl)
     if (parsedMetainfoBaseUrl.versionHash) {
-      // TODO
-      throw new Error('Fetching frozen schemas not yet implemented')
+      const frozenMetainfo = await api.get(`/metainfo/${parsedMetainfoBaseUrl.versionHash}`)
+      frozenMetainfo._url = createEntryUrl(
+        parsedMetainfoBaseUrl.installationUrl,
+        'todo-uploadid',
+        'todo-entryid',
+        `definitions@${frozenMetainfo.data.definition_id}`)
+        frozenMetainfo._parsedUrl = parseNomadUrl(frozenMetainfo._url)
+      // Rename data -> definitions
+      frozenMetainfo.definitions = frozenMetainfo.data
+      delete frozenMetainfo.data
+      return frozenMetainfo
     } else if (parsedMetainfoBaseUrl.entryId) {
       const entryStoreObj = await getEntryAsync(
         parsedMetainfoBaseUrl.installationUrl, parsedMetainfoBaseUrl.entryId, false, metainfoArchiveFilter)
@@ -592,7 +625,9 @@ const DataStore = React.memo(({children}) => {
       }
       return {
         definitions: JSON.parse(JSON.stringify(entryStoreObj.archive.definitions)),
-        metadata: JSON.parse(JSON.stringify(entryStoreObj.archive.metadata))
+        metadata: JSON.parse(JSON.stringify(entryStoreObj.archive.metadata)),
+        _url: metainfoBaseUrl,
+        _parsedUrl: parsedMetainfoBaseUrl
       }
     }
   }

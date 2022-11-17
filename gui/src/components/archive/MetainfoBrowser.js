@@ -387,7 +387,7 @@ class SubSectionDefAdaptor extends MetainfoAdaptor {
 
 class QuantityDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {
-    const attributeDef = this.def.attributes.find(def => def.name === key)
+    const attributeDef = this.def.attributes?.find(def => def.name === key)
     if (attributeDef) {
       return metainfoAdaptorFactory(attributeDef)
     }

@@ -466,7 +466,7 @@ ItemButton.propTypes = {
 
 export function Item({children, itemKey, disabled, highlighted, icon, actions, chip}) {
   const classes = useItemStyles()
-  const lane = useContext(laneContext)
+  const lane = useLane()
   const selected = lane.next && lane.next.key
   const isSelected = itemKey && selected === itemKey
   if (disabled) {

@@ -21,7 +21,7 @@ import { systemMetainfoUrl } from '../../utils'
 
 async function createMetainfo(data, parent, url = systemMetainfoUrl) {
   data._url = url
-  data._metainfo = new Metainfo(parent, data, null, {})
+  data._metainfo = new Metainfo(parent, data, null, {}, {})
   return await data._metainfo._result
 }
 

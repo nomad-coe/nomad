@@ -803,6 +803,8 @@ export function getLocation() {
  *    the api of the nomad installation. Should always end with "/api".
  *    Example:
  *      https://nomad-lab.eu/prod/rae/api
+ *  - Urls with versionHash are considered to be relative to the installation rather than the
+ *    upload or data.
  *  - The rawPath and mainFile paths need to be escaped with urlEncodePath to ensure a valid url.
  *    (i.e. each segment needs to individually be escaped using encodeURIComponent)
  *  - The dataPath, if provided, must always start from the root of the archive.
@@ -964,17 +966,17 @@ export function parseNomadUrl(url) {
     type = refType.installation
   } else if (dataPath !== undefined) {
     // Has dataPath
-    if (!url.startsWith('#') && !url.startsWith('/') && !entryId && !mainfile && !rawPath) throw new Error(prefix + 'Unexpected "#" without entry reference')
+    if (!url.startsWith('#') && !url.startsWith('/') && !entryId && !mainfile && !rawPath) throw new Error(prefix + 'Unexpected dataPath without entry reference')
     mainfile = mainfile || rawPath
-    const dataPathSegments = dataPath.split('/').filter(segment => segment)
-    const firstDataPathSegment = dataPathSegments[0]
-    type = (firstDataPathSegment === 'definitions' || firstDataPathSegment === 'packages') ? refType.metainfo : refType.archive
-    dataPath = '/' + dataPathSegments.join('/') // Ensure leading slash, but no duplicate slashes
     const atPos = dataPath.indexOf('@')
     if (atPos !== -1) {
       versionHash = dataPath.slice(atPos + 1)
       dataPath = dataPath.slice(0, atPos)
     }
+    const dataPathSegments = dataPath.split('/').filter(segment => segment)
+    const firstDataPathSegment = dataPathSegments[0]
+    type = (firstDataPathSegment === 'definitions' || firstDataPathSegment === 'packages') ? refType.metainfo : refType.archive
+    dataPath = '/' + dataPathSegments.join('/') // Ensure leading slash, but no duplicate slashes
     path = dataPath
   } else if (entryId || mainfile) {
     // Refers to an archive, but has no dataPath
@@ -986,8 +988,10 @@ export function parseNomadUrl(url) {
   }
   if (versionHash !== undefined) {
     if (type !== refType.metainfo) throw new Error(prefix + 'versionHash can only be specified for metainfo urls.')
-    if (relativeTo === refRelativeTo.data) throw new Error(prefix + 'cannot specify versionHash for url that is data-relative.')
     if (!versionHash.match(/\w+/)) throw new Error(prefix + 'bad versionHash provided')
+    if (relativeTo) {
+      relativeTo = refRelativeTo.installation
+    }
   }
 
   if (uploadId && mainfile) {
