@@ -159,6 +159,9 @@ Unpublished
             if not self.ID_temp:
                 r = requests.get(f'https://api.crossref.org/works/{self.DOI_number}')
                 temp_dict = r.json()
+                # make sure the doi has the prefix https://doi.org/
+                if self.DOI_number.startswith('10.'):
+                    self.DOI_number = 'https://doi.org/' + self.DOI_number
                 given_name = temp_dict['message']['author'][0]['given']
                 familiy_name = temp_dict['message']['author'][0]['family']
                 self.journal = temp_dict['message']['container-title'][0]

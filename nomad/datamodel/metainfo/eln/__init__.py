@@ -345,6 +345,9 @@ class PublicationReference(ArchiveSection):
                 r = requests.get(url, timeout=timeout)
                 if r.status_code == 200:
                     temp_dict = r.json()
+                    # make sure the doi has the prefix https://doi.org/
+                    if self.DOI_number.startswith('10.'):
+                        self.DOI_number = 'https://doi.org/' + self.DOI_number
                     self.publication_authors = [f"{v['given']} {v['family']}" for v in temp_dict['message']['author']]
                     self.journal = temp_dict['message']['container-title'][0]
                     self.publication_title = temp_dict['message']['title'][0]
