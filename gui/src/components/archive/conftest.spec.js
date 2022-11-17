@@ -215,6 +215,19 @@ export async function browseRecursively(laneIndex, path, itemFilter, filterKeyLe
       throw error
     }
   }
+  // Click on all collapsed compartments to uncollapse them
+  const collapsedChips = within(lane).queryAllByTestId(/^collapsed:/)
+  for (let idx = 0; idx < collapsedChips.length; idx++) {
+    try {
+      await userEvent.click(collapsedChips[idx])
+      await waitFor(() => {
+        expect(within(lane).queryAllByTestId(/^collapsed:/).length).toBe(collapsedChips.length - idx - 1)
+      })
+    } catch (error) {
+      process.stdout.write(`ERROR uncollapsing compartment ${idx}`)
+      throw error
+    }
+  }
   let itemKeys = []
   for (const item of within(lane).queryAllByTestId(/^item:/)) {
     const itemKey = getItemKey(item)
