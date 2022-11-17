@@ -28,6 +28,7 @@ from nomad.metainfo import Package
 from nomad.metainfo.metainfo import MSection, Section, Quantity, Datetime, JSON
 from nomad.metainfo.mongoengine_extension import MongoDocument, Mongo
 from nomad.utils import strip, get_logger
+from nomad import config
 
 logger = get_logger(__name__)
 
@@ -75,7 +76,8 @@ class PackageDefinition(MSection):
             del kwargs['upload_id']
         self.qualified_name = package.qualified_name()
         self.date_created = datetime.datetime.utcnow()
-        self.package_definition = package.m_to_dict(**kwargs)
+        self.package_definition = package.m_to_dict(
+            with_def_id=config.process.write_definition_id_to_archive, **kwargs)
         self.section_definition_ids = [section.definition_id for section in package.section_definitions]
         self.quantity_definition_ids = [
             quantity.definition_id for section in package.section_definitions for quantity in section.quantities]

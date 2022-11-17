@@ -177,10 +177,11 @@ export class Metainfo {
   /**
    * Constructs a Metainfo object. Note, this should only be invoked by the store.
    */
-  constructor(parent, data, getMetainfoAsync, externalInheritanceCache) {
+  constructor(parent, data, getMetainfoAsync, frozenMetainfoCache, externalInheritanceCache) {
     this._parent = parent
     this._data = data
     this._getMetainfoAsync = getMetainfoAsync
+    this._frozenMetainfoCache = frozenMetainfoCache
     this._externalInheritanceCache = externalInheritanceCache
     this._url = data._url // the data url, always string
     this._parsedUrl = parseNomadUrl(data._url)
@@ -291,17 +292,43 @@ export class Metainfo {
   async _parse() {
     // Parse data
     if (this._data.packages) {
+      // Initial parsing
+      for (const pkg of this._data.packages) {
+        this._addDefIdsToCache(pkg)
+      }
+      // Main parsing
       let pkgIndex = 0
       for (const pkg of this._data.packages) {
         await this._addPackage(pkg, null, this._data, 'packages', pkgIndex++)
       }
     }
     if (this._data.definitions) {
+      // Initial parsing
+      this._addDefIdsToCache(this._data.definitions)
+      // Main parsing
       const entryId = this._parsedUrl.entryId
       await this._addPackage(this._data.definitions, `entry_id:${entryId}`, this._data, 'definitions')
     }
     this._isParsed = true
     return this
+  }
+
+  _addDefIdsToCache(def) {
+    // Used for an initial, synchronous shallow parsing, which adds all encountered definition_ids
+    // to this._frozenMetainfoCache, so they can be used when resolving references during the
+    // main parsing step.
+    if (def.definition_id) {
+      if (!this._frozenMetainfoCache[def.definition_id]) {
+        this._frozenMetainfoCache[def.definition_id] = def
+      }
+    }
+    for (const subDefs of [def.category_definitions, def.section_definitions, def.inner_section_definitions, def.quantities]) {
+      if (subDefs) {
+        for (const subDef of subDefs) {
+          this._addDefIdsToCache(subDef)
+        }
+      }
+    }
   }
 
   async _addDef(def) {
@@ -554,15 +581,26 @@ export class Metainfo {
       // already resolved
       return reference
     }
+    let resolvedUrl
+    if (reference.includes('@')) {
+      const versionHash = reference.split('@')[1]
+      const frozenDef = this._frozenMetainfoCache[versionHash]
+      if (frozenDef) {
+        // Found in cache
+        return frozenDef
+      } else {
+        // Not found in cache. Fetch it.
+        resolvedUrl = resolveNomadUrl(reference, this._parsedUrl)
+        await this._getMetainfoAsync(resolvedUrl)
+        return this._frozenMetainfoCache[versionHash] // Should now be in the cache
+      }
+    }
     if (reference.startsWith('#') || reference.startsWith('/')) {
       // Local path reference
       return this.getDefByPath(reference)
     }
-    const resolvedUrl = resolveNomadUrl(reference, this._parsedUrl)
-    if (resolvedUrl.versionHash) {
-      // Reference to a frozen metainfo
-      throw new Error('Fetching frozen schemas not yet implemented')
-    } else if (resolvedUrl.qualifiedName) {
+    resolvedUrl = resolveNomadUrl(reference, this._parsedUrl)
+    if (resolvedUrl.qualifiedName) {
       // Reference to the system metainfo, using qualified name
       const systemMetainfo = this._url === systemMetainfoUrl ? this : await this._getMetainfoAsync(systemMetainfoUrl)
       return systemMetainfo.getDefByQualifiedName(resolvedUrl.qualifiedName)

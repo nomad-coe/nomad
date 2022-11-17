@@ -135,7 +135,8 @@ const OverviewView = React.memo((props) => {
   const index = metadata
   const [sections, setSections] = useState([])
   const {raiseError} = useErrors()
-  const dataMetainfoDefUrl = resolveNomadUrlNoThrow(archive?.data?.m_def, url)
+  const m_def = archive?.data?.m_def_id ? `${archive.data.m_def}@${archive.data.m_def_id}` : archive?.data?.m_def
+  const dataMetainfoDefUrl = resolveNomadUrlNoThrow(m_def, url)
   const dataMetainfoDef = useMetainfoDef(dataMetainfoDefUrl)
 
   const properties = useMemo(() => {
