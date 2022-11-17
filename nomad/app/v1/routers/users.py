@@ -55,7 +55,12 @@ class Users(BaseModel):
     responses=create_responses(_authentication_required_response),
     response_model=User)
 async def read_users_me(current_user: User = Depends(create_user_dependency(required=True))):
-    return current_user
+    current_user_dict: dict = current_user.m_to_dict(
+        with_out_meta=True, include_derived=True)
+    additional_info: dict = datamodel.User.get(user_id=current_user.user_id).m_to_dict(
+        with_out_meta=True, include_derived=True)
+    current_user_dict.update(additional_info)
+    return current_user_dict
 
 
 @router.get(
@@ -105,6 +110,17 @@ async def get_users(
     return dict(data=users)
 
 
+class PublicUserInfo(BaseModel):
+    ''' User information that is publicly available. '''
+    name: str = None
+    first_name: str = None
+    last_name: str = None
+    affiliation: str = None
+    affiliation_address: str = None
+    user_id: str = None
+    username: str = None
+
+
 @router.get(
     '/{user_id}',
     tags=[default_tag],
@@ -112,11 +128,9 @@ async def get_users(
     description='Get the user using the given user_id',
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
-    response_model=User)
+    response_model=PublicUserInfo)
 async def get_user(user_id: str):
-    user = datamodel.User.get(user_id=str(user_id)).m_copy()
-    user.email = None
-    return user
+    return datamodel.User.get(user_id=str(user_id)).m_to_dict(with_out_meta=True, include_derived=True)
 
 
 @router.put(
