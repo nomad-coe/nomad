@@ -824,6 +824,14 @@ class SolarCellEQE(ArchiveSection):
         a_eln=dict(
             component='NumberEditQuantity'))
 
+    urbach_energy_fit_std_dev = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='eV',
+        description="""
+        Standard deviation of the fitted Urbach energy parameter from the eqe in eV.
+        """)
+
     def derive_n_values(self):
         if self.eqe_array is not None:
             return len(self.eqe_array)
@@ -898,8 +906,8 @@ class SolarCellEQE(ArchiveSection):
                 self.integrated_j0rad = eqe_dict['j0rad'] * ureg('A/m**2') if 'j0rad' in eqe_dict else logger.warning('The j0rad could not be calculated.')
                 self.voc_rad = eqe_dict['voc_rad'] if 'voc_rad' in eqe_dict else logger.warning('The voc_rad could not be calculated.')
                 self.urbach_energy = eqe_dict['urbach_e'] if 'urbach_e' in eqe_dict else logger.warning('The urbach_energy could not be calculated.')
-                if eqe_dict['urbach_e'] and eqe_dict['error_urbach_std']:
-                    logger.warn(f"The urbach_energy fit error is {eqe_dict['error_urbach_std']} eV")
+                if 'urbach_e_fit_std_dev' in eqe_dict:
+                    self.urbach_energy_fit_std_dev = eqe_dict['urbach_e_fit_std_dev']
                 self.photon_energy_array = np.array(eqe_dict['interpolated_photon_energy'])
                 self.raw_photon_energy_array = np.array(eqe_dict['photon_energy_raw'])
                 self.eqe_array = np.array(eqe_dict['interpolated_eqe'])
