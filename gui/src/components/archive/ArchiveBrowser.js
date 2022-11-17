@@ -477,7 +477,7 @@ class SectionAdaptor extends ArchiveAdaptor {
   async itemAdaptor(key) {
     const [name, index] = key.split(':')
     const property = this.def._properties[name] || (name === 'm_attributes' && this.def.attributes.find(attr => attr.name === index))
-    let value = this.obj[name] || property?.default
+    let value = this.obj[name] === undefined || this.obj[name] === null ? property?.default : this.obj[name]
     if (property.m_def === QuantityMDef && quantityUsesFullStorage(property)) {
       value = value[index]
     }
@@ -839,7 +839,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
 
   const renderQuantityItem = useCallback((key, quantityName, quantityDef, value, disabled) => {
     const itemKey = quantityName ? `${key}:${quantityName}` : key
-    const isDefault = value && !section[key]
+    const isDefault = value !== undefined && value !== null && (section[key] === undefined || section[key] === null)
     return (
       <Item key={itemKey} itemKey={itemKey} disabled={disabled}>
         <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
@@ -863,7 +863,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
 
   const renderQuantity = useCallback(quantityDef => {
     const key = quantityDef.name
-    const value = section[key] || quantityDef.default
+    const value = section[key] === undefined || section[key] === null ? quantityDef.default : section[key]
     const disabled = value === undefined
     if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
       return <ReferenceValuesList key={key} quantityDef={quantityDef} />

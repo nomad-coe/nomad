@@ -338,7 +338,8 @@ test.each([
 
   await screen2.findByText('HotplateAnnealing')
 
-  const saveButton2 = screen2.getByTitle('Save entry').closest('button')
+  // Weird jest problem: sometimes we find multiple hits for 'Save entry'. Workaround: take the first one in the list.
+  const saveButton2 = screen2.queryAllByTitle('Save entry')[0].closest('button')
   expect(saveButton2).toBeInTheDocument()
   expect(saveButton2).toBeDisabled()
 

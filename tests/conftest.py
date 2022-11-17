@@ -245,9 +245,21 @@ def clear_elastic(elastic_infra):
     '''
     try:
         for index in indices:
-            elastic_infra.delete_by_query(
-                index=index, body=dict(query=dict(match_all={})),
-                wait_for_completion=True, refresh=True)
+            retry_count = 10
+            while True:
+                try:
+                    elastic_infra.delete_by_query(
+                        index=index, body=dict(query=dict(match_all={})),
+                        wait_for_completion=True, refresh=True)
+                    break  # Success! Break the retry loop
+                except elasticsearch.exceptions.ConflictError:
+                    if retry_count:
+                        # Sleep and try again
+                        time.sleep(0.1)
+                        retry_count -= 1
+                    else:
+                        raise
+
     except elasticsearch.exceptions.NotFoundError:
         # Happens if a test removed indices without recreating them.
         clear_elastic_infra()
