@@ -19,21 +19,20 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import {
-  Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip,
-  IconButton, Grid, Dialog, DialogContent, DialogContentText, DialogActions,
-  Button,
-  FormControl,
-  MenuItem,
-  FormHelperText} from '@material-ui/core'
-import { useRouteMatch, useHistory } from 'react-router-dom'
+  Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, FormControl, FormControlLabel,
+  FormGroup, FormHelperText, Grid, IconButton, makeStyles, MenuItem, TextField, Tooltip, Typography
+} from '@material-ui/core'
+import { useHistory, useRouteMatch } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane, browserContext, ItemChip } from './Browser'
+import Browser, {
+  Adaptor, browserContext, Compartment, Content, formatSubSectionName, Item, ItemChip, laneContext, useLane
+} from './Browser'
 import { RawFileAdaptor } from './FileBrowser'
 import {
-  AttributeMDef, isReference, isEditable, PackageMDef, QuantityMDef, quantityUsesFullStorage,
-  removeSubSection, SectionMDef, SubSectionMDef, useMetainfo, getUrlFromDefinition
+  AttributeMDef, getUrlFromDefinition, isEditable, isReference, PackageMDef, QuantityMDef, quantityUsesFullStorage,
+  removeSubSection, SectionMDef, SubSectionMDef, useMetainfo
 } from './metainfo'
-import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
+import { ArchiveTitle, DefinitionLabel, metainfoAdaptorFactory } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
@@ -56,13 +55,16 @@ import CodeIcon from '@material-ui/icons/Code'
 import DeleteIcon from '@material-ui/icons/Delete'
 import XYPlot from './XYPlot'
 import {
-  titleCase, createUploadUrl, parseNomadUrl, refType,
-  resolveNomadUrl, resolveInternalRef, systemMetainfoUrl, formatTimestamp} from '../../utils'
-import {EntryButton} from '../nav/Routes'
+  appendDataUrl, createEntryUrl, createUploadUrl, formatTimestamp, parseNomadUrl, refType, resolveInternalRef,
+  resolveNomadUrl,
+  systemMetainfoUrl, titleCase
+} from '../../utils'
+import { EntryButton } from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import { apiBase } from '../../config'
+import { Alert } from '@material-ui/lab'
 
 export const configState = atom({
   key: 'config',
@@ -237,7 +239,7 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
   }
 
   const history = useHistory()
-  const { url } = useRouteMatch()
+  const {url} = useRouteMatch()
 
   const entryId = data?.metadata?.entry_id
 
@@ -248,7 +250,7 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
           <Autocomplete
             options={searchOptions}
             getOptionLabel={(option) => option.name}
-            style={{ width: 500, marginTop: -20 }}
+            style={{width: 500, marginTop: -20}}
             onChange={(_, value) => {
               if (value) {
                 history.push(url + value.path)
@@ -260,7 +262,7 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
             />}
           />
         </Box>
-        <Box flexGrow={1} />
+        <Box flexGrow={1}/>
         <Tooltip title="Enable to also show all code specific data">
           <FormControlLabel
             control={
@@ -291,7 +293,7 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
               <Checkbox
                 checked={config.showMeta}
                 onChange={handleConfigChange}
-                name="showMeta" />
+                name="showMeta"/>
             }
             label="definitions"
           />
@@ -301,12 +303,12 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
           url={`entries/${entryId}/archive/download?ignore_mime_type=true`}
           component={IconButton}
         >
-          <DownloadIcon />
+          <DownloadIcon/>
         </Download>}
         <SourceApiDialogButton maxWidth="lg" fullWidth>
-          <SourceApiCall />
+          <SourceApiCall/>
         </SourceApiDialogButton>
-        <ArchiveReloadButton />
+        <ArchiveReloadButton/>
         <ArchiveSaveButton/>
       </FormGroup>
     </Box>
@@ -349,13 +351,14 @@ export const ArchiveReUploadButton = React.memo((props) => {
   </IconButton>
 })
 
-export function archiveAdaptorFactory(archiveUrl, archive, rootSectionDef) {
-  return new SectionAdaptor(archiveUrl, archive, rootSectionDef)
+export function archiveAdaptorFactory(archiveRootUrl, archiveRootObj, rootSectionDef) {
+  return new SectionAdaptor(archiveRootUrl, archiveRootObj, rootSectionDef)
 }
 
 function archiveSearchOptions(data, metainfo) {
   const options = []
   const optionDefs = {}
+
   function traverse(data, def, parentName, parentPath) {
     for (const key in data) {
       const childDef = def._properties[key]
@@ -396,22 +399,23 @@ function archiveSearchOptions(data, metainfo) {
       }
     }
   }
+
   traverse(data, metainfo.getEntryArchiveDefinition(), null, null)
   return options
 }
 
 class ArchiveAdaptor extends Adaptor {
   /**
-   * @param {*} baseUrl Base url = an archive url, used to jump to the current archive
-   * @param {*} obj A data object, located somewhere in the archive specified by baseUrl
+   * @param {*} objUrl An absolute url (string or a parsed url object), identifying a location in some archive.
+   * @param {*} obj The data that objUrl points to = a location in some archive.
    * @param {*} def The metainfo definition of obj
    */
-  constructor(baseUrl, obj, def, isInEln) {
+  constructor(objUrl, obj, def, isInEln) {
     super()
-    this.baseUrl = baseUrl
-    this.parsedBaseUrl = parseNomadUrl(baseUrl)
-    if (!this.parsedBaseUrl.isResolved) throw new Error(`Resolved url is required, got ${baseUrl}`)
-    if (this.parsedBaseUrl.type !== refType.archive) throw new Error(`Bad url type, expected entry url, got ${baseUrl}`)
+    this.objUrl = objUrl
+    this.parsedObjUrl = parseNomadUrl(objUrl)
+    if (!this.parsedObjUrl.isResolved) throw new Error(`Resolved url is required, got ${objUrl}`)
+    if (this.parsedObjUrl.type !== refType.archive) throw new Error(`Bad url type, expected entry url, got ${objUrl}`)
     // Will be set when initializing the adaptor
     this.api = undefined
     this.dataStore = undefined
@@ -419,20 +423,21 @@ class ArchiveAdaptor extends Adaptor {
     this.isInEln = isInEln === undefined && def.m_def === SectionMDef ? isEditable(def) : isInEln
     this.obj = obj // The data in the archive tree to display
     this.def = def
+    this.external_refs = {}
   }
 
   async initialize(api, dataStore) {
     this.api = api
     this.dataStore = dataStore
     const {editable} = await dataStore.getEntryAsync(
-      this.parsedBaseUrl.installationUrl, this.parsedBaseUrl.entryId, false, '*')
+      this.parsedObjUrl.installationUrl, this.parsedObjUrl.entryId, false, '*')
     this.entryIsEditable = editable
   }
 
-  async adaptorFactory(baseUrl, obj, def) {
+  async adaptorFactory(objUrl, obj, def) {
     if (obj.m_def === PackageMDef) {
       // We're viewing an archive which contains metainfo definitions, and open the definitions node
-      const metainfo = await this.dataStore.getMetainfoAsync(baseUrl)
+      const metainfo = await this.dataStore.getMetainfoAsync(objUrl)
       return metainfoAdaptorFactory(metainfo._data.definitions)
     }
 
@@ -441,25 +446,25 @@ class ArchiveAdaptor extends Adaptor {
         // Override the def given by the schema with the potentially more specific
         // def given by the data
         const ref = obj.m_def_id ? `${obj.m_def}@${obj.m_def_id}` : obj.m_def
-        const newDefUrl = resolveNomadUrl(ref, baseUrl)
+        const newDefUrl = resolveNomadUrl(ref, objUrl)
         def = await this.dataStore.getMetainfoDefAsync(newDefUrl)
       }
       const isInEln = this.isInEln || isEditable(def)
-      return new SectionAdaptor(baseUrl, obj, def, isInEln)
+      return new SectionAdaptor(objUrl, obj, def, isInEln)
     }
 
     if (def.m_def === QuantityMDef) {
       if (def.type.type_kind === 'reference') {
         // Should only happen if the reference encountered has not been resolved, which can
         // happen if the reference is invalid or if it is of a type which we have no handler for.
-        return new UnresolvedReferenceAdaptor(baseUrl, obj, def)
+        return new UnresolvedReferenceAdaptor(objUrl, obj, def)
       }
 
-      return new QuantityAdaptor(baseUrl, obj, def)
+      return new QuantityAdaptor(objUrl, obj, def)
     }
 
     if (def.m_def === AttributeMDef) {
-      return new AttributeAdaptor(baseUrl, obj, def)
+      return new AttributeAdaptor(objUrl, obj, def)
     }
 
     throw new Error('not implemented')
@@ -468,15 +473,27 @@ class ArchiveAdaptor extends Adaptor {
   async itemAdaptor(key) {
     if (key === '_metainfo') {
       return metainfoAdaptorFactory(this.def)
-    } else {
-      throw new Error('Unknown item key')
     }
+
+    if (key.startsWith('_external_ref')) {
+      const ref = this.external_refs[key]
+      if (!ref) return null
+
+      const refUrl = createEntryUrl(apiBase, ref.upload_id, ref.entry_id)
+      const {archive} = await this.dataStore.getEntryAsync(apiBase, ref.entry_id, false, '*')
+      const metainfo = await this.dataStore.getMetainfoAsync(systemMetainfoUrl)
+      const rootSectionDef = metainfo.getEntryArchiveDefinition()
+      return this.adaptorFactory(refUrl, archive, rootSectionDef)
+    }
+
+    throw new Error('Unknown item key')
   }
 }
 
 class SectionAdaptor extends ArchiveAdaptor {
   async itemAdaptor(key) {
     const [name, index] = key.split(':')
+    let urlSuffix = index ? `${name}/${index}` : name
     const property = this.def._properties[name] || (name === 'm_attributes' && this.def.attributes.find(attr => attr.name === index))
     let value = this.obj[name] === undefined || this.obj[name] === null ? property?.default : this.obj[name]
     if (property.m_def === QuantityMDef && quantityUsesFullStorage(property)) {
@@ -490,9 +507,11 @@ class SectionAdaptor extends ArchiveAdaptor {
       let subSectionIndex = -1
       if (property.repeats) {
         subSectionIndex = parseInt(index || 0)
-        subSectionAdaptor = await this.adaptorFactory(this.parsedBaseUrl, value[subSectionIndex], sectionDef)
+        subSectionAdaptor = await this.adaptorFactory(
+          appendDataUrl(this.parsedObjUrl, `${name}/${subSectionIndex}`), value[subSectionIndex], sectionDef)
       } else {
-        subSectionAdaptor = await this.adaptorFactory(this.parsedBaseUrl, value, sectionDef)
+        subSectionAdaptor = await this.adaptorFactory(
+          appendDataUrl(this.parsedObjUrl, name), value, sectionDef)
       }
       subSectionAdaptor.parentRelation = {
         parent: this.obj,
@@ -506,16 +525,19 @@ class SectionAdaptor extends ArchiveAdaptor {
         let reference = null
         if (property.shape.length === 0) {
           reference = value
+          urlSuffix = name
         } else if (property.shape.length === 1) {
           const indexStr = key.split(':')[1]
           const index = parseInt(indexStr)
           reference = value[index]
+          urlSuffix = `${name}/${index}`
         }
         if (!reference) {
-          return this.adaptorFactory(this.parsedBaseUrl, value, property)
+          return this.adaptorFactory(
+            appendDataUrl(this.parsedObjUrl, urlSuffix), value, property)
         }
         try {
-          const resolvedUrl = resolveNomadUrl(reference, this.parsedBaseUrl)
+          const resolvedUrl = resolveNomadUrl(reference, this.parsedObjUrl)
           if (resolvedUrl.type === refType.archive) {
             const {archive} = await this.dataStore.getEntryAsync(resolvedUrl.installationUrl, resolvedUrl.entryId, false, '*')
             const resolvedDef = property.type._referencedDefinition
@@ -526,39 +548,45 @@ class SectionAdaptor extends ArchiveAdaptor {
         } catch (error) {
           // some sections cannot be resolved, because they are not part of the archive
           // user_id->user is one example
-          return this.adaptorFactory(this.parsedBaseUrl, reference, property)
+          return this.adaptorFactory(
+            appendDataUrl(this.parsedObjUrl, urlSuffix), reference, property)
         }
       }
       // Regular quantities
       if (property.m_annotations?.browser) {
         if (property.m_annotations.browser[0].adaptor === 'RawFileAdaptor') {
-          const installationUrl = this.parsedBaseUrl.installationUrl
-          const uploadId = this.parsedBaseUrl.uploadId
+          const installationUrl = this.parsedObjUrl.installationUrl
+          const uploadId = this.parsedObjUrl.uploadId
           const path = this.obj[property.name]
           const uploadUrl = createUploadUrl(installationUrl, uploadId, path)
           return new RawFileAdaptor(uploadUrl, null, false)
         }
       }
-      return this.adaptorFactory(this.parsedBaseUrl, value, property)
+      return this.adaptorFactory(appendDataUrl(this.parsedObjUrl, urlSuffix), value, property)
     } else if (property.m_def === AttributeMDef) {
-      return this.adaptorFactory(this.parsedBaseUrl, this.obj?.m_attributes[index], property)
+      return this.adaptorFactory(
+        appendDataUrl(this.parsedObjUrl, `m_attributes/${index}`),
+        this.obj?.m_attributes[index],
+        property)
     } else {
       throw new Error('Unknown metainfo meta definition')
     }
   }
+
   render() {
     return <Section
       section={this.obj}
       def={this.def}
       parentRelation={this.parentRelation}
       sectionIsInEln={this.isInEln}
-      sectionIsEditable={this.entryIsEditable && this.isInEln}/>
+      sectionIsEditable={this.entryIsEditable && this.isInEln}
+    />
   }
 }
 
 class UnresolvedReferenceAdaptor extends ArchiveAdaptor {
   render() {
-    return <UnresolvedReference value={this.obj} def={this.def} />
+    return <UnresolvedReference value={this.obj} def={this.def}/>
   }
 }
 
@@ -567,7 +595,10 @@ class QuantityAdaptor extends ArchiveAdaptor {
     const attribute = this.def?.attributes?.find(attr => attr.name === key)
     if (attribute) {
       const value = this.obj?.m_attributes?.[key]
-      return await this.adaptorFactory(this.parsedBaseUrl, value, attribute)
+      return await this.adaptorFactory(
+        appendDataUrl(this.parsedObjUrl, `m_attributes/${key}`),
+        value,
+        attribute)
     }
 
     return super.itemAdaptor(key)
@@ -575,9 +606,9 @@ class QuantityAdaptor extends ArchiveAdaptor {
 
   render() {
     if (quantityUsesFullStorage(this.def)) {
-      return <FullStorageQuantity value={this.obj} def={this.def} />
+      return <FullStorageQuantity value={this.obj} def={this.def}/>
     } else {
-      return <Quantity value={this.obj} def={this.def} />
+      return <Quantity value={this.obj} def={this.def}/>
     }
   }
 }
@@ -641,11 +672,12 @@ function QuantityItemPreview({value, def}) {
       finalUnit = a.label()
     }
     return <Box component="span" whiteSpace="nowarp">
-      <Number component="span" variant="body1" value={finalValue} exp={8} />
+      <Number component="span" variant="body1" value={finalValue} exp={8}/>
       {finalUnit && <Typography component="span">&nbsp;{finalUnit}</Typography>}
     </Box>
   }
 }
+
 QuantityItemPreview.propTypes = ({
   value: PropTypes.any,
   def: PropTypes.object.isRequired
@@ -693,7 +725,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
       return <Number value={finalValue} exp={16} variant="body1" unit={finalUnit}/>
     }
   } else if (def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
-    return <div dangerouslySetInnerHTML={{ __html: value }}/>
+    return <div dangerouslySetInnerHTML={{__html: value}}/>
   } else {
     if (Array.isArray(value)) {
       return <ul style={{margin: 0}}>
@@ -746,12 +778,12 @@ const InheritingSections = React.memo(function InheritingSections({def, section,
 
   return (
     <Box sx={{minWidth: 120}}>
-      <FormControl fullWidth >
+      <FormControl fullWidth>
         <FormHelperText>Multiple specific sections are available</FormHelperText>
         <TextField
           value={getSelectionValue(def)}
-          variant='filled'
-          label='Select a section'
+          variant="filled"
+          label="Select a section"
           data-testid={`inheriting:${def.name}`}
           onChange={handleInheritingSectionsChange}
           size="small"
@@ -787,14 +819,14 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
   const history = useHistory()
 
   const navEntryId = useMemo(() => {
-    return lane?.adaptor?.parsedBaseUrl?.entryId
+    return lane?.adaptor?.parsedObjUrl?.entryId
   }, [lane])
 
   const actions = useMemo(() => {
     const navButton = navEntryId && (
       <Grid item>
         <EntryButton entryId={navEntryId} component={IconButton} size="small">
-          <NavigateIcon />
+          <NavigateIcon/>
         </EntryButton>
       </Grid>
     )
@@ -811,7 +843,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
     ) : (
       <Grid item>
         <IconButton onClick={() => setShowJson(value => !value)} size="small">
-          <CodeIcon />
+          <CodeIcon/>
         </IconButton>
       </Grid>
     )
@@ -828,7 +860,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
     const deleteButton = sectionIsEditable && (
       <Grid item>
         <IconButton onClick={handleDelete} size="small">
-          <DeleteIcon />
+          <DeleteIcon/>
         </IconButton>
       </Grid>
     )
@@ -849,13 +881,13 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
               {quantityName || quantityDef.name}
             </Box>
           </Typography>{!disabled &&
-            <span>&nbsp;=&nbsp;
-              <QuantityItemPreview
-                value={value}
-                def={quantityDef}
-              />
+          <span>&nbsp;=&nbsp;
+            <QuantityItemPreview
+              value={value}
+              def={quantityDef}
+            />
             </span>
-          }
+        }
         </Box>
         {isDefault && <ItemChip label="default value"/>}
       </Item>
@@ -867,7 +899,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
     const value = section[key] === undefined || section[key] === null ? quantityDef.default : section[key]
     const disabled = value === undefined
     if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
-      return <ReferenceValuesList key={key} quantityDef={quantityDef} />
+      return <ReferenceValuesList key={key} quantityDef={quantityDef}/>
     }
     if (quantityUsesFullStorage(quantityDef)) {
       const storage = section[quantityDef.name] || {}
@@ -918,7 +950,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
     contents = <React.Fragment>
       {quantities.length > 0 && (
         <Compartment title="quantities">
-          <SectionEditor sectionDef={def} section={section} showJson={showJson} />
+          <SectionEditor sectionDef={def} section={section} showJson={showJson}/>
           <Box marginTop={2}>
             {quantities
               .filter(filter)
@@ -958,13 +990,15 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
       {sectionIsEditable && sectionIsInEln && (
         <InheritingSections def={def} section={section} lane={lane}/>
       )}
-      <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions} />
+      <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions}/>
       <Overview section={section} def={def}/>
       {contents}
-      <Meta def={def} />
+      <Meta def={def}/>
+      <ExternalReferences/>
     </Content>
   )
 }
+
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
@@ -977,7 +1011,7 @@ function SubSection({subSectionDef, section, editable}) {
   const {handleArchiveChanged} = useEntryPageContext() || {}
   const lane = useLane()
   const history = useHistory()
-  const { label, getItemLabel } = useMemo(() => {
+  const {label, getItemLabel} = useMemo(() => {
     const sectionDef = subSectionDef.sub_section
     let itemLabelKey = sectionDef.more?.label_quantity
     if (!itemLabelKey) {
@@ -1032,7 +1066,7 @@ function SubSection({subSectionDef, section, editable}) {
   const actions = editable && (subSectionDef.repeats || !values) && (
     <Box marginRight={!showList && values ? -1 : 2}>
       <IconButton data-testid={`subsection:${subSectionDef.name}`} onClick={handleAdd} size="small">
-        <AddIcon style={{fontSize: 20}} />
+        <AddIcon style={{fontSize: 20}}/>
       </IconButton>
     </Box>
   )
@@ -1057,6 +1091,7 @@ function SubSection({subSectionDef, section, editable}) {
     )
   }
 }
+
 SubSection.propTypes = ({
   subSectionDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
@@ -1068,8 +1103,9 @@ function ReferenceValuesList({quantityDef}) {
   const values = useMemo(() => lane.adaptor.obj[quantityDef.name].map(() => null), [lane.adaptor.obj, quantityDef.name])
   return <PropertyValuesList
     values={values}
-    label={quantityDef.name} />
+    label={quantityDef.name}/>
 }
+
 ReferenceValuesList.propTypes = ({
   quantityDef: PropTypes.object.isRequired
 })
@@ -1105,6 +1141,7 @@ const usePropertyValuesListStyles = makeStyles(theme => ({
   },
   actions: {}
 }))
+
 function PropertyValuesList({label, values, actions}) {
   const classes = usePropertyValuesListStyles()
   const [open, setOpen] = useState(false)
@@ -1124,12 +1161,12 @@ function PropertyValuesList({label, values, actions}) {
       </div>}
     </div>
     {open &&
-      <div data-testid={`item-list:${label}`} >
+      <div data-testid={`item-list:${label}`}>
         {values.map((item, index) => (
           <Item key={index} itemKey={`${label}:${index}`}>
             <Box display="flex" flexDirection="row" flexGrow={1}>
               <Box component="span" marginLeft={2}>
-                { item && typeof item === 'object'
+                {item && typeof item === 'object'
                   ? item // item should be a react component
                   : <Typography component="span">{item || index}</Typography>
                 }
@@ -1141,6 +1178,7 @@ function PropertyValuesList({label, values, actions}) {
     }
   </React.Fragment>
 }
+
 PropertyValuesList.propTypes = ({
   label: PropTypes.string.isRequired,
   values: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -1178,7 +1216,7 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
   return <Compartment title="plot">
     <Box minWidth={500}>
       {plots.length > 1 && <TextField
-        select variant='filled' size='small' fullWidth label={'Shown plots'} style={{marginBottom: 2}}
+        select variant="filled" size="small" fullWidth label={'Shown plots'} style={{marginBottom: 2}}
         SelectProps={{
           multiple: true,
           value: selected,
@@ -1224,6 +1262,7 @@ function FullStorageQuantity({value, def}) {
     </Compartment>}
   </Quantity>
 }
+
 FullStorageQuantity.propTypes = ({
   value: PropTypes.any,
   def: PropTypes.object.isRequired
@@ -1232,7 +1271,7 @@ FullStorageQuantity.propTypes = ({
 function Quantity({value, def, unit, children}) {
   const {prev} = useLane()
   return <Content>
-    <ArchiveTitle def={def} data={value} kindLabel="value" />
+    <ArchiveTitle def={def} data={value} kindLabel="value"/>
     {def.m_annotations?.plot && (
       <Compartment title="plot">
         <XYPlot
@@ -1251,31 +1290,34 @@ function Quantity({value, def, unit, children}) {
       />
     </Compartment>
     {children}
-    <Meta def={def} />
+    <Meta def={def}/>
+    <ExternalReferences/>
   </Content>
 }
+
 Quantity.propTypes = ({
   value: PropTypes.any,
   def: PropTypes.object.isRequired,
   unit: PropTypes.string,
   children: PropTypes.oneOfType([
-      PropTypes.arrayOf(PropTypes.node),
-      PropTypes.node
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
   ])
 })
 
 function Attribute({value, def}) {
   return <Content>
-    <ArchiveTitle def={def} data={value} kindLabel="attribute" />
+    <ArchiveTitle def={def} data={value} kindLabel="attribute"/>
     <Compartment title="value">
       <QuantityValue
         value={value}
         def={def}
       />
     </Compartment>
-    <Meta def={def} />
+    <Meta def={def}/>
   </Content>
 }
+
 Attribute.propTypes = ({
   value: PropTypes.any,
   def: PropTypes.object.isRequired
@@ -1286,7 +1328,7 @@ function UnresolvedReference({value, def}) {
   const refTypeQualifiedName = def?.type?._referencedDefinition?._qualifiedName
   const isOk = ['nomad.metainfo.metainfo.User'].includes(refTypeQualifiedName) // expected to not be resolvable
   return <Content>
-    <ArchiveTitle def={def} data={value} kindLabel="value" />
+    <ArchiveTitle def={def} data={value} kindLabel="value"/>
     <Compartment title="reference">
       {!isOk && <Typography color="error">Cannot resolve reference.</Typography>}
       <Typography><b>Reference type:</b></Typography>
@@ -1294,9 +1336,10 @@ function UnresolvedReference({value, def}) {
       <Typography><b>Reference value:</b></Typography>
       <Typography>{value}</Typography>
     </Compartment>
-    <Meta def={def} />
+    <Meta def={def}/>
   </Content>
 }
+
 UnresolvedReference.propTypes = ({
   value: PropTypes.any,
   def: PropTypes.object.isRequired
@@ -1316,6 +1359,7 @@ const useMetaStyles = makeStyles(theme => ({
     fontWeight: 'bold'
   }
 }))
+
 export function Meta({def}) {
   const classes = useMetaStyles()
   const config = useRecoilValue(configState)
@@ -1325,12 +1369,88 @@ export function Meta({def}) {
   return <Compartment title="meta" color="primary">
     <div className={classes.metainfo}>
       <Item itemKey="_metainfo">
-        <DefinitionLabel classes={{root: classes.metainfoItem}} def={def} isDefinition component="span" />
+        <DefinitionLabel classes={{root: classes.metainfoItem}} def={def} isDefinition component="span"/>
       </Item>
     </div>
     <Markdown classes={{root: classes.description}}>{def.description}</Markdown>
   </Compartment>
 }
+
 Meta.propTypes = ({
   def: PropTypes.object
 })
+
+const baseQuery = {
+  'exclude': [
+    'atoms',
+    'only_atoms',
+    'files',
+    'quantities',
+    'dft.quantities',
+    'optimade',
+    'dft.labels',
+    'dft.geometries'
+  ],
+  'required': {
+    'metadata': '*'
+  },
+  'owner': 'visible',
+  'pagination': {
+    'order_by': 'upload_create_time', 'order': 'desc', 'page_size': 20
+  }
+}
+
+function ExternalReferences() {
+  const lane = useLane()
+  const [searchResults, setSearchResults] = useState(null)
+
+  const {api} = useApi()
+  const {raiseError} = useErrors()
+
+  const source = lane.adaptor
+
+  const entryId = source.parsedObjUrl.entryId
+  const dataPath = source.parsedObjUrl.path || '/'
+
+  const performSearch = () => {
+    if (searchResults) return
+    const referencing_query = Object.assign({}, baseQuery, {
+      'query': {
+        'entry_references.target_entry_id': entryId,
+        'entry_references.target_path': dataPath
+      }
+    })
+    api.query('entries', referencing_query, {noLoading: true}).then((data) => {
+      source.external_refs = Object.fromEntries(data.data.map((entry, index) => {
+        entry.entry_references = entry.entry_references.filter(ref => ref.target_entry_id === entryId && ref.target_path === dataPath)
+        return ['_external_ref_' + index, entry]
+      }))
+      setSearchResults(Object.values(source.external_refs))
+    }).catch(raiseError)
+  }
+
+  const entry_list = (list) => {
+    return list.map((ref, index) => (
+      <Item itemKey={'_external_ref_' + index} key={index}><Typography component="span">
+        <Box fontWeight="bold" component="span">{ref.mainfile}</Box>
+        &nbsp;=&nbsp;
+        <Box component="span" fontStyle="italic">entry ...</Box>
+        {ref.entry_references?.map(
+          (ref, index) => <Typography key={index} variant="body2">{ref.source_path}</Typography>
+        )}
+      </Typography></Item>
+    ))
+  }
+
+  return <Compartment title="referenced by" startCollapsed={true} onUnfold={performSearch}>
+    {searchResults
+      ? searchResults.length > 0
+        ? searchResults.length === 20
+          ? <Tooltip title="Only showing at most the latest 20 entries.">
+            {entry_list(searchResults)}
+          </Tooltip>
+          : entry_list(searchResults)
+        : <Alert severity={'info'}>not referenced by other entries</Alert>
+      : <Alert severity={'info'}>loading...</Alert>}
+  </Compartment>
+}

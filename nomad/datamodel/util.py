@@ -60,6 +60,8 @@ def parse_path(url: str, upload_id: str = None):
         entry_id_or_mainfile = url_match.group(1)
         kind = url_match.group(2)  # archive or raw
         path = url_match.group(3)
+        if not path.startswith('/'):
+            path = '/' + path
 
         return None, upload_id, entry_id_or_mainfile, kind, path, None
 
@@ -75,6 +77,8 @@ def parse_path(url: str, upload_id: str = None):
     kind = url_match.group(3)  # archive or raw
     entry_id_or_mainfile = url_match.group(4)
     path = url_match.group(5)
+    if not path.startswith('/'):
+        path = '/' + path
     file_name: str = None  # type: ignore
 
     if kind == 'archive':

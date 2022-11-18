@@ -539,11 +539,12 @@ export function Content(props) {
   return <Box minWidth={300} maxWidth={600} padding={1} {...props} />
 }
 
-export function Compartment({title, children, color, startCollapsed}) {
+export function Compartment({title, children, color, startCollapsed, onUnfold}) {
   const [collapsed, setCollapsed] = useState(startCollapsed)
   const handleClick = useCallback(() => {
     setCollapsed(value => !value)
-  }, [setCollapsed])
+    onUnfold && onUnfold()
+  }, [setCollapsed, onUnfold])
   if (!React.Children.count(children)) {
     return null
   }
@@ -560,6 +561,7 @@ Compartment.propTypes = ({
   title: PropTypes.string,
   color: PropTypes.string,
   startCollapsed: PropTypes.bool,
+  onUnfold: PropTypes.func,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
