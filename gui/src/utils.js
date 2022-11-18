@@ -1159,6 +1159,20 @@ export function createEntryUrl(installationUrl, uploadId, entryId, dataPath) {
 }
 
 /**
+ * Given parsedUrl, which should be a resolved, parsed url, specifying an entry and some dataPath
+ * within this entry (the path may be empty), append the dataPathSuffix, and return the resulting
+ * url as a string. If the dataPath of parsedUrl is empty, it will be interpreted to mean the archive
+ * root element. The dataPathSuffix should not start with a '/'.
+ */
+export function appendDataUrl(parsedUrl, dataPathSuffix) {
+  if (!parsedUrl.isResolved) throw new Error(`appendDataUrl: a resolved url required, got ${parsedUrl}`)
+  if (parsedUrl.type !== refType.archive) throw new Error(`appendDataUrl: an archive url required, got ${parsedUrl}`)
+  return urlJoin(
+    `${parsedUrl.installationUrl}/uploads/${parsedUrl.uploadId}/archive/${parsedUrl.entryId}#${parsedUrl.path || '/'}`,
+    dataPathSuffix)
+}
+
+/**
  * A simple method for joining url components. The componenst should be strings, and the return
  * value is also a string. A '/' is inserted between all components, if needed (i.e. if the preceding
  * component does not end with a '/').

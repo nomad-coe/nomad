@@ -699,7 +699,7 @@ class EntryMetadata(metainfo.MSection):
             quantities.add(quantity_path)
             n_quantities += 1
 
-            collect_references(section, property_def, quantity_path)
+            collect_references(section, property_def, section.m_path(property_def))
 
         # We collected entry_references, quantities, and sections before adding these
         # data to the archive itself. We manually add them here.
