@@ -9,7 +9,7 @@ import { getUrlFromDefinition, SectionMDef, useGlobalMetainfo } from '../archive
 import { useUploadPageContext } from './UploadPageContext'
 
 const CreateEntry = React.memo(function CreateEntry(props) {
-  const {installationUrl, uploadId, isProcessing} = useUploadPageContext()
+  const {deploymentUrl, uploadId, isProcessing} = useUploadPageContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const globalMetainfo = useGlobalMetainfo()
@@ -73,7 +73,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
         const newTemplates = getTemplatesFromDefinitions(
           archive.definitions.section_definitions, archive.metadata.entry_id, archive,
           section => {
-            return getUrlFromDefinition(section, {installationUrl, uploadId}, true)
+            return getUrlFromDefinition(section, {deploymentUrl, uploadId}, true)
           })
         newTemplates.forEach(template => {
           templates.push(template)
@@ -87,7 +87,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
     }
 
     getTemplates().then(setTemplates).catch(raiseError)
-  }, [api, raiseError, setTemplates, globalMetainfo, isProcessing, installationUrl, uploadId])
+  }, [api, raiseError, setTemplates, globalMetainfo, isProcessing, deploymentUrl, uploadId])
 
   const handleAdd = useCallback(() => {
     api.put(`uploads/${uploadId}/raw/?file_name=${name}.archive.json&overwrite_if_exists=false&wait_for_processing=true`, selectedTemplate.archive)

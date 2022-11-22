@@ -68,7 +68,7 @@ const BrowseEntryFilesView = React.memo((props) => {
     const mainfileBasename = data.mainfile.split('/').pop()
     return <Page>
       <FileBrowser
-        uploadUrl={createUploadUrl(apiBase, data.upload_id, mainfileDirname)} // TODO: installationUrl should come from entry context
+        uploadUrl={createUploadUrl(apiBase, data.upload_id, mainfileDirname)} // TODO: deploymentUrl should come from entry context
         rootTitle="Entry files"
         highlightedItem={mainfileBasename}
       />

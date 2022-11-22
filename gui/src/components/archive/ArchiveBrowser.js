@@ -77,7 +77,7 @@ export const configState = atom({
 
 const ArchiveBrowser = React.memo(({url}) => {
   const parsedUrl = useMemo(() => parseNomadUrl(url), [url])
-  const {archive} = useEntryStoreObj(parsedUrl.installationUrl, parsedUrl.entryId, false, '*')
+  const {archive} = useEntryStoreObj(parsedUrl.deploymentUrl, parsedUrl.entryId, false, '*')
   const metainfo = useMetainfo(systemMetainfoUrl)
   const rootSectionDef = metainfo ? metainfo.getEntryArchiveDefinition() : null
 
@@ -430,7 +430,7 @@ class ArchiveAdaptor extends Adaptor {
     this.api = api
     this.dataStore = dataStore
     const {editable} = await dataStore.getEntryAsync(
-      this.parsedObjUrl.installationUrl, this.parsedObjUrl.entryId, false, '*')
+      this.parsedObjUrl.deploymentUrl, this.parsedObjUrl.entryId, false, '*')
     this.entryIsEditable = editable
   }
 
@@ -539,7 +539,7 @@ class SectionAdaptor extends ArchiveAdaptor {
         try {
           const resolvedUrl = resolveNomadUrl(reference, this.parsedObjUrl)
           if (resolvedUrl.type === refType.archive) {
-            const {archive} = await this.dataStore.getEntryAsync(resolvedUrl.installationUrl, resolvedUrl.entryId, false, '*')
+            const {archive} = await this.dataStore.getEntryAsync(resolvedUrl.deploymentUrl, resolvedUrl.entryId, false, '*')
             const resolvedDef = property.type._referencedDefinition
             const resolvedObj = resolveInternalRef('/' + (resolvedUrl.path || ''), archive)
             return this.adaptorFactory(resolvedUrl, resolvedObj, resolvedDef)
@@ -555,10 +555,10 @@ class SectionAdaptor extends ArchiveAdaptor {
       // Regular quantities
       if (property.m_annotations?.browser) {
         if (property.m_annotations.browser[0].adaptor === 'RawFileAdaptor') {
-          const installationUrl = this.parsedObjUrl.installationUrl
+          const deploymentUrl = this.parsedObjUrl.deploymentUrl
           const uploadId = this.parsedObjUrl.uploadId
           const path = this.obj[property.name]
-          const uploadUrl = createUploadUrl(installationUrl, uploadId, path)
+          const uploadUrl = createUploadUrl(deploymentUrl, uploadId, path)
           return new RawFileAdaptor(uploadUrl, null, false)
         }
       }
@@ -761,7 +761,7 @@ const InheritingSections = React.memo(function InheritingSections({def, section,
   }, [dataStore, def])
 
   const getSelectionValue = useCallback((def) => {
-    return getUrlFromDefinition(def, {installationUrl: apiBase}, true)
+    return getUrlFromDefinition(def, {deploymentUrl: apiBase}, true)
   }, [])
 
   const showSelection = useMemo(() => {

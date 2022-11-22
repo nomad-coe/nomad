@@ -188,8 +188,7 @@ services = NomadConfig(
 )
 
 oasis = NomadConfig(
-    central_nomad_api_url='https://nomad-lab.eu/prod/v1/api',
-    central_nomad_deployment_id='nomad-lab.eu/prod/v1',
+    central_nomad_deployment_url='https://nomad-lab.eu/prod/v1/api',
     allowed_users=None,  # a list of usernames or user account emails
     uses_central_user_management=False,
     is_oasis=False
@@ -345,7 +344,8 @@ datacite = NomadConfig(
 meta = NomadConfig(
     version='1.1.5',
     commit=gitinfo.commit,
-    deployment='devel',
+    deployment='devel',  # A human-friendly name of the nomad deployment
+    deployment_url='https://my-oasis.org/api',  # The deployment's url (api url).
     label=None,
     default_domain='dft',
     service='unknown nomad service',
@@ -354,7 +354,6 @@ meta = NomadConfig(
     homepage='https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
     maintainer_email='markus.scheidgen@physik.hu-berlin.de',
-    deployment_id='nomad-lab.eu/prod/v1',
     beta=None
 )
 
@@ -404,7 +403,7 @@ bundle_import = NomadConfig(
         include_datasets=True,
         include_bundle_info=True,  # Keeps the bundle_info.json file (not necessary but nice to have)
         keep_original_timestamps=False,  # If all time stamps (create time, publish time etc) should be imported from the bundle
-        set_from_oasis=True,  # If the from_oasis flag and oasis_deployment_id should be set
+        set_from_oasis=True,  # If the from_oasis flag and oasis_deployment_url should be set
         delete_upload_on_fail=False,  # If False, it is just removed from the ES index on failure
         delete_bundle_when_done=True,  # Deletes the source bundle when done (regardless of success)
         also_delete_bundle_parent_folder=True,  # Also deletes the parent folder, if it is empty.

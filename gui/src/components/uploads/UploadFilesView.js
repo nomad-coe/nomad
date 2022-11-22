@@ -24,7 +24,7 @@ import { createUploadUrl } from '../../utils'
 import { Typography } from '@material-ui/core'
 
 const UploadFilesView = React.memo(function UploadFilesView() {
-  const {installationUrl, uploadId, error, hasUpload} = useUploadPageContext()
+  const {deploymentUrl, uploadId, error, hasUpload} = useUploadPageContext()
 
   if (!hasUpload) {
     return <Page limitedWidth>
@@ -34,7 +34,7 @@ const UploadFilesView = React.memo(function UploadFilesView() {
 
   return <Page>
     <FileBrowser
-      uploadUrl={createUploadUrl(installationUrl, uploadId, '')}
+      uploadUrl={createUploadUrl(deploymentUrl, uploadId, '')}
       rootTitle="Upload files"
     />
   </Page>

@@ -156,7 +156,7 @@ class Context(MetainfoContext):
         we're processing locally or not). For non-ServerContexts, the method does nothing.
 
         Note, that *modifying* existing files is discouraged, as this needs to be done with
-        care to avoid infinite loops of files modifyin each other etc. We would thus recommend
+        care to avoid infinite loops of files modifying each other etc. We would thus recommend
         to only use this method for *adding* files. If you still want to modify existing
         files, you must set the `allow_modify` flag, otherwise the call will raise an exception
         if the entry already exists. Also note that this method should not be used to modify

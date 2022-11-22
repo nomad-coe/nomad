@@ -164,8 +164,10 @@ NOMAD app and worker read a `nomad.yaml` for configuration.
 
 You should change the following:
 
-- Replace `localhost` with the hostname of your server. I user-management will redirect your users back to this host. Make sure this is the hostname, your users can use.
-- Replace `deployment`, `deployment_id`, and `maintainer_email` with representative values. The `deployment_id` should be the public hostname if you have any of your oasis.
+- Replace `localhost` with the hostname of your server. I user-management will redirect your
+users back to this host. Make sure this is the hostname, your users can use.
+- Replace `deployment`, `deployment_url`, and `maintainer_email` with representative values.
+The `deployment_url` should be the url to the deployment's api (should end with `/api`).
 - You can change `api_base_path` to run NOMAD under a different path prefix.
 - You should generate your own `north.jupyterhub_crypt_key`. You can generate one
 with `openssl rand -hex 32`.
