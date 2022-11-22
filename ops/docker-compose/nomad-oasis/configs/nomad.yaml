@@ -11,7 +11,7 @@ north:
 
 meta:
   deployment: 'oasis'
-  deployment_id: 'my_oasis'
+  deployment_url: 'https://my-oasis.org/api'
   maintainer_email: 'me@my-oasis.org'
 
 mongo:

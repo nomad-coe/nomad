@@ -1675,8 +1675,8 @@ def test_post_upload_action_publish_to_central_nomad(
                     'n_quantities', 'quantities'):  # TODO: n_quantities and quantities update problem?
                 assert new_entry_metadata_dict[k] == v, f'Metadata not matching: {k}'
         assert new_entry.datasets == ['dataset_id']
-        assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id
-        assert new_upload.from_oasis and new_upload.oasis_deployment_id
+        assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_url
+        assert new_upload.from_oasis and new_upload.oasis_deployment_url
         assert new_upload.embargo_length == embargo_length
         assert old_upload.upload_files.access == 'restricted' if old_upload.with_embargo else 'public'
         assert new_upload.upload_files.access == 'restricted' if new_upload.with_embargo else 'public'
@@ -1907,7 +1907,7 @@ def test_post_upload_bundle(
     if expected_status_code == 200:
         assert_processing(client, upload_id, user_auth, published=publish)
         upload = Upload.get(upload_id)
-        assert upload.from_oasis and upload.oasis_deployment_id
+        assert upload.from_oasis and upload.oasis_deployment_url
     return
 
 

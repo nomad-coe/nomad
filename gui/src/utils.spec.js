@@ -74,7 +74,7 @@ test.each([
   ['empty value', ''],
   ['bad type, expected string, got object', {}],
   ['bad type, expected string, got number', 7],
-  ['absolute nomad installation url does not contain "/api"', 'https://my.nomad.oasis.com/prod'],
+  ['absolute nomad deployment url does not contain "/api"', 'https://my.nomad.oasis.com/prod'],
   ['expected "/uploads/<uploadId>" in absolute url', 'https://my.nomad.oasis.com/prod/api/silly/continuation#/more/silly'],
   ['bad url', 'a.b.0c'],
   ['expected "/uploads/<uploadId>" in url', '../uploads'],
@@ -96,8 +96,8 @@ test.each([
 test.each([
   ['https://my.nomad.oasis.com/prod/api', {
     relativeTo: null,
-    type: refType.installation,
-    installationUrl: 'https://my.nomad.oasis.com/prod/api',
+    type: refType.deployment,
+    deploymentUrl: 'https://my.nomad.oasis.com/prod/api',
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
@@ -110,7 +110,7 @@ test.each([
   [`${apiBase}/uploads/SomeUploadID`, {
     relativeTo: null,
     type: refType.upload,
-    installationUrl: apiBase,
+    deploymentUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: undefined,
     mainfile: undefined,
@@ -123,7 +123,7 @@ test.each([
   [`${apiBase}/uploads/SomeUploadID/raw`, {
     relativeTo: null,
     type: refType.upload,
-    installationUrl: apiBase,
+    deploymentUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: undefined,
     mainfile: undefined,
@@ -136,7 +136,7 @@ test.each([
   [`${apiBase}/uploads/SomeUploadID/raw/some/path#/arch/path`, {
     relativeTo: null,
     type: refType.archive,
-    installationUrl: apiBase,
+    deploymentUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
@@ -149,7 +149,7 @@ test.each([
   [`${apiBase}/uploads/SomeUploadID/archive/SomeArchID`, {
     relativeTo: null,
     type: refType.archive,
-    installationUrl: apiBase,
+    deploymentUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: 'SomeArchID',
     mainfile: undefined,
@@ -162,7 +162,7 @@ test.each([
   [`${apiBase}/uploads/SomeUploadID/archive/SomeArchID#arch/path`, {
     relativeTo: null,
     type: refType.archive,
-    installationUrl: apiBase,
+    deploymentUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: 'SomeArchID',
     mainfile: undefined,
@@ -175,7 +175,7 @@ test.each([
   [`${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path`, {
     relativeTo: null,
     type: refType.archive,
-    installationUrl: apiBase,
+    deploymentUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
@@ -188,7 +188,7 @@ test.each([
   [`${apiBase}/uploads/SomeUploadID/archive/mainfile/some/path#/arch//path`, {
     relativeTo: null,
     type: refType.archive,
-    installationUrl: apiBase,
+    deploymentUrl: apiBase,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
@@ -199,9 +199,9 @@ test.each([
     isExternal: false
   }],
   [`../uploads/SomeUploadID`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.upload,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: undefined,
     mainfile: undefined,
@@ -212,9 +212,9 @@ test.each([
     isExternal: undefined
   }],
   [`../uploads/SomeUploadID/raw/some/path`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.upload,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: undefined,
     mainfile: undefined,
@@ -225,9 +225,9 @@ test.each([
     isExternal: undefined
   }],
   [`../uploads/SomeUploadID/raw/some/path#/definitions/some/schema/path`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.metainfo,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
@@ -238,9 +238,9 @@ test.each([
     isExternal: undefined
   }],
   [`../uploads/SomeUploadID/raw/some/path#definitions/some/schema/path@SomeVersionHash`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.metainfo,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
@@ -251,9 +251,9 @@ test.each([
     isExternal: undefined
   }],
   [`../uploads/SomeUploadID/archive/SomeArchID`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.archive,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'SomeArchID',
     mainfile: undefined,
@@ -264,9 +264,9 @@ test.each([
     isExternal: undefined
   }],
   [`../uploads/SomeUploadID/archive/SomeArchID#/arch/path`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.archive,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'SomeArchID',
     mainfile: undefined,
@@ -277,9 +277,9 @@ test.each([
     isExternal: undefined
   }],
   [`../uploads/SomeUploadID/archive/mainfile/some/path`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.archive,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
@@ -290,9 +290,9 @@ test.each([
     isExternal: undefined
   }],
   [`../uploads/SomeUploadID/archive/mainfile/some/path#/definitions/some/schema/path`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.metainfo,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
@@ -303,9 +303,9 @@ test.each([
     isExternal: undefined
   }],
   [`../uploads/SomeUploadID/archive/mainfile/some/path#definitions/some//schema/path@SomeVersionHash`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.metainfo,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: 'SomeUploadID',
     entryId: 'TbJz7EfLcUdPBJ_iSAXrm5cy7G1v',
     mainfile: 'some/path',
@@ -318,7 +318,7 @@ test.each([
   [`../upload`, {
     relativeTo: refRelativeTo.upload,
     type: refType.upload,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
@@ -331,7 +331,7 @@ test.each([
   [`../upload/raw/some/path`, {
     relativeTo: refRelativeTo.upload,
     type: refType.upload,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
@@ -344,7 +344,7 @@ test.each([
   [`../upload/raw/some/path#/arch/path`, {
     relativeTo: refRelativeTo.upload,
     type: refType.archive,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: 'some/path',
@@ -357,7 +357,7 @@ test.each([
   [`../upload/archive/SomeArchID`, {
     relativeTo: refRelativeTo.upload,
     type: refType.archive,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: 'SomeArchID',
     mainfile: undefined,
@@ -370,7 +370,7 @@ test.each([
   [`../upload/archive/SomeArchID#/definitions/path`, {
     relativeTo: refRelativeTo.upload,
     type: refType.metainfo,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: 'SomeArchID',
     mainfile: undefined,
@@ -381,9 +381,9 @@ test.each([
     isExternal: undefined
   }],
   [`../upload/archive/SomeArchID#/definitions/path@SomeVersionHash`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.metainfo,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: 'SomeArchID',
     mainfile: undefined,
@@ -396,7 +396,7 @@ test.each([
   [`../upload/archive/mainfile/some/path`, {
     relativeTo: refRelativeTo.upload,
     type: refType.archive,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: 'some/path',
@@ -409,7 +409,7 @@ test.each([
   [`../upload/archive/mainfile/some/path#/arch/path`, {
     relativeTo: refRelativeTo.upload,
     type: refType.archive,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: 'some/path',
@@ -422,7 +422,7 @@ test.each([
   [`#/arch/path`, {
     relativeTo: refRelativeTo.data,
     type: refType.archive,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
@@ -435,7 +435,7 @@ test.each([
   [`#/definitions/def/path`, {
     relativeTo: refRelativeTo.data,
     type: refType.metainfo,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
@@ -448,7 +448,7 @@ test.each([
   [`/arch/path`, {
     relativeTo: refRelativeTo.data,
     type: refType.archive,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
@@ -461,7 +461,7 @@ test.each([
   [`/definitions/def/path`, {
     relativeTo: refRelativeTo.data,
     type: refType.metainfo,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
@@ -472,9 +472,9 @@ test.each([
     isExternal: undefined
   }],
   [`nomad.datamodel.some.path`, {
-    relativeTo: refRelativeTo.installation,
+    relativeTo: refRelativeTo.deployment,
     type: refType.metainfo,
-    installationUrl: undefined,
+    deploymentUrl: undefined,
     uploadId: undefined,
     entryId: undefined,
     mainfile: undefined,
@@ -487,7 +487,7 @@ test.each([
 ])('parseNomadUrl: %s', (url, expectedResult) => {
   const result = parseNomadUrl(url)
   expect(result.url).toBe(url)
-  for (const key of ['relativeTo', 'type', 'installationUrl', 'uploadId', 'entryId', 'mainfile', 'path']) {
+  for (const key of ['relativeTo', 'type', 'deploymentUrl', 'uploadId', 'entryId', 'mainfile', 'path']) {
     expect(key in result).toBe(true)
     expect(result[key]).toBe(expectedResult[key])
   }

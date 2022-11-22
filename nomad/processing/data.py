@@ -1243,7 +1243,7 @@ class Upload(Proc):
     license = StringField(default='CC BY 4.0', required=True)
 
     from_oasis = BooleanField(default=False)
-    oasis_deployment_id = StringField(default=None)
+    oasis_deployment_url = StringField(default=None)
     published_to = ListField(StringField())
 
     # Process parameters and state vars that need to be persisted during the process
@@ -1427,7 +1427,7 @@ class Upload(Proc):
         '''
         assert self.published, \
             'Only published uploads can be published to the central NOMAD.'
-        assert config.oasis.central_nomad_deployment_id not in self.published_to, \
+        assert config.oasis.central_nomad_deployment_url not in self.published_to, \
             'Upload is already published to the central NOMAD.'
 
         tmp_dir = create_tmp_dir('export_' + self.upload_id)
@@ -1448,7 +1448,7 @@ class Upload(Proc):
             upload_parameters: Dict[str, Any] = {}
             if embargo_length is not None:
                 upload_parameters.update(embargo_length=embargo_length)
-            upload_url = f'{config.oasis.central_nomad_api_url}/v1/uploads/bundle'
+            upload_url = f'{config.oasis.central_nomad_deployment_url}/v1/uploads/bundle'
 
             with open(bundle_path, 'rb') as f:
                 response = requests.post(
@@ -1460,7 +1460,7 @@ class Upload(Proc):
                     status_code=response.status_code, body=response.text)
                 raise ProcessFailure('Error message from central NOMAD: {response.text}')
 
-            self.published_to.append(config.oasis.central_nomad_deployment_id)
+            self.published_to.append(config.oasis.central_nomad_deployment_url)
         finally:
             PathObject(tmp_dir).delete()
 
@@ -2282,7 +2282,7 @@ class Upload(Proc):
             bundle_info = bundle.bundle_info
             # Sanity checks
             required_keys_root_level = (
-                'upload_id', 'source.version', 'source.commit', 'source.deployment', 'source.deployment_id',
+                'upload_id', 'source.version', 'source.commit', 'source.deployment', 'source.deployment_url',
                 'export_options.include_raw_files',
                 'export_options.include_archive_files',
                 'export_options.include_datasets',
@@ -2326,7 +2326,7 @@ class Upload(Proc):
             # Define which keys we think okay to copy from the bundle
             upload_keys_to_copy = [
                 'upload_name', 'main_author', 'coauthors', 'reviewers', 'embargo_length', 'license',
-                'from_oasis', 'oasis_deployment_id']
+                'from_oasis', 'oasis_deployment_url']
             if settings.keep_original_timestamps:
                 upload_keys_to_copy.extend(('upload_create_time', 'publish_time',))
             try:
@@ -2345,13 +2345,13 @@ class Upload(Proc):
                     'Timestamp is in the future')
             if settings.set_from_oasis:
                 self.from_oasis = True
-                source_deployment_id = bundle_info['source']['deployment_id']
-                assert source_deployment_id, 'No source deployment_id defined'
-                if not self.oasis_deployment_id:
-                    self.oasis_deployment_id = source_deployment_id
-                    # Note, if oasis_deployment_id is set in the bundle_info, we keep this
+                source_deployment_url = bundle_info['source']['deployment_url']
+                assert source_deployment_url, 'No source deployment_url defined'
+                if not self.oasis_deployment_url:
+                    self.oasis_deployment_url = source_deployment_url
+                    # Note, if oasis_deployment_url is set in the bundle_info, we keep this
                     # value as it is, since it indicates that the upload has been imported from
-                    # somewhere else originally (i.e. source_deployment_id would not be the
+                    # somewhere else originally (i.e. source_deployment_url would not be the
                     # original source)
 
             # Dataset definitions

@@ -241,7 +241,7 @@ class OasisUserManagement(UserManagement):
         if users_api_url:
             self._users_api_url = users_api_url
         else:
-            self._users_api_url = f'{config.oasis.central_nomad_api_url}/v1/users'
+            self._users_api_url = f'{config.oasis.central_nomad_deployment_url}/v1/users'
 
     def add_user(self, user, bcrypt_password=None, invite=False):
         raise NotImplementedError(

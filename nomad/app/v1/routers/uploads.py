@@ -1726,7 +1726,7 @@ async def post_upload_bundle(
         set_from_oasis: Optional[bool] = FastApiQuery(
             None,
             description=strip('''
-                If the `from_oasis` flag and `oasis_deployment_id` should be set
+                If the `from_oasis` flag and `oasis_deployment_url` should be set
                 *(only admins can change this setting)*.''')),
         trigger_processing: Optional[bool] = FastApiQuery(
             None,

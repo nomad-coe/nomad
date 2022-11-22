@@ -660,7 +660,7 @@ export function removeSubSection(section, subSectionDef, index) {
 
 /**
  * Given a definition, compute its url (string). Optionally, you can specify relativeTo, an
- * object of the form {installationUrl, uploadId, entryId} (containing the first, the two first,
+ * object of the form {deploymentUrl, uploadId, entryId} (containing the first, the two first,
  * or all three atributes, depending on what you want the url to be relative to). If relativeTo
  * is left out, we return an absolute url. You may also specify preferMainfile = true if you
  * want the url to use the mainfile rather than the entryId when possible (more humanly readable).
@@ -668,7 +668,7 @@ export function removeSubSection(section, subSectionDef, index) {
  export function getUrlFromDefinition(definition, relativeTo = null, preferMainfile = false) {
   const pkg = definition.m_def === PackageMDef ? definition : definition._package
   const metainfo = pkg._pkgParentData._metainfo
-  if (!metainfo._parsedUrl.entryId && relativeTo?.installationUrl === metainfo._parsedUrl.installationUrl) {
+  if (!metainfo._parsedUrl.entryId && relativeTo?.deploymentUrl === metainfo._parsedUrl.deploymentUrl) {
     return definition._qualifiedName
   }
   let parentUrl
@@ -680,7 +680,7 @@ export function removeSubSection(section, subSectionDef, index) {
         let rv
         if (relativeTo) {
           rv = relativizeNomadUrl(
-            metainfo._parsedUrl, relativeTo.installationUrl, relativeTo.uploadId, relativeTo.entryId)
+            metainfo._parsedUrl, relativeTo.deploymentUrl, relativeTo.uploadId, relativeTo.entryId)
         } else {
           rv = metainfo._url
         }

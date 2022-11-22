@@ -67,7 +67,7 @@ class RawDirectoryAdaptor extends Adaptor {
     const parsedUrl = parseNomadUrl(uploadUrl)
     if (parsedUrl.type !== refType.upload) throw new Error(`Expected an upload url, got ${uploadUrl}`)
     if (!parsedUrl.isResolved) throw new Error(`Absolute url required, got ${uploadUrl}`)
-    this.installationUrl = parsedUrl.installationUrl
+    this.deploymentUrl = parsedUrl.deploymentUrl
     this.uploadUrl = uploadUrl
     this.uploadId = parsedUrl.uploadId
     this.path = parsedUrl.path
@@ -88,7 +88,7 @@ class RawDirectoryAdaptor extends Adaptor {
   async initialize(api, dataStore) {
     this.api = api
     this.lastPage = 1
-    const uploadStoreObj = await dataStore.getUploadAsync(this.installationUrl, this.uploadId, true, false)
+    const uploadStoreObj = await dataStore.getUploadAsync(this.deploymentUrl, this.uploadId, true, false)
     this.timestamp = uploadStoreObj.upload?.complete_time
     this.editable = uploadStoreObj.isEditable
     await this.fetchData()
@@ -98,7 +98,7 @@ class RawDirectoryAdaptor extends Adaptor {
   }
   async fetchData() {
     const encodedPath = urlEncodePath(this.path)
-    if (this.installationUrl !== apiBase) throw new Error('Fetching directory data from external source is not yet supported')
+    if (this.deploymentUrl !== apiBase) throw new Error('Fetching directory data from external source is not yet supported')
     const response = await this.api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=${this.page_size}&page=${this.lastPage}`)
     const elementsByName = this.data?.elementsByName || {}
     response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
@@ -154,7 +154,7 @@ class RawDirectoryAdaptor extends Adaptor {
 
   render() {
     return <RawDirectoryContent
-      installationUrl={this.installationUrl} uploadId={this.uploadId} path={this.path}
+      deploymentUrl={this.deploymentUrl} uploadId={this.uploadId} path={this.path}
       title={this.title} highlightedItem={this.highlightedItem}
       editable={this.editable}/>
   }
@@ -233,7 +233,7 @@ const useRawDirectoryContentStyles = makeStyles(theme => ({
     backgroundColor: theme.palette.grey[300]
   }
 }))
-function RawDirectoryContent({installationUrl, uploadId, path, title, highlightedItem, editable}) {
+function RawDirectoryContent({deploymentUrl, uploadId, path, title, highlightedItem, editable}) {
   const classes = useRawDirectoryContentStyles()
   const dataStore = useDataStore()
   const entryPageMainFile = useEntryPageContext()?.metadata?.mainfile // Will be set if we're on an entry page
@@ -268,9 +268,9 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
   }, [browser, lane, uploadId])
 
   useEffect(() => {
-    refreshIfNeeded(undefined, dataStore.getUpload(installationUrl, uploadId))
-    return dataStore.subscribeToUpload(installationUrl, uploadId, refreshIfNeeded, true, false)
-  }, [dataStore, installationUrl, uploadId, refreshIfNeeded])
+    refreshIfNeeded(undefined, dataStore.getUpload(deploymentUrl, uploadId))
+    return dataStore.subscribeToUpload(deploymentUrl, uploadId, refreshIfNeeded, true, false)
+  }, [dataStore, deploymentUrl, uploadId, refreshIfNeeded])
 
   const handleDropFiles = useCallback((files) => {
     // Handles dropping files (not links)
@@ -279,9 +279,9 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
       formData.append('file', file)
     }
     api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData)
-      .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
+      .then(response => dataStore.updateUpload(deploymentUrl, uploadId, {upload: response.data}))
       .catch(error => raiseError(error))
-  }, [installationUrl, uploadId, encodedPath, raiseError, api, dataStore])
+  }, [deploymentUrl, uploadId, encodedPath, raiseError, api, dataStore])
 
   const handleDrop = useCallback(async (e) => {
     // Handles dropping files and links
@@ -301,7 +301,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
   const handleCopyMoveFile = (e) => {
     setOpenCopyMoveDialog(false)
     api.put(`/uploads/${uploadId}/raw/${encodedPath}?copy_or_move=${e.moveFile}&copy_or_move_source_path=${fileName}&file_name=${copyFileName.current.value}`)
-      .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
+      .then(response => dataStore.updateUpload(deploymentUrl, uploadId, {upload: response.data}))
       .catch(error => raiseError(error))
   }
 
@@ -311,7 +311,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     if (dirName) {
       const fullPath = urlJoin(encodedPath, encodeURIComponent(dirName))
       api.post(`/uploads/${uploadId}/raw-create-dir/${fullPath}`)
-        .then(response => dataStore.updateUpload(installationUrl, uploadId, {upload: response.data}))
+        .then(response => dataStore.updateUpload(deploymentUrl, uploadId, {upload: response.data}))
         .catch(raiseError)
     }
   }
@@ -327,7 +327,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
           const gotoLane = lane.index > 0 ? lane.index - 1 : 0
           history.push(browser.lanes.current[gotoLane].path)
         }
-        dataStore.updateUpload(installationUrl, uploadId, {upload: response.data})
+        dataStore.updateUpload(deploymentUrl, uploadId, {upload: response.data})
       })
       .catch(raiseError)
   }
@@ -338,7 +338,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
     return <Content key={path}><Typography>loading ...</Typography></Content>
   } else {
     // Data loaded
-    const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?compress=true` // TODO: installationUrl need to be considered for external uploads
+    const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?compress=true` // TODO: deploymentUrl need to be considered for external uploads
     return (
       <CustomDropZone onDrop={handleDrop} classNameNormal={classes.dropzoneLane} classNameActive={classes.dropzoneActive}>
         <Content key={path}>
@@ -475,7 +475,7 @@ function RawDirectoryContent({installationUrl, uploadId, path, title, highlighte
   }
 }
 RawDirectoryContent.propTypes = {
-  installationUrl: PropTypes.string.isRequired,
+  deploymentUrl: PropTypes.string.isRequired,
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
@@ -493,7 +493,7 @@ export class RawFileAdaptor extends Adaptor {
     const parsedUrl = parseNomadUrl(uploadUrl)
     if (parsedUrl.type !== refType.upload) throw new Error(`Expected an upload url, got ${uploadUrl}`)
     if (!parsedUrl.isResolved) throw new Error(`Absolute url required, got ${uploadUrl}`)
-    this.installationUrl = parsedUrl.installationUrl
+    this.deploymentUrl = parsedUrl.deploymentUrl
     this.uploadId = parsedUrl.uploadId
     this.path = parsedUrl.path
     this.data = data
@@ -512,8 +512,8 @@ export class RawFileAdaptor extends Adaptor {
   }
   async itemAdaptor(key) {
     if (key === 'archive') {
-      const archiveUrl = createEntryUrl(this.installationUrl, this.uploadId, this.data.entry_id)
-      const {archive} = await this.dataStore.getEntryAsync(this.installationUrl, this.data.entry_id, false, '*')
+      const archiveUrl = createEntryUrl(this.deploymentUrl, this.uploadId, this.data.entry_id)
+      const {archive} = await this.dataStore.getEntryAsync(this.deploymentUrl, this.data.entry_id, false, '*')
       const metainfo = await this.dataStore.getMetainfoAsync(systemMetainfoUrl)
       const rootSectionDef = metainfo.getEntryArchiveDefinition()
       return archiveAdaptorFactory(archiveUrl, archive, rootSectionDef)
@@ -523,7 +523,7 @@ export class RawFileAdaptor extends Adaptor {
   }
   render() {
     return <RawFileContent
-      installationUrl={this.installationUrl} uploadId={this.uploadId} path={this.path}
+      deploymentUrl={this.deploymentUrl} uploadId={this.uploadId} path={this.path}
       data={this.data} editable={this.editable} key={this.path}/>
   }
 }
@@ -542,7 +542,7 @@ class FilePreviewAdaptor extends Adaptor {
   }
 }
 
-function RawFileContent({installationUrl, uploadId, path, data, editable}) {
+function RawFileContent({deploymentUrl, uploadId, path, data, editable}) {
   const entryPageMainFile = useEntryPageContext()?.metadata?.mainfile // Will be set if we're on an entry page
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
@@ -552,7 +552,7 @@ function RawFileContent({installationUrl, uploadId, path, data, editable}) {
   const { raiseError } = useErrors()
   const [openConfirmDeleteFileDialog, setOpenConfirmDeleteFileDialog] = useState(false)
   const encodedPath = urlEncodePath(path)
-  const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?ignore_mime_type=true` // TODO: installationUrl need to be considered for external uploads
+  const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?ignore_mime_type=true` // TODO: deploymentUrl need to be considered for external uploads
   const allNorthTools = useTools()
   const applicableNorthTools = useMemo(() => {
     const fileExtension = path.split('.').pop().toLowerCase()
@@ -574,7 +574,7 @@ function RawFileContent({installationUrl, uploadId, path, data, editable}) {
           const gotoLane = lane.index > 0 ? lane.index - 1 : 0
           history.push(browser.lanes.current[gotoLane].path)
         }
-        dataStore.updateUpload(installationUrl, uploadId, {upload: response.data})
+        dataStore.updateUpload(deploymentUrl, uploadId, {upload: response.data})
       })
       .catch(raiseError)
   }
@@ -679,7 +679,7 @@ function RawFileContent({installationUrl, uploadId, path, data, editable}) {
     </Content>)
 }
 RawFileContent.propTypes = {
-  installationUrl: PropTypes.string.isRequired,
+  deploymentUrl: PropTypes.string.isRequired,
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired,
   data: PropTypes.object.isRequired,

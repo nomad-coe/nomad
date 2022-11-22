@@ -710,7 +710,7 @@ def oasis_publishable_upload(
     monkeypatch.setattr('nomad.config.oasis.is_oasis', True)
     monkeypatch.setattr('nomad.config.keycloak.username', test_user.username)
 
-    monkeypatch.setattr('nomad.config.oasis.central_nomad_api_url', '/api')
+    monkeypatch.setattr('nomad.config.oasis.central_nomad_deployment_url', '/api')
 
     # create a dataset to also test this aspect of oasis uploads
     entry = non_empty_processed.successful_entries[0]

@@ -45,7 +45,7 @@ function getReferencedSection(quantityDef) {
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const styles = useStyles()
   const dataStore = useDataStore()
-  const {installationUrl, uploadId, archive, url} = useEntryPageContext('*')
+  const {deploymentUrl, uploadId, archive, url} = useEntryPageContext('*')
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const {api} = useApi()
@@ -155,7 +155,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const createNewEntry = useCallback((fileName) => {
     const archive = {
       data: {
-        m_def: getUrlFromDefinition(getReferencedSection(quantityDef), {installationUrl, uploadId}, true)
+        m_def: getUrlFromDefinition(getReferencedSection(quantityDef), {deploymentUrl, uploadId}, true)
       }
     }
     return new Promise((resolve, reject) => {
@@ -176,7 +176,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
           reject(new Error(error))
         })
     })
-  }, [api, quantityDef, installationUrl, uploadId])
+  }, [api, quantityDef, deploymentUrl, uploadId])
 
   const handleValueChange = useCallback((event, value) => {
     if (value?.createNewEntry) {

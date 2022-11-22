@@ -754,7 +754,7 @@ export function getLocation() {
 /**
  * Utilities parse and analyze *nomad urls*. A nomad url identifies some *base resource*,
  * which can be:
- *  1) a nomad installation,
+ *  1) a nomad deployment,
  *  2) an upload,
  *  3) an archive, or
  *  4) a metainfo schema.
@@ -776,21 +776,21 @@ export function getLocation() {
  * version of this section definition.
  *
  * Nomad urls can be absolute or relative. Absolute urls contain all information needed to
- * locate the resource, including the nomad installation url. Relative urls can only be resolved
+ * locate the resource, including the nomad deployment url. Relative urls can only be resolved
  * when given a *base url*, which defines our "point of origin".
  *
  * Possible formats (expressions in [brackets] are optional):
  * ----------------------------------------------------------
  *  Absolute urls:
- *    <installationUrl>
- *    <installationUrl>/uploads/<uploadId> [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
- *    <installationUrl>/uploads/<uploadId>/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
- *    <installationUrl>/uploads/<uploadId>/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
- *  Urls relative to the current installation:
+ *    <deploymentUrl>
+ *    <deploymentUrl>/uploads/<uploadId> [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
+ *    <deploymentUrl>/uploads/<uploadId>/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
+ *    <deploymentUrl>/uploads/<uploadId>/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
+ *  Urls relative to the current deployment:
  *    ../uploads/<uploadId> [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
  *    ../uploads/<uploadId>/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
  *    ../uploads/<uploadId>/archive/mainfile/<mainfile> [ #<dataPath> [ @<versionHash> ] ]
- *    <qualifiedName> (TODO: how to handle versions, installationUrl etc)
+ *    <qualifiedName> (TODO: how to handle versions, deploymentUrl etc)
  *  Urls relative to the current upload:
  *    ../upload [ /raw/<rawPath> [ #<dataPath> [ @<versionHash> ] ] ]
  *    ../upload/archive/<entryid> [ #<dataPath> [ @<versionHash> ] ]
@@ -799,11 +799,11 @@ export function getLocation() {
  *    #<dataPath> (preferred)
  *    /<dataPath>
  * Note:
- *  - An <installationUrl> is a normal url, starting with "http://" or "https://", locating
- *    the api of the nomad installation. Should always end with "/api".
+ *  - An <deploymentUrl> is a normal url, starting with "http://" or "https://", locating
+ *    the api of the nomad deployment. Should always end with "/api".
  *    Example:
  *      https://nomad-lab.eu/prod/rae/api
- *  - Urls with versionHash are considered to be relative to the installation rather than the
+ *  - Urls with versionHash are considered to be relative to the deployment rather than the
  *    upload or data.
  *  - The rawPath and mainFile paths need to be escaped with urlEncodePath to ensure a valid url.
  *    (i.e. each segment needs to individually be escaped using encodeURIComponent)
@@ -815,7 +815,7 @@ export function getLocation() {
  *    is a "python style" name of alphanumerics separated by dots.
  *  - If no versionHash is specified for a url identifying a metainfo schema, it means
  *    we refer to the version defined by the base url (if the url is schema-relative), otherwise
- *    the latest version (in the nomad installation in question).
+ *    the latest version (in the nomad deployment in question).
  */
 
 export const systemMetainfoUrl = `system-metainfo` // TODO: should use absolute url with hash when implemented
@@ -824,7 +824,7 @@ export const systemMetainfoUrl = `system-metainfo` // TODO: should use absolute 
  * Enum for the `type` attribute of parsed/resolved url objects
  */
 export const refType = Object.freeze({
-  installation: 'installation',
+  deployment: 'deployment',
   upload: 'upload',
   archive: 'archive',
   metainfo: 'metainfo'
@@ -834,7 +834,7 @@ export const refType = Object.freeze({
  * Enum for the `relativeTo` attribute of parsed/resolved url objects
  */
 export const refRelativeTo = Object.freeze({
-  installation: 'installation',
+  deployment: 'deployment',
   upload: 'upload',
   data: 'data',
   nothing: null
@@ -845,11 +845,11 @@ export const refRelativeTo = Object.freeze({
  *  url
  *    the original url string.
  *  type
- *    One of: refType.installation | refType.upload | refType.archive | refType.metainfo
+ *    One of: refType.deployment | refType.upload | refType.archive | refType.metainfo
  *  relativeTo
- *    One of: refRelativeTo.installation | refRelativeTo.upload | refRelativeTo.data | refRelativeTo.nothing (null)
- *  installationUrl
- *    The nomad installation url, if it can be determined.
+ *    One of: refRelativeTo.deployment | refRelativeTo.upload | refRelativeTo.data | refRelativeTo.nothing (null)
+ *  deploymentUrl
+ *    The nomad deployment url, if it can be determined.
  *  uploadId
  *    The uploadId, if it can be determined.
  *  entryId
@@ -866,7 +866,7 @@ export const refRelativeTo = Object.freeze({
  *  isResolved
  *    True if the url is fully resolved, i.e. we have everything we need to fetch the data.
  *  isExternal
- *    If the url refers to a resource in an external nomad installation. Note, for relative
+ *    If the url refers to a resource in an external nomad deployment. Note, for relative
  *    urls the value will be undefined, which means we don't know.
  *
  * If the url cannot be parsed, an error is thrown.
@@ -881,18 +881,18 @@ export function parseNomadUrl(url) {
   if (typeof url !== 'string') throw new Error(prefix + 'bad type, expected string, got ' + typeof url)
 
   if (url === systemMetainfoUrl) {
-    // TODO proper handling, using a url containing installationUrl + versionHash somehow?
+    // TODO proper handling, using a url containing deploymentUrl + versionHash somehow?
     return {
       url,
-      relativeTo: refRelativeTo.installation,
+      relativeTo: refRelativeTo.deployment,
       type: refType.metainfo,
-      installationUrl: apiBase,
+      deploymentUrl: apiBase,
       isResolved: true,
       isExternal: false
     }
   }
 
-  let relativeTo, type, installationUrl, uploadId, entryId, mainfile, path, qualifiedName, versionHash
+  let relativeTo, type, deploymentUrl, uploadId, entryId, mainfile, path, qualifiedName, versionHash
   let dataPath, rest, rawPath
   if (url.startsWith('/')) {
     dataPath = url
@@ -904,11 +904,11 @@ export function parseNomadUrl(url) {
   }
 
   if (rest.startsWith('http://') || rest.startsWith('https://')) {
-    // Url includes installationUrl
+    // Url includes deploymentUrl
     let apiPos = rest.indexOf('/api/')
     if (apiPos === -1 && rest.endsWith('/api')) apiPos = rest.length - 4
-    if (apiPos === -1) throw new Error(prefix + 'absolute nomad installation url does not contain "/api"')
-    installationUrl = url.slice(0, apiPos + 4)
+    if (apiPos === -1) throw new Error(prefix + 'absolute nomad deployment url does not contain "/api"')
+    deploymentUrl = url.slice(0, apiPos + 4)
     rest = rest.slice(apiPos + 5)
     if (rest && !rest.startsWith('uploads/')) throw new Error(prefix + 'expected "/uploads/<uploadId>" in absolute url')
     relativeTo = null
@@ -918,17 +918,17 @@ export function parseNomadUrl(url) {
     relativeTo = refRelativeTo.data
   } else if (url.match(/^([a-zA-Z]\w*\.)*[a-zA-Z]\w*$/)) {
     qualifiedName = url
-    relativeTo = refRelativeTo.installation
+    relativeTo = refRelativeTo.deployment
   } else {
     throw new Error(prefix + 'bad url')
   }
   const restParts = rest.split('/')
-  if ((installationUrl && rest) || url.startsWith('../')) {
+  if ((deploymentUrl && rest) || url.startsWith('../')) {
     // Expect upload ref
     if (restParts[0] === 'uploads') {
       // Ref with upload id
-      if (!installationUrl) {
-        relativeTo = refRelativeTo.installation
+      if (!deploymentUrl) {
+        relativeTo = refRelativeTo.deployment
       }
       if (restParts.length === 1) throw new Error(prefix + 'expected "/uploads/<uploadId>" in url')
       uploadId = restParts[1]
@@ -961,9 +961,9 @@ export function parseNomadUrl(url) {
   if (qualifiedName) {
     // Refers to the global schema
     type = refType.metainfo
-  } else if (installationUrl && !uploadId) {
-    // Pure installation url
-    type = refType.installation
+  } else if (deploymentUrl && !uploadId) {
+    // Pure deployment url
+    type = refType.deployment
   } else if (dataPath !== undefined) {
     // Has dataPath
     if (!url.startsWith('#') && !url.startsWith('/') && !entryId && !mainfile && !rawPath) throw new Error(prefix + 'Unexpected dataPath without entry reference')
@@ -990,7 +990,7 @@ export function parseNomadUrl(url) {
     if (type !== refType.metainfo) throw new Error(prefix + 'versionHash can only be specified for metainfo urls.')
     if (!versionHash.match(/\w+/)) throw new Error(prefix + 'bad versionHash provided')
     if (relativeTo) {
-      relativeTo = refRelativeTo.installation
+      relativeTo = refRelativeTo.deployment
     }
   }
 
@@ -1002,7 +1002,7 @@ export function parseNomadUrl(url) {
     url,
     relativeTo,
     type,
-    installationUrl,
+    deploymentUrl,
     uploadId,
     entryId,
     mainfile,
@@ -1010,7 +1010,7 @@ export function parseNomadUrl(url) {
     qualifiedName,
     versionHash,
     isResolved: !relativeTo,
-    isExternal: installationUrl ? (installationUrl !== apiBase) : undefined,
+    isExternal: deploymentUrl ? (deploymentUrl !== apiBase) : undefined,
     toString: () => { return url + ' (parsed)' }
   }
 }
@@ -1026,7 +1026,7 @@ export function parseNomadUrl(url) {
  * by parseNomadUrl, but
  *  1) It additionally has the attribute baseUrl, which stores the baseUrl argument,
  *  2) the isResolved flag should be guaranteed to be true, and
- *  3) all applicable attributes (like installationUrl, uploadId, entryId, etc) are set
+ *  3) all applicable attributes (like deploymentUrl, uploadId, entryId, etc) are set
  *     to the resolved valules.
  *
  * NOTE, if you pass an object as the url argument, and it is not already resolved, the
@@ -1045,7 +1045,7 @@ export function resolveNomadUrl(url, baseUrl) {
     const parsedBaseUrl = parseNomadUrl(baseUrl)
     if (!parsedBaseUrl.isResolved) throw new Error(prefix + 'unresolved baseUrl')
     // Copy data from parsedBaseUrl
-    parsedUrl.installationUrl = parsedBaseUrl.installationUrl // Should always be copied
+    parsedUrl.deploymentUrl = parsedBaseUrl.deploymentUrl // Should always be copied
     if (parsedUrl.relativeTo === refRelativeTo.upload) {
       if (!parsedBaseUrl.uploadId) throw new Error(prefix + 'missing information about uploadId')
       parsedUrl.uploadId = parsedBaseUrl.uploadId
@@ -1059,7 +1059,7 @@ export function resolveNomadUrl(url, baseUrl) {
     }
   }
 
-  parsedUrl.isExternal = !!parsedUrl.installationUrl && parsedUrl.installationUrl !== apiBase
+  parsedUrl.isExternal = !!parsedUrl.deploymentUrl && parsedUrl.deploymentUrl !== apiBase
   parsedUrl.isResolved = true
   return parsedUrl
 }
@@ -1080,13 +1080,13 @@ export function resolveNomadUrlNoThrow(url, baseUrl) {
 }
 
 /**
- * Relativizes a url with respect to the provided installationUrl, uploadId, entryId, and
+ * Relativizes a url with respect to the provided deploymentUrl, uploadId, entryId, and
  * returns the shortest possible relative url, as a string.
  * This method thus basically does the *opposite* of resolveNomadUrl. You can specify either none,
- * the first, the two first, or all three arguments of the (installationUrl, uploadId, entryId)
+ * the first, the two first, or all three arguments of the (deploymentUrl, uploadId, entryId)
  * tuple. The url provided must be absolute.
  */
-export function relativizeNomadUrl(url, installationUrl, uploadId, entryId) {
+export function relativizeNomadUrl(url, deploymentUrl, uploadId, entryId) {
   const parsedUrl = parseNomadUrl(url)
   if (!parsedUrl.isResolved) {
     throw new Error(`Absolute url required, got ${url}.`)
@@ -1094,15 +1094,15 @@ export function relativizeNomadUrl(url, installationUrl, uploadId, entryId) {
   if (!parsedUrl.uploadId) {
     throw new Error(`Expected url to specify an upload, got ${url}`)
   }
-  if (parsedUrl.installationUrl !== installationUrl) {
+  if (parsedUrl.deploymentUrl !== deploymentUrl) {
     // Nothing to relativize
     return normalizeNomadUrl(parsedUrl)
   }
   if (parsedUrl.entryId === entryId) {
-    // Same installation and entry
+    // Same deployment and entry
     return '#' + (parsedUrl.path || '/')
   }
-  // Same installation, possibly also same upload
+  // Same deployment, possibly also same upload
   let rv = parsedUrl.uploadId === uploadId ? '../upload' : `../uploads/${parsedUrl.uploadId}`
   if (parsedUrl.type === refType.archive || parsedUrl.type === refType.metainfo) {
     rv = `${rv}/archive/${parsedUrl.entryId}`
@@ -1126,12 +1126,12 @@ export function relativizeNomadUrl(url, installationUrl, uploadId, entryId) {
 export function normalizeNomadUrl(url) {
   const parsedUrl = parseNomadUrl(url)
   if (!parsedUrl.isResolved) throw new Error(`Failed to normalize url ${url.url}: provided url is unresolved`)
-  if (parsedUrl.type === refType.installation) {
-    return parsedUrl.installationUrl
+  if (parsedUrl.type === refType.deployment) {
+    return parsedUrl.deploymentUrl
   } else if (parsedUrl.type === refType.upload) {
-    return `${parsedUrl.installationUrl}/uploads/${parsedUrl.uploadId}` + (parsedUrl.path ? '/raw/' + parsedUrl.path : '')
+    return `${parsedUrl.deploymentUrl}/uploads/${parsedUrl.uploadId}` + (parsedUrl.path ? '/raw/' + parsedUrl.path : '')
   } else if (parsedUrl.entryId) {
-    return `${parsedUrl.installationUrl}/uploads/${parsedUrl.uploadId}/archive/${parsedUrl.entryId}` + (
+    return `${parsedUrl.deploymentUrl}/uploads/${parsedUrl.uploadId}/archive/${parsedUrl.entryId}` + (
       parsedUrl.path ? '#' + parsedUrl.path + (parsedUrl.versionHash ? '@' + parsedUrl.versionHash : '') : '')
   } else if (parsedUrl.qualifiedName) {
     return parsedUrl.qualifiedName
@@ -1140,18 +1140,18 @@ export function normalizeNomadUrl(url) {
 }
 
 /**
- * Utility for creating an absolute upload url, given installationUrl, uploadId and an UNESCAPED rawPath
+ * Utility for creating an absolute upload url, given deploymentUrl, uploadId and an UNESCAPED rawPath
  */
-export function createUploadUrl(installationUrl, uploadId, rawPathUnescaped) {
+export function createUploadUrl(deploymentUrl, uploadId, rawPathUnescaped) {
   const rawPathEscaped = urlEncodePath(rawPathUnescaped || '')
-  return `${installationUrl}/uploads/${uploadId}/raw/${rawPathEscaped}`
+  return `${deploymentUrl}/uploads/${uploadId}/raw/${rawPathEscaped}`
 }
 
 /**
- * Utility for creating an absolute entry url, given installationUrl, uploadId, entryId, and dataPath
+ * Utility for creating an absolute entry url, given deploymentUrl, uploadId, entryId, and dataPath
  */
-export function createEntryUrl(installationUrl, uploadId, entryId, dataPath) {
-  let rv = `${installationUrl}/uploads/${uploadId}/archive/${entryId}`
+export function createEntryUrl(deploymentUrl, uploadId, entryId, dataPath) {
+  let rv = `${deploymentUrl}/uploads/${uploadId}/archive/${entryId}`
   if (dataPath) {
     rv += '#' + (!dataPath.startsWith('/') ? '/' : '') + dataPath
   }
@@ -1168,7 +1168,7 @@ export function appendDataUrl(parsedUrl, dataPathSuffix) {
   if (!parsedUrl.isResolved) throw new Error(`appendDataUrl: a resolved url required, got ${parsedUrl}`)
   if (parsedUrl.type !== refType.archive) throw new Error(`appendDataUrl: an archive url required, got ${parsedUrl}`)
   return urlJoin(
-    `${parsedUrl.installationUrl}/uploads/${parsedUrl.uploadId}/archive/${parsedUrl.entryId}#${parsedUrl.path || '/'}`,
+    `${parsedUrl.deploymentUrl}/uploads/${parsedUrl.uploadId}/archive/${parsedUrl.entryId}#${parsedUrl.path || '/'}`,
     dataPathSuffix)
 }
 
