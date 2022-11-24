@@ -21,7 +21,7 @@ from nomad import utils
 from nomad.units import ureg
 from nomad.datamodel.data import EntryData, ArchiveSection, user_reference, author_reference
 from nomad.metainfo.metainfo import SectionProxy
-from nomad.datamodel.results import ELN, Results, Material, BandGap
+from nomad.datamodel.results import ELN, Results, Material, BandGapOptical
 from nomad.metainfo import Package, Quantity, Datetime, Reference, Section
 from nomad.datamodel.metainfo.eln.perovskite_solar_cell_database import addSolarCell
 
@@ -506,15 +506,15 @@ class SolarCellBaseSectionWithOptoelectronicProperties(ArchiveSection):
         super(SolarCellBaseSectionWithOptoelectronicProperties, self).normalize(archive, logger)
         addSolarCell(archive)
         if self.bandgap is not None:
-            band_gap = BandGap()
-            band_gap.value = self.bandgap
-            if band_gap.value is None:
-                band_gap.value = 0
-            archive.results.properties.optoelectronic.band_gap = [band_gap]
+            band_gap_optical = BandGapOptical()
+            band_gap_optical.value = self.bandgap
+            if band_gap_optical.value is None:
+                band_gap_optical.value = 0
+            archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
             props = archive.results.properties.available_properties
             if not props:
                 props = []
-            props.append('optoelectronic.band_gap')
+            props.append('optoelectronic.band_gap_optical')
             archive.results.properties.available_properties = props
 
 
@@ -926,15 +926,15 @@ class SolarCellEQE(ArchiveSection):
 
         addSolarCell(archive)
         if self.bandgap_eqe is not None:
-            band_gap = BandGap()
-            band_gap.value = self.bandgap_eqe
-            if band_gap.value is None:
-                band_gap.value = 0
-            archive.results.properties.optoelectronic.band_gap = [band_gap]
+            band_gap_optical = BandGapOptical()
+            band_gap_optical.value = self.bandgap_eqe
+            if band_gap_optical.value is None:
+                band_gap_optical.value = 0
+            archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
             props = archive.results.properties.available_properties
             if not props:
                 props = []
-            props.append('optoelectronic.band_gap')
+            props.append('optoelectronic.band_gap_optical')
             archive.results.properties.available_properties = props
 
 
