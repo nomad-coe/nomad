@@ -356,6 +356,10 @@ class PublicationReference(ArchiveSection):
                         archive.metadata = EntryMetadata()
                     if not archive.metadata.references:
                         archive.metadata.references = []
+                    # if any item in the references list starts with 10. add the prefix https://doi.org/
+                    for i, ref in enumerate(archive.metadata.references):
+                        if ref.startswith('10.'):
+                            archive.metadata.references[i] = 'https://doi.org/' + ref
                     if self.DOI_number not in archive.metadata.references:
                         archive.metadata.references.append(self.DOI_number)
 

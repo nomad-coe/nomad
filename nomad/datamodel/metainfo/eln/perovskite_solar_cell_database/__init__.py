@@ -169,6 +169,9 @@ Unpublished
                 self.lead_author = given_name + ' ' + familiy_name
             if not archive.metadata:
                 archive.metadata = EntryMetadata()
+            for i, ref in enumerate(archive.metadata.references):
+                if ref.startswith('10.'):
+                    archive.metadata.references[i] = 'https://doi.org/' + ref
             if not archive.metadata.references:
                 archive.metadata.references = []
                 archive.metadata.references.append(self.DOI_number)
