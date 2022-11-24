@@ -22,7 +22,7 @@ from nomad.units import ureg
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, Datetime, Section)
 from nomad.datamodel.data import EntryData
-from nomad.datamodel.results import BandGap, Material, OptoelectronicProperties, Properties, Results, SolarCell
+from nomad.datamodel.results import BandGap, Material, OptoelectronicProperties, Properties, Results, SolarCell, Symmetry
 
 
 m_package = Package(name='perovskite_database')
@@ -1592,8 +1592,13 @@ Ozone
                     archive.results.material.structural_type = '2D'
 
             if self.composition_perovskite_ABC3_structure:
-                if archive.results.material.material_name is None:
-                    archive.results.material.material_name = 'perovskite'
+                if not archive.results.material.symmetry:
+                    archive.results.material.symmetry = Symmetry()
+                    if archive.results.material.symmetry.structure_name is None:
+                        archive.results.material.symmetry.structure_name = 'perovskite'
+                    # remove archive.results.material.material_name if == 'perovskite'
+                    if archive.results.material.material_name == 'perovskite':
+                        archive.results.material.material_name = None
 
             if archive.results.material.functional_type is None:
                 archive.results.material.functional_type = ['semiconductor', 'solar cell']
