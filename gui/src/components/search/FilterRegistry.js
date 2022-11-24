@@ -373,7 +373,7 @@ registerFilter(
   ]
 )
 registerFilter(
-  'results.properties.optoelectronic.band_gap',
+  'results.properties.optoelectronic.band_gap_optical',
   idOptoelectronic,
   nestedQuantity,
   [
@@ -537,7 +537,7 @@ registerFilterOptions(
   'Optoelectronic properties',
   'The optoelectronic properties that are present in an entry.',
   {
-    'optoelectronic.band_gap': {label: 'Band gap'},
+    'optoelectronic.band_gap_optical': {label: 'Band gap'},
     'solar_cell': {label: 'Solar cell'}
   }
 )

@@ -32,7 +32,7 @@ const OptoelectronicProperties = React.memo(({
     </PropertyItem>
     <PropertyItem title="Band gap" xs={12} height="auto" minHeight="100px">
       <BandGap
-        section="results.properties.optoelectronic.band_gap"
+        section="results.properties.optoelectronic.band_gap_optical"
         data={bandGap}
       />
     </PropertyItem>

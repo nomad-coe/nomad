@@ -22,7 +22,7 @@ from nomad.units import ureg
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, Datetime, Section)
 from nomad.datamodel.data import EntryData
-from nomad.datamodel.results import BandGap, Material, OptoelectronicProperties, Properties, Results, SolarCell, Symmetry
+from nomad.datamodel.results import BandGapOptical, Material, OptoelectronicProperties, Properties, Results, SolarCell, Symmetry
 
 
 m_package = Package(name='perovskite_database')
@@ -1568,15 +1568,15 @@ Ozone
             archive.results.properties.optoelectronic.solar_cell.absorber = self.composition_short_form.split(' | ')
 
         if self.band_gap:
-            band_gap = BandGap()
-            band_gap.value = float(self.band_gap) * ureg('eV')
-            if band_gap.value is None:
-                band_gap.value = 0
-            archive.results.properties.optoelectronic.band_gap = [band_gap]
+            band_gap_optical = BandGapOptical()
+            band_gap_optical.value = float(self.band_gap) * ureg('eV')
+            if band_gap_optical.value is None:
+                band_gap_optical.value = 0
+            archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
             props = archive.results.properties.available_properties
             if not props:
                 props = []
-            props.append('optoelectronic.band_gap')
+            props.append('optoelectronic.band_gap_optical')
             archive.results.properties.available_properties = props
 
         if self.composition_long_form:

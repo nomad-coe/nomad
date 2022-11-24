@@ -76,7 +76,7 @@ method_dft_exciting = {
 }
 
 properties_solar_cell = {
-    "available_properties": ["solar_cell", "optoelectronic.band_gap"],
+    "available_properties": ["solar_cell", "optoelectronic.band_gap_optical"],
     "optoelectronic": {
         "band_gap": [{"value": 2.5634826144e-19}],
         "solar_cell": {
