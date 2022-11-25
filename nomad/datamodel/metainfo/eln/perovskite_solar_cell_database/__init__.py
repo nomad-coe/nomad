@@ -180,6 +180,7 @@ Unpublished
                 if ref.startswith('10.'):
                     archive.metadata.references[i] = 'https://doi.org/' + ref
 
+
 class Cell(MSection):
     """
     General information about the solar cell. It includes information about the device area,
@@ -1569,8 +1570,8 @@ Ozone
         if self.band_gap:
             band_gap_optical = BandGapOptical()
             band_gap_optical.value = float(self.band_gap) * ureg('eV')
-            if band_gap_optical.value is None:
-                band_gap_optical.value = 0
+            if self.band_gap is not None:
+                band_gap_optical = BandGapOptical(value=float(self.band_gap) * ureg('eV'))
             archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
             props = archive.results.properties.available_properties
             if not props:
