@@ -216,6 +216,14 @@ class BandGapElectronic(BandGap):
     )
 
 
+class BandGapOptical(BandGap):
+    m_def = Section(
+        description='''
+        Optical band gap.
+        '''
+    )
+
+
 class LatticeParameters(MSection):
     m_def = Section(
         description='''
@@ -2269,11 +2277,11 @@ class OptoelectronicProperties(MSection):
         Optoelectronic properties.
         '''
     )
-    band_gap = SubSection(
+    band_gap_optical = SubSection(
         description='''
-        Band gap.
+        Optical band gap.
         ''',
-        sub_section=BandGap.m_def,
+        sub_section=BandGapOptical.m_def,
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )

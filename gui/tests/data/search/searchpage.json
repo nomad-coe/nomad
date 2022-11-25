@@ -144,7 +144,7 @@
                   },
                   "available_properties": [
                     "solar_cell",
-                    "optoelectronic.band_gap"
+                    "optoelectronic.band_gap_optical"
                   ]
                 }
               },
@@ -741,7 +741,7 @@
                   },
                   "available_properties": [
                     "solar_cell",
-                    "optoelectronic.band_gap"
+                    "optoelectronic.band_gap_optical"
                   ]
                 }
               },
@@ -2381,7 +2381,7 @@
                 "exclude_from_search": false,
                 "quantity": "results.properties.available_properties",
                 "include": [
-                  "optoelectronic.band_gap",
+                  "optoelectronic.band_gap_optical",
                   "solar_cell"
                 ],
                 "update": true,
@@ -2390,24 +2390,24 @@
                 "changed": true
               }
             },
-            "results.properties.optoelectronic.band_gap.type:scroll": {
+            "results.properties.optoelectronic.band_gap_optical.type:scroll": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
                 "size": 2,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.optoelectronic.band_gap.type"
+                "quantity": "results.properties.optoelectronic.band_gap_optical.type"
               }
             },
-            "results.properties.optoelectronic.band_gap.value:default_histogram": {
+            "results.properties.optoelectronic.band_gap_optical.value:default_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "results.properties.optoelectronic.band_gap.value"
+                "quantity": "results.properties.optoelectronic.band_gap_optical.value"
               }
             },
             "results.properties.optoelectronic.solar_cell.efficiency:default_histogram": {
@@ -2588,14 +2588,14 @@
                 "metrics": [],
                 "size": 2,
                 "include": [
-                  "optoelectronic.band_gap",
+                  "optoelectronic.band_gap_optical",
                   "solar_cell"
                 ],
                 "data": [
                   {
                     "count": 1,
                     "nested_count": 1,
-                    "value": "optoelectronic.band_gap"
+                    "value": "optoelectronic.band_gap_optical"
                   },
                   {
                     "count": 1,
@@ -2605,18 +2605,18 @@
                 ]
               }
             },
-            "results.properties.optoelectronic.band_gap.type:scroll": {
+            "results.properties.optoelectronic.band_gap_optical.type:scroll": {
               "terms": {
-                "quantity": "results.properties.optoelectronic.band_gap.type",
+                "quantity": "results.properties.optoelectronic.band_gap_optical.type",
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 2,
                 "data": []
               }
             },
-            "results.properties.optoelectronic.band_gap.value:default_histogram": {
+            "results.properties.optoelectronic.band_gap_optical.value:default_histogram": {
               "histogram": {
-                "quantity": "results.properties.optoelectronic.band_gap.value",
+                "quantity": "results.properties.optoelectronic.band_gap_optical.value",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
@@ -3970,7 +3970,7 @@
                   },
                   "available_properties": [
                     "solar_cell",
-                    "optoelectronic.band_gap"
+                    "optoelectronic.band_gap_optical"
                   ]
                 }
               },
@@ -5231,7 +5231,7 @@
                   },
                   "available_properties": [
                     "solar_cell",
-                    "optoelectronic.band_gap"
+                    "optoelectronic.band_gap_optical"
                   ]
                 }
               },
@@ -5519,7 +5519,7 @@
                   },
                   "available_properties": [
                     "solar_cell",
-                    "optoelectronic.band_gap"
+                    "optoelectronic.band_gap_optical"
                   ]
                 }
               },
@@ -5898,7 +5898,7 @@
                   },
                   "available_properties": [
                     "solar_cell",
-                    "optoelectronic.band_gap"
+                    "optoelectronic.band_gap_optical"
                   ]
                 }
               },
@@ -6384,7 +6384,7 @@
                 "exclude_from_search": false,
                 "quantity": "results.properties.available_properties",
                 "include": [
-                  "optoelectronic.band_gap",
+                  "optoelectronic.band_gap_optical",
                   "solar_cell"
                 ],
                 "update": true,
@@ -6393,24 +6393,24 @@
                 "changed": true
               }
             },
-            "results.properties.optoelectronic.band_gap.type:scroll": {
+            "results.properties.optoelectronic.band_gap_optical.type:scroll": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
                 "size": 2,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.optoelectronic.band_gap.type"
+                "quantity": "results.properties.optoelectronic.band_gap_optical.type"
               }
             },
-            "results.properties.optoelectronic.band_gap.value:default_histogram": {
+            "results.properties.optoelectronic.band_gap_optical.value:default_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "results.properties.optoelectronic.band_gap.value"
+                "quantity": "results.properties.optoelectronic.band_gap_optical.value"
               }
             },
             "results.properties.optoelectronic.solar_cell.efficiency:default_histogram": {
@@ -6603,14 +6603,14 @@
                 "metrics": [],
                 "size": 2,
                 "include": [
-                  "optoelectronic.band_gap",
+                  "optoelectronic.band_gap_optical",
                   "solar_cell"
                 ],
                 "data": [
                   {
                     "count": 1,
                     "nested_count": 1,
-                    "value": "optoelectronic.band_gap"
+                    "value": "optoelectronic.band_gap_optical"
                   },
                   {
                     "count": 1,
@@ -6620,18 +6620,18 @@
                 ]
               }
             },
-            "results.properties.optoelectronic.band_gap.type:scroll": {
+            "results.properties.optoelectronic.band_gap_optical.type:scroll": {
               "terms": {
-                "quantity": "results.properties.optoelectronic.band_gap.type",
+                "quantity": "results.properties.optoelectronic.band_gap_optical.type",
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 2,
                 "data": []
               }
             },
-            "results.properties.optoelectronic.band_gap.value:default_histogram": {
+            "results.properties.optoelectronic.band_gap_optical.value:default_histogram": {
               "histogram": {
-                "quantity": "results.properties.optoelectronic.band_gap.value",
+                "quantity": "results.properties.optoelectronic.band_gap_optical.value",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
@@ -7771,7 +7771,7 @@
                       },
                       "available_properties": [
                         "solar_cell",
-                        "optoelectronic.band_gap"
+                        "optoelectronic.band_gap_optical"
                       ]
                     }
                   },
@@ -9369,7 +9369,7 @@
                 "exclude_from_search": false,
                 "quantity": "entries.results.properties.available_properties",
                 "include": [
-                  "optoelectronic.band_gap",
+                  "optoelectronic.band_gap_optical",
                   "solar_cell"
                 ],
                 "update": true,
@@ -9378,24 +9378,24 @@
                 "changed": true
               }
             },
-            "results.properties.optoelectronic.band_gap.type:scroll": {
+            "results.properties.optoelectronic.band_gap_optical.type:scroll": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
                 "size": 2,
                 "type": "terms",
                 "changed": true,
-                "quantity": "entries.results.properties.optoelectronic.band_gap.type"
+                "quantity": "entries.results.properties.optoelectronic.band_gap_optical.type"
               }
             },
-            "results.properties.optoelectronic.band_gap.value:default_histogram": {
+            "results.properties.optoelectronic.band_gap_optical.value:default_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "entries.results.properties.optoelectronic.band_gap.value"
+                "quantity": "entries.results.properties.optoelectronic.band_gap_optical.value"
               }
             },
             "results.properties.optoelectronic.solar_cell.efficiency:default_histogram": {
@@ -9576,14 +9576,14 @@
                 "metrics": [],
                 "size": 2,
                 "include": [
-                  "optoelectronic.band_gap",
+                  "optoelectronic.band_gap_optical",
                   "solar_cell"
                 ],
                 "data": [
                   {
                     "count": 1,
                     "nested_count": 1,
-                    "value": "optoelectronic.band_gap"
+                    "value": "optoelectronic.band_gap_optical"
                   },
                   {
                     "count": 1,
@@ -9593,18 +9593,18 @@
                 ]
               }
             },
-            "results.properties.optoelectronic.band_gap.type:scroll": {
+            "results.properties.optoelectronic.band_gap_optical.type:scroll": {
               "terms": {
-                "quantity": "entries.results.properties.optoelectronic.band_gap.type",
+                "quantity": "entries.results.properties.optoelectronic.band_gap_optical.type",
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 2,
                 "data": []
               }
             },
-            "results.properties.optoelectronic.band_gap.value:default_histogram": {
+            "results.properties.optoelectronic.band_gap_optical.value:default_histogram": {
               "histogram": {
-                "quantity": "entries.results.properties.optoelectronic.band_gap.value",
+                "quantity": "entries.results.properties.optoelectronic.band_gap_optical.value",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,

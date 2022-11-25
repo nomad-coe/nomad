@@ -22,7 +22,7 @@ from nomad.units import ureg
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, Datetime, Section)
 from nomad.datamodel.data import EntryData
-from nomad.datamodel.results import BandGap, Material, OptoelectronicProperties, Properties, Results, SolarCell
+from nomad.datamodel.results import BandGapOptical, Material, OptoelectronicProperties, Properties, Results, SolarCell, Symmetry
 
 
 m_package = Package(name='perovskite_database')
@@ -176,6 +176,9 @@ Unpublished
                     archive.metadata.references.append('https://doi.org/10.1038/s41560-021-00941-3')
                     archive.metadata.references.append('https://www.perovskitedatabase.com/')
                     archive.metadata.external_db = 'The Perovskite Database Project'
+            for i, ref in enumerate(archive.metadata.references):
+                if ref.startswith('10.'):
+                    archive.metadata.references[i] = 'https://doi.org/' + ref
 
 
 class Cell(MSection):
@@ -1565,15 +1568,15 @@ Ozone
             archive.results.properties.optoelectronic.solar_cell.absorber = self.composition_short_form.split(' | ')
 
         if self.band_gap:
-            band_gap = BandGap()
-            band_gap.value = float(self.band_gap) * ureg('eV')
-            if band_gap.value is None:
-                band_gap.value = 0
-            archive.results.properties.optoelectronic.band_gap = [band_gap]
+            band_gap_optical = BandGapOptical()
+            band_gap_optical.value = float(self.band_gap) * ureg('eV')
+            if self.band_gap is not None:
+                band_gap_optical = BandGapOptical(value=np.float64(self.band_gap) * ureg('eV'))
+            archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
             props = archive.results.properties.available_properties
             if not props:
                 props = []
-            props.append('optoelectronic.band_gap')
+            props.append('optoelectronic.band_gap_optical')
             archive.results.properties.available_properties = props
 
         if self.composition_long_form:
@@ -1589,8 +1592,13 @@ Ozone
                     archive.results.material.structural_type = '2D'
 
             if self.composition_perovskite_ABC3_structure:
-                if archive.results.material.material_name is None:
-                    archive.results.material.material_name = 'perovskite'
+                if not archive.results.material.symmetry:
+                    archive.results.material.symmetry = Symmetry()
+                    if archive.results.material.symmetry.structure_name is None:
+                        archive.results.material.symmetry.structure_name = 'perovskite'
+                    # remove archive.results.material.material_name if == 'perovskite'
+                    if archive.results.material.material_name == 'perovskite':
+                        archive.results.material.material_name = None
 
             if archive.results.material.functional_type is None:
                 archive.results.material.functional_type = ['semiconductor', 'solar cell']
