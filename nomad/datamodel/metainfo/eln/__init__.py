@@ -506,7 +506,7 @@ class SolarCellBaseSectionWithOptoelectronicProperties(ArchiveSection):
         super(SolarCellBaseSectionWithOptoelectronicProperties, self).normalize(archive, logger)
         addSolarCell(archive)
         if self.bandgap is not None:
-            band_gap_optical = BandGapOptical(value=float(self.bandgap) * ureg('eV'))
+            band_gap_optical = BandGapOptical(value=np.float64(self.bandgap) * ureg('eV'))
             archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
             props = archive.results.properties.available_properties
             if not props:
@@ -923,7 +923,7 @@ class SolarCellEQE(ArchiveSection):
 
         addSolarCell(archive)
         if self.bandgap_eqe is not None:
-            band_gap_optical = BandGapOptical(value=float(self.bandgap_eqe) * ureg('eV'))
+            band_gap_optical = BandGapOptical(value=np.float64(self.bandgap_eqe) * ureg('eV'))
             archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
             props = archive.results.properties.available_properties
             if not props:

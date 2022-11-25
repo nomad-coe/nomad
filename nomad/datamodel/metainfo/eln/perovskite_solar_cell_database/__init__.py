@@ -1571,7 +1571,7 @@ Ozone
             band_gap_optical = BandGapOptical()
             band_gap_optical.value = float(self.band_gap) * ureg('eV')
             if self.band_gap is not None:
-                band_gap_optical = BandGapOptical(value=float(self.band_gap) * ureg('eV'))
+                band_gap_optical = BandGapOptical(value=np.float64(self.band_gap) * ureg('eV'))
             archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
             props = archive.results.properties.available_properties
             if not props:
