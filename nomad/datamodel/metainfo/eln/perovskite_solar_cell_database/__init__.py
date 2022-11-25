@@ -169,9 +169,6 @@ Unpublished
                 self.lead_author = given_name + ' ' + familiy_name
             if not archive.metadata:
                 archive.metadata = EntryMetadata()
-            for i, ref in enumerate(archive.metadata.references):
-                if ref.startswith('10.'):
-                    archive.metadata.references[i] = 'https://doi.org/' + ref
             if not archive.metadata.references:
                 archive.metadata.references = []
                 archive.metadata.references.append(self.DOI_number)
@@ -179,7 +176,9 @@ Unpublished
                     archive.metadata.references.append('https://doi.org/10.1038/s41560-021-00941-3')
                     archive.metadata.references.append('https://www.perovskitedatabase.com/')
                     archive.metadata.external_db = 'The Perovskite Database Project'
-
+            for i, ref in enumerate(archive.metadata.references):
+                if ref.startswith('10.'):
+                    archive.metadata.references[i] = 'https://doi.org/' + ref
 
 class Cell(MSection):
     """
