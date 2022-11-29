@@ -37,7 +37,7 @@ app = FastAPI(
     redoc_url='/extensions/redoc',
     swagger_ui_oauth2_redirect_url='/extensions/docs/oauth2-redirect',
     title='DCAT API',
-    version='v1, NOMAD %s@%s' % (config.meta.version, config.meta.commit),
+    version=f'v1, NOMAD {config.meta.version}',
     description='NOMAD\'s API for serving dcat resources')
 
 app.add_middleware(

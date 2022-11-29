@@ -42,6 +42,16 @@ git checkout -b <my-branch-name>
 ```
 This branch can be pushed to the repo, and then later may be merged to the relevant branch.
 
+### Install sub-modules
+
+Nomad is based on python modules from the NOMAD-coe project.
+This includes parsers, python-common and the meta-info. These modules are maintained as
+their own GITLab/git repositories. To clone and initialize them run:
+
+```sh
+git submodule update --init
+```
+
 ## Installation
 
 ### Setup a Python environment
@@ -82,17 +92,15 @@ To install libmagick for conda, you can use (other channels might also work):
 conda install -c conda-forge --name nomad_env libmagic
 ```
 
-The following command can be used to install all dependencies and the submodules of the NOMAD-coe project.
-```
-bash setup.sh
-```
-
-The script includes the following steps:
-
-### Upgrade pip
+#### Upgrade pip
 Make sure you have the most recent version of pip:
 ```sh
 pip install --upgrade pip
+```
+
+The following command can be used to install all dependencies and the submodules of the NOMAD-coe project.
+```
+./scripts/setup_dev_env.sh
 ```
 
 
@@ -112,55 +120,38 @@ Finally, you can add nomad to the environment itself (including all extras).
 The `-e` option will install the NOMAD with symbolic links allowing you
 to change the code without having to reinstall after each change.
 ```sh
-pip install -e .[all]
+pip install -e .[infrastructure,parsing,dev]
 ```
 
 If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
 
 ```sh
-pip install -e .[all] --prefer-binary
+pip install -e .[infrastructure,parsing,dev] --prefer-binary
 ```
 
-### Install sub-modules
-Nomad is based on python modules from the NOMAD-coe project.
-This includes parsers, python-common and the meta-info. These modules are maintained as
-their own GITLab/git repositories. To clone and initialize them run:
 
-```sh
-git submodule update --init
-```
+### Update GUI artifacts
 
-All requirements for these submodules need to be installed and they themselves need to be installed
-as python modules. Run the `dependencies.sh` script that will install
-everything into your virtual environment:
-```sh
-./dependencies.sh -e
-```
-
-If one of the Python packages, that are installed during this process, fail because it
-cannot be compiled on your platform, you can try `pip install --prefer-binary <packagename>`
-to install set packages manually.
-
-The `-e` option will install the NOMAD-coe dependencies with symbolic links allowing you
-to change the downloaded dependency code without having to reinstall after.
-
-### Generate GUI artifacts
 The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
 ```sh
-nomad.cli dev metainfo > gui/src/metainfo.json
-nomad.cli dev search-quantities > gui/src/searchQuantities.json
-nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
-nomad.cli dev units > gui/src/unitsData.js
-nomad.cli dev parser-metadata > gui/src/parserMetadata.json
+python -m nomad.cli dev metainfo >gui/src/metainfo.json
+python -m nomad.cli dev search-quantities >gui/src/searchQuantities.json
+python -m nomad.cli dev toolkit-metadata >gui/src/toolkitMetadata.json
+python -m nomad.cli dev units >gui/src/unitsData.js
+python -m nomad.cli dev parser-metadata >gui/src/parserMetadata.json
+python -m nomad.cli dev gui-config >gui/public/env.js
+cp dependencies/nomad-remote-tools-hub/tools.json gui/src/northTools.json
+python -m nomad.cli dev example-upload-metadata >gui/src/exampleUploads.json
 ```
 
 Or simply run
 ```sh
-./generate_gui_artifacts.sh
+./scripts/screipugenerate_gui_artifacts.sh
 ```
 
-The generated files are not stored in GIT. If you pull a different commit, the GUI code
-might not match the expected data in outdated files. If there are changes to units, metainfo, new parsers, new toolkits it might be necessary to regenerate these gui artifacts.
+The generated files are stored in GIT. The GUI code might not match the expected data in
+outdated files. If there are changes to units, metainfo, new parsers, new toolkits it
+might be necessary to regenerate these gui artifacts.
 
 In addition, you have to do some more steps to prepare your working copy to run all
 the tests. See below.
@@ -327,10 +318,8 @@ of the code base.
 
 You have to provide static files to serve the docs and NOMAD distribution:
 ```sh
-rm -rf docs/build && mkdocs build && mv site docs/build
-python setup.py compile
-python setup.py sdist
-cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
+./scripts/generate_docs_artifacts.sh
+rm -rf site && mkdocs build && mv site nomad/app/static/docs
 ```
 
 You need to have the infrastructure partially running: elastic, rabbitmq.

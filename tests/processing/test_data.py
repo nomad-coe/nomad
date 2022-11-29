@@ -431,7 +431,6 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
 
     # reprocess
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
-    monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
     published.process_upload()
     try:
         published.block_until_complete(interval=.01)
@@ -449,7 +448,6 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     # assert new process version
     if with_failure != 'not-matched':
         assert first_entry.nomad_version == 're_process_test_version'
-        assert first_entry.nomad_commit == 're_process_test_commit'
 
     # assert changed archive files
     if with_failure == 'after':

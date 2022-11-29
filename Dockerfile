@@ -23,128 +23,195 @@
 # The dockerfile is multistaged to use a fat, more convinient build image and
 # copy only necessities to a slim final image
 
-# We use slim for the final image
-FROM python:3.7-slim as final
 
-# Build all python stuff in a python build image
-FROM python:3.7-stretch as build
-RUN mkdir /install
+FROM node:16.15 AS base_node
+FROM python:3.7-slim AS base_python
 
-# Install linux package dependencies
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends libgomp1
-RUN apt-get install -y libmagic-dev curl make cmake swig libnetcdf-dev zip
-
-# Install some specific dependencies necessary for the build process
-RUN pip install --upgrade pip
-RUN pip install fastentrypoints
-RUN pip install pyyaml
-RUN pip install numpy
-
-# Install some specific dependencies to make use of docker layer caching
-RUN pip install cython>=0.19
-RUN pip install pandas
-RUN pip install h5py
-RUN pip install hjson
-RUN pip install scipy
-RUN pip install scikit-learn
-RUN pip install ase==3.19.0
-RUN pip install Pint
-RUN pip install matid
-RUN pip install mdtraj
-RUN pip install mdanalysis
-
-# Make will be necessary to build the docs with sphynx
-RUN apt-get update && apt-get install -y make
-RUN apt-get update && apt-get install -y vim
-
-# Install pymolfile (required by some parsers)
-RUN git clone -b nomad-fair https://gitlab.mpcdf.mpg.de/nomad-lab/pymolfile.git
-WORKDIR /pymolfile/
-RUN python3 setup.py install
-RUN rm -rf /pymolfile
-
-# Copy files and install nomad@FAIRDI
-WORKDIR /install
-COPY . /install
-RUN python setup.py compile
-RUN pip install .[all]
-RUN ./generate_gui_artifacts.sh
-RUN ./generate_docs_artifacts.sh
-RUN mkdocs build && mv site docs/build
-RUN \
-    find /usr/local/lib/python3.7/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
-    find /usr/local/lib/python3.7/ -name 'test' -exec rm -r '{}' + && \
-    find /usr/local/lib/python3.7/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" | grep -v h5py && strip -s "{}"' \;
-
+# ================================================================================
 # Built the GUI in the gui build image
-FROM node:16.15 as gui_build
-RUN mkdir -p /app
-WORKDIR /app
+# ================================================================================
+
+FROM base_node AS dev_node
+
+WORKDIR /app/gui
+
 ENV PATH /app/node_modules/.bin:$PATH
-COPY gui/package.json /app/package.json
-COPY gui/yarn.lock /app/yarn.lock
-COPY gui/materia /app/materia
-COPY gui/crystcif-parse /app/crystcif-parse
+ENV NODE_OPTIONS "--max_old_space_size=3072"
+
+# Fetch and cache all (but only) the dependencies
+COPY gui/yarn.lock gui/package.json ./
+COPY gui/materia ./materia
+COPY gui/crystcif-parse ./crystcif-parse
+
 RUN yarn --network-timeout 1200000
-COPY gui /app
-COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
-COPY --from=build /install/gui/src/searchQuantities.json /app/src/searchQuantities.json
-COPY --from=build /install/gui/src/parserMetadata.json /app/src/parserMetadata.json
-COPY --from=build /install/gui/src/toolkitMetadata.json /app/src/toolkitMetadata.json
-COPY --from=build /install/gui/src/exampleUploads.json /app/src/exampleUploads.json
-COPY --from=build /install/gui/src/unitsData.js /app/src/unitsData.js
-COPY --from=build /install/gui/src/northTools.json /app/src/northTools.json
+
+# Artifact for running the tests
+COPY tests/states/archives/dft.json  /app/tests/states/archives/dft.json
+
+# Copy and build the appticaion itself
+COPY gui .
+
 RUN yarn run build
 
-# Third, create a slim final image
-FROM final
 
+# ================================================================================
+# Build all python stuff in a python build image
+# ================================================================================
+
+FROM base_python AS dev_python
+
+# Linux applications and libraries
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libgomp1 \
- && apt-get install -y libmagic-dev curl vim zip unzip
+ && apt-get install --yes --quiet --no-install-recommends \
+      libgomp1 \
+      libmagic-dev \
+      curl \
+      gcc \
+      build-essential \
+      make \
+      cmake \
+      swig \
+      libnetcdf-dev \
+      zip \
+      vim \
+      git \
+ && rm -rf /var/lib/apt/lists/*
 
-# Install the proxy used by north
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
- && apt-get install -y nodejs \
- && npm install -g configurable-http-proxy
-
-# copy the sources for tests, coverage, qa, etc.
-COPY . /app
 WORKDIR /app
-# transfer installed packages from dependency stage
-COPY --from=build /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
-# copy shared jupyterhub files
-COPY --from=build /usr/local/share/jupyterhub /usr/local/share/jupyterhub
-# copy the documentation, its files will be served by the API
-COPY --from=build /install/docs/build /app/docs/build
-# copy the nomad command
-COPY --from=build /usr/local/bin/nomad /usr/bin/nomad
-# copy the gui
-RUN mkdir -p /app/gui
-COPY --from=gui_build /app/build /app/nomad/app/static/gui
-# remove the developer config on the gui, will be generated by run.sh from nomad.yaml
-RUN rm -f /app/nomad/app/static/gui/env.js
-# build the python package dist
-RUN python setup.py compile
-RUN python setup.py sdist
-RUN cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
+
+ENV PIP_NO_CACHE_DIR=1
+
+# Python environment
+COPY requirements-dev.txt .
+
+RUN pip install build \
+ && pip install --progress-bar off --prefer-binary -r requirements-dev.txt
+
+COPY dependencies ./dependencies
+COPY docs ./docs
+COPY examples ./examples
+COPY nomad ./nomad
+COPY scripts ./scripts
+COPY tests ./tests
+COPY MANIFEST.in \
+     mkdocs.yml \
+     .pylintrc \
+     pycodestyle.ini \
+     pyproject.toml \
+     pytest.ini \
+     README.md \
+     LICENSE \
+     requirements.txt \
+     setup.py \
+     ./
+
+# Files requiered for artifact generation/testing
+COPY ops/docker-compose ./ops/docker-compose
+COPY gui/src/metainfo.json ./gui/src/metainfo.json
+COPY gui/src/searchQuantities.json ./gui/src/searchQuantities.json
+COPY gui/src/toolkitMetadata.json ./gui/src/toolkitMetadata.json
+COPY gui/src/unitsData.js ./gui/src/unitsData.js
+COPY gui/src/parserMetadata.json ./gui/src/parserMetadata.json
+COPY gui/public/env.js ./gui/public/env.js
+COPY dependencies/nomad-remote-tools-hub/tools.json ./dependencies/nomad-remote-tools-hub/tools.json
+COPY gui/src/northTools.json ./gui/src/northTools.json
+COPY gui/src/exampleUploads.json ./gui/src/exampleUploads.json
 
 # build the example upload files
-WORKDIR /app/examples/data
-RUN ./generate_example_uploads.sh
+RUN ./scripts/generate_example_uploads.sh
+
+# Copy the built gui code
+COPY --from=dev_node /app/gui/build nomad/app/static/gui
+RUN rm nomad/app/static/gui/env.js
+
+# Build documentation
+RUN --mount=source=.git,target=.git,type=bind pip install ".[parsing,infrastructure,dev]"
+
+RUN mkdocs build \
+ && mkdir -p nomad/app/static/docs \
+ && cp -r site/* nomad/app/static/docs/
+
+# Build the python source distribution package
+RUN --mount=source=.git,target=.git,type=bind python -m build
+
+# (Re)install the full packages docs included
+RUN pip install dist/nomad-lab-*.tar.gz
+
+
+# ================================================================================
+# We use slim for the final image
+# ================================================================================
+
+FROM base_python AS builder
+
+RUN apt-get update \
+ && apt-get install --yes --quiet --no-install-recommends \
+       libgomp1 \
+       libmagic1 \
+       file \
+       gcc \
+       build-essential \
+       curl \
+       zip \
+       unzip \
+ && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-RUN mkdir -p /app/.volumes/fs
-RUN useradd -ms /bin/bash nomad
-RUN chown -R nomad /app
-RUN chmod a+rx run.sh
-RUN chmod a+wrx /app
+ENV PIP_NO_CACHE_DIR=1
+
+# Python environment
+COPY requirements.txt .
+
+RUN pip install --progress-bar off --prefer-binary -r requirements.txt
+
+# install
+COPY --from=dev_python /app/dist/nomad-lab-*.tar.gz .
+RUN pip install nomad-lab-*.tar.gz
+
+# Reduce the size of the packages
+RUN find /usr/local/lib/python3.7/ -type d -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + \
+ && find /usr/local/lib/python3.7/ -type d -name 'test' -exec rm -r '{}' + \
+ && find /usr/local/lib/python3.7/site-packages/ -name '*.so' ! -path '*/h5py/*' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
+
+
+# ================================================================================
+# We use slim for the final image
+# ================================================================================
+
+FROM base_python AS final
+
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
+ && apt-get update \
+ && apt-get install --yes --quiet --no-install-recommends \
+       nodejs \
+       npm \
+       libgomp1 \
+       libmagic1 \
+       curl \
+       zip \
+       unzip \
+ && rm -rf /var/lib/apt/lists/* \
+ && npm install -g configurable-http-proxy \
+ && npm uninstall -g npm
+
+WORKDIR /app
+
+RUN useradd -ms /bin/bash nomad \
+ && mkdir -p /app/.volumes/fs \
+ && chown -R nomad /app
+
 USER nomad
 
-VOLUME /app/.volumes/fs
+# transfer installed packages from the build stage
+COPY --chown=nomad scripts/run.sh .
+COPY --chown=nomad --from=dev_python /app/examples/data/uploads /app/examples/data/uploads
+COPY --chown=nomad --from=builder /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
+COPY --chown=nomad --from=builder /usr/local/share/jupyterhub /usr/local/share/jupyterhub
+COPY --chown=nomad --from=builder /usr/local/bin/nomad /usr/local/bin/nomad
 
-# The app default port
+# The application ports
 EXPOSE 8000
-# The north default port
 EXPOSE 9000
+
+VOLUME /app/.volumes/fs

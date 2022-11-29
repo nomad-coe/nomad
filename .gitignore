@@ -1,3 +1,44 @@
+# Nomad specific and extra patterns needs to be ignored
+
+.*env/
+.pyenv*/
+.pytest/
+.coverage_html/
+.coverage*
+*.log.conf
+parser.osio.log
+docs/*.graffle
+gui/.editorconfig
+gui/.pnp.cjs
+gui/.yarn/
+gui/.yarnrc.yml
+gui/junit.xml
+
+# Ignore all user-specific configuration files
+nomad.yaml
+!tests/nomad.yaml
+!ops/docker-compose/nomad-oasis/configs/nomad.yaml
+!ops/docker-compose/nomad-oasis-with-keycloak/configs/nomad.yaml
+
+# Ignore built gui and docs artufacts
+nomad/app/static/
+
+nomad/normalizing/data/*.db
+nomad/normalizing/data/*.msg
+
+# Side effect of examples/dos_analyzer.ipynb
+examples/workdir/
+examples/data/uploads/*.zip
+
+# Side effect of running Jupyterhub locally
+jupyterhub_cookie_secret
+jupyterhub.sqlite
+jupyterhub-proxy.pid
+
+# Ignore storage folders of docker-compose
+.volumes
+
+
 # https://github.com/github/gitignore/blob/main/Python.gitignore
 
 # Byte-compiled / optimized / DLL files
@@ -386,52 +427,3 @@ $RECYCLE.BIN/
 
 # .nfs files are created when an open file is removed but is still being accessed
 .nfs*
-
-
-# Nomad
-.*env/
-.pyenv*/
-.pytest/
-
-.coverage_html/
-.coverage*
-
-/data/
-/.volumes
-
-try.http
-project/
-test_*/
-local/
-*.swp
-
-nomad.yaml
-!tests/nomad.yaml
-!ops/docker-compose/nomad-oasis/configs/nomad.yaml
-!ops/docker-compose/nomad-oasis-with-keycloak/configs/nomad.yaml
-
-*.log.conf
-setup.json
-parser.osio.log
-gui/src/metainfo.json
-gui/src/searchQuantities.json
-gui/src/toolkitMetadata.json
-gui/src/unitsData.js
-gui/src/parserMetadata.js
-gui/src/northTools.json
-gui/src/exampleUploads.json
-gui/.editorconfig
-gui/.pnp.cjs
-gui/.yarn/
-gui/.yarnrc.yml
-gui/junit.xml
-examples/workdir/
-nomad/gitinfo.py
-
-jupyterhub_cookie_secret
-jupyterhub.sqlite
-jupyterhub-proxy.pid
-gui/src/parserMetadata.json
-
-docs/*.graffle
-

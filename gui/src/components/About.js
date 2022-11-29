@@ -21,7 +21,6 @@ import PropTypes from 'prop-types'
 import Markdown from './Markdown'
 import { isNil } from 'lodash'
 import { appBase, debug, aitoolkitEnabled, encyclopediaBase } from '../config'
-import packageJson from '../../package.json'
 import {
   Button,
   Card,
@@ -421,10 +420,7 @@ export default function About() {
         ` : ''}
 
         ### About this version
-        - version (API): \`${info ? info.version : 'loading'}/${info ? info.git.commit : 'loading'}\`
-        - version (GUI): \`${packageJson.version}/${packageJson.commit}\`
-        - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
-        - last commit message: *${info ? info.git.log : 'loading'}*
+        - version: \`${info ? info.version : 'loading'}\`
         - parsers: ${info ? info.parsers.join(', ') : 'loading'}
         - normalizers: ${info ? info.normalizers.join(', ') : 'loading'}
         `}</Markdown>

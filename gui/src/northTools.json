@@ -1,0 +1,60 @@
+{
+    "jupyter": {
+        "short_description": "Basic jupyter run with an empty notebook or on given notebook file.",
+        "description": "### **Jupyter Notebook**: The Classic Notebook Interface\n\nThe Jupyter Notebook is the original web application for creating and sharing computational documents. It offers a simple, streamlined, document-centric experience.",
+        "image": "jupyter/datascience-notebook",
+        "path_prefix": "tree",
+        "mount_path": "/home/jovyan",
+        "icon": "jupyter_logo.svg",
+        "file_extensions": ["ipynb"],
+        "maintainer": [
+            {
+                "name": "Markus Scheidgen",
+                "email": "markus.scheidgen@physik.hu-berlin.de"
+            },
+            {
+                "name": "Some-one Else",
+                "email": "markus.scheidgen@physik.hu-berlin.de"
+            }
+        ]
+    },
+    "hyperspy": {
+        "description": "Run hyperspy on a arbitrary .hdf5 file.",
+        "mount_path": "/home/jovyan",
+        "file_extensions": ["hdf5", "hd5"]
+    },
+    "nionswift": {
+        "description": "Run Nion Swift to analyze data.",
+        "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nionswift-webtop:latest",
+        "mount_path": "/config"
+    },
+    "nexustools": {
+        "description": "Includes multiple Nexus tools for visualization and analysis.",
+        "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nexus-webtop:latest",
+        "mount_path": "/config",
+        "file_extensions": ["nxs"]
+    },
+    "paraprobe": {
+        "description": "Run paraprobe on atom probe data",
+        "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/paraprobe-jupyter",
+        "path_prefix": "tree",
+        "icon": "jupyter_logo.svg",
+        "mount_path": "/home/jovyan"
+    },
+    "pyarpes": {
+        "description": "Run pyARPES to analyze data",
+        "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/pyarpes-webtop",
+        "mount_path": "/config"
+    },
+    "webtop": {
+        "description": "Baseline webtop image for test",
+        "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/webtop",
+        "mount_path": "/config"
+    },
+    "apmtools": {
+        "description": "Miscellaneous tools from the atom probe community",
+        "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/apmtools-webtop",
+        "icon": "jupyter_logo.svg",
+        "mount_path": "/config"
+    }
+}

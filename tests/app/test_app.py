@@ -29,8 +29,3 @@ def test_docs(client):
     rv = client.get('/docs/oasis.html')
     assert rv.status_code == 200
     assert 'Cache-Control' not in rv.headers
-
-
-def test_dist(client):
-    rv = client.get('/dist/nomad-lab.tar.gz')
-    assert rv.status_code == 200
