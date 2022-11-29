@@ -536,6 +536,7 @@ def _generate_units(all_metainfo):
     # Reorder unit list so that base dimensions come first. Units are registered
     # in the list order and base units need to be registered before derived
     # ones.
+    unit_list.sort(key=lambda x: x.get('name'))
     unit_list.sort(key=lambda x: 0 if x.get('definition') is None else 1)
 
     # Go through the metainfo and check that all units are defined. Note that

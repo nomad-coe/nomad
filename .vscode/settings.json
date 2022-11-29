@@ -106,7 +106,9 @@
     },
     "files.exclude": {
         "\"**/*.pyc\": {\"when\": \"$(basename).py\"}": true,
-        "**/__pycache__": true
+        "**/__pycache__": true,
+        "**/node_modules": true
+
     },
     "eslint.workingDirectories": [
         {

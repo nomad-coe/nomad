@@ -45,7 +45,7 @@ app = FastAPI(
     redoc_url='/extensions/redoc',
     swagger_ui_oauth2_redirect_url='/extensions/docs/oauth2-redirect',
     title='NOMAD API',
-    version='v1, NOMAD %s@%s' % (config.meta.version, config.meta.commit),
+    version=f'v1, NOMAD {config.meta.version}',
     description=utils.strip(f'''
         Please visit the [API section of the NOMAD documentation]({config.api_url(True, 'docs/api.html')})
         for a introduction and examples.

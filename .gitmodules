@@ -8,9 +8,6 @@
 	path = dependencies/parsers/eelsdb
 	url = https://github.com/nomad-coe/nomad-parser-eelsdb.git
 	branch = master
-[submodule "dependencies/parsers/example"]
-	path = dependencies/parsers/example
-	url = https://github.com/nomad-coe/nomad-parser-example.git
 [submodule "dependencies/nomad-remote-tools-hub"]
 	path = dependencies/nomad-remote-tools-hub
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub.git

@@ -65,7 +65,7 @@ app.mount(f'{app_base}/optimade', optimade_app)
 app.mount(f'{app_base}/h5grove', h5grove_app)
 
 dist_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../dist'))
-docs_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs/build'))
+docs_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static/docs'))
 gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static/gui'))
 if not os.path.exists(gui_folder):
     os.makedirs(gui_folder)

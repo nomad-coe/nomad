@@ -116,7 +116,7 @@ test.each([
   ['do not simplify', 'gram*angstrom/fs^2', {mass: {name: 'kilogram'}, length: {name: 'meter'}, time: {name: 'second'}}, '(kg m) / s^2'],
   ['do not convert to base', 'eV', {energy: {name: 'joule'}}, 'J'],
   ['combination', 'a_u_force * angstrom', {force: {name: 'newton'}, length: {name: 'meter'}}, 'N m'],
-  ['use base units if derived unit not defined in system', 'newton * meter', {mass: {name: 'kilogram'}, time: {name: 'second'}, length: {name: 'meter'}}, '(m kg m) / s^2']
+  ['use base units if derived unit not defined in system', 'newton * meter', {mass: {name: 'kilogram'}, time: {name: 'second'}, length: {name: 'meter'}}, '(kg m m) / s^2']
 ]
 )('test conversion with "toSystem()": %s', async (name, unit, system, label) => {
   const a = new Quantity(1, unit)
@@ -132,7 +132,7 @@ test.each([
   ['fixed order 2', 'second * meter', 'length time'],
   ['power', 'meter^3 * second^-1', 'length^3 time^-1'],
   ['in derived', 'joule', 'energy', false],
-  ['in base', 'joule', 'length^2 time^-2 mass']
+  ['in base', 'joule', 'mass length^2 time^-2']
 ]
 )('test getting dimension": %s', async (name, unit, dimension, base = true) => {
   const a = new Quantity(1, unit)

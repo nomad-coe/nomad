@@ -42,17 +42,13 @@ import os.path
 import yaml
 import warnings
 from typing import Dict, List, Any
+from pkg_resources import get_distribution, DistributionNotFound
 
 try:
-    from nomad import gitinfo
-except ImportError:
-    git_root = os.path.join(os.path.dirname(__file__), '..')
-    cwd = os.getcwd()
-    os.chdir(git_root)
-    os.system('./gitinfo.sh')
-    os.chdir(cwd)
-
-    from nomad import gitinfo
+    __version__ = get_distribution("nomad-lab").version
+except DistributionNotFound:
+    # package is not installed
+    pass
 
 
 warnings.filterwarnings('ignore', message='numpy.dtype size changed')
@@ -342,8 +338,8 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='1.1.5',
-    commit=gitinfo.commit,
+    version=__version__,
+    commit='',
     deployment='devel',  # A human-friendly name of the nomad deployment
     deployment_url='https://my-oasis.org/api',  # The deployment's url (api url).
     label=None,

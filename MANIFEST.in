@@ -1,15 +1,18 @@
-recursive-include dependencies/optimade-python-tools *.txt *.g *.py *.ini *.json
-recursive-include nomad *.json *.j2 *.md *.yaml
-include nomad/units/*.txt
-include README.md
-include LICENSE.txt
-include requirements.txt
-include auto_complete_install.sh
-include setup.json
-recursive-include nomad/app/static/gui/ *.css *.ico *.html *.json *.js *.map *.txt *.svg *.png
-recursive-include docs/build/ *.css *.ico *.html *.json *.js *.map *.txt *.svg *.png
-recursive-include dependencies/parsers/ metadata.yaml
-recursive-include dependencies/parsers/nexus/nexusparser/definitions/base_classes/ *.xml
-recursive-include dependencies/parsers/nexus/nexusparser/definitions/applications/ *.xml
-recursive-include dependencies/parsers/nexus/nexusparser/definitions/contributed_definitions/ *.xml
-include dependencies/parsers/nexus/nexusparser/definitions/ *.xsd
+prune *
+exclude *
+
+include pyproject.toml setup.py AUTHORS LICENSE README.md README.parsers.md requirements.txt requirements-dev.txt
+
+recursive-include nomad *.py *.json *.j2 *.md *.txt metadata.yaml
+graft nomad/app/static
+recursive-exclude nomad/app/static *.map
+
+recursive-include dependencies/matid/matid *.py
+recursive-include dependencies/nomad-dos-fingerprints/nomad_dos_fingerprints *.py
+recursive-include dependencies/parsers/atomistic/atomisticparsers *.py README.md metadata.yaml
+recursive-include dependencies/parsers/database/databaseparsers *.py README.md metadata.yaml
+recursive-include dependencies/parsers/eelsdb/eelsdbparser *.py README.md metadata.yaml
+recursive-include dependencies/parsers/electronic/electronicparsers *.py README.md metadata.yaml
+recursive-include dependencies/parsers/nexus/nexusparser *.py README.md metadata.yaml
+recursive-include dependencies/parsers/nexus/nexusparser/definitions *.xml *.xsd
+recursive-include dependencies/parsers/workflow/workflowparsers *.py README.md metadata.yaml

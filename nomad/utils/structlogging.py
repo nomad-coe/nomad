@@ -145,7 +145,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             'nomad.service': config.meta.service,
             'nomad.deployment': config.meta.deployment,
             'nomad.version': config.meta.version,
-            'nomad.commit': config.meta.commit
+            'nomad.commit': ''
         }
         if config.meta.label:
             message['nomad.label'] = config.meta.label

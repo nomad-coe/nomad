@@ -35,7 +35,6 @@ You can use the [extra] notation to install these extra requirements:
 pip install nomad-lab[parsing]
 pip install nomad-lab[infrastructure]
 pip install nomad-lab[dev]
-pip install nomad-lab[all]
 ```
 The various extras have the following meaning:
 
@@ -44,5 +43,4 @@ The various extras have the following meaning:
 - *infrastructure*, everything to run NOMAD services
 
 - *dev*, additional tools that are necessary to develop NOMAD
-
-- *all*, all of the above
+  

@@ -760,7 +760,7 @@ class Entry(Proc):
         Applies metadata generated when processing or re-processing an entry to `entry_metadata`.
         '''
         entry_metadata.nomad_version = config.meta.version
-        entry_metadata.nomad_commit = config.meta.commit
+        entry_metadata.nomad_commit = ''
         entry_metadata.entry_hash = self.upload_files.entry_hash(self.mainfile, self.mainfile_key)
         entry_metadata.files = self.upload_files.entry_files(self.mainfile)
         entry_metadata.last_processing_time = datetime.utcnow()

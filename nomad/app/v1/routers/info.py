@@ -26,7 +26,7 @@ from fastapi.routing import APIRouter
 from pydantic.fields import Field
 from pydantic.main import BaseModel
 
-from nomad import config, normalizing, gitinfo
+from nomad import config, normalizing
 from nomad.utils import strip
 from nomad.search import search
 from nomad.parsing import parsers
@@ -47,13 +47,6 @@ class MetainfoModel(BaseModel):
     root_section: str = Field(None, description=strip('''
         Name of the topmost section, e.g. section run for computational material science
         data.'''))
-
-
-class GitInfoModel(BaseModel):
-    ref: str
-    version: str
-    commit: str
-    log: str
 
 
 class StatisticsModel(BaseModel):
@@ -79,7 +72,6 @@ class InfoModel(BaseModel):
     search_quantities: dict
     version: str
     deployment: str
-    git: GitInfoModel
     oasis: bool
 
 
@@ -130,11 +122,5 @@ async def get_info():
         },
         'version': config.meta.version,
         'deployment': config.meta.deployment,
-        'git': {
-            'ref': gitinfo.ref,
-            'version': gitinfo.version,
-            'commit': gitinfo.commit,
-            'log': gitinfo.log
-        },
         'oasis': config.oasis.is_oasis
     }
