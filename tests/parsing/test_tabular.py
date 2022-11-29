@@ -425,6 +425,39 @@ data:
             header_0, header_1
             a,b
         '''), id='space in header'
+    ),
+    pytest.param(
+        strip('''
+            definitions:
+                sections:
+                    MyTableWithDatetime:
+                        base_section: nomad.parsing.tabular.TableData
+                        quantities:
+                            data_file:
+                              type: str
+                              m_annotations:
+                                tabular_parser:
+                                  comment: '#'
+                                  mode: row
+                                  target_sub_section:
+                                   - MySubsection
+                        sub_sections:
+                            MySubsection:
+                                repeats: true
+                                section:
+                                    quantities:
+                                        header_0:
+                                            type: Datetime
+            data:
+                m_def: MyTableWithDatetime
+                data_file: test.my_schema.archive.csv
+        '''),
+        strip('''
+            header_0
+            2018-03-19 13:01:47
+            2018-03-19 13:01:48
+            2018-03-19 13:01:49
+        '''), id='datetime in row mode'
     )
 ])
 def test_tabular_csv(raw_files, monkeypatch, schema, content):
@@ -442,7 +475,7 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
     main_archive, _ = get_archives(context, schema_file, None)
     ArchiveParser().parse(schema_file, main_archive)
     run_normalize(main_archive)
-    assert main_archive.data.header_1 is not None
+    assert main_archive.data.MySubsection.header_0 is not None
 
 
 @pytest.mark.parametrize('schema,content,missing', [
