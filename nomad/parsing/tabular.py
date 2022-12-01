@@ -171,7 +171,7 @@ def _create_column_to_quantity_mapping(section_def: Section):
                     value = None
 
                 if isinstance(value, (int, float, str)):
-                    value = np.array(value)
+                    value = np.array([value])
 
                 if value is not None:
                     if len(value.shape) == 1 and len(quantity.shape) == 0:

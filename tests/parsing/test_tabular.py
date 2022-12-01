@@ -21,6 +21,7 @@ import os
 import os.path
 import pandas as pd
 import re
+import datetime
 
 from nomad import config
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
@@ -425,6 +426,45 @@ data:
             header_0, header_1
             a,b
         '''), id='space in header'
+    ),
+    pytest.param(
+        strip('''
+            definitions:
+                name: 'my_parsing_test'
+                sections:
+                    MyTableWithDatetime:
+                        base_section: nomad.parsing.tabular.TableData
+                        m_annotations:
+                            eln:
+                        quantities:
+                            data_file:
+                                type: str
+                                m_annotations:
+                                    tabular_parser:
+                                        comment: '#'
+                                        mode: row
+                                        target_sub_section:
+                                            - MySubsection
+                        sub_sections:
+                            MySubsection:
+                                repeats: true
+                                section:
+                                    quantities:
+                                        header_0:
+                                            type: Datetime
+                                            m_annotations:
+                                                tabular:
+                                                    name: "Header_0"
+            data:
+                m_def: MyTableWithDatetime
+                data_file: test.my_schema.archive.csv
+        '''),
+        strip('''
+            Header_0, Header_1
+            2018-03-19 13:01:47+01, 1
+            2018-03-19 13:01:48+01, 2
+            2018-03-19 13:01:49+01, 3
+        '''), id='datetime in row mode'
     )
 ])
 def test_tabular_csv(raw_files, monkeypatch, schema, content):
@@ -442,7 +482,11 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
     main_archive, _ = get_archives(context, schema_file, None)
     ArchiveParser().parse(schema_file, main_archive)
     run_normalize(main_archive)
-    assert main_archive.data.header_1 is not None
+    if 'header_1' in main_archive.data:
+        assert main_archive.data.header_1 is not None
+    if 'MySubsection' in main_archive.data:
+        for instance in [0, 1, 2]:
+            assert isinstance(main_archive.data.MySubsection[instance].header_0, datetime.datetime)
 
 
 @pytest.mark.parametrize('schema,content,missing', [
