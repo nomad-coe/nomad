@@ -233,6 +233,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
   const classes = useDatatableHeaderStyles()
   const {
     withSelectionFeature,
+    multiSelect,
     selected,
     onSelectedChanged,
     shownColumns,
@@ -273,7 +274,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
 
   return <TableHead>
     <TableRow>
-      {withSelectionFeature && <TableCell padding="checkbox" classes={{stickyHeader: classes.stickyHeader}}>
+      {withSelectionFeature && multiSelect && <TableCell padding="checkbox" classes={{stickyHeader: classes.stickyHeader}}>
         <Checkbox
           indeterminate={selected.length > 0 && selected !== 'all'}
           checked={selected === 'all'}
@@ -342,17 +343,16 @@ const useDatatableRowStyles = makeStyles(theme => ({
     paddingBottom: 0
   },
   detailsCell: {
-    paddingTop: 0,
-    paddingBottom: 0
+    padding: 0
   }
 }))
 
 const DatatableRow = React.memo(function DatatableRow({data, selected, uncollapsed, onRowUncollapsed, actions, details, progressIcon}) {
   const classes = useDatatableRowStyles()
-  const {withSelectionFeature, shownColumns, onSelectedChanged} = useStaticDatatableContext()
+  const {withSelectionFeature, multiSelect, shownColumns, onSelectedChanged} = useStaticDatatableContext()
   const columns = shownColumns
   const row = data
-  const numberOfColumns = columns.length + (withSelectionFeature ? 1 : 0) + (actions ? 1 : 0)
+  const numberOfColumns = columns.length + (withSelectionFeature && multiSelect ? 1 : 0) + (actions ? 1 : 0)
 
   const handleRowCollapseChange = (event) => {
     onRowUncollapsed(uncollapsed ? null : row)
@@ -361,14 +361,18 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
   const handleSelect = onSelectedChanged ? (event) => {
     event.stopPropagation()
     onSelectedChanged(selected => {
-      if (selected === 'all') {
-        return [row]
-      }
-      const index = selected.indexOf(row)
-      if (index > -1) {
-        return [...selected.slice(0, index), ...selected.slice(index + 1)]
+      if (multiSelect) {
+        if (selected === 'all') {
+          return [row]
+        }
+        const index = selected.indexOf(row)
+        if (index > -1) {
+          return [...selected.slice(0, index), ...selected.slice(index + 1)]
+        } else {
+          return [...selected, row]
+        }
       } else {
-        return [...selected, row]
+        return [row]
       }
     })
   } : null
@@ -387,7 +391,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
       selected={selected}
       data-testid={'datatable-row'}
     >
-      {withSelectionFeature && <TableCell padding="checkbox">
+      {withSelectionFeature && multiSelect && <TableCell padding="checkbox">
         {progressIcon || <Checkbox
           checked={selected}
           onClick={handleSelect}
@@ -403,7 +407,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
         {React.createElement(actions, {data: row})}
       </TableCell>}
     </TableRow>
-    {details && <TableRow selected={selected}>
+    {details && <TableRow selected={selected} data-testid={uncollapsed && 'datatable-row'}>
       <TableCell className={classes.detailsCell} colSpan={numberOfColumns}>
         <Collapse in={uncollapsed} timeout="auto" unmountOnExit>
           <Box margin={1}>
@@ -431,18 +435,18 @@ const useDatatableTableStyles = makeStyles(theme => ({
 }))
 
 /** The actional table, including pagination. Must be child of a Datatable component. */
-export const DatatableTable = React.memo(function DatatableTable({children, actions, details, noHeader}) {
+export const DatatableTable = React.memo(function DatatableTable({children, actions, details, noHeader, defaultUncollapsedRow}) {
   const classes = useDatatableTableStyles()
-  const {shownColumns, data, pagination, onPaginationChanged, selected, withSelectionFeature} = useDatatableContext()
+  const {shownColumns, data, pagination, onPaginationChanged, selected, withSelectionFeature, multiSelect} = useDatatableContext()
   const {page_size} = pagination
   const emptyRows = Math.max(0, page_size - data.length)
   const columns = shownColumns
-  const numberOfColumns = columns.length + (withSelectionFeature ? 1 : 0) + (actions ? 1 : 0)
+  const numberOfColumns = columns.length + (withSelectionFeature && multiSelect ? 1 : 0) + (actions ? 1 : 0)
   const isScrolling = children?.type === DatatableScrollPagination
   const isExtending = children?.type === DatatableScrollPagination || children?.type === DatatableLoadMorePagination
   const scrollParentRef = useRef(null)
 
-  const [uncollapsedRow, setUncollapsedRow] = useState(null)
+  const [uncollapsedRow, setUncollapsedRow] = useState(defaultUncollapsedRow || null)
 
   const handleLoadMore = useCallback(() => {
     onPaginationChanged(pagination => {
@@ -519,7 +523,9 @@ DatatableTable.propTypes = {
   /** Do not show the table header */
   noHeader: PropTypes.bool,
   /** Optional pagination component, e.g. DatatablePagePagination. */
-  children: PropTypes.node
+  children: PropTypes.node,
+  /** Optional props to set a row be uncollapsed by default */
+  defaultUncollapsedRow: PropTypes.object
 }
 
 /** Actions displayed in a DatatableToolbar. Must be child of a DatatableToolbar. */
@@ -565,14 +571,14 @@ const useDatatableToolbarStyles = makeStyles(theme => ({
  * on selected rows. Must be child of a Datatable */
 export const DatatableToolbar = React.memo(function DatatableToolbar({children, title, hideColumns}) {
   const classes = useDatatableToolbarStyles()
-  const {selected} = useDatatableContext()
+  const {selected, multiSelect} = useDatatableContext()
   return (
     <Toolbar
       className={clsx(classes.root, {
-        [classes.highlight]: selected?.length > 0
+        [classes.highlight]: selected?.length > 0 && multiSelect
       })}
     >
-      {selected?.length > 0 ? (
+      {selected?.length > 0 && multiSelect ? (
         <Typography className={classes.title} color="inherit" variant="subtitle1" component="div">
           {selected === 'all' ? 'All' : selected.length} selected
         </Typography>
@@ -657,7 +663,7 @@ DatatableColumnSelector.propTypes = {
  * Table is based on array data with row objects and matching speficiation of columns.
  */
 export const Datatable = React.memo(function Datatable(props) {
-  const {children, ...contextProps} = props
+  const {children, multiSelect, ...contextProps} = props
   const {data, columns} = contextProps
 
   const [shownColumns, setShownColumns] = useState(
@@ -670,6 +676,7 @@ export const Datatable = React.memo(function Datatable(props) {
 
   const context = {
     withSelectionFeature: withSelectionFeature,
+    multiSelect: multiSelect,
     pagination: {
       page: 1,
       page_size: data.length,
@@ -682,11 +689,13 @@ export const Datatable = React.memo(function Datatable(props) {
 
   const staticContext = useMemo(() => ({
     withSelectionFeature: withSelectionFeature,
+    multiSelect: multiSelect,
     shownColumns: shownColumnsObjects,
     onSelectedChanged: props.onSelectedChanged
   }), [
     shownColumnsObjects,
     withSelectionFeature,
+    multiSelect,
     props.onSelectedChanged])
 
   return <StaticDatatableContext.Provider value={staticContext}>
@@ -751,6 +760,7 @@ Datatable.propTypes = {
     PropTypes.oneOf(['all']),
     PropTypes.arrayOf(PropTypes.object)
   ]),
+  multiSelect: PropTypes.bool,
   /** Optional callback for selection changes. Takes either "all" or new array of
    * selected row objects as parameter. */
   onSelectedChanged: PropTypes.func,
@@ -759,4 +769,8 @@ Datatable.propTypes = {
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ])
+}
+
+Datatable.defaultProps = {
+  multiSelect: true
 }

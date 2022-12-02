@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Paper, Typography } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
@@ -35,11 +35,18 @@ import { useSearchContext } from './SearchContext'
 /**
  * Displays the list of search results.
  */
-const SearchResults = React.memo(({'data-testid': testID}) => {
+const SearchResults = React.memo(function SearchResults(props) {
+  const {noAction, onSelectedChanged, defaultUncollapsedEntryID, 'data-testid': testID, ...otherProps} = props
   const {columns, resource, rows, useResults, useQuery} = useSearchContext()
   const {data, pagination, setPagination} = useResults()
   const searchQuery = useQuery()
   const [selected, setSelected] = useState([])
+
+  useEffect(() => {
+    if (onSelectedChanged) {
+      onSelectedChanged(selected)
+    }
+  }, [onSelectedChanged, selected])
 
   const query = useMemo(() => {
     if (selected === 'all') {
@@ -67,9 +74,9 @@ const SearchResults = React.memo(({'data-testid': testID}) => {
   let actions
   let buttons
   if (resource === "entries") {
-    details = EntryDetails
-    actions = EntryRowActions
-    buttons = <EntryDownloadButton tooltip="Download files" query={query} />
+    details = rows?.details?.render || EntryDetails
+    actions = rows?.actions?.render || EntryRowActions
+    if (!noAction) buttons = <EntryDownloadButton tooltip="Download files" query={query} />
   } else if (resource === "materials") {
     actions = MaterialRowActions
   }
@@ -83,6 +90,7 @@ const SearchResults = React.memo(({'data-testid': testID}) => {
       shownColumns={columns?.enable}
       selected={rows?.selection?.enable ? selected : undefined}
       onSelectedChanged={rows?.selection?.enable ? setSelected : undefined}
+      {...otherProps}
     >
       <DatatableToolbar title={`${formatInteger(data.length)}/${pluralize('result', pagination.total, true, true, 'search')}`}>
         {rows?.selection?.enable &&
@@ -94,12 +102,18 @@ const SearchResults = React.memo(({'data-testid': testID}) => {
       <DatatableTable
         actions={rows?.actions?.enable ? actions : undefined}
         details={rows?.details?.enable ? details : undefined}
+        defaultUncollapsedRow={defaultUncollapsedEntryID && data.find(row => row.entry_id === defaultUncollapsedEntryID)}
       >
         <DatatableLoadMorePagination color="primary">load more</DatatableLoadMorePagination>
       </DatatableTable>
     </Datatable>
   </Paper>
 })
+SearchResults.propTypes = {
+  noAction: PropTypes.bool,
+  onSelectedChanged: PropTypes.func,
+  defaultUncollapsedEntryID: PropTypes.string
+}
 
 SearchResults.propTypes = {
   'data-testid': PropTypes.string

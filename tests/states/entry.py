@@ -143,13 +143,13 @@ def dos_electronic():
                         'dos_electronic',
                     ],
                     'electronic': {
-                        'dos_electronic': {
+                        'dos_electronic': [{
                             'energies': '/run/0/calculation/0/dos_electronic/0/energies',
                             'total': ['/run/0/calculation/0/dos_electronic/0/total/0'],
                             'band_gap': [{
                                 'energy_highest_occupied': 0
                             }]
-                        },
+                        }],
                     }
                 }
             },

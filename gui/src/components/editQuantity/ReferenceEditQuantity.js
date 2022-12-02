@@ -15,25 +15,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import { debounce } from 'lodash'
-import { Autocomplete, createFilterOptions } from '@material-ui/lab'
-import { makeStyles, TextField } from '@material-ui/core'
+import {
+  Box, Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton, InputAdornment, makeStyles,
+  TextField,
+  Tooltip
+} from '@material-ui/core'
 import { useEntryPageContext } from '../entry/EntryPageContext'
 import { ItemButton } from '../archive/Browser'
 import { getFieldProps } from './StringEditQuantity'
 import { isWaitingForUpdateTestId, refType, resolveNomadUrl } from '../../utils'
 import AddIcon from '@material-ui/icons/AddCircle'
 import { getUrlFromDefinition, QuantityMDef } from '../archive/metainfo'
-import { useDataStore } from '../DataStore'
-
-const filter = createFilterOptions()
+import EditIcon from '@material-ui/icons/Edit'
+import SectionSelectDialog from '../uploads/SectionSelectDialog'
+import DialogContentText from '@material-ui/core/DialogContentText'
+import ClearIcon from '@material-ui/icons/Clear'
+import AutoComplete from '@material-ui/lab/Autocomplete'
 
 const useStyles = makeStyles(theme => ({
-  icon: {marginRight: theme.spacing(0.5)}
+  dialog: {
+    width: '100%',
+    minWidth: 400
+  }
 }))
 
 function getReferencedSection(quantityDef) {
@@ -42,124 +54,59 @@ function getReferencedSection(quantityDef) {
   return referencedSection
 }
 
-const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
-  const styles = useStyles()
-  const dataStore = useDataStore()
-  const {deploymentUrl, uploadId, archive, url} = useEntryPageContext('*')
-  const {quantityDef, value, onChange, index} = props
-  const [entry, setEntry] = useState(null)
-  const {api} = useApi()
+const CreateNewReference = React.memo(({quantityDef, onSuccess, onFailed}) => {
+  const classes = useStyles()
+  const {deploymentUrl, uploadId} = useEntryPageContext('*')
+  const [open, setOpen] = useState(false)
+  const {user, api} = useApi()
   const {raiseError} = useErrors()
-  const [inputValue, setInputValue] = useState('')
+  const [value, setValue] = useState('')
   const [suggestions, setSuggestions] = useState([])
-  const [error, setError] = useState()
-  const fetchedSuggestionsFor = useRef()
-
-  const referencedSectionQualifiedNames = useMemo(() => {
-    const referencedSection = getReferencedSection(quantityDef)
-    return [...dataStore.getAllInheritingSections(referencedSection).map(section => section._qualifiedName), referencedSection._qualifiedName]
-  }, [dataStore, quantityDef])
-  const fetchSuggestions = useCallback(input => {
-    if (fetchedSuggestionsFor.current === input) {
-      return // We've already fetched suggestions for this search string
-    }
-    // Fetch suggestions
-    fetchedSuggestionsFor.current = input
-    const query = {}
-    if (input !== '') {
-      query['entry_name.prefix'] = input
-    }
-    const sections = referencedSectionQualifiedNames?.map(qualifiedName => ({'sections': qualifiedName, ...query}))
-    api.post('entries/query', {
-      'owner': 'visible',
-      'query': {
-        'or': sections
-      },
-      'required': {
-        'include': [
-          'entry_name',
-          'upload_id',
-          'entry_id'
-        ]
-      }
-    }, {
-      noLoading: true
-    }).then(response => {
-      setSuggestions(response.data)
-    }).catch(raiseError)
-  }, [api, raiseError, fetchedSuggestionsFor, setSuggestions, referencedSectionQualifiedNames])
-  const fetchSuggestionsDebounced = useMemo(() => debounce(fetchSuggestions, 500), [fetchSuggestions])
+  const [selectedUpload, setSelectedUpload] = useState(null)
+  const [askForOverwrite, setAskForOverwrite] = useState(false)
 
   useEffect(() => {
-    if (!value || value === '') {
-      setInputValue('')
-      setError(null)
-      return
-    }
-    const resolveValue = async () => {
-      const resolvedUrl = resolveNomadUrl(value, url)
-      if (resolvedUrl.type !== refType.archive) throw new Error(`Archive reference expected, got ${value}`)
-      const response = await api.post(`entries/${resolvedUrl.entryId}/archive/query`, {
-        'required': {
-          'metadata': {
-            'entry_name': '*',
-            'upload_id': '*',
-            'entry_id': '*',
-            'mainfile': '*',
-            'processing_errors': '*'
-          }
+    const prepareUploads = async () => {
+      const response = await api.get(`/uploads?is_published=false&page_size=10000`)
+      const uploads = response.data.map(upload => {
+        const uploadName = uploadId === upload.upload_id
+          ? (upload.upload_name ? `${upload.upload_name} (This upload)` : 'This upload')
+          : (upload.upload_name ? upload.upload_name : `upload-id: ${upload.upload_id}`)
+        if (user.sub === upload.main_author) {
+          return {label: uploadName, upload_id: upload.upload_id, main_author: upload.main_author, group: 'My uploads'}
+        } else {
+          return {label: uploadName, upload_id: upload.upload_id, main_author: upload.main_author}
         }
-      }, {
-        noLoading: true
       })
-      const entry = response.data.archive.metadata
-      if (entry.processing_errors.length === 0) {
-        setEntry(entry)
-        setSuggestions([{entry_name: entry.entry_name, upload_id: entry.upload_id, entry_id: entry.entry_id}])
-        setInputValue(entry.entry_name)
-        setError(null)
+      const myUploads = uploads.filter(upload => upload.group !== undefined)
+      const othersUploads = uploads.filter(upload => upload.group === undefined)
+      if (othersUploads.length > 0) {
+        const authorsID = new Set(othersUploads.map(upload => upload.main_author))
+        const response = await api.get(`users?user_id=${Array.from(authorsID).join('&user_id=')}`)
+        const users = response['data']
+        const usersInfo = {}
+        users.forEach(user => (usersInfo[user.user_id] = {name: user.name, affiliation: user.affiliation}))
+        othersUploads.forEach(upload => {
+          upload['group'] = `Owned by ${(usersInfo[upload.main_author]?.affiliation ? `${usersInfo[upload.main_author]?.name} (${usersInfo[upload.main_author]?.affiliation})` : usersInfo[upload.main_author]?.name)}`
+        })
+        setSuggestions(myUploads.concat(othersUploads))
       } else {
-        setEntry(null)
-        setSuggestions([{entry_name: archive.metadata.mainfile, upload_id: entry.upload_id, entry_id: entry.entry_id}])
-        setInputValue(archive.metadata.mainfile)
+        setSuggestions(uploads)
       }
     }
-    resolveValue()
-      .catch(() => {
-        setEntry(null)
-        setError('the referenced value does not exist anymore')
-      })
-  }, [value, api, raiseError, archive, url, setError])
-
-  const getOptionLabel = useCallback(option => option.entry_name, [])
-  const getOptionSelected = useCallback((option, value) => {
-    if (value?.createNewEntry) {
-      return true
+    if (user?.sub && open) {
+      prepareUploads()
     }
-    return option.entry_name === value.entry_name
-  }, [])
+  }, [api, raiseError, uploadId, user?.sub, open])
 
-  const changeValue = useCallback((value) => {
-    if (value?.entry_id && value?.upload_id) {
-      value = `../uploads/${value.upload_id}/archive/${value.entry_id}#data`
-    } else if (value?.entry_id) {
-      value = `../upload/archive/${value.entry_id}#data`
-    } else {
-      value = undefined
-    }
-    if (onChange) {
-      onChange(value)
-    }
-  }, [onChange])
-
-  const createNewEntry = useCallback((fileName) => {
+  const createNewEntry = useCallback((fileName, overwrite = false) => {
     const archive = {
       data: {
-        m_def: getUrlFromDefinition(getReferencedSection(quantityDef), {deploymentUrl, uploadId}, true)
+        m_def: getUrlFromDefinition(getReferencedSection(quantityDef), {deploymentUrl, uploadId: selectedUpload.upload_id}, true)
       }
     }
     return new Promise((resolve, reject) => {
-      api.put(`uploads/${uploadId}/raw/?file_name=${fileName}.archive.json&wait_for_processing=true`, archive)
+      api.put(`uploads/${selectedUpload.upload_id}/raw/?file_name=${fileName}.archive.json&wait_for_processing=true&overwrite_if_exists=${overwrite}`, archive)
         .then(response => {
           // TODO handle processing errors
           if (response?.processing?.entry?.process_status !== 'SUCCESS') {
@@ -173,74 +120,194 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
           }
         })
         .catch(error => {
-          reject(new Error(error))
+          reject(error)
         })
     })
-  }, [api, quantityDef, deploymentUrl, uploadId])
+  }, [quantityDef, deploymentUrl, api, selectedUpload])
 
-  const handleValueChange = useCallback((event, value) => {
-    if (value?.createNewEntry) {
-      value.entry_name = `${value.createNewEntry}.archive.json`
-      createNewEntry(value.createNewEntry)
+  const handleCreateClick = useCallback(() => {
+    createNewEntry(value)
+      .then(response => {
+        onSuccess(response.processing)
+      })
+      .catch(error => {
+        if (error.apiMessage === "The provided path already exists and overwrite_if_exists is set to False.") {
+          setAskForOverwrite(true)
+        } else {
+          onFailed(new Error(error))
+        }
+      })
+    setOpen(false)
+  }, [createNewEntry, onFailed, onSuccess, value])
+
+  useEffect(() => {
+    if (suggestions.length > 0) {
+      const thisUpload = suggestions.find(upload => uploadId === upload.upload_id)
+      setSelectedUpload(thisUpload)
+    }
+  }, [suggestions, uploadId])
+
+  const handleOverwriteYesClicked = () => {
+    createNewEntry(value, true)
         .then(response => {
-          setInputValue(response.processing.entry.mainfile)
-          changeValue({
-            entry_name: response.processing.entry.mainfile,
-            upload_id: response.processing.upload_id,
-            entry_id: response.processing.entry_id
-          })
+          onSuccess(response.processing)
         })
-        .catch(raiseError)
+        .catch(error => {
+          onFailed(new Error(error))
+        })
+    setAskForOverwrite(false)
+    setOpen(false)
+  }
+
+  const handleOverwriteNoClicked = () => {
+    setAskForOverwrite(false)
+    setOpen(false)
+  }
+
+  return <Box>
+    <IconButton disabled={!user?.sub} onClick={() => setOpen(true)}>
+      <Tooltip title="Create and assign a new reference">
+        <AddIcon/>
+      </Tooltip>
+    </IconButton>
+    <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown data-testid='create-reference-dialog'>
+      <DialogTitle>Create new reference</DialogTitle>
+      <DialogContent>
+        <AutoComplete
+          options={suggestions}
+          style={{width: '100%', paddingBottom: 10}}
+          onChange={(event, value) => setSelectedUpload(value)}
+          value={selectedUpload}
+          getOptionSelected={(option, value) => option.upload_id === value.upload_id}
+          groupBy={(option) => option.group}
+          getOptionLabel={(option) => option.label}
+          renderInput={(params) => <TextField {...params} label="Target upload" variant='filled' />}
+        />
+        <TextField
+          style={{width: '100%'}}
+          label={'Name'}
+          value={value}
+          variant='filled'
+          onChange={event => setValue(event.target.value)}
+          data-testid='new-reference-name'
+        />
+        <DialogContentText>
+          {value ? `File name: ${value}.archive.json` : ''}
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <span style={{flexGrow: 1}} />
+        <Button onClick={() => setOpen(false)} color="secondary">
+          Cancel
+        </Button>
+        <Button onClick={handleCreateClick} disabled={!value || !selectedUpload?.upload_id} color="secondary">
+          Create
+        </Button>
+      </DialogActions>
+    </Dialog>
+    <Dialog classes={{paper: classes.dialog}} open={askForOverwrite} disableEscapeKeyDown data-testid='overwrite-reference-dialog'>
+      <DialogTitle>Overwrite file</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          {`There is already a file with the same name in this path. Do you want to overwrite the file?`}
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <span style={{flexGrow: 1}} />
+        <Button onClick={handleOverwriteNoClicked} color="secondary">
+          No
+        </Button>
+        <Button onClick={handleOverwriteYesClicked} color="secondary">
+          Yes
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </Box>
+})
+CreateNewReference.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  onSuccess: PropTypes.func,
+  onFailed: PropTypes.func
+}
+
+const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
+  const {archive, url} = useEntryPageContext('*')
+  const {quantityDef, value, onChange, index} = props
+  const [entry, setEntry] = useState(null)
+  const [open, setOpen] = useState(false)
+  const {api} = useApi()
+  const {raiseError} = useErrors()
+  const [inputValue, setInputValue] = useState('')
+  const [error, setError] = useState()
+
+  const referencedSectionQualifiedName = useMemo(() => {
+    const referencedSection = getReferencedSection(quantityDef)
+    return referencedSection._qualifiedName
+  }, [quantityDef])
+
+  useEffect(() => {
+    if (!value || value === '') {
+      setInputValue('')
+      setError(null)
       return
     }
-    changeValue(value)
-  }, [changeValue, createNewEntry, raiseError])
-
-  const handleInputValueChange = useCallback((event, value) => {
-    value = value || event.target.value
-    setInputValue(value)
-    setError(null)
-    fetchSuggestionsDebounced(value)
-    if (value === '' && onChange) {
-      onChange(undefined)
-    }
-  }, [setInputValue, fetchSuggestionsDebounced, onChange])
-
-  const handleFocus = useCallback((e) => {
-    if (!inputValue) {
-      fetchSuggestionsDebounced(inputValue)
-    }
-  }, [fetchSuggestionsDebounced, inputValue])
-
-  const renderOption = useCallback(option => {
-    return <>
-      {option?.createNewEntry && <AddIcon fontSize="small" color="action" className={styles.icon}/>}
-      {option.entry_name}
-    </>
-  }, [styles])
-
-  const filterOptions = useCallback((options, params) => {
-    const filtered = filter(suggestions, params)
-    let fileName = params.inputValue
-    if (params.inputValue !== '') {
-      if (params.inputValue.endsWith('.archive.json')) {
-        fileName = params.inputValue
-      } else if (params.inputValue.endsWith('.archive')) {
-        fileName = `${params.inputValue}.json`
+    const resolveValue = async () => {
+      const resolvedUrl = resolveNomadUrl(value, url)
+      if (resolvedUrl.type !== refType.archive) throw new Error(`Archive reference expected, got ${value}`)
+      const response = await api.post(`entries/${resolvedUrl.entryId}/archive/query`, {
+        'required': {
+          'metadata': {
+            'upload_id': '*',
+            'entry_id': '*',
+            'mainfile': '*',
+            'processing_errors': '*'
+          }
+        }
+      }, {
+        noLoading: true
+      })
+      const entry = response.data.archive.metadata
+      if (entry.processing_errors.length === 0) {
+        setEntry(entry)
+        const shownValue = resolvedUrl?.path && resolvedUrl.path !== '/data' ? `${entry.mainfile}#${resolvedUrl.path}` : entry.mainfile
+        setInputValue(shownValue)
+        setError(null)
       } else {
-        fileName = `${params.inputValue}.archive.json`
+        setEntry(null)
+        setInputValue(archive.metadata.mainfile)
       }
     }
-    if (params.inputValue !== '' && !filtered.map(suggestion => suggestion['entry_name']).includes(fileName)) {
-      filtered.push({
-        entry_name: `Create "${fileName}" in the current upload`,
-        upload_id: uploadId,
-        entry_id: '',
-        createNewEntry: params.inputValue
+    resolveValue()
+      .catch(() => {
+        setEntry(null)
+        setError('the referenced value does not exist anymore')
       })
+  }, [value, api, raiseError, archive, url, setError])
+
+  const changeValue = useCallback((value) => {
+    if (value?.entry_id && value?.upload_id && value?.path) {
+      value = `../uploads/${value.upload_id}/archive/${value.entry_id}#${value.path}`
+    } else if (value?.entry_id && value?.upload_id) {
+      value = `../uploads/${value.upload_id}/archive/${value.entry_id}#data`
+    } else if (value?.entry_id) {
+      value = `../upload/archive/${value.entry_id}#data`
+    } else {
+      value = undefined
     }
-    return filtered
-  }, [suggestions, uploadId])
+    if (onChange) {
+      onChange(value)
+    }
+  }, [onChange])
+
+  const handleValueChange = useCallback((value) => {
+    changeValue(value?.data)
+    setOpen(false)
+  }, [changeValue])
+
+  const handleClearReference = useCallback(() => {
+    setInputValue(undefined)
+    changeValue(undefined)
+  }, [changeValue])
 
   const itemKey = useMemo(() => {
     if (!isNaN(index)) {
@@ -249,38 +316,61 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       return quantityDef.name
     }
   }, [quantityDef, index])
+
   const {helpDescription, ...otherProps} = getFieldProps(quantityDef)
-  return <Autocomplete
-    options={suggestions}
-    onInputChange={handleInputValueChange}
-    onChange={handleValueChange}
-    onFocus={handleFocus}
-    inputValue={inputValue}
-    getOptionLabel={getOptionLabel}
-    getOptionSelected={getOptionSelected}
-    filterOptions={filterOptions}
-    renderOption={renderOption}
-    renderInput={params => {
-      return (
-        <TextField
-          {...params}
+
+  const handleSuccess = useCallback((value) => {
+    setInputValue(value.entry.mainfile)
+    changeValue({
+      entry_name: value.entry.mainfile,
+      upload_id: value.upload_id,
+      entry_id: value.entry_id
+    })
+  }, [changeValue])
+
+  const handleFailed = useCallback((error) => {
+    raiseError(error)
+  }, [raiseError])
+
+  const filtersLocked = useMemo(() => ({sections: [referencedSectionQualifiedName]}), [referencedSectionQualifiedName])
+
+  return <Box display="flex" flexDirection="row" alignItems="center" >
+    <Box flexGrow={1}>
+      <TextField
           fullWidth variant='filled' size='small'
           {...otherProps}
           {...(value && !entry ? {'data-testid': isWaitingForUpdateTestId} : {})}
           error={!!error}
           helperText={error}
           InputProps={{
-            ...params.InputProps,
-            endAdornment: inputValue !== '' && (
-              <div style={{position: 'absolute', right: 12, top: 'calc(50% - 14px)'}}>
-                <ItemButton size="small" itemKey={itemKey} />
-              </div>
-            )
+            endAdornment: <InputAdornment position="end">
+              {!!inputValue && <IconButton onClick={handleClearReference}>
+                <Tooltip title="Delete the reference">
+                  <ClearIcon/>
+                </Tooltip>
+              </IconButton>}
+              {!inputValue && <CreateNewReference quantityDef={quantityDef} onSuccess={handleSuccess} onFailed={handleFailed}/>}
+              <IconButton onClick={() => setOpen(true)}>
+                <Tooltip title="Search for the references">
+                  <EditIcon/>
+                </Tooltip>
+              </IconButton>
+              {!!inputValue && <ItemButton size="small" itemKey={itemKey} />}
+            </InputAdornment>,
+            readOnly: true
           }}
-        />
-      )
-    }}
-  />
+          value={inputValue}
+          data-testid='reference-edit-quantity'
+      />
+    </Box>
+    <SectionSelectDialog
+        open={open}
+        onCancel={() => setOpen(false)}
+        onSelectedChanged={handleValueChange}
+        selected={value && {entry_id: entry?.entry_id, value: value.split('#')[1]}}
+        filtersLocked={filtersLocked}
+    />
+  </Box>
 })
 ReferenceEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,

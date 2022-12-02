@@ -200,8 +200,8 @@ export const EntryRowActions = React.memo((props) => {
 const useEntryDetailsStyles = makeStyles(theme => ({
   entryDetails: {
     paddingTop: theme.spacing(2),
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(2)
+    paddingLeft: theme.spacing(4),
+    paddingRight: theme.spacing(4)
   },
   entryDetailsContents: {
     display: 'flex',
