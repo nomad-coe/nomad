@@ -109,22 +109,24 @@ COPY .pylintrc \
 
 # Files requiered for artifact generation/testing
 COPY ops/docker-compose ./ops/docker-compose
+
 COPY gui/src/metainfo.json ./gui/src/metainfo.json
 COPY gui/src/searchQuantities.json ./gui/src/searchQuantities.json
 COPY gui/src/toolkitMetadata.json ./gui/src/toolkitMetadata.json
 COPY gui/src/unitsData.js ./gui/src/unitsData.js
 COPY gui/src/parserMetadata.json ./gui/src/parserMetadata.json
-COPY gui/public/env.js ./gui/public/env.js
 COPY dependencies/nomad-remote-tools-hub/tools.json ./dependencies/nomad-remote-tools-hub/tools.json
 COPY gui/src/northTools.json ./gui/src/northTools.json
 COPY gui/src/exampleUploads.json ./gui/src/exampleUploads.json
+
+COPY gui/tests/nomad.yaml ./gui/tests/nomad.yaml
+COPY gui/tests/env.js ./gui/tests/env.js
 
 # build the example upload files
 RUN ./scripts/generate_example_uploads.sh
 
 # Copy the built gui code
 COPY --from=dev_node /app/gui/build nomad/app/static/gui
-RUN rm nomad/app/static/gui/env.js
 
 # Build documentation
 RUN --mount=source=.git,target=.git,type=bind pip install ".[parsing,infrastructure,dev]"

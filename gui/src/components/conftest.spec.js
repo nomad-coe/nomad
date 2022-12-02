@@ -325,7 +325,7 @@ let filepath
 const responseCapture = {}
 const readMode = process.env.READ_MODE || 'snapshot'
 const writeMode = process.env.WRITE_MODE || 'none'
-const configPath = 'gui/tests/nomad-test.yaml'
+const configPath = 'gui/tests/nomad.yaml'
 if (!fs.existsSync(`../${configPath}`)) {
   throw Error(`
     Could not find the NOMAD config file for testing at ../${configPath}. Note
