@@ -78,16 +78,20 @@ def gui_artifacts(output_directory):
 
     with open(os.path.join(output_directory, 'searchQuantities.json'), 'wt') as f:
         json.dump(_generate_search_quantities(), f, indent=2)
+        f.write('\n')
 
     with open(os.path.join(output_directory, 'metainfo.json'), 'wt') as f:
         json.dump(_generate_metainfo(all_metainfo_packages), f, indent=2)
+        f.write('\n')
 
     with open(os.path.join(output_directory, 'parserMetadata.json'), 'wt') as f:
         from nomad.parsing.parsers import code_metadata
         json.dump(code_metadata, f, indent=2, sort_keys=True)
+        f.write('\n')
 
     with open(os.path.join(output_directory, 'toolkitMetadata.json'), 'wt') as f:
         json.dump(_generate_toolkit_metadata(), f, indent=2)
+        f.write('\n')
 
     with open(os.path.join(output_directory, 'unitsData.js'), 'wt') as f:
         f.write(_generate_units(all_metainfo_packages))
@@ -95,6 +99,7 @@ def gui_artifacts(output_directory):
 
     with open(os.path.join(output_directory, 'exampleUploads.json'), 'wt') as f:
         json.dump(_generate_example_upload_metadata(), f, indent=2)
+        f.write('\n')
 
     import shutil
     shutil.copyfile(
@@ -128,7 +133,7 @@ def _all_metainfo_packages():
     # TODO we call __init_metainfo__() for all packages where this has been forgotten
     # by the package author. Ideally this would not be necessary and we fix the
     # actual package definitions.
-    for module_key in list(sys.modules):
+    for module_key in sorted(list(sys.modules)):
         pkg: Package = getattr(sys.modules[module_key], 'm_package', None)
         if pkg is not None and isinstance(pkg, Package):
             if (pkg.name not in Package.registry):

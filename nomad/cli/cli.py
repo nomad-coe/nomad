@@ -79,6 +79,6 @@ def run_cli():
         print(
             'You are accessing functionality that requires extra dependencies.\n'
             'Check the NOMAD documentation or install all extra dependencies:\n'
-            '  pip install nomad[all]', file=sys.stderr)
+            '  pip install nomad-lab[parsing,infrastructure,dev]', file=sys.stderr)
 
         sys.exit(1)

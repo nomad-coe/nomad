@@ -93,14 +93,16 @@ COPY examples ./examples
 COPY nomad ./nomad
 COPY scripts ./scripts
 COPY tests ./tests
-COPY MANIFEST.in \
+COPY .pylintrc \
+     AUTHORS \
+     LICENSE \
+     MANIFEST.in \
      mkdocs.yml \
-     .pylintrc \
      pycodestyle.ini \
      pyproject.toml \
      pytest.ini \
      README.md \
-     LICENSE \
+     README.parsers.md \
      requirements.txt \
      setup.py \
      ./
@@ -127,12 +129,13 @@ RUN rm nomad/app/static/gui/env.js
 # Build documentation
 RUN --mount=source=.git,target=.git,type=bind pip install ".[parsing,infrastructure,dev]"
 
-RUN mkdocs build \
+RUN ./scripts/generate_docs_artifacts.sh \
+ && mkdocs build \
  && mkdir -p nomad/app/static/docs \
- && cp -r site/* nomad/app/static/docs/
+ && cp -r site/* nomad/app/static/docs
 
 # Build the python source distribution package
-RUN --mount=source=.git,target=.git,type=bind python -m build
+RUN --mount=source=.git,target=.git,type=bind python -m build --sdist
 
 # (Re)install the full packages docs included
 RUN pip install dist/nomad-lab-*.tar.gz

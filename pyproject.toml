@@ -1,6 +1,4 @@
 [build-system]
-# requires = ["setuptools", "versioningit"]
-# requires = ["setuptools", "versioneer[toml]"]
 requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
@@ -74,7 +72,6 @@ infrastructure = [
     'celery[redis]==4.4.7',
     'mongoengine>=0.20',
     'pymongo==3.12.1',
-    # 'Werkzeug',
     'itsdangerous==2.0.1',
     'passlib==1.7.4',
     'python-logstash==0.4.6',
@@ -154,26 +151,3 @@ where = [
 ]
 exclude = ["tests*"]
 namespaces = false
-
-# [tool.setuptools.package-data]
-# nomad = ["**/*.json", "**/*.j2", "**/*.md", "**/*.txt", "app/static/**/*", "**/metadata.yaml"]
-# nexusparser = ["definitions/**/*.xml", "definitions/**/*.xsd"]
-# workflowparsers = ["**/metadata.yaml"]
-
-
-# [tool.versioneer]
-# VCS = 'git'
-# style = 'pep440'
-# versionfile_source = 'nomad/_version.py'
-# # versionfile_build = 'nomad/_version.py'
-# # parentdir_prefix = 'myproject-'
-
-
-# [tool.versioningit.next-version]
-# method = "smallest"
-#
-# [tool.versioningit.format]
-# distance = "{next_version}.dev{distance}+{vcs}{rev}"
-# dirty = "{base_version}+d{build_date:%Y%m%d}"
-# distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
-#
