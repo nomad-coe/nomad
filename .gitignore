@@ -16,7 +16,8 @@ gui/junit.xml
 
 # Ignore all user-specific configuration files
 nomad.yaml
-!tests/nomad.yaml
+gui/public/env.js
+!gui/tests/nomad.yaml
 !ops/docker-compose/nomad-oasis/configs/nomad.yaml
 !ops/docker-compose/nomad-oasis-with-keycloak/configs/nomad.yaml
 
@@ -37,6 +38,10 @@ jupyterhub-proxy.pid
 
 # Ignore storage folders of docker-compose
 .volumes
+
+# local folder
+local
+tmp
 
 
 # https://github.com/github/gitignore/blob/main/Python.gitignore
@@ -428,5 +433,3 @@ $RECYCLE.BIN/
 # .nfs files are created when an open file is removed but is still being accessed
 .nfs*
 
-# local folder
-local

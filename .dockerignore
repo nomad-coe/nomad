@@ -10,9 +10,6 @@ dependencies/**/tests
 dependencies/**/regtests
 dependencies/parsers/phonopy-library/example*
 
-# Ignore storage folders of docker-compose
-**/.volumes
-
 # ==============================================================================
 # The following part was geneterated based on the .gitignore
 
@@ -34,7 +31,8 @@ gui/junit.xml
 
 # Ignore all user-specific configuration files
 **/nomad.yaml
-!tests/nomad.yaml
+gui/public/env.js
+!gui/tests/nomad.yaml
 !ops/docker-compose/nomad-oasis/configs/nomad.yaml
 !ops/docker-compose/nomad-oasis-with-keycloak/configs/nomad.yaml
 
@@ -52,7 +50,12 @@ examples/workdir/
 **/jupyterhub.sqlite
 **/jupyterhub-proxy.pid
 
+# Ignore storage folders of docker-compose
+**/.volumes
 
+# local folder
+local
+tmp
 
 # https://github.com/github/gitignore/blob/main/Python.gitignore
 

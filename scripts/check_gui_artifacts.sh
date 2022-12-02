@@ -21,9 +21,8 @@ diff gui/src/unitsData.js tmp/unitsData.js
 diff gui/src/exampleUploads.json tmp/exampleUploads.json
 diff gui/src/northTools.json tmp/northTools.json
 
-python -m nomad.cli dev gui-config >tmp/env.js
-
-diff gui/public/env.js tmp/env.js
+NOMAD_CONFIG=gui/tests/nomad.yaml python -m nomad.cli dev gui-config >tmp/env.js
+diff gui/tests/env.js tmp/env.js
 
 # cleanup
 rm -rf tmp

@@ -1,10 +1,11 @@
 prune *
 exclude *
 
+recursive-include nomad *.py *.json *.j2 *.md *.txt metadata.yaml
 include pyproject.toml setup.py AUTHORS LICENSE README.md README.parsers.md requirements.txt requirements-dev.txt
 
-recursive-include nomad *.py *.json *.j2 *.md *.txt metadata.yaml
 graft nomad/app/static
+exclude nomad/app/static/gui/env.js
 recursive-exclude nomad/app/static *.map
 
 include dependencies/matid/README.md

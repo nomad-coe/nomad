@@ -243,9 +243,14 @@ To run the worker directly with celery, do (from the root)
 celery -A nomad.processing worker -l info
 ```
 
-Before you can run the gui, make sure that generated artifacts have been created:
+Before you can run the gui, make sure that generated artifacts are up-to-date:
 ```sh
-./generate_gui_artifacts.sh
+./scripts/generate_gui_artifacts.sh
+```
+
+Also, make sure that the config file (`gui/public/env.js`) have been properly created:
+```sh
+./scripts/generate_gui_config.sh
 ```
 
 If you run the gui on its own (e.g. with react dev server below), you also have to have

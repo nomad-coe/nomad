@@ -265,10 +265,11 @@
     "codeUrl": "https://aimsclub.fhi-berlin.mpg.de/",
     "parserDirName": "dependencies/electronic/electronicparsers/fhi-aims/",
     "parserGitUrl": "https://github.com/nomad-coe/electronic-parsers.git",
+    "parserLastUpdate": "18.10.2022",
     "parserSpecific": "",
     "preamble": "",
     "status": "production",
-    "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`<text_file>` | **Mainfile**, plain text file w/arbitrary name, e.g.,  `<output,control, aims,...>.out` |\n|`control.in` | Runtime information |\n|`geometry.in` | Material's atomic-structure information,  |\n|AUX FILES| Description|\n|`<atoml_label>_l_proj_dos.out`|  Angular-momentum-resolved DOS @ Fermi Energy|\n|`<atoml_label>_l_proj_dos_raw.out`|  Angular-momentum-resolved DOS @ vacuum|\n|`KS_DOS_total.dat`| Kohn-Sham total DOS @ Fermi Energy |\n|`KS_DOS_total_raw.dat`| Kohn-Sham total DOS @ vacuum |\n|`Mulliken.out` **WARNING-->**|Mulliken charge analysis on all atoms. **WARNING** not yet read by NOMAD's parser|\n|`atom_proj_dos_<atom_name><index>_raw.dat`  | Atom-projected DOS @ vacuum|\n|`atom_projected_dos_<atom_name><index>.dat`  | Atom-projected DOS @ Fermi Energy|\n|`band<spin><segment>.out` | bandstructure file |\n"
+    "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`<text_file>` | **Mainfile**, plain text file w/arbitrary name, e.g.,  `<output,control, aims,...>.out` |\n|`control.in` | Runtime information |\n|`geometry.in` | Material's atomic-structure information,  |\n|AUX FILES| Description|\n|`<atoml_label>_l_proj_dos.out`|  Angular-momentum-resolved DOS @ Fermi Energy|\n|`<atoml_label>_l_proj_dos_raw.out`|  Angular-momentum-resolved DOS @ vacuum|\n|`KS_DOS_total.dat`| Kohn-Sham total DOS @ Fermi Energy |\n|`KS_DOS_total_raw.dat`| Kohn-Sham total DOS @ vacuum |\n|`Mulliken.out` **WARNING-->**|Mulliken charge analysis on all atoms. **WARNING** not yet read by NOMAD's parser|\n|`atom_proj_dos_<atom_name><index>_raw.dat`  | Atom-projected DOS @ vacuum|\n|`atom_projected_dos_<atom_name><index>.dat`  | Atom-projected DOS @ Fermi Energy|\n|`band<spin><segment>.out` | bandstructure file |\n|`GW_band<spin><segment>` | GW bandstructure file |\n"
   },
   "FHI-vibes": {
     "codeCategory": "Workflow manager",
@@ -742,6 +743,7 @@
     "codeUrl": "http://exciting-code.org/",
     "parserDirName": "dependencies/electronic/electronicparsers/exciting/",
     "parserGitUrl": "https://github.com/nomad-coe/electronic-parsers.git",
+    "parserLastUpdate": "18.10.2022",
     "parserSpecific": "",
     "preamble": "",
     "status": "production",
