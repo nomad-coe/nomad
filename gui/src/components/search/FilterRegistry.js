@@ -49,6 +49,7 @@ const idSpectroscopy = 'spectroscopy'
 const idThermodynamic = 'thermodynamic'
 const idGeometryOptimization = 'geometry_optimization'
 const idELN = 'eln'
+const idCustomQuantities = 'custom_quantities'
 const idAuthor = 'author'
 const idDataset = 'dataset'
 const idAccess = 'access'
@@ -151,10 +152,11 @@ function saveFilter(name, group, config, parent) {
   data.exclusive = config.exclusive === undefined ? true : config.exclusive
   data.unit = config.unit || searchQuantities[name]?.unit
   data.dtype = config.dtype || getDatatype(name)
-  data.serializerExact = getSerializer(data.dtype, false)
-  data.serializerPretty = getSerializer(data.dtype, true)
+  data.customSerialization = !!config.serializerExact
+  data.serializerExact = config.serializerExact || getSerializer(data.dtype, false)
+  data.serializerPretty = config.serializerPretty || getSerializer(data.dtype, true)
   data.dimension = data.unit && new Unit(data.unit).dimension()
-  data.deserializer = getDeserializer(data.dtype, data.dimension)
+  data.deserializer = config.deserializer || getDeserializer(data.dtype, data.dimension)
   data.label = config.label || formatLabel(searchQuantities[name]?.name || name)
   data.nested = searchQuantities[name]?.nested
   data.section = !isNil(data.nested)
@@ -336,6 +338,32 @@ registerFilter('quantities', idArchive, {...noAggQuantity, label: 'Metainfo defi
 registerFilter('results.material.material_id', idIDs, termQuantity)
 registerFilter('datasets.dataset_id', idIDs, termQuantity)
 registerFilter('optimade_filter', idOptimade, {multiple: true, queryMode: 'all'})
+registerFilter('custom_quantities', idCustomQuantities, {
+  serializerExact: value => {
+    const jsonStr = JSON.stringify(value)
+    const result = encodeURIComponent(jsonStr)
+    return result
+  },
+  serializerPretty: value => {
+    if (!value) {
+      return null
+    }
+    return `${value.and.length} condition${value.and.length > 0 ? 's' : ''}`
+  },
+  deserializer: value => {
+    const jsonStr = decodeURIComponent(value)
+    const result = JSON.parse(jsonStr)
+    return result
+  },
+  multiple: false,
+  value: {
+    set: (newQuery, oldQuery, value) => {
+      // TODO: We ignore the query here, it is later added to the final API query.
+      // We had to do this hack, because there is not way to add a logical query
+      // behind a prefix.
+    }
+  }
+})
 registerFilter(
   'results.properties.spectroscopy.eels',
   idSpectroscopy,

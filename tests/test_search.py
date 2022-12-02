@@ -19,9 +19,13 @@
 from typing import List, Dict, Any, Union, Iterable
 import pytest
 import json
+from datetime import datetime
 
 from nomad import config, utils, infrastructure
 from nomad.app.v1.models import WithQuery
+from nomad.datamodel.datamodel import EntryArchive, EntryData, EntryMetadata
+from nomad.metainfo.metainfo import Datetime, Quantity
+from nomad.metainfo.util import MEnum
 from nomad.search import quantity_values, search, update_by_query, refresh
 from nomad.metainfo.elasticsearch_extension import entry_type, entry_index, material_index
 from nomad.utils.exampledata import ExampleData
@@ -125,6 +129,40 @@ def example_data(elastic, test_user):
     data.save(with_files=False, with_mongo=False)
 
 
+@pytest.fixture()
+def example_eln_data(elastic, test_user):
+    class DataSection(EntryData):
+        text = Quantity(type=str)
+        keyword = Quantity(type=MEnum('one', 'two'))
+        long = Quantity(type=int)
+        double = Quantity(type=float)
+        date = Quantity(type=Datetime)
+
+    data = ExampleData(main_author=test_user)
+    data.create_upload(upload_id='test_upload_id', published=True, embargo_length=12)
+
+    parameters = [
+        ('text', 'test value'),
+        ('keyword', 'one'),
+        ('long', 1),
+        ('double', 1.2),
+        ('date', datetime.fromtimestamp(0))]
+
+    for index, item in enumerate(parameters):
+        quantity, value = item
+        archive = EntryArchive(metadata=EntryMetadata(), data=DataSection())
+        archive.data.m_set(DataSection.m_def.all_quantities[quantity], value)
+        archive.metadata.apply_archive_metadata(archive)
+
+        data.create_entry(
+            entry_archive=archive,
+            upload_id='test_upload_id',
+            entry_id=f'test_entry_id_{index}',
+            mainfile=f'test_content/test_embargo_entry/mainfile_{index}.archive.json')
+
+    data.save(with_files=False, with_mongo=False)
+
+
 def test_index(indices, example_data):
     assert material_index.get(id='test_material_id') is not None
     assert entry_index.get(id='test_entry_id_0') is not None
@@ -177,3 +215,28 @@ def test_update_by_query(indices, example_data):
 def test_quantity_values(indices, example_data):
     results = list(quantity_values('entry_id', page_size=1, owner='all'))
     assert results == ['test_entry_id_0', 'test_entry_id_1', 'test_entry_id_2', 'test_entry_id_3']
+
+
+@pytest.mark.parametrize('api_query, total', [
+    pytest.param('{}', 5, id='empty'),
+    pytest.param(
+        '{"searchable_quantities": { "path": "data.text", "text_value": "test" } }',
+        1, id='simple-positive'),
+    pytest.param(
+        '{"searchable_quantities": { "path": "data.text", "text_value": "wrong" } }',
+        0, id='simple-negative'),
+    pytest.param(
+        '{"searchable_quantities": { "path": "data.keyword", "keyword_value": "one" } }', 1, id='keyword'),
+    pytest.param(
+        '{"searchable_quantities": { "path": "data.long", "long_value": { "lte": 1 } } }', 1, id='long'),
+    pytest.param(
+        '{"searchable_quantities": { "path": "data.double", "double_value": { "lt": 1.3 } } }', 1, id='double'),
+    pytest.param(
+        '{"searchable_quantities": { "path": "data.date", "date_value": { "lt": "1971-01-01" } } }', 1, id='date'),
+    pytest.param(
+        '{"searchable_quantities": { "path": "data.text", "keyword_value": "one" } }', 0, id='uses-nested')
+])
+def test_eln_search_query(indices, example_eln_data, api_query, total):
+    api_query = json.loads(api_query)
+    results = search(owner='all', query=WithQuery(query=api_query).query)
+    assert results.pagination.total == total  # pylint: disable=no-member

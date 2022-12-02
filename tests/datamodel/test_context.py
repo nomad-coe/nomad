@@ -143,7 +143,7 @@ def test_create_reference(context, source, target_archive, target_path, result):
     ])
 def test_parsing_reference(path, result):
     path_parts = parse_path(path)
-    assert (path_parts[:-1] if path_parts else None) == result
+    assert path_parts == result
 
 
 @pytest.mark.parametrize(

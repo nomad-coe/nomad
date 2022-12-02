@@ -77,8 +77,8 @@ const FilterSummary = React.memo(({
     }
     // If query has multiple elements, we display a chip for each. For
     // numerical values we also display the quantity name.
-    const metaType = filterData[name].dtype
-    const serializer = filterData[name].serializerPretty
+    const {metaType, serializerPretty, customSerialization} = filterData[name]
+    const serializer = serializerPretty
     const isArray = filterValue instanceof Array
     const isSet = filterValue instanceof Set
     const isObj = isPlainObject(filterValue)
@@ -90,7 +90,17 @@ const FilterSummary = React.memo(({
     } else if (filterData[name].queryMode === "all") {
       op = <FilterAnd/>
     }
-    if (isArray || isSet) {
+    if (customSerialization) {
+      const item = <FilterChip
+        locked={locked}
+        quantity={name}
+        label={serializer(filterValue)}
+        onDelete={() => {
+          onDelete(undefined)
+        }}
+      />
+      newChips.push({comp: item, op})
+    } else if (isArray || isSet) {
       filterValue.forEach((value, index) => {
         const displayValue = serializer(value, units)
         const item = <FilterChip

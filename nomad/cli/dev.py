@@ -227,21 +227,23 @@ def get_gui_config(proxy: bool = False) -> str:
         appBase = f'{"https" if config.services.https else "http"}://{config.services.api_host}:{config.services.api_port}{config.services.api_base_path.rstrip("/")}'
         northBase = f'{"https" if config.services.https else "http"}://{config.north.hub_host}:{config.north.hub_port}{config.services.api_base_path.rstrip("/")}/north'
 
-    return f'''window.nomadEnv = {{
-    'appBase': '{appBase}',
-    'northBase': '{northBase}',
-    'keycloakBase': '{config.keycloak.public_server_url}',
-    'keycloakRealm': '{config.keycloak.realm_name}',
-    'keycloakClientId': '{config.keycloak.client_id}',
-    'debug': false,
-    'encyclopediaBase': '{config.encyclopedia_base if config.encyclopedia_base else 'undefined'}',
-    'aitoolkitEnabled': {'true' if config.aitoolkit_enabled else 'false'},
-    'oasis': {'true' if config.oasis.is_oasis else 'false'},
-    'version': {json.dumps(config.meta.beta) if config.meta.beta else dict()},
-    'globalLoginRequired': {'false' if config.oasis.allowed_users is None else 'true'},
-    'servicesUploadLimit': { config.services.upload_limit },
-    'ui': {json.dumps(config.ui) if config.ui else dict()}
-}};'''
+    data = {
+        'appBase': appBase,
+        'northBase': northBase,
+        'keycloakBase': config.keycloak.public_server_url,
+        'keycloakRealm': config.keycloak.realm_name,
+        'keycloakClientId': config.keycloak.client_id,
+        'debug': False,
+        'encyclopediaBase': config.encyclopedia_base if config.encyclopedia_base else None,
+        'aitoolkitEnabled': config.aitoolkit_enabled,
+        'oasis': config.oasis.is_oasis,
+        'version': config.meta.beta if config.meta.beta else {},
+        'globalLoginRequired': config.oasis.allowed_users is not None,
+        'servicesUploadLimit': config.services.upload_limit,
+        'ui': config.ui if config.ui else {}
+    }
+
+    return f'window.nomadEnv = {json.dumps(data, indent=2)}'
 
 
 @dev.command(help='Generates the GUI development config JS file based on NOMAD config.')

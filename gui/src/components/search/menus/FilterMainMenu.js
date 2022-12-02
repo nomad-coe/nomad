@@ -39,8 +39,8 @@ import FilterSubMenuOptoElectronic from './FilterSubMenuOptoelectronic'
 import FilterSubMenuVibrational from './FilterSubMenuVibrational'
 import FilterSubMenuMechanical from './FilterSubMenuMechanical'
 import FilterSubMenuThermodynamic from './FilterSubMenuThermodynamic'
-import FilterSubMenuSpectroscopy from './FilterSubMenuSpectroscopy.js'
-import FilterSubMenuELN from './FilterSubMenuELN.js'
+import FilterSubMenuSpectroscopy from './FilterSubMenuSpectroscopy'
+import FilterSubMenuELN from './FilterSubMenuELN'
 import FilterSubMenuAuthor from './FilterSubMenuAuthor'
 import FilterSubMenuAccess from './FilterSubMenuAccess'
 import FilterSubMenuDataset from './FilterSubMenuDataset'
@@ -51,6 +51,7 @@ import { useSearchContext } from '../SearchContext'
 import { delay } from '../../../utils'
 import FilterSubMenuGeometryOptimization from './FilterSubMenuGeometryOptimization'
 import InputCheckbox from '../input/InputCheckbox'
+import FilterSubMenuCustomQuantities from './FilterSubMenuCustomQuantities'
 
 const menuMap = {
   material: FilterSubMenuMaterial,
@@ -69,6 +70,7 @@ const menuMap = {
   thermodynamic: FilterSubMenuThermodynamic,
   geometry_optimization: FilterSubMenuGeometryOptimization,
   eln: FilterSubMenuELN,
+  custom_quantities: FilterSubMenuCustomQuantities,
   author: FilterSubMenuAuthor,
   dataset: FilterSubMenuDataset,
   access: FilterSubMenuAccess,

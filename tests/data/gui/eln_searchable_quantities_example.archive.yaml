@@ -1,0 +1,25 @@
+definitions:
+  sections:
+    MySection:
+      base_section: nomad.datamodel.data.EntryData
+      quantities:
+        text:
+          type: str
+        keyword:
+          type:
+            type_kind: Enum
+            type_data: ['A', 'B', 'C']
+        double:
+          type: float
+          unit: m
+        long:
+          type: int
+        datetime:
+          type: Datetime
+data:
+  m_def: MySection
+  text: test value
+  keyword: A
+  double: 1.2
+  long: 1
+  datetime: '2022-10-01'
