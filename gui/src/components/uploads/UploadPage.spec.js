@@ -396,3 +396,113 @@ test.each([
   render(<UploadPage uploadId={uploadId}/>)
   await screen.findByText(msg)
 })
+
+const testSelectSection = async () => {
+  const dialog = screen.getByTestId('section-select-dialog')
+  expect(within(dialog).queryByText('Filters')).toBeInTheDocument()
+
+  await waitFor(() => expect(within(dialog).queryAllByTestId('datatable-row').length).toBe(1))
+  const rows = within(dialog).getAllByTestId('datatable-row')
+
+  await waitFor(() => expect(within(rows[0]).queryByText('Electronic Lab Notebook example schema')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[0]).queryByText('Schema')).toBeInTheDocument())
+
+  // click on the row
+  await userEvent.click(rows[0])
+
+  const newRows = within(dialog).queryAllByTestId('datatable-row')
+  expect(newRows.length).toBe(2)
+
+  await waitFor(() => expect(within(newRows[0]).queryByText('Electronic Lab Notebook example schema')).toBeInTheDocument())
+  await waitFor(() => expect(within(newRows[0]).queryByText('Schema')).toBeInTheDocument())
+  await waitFor(() => expect(within(newRows[1]).queryByText('Sample')).toBeInTheDocument())
+
+  const sections = within(newRows[1]).queryAllByRole('menuitem')
+  expect(sections.length).toBe(4)
+
+  expect(within(sections[0]).queryByText('Chemical')).toBeInTheDocument()
+  expect(within(sections[0]).queryByTestId('check-icon')).not.toBeInTheDocument()
+
+  expect(within(sections[1]).queryByText('Instrument')).toBeInTheDocument()
+  expect(within(sections[1]).queryByTestId('check-icon')).not.toBeInTheDocument()
+
+  expect(within(sections[2]).queryByText('Process')).toBeInTheDocument()
+  expect(within(sections[2]).queryByTestId('check-icon')).not.toBeInTheDocument()
+
+  expect(within(sections[3]).queryByText('Sample')).toBeInTheDocument()
+  expect(within(sections[3]).queryByTestId('check-icon')).not.toBeInTheDocument()
+
+  await userEvent.click(sections[1])
+  await waitFor(() => expect(screen.queryByTestId('section-select-dialog')).not.toBeInTheDocument())
+}
+
+const testDialogWithSelectedSection = async () => {
+  const dialog = screen.getByTestId('section-select-dialog')
+  expect(within(dialog).queryByText('Filters')).toBeInTheDocument()
+  await waitFor(() => expect(within(dialog).queryAllByTestId('datatable-row').length).toBe(2))
+  const rows = within(dialog).getAllByTestId('datatable-row')
+
+  await waitFor(() => expect(within(rows[0]).queryByText('Electronic Lab Notebook example schema')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[0]).queryByText('Schema')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[1]).queryByText('Sample')).toBeInTheDocument())
+
+  const sections = within(rows[1]).queryAllByRole('menuitem')
+  expect(sections.length).toBe(4)
+
+  expect(within(sections[0]).queryByText('Chemical')).toBeInTheDocument()
+  expect(within(sections[0]).queryByTestId('check-icon')).not.toBeInTheDocument()
+
+  expect(within(sections[1]).queryByText('Instrument')).toBeInTheDocument()
+  expect(within(sections[1]).queryByTestId('check-icon')).toBeInTheDocument()
+
+  expect(within(sections[2]).queryByText('Process')).toBeInTheDocument()
+  expect(within(sections[2]).queryByTestId('check-icon')).not.toBeInTheDocument()
+
+  expect(within(sections[3]).queryByText('Sample')).toBeInTheDocument()
+  expect(within(sections[3]).queryByTestId('check-icon')).not.toBeInTheDocument()
+
+  await userEvent.click(within(dialog).getByRole('button', {name: /cancel/i}))
+  await waitFor(() => expect(screen.queryByTestId('section-select-dialog')).not.toBeInTheDocument())
+}
+
+test.each([
+  [
+    'Test create entry',
+    'tests.states.entry.eln',
+    'tests/data/uploads/uploadpage-create-entry',
+    'eln_upload_id',
+    'test',
+    'password'
+  ]
+])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
+  await startAPI(state, snapshot, username, password)
+  render(<UploadPage uploadId={uploadId}/>)
+
+  await waitFor(() => expect(screen.getByText('Or, create and edit entries manually.')).toBeInTheDocument())
+
+  const nameTextBoxInput = screen.queryAllByRole('textbox')[0]
+  const schemaAutoComplete = screen.queryAllByRole('combobox')[0]
+  const schemaInput = within(schemaAutoComplete).getByRole('textbox')
+
+  const addButton = screen.getByButtonText('Add')
+  expect(addButton).toBeDisabled()
+
+  await waitFor(() => expect(schemaInput.value).toEqual('PerovskiteSolarCell'))
+  const searchSchemaButton = within(schemaAutoComplete).getByTitle('Search custom schema').closest('button')
+  expect(searchSchemaButton).toBeEnabled()
+
+  // open edit section select dialog
+  await userEvent.click(searchSchemaButton)
+  await testSelectSection()
+
+  await waitFor(() => expect(schemaInput.value).toEqual('Instrument (Electronic Lab Notebook example schema)'))
+
+  // open edit section select dialog
+  await userEvent.click(searchSchemaButton)
+  await testDialogWithSelectedSection()
+
+  await waitFor(() => expect(schemaInput.value).toEqual('Instrument (Electronic Lab Notebook example schema)'))
+
+  fireEvent.change(nameTextBoxInput, { target: { value: 'a' } })
+  await waitFor(() => expect(addButton).toBeEnabled())
+})

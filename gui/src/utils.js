@@ -669,7 +669,8 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
     'item': 'items',
     'upload': 'uploads',
     'code': 'codes',
-    'manager': 'managers'
+    'manager': 'managers',
+    'filter': 'filters'
   }
   const words = word.trim().split(" ")
   const lastWord = words[words.length - 1]
