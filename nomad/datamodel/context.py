@@ -170,29 +170,23 @@ class Context(MetainfoContext):
         if url_results is None:
             raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
 
-        installation_url, upload_id, id_or_path, kind, _fragment, file_name = url_results  # _fragment === /placeholder
+        installation_url, upload_id, entry_id_or_mainfile, kind, _fragment = url_results  # _fragment === /placeholder
 
         if installation_url is None:
             installation_url = self.installation_url
 
-        return installation_url, upload_id, kind, id_or_path, file_name
+        return installation_url, upload_id, kind, entry_id_or_mainfile
 
     def load_url(self, url: str) -> MSection:
-        installation_url, upload_id, kind, id_or_path, file_name = self._parse_url(url)
+        installation_url, upload_id, kind, entry_id_or_mainfile = self._parse_url(url)
 
         if kind not in ('archive', 'raw'):
             raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
 
         if kind == 'archive':
-            try:
-                return self.load_archive(id_or_path, upload_id, installation_url)
-            except MetainfoReferenceError as e:
-                if file_name is None:
-                    raise e
+            return self.load_archive(entry_id_or_mainfile, upload_id, installation_url)
 
-                id_or_path = file_name
-
-        return self.load_raw_file(id_or_path, upload_id, installation_url)
+        return self.load_raw_file(entry_id_or_mainfile, upload_id, installation_url)
 
     def resolve_archive_url(self, url: str) -> MSection:
         if url not in self.archives:

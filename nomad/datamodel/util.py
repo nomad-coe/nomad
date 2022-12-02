@@ -38,14 +38,8 @@ def parse_path(url: str, upload_id: str = None):
     information about the upload_id, and it may also contain no entry_id. Has to know the upload_id when only
     path to mainfile is given.
 
-    On exit:
-    Returns None if the path is invalid. Otherwise, returns a tuple of:
-        (installation, upload_id, entry_id_or_mainfile, kind, path, file_name)
-
-    If installation is None, indicating it is a local path.
-
     Returns:
-        (installation, upload_id, entry_id_or_mainfile, kind, path, file_name): successfully parsed path
+        (installation, upload_id, entry_id_or_mainfile, kind, path): successfully parsed path
         None: fail to parse path
     '''
 
@@ -63,7 +57,7 @@ def parse_path(url: str, upload_id: str = None):
         if not path.startswith('/'):
             path = '/' + path
 
-        return None, upload_id, entry_id_or_mainfile, kind, path, None
+        return None, upload_id, entry_id_or_mainfile, kind, path
 
     installation = url_match.group(1)
     if installation == '':
@@ -79,13 +73,12 @@ def parse_path(url: str, upload_id: str = None):
     path = url_match.group(5)
     if not path.startswith('/'):
         path = '/' + path
-    file_name: str = None  # type: ignore
 
     if kind == 'archive':
         if entry_id_or_mainfile.startswith('mainfile/'):
-            file_name = entry_id_or_mainfile.replace('mainfile/', '')
-            entry_id_or_mainfile = utils.generate_entry_id(other_upload_id, file_name)
+            entry_id_or_mainfile = utils.generate_entry_id(
+                other_upload_id, entry_id_or_mainfile.replace('mainfile/', ''))
         elif '/' in entry_id_or_mainfile:  # should not contain '/' in entry_id
             return None
 
-    return installation, other_upload_id, entry_id_or_mainfile, kind, path, file_name
+    return installation, other_upload_id, entry_id_or_mainfile, kind, path

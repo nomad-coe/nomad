@@ -786,6 +786,70 @@
       "type_data": "str"
     }
   },
+  "searchable_quantities.quantity_name": {
+    "name": "quantity_name",
+    "description": "The name of the quantity holding the value.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    }
+  },
+  "searchable_quantities.section_definition": {
+    "name": "section_definition",
+    "description": "A reference to the section definition for the section that holds the quantity that holds the value.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    }
+  },
+  "searchable_quantities.path": {
+    "name": "path",
+    "description": "The path to the quantity holding the value.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    }
+  },
+  "searchable_quantities.keyword_value": {
+    "name": "keyword_value",
+    "description": "The value mapped as an ES keyword field.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    }
+  },
+  "searchable_quantities.text_value": {
+    "name": "text_value",
+    "description": "The value mapped as an ES text field.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    }
+  },
+  "searchable_quantities.long_value": {
+    "name": "long_value",
+    "description": "The value mapped as an ES long number field.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "int"
+    }
+  },
+  "searchable_quantities.double_value": {
+    "name": "double_value",
+    "description": "The value mapped as an ES double number field.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "float"
+    }
+  },
+  "searchable_quantities.date_value": {
+    "name": "date_value",
+    "description": "The value mapped as an ES date field.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    }
+  },
   "results.material.material_id": {
     "name": "material_id",
     "description": "A fixed length, unique material identifier in the form of a hash\ndigest.",

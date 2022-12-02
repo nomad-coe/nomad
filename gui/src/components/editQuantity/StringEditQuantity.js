@@ -124,6 +124,7 @@ export function getFieldProps(quantityDef) {
   const name = quantityDef.name.replace(/_/g, ' ')
   const label = eln?.[0].label || capitalize(name)
   const {component, ...elnProps} = eln?.[0] || {}
+  elnProps.unit = elnProps.unit || quantityDef.unit
   return {
     label: label,
     helpDescription: quantityDef.description,

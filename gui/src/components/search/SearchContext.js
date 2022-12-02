@@ -956,10 +956,18 @@ export const SearchContext = React.memo(({
     // they can be accidentally overwritten with an OR statement.
     const customQuery = toAPIFilter(apiQuery, resource)
     const lockedQuery = toAPIFilter(filtersLocked, resource)
+
     let finalQuery = customQuery
     if (!isEmpty(lockedQuery)) {
       finalQuery = {
-        and: [lockedQuery, customQuery]
+        and: [finalQuery, lockedQuery]
+      }
+    }
+
+    // TODO: This is just a temp hack to somehow allow filter queries with ands/ors
+    if (query.custom_quantities) {
+      finalQuery = {
+        and: [finalQuery, query.custom_quantities]
       }
     }
 
@@ -1273,7 +1281,7 @@ export function searchToQsData(search) {
     const filterPath = opKeys.has(key) ? path : fullPath
     const filterData = filterDataGlobal[filterPath]
     let newValue
-    if (isPlainObject(value)) {
+    if (isPlainObject(value) && !filterData.customSerialization) {
       newValue = {}
       for (const [keyInner, valueInner] of Object.entries(value)) {
         const valueConverted = convert(

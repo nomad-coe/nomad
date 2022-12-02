@@ -427,8 +427,11 @@ export const DType = {
 }
 const numericTypes = new Set([DType.Int, DType.Float])
 export function getDatatype(quantity) {
-  const type_data = searchQuantities[quantity]?.type?.type_data
-  const type_kind = searchQuantities[quantity]?.type?.type_kind
+  if (typeof quantity === 'string') {
+    quantity = searchQuantities[quantity]
+  }
+  const type_data = quantity?.type?.type_data
+  const type_kind = quantity?.type?.type_kind
 
   if (isString(type_data) && type_data.startsWith('int')) {
     return DType.Int
