@@ -120,13 +120,13 @@ Finally, you can add nomad to the environment itself (including all extras).
 The `-e` option will install the NOMAD with symbolic links allowing you
 to change the code without having to reinstall after each change.
 ```sh
-pip install -e .[infrastructure,parsing,dev]
+pip install -e .[parsing,infrastructure,dev]
 ```
 
 If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
 
 ```sh
-pip install -e .[infrastructure,parsing,dev] --prefer-binary
+pip install -e .[parsing,infrastructure,dev] --prefer-binary
 ```
 
 
@@ -134,23 +134,17 @@ pip install -e .[infrastructure,parsing,dev] --prefer-binary
 
 The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
 ```sh
-python -m nomad.cli dev metainfo >gui/src/metainfo.json
-python -m nomad.cli dev search-quantities >gui/src/searchQuantities.json
-python -m nomad.cli dev toolkit-metadata >gui/src/toolkitMetadata.json
-python -m nomad.cli dev units >gui/src/unitsData.js
-python -m nomad.cli dev parser-metadata >gui/src/parserMetadata.json
+python -m nomad.cli dev gui-artifacts --output-directory gui/src
 python -m nomad.cli dev gui-config >gui/public/env.js
-cp dependencies/nomad-remote-tools-hub/tools.json gui/src/northTools.json
-python -m nomad.cli dev example-upload-metadata >gui/src/exampleUploads.json
 ```
 
 Or simply run
 ```sh
-./scripts/screipugenerate_gui_artifacts.sh
+./scripts/generate_gui_artifacts.sh
 ```
 
 The generated files are stored in GIT. The GUI code might not match the expected data in
-outdated files. If there are changes to units, metainfo, new parsers, new toolkits it
+outdated files. If there are changes to units, metainfo, new parsers, new toolkit notebooks it
 might be necessary to regenerate these gui artifacts.
 
 In addition, you have to do some more steps to prepare your working copy to run all

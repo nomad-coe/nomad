@@ -98,7 +98,7 @@ class TableData(ArchiveSection):
                 section_def = self.__getattribute__(to_camel_case(section_name_str)).m_def
                 if top_level_section_list.count(section_name_str):
                     continue
-                elif len(section_name_list) is not 1:
+                elif len(section_name_list) != 1:
                     top_level_section_list.append(section_name_str)
                     # The (sub)section needs to be instantiated first
                     self.__setattr__(section_name_str, section_def.section_cls())
