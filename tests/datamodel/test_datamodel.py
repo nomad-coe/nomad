@@ -19,10 +19,11 @@
 '''
 A generator for random test calculations.
 '''
-
 import random
 from essential_generators import DocumentGenerator
 
+from nomad.datamodel import EntryArchive, EntryMetadata
+from nomad.metainfo import MSection, Quantity, SubSection
 from nomad.parsing.parsers import parser_dict
 
 number_of = 20
@@ -30,7 +31,8 @@ number_of = 20
 random.seed(0)
 gen = DocumentGenerator()
 
-users = ['20bb9766-d338-4314-be43-7906042a5086', 'a03af8b6-3aa7-428a-b3b1-4a6317e576b6', '54cb1f64-f84e-4815-9ade-440ce0b5430f']
+users = ['20bb9766-d338-4314-be43-7906042a5086', 'a03af8b6-3aa7-428a-b3b1-4a6317e576b6',
+         '54cb1f64-f84e-4815-9ade-440ce0b5430f']
 basis_sets = ['Numeric AOs', 'Gaussians', '(L)APW+lo', 'Plane waves']
 xc_functionals = ['LDA', 'GGA', 'hybrid', 'meta-GGA', 'GW', 'unknown']
 crystal_systems = ['triclinic', 'monoclinic', 'orthorombic', 'tetragonal', 'hexagonal', 'cubic']

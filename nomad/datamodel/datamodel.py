@@ -228,6 +228,21 @@ def derive_authors(entry: 'EntryMetadata') -> List[User]:
     return authors
 
 
+class CompatibleSectionDef(MSection):
+    definition_qualified_name = Quantity(
+        type=str,
+        description='The qualified name of the compatible section.',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+    definition_id = Quantity(
+        type=str,
+        description='The definition id of the compatible section.',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+    used_directly = Quantity(
+        type=bool,
+        description='If the compatible section is directly used as base section.',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+
 class EntryArchiveReference(MSection):
     m_def = Section(label='ArchiveReference')
 
@@ -643,8 +658,14 @@ class EntryMetadata(MSection):
 
     sections = Quantity(
         type=str, shape=['*'],
-        description='All sections that are present in this entry.',
+        description='All sections that are present in this entry. This field is deprecated and will be removed.',
         a_elasticsearch=Elasticsearch(material_entry_type))
+
+    section_defs = SubSection(
+        sub_section=CompatibleSectionDef,
+        repeats=True,
+        description='All sections that are compatible with the present sections in this entry.',
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True))
 
     entry_references = SubSection(
         sub_section=EntryArchiveReference,
@@ -826,7 +847,7 @@ class EntryMetadata(MSection):
         if len(entry_references) > 0:
             for archive_reference_quantity in EntryArchiveReference.m_def.quantities:  # pylint: disable=not-an-iterable
                 quantities.add(f'metadata.entry_references.{archive_reference_quantity.name}')
-                quantities.add('metadata.entry_references')
+            quantities.add('metadata.entry_references')
             sections.add(EntryArchiveReference.m_def)
 
         if len(quantities) > 0:
@@ -834,6 +855,9 @@ class EntryMetadata(MSection):
 
         if len(sections) > 0:
             quantities.add('metadata.sections')
+            quantities.add('metadata.section_defs')
+            for compatible_quantity in CompatibleSectionDef.m_def.quantities:
+                quantities.add(f'metadata.section_defs.{compatible_quantity.name}')
 
         self.entry_references.extend(entry_references)
         self.searchable_quantities.extend(searchable_quantities)
@@ -842,6 +866,32 @@ class EntryMetadata(MSection):
         self.sections = [section.qualified_name() for section in sections]
         self.sections.sort()
         self.n_quantities = n_quantities
+
+        def generate_compatible(_s, used_directly: bool):
+            return CompatibleSectionDef(
+                definition_qualified_name=_s.qualified_name(),
+                definition_id=_s.definition_id,
+                used_directly=used_directly)
+
+        def collect_base_sections(_section, used_directly: bool = False):
+            for _b in _section.base_sections:
+                if used_directly:
+                    # always overrides the directly used section definitions
+                    section_defs[_b.qualified_name()] = generate_compatible(_b, used_directly=used_directly)
+                elif _b.qualified_name() not in section_defs:
+                    # indirect usage may be directly used elsewhere, do not overwrite
+                    section_defs[_b.qualified_name()] = generate_compatible(_b, used_directly=used_directly)
+                # all the base sections of the base sections are indirectly used
+                collect_base_sections(_b, used_directly=False)
+
+        section_defs = {}
+        for section in sections:
+            section_defs[section.qualified_name()] = generate_compatible(section, used_directly=True)
+            for extending in section.extending_sections:
+                section_defs[extending.qualified_name()] = generate_compatible(extending, used_directly=True)
+            collect_base_sections(section, used_directly=True)
+
+        self.section_defs = sorted(list(section_defs.values()), key=lambda x: x.definition_qualified_name)
 
 
 class EntryArchive(ArchiveSection):
