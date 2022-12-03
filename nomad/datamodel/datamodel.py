@@ -20,6 +20,8 @@
 
 from typing import List, Any
 from enum import Enum
+
+import rfc3161ng
 from elasticsearch_dsl import analyzer, tokenizer
 import numpy as np
 from pint import Quantity as PintQuantity
@@ -31,7 +33,7 @@ from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type, entry_type as es_entry_type
 from .util import parse_path
 from ..metainfo import (
-    Package, Definition, MProxy, MSection, MCategory, Section, SubSection, Quantity, Reference,
+    Bytes, Package, Definition, MProxy, MSection, MCategory, Section, SubSection, Quantity, Reference,
     SectionProxy, MEnum, Datetime, JSON)
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
@@ -288,6 +290,28 @@ class SearchableQuantity(MSection):
         a_elasticsearch=Elasticsearch(mapping='date'))
 
 
+class RFC3161Timestamp(MSection):
+    token_seed = Quantity(
+        type=str,
+        description='The entry hash used to get timestamp token.')
+    token = Quantity(
+        type=Bytes,
+        description='The token returned by RFC3161 server.')
+    tsa_server = Quantity(
+        type=str,
+        description='The address of RFC3161 server.')
+    timestamp = Quantity(
+        type=Datetime,
+        description='The RFC3161 timestamp.')
+
+    @property
+    def verify_timestamp(self):
+        '''
+        Verify token by converting it to a timestamp ad-hoc.
+        '''
+        return rfc3161ng.get_timestamp(self.token)
+
+
 class EntryMetadata(MSection):
     '''
     Attributes:
@@ -389,6 +413,10 @@ class EntryMetadata(MSection):
         type=str,
         description='A raw file content based checksum/hash',
         categories=[MongoEntryMetadata])
+
+    entry_timestamp = SubSection(
+        sub_section=EntryArchiveReference,
+        description='A timestamp based on RFC3161.')
 
     entry_create_time = Quantity(
         type=Datetime, categories=[MongoEntryMetadata, MongoSystemMetadata, EditableUserMetadata],

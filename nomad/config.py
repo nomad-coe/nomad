@@ -383,6 +383,17 @@ process = NomadConfig(
     metadata_file_extensions=('json', 'yaml', 'yml')
 )
 
+rfc3161_timestamp = NomadConfig(
+    # rfc3161ng timestamping server
+    server='http://time.certum.pl/',
+    # cert PATH used for rfc3161ng timestamping server
+    cert=None,
+    # hash algorithm for rfc3161ng timestamping server, depends on the server
+    hash_algorithm='sha256',
+    username=None,
+    password=None
+)
+
 bundle_import = NomadConfig(
     # Basic settings
     allow_bundles_from_oasis=True,  # If oasis admins can "push" bundles to this NOMAD deployment
