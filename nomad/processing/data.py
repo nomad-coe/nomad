@@ -27,8 +27,10 @@ entries, and files
 .. autoclass:: Upload
 
 '''
+import base64
+from typing import Optional, cast, Any, List, Tuple, Set, Iterator, Dict, Iterable, Sequence, Union
 
-from typing import cast, Any, List, Tuple, Set, Iterator, Dict, Iterable, Sequence, Union
+import rfc3161ng
 from mongoengine import (
     StringField, DateTimeField, BooleanField, IntField, ListField, DictField)
 from pymongo import UpdateOne
@@ -45,6 +47,7 @@ from pydantic.error_wrappers import ErrorWrapper
 import validators
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
+from nomad.datamodel.datamodel import RFC3161Timestamp
 from nomad.files import (
     RawPathInfo, PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle,
     create_tmp_dir, is_safe_relative_path)
@@ -126,6 +129,50 @@ def keys_exist(data: Dict[str, Any], required_keys: Iterable[str], error_message
         for sub_key in key.split('.'):
             assert sub_key in current, error_message.replace('{key}', key)
             current = current[sub_key]
+
+
+def get_rfc3161_token(
+        hash_string: str,
+        server: Optional[str] = None,
+        cert: Optional[str] = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        hash_algorithm: Optional[str] = None
+) -> Optional[bytes]:
+    '''
+    Get RFC3161 compliant time stamp as a list of int.
+    '''
+    if server is None:
+        server = config.rfc3161_timestamp.server
+    if cert is None:
+        cert = config.rfc3161_timestamp.cert
+    if username is None:
+        username = config.rfc3161_timestamp.username
+    if password is None:
+        password = config.rfc3161_timestamp.password
+    if hash_algorithm is None:
+        hash_algorithm = config.rfc3161_timestamp.hash_algorithm
+
+    # if no server assigned, does not apply RFC3161
+    if not server:
+        return None
+
+    # when server requires authentication, use the provided credentials
+    params = dict(username=username, password=password, hashname=hash_algorithm if hash_algorithm else 'sha256')
+
+    try:
+        if cert:
+            if os.path.exists(cert):
+                # a local file
+                with open(cert, 'rb') as f:
+                    params['certificate'] = f.read()
+            else:
+                # a network location
+                params['certificate'] = requests.get(cert).content
+        stamper = rfc3161ng.RemoteTimestamper(server, **params)
+        return stamper(data=hash_string.encode('utf-8'))
+    except Exception:
+        return None
 
 
 class MetadataEditRequestHandler:
@@ -758,10 +805,41 @@ class Entry(Proc):
     def _apply_metadata_from_process(self, entry_metadata: EntryMetadata):
         '''
         Applies metadata generated when processing or re-processing an entry to `entry_metadata`.
+
+        Only update timestamp when entry is new or changed.
         '''
         entry_metadata.nomad_version = config.meta.version
         entry_metadata.nomad_commit = ''
         entry_metadata.entry_hash = self.upload_files.entry_hash(self.mainfile, self.mainfile_key)
+
+        try:
+            with self.upload_files.read_archive(self.entry_id) as archive:
+                entry_timestamp = archive[self.entry_id]['metadata']['entry_timestamp']
+                stored_seed = entry_timestamp['token_seed']
+                stored_token = base64.b64decode(entry_timestamp['token'])
+                stored_server = entry_timestamp['tsa_server']
+        except KeyError:
+            stored_seed = None
+            stored_token = None
+            stored_server = None
+        if stored_seed != entry_metadata.entry_hash:
+            # entry is new or has changed
+            token = get_rfc3161_token(entry_metadata.entry_hash)
+            if token:
+                # 1. save to entry metadata
+                entry_metadata.entry_timestamp = RFC3161Timestamp(
+                    token_seed=entry_metadata.entry_hash,
+                    token=token,
+                    tsa_server=config.rfc3161_timestamp.server,
+                    timestamp=rfc3161ng.get_timestamp(token))
+        else:
+            # entry is unchanged
+            entry_metadata.entry_timestamp = RFC3161Timestamp(
+                token_seed=stored_seed,
+                token=stored_token,
+                tsa_server=stored_server,
+                timestamp=rfc3161ng.get_timestamp(stored_token))
+
         entry_metadata.files = self.upload_files.entry_files(self.mainfile)
         entry_metadata.last_processing_time = datetime.utcnow()
         entry_metadata.processing_errors = []
@@ -824,7 +902,7 @@ class Entry(Proc):
         try:
             # instead of loading the whole archive, it should be enough to load the
             # parts that are referenced by section_metadata/EntryMetadata
-            # TODO somehow it should determine which root setions too load from the metainfo
+            # TODO somehow it should determine which root sections too load from the metainfo
             # or configuration
             archive = upload.upload_files.read_archive(self.entry_id)
             entry_archive = archive[self.entry_id]
