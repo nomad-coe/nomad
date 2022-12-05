@@ -221,7 +221,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "6673",
+          "content-length": "5498",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -448,7 +448,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "6673",
+          "content-length": "5498",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -675,7 +675,31 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "6673",
+          "content-length": "5498",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/bC7byHvWJp62Sn9uiuJUB38MT5j-",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI2YWNhOTFjYS1jYjhkLTQwMTEtODU5Yi04OTMwYmQyNDRiN2QiLCJleHAiOjE2NjQzMjk4MTEsIm5iZiI6MCwiaWF0IjoxNjY0MjkzODM3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjUxNmZlZDYyLWZhOTctNDBlMi1hYjI3LWY5NzViNDcwYjhjZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.E8FIKno3avcDjCrhVRijkcaDEKUgXIuhmVbtbKAcnbGev9obK-abCffVy6rHgsIaZet5oCUxNhNiYJxFNN76JfrtLq7qyR-yp5AaSfdkSyTzVT8BxdL1at_SMRGn2tgPdTdE1uIjFLddfVbPmOT-BoDedXEYBJBICGV1rnt9g8O5wIdx-X5irh96PJarmZhK7JR_TWNhNI7uysRrvdtfj6vQ_UuDugsEjI7b5D_OjJgnsQmw1kN4fRrYzFQHs6ByMq8UvG_Z54phCQppiQdwKlQLXVtwFhPRSDYTMLEbUlPcaoDeA1vELNzBNuEUTjBWKLuZwWvc5xgmyub6EMJ25Q",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "detail": "The entry with the given id does not exist or is not visible to you."
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "81",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -29878,7 +29902,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "659044",
+          "content-length": "657686",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -29957,6 +29981,20 @@
                   "logger": "nomad.processing",
                   "timestamp": "2022-11-23 14:16.34",
                   "level": "INFO"
+                },
+                {
+                  "normalizer": "MetainfoNormalizer",
+                  "section": "Sample",
+                  "event": "could not normalize section",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "R7a8cjjAQgqdAmJ5tSYBGw",
+                  "parser": "parsers/archive",
+                  "step": "MetainfoNormalizer",
+                  "logger": "nomad.processing",
+                  "exception": "Traceback (most recent call last):\n  File \"/home/alvin/work/nomad2/nomad/nomad/normalizing/metainfo.py\", line 35, in normalize_section\n    normalize(self.entry_archive, logger)\n  File \"/home/alvin/work/nomad2/nomad/nomad/datamodel/metainfo/eln/__init__.py\", line 145, in normalize\n    from pymatgen.core import Composition\n  File \"/home/alvin/work/nomad2/nomad/.nomadenv/lib/python3.8/site-packages/pymatgen/core/__init__.py\", line 20, in <module>\n    from .lattice import Lattice  # noqa\n  File \"/home/alvin/work/nomad2/nomad/.nomadenv/lib/python3.8/site-packages/pymatgen/core/lattice.py\", line 22, in <module>\n    from pymatgen.util.coord import pbc_shortest_vectors\n  File \"/home/alvin/work/nomad2/nomad/.nomadenv/lib/python3.8/site-packages/pymatgen/util/coord.py\", line 17, in <module>\n    from . import coord_cython as cuc\n  File \"pymatgen/util/coord_cython.pyx\", line 1, in init pymatgen.util.coord_cython\nValueError: numpy.ndarray size changed, may indicate binary incompatibility. Expected 96 from C header, got 88 from PyObject",
+                  "timestamp": "2022-09-08 14:41.56",
+                  "level": "ERROR"
                 },
                 {
                   "normalizer": "MetainfoNormalizer",

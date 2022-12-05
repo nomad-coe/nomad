@@ -187,7 +187,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5457",
+          "content-length": "5498",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -29354,7 +29354,37 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "657664",
+          "content-length": "657686",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "60e8ee7960994a17dba75907439a8103": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/related_resources/?",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI4NzE0OGFmNi01Yzg5LTQ1ZmEtYTdkNi1lOTU5NjJjMjZlYWEiLCJleHAiOjE2NjI2NzY4MjcsIm5iZiI6MCwiaWF0IjoxNjYyNjQwODQyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQ0YzRkYjMxLTNmNjEtNDkwOC05Y2NiLTUxMWM5ZTk3ZmY0YiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.iGmN1qaG0OScK6EWj_1oHAa-xFM1TcTikJLiHgPUHSi91VqzsWklp8tbGGmxmKIASmVc3wnlERLRAQ18j4M_a8l6Vgq5lHvH0muc62uAvKie63onbUgUzweuLRy6Po0LUgfkM0wrKMMCcvaTmbS4VTVnep2fNaJpXkcS-eT_YBMwPh137O8JQ9rD-nfn4J9FDMzDlNV7CEsQqKdKBZJ-Z4wBQfIusDtCsryffTcsF69Wctl2KjQJ_BGPt54juXUOHI3ifom2k50r-5pr_0rKf6t8-DP15X2QJiZ527cqFP4MNtGX4OZ8J6aXZO2JFniix4zhx7vLCc3pSI-O1BMLQg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "metadata": {
+            "sources": [],
+            "n_references": []
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "79",
           "content-type": "application/json",
           "server": "uvicorn"
         }

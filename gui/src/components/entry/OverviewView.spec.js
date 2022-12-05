@@ -264,6 +264,7 @@ test.each([
     </EntryPageContext>
   ))
 
+  await screen.findByText('HotplateAnnealing')
   await waitFor(() => expect(screen.getByText('HotplateAnnealing')).toBeInTheDocument())
 
   const saveButton = screen.queryByTitle('Save entry').closest('button')

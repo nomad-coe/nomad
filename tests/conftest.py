@@ -170,7 +170,10 @@ def worker(mongo, celery_session_worker, celery_inspect):
     try:
         while True:
             empty = True
-            for value in celery_inspect.active().values():
+            celery_active = celery_inspect.active()
+            if not celery_active:
+                break
+            for value in celery_active.values():
                 empty = empty and len(value) == 0
             if empty:
                 break

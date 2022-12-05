@@ -319,6 +319,19 @@ normalize = NomadConfig(
     )
 )
 
+resources = NomadConfig(
+    enabled=False,
+    db_name='nomad_v1_resources',
+    # Maxmimum time a resource is stored in mongodb before being updated.
+    max_time_in_mongo=60 * 60 * 24 * 365.,
+    # Number of download retries
+    download_retries=2,
+    # Delay in seconds before each successive retry
+    download_retry_delay=10,
+    # Maximum number of httpx connections
+    max_connections=10
+)
+
 paths = NomadConfig(
     similarity="",
 )
@@ -465,7 +478,9 @@ ui = NomadConfig(
                 'spectroscopy',
                 'references'
             ],
-            'exclude': [],
+            'exclude': [
+                'relatedResources'
+            ],
             'options': {
                 'sections': {'error': 'Could not render section card.'},
                 'definitions': {'error': 'Could not render definitions card.'},
@@ -480,6 +495,7 @@ ui = NomadConfig(
                 'geometry_optimization': {'error': 'Could not render geometry optimization.'},
                 'spectroscopy': {'error': 'Could not render spectroscopic properties.'},
                 'references': {'error': 'Could not render references card.'},
+                'relatedResources': {'error': 'Could not render related resources card.'},
             }
         }
     },
