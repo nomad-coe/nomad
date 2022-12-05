@@ -497,7 +497,7 @@
   },
   "sections": {
     "name": "sections",
-    "description": "All sections that are present in this entry.",
+    "description": "All sections that are present in this entry. This field is deprecated and will be removed.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -729,6 +729,30 @@
     "shape": [
       "1..*"
     ]
+  },
+  "section_defs.definition_qualified_name": {
+    "name": "definition_qualified_name",
+    "description": "The qualified name of the compatible section.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    }
+  },
+  "section_defs.definition_id": {
+    "name": "definition_id",
+    "description": "The definition id of the compatible section.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    }
+  },
+  "section_defs.used_directly": {
+    "name": "used_directly",
+    "description": "If the compatible section is directly used as base section.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "bool"
+    }
   },
   "entry_references.target_reference": {
     "name": "target_reference",
