@@ -30,7 +30,9 @@ window.nomadEnv = {
           "spectroscopy",
           "references"
         ],
-        "exclude": [],
+        "exclude": [
+          "relatedResources"
+        ],
         "options": {
           "sections": {
             "error": "Could not render section card."
@@ -70,6 +72,9 @@ window.nomadEnv = {
           },
           "references": {
             "error": "Could not render references card."
+          },
+          "relatedResources": {
+            "error": "Could not render related resources card."
           }
         }
       }

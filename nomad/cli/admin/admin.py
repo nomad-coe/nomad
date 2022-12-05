@@ -47,6 +47,10 @@ def reset(remove, i_am_really_sure):
 
     infrastructure.reset(remove)
 
+    from nomad.app.resources.main import remove_mongo
+
+    remove_mongo()
+
 
 @admin.command(help='Reset all uploads and entries "stuck" in processing using level mongodb operations.')
 @click.option('--zero-complete-time', is_flag=True, help='Sets the complete time to epoch zero.')

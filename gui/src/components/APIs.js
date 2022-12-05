@@ -79,6 +79,15 @@ export default function About() {
       interoperability between data catalogs published on the Web. This API allows you
       access to NOMAD via RDF documents following DCAT. You can access NOMAD entries as
       DCAT Datasets or all NOMAD entries as a DCAT Catalog.
+
+      ## Resources
+
+      - [Resources API dashboard](${appBase}/resources/extensions/docs)
+
+      The resources API provides links from NOMAD entries to related external resources.
+      These include the [Aflow Encyclopedia of Crystallographic Prototypes](https://www.aflowlib.org/prototype-encyclopedia/),
+      [Springer Materials Database of Inorganic Solid Phases](https://materials.springer.com)
+      and [OPTIMADE providers](https://providers.optimade.org/).
     `}</Markdown>
   </div>
 }

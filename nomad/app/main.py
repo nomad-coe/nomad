@@ -64,6 +64,10 @@ app.mount(f'{app_base}/dcat', dcat_app)
 app.mount(f'{app_base}/optimade', optimade_app)
 app.mount(f'{app_base}/h5grove', h5grove_app)
 
+if config.resources.enabled:
+    from .resources.main import app as resources_app
+    app.mount(f'{app_base}/resources', resources_app)
+
 dist_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../dist'))
 docs_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static/docs'))
 gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static/gui'))

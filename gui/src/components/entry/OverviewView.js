@@ -33,6 +33,7 @@ import DynamicalPropertiesCard from '../entry/properties/DynamicalPropertiesCard
 import StructuralPropertiesCard from '../entry/properties/StructuralPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 import SpectroscopyCard from './properties/SpectroscopyCard'
+import RelatedResourcesCard from '../entry/properties/RelatedResourcesCard'
 import { MethodMetadata } from './EntryDetails'
 import Page from '../Page'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
@@ -181,7 +182,8 @@ const OverviewView = React.memo((props) => {
       dynamical: DynamicalPropertiesCard,
       geometry_optimization: GeometryOptimizationCard,
       spectroscopy: SpectroscopyCard,
-      references: ReferenceUsingCard
+      references: ReferenceUsingCard,
+      relatedResources: RelatedResourcesCard
     }
 
     if (isEmpty(overview?.options)) {
