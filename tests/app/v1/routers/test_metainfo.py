@@ -25,7 +25,7 @@ from nomad import config
 from nomad.app.v1.routers.metainfo import store_package_definition
 from nomad.datamodel import EntryArchive, ClientContext
 from nomad.metainfo import MSection, MetainfoReferenceError
-from nomad.utils import generate_entry_id
+from nomad.utils import generate_entry_id, create_uuid
 from tests.processing.test_data import run_processing
 
 
@@ -59,139 +59,148 @@ def test_metainfo_section_id_endpoint(metainfo_data, mongo_infra, client):
     assert response.status_code == 404
 
 
-def simple_schema(name: str):
-    return {
-        "name": "test schema package",
-        "definitions": {
-            "section_definitions": [
-                {
-                    "base_sections": [
-                        "nomad.datamodel.data.EntryData"
-                    ],
-                    "name": "Chemical"
-                },
-                {
-                    "base_sections": [
-                        "nomad.datamodel.data.EntryData"
-                    ],
-                    "name": "Sample",
-                    "quantities": [
-                        {
-                            "name": name,
-                            "type": {
-                                "type_kind": "python",
-                                "type_data": "str"
-                            }
-                        }
-                    ]
-                }
-            ]
-        }
-    }
-
-
-def simple_data(name: str):
-    return {
-        "data": {
-            "m_def": "../upload/raw/schema.json#/definitions/section_definitions/1",
-            name: "this is my name"
-        }
-    }
-
-
 def test_upload_and_download(client, test_user, proc_infra, mongo_infra, no_warn, monkeypatch, tmp):
     monkeypatch.setattr('nomad.config.process.store_package_definition_in_mongo', True)
     monkeypatch.setattr('nomad.config.process.add_definition_id_to_reference', True)
     monkeypatch.setattr('nomad.config.process.write_definition_id_to_archive', True)
 
-    def j(fn: str) -> str:
+    monkeypatch.setattr('requests.get', getattr(client, 'get'))
+    monkeypatch.setattr('requests.post', getattr(client, 'post'))
+
+    m_def = '../upload/raw/schema.archive.json#/definitions/section_definitions/1'
+
+    def client_context():
+        return ClientContext(installation_url='')
+
+    def join_tmp_dir(fn: str) -> str:
         return os.path.join(tmp, fn)
 
-    schema_file_name = 'schema.json'
+    schema_file_name = 'schema.archive.json'
     data_file_name = 'sample.archive.json'
     archive_name = 'example_versioned_metainfo.zip'
 
-    # 1. generate version one with 'chemicals' quantity
-    # 2. upload and record version one
-    def pack_and_publish(name: str):
-        jschema = j(schema_file_name)
-        jdata = j(data_file_name)
-        jarchive = j(archive_name)
+    def pack_and_publish(
+        property_name: str, property_value: str,
+        with_schema: bool, def_id: str = None
+    ):
+        '''
+        Generates and publishes an example upload with customizable schema and
+        data using the schema with different m_def flavors.
+        '''
+        schema_path = join_tmp_dir(schema_file_name)
+        data_path = join_tmp_dir(data_file_name)
+        archive_path = join_tmp_dir(archive_name)
 
-        with open(jschema, 'w') as f:
-            json.dump(simple_schema(name), f)
+        if with_schema:
+            with open(schema_path, 'w') as f:
+                json.dump({
+                    "name": "test schema package",
+                    "definitions": {
+                        "section_definitions": [
+                            {
+                                "base_sections": [
+                                    "nomad.datamodel.data.EntryData"
+                                ],
+                                "name": "Chemical"
+                            },
+                            {
+                                "base_sections": [
+                                    "nomad.datamodel.data.EntryData"
+                                ],
+                                "name": "Sample",
+                                "quantities": [
+                                    {
+                                        "name": property_name,
+                                        "type": {
+                                            "type_kind": "python",
+                                            "type_data": "str"
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }, f)
 
-        with open(jdata, 'w') as f:
-            json.dump(simple_data(name), f)
+        with open(data_path, 'w') as f:
+            use_m_def = m_def
+            if def_id:
+                use_m_def = f'{use_m_def}@{def_id}'
+            json.dump({
+                "data": {
+                    "m_def": use_m_def,
+                    property_name: property_value
+                }
+            }, f)
 
-        with ZipFile(jarchive, 'w') as zipObj:
-            zipObj.write(jschema, arcname=schema_file_name)
-            zipObj.write(jdata, arcname=data_file_name)
+        with ZipFile(archive_path, 'w') as zipObj:
+            if with_schema:
+                zipObj.write(schema_path, arcname=schema_file_name)
+            zipObj.write(data_path, arcname=data_file_name)
 
-        return run_processing((name, jarchive), test_user, publish_directly=True)
+        processed = run_processing((create_uuid(), archive_path), test_user, publish_directly=True)
+        return processed.upload_id
 
-    processed = pack_and_publish('chemicals')
+    # 1. create a first upload
+    upload_1_id = pack_and_publish(
+        property_name='test_quantity', property_value='test_value',
+        with_schema=True, def_id=None)
 
-    upload_id = processed.upload_id
-
-    response = client.get(f'entries/{generate_entry_id(upload_id, data_file_name)}/archive')
-
+    response = client.get(f'entries/{generate_entry_id(upload_1_id, data_file_name)}/archive')
+    assert response.status_code == 200, response.ext
     entry_data = response.json()['data']['archive']['data']
 
-    # check if 'chemicals' quantity is in the entry
-    assert 'chemicals' in entry_data
+    # check if 'test_quantity' quantity is in the entry
+    assert 'test_quantity' in entry_data
+    assert entry_data['test_quantity'] == 'test_value'
 
-    # check if package is stored in mongo
-    response = client.get(f'metainfo/{entry_data["m_def_id"]}')
-
+    # 2. check if package is stored in mongo
+    original_def_id = entry_data["m_def_id"]
+    response = client.get(f'metainfo/{original_def_id}')
     assert response.status_code == 200
 
     # 3. prepare a new entry refers to the previously uploaded package
-    data_file_name = 'new_' + data_file_name
-    with open(j(data_file_name), 'w') as f:
-        data = simple_data('chemicals')
-        data['data']['m_def'] += f'@{entry_data["m_def_id"]}'
-        data['data']['chemicals'] = 'this is my new name'
-        json.dump(data, f)
+    upload_2_id = pack_and_publish(
+        property_name='test_quantity', property_value='new_value',
+        with_schema=False, def_id=entry_data["m_def_id"])
 
-    processed = run_processing(
-        (data_file_name.replace('.json', ''), j(data_file_name)), test_user,
-        publish_directly=True)
+    response = client.get(f'entries/{generate_entry_id(upload_2_id, data_file_name)}/archive')
+    assert response.status_code == 200, response.text
+    entry_data = response.json()['data']['archive']['data']
 
-    response = client.get(f'entries/{generate_entry_id(processed.upload_id, data_file_name)}/archive')
-
-    new_entry_data = response.json()['data']['archive']['data']
-
-    # 4. check if 'chemicals' quantity is in the entry and has the correct value
-    assert 'chemicals' in new_entry_data
-    assert new_entry_data['chemicals'] == 'this is my new name'
+    # 4. check if 'test_quantity' quantity is in the entry and has the correct value
+    assert 'test_quantity' in entry_data
+    assert entry_data['test_quantity'] == 'new_value'
 
     # 5. test if client side can read the package using versioned package
-    new_entry_data = EntryArchive.m_from_dict(data['data'], m_context=ClientContext())
-    assert new_entry_data.chemicals == 'this is my new name'
+    entry = EntryArchive.m_from_dict(entry_data, m_context=client_context())
+    assert entry.test_quantity == 'new_value'
 
     # 6. test if client side can detect wrong package version
-    definition_reference, definition_id = data['data']['m_def'].split('@')
-    data['data']['m_def'] = f'{definition_reference}@{definition_id[::-1]}'
+    definition_reference, definition_id = entry_data['m_def'].split('@')
+    entry_data['m_def'] = f'{definition_reference}@{definition_id[::-1]}'
     with pytest.raises(MetainfoReferenceError):
-        EntryArchive.m_from_dict(data['data'], m_context=ClientContext())
+        EntryArchive.m_from_dict(entry_data, m_context=client_context())
 
     # 7. now test if client side can read the package using non-versioned package
-    data['data']['m_def'] = f'/upload/{upload_id}/raw/schema.json#/definitions/section_definitions/1'
-    new_entry_data = EntryArchive.m_from_dict(data['data'], m_context=ClientContext())
-    assert new_entry_data.chemicals == 'this is my new name'
+    entry_data['m_def'] = f'/upload/{upload_1_id}/raw/{schema_file_name}#/definitions/section_definitions/1'
+    entry_data = EntryArchive.m_from_dict(entry_data, m_context=client_context())
+    assert entry_data.test_quantity == 'new_value'
 
-    # 8. generate version two with 'toxicchemicals' quantity
-    processed = pack_and_publish('toxicchemicals')
-    response = client.get(f'entries/{generate_entry_id(processed.upload_id, data_file_name)}/archive')
+    # 8. generate version two with 'updated_quantity' quantity
+    # TODO this test is kinda pointless, because it does not test different version, but a
+    # fully new schema
+    upload_3_id = pack_and_publish(
+        property_name='updated_quantity', property_value='new_value',
+        with_schema=True, def_id=None)
+    response = client.get(f'entries/{generate_entry_id(upload_3_id, data_file_name)}/archive')
+    entry_data = response.json()['data']['archive']['data']
 
-    new_entry_data = response.json()['data']['archive']['data']
-
-    # check if 'chemicals' quantity is in the entry
-    assert 'toxicchemicals' in new_entry_data
+    # check if 'updated_quantity' quantity is in the entry
+    assert 'updated_quantity' in entry_data
 
     # check two sections shall have different id
-    assert entry_data["m_def_id"] != new_entry_data["m_def_id"]
+    assert entry_data["m_def_id"] != original_def_id
 
 
 @pytest.fixture(scope='function')

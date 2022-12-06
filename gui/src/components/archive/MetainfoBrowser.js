@@ -684,7 +684,7 @@ function DefinitionDocs({def}) {
     {def.description && !def.extends_base_section &&
       <Compartment title="description">
         <Box marginTop={1} marginBottom={1}>
-          {def._qualifiedName.startsWith('nexus')
+          {def?._qualifiedName?.startsWith('nexus')
             ? <Typography>{def.description}</Typography>
             : <Markdown>{def.description}</Markdown>}
         </Box>

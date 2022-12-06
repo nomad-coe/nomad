@@ -105,6 +105,8 @@ class NomadAuthenticator(GenericOAuthenticator):
             spawner.environment = {}
         spawner.environment['SUBFOLDER'] = f'{config.services.api_base_path.rstrip("/")}/north/user/{user.name}/'
         spawner.environment['JUPYTERHUB_CLIENT_API_URL'] = f'{config.north_url()}/hub/api'
+        spawner.environment['NOMAD_KEYCLOAK_REALM_NAME'] = config.keycloak.realm_name
+        spawner.environment['NOMAD_CLIENT_URL'] = config.api_url(api_host=config.north.nomad_host)
 
         if user.name == 'anonymous':
             return
@@ -116,6 +118,7 @@ class NomadAuthenticator(GenericOAuthenticator):
                 return
             access_token = auth_state['access_token']
             api_headers = {'Authorization': f'Bearer {access_token}'}
+            spawner.environment['NOMAD_CLIENT_ACCESS_TOKEN'] = access_token
 
             uploads_response = requests.get(
                 f'{config.api_url().rstrip("/")}/v1/uploads?is_published=false&per_page=100',

@@ -161,6 +161,9 @@ def run_parser(
     '''
     directory = os.path.dirname(mainfile_path)
     if server_context:
+        # TODO this looks totally wrong. ParserContext is not a server context at all.
+        # There should be three different context. Client, Server and Parser. Currently,
+        # ClientContext seems to cover both the client and the local parser use-case.
         entry_archive = EntryArchive(m_context=ParserContext(directory))
     else:
         entry_archive = EntryArchive(
