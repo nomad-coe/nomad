@@ -18,8 +18,8 @@
 
 import asyncio
 from asyncio import Semaphore
-import time
 from typing import Any, Dict, List, Tuple
+import threading
 
 import httpx
 from httpx import Timeout
@@ -27,6 +27,34 @@ from keycloak import KeycloakOpenID
 
 from nomad import config, metainfo as mi
 from nomad.datamodel import EntryArchive, ClientContext
+
+
+class RunThread(threading.Thread):
+    def __init__(self, func, args, kwargs):
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+        self.result = None
+        super().__init__()
+
+    def run(self):
+        self.result = asyncio.run(self.func(*self.args, **self.kwargs))
+
+
+def run_async(func, *args, **kwargs):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop and loop.is_running():
+        # In jupyter there is already a loop running
+        thread = RunThread(func, args, kwargs)
+        thread.start()
+        thread.join()
+        return thread.result
+    else:
+        # Create our own loop
+        return asyncio.run(func(*args, **kwargs))
 
 
 def _collect(required, parent_section: mi.Section, parent_path: str = None) -> set:
@@ -106,16 +134,19 @@ class ArchiveQuery:
         self._retry: int = retry if retry >= 0 else 4
         self._sleep_time: float = sleep_time if sleep_time > 0. else 1.
 
-        self._username: str = username
-        self._password: str = password
-        self._from_api: bool = from_api
+        from nomad.client import Auth
+        self._auth = Auth(user=username, password=password, from_api=from_api)
 
         self._oidc = KeycloakOpenID(
             server_url=config.keycloak.public_server_url, realm_name=config.keycloak.realm_name,
             client_id=config.keycloak.client_id)
 
-        # noinspection PyTypeChecker
-        self._token: dict = None
+        if username and password:
+            self._token = None
+        elif config.client.access_token:
+            self._token = dict(access_token=config.client.access_token)
+        else:
+            self._token = None
 
         # local data storage
         self._uploads: List[Tuple[str, int]] = []
@@ -140,50 +171,6 @@ class ArchiveQuery:
     @property
     def _download_url(self) -> str:
         return f'{self._url}/entries/archive/query'
-
-    @property
-    def _auth_url(self) -> str:
-        return f'{self._url}/auth/token'
-
-    def _update_token_from_api(self):
-        if self._token:
-            return
-
-        response = httpx.get(
-            self._auth_url, params=dict(username=self._username, password=self._password))
-
-        if response.status_code != 200:
-            response_json = response.json()
-            reason = response_json.get("description") or response_json.get(
-                "detail") or "unknown reason"
-            raise ValueError(f'Could not authenticate: {reason} ({response.status_code})')
-
-        self._token = response.json()
-
-    # noinspection DuplicatedCode
-    def _update_token_from_keycloak(self):
-        if self._token is None:
-            self._token = self._oidc.token(username=self._username, password=self._password)
-            self._token['time'] = time.time()
-        elif self._token['expires_in'] + self._token['time'] < int(time.time()) + 10:
-            # noinspection PyBroadException
-            try:
-                self._token = self._oidc.refresh_token(self._token['refresh_token'])
-                self._token['time'] = time.time()
-            except Exception:
-                self._token = self._oidc.token(username=self._username, password=self._password)
-                self._token['time'] = time.time()
-
-    def _auth(self) -> dict:
-        if (self._username is None) or (self._password is None):
-            return {}
-
-        if self._from_api:
-            self._update_token_from_api()
-        else:
-            self._update_token_from_keycloak()
-
-        return dict(Authorization=f'Bearer {self._token["access_token"]}')
 
     @property
     def _fetch_request(self) -> dict:
@@ -268,7 +255,7 @@ class ArchiveQuery:
         async with httpx.AsyncClient(timeout=Timeout(timeout=300)) as session:
             while True:
                 response = await session.post(
-                    self._fetch_url, json=self._fetch_request, headers=self._auth())
+                    self._fetch_url, json=self._fetch_request, headers=self._auth.headers())
 
                 if response.status_code >= 400:
                     if response.status_code < 500:
@@ -377,7 +364,7 @@ class ArchiveQuery:
         request = self._download_request(upload[0], upload[1])
 
         async with semaphore:
-            response = await session.post(self._download_url, json=request, headers=self._auth())
+            response = await session.post(self._download_url, json=request, headers=self._auth.headers())
             if response.status_code >= 400:
                 print(
                     f'Request with upload id {upload[0]} returns {response.status_code},'
@@ -390,10 +377,7 @@ class ArchiveQuery:
 
             self._uploads.remove(upload)
 
-            # TODO a generic ClientContext might not be good enough. For intra upload
-            # references (that do not contain an upload_id), the ClientContext needs
-            # to use the upload id the entry that we try to produce here!
-            context = ClientContext(self._url, username=self._username, password=self._password)
+            context = ClientContext(self._url, upload_id=upload[0], auth=self._auth)
             result = [EntryArchive.m_from_dict(
                 result['archive'], m_context=context) for result in response_json['data']]
 
@@ -415,7 +399,7 @@ class ArchiveQuery:
 
         print('Fetching remote uploads...')
 
-        return asyncio.run(self._fetch_async(number))
+        return run_async(self._fetch_async, number)
 
     def download(self, number: int = 0) -> List[EntryArchive]:
         '''
@@ -444,7 +428,7 @@ class ArchiveQuery:
 
         print('Downloading required data...')
 
-        return asyncio.run(self._download_async(number))
+        return run_async(self._download_async, number)
 
     async def async_fetch(self, number: int = 0) -> int:
         '''

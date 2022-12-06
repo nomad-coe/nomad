@@ -309,11 +309,22 @@ class ClientContext(Context):
         - local_dir: For intra "upload" references, files will be looked up here.
     '''
 
-    def __init__(self, installation_url: str = None, local_dir: str = None, username: str = None, password: str = None):
+    def __init__(
+        self, installation_url: str = None, local_dir: str = None, upload_id: str = None,
+        username: str = None, password: str = None, auth=None
+    ):
         super().__init__(config.client.url + '/v1' if installation_url is None else installation_url)
         self.local_dir = local_dir
-        self._user = username if username else config.client.user
-        self._password = password if password else config.client.password
+        if auth:
+            self._auth = auth
+        else:
+            from nomad.client import Auth
+            self._auth = Auth(user=username, password=password)
+        self._upload_id = upload_id
+
+    @property
+    def upload_id(self):
+        return self._upload_id
 
     def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
         # TODO currently upload_id might be None
@@ -321,8 +332,8 @@ class ClientContext(Context):
             url = f'{_validate_url(installation_url)}/entries/{entry_id}/archive'
         else:
             url = f'{_validate_url(installation_url)}/uploads/{upload_id}/archive/{entry_id}'
-        from nomad.client import Auth
-        response = requests.get(url, auth=Auth(user=self._user, password=self._password))
+
+        response = requests.get(url, auth=self._auth)
 
         if response.status_code != 200:
             raise MetainfoReferenceError(f'cannot retrieve archive {entry_id} from {installation_url}')
@@ -330,7 +341,6 @@ class ClientContext(Context):
         return EntryArchive.m_from_dict(response.json()['data']['archive'], m_context=self)
 
     def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
-
         # TODO currently upload_id might be None
         if upload_id is None:
             # try to find a local file, useful when the context is used for local parsing
@@ -344,19 +354,8 @@ class ClientContext(Context):
 
             raise MetainfoReferenceError(f'cannot retrieve raw file without upload id')
 
-        url = f'{_validate_url(installation_url)}/uploads/{upload_id}/raw/{path}'
-        from nomad.client import Auth
-        response = requests.get(url, auth=Auth(user=self._user, password=self._password))
-
-        if response.status_code != 200:
-            raise MetainfoReferenceError(f'cannot retrieve raw file {path} from {url}')
-
-        archive_data = response.json()
-
-        if 'm_def' not in archive_data:
-            return EntryArchive.m_from_dict(archive_data, m_context=self)
-        else:
-            return MSection.from_dict(archive_data, m_context=self)
+        entry_id = utils.generate_entry_id(upload_id, path)
+        return self.load_archive(entry_id, upload_id, installation_url)
 
     def raw_file(self, path, *args, **kwargs):
         file_path = os.path.join(self.local_dir, path)

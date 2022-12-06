@@ -74,22 +74,19 @@ def async_api_v1(monkeysession):
     monkeysession.setattr(
         'nomad.client.archive.ArchiveQuery._download_url',
         'http://testserver/api/v1/entries/archive/query')
-    monkeysession.setattr(
-        'nomad.client.archive.ArchiveQuery._auth_url',
-        'http://testserver/api/v1/auth/token')
 
     monkeysession.setattr('httpx.AsyncClient.get', getattr(test_client, 'get'))
     monkeysession.setattr('httpx.AsyncClient.put', getattr(test_client, 'put'))
     monkeysession.setattr('httpx.AsyncClient.post', getattr(test_client, 'post'))
     monkeysession.setattr('httpx.AsyncClient.delete', getattr(test_client, 'delete'))
 
-    def mocked_auth(self) -> dict:
+    def mocked_auth_headers(self) -> dict:
         for user in test_users.values():
-            if user['username'] == self._username or user['email'] == self._username:
+            if user['username'] == self.user or user['email'] == self.user:
                 return dict(Authorization=f'Bearer {user["user_id"]}')
         return {}
 
-    monkeysession.setattr('nomad.client.archive.ArchiveQuery._auth', mocked_auth)
+    monkeysession.setattr('nomad.client.api.Auth.headers', mocked_auth_headers)
 
     return test_client
 

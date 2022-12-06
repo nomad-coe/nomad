@@ -9,8 +9,8 @@ query = ArchiveQuery(
     query={
         'results.method.simulation.program_name': 'VASP',
         'results.material.elements': ['Ti', 'O'],
-        'results.method.simulation.geometry_optimization': {
-            'convergence_tolerance_energy_difference:lt': 1e-22,
+        'results.properties.geometry_optimization': {
+            'final_energy_difference:lt': 1e-22,
         }
     },
     required={
@@ -22,14 +22,13 @@ query = ArchiveQuery(
                 }
             }
         }
-    },
-    parallel=10,
-    max=100)
+    })
 
-print(query)
-
-for result in query:
+for result in query.download(100):
     calc = result.workflow[0].calculation_result_ref
     formula = calc.system_ref.chemical_composition_reduced
-    total_energy = calc.energy.total.value.to(units.eV)
+    if calc.energy.total:
+        total_energy = calc.energy.total.value.to(units.eV)
+    else:
+        total_energy = 'N/A'
     print(f'{formula}: {total_energy}')

@@ -83,7 +83,15 @@ class Auth(requests.auth.AuthBase):
             realm_name=config.keycloak.realm_name,
             client_id=config.keycloak.client_id)
 
-        self._token = None
+        if user and password:
+            # force to get access token from user and password
+            self._token = None
+        elif config.client.access_token:
+            # use pre-set access token
+            self._token = dict(access_token=config.client.access_token)
+        else:
+            # no token, no auth
+            self._token = None
 
     def get_access_token_from_api(self):
         if self._token is None:
@@ -101,9 +109,12 @@ class Auth(requests.auth.AuthBase):
             self._token = response.json()
 
     def get_access_token_from_keycloak(self):
-        if self._token is None:
+        if self._token is None and self.user and self._password:
             self._token = self.__oidc.token(username=self.user, password=self._password)
             self._token['time'] = time.time()
+        elif not self._token or not ('expires_in' in self._token and 'time' in self._token):
+            # cannot refresh
+            return
         elif self._token['expires_in'] < int(time.time()) - self._token['time'] + 10:
             try:
                 self._token = self.__oidc.refresh_token(self._token['refresh_token'])
@@ -113,10 +124,16 @@ class Auth(requests.auth.AuthBase):
                 self._token['time'] = time.time()
 
     def __call__(self, request):
+        request.headers.update(self.headers())
+        return request
+
+    def headers(self):
         if self.from_api:
             self.get_access_token_from_api()
         else:
             self.get_access_token_from_keycloak()
 
-        request.headers['Authorization'] = f'Bearer {self._token["access_token"]}'
-        return request
+        if not self._token:
+            return {}
+
+        return dict(Authorization=f'Bearer {self._token["access_token"]}')

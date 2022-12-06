@@ -337,8 +337,9 @@ paths = NomadConfig(
 )
 
 client = NomadConfig(
-    user='leonard.hofstadter@nomad-fairdi.tests.de',
-    password='password',
+    user=None,
+    password=None,
+    access_token=None,
     url='http://nomad-lab.eu/prod/v1/api'
 )
 
@@ -449,6 +450,7 @@ north = NomadConfig(
     shared_fs='.volumes/fs/north/shared',
     users_fs='.volumes/fs/north/users',
     jupyterhub_crypt_key=None,
+    nomad_host=None,  # host name to reach nomad app from spawned containers
     windows=True,  # enable windows (as in windows the OS) hacks
 )
 
