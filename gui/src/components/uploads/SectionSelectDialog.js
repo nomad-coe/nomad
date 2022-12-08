@@ -35,9 +35,10 @@ import SearchResults from '../search/SearchResults'
 import {useDataStore} from '../DataStore'
 import {pluralize, resolveNomadUrlNoThrow} from "../../utils"
 import {Check} from '@material-ui/icons'
+import { cloneDeep } from 'lodash'
 
 const searchDialogContext = React.createContext()
-const context = ui?.search_contexts?.options?.entries
+const context = cloneDeep(ui?.search_contexts?.options?.entries)
 
 const allFilters = new Set(filterGroups && context?.filter_menus?.include
       .map(filter => {
@@ -51,6 +52,8 @@ const useStyles = makeStyles(theme => ({
     minWidth: 1100,
     minHeight: 400
   },
+  dialogContent: {
+  },
   resultsTable: {
     overflowY: 'scroll',
     maxHeight: 700
@@ -58,7 +61,8 @@ const useStyles = makeStyles(theme => ({
   searchBar: {
     display: 'flex',
     flexGrow: 0,
-    zIndex: 1
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.09)'
   },
   filters: {
     marginTop: 10
@@ -79,9 +83,10 @@ const Details = React.memo(({data}) => {
   const dataStore = useDataStore()
   const {useFiltersLockedState} = useSearchContext()
   const filtersLocked = useFiltersLockedState(['sections', 'entry_type'])
-  const {selected, onSelectedChanged} = useContext(searchDialogContext)
   const [sections, setSections] = useState()
   const {url} = useEntryPageContext() || {}
+
+  const {selected, onSelectedChanged} = useContext(searchDialogContext)
 
   useEffect(() => {
     if (entry_id && globalMetainfo) {
@@ -196,7 +201,7 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
 
   return <searchDialogContext.Provider value={contextValue}>
     <Dialog classes={{paper: classes.dialog}} open={open} data-testid='section-select-dialog'>
-      <DialogContent>
+      <DialogContent className={classes.dialogContent}>
         <SearchBar className={classes.searchBar} />
         <Typography className={classes.filters} variant="body1">
           Filters
@@ -257,18 +262,20 @@ function SectionSelectDialog(props) {
   rows['details'] = {enable: true, render: Details}
   rows['actions'] = {enable: false}
 
-  return <React.Fragment>
-    {open && <SearchContext
-      resource={context?.resource}
-      initialPagination={context?.pagination}
-      initialColumns={columns}
-      initialRows={rows}
-      initialFilterMenus={context?.filter_menus}
-      initialFiltersLocked={filtersLocked}
-    >
-      <SearchBox open={open} onCancel={onCancel} onSelectedChanged={onSelectedChanged} selected={selected}/>
-    </SearchContext>}
-  </React.Fragment>
+  if (!open) {
+    return ''
+  }
+
+  return <SearchContext
+    resource={context?.resource}
+    initialPagination={context?.pagination}
+    initialColumns={columns}
+    initialRows={rows}
+    initialFilterMenus={context?.filter_menus}
+    initialFiltersLocked={filtersLocked}
+  >
+    <SearchBox open={open} onCancel={onCancel} onSelectedChanged={onSelectedChanged} selected={selected}/>
+  </SearchContext>
 }
 SectionSelectDialog.propTypes = {
   open: PropTypes.bool,

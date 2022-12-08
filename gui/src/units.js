@@ -20,6 +20,7 @@ import { mapDeep } from './utils'
 import { Unit as UnitMathJS, createUnit } from 'mathjs'
 import { atom, useRecoilValue } from 'recoil'
 import { unitList, prefixes } from './unitsData'
+import { ui } from './config'
 
 // Delete all units and prefixes that come by default with Math.js. This way
 // they cannot be intermixed with the NOMAD units. Notice that we have to clear
@@ -193,7 +194,7 @@ for (const [systemName, system] of Object.entries(unitSystems)) {
 // A state containing the currently configured unit system.
 export const unitsState = atom({
   key: 'units',
-  default: unitSystems.Custom
+  default: unitSystems[ui.default_unit_system || 'Custom'] || unitSystems.Custom
 })
 
 /**

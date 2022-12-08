@@ -110,10 +110,10 @@ export const NumberField = React.memo((props) => {
     const storingValue = Number(getStoredValue(value, parsedUnit || displayUnit))
     if (!isNaN(storingValue)) {
       if (!isNaN(maxValue) && maxValue < storingValue) {
-        return {error: `Enter a value that is equal or smaller than ${maxValue} (${unit})`}
+        return {error: `Enter a value that is equal or smaller than ${maxValue}` + (unit ? ` (${unit})` : '')}
       }
       if (!isNaN(minValue) && minValue > storingValue) {
-        return {error: `Enter a value that is equal or larger than ${minValue} (${unit})`}
+        return {error: `Enter a value that is equal or larger than ${minValue}` + (unit ? ` (${unit})` : '')}
       }
     }
 

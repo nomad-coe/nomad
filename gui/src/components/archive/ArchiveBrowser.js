@@ -1023,8 +1023,8 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
       <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions}/>
       <Overview section={section} def={def}/>
       {contents}
-      <Meta def={def}/>
       <ExternalReferences/>
+      <Meta def={def}/>
     </Content>
   )
 }

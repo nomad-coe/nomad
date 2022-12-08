@@ -410,9 +410,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
     {details && <TableRow selected={selected} data-testid={uncollapsed && 'datatable-row'}>
       <TableCell className={classes.detailsCell} colSpan={numberOfColumns}>
         <Collapse in={uncollapsed} timeout="auto" unmountOnExit>
-          <Box margin={1}>
-            {React.createElement(details, {data: row})}
-          </Box>
+          {React.createElement(details, {data: row})}
         </Collapse>
       </TableCell>
     </TableRow>}

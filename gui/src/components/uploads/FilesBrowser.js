@@ -89,10 +89,9 @@ function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info
       </Box>
       {(info || parser) && <div className={classes.info}>
         {info}
-        {parser && <Typography variant="caption">mainfile</Typography>}
       </div>}
       <div className={classes.tags}>
-        {parser && <Chip size="small" label={parser} color="default" />}
+        {parser && <Chip size="small" label={parser.replace('archive', 'nomad')} color="default" />}
       </div>
       {entry_id && (
         <React.Fragment>

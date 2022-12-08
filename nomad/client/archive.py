@@ -141,13 +141,6 @@ class ArchiveQuery:
             server_url=config.keycloak.public_server_url, realm_name=config.keycloak.realm_name,
             client_id=config.keycloak.client_id)
 
-        if username and password:
-            self._token = None
-        elif config.client.access_token:
-            self._token = dict(access_token=config.client.access_token)
-        else:
-            self._token = None
-
         # local data storage
         self._uploads: List[Tuple[str, int]] = []
         self._current_after: str = self._after
