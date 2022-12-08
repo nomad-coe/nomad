@@ -16,7 +16,29 @@
  * limitations under the License.
  */
 import { createTheme } from '@material-ui/core'
-import { urlAbs } from './utils'
+
+/**
+ * Used to normalized the given URL into an absolute form which starts with
+ * protocol, host and port.
+ *
+ * @param {*} url The url to convert
+ * @param {*} base The URL base address. Contains the protocol, host and port. Defaults to
+ *   current window origin.
+ * @param {*} protocol The desired protocol. By default the protocol in 'base'
+ *   is used.
+ * @returns Absolute url as a string
+ */
+ export function urlAbs(url, base = window.location.origin, protocol) {
+  let absUrl = new URL(url, base).href
+
+  // Convert protocol if one is given
+  if (protocol) {
+    const oldProtocol = absUrl.split('//', 1)[0]
+    absUrl = `${protocol}${absUrl.slice(oldProtocol.length)}`
+  }
+
+  return absUrl
+}
 
 window.nomadEnv = window.nomadEnv || {}
 export const version = window.nomadEnv.version

@@ -24,10 +24,9 @@ import {
   resolveNomadUrl,
   normalizeNomadUrl,
   refType,
-  refRelativeTo,
-  urlAbs
+  refRelativeTo
 } from './utils'
-import { apiBase } from './config'
+import { apiBase, urlAbs } from './config'
 
 describe('titleCase', () => {
   it('runs on empty strings', () => {

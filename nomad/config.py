@@ -462,6 +462,7 @@ archive = NomadConfig(
 )
 
 ui = NomadConfig(
+    default_unit_system='Custom',
     entry_context={
         'overview': {
             'include': [
