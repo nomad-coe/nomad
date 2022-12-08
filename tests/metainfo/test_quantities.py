@@ -15,30 +15,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-import pytest
-import json
 import datetime
+import json
+
+import numpy as np
+import pint
+import pytest
 import pytz
+
 from nomad.metainfo.metainfo import (
-    MSection,
-    Quantity,
-    Unit,
-    units,
-    JSON,
-    Dimension,
-    Datetime,
-    Capitalized,
-    Bytes,
-    URL,
-    MTypes
-)
+    Bytes, Capitalized, Datetime, Dimension, JSON, MSection, MTypes, Quantity, URL, Unit, units)
 
 
 @pytest.mark.parametrize('def_type, value', [
     pytest.param(str, 'hello', id='str'),
     pytest.param(int, 23, id='int'),
     pytest.param(float, 3.14e23, id='float'),
+    pytest.param(complex, 3.14e23 - 2j, id='complex'),
+    pytest.param(np.complex128, 3.14e23 - 2j, id='np.complex128'),
     pytest.param(bool, True, id='bool'),
     pytest.param(JSON, dict(key='value'), id='JSON'),
     pytest.param(Unit, units.parse_units('m*m/s'), id='Unit'),
@@ -120,6 +114,7 @@ def test_normalization_number(def_type, unit, shape, input, output, valid):
     that contains both the magnitude and the unit. This way the unit information
     is not lost when using these values in e.g. assignments between two fields.
     '''
+
     def define():
 
         class TestSection(MSection):
@@ -135,3 +130,104 @@ def test_normalization_number(def_type, unit, shape, input, output, valid):
             define()
     else:
         define()
+
+
+@pytest.mark.parametrize('unit', [
+    pytest.param('m', id='has-unit'),
+    pytest.param(None, id='no-unit'),
+])
+@pytest.mark.parametrize('quantity_type,value,shape', [
+    pytest.param(complex, 1j, None, id='complex-scalar'),
+    pytest.param(complex, 1, None, id='complex-from-int'),
+    pytest.param(complex, 1.21, None, id='complex-from-float'),
+    pytest.param(complex, pint.Quantity(1.242, 'mm'), None, id='complex-from-pint'),
+    pytest.param(complex, '1j', None, id='complex-scalar-str'),
+    pytest.param(np.complex128, 1j, None, id='np.complex128-scalar'),
+    pytest.param(np.complex128, '1j', None, id='np.complex128-scalar-str'),
+    pytest.param(complex, [1j, 2j], ['*'], id='complex-list'),
+    pytest.param(np.complex128, [1j, 2j], ['*'], id='np.complex128-vector'),
+    pytest.param(np.complex128, np.array([1j, 2j]), ['*'], id='np.complex128-nparray'),
+    pytest.param(np.complex128, ['1j', '2j'], ['*'], id='np.complex128-vector-str'),
+])
+def test_complex_number(unit, quantity_type, value, shape):
+    class TestSection(MSection):
+        quantity = Quantity(type=quantity_type, unit=unit, shape=shape)
+
+    def assert_complex_equal():
+        result = section.quantity.m if unit else section.quantity
+        if isinstance(value, (list, np.ndarray)):
+            for a, b in zip(result, value):
+                assert a == quantity_type(b)
+        elif not isinstance(value, pint.Quantity):
+            assert result == quantity_type(value)
+        elif unit:
+            assert result == quantity_type(value.to(unit).magnitude)
+        else:
+            assert result == quantity_type(value.magnitude)
+
+    def roster(_value):
+        if isinstance(value, str):
+            for i in 'iIjJ':
+                yield _value.replace('j', i)
+        if isinstance(_value, list) and isinstance(_value[0], str):
+            for i in 'iIjJ':
+                yield [_v.replace('j', i) for _v in _value]
+        yield _value
+
+    for v in roster(value):
+        section = TestSection()
+        section.quantity = v
+        assert_complex_equal()
+
+        section = TestSection.m_from_dict(section.m_to_dict())
+        assert_complex_equal()
+
+
+@pytest.mark.parametrize('unit', [
+    pytest.param('m', id='has-unit'),
+    pytest.param(None, id='no-unit'),
+])
+@pytest.mark.parametrize('quantity_type,value,result,shape', [
+    pytest.param(complex, {'im': -1}, -1j, None, id='complex-scalar'),
+    pytest.param(complex, {'re': 1.25}, complex(1.25), None, id='complex-from-float'),
+    pytest.param(np.complex128, {'im': 1}, np.complex128(1j), None, id='np.complex128-scalar-im'),
+    pytest.param(np.complex128, {'re': 1.25}, np.complex128(1.25), None, id='np.complex128-scalar-re'),
+    pytest.param(complex, {'re': 1.25, 'im': -2312}, 1.25 - 2312j, None, id='complex-full'),
+    pytest.param(
+        np.complex128, {'re': [[1, 2, 3], [4, 5, 6]], 'im': [[1, 2, 3], [4, 5, 6]]},  # no shape checking anyway
+        np.array([[1, 2, 3], [4, 5, 6]]) + 1j * np.array([[1, 2, 3], [4, 5, 6]]), ['*'], id='complex-full'),
+])
+def test_complex_number_dict(unit, quantity_type, value, result, shape):
+    class TestSection(MSection):
+        quantity = Quantity(type=quantity_type, unit=unit, shape=shape)
+
+    def assert_complex_equal():
+        quantity = section.quantity.m if unit else section.quantity
+        if isinstance(result, np.ndarray):
+            assert np.all(quantity == result)
+        else:
+            assert quantity == result
+
+    section = TestSection()
+    section.quantity = value
+    assert_complex_equal()
+
+    section = TestSection.m_from_dict(section.m_to_dict())
+    assert_complex_equal()
+
+
+@pytest.mark.parametrize('quantity_type,value', [
+    pytest.param(np.complex128, np.int64(1), id='downcast-from-int-128'),
+    pytest.param(np.complex128, np.complex256(1), id='downcast-from-float-128'),
+    pytest.param(np.complex64, {'re': 1}, id='downcast-from-int-64'),
+    pytest.param(np.complex64, {'re': 1.25}, id='downcast-from-float-64'),
+    pytest.param(np.complex128, {'re': [1.25, 1], 'im': 1}, id='mismatch-shape'),
+    pytest.param(np.complex128, {}, id='empty-dict'),
+])
+def test_complex_number_exception(quantity_type, value):
+    class TestSection(MSection):
+        quantity = Quantity(type=quantity_type)
+
+    section = TestSection()
+    with pytest.raises((ValueError, AssertionError)):
+        section.quantity = value

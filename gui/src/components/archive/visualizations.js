@@ -114,7 +114,7 @@ export function Matrix({values, shape, invert, type}) {
     values = values[pages[ii++]]
   }
 
-  const columnWidth = 92
+  const columnWidth = useRef(92)
   const rowHeight = 24
   const rowCount = invert ? values.length : shape.length > 1 ? values[0].length : 1
   const columnCount = invert ? shape.length > 1 ? values[0].length : 1 : values.length
@@ -124,9 +124,9 @@ export function Matrix({values, shape, invert, type}) {
     if (type === 'str') {
       matrixRef.current.style.width = '100%'
     } else {
-      matrixRef.current.style.width = Math.min(
-        rootRef.current.clientWidth - 4, columnCount * columnWidth) + 'px'
+      matrixRef.current.style.width = `${rootRef.current.clientWidth - 4}px`
     }
+    columnWidth.current = Math.max(92, (rootRef.current.clientWidth - 4) / columnCount)
   })
 
   let value = shape.length > 1 ? ({rowIndex, columnIndex}) => values[columnIndex][rowIndex] : ({columnIndex}) => values[columnIndex]
@@ -142,7 +142,7 @@ export function Matrix({values, shape, invert, type}) {
           {({width}) => (
             <Grid
               columnCount={columnCount}
-              columnWidth={columnWidth}
+              columnWidth={columnWidth.current}
               height={height}
               rowCount={rowCount}
               rowHeight={rowHeight}

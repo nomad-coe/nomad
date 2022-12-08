@@ -210,9 +210,7 @@ class TestM2:
 
     @pytest.mark.parametrize('dtype', [
         pytest.param(np.longlong),
-        pytest.param(np.ulonglong),
-        pytest.param(np.float128),
-        pytest.param(np.complex128),
+        pytest.param(np.ulonglong)
     ])
     def test_unsupported_type(self, dtype):
         with pytest.raises(MetainfoError):

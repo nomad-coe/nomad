@@ -38,8 +38,8 @@ from nomad.config import process
 from nomad.metainfo.util import (
     Annotation, DefinitionAnnotation, MEnum, MQuantity, MRegEx, MSubSectionList, MTypes, ReferenceURL,
     SectionAnnotation, _delta_symbols, check_dimensionality, check_unit, convert_to, default_hash, dict_to_named_list,
-    normalize_datetime, resolve_variadic_name, retrieve_attribute, split_python_definition, to_dict, to_numpy,
-    to_section_def, validate_shape, validate_url)
+    normalize_complex, normalize_datetime, resolve_variadic_name, retrieve_attribute, serialize_complex,
+    split_python_definition, to_dict, to_numpy, to_section_def, validate_shape, validate_url)
 from nomad.units import ureg as units
 
 # todo: remove magic comment after upgrading pylint
@@ -373,9 +373,10 @@ class _QuantityType(DataType):
         if isinstance(value, MEnum):
             return value
 
+        # we normalise all np.dtype to basic np.number types
         if isinstance(value, np.dtype):
             value = value.type
-        # we normalise all np.dtype to basic np.number types
+
         if value in MTypes.numpy:
             return value
 
@@ -1284,9 +1285,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             return value
 
-        if isinstance(target_type, DataType):
-            return target_type.set_normalize(self, None, value)  # type: ignore
-
         if isinstance(target_type, MEnum):
             if value not in cast(MEnum, target_type).get_all_values():
                 raise TypeError(f'The value {value} is not an enum value for {quantity_def}.')
@@ -1303,6 +1301,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         if target_type == int and type(value) == np.float_:
             return int(value)
+
+        if target_type in MTypes.complex:
+            return normalize_complex(value, target_type, quantity_def.unit)
 
         if type(value) != target_type:
             if target_type in MTypes.primitive:
@@ -1351,8 +1352,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         raise TypeError(
                             f'The shape of {quantity_def} requires an iterable value, but {value} is not iterable.')
 
-                    value = [v for v in list(
-                        self.__set_normalize(quantity_def, item) for item in value) if v != _unset_value]
+                    if quantity_def.type == complex:
+                        value = normalize_complex(value, complex, quantity_def.unit)
+                    else:
+                        value = [v for v in list(
+                            self.__set_normalize(quantity_def, item) for item in value) if v != _unset_value]
 
                 else:
                     raise MetainfoError(
@@ -1395,7 +1399,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if not validate_shape(self, quantity_def, m_quantity.value):
                 raise MetainfoError(f"The shape of {m_quantity} does not match {quantity_def.shape}")
 
-            # todo validate values
             if quantity_def.unit is None:
                 # no prescribed unit, need to check dimensionality, no need to convert
                 check_dimensionality(quantity_def, m_quantity.unit)
@@ -1422,8 +1425,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                             f'The shape of {quantity_def} requires an iterable value, '
                             f'but {m_quantity.value} is not iterable.')
 
-                    m_quantity.value = [v for v in list(
-                        self.__set_normalize(quantity_def, item) for item in m_quantity.value) if v != _unset_value]
+                    if quantity_def.type == complex:
+                        m_quantity.value = normalize_complex(m_quantity.value, complex, quantity_def.unit)
+                    else:
+                        m_quantity.value = [v for v in list(
+                            self.__set_normalize(quantity_def, item) for item in m_quantity.value) if v != _unset_value]
 
                 else:
                     raise MetainfoError(
@@ -1610,7 +1616,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if type(attr_value) == str or not isinstance(attr_value, IterableABC):
                     raise TypeError(f'The shape requires an iterable value, but {attr_value} is not.')
 
-                attr_value = list(self.__set_normalize(tgt_attr, item) for item in attr_value)
+                if tgt_attr.type == complex:
+                    attr_value = normalize_complex(attr_value, complex, None)
+                else:
+                    attr_value = list(self.__set_normalize(tgt_attr, item) for item in attr_value)
             else:
                 raise MetainfoError(f'Only numpy arrays can be used for higher dimensional quantities: {tgt_attr}.')
 
@@ -1871,6 +1880,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
                 serialize = serialize_data_type
 
+            elif quantity_type in MTypes.complex:
+
+                serialize = serialize_complex
+
             elif quantity_type in MTypes.primitive:
 
                 serialize = MTypes.primitive[quantity_type]
@@ -1942,7 +1955,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 serialize = serialize_and_transform
 
             # serialization starts here
-            if quantity_type in MTypes.numpy:
+            if quantity_type in MTypes.numpy or quantity_type in MTypes.complex:
                 return serialize(target_value)
 
             if len(quantity.shape) == 0:
@@ -1959,6 +1972,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         def serialize_attribute(attribute: 'Attribute', value: Any) -> Any:
             if isinstance(attribute.type, DataType):
                 return attribute.type.serialize(self, None, value)
+
+            if attribute.type in MTypes.complex:
+                return serialize_complex(value)
 
             if attribute.type in MTypes.primitive:
                 if len(attribute.shape) == 0:
@@ -2102,6 +2118,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     @staticmethod
     def __deserialize(section: MSection, quantity_def: Quantity, quantity_value: Any):
         tgt_type = quantity_def.type
+
+        if tgt_type in MTypes.complex:
+            return normalize_complex(quantity_value, tgt_type, quantity_def.unit)
 
         if tgt_type in MTypes.numpy:
             if not isinstance(quantity_value, list):
@@ -3353,7 +3372,7 @@ class PrimitiveQuantity(Quantity):
                 if hasattr(value, 'tolist'):
                     value = value.tolist()
                 else:
-                    raise TypeError(f'The value {value} for quantity {self} has not shape {self.shape}')
+                    raise TypeError(f'The value {value} for quantity {self} has no shape {self.shape}')
 
             if any(v is not None and type(v) != self._type for v in value):
                 raise TypeError(

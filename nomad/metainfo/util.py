@@ -20,9 +20,10 @@ import email.utils
 import hashlib
 import re
 from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import date, datetime
 from difflib import SequenceMatcher
-from typing import Sequence, Dict, Any, Optional, Union, Tuple
+from functools import reduce
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 from urllib.parse import SplitResult, urlsplit, urlunsplit
 
 import aniso8601
@@ -37,7 +38,7 @@ __hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
 _delta_symbols = {'delta_', 'Δ'}
 
 
-@dataclass
+@dataclass(frozen=True)
 class MRegEx:
     # matches the range of indices, e.g., 1..3, 0..*
     index_range = re.compile(r'(\d)\.\.(\d|\*)')
@@ -55,15 +56,121 @@ class MRegEx:
         r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
         r'(?::\d+)?'
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    complex_str = re.compile(
+        r'^(?=[iIjJ.\d+-])([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?![iIjJ.\d]))?'
+        r'([+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)?[iIjJ])?$')
 
 
-@dataclass
+def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None]):
+    '''
+    Try to convert a given value to a complex number.
+    '''
+
+    def __check_precision(_type):
+        if isinstance(_type, type(None)):
+            return
+
+        precision_error = ValueError(
+            f'Cannot type {_type.__name__} to complex number of type {complex_type.__name__} '
+            f'due to possibility of loss of precision.')
+
+        if complex_type in (np.complex128, complex):  # 64-bit complex
+            if _type in (np.int64, np.uint64, np.float128, np.complex256):
+                raise precision_error
+        elif complex_type == np.complex64:  # 32-bit complex
+            if _type in (
+                    int, float,
+                    np.int32, np.int64, np.uint32, np.uint64,
+                    np.float64, np.float128, np.complex128, np.complex256):
+                raise precision_error
+
+    if isinstance(value, pint.Quantity):
+        scaled: np.ndarray = value.to(to_unit).magnitude if to_unit else value.magnitude
+        return normalize_complex(scaled, complex_type, None)
+
+    # a list of complex numbers represented by int, float or str
+    if isinstance(value, list):
+        normalized = [normalize_complex(v, complex_type, to_unit) for v in value]
+        return normalized if complex_type == complex else np.array(normalized, dtype=complex_type)
+
+    # complex or real part only
+    if type(value) in MTypes.num:
+        __check_precision(type(value))
+        return complex_type(value)
+
+    # np array
+    if isinstance(value, np.ndarray):
+        __check_precision(value.dtype.type)
+        return value.astype(complex_type)
+
+    # dict representation of complex number
+    if isinstance(value, dict):
+        real = value.get('re')
+        imag = value.get('im')
+        assert real is not None or imag is not None, 'Cannot convert an empty dict to complex number.'
+
+        def __combine(_real, _imag):
+            _real_list: bool = isinstance(_real, list)
+            _imag_list: bool = isinstance(_imag, list)
+            if _real_list or _real_list:
+                if _real is None:
+                    return [__combine(None, i) for i in _imag]
+                if _imag is None:
+                    return [__combine(r, None) for r in _real]
+                # leverage short-circuit evaluation, do not change order
+                if _real_list and _imag_list and len(_real) == len(_imag):
+                    return [__combine(r, i) for r, i in zip(_real, _imag)]
+
+                raise ValueError('Cannot combine real and imaginary parts of complex numbers.')
+
+            __check_precision(type(_real))
+            __check_precision(type(_imag))
+            if _real is None:
+                return complex_type(_imag) * 1j
+            if _imag is None:
+                return complex_type(_real)
+            return complex_type(_real) + complex_type(_imag) * 1j
+
+        combined = __combine(real, imag)
+        return combined if complex_type == complex else np.array(combined, dtype=complex_type)
+
+    # a string, '1+2j'
+    # one of 'i', 'I', 'j', 'J' can be used to represent the imaginary unit
+    if isinstance(value, str):
+        match = MRegEx.complex_str.match(value)
+        if match is not None:
+            return complex_type(reduce(lambda a, b: a.replace(b, 'j'), 'iIJ', value))
+
+    raise ValueError(f'Cannot convert {value} to complex number.')
+
+
+def serialize_complex(value):
+    '''
+    Convert complex number to string.
+    '''
+    # scalar
+    if type(value) in MTypes.complex:
+        return {'re': value.real, 'im': value.imag}
+
+    # 1D
+    if isinstance(value, (list, tuple)):
+        return {'re': [v.real for v in value], 'im': [v.imag for v in value]}
+
+    # ND
+    if isinstance(value, np.ndarray):
+        return {'re': value.real.tolist(), 'im': value.imag.tolist()}
+
+    raise ValueError(f'Cannot serialize {value}.')
+
+
+@dataclass(frozen=True)
 class MTypes:
     # todo: account for bytes which cannot be naturally serialized to JSON
     primitive = {
         str: lambda v: None if v is None else str(v),
         int: lambda v: None if v is None else int(v),
         float: lambda v: None if v is None else float(v),
+        complex: lambda v: None if v is None else complex(v),
         bool: lambda v: None if v is None else bool(v),
         np.bool_: lambda v: None if v is None else bool(v)}
 
@@ -72,11 +179,14 @@ class MTypes:
     int_numpy = {np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64}
     int_python = {int}
     int = int_python | int_numpy
-    float_numpy = {np.float16, np.float32, np.float64}
+    float_numpy = {np.float16, np.float32, np.float64, np.float128}
+    complex_numpy = {np.complex64, np.complex128, np.complex256}
     float_python = {float}
+    complex_python = {complex}
     float = float_python | float_numpy
-    num_numpy = int_numpy | float_numpy
-    num_python = int_python | float_python
+    complex = complex_python | complex_numpy
+    num_numpy = int_numpy | float_numpy | complex_numpy
+    num_python = int_python | float_python | complex_python
     num = num_python | num_numpy
     str_numpy = {np.str_}
     bool_numpy = {np.bool_}
@@ -611,10 +721,13 @@ def to_numpy(np_type, shape: list, unit: Optional[pint.Unit], definition, value:
             raise AttributeError(
                 f'Could not convert value {value} of type pandas.Dataframe to a numpy array')
 
+    if np_type in MTypes.complex:
+        value = normalize_complex(value, np_type, unit)
+
     if type(value) != np.ndarray:
         if len(shape) > 0:
             try:
-                value = np.asarray(value)
+                value = np.asarray(value, dtype=np_type)
             except TypeError:
                 raise TypeError(f'Could not convert value {value} of {definition} to a numpy array')
         elif type(value) != np_type:
@@ -622,6 +735,11 @@ def to_numpy(np_type, shape: list, unit: Optional[pint.Unit], definition, value:
                 value = np_type(value)
             except TypeError:
                 raise TypeError(f'Could not convert value {value} of {definition} to a numpy scalar')
+    elif value.dtype != np_type and np_type in MTypes.complex:
+        try:
+            value = value.astype(np_type)
+        except TypeError:
+            raise TypeError(f'Could not convert value {value} of {definition} to a numpy array')
 
     return value
 
@@ -720,6 +838,18 @@ def __parse_datetime(datetime_str: str) -> datetime:
         return datetime.strptime(datetime_str, '%Y-%m-%d')
     except ValueError:
         pass
+
+    if 'GMT' in datetime_str:
+        dt_copy = datetime_str
+        dt_split = dt_copy.split('GMT')
+        tzinfo = dt_split[1].strip()
+        if len(tzinfo) == 2:
+            tzinfo = f'{tzinfo[0]}{tzinfo[1]:0>2}00'
+        dt_copy = f'{dt_split[0]}GMT{tzinfo}'
+        try:
+            return datetime.strptime(dt_copy, '%Y%m%d_%H:%M:%S_%Z%z')
+        except ValueError:
+            pass
 
     try:
         return datetime.fromisoformat(datetime_str)

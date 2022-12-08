@@ -65,6 +65,7 @@ import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import { apiBase } from '../../config'
 import { Alert } from '@material-ui/lab'
+import { complex, format } from 'mathjs'
 
 export const configState = atom({
   key: 'config',
@@ -619,6 +620,12 @@ class AttributeAdaptor extends ArchiveAdaptor {
   }
 }
 
+const convertComplexArray = (real, imag) => {
+  return Array.isArray(real)
+    ? real.map((r, i) => convertComplexArray(r, imag[i]))
+    : format(complex(real, imag), {notation: 'auto', precision: 4, lowerExp: -999, upperExp: 999})
+}
+
 function QuantityItemPreview({value, def}) {
   const units = useUnits()
   if (isReference(def)) {
@@ -635,7 +642,7 @@ function QuantityItemPreview({value, def}) {
     const dimensions = []
     let typeLabel = 'unknown'
     try {
-      let current = value
+      let current = value.re || value.im || value
       for (let i = 0; i < def.shape.length; i++) {
         dimensions.push(current.length)
         current = current[0]
@@ -664,7 +671,15 @@ function QuantityItemPreview({value, def}) {
       </Typography>
     </Box>
   } else {
-    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? formatTimestamp(value) : value)
+    let finalValue
+    if (def.type.type_data === 'nomad.metainfo.metainfo._Datetime') {
+      finalValue = formatTimestamp(value)
+    } else if (def.type.type_data.startsWith?.('complex')) {
+      finalValue = convertComplexArray(value.re, value.im)
+    } else {
+      finalValue = value
+    }
+
     let finalUnit
     if (def.unit) {
       const a = new Q(finalValue, def.unit).toSystem(units)
@@ -687,7 +702,14 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
   const units = useUnits()
 
   const getRenderValue = useCallback(value => {
-    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? formatTimestamp(value) : value)
+    let finalValue
+    if (def.type.type_data === 'nomad.metainfo.metainfo._Datetime') {
+      finalValue = formatTimestamp(value)
+    } else if (def.type.type_data.startsWith?.('complex')) {
+      finalValue = convertComplexArray(value.re, value.im)
+    } else {
+      finalValue = value
+    }
     let finalUnit
     if (def.unit) {
       const systemUnitQ = new Q(finalValue, def.unit).toSystem(units)
@@ -727,7 +749,15 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
   } else if (def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
     return <div dangerouslySetInnerHTML={{__html: value}}/>
   } else {
-    if (Array.isArray(value)) {
+    if (def.type.type_data.startsWith?.('complex')) {
+      value = convertComplexArray(value.re, value.im)
+
+      return Array.isArray(value)
+        ? <ul style={{margin: 0}}>
+          {value.map((value, index) => <li key={index}><Typography>{value}</Typography></li>)}
+        </ul>
+        : <Typography>{value}</Typography>
+    } else if (Array.isArray(value)) {
       return <ul style={{margin: 0}}>
         {value.map((value, index) => {
           const [finalValue] = getRenderValue(value)
