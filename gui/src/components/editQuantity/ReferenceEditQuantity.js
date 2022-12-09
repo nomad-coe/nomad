@@ -332,7 +332,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     raiseError(error)
   }, [raiseError])
 
-  const filtersLocked = useMemo(() => ({sections: [referencedSectionQualifiedName]}), [referencedSectionQualifiedName])
+  const filtersLocked = useMemo(() => ({'section_defs.definition_qualified_name': [referencedSectionQualifiedName]}), [referencedSectionQualifiedName])
 
   return <Box display="flex" flexDirection="row" alignItems="center" >
     <Box flexGrow={1}>

@@ -82,7 +82,7 @@ const Details = React.memo(({data}) => {
   const globalMetainfo = useGlobalMetainfo()
   const dataStore = useDataStore()
   const {useFiltersLockedState} = useSearchContext()
-  const filtersLocked = useFiltersLockedState(['sections', 'entry_type'])
+  const filtersLocked = useFiltersLockedState(['section_defs.definition_qualified_name', 'entry_type'])
   const [sections, setSections] = useState()
   const {url} = useEntryPageContext() || {}
 
@@ -120,7 +120,9 @@ const Details = React.memo(({data}) => {
           const dataMetainfoDefUrl = resolveNomadUrlNoThrow(m_def, url)
           const sectionDef = await dataStore.getMetainfoDefAsync(dataMetainfoDefUrl)
           traverse(dataArchive?.data, sectionDef, 'data', (section, sectionDef, path) => {
-            if (filtersLocked.sections && sectionDef._qualifiedName === [...filtersLocked.sections][0]) {
+            const ref = filtersLocked['section_defs.definition_qualified_name'] && [...filtersLocked['section_defs.definition_qualified_name']][0]
+            if (ref &&
+              (sectionDef._qualifiedName === ref || sectionDef._allBaseSections?.map(section => section._qualifiedName).includes(ref))) {
               referencedSubSections.push({name: `./${path}`, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: path})
             }
           })
@@ -131,7 +133,7 @@ const Details = React.memo(({data}) => {
         setSections(references.map(reference => ({label: reference.name, entry_id: reference.entry_id, value: reference.path, data: reference})))
       }
     }
-  }, [api, dataStore, entry_id, filtersLocked.entry_type, filtersLocked.sections, globalMetainfo, url])
+  }, [api, dataStore, entry_id, filtersLocked, globalMetainfo, url])
 
   if (!sections) {
     return ''

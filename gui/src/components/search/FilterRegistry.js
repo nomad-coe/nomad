@@ -335,7 +335,7 @@ registerFilter('datasets.doi', idDataset, {...termQuantity, label: 'Dataset DOI'
 registerFilter('entry_id', idIDs, termQuantity)
 registerFilter('upload_id', idIDs, termQuantity)
 registerFilter('quantities', idArchive, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
-registerFilter('sections', idArchive, {...noAggQuantity, label: 'Sections', queryMode: 'all'})
+registerFilter('section_defs.definition_qualified_name', idArchive, {...noAggQuantity, label: 'Section defs qualified name', queryMode: 'all'})
 registerFilter('entry_type', idArchive, {...noAggQuantity, label: 'Entry type', queryMode: 'all'})
 registerFilter('entry_name.prefix', idArchive, {...noAggQuantity, label: 'Entry name', queryMode: 'all'})
 registerFilter('results.material.material_id', idIDs, termQuantity)
