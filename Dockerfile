@@ -202,18 +202,22 @@ RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
 
 WORKDIR /app
 
+# transfer installed packages from the build stage
+COPY --chown=nomad:1000 scripts/run.sh .
+COPY --chown=nomad:1000 nomad/jupyterhub_config.py ./nomad/jupyterhub_config.py
+COPY --chown=nomad:1000 dependencies/nomad-remote-tools-hub/tools.json ./dependencies/nomad-remote-tools-hub/tools.json
+
+COPY --chown=nomad:1000 --from=dev_python /app/examples/data/uploads /app/examples/data/uploads
+COPY --chown=nomad:1000 --from=builder /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
+COPY --chown=nomad:1000 --from=builder /usr/local/share/jupyterhub /usr/local/share/jupyterhub
+COPY --chown=nomad:1000 --from=builder /usr/local/bin/nomad /usr/local/bin/nomad
+
 RUN useradd -ms /bin/bash nomad \
  && mkdir -p /app/.volumes/fs \
- && chown -R nomad /app
+ && chown -R nomad:1000 /app \
+ && chown -R nomad:1000 /usr/local/lib/python3.7/site-packages/nomad
 
 USER nomad
-
-# transfer installed packages from the build stage
-COPY --chown=nomad scripts/run.sh .
-COPY --chown=nomad --from=dev_python /app/examples/data/uploads /app/examples/data/uploads
-COPY --chown=nomad --from=builder /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
-COPY --chown=nomad --from=builder /usr/local/share/jupyterhub /usr/local/share/jupyterhub
-COPY --chown=nomad --from=builder /usr/local/bin/nomad /usr/local/bin/nomad
 
 # The application ports
 EXPOSE 8000

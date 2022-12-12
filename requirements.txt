@@ -16,6 +16,7 @@ argon2-cffi-bindings==21.2.0  # via argon2-cffi
 arrow==1.2.3              # via isoduration
 asciitree==0.3.3          # via zarr
 ase==3.19.0               # via asr, matid (dependencies/matid/pyproject.toml), nexusparser (dependencies/parsers/nexus/pyproject.toml), nomad-lab (pyproject.toml)
+asgiref==3.5.2            # via nomad-lab (pyproject.toml)
 asr==0.4.1                # via nomad-lab (pyproject.toml), workflowparsers (dependencies/parsers/workflow/pyproject.toml)
 astunparse==1.6.3         # via mdtraj
 async-generator==1.10     # via jupyterhub
@@ -43,7 +44,7 @@ charset-normalizer==2.0.12  # via httpx, requests
 click==8.1.3              # via asr, flask, nexusparser (dependencies/parsers/nexus/pyproject.toml), nomad-lab (pyproject.toml), uvicorn
 cloudpickle==2.2.0        # via dask
 commonmark==0.9.1         # via recommonmark
-cryptography==38.0.3      # via nomad-lab (pyproject.toml), pyjwt, pyopenssl
+cryptography==38.0.3      # via nomad-lab (pyproject.toml), pyjwt, pyopenssl, rfc3161ng
 cycler==0.11.0            # via matplotlib
 dask[array]==2022.2.0     # via hyperspy
 debugpy==1.6.3            # via ipykernel
@@ -172,7 +173,7 @@ prometheus-client==0.15.0  # via jupyter-server, jupyterhub
 prompt-toolkit==3.0.32    # via ipython
 psutil==5.9.4             # via ipykernel, ipyparallel
 ptyprocess==0.7.0         # via pexpect, terminado
-pyasn1==0.4.8             # via python-jose, rsa
+pyasn1==0.4.8             # via pyasn1-modules, python-jose, rfc3161ng, rsa
 pyasn1-modules==0.2.8     # via rfc3161ng
 pycparser==2.21           # via cffi
 pydantic==1.9.1           # via fastapi, nomad-lab (pyproject.toml), optimade
@@ -184,7 +185,7 @@ pyopenssl==22.1.0         # via certipy
 pyparsing==3.0.9          # via matplotlib, mdtraj, packaging, rdflib
 pyrsistent==0.19.2        # via jsonschema
 pyscf==2.0.1 ; sys_platform == "darwin"  # via electronicparsers (dependencies/parsers/electronic/pyproject.toml)
-python-dateutil==2.8.2    # via arrow, elasticsearch-dsl, hyperspy, ipyparallel, jupyter-client, jupyterhub, matplotlib, pandas
+python-dateutil==2.8.2    # via arrow, elasticsearch-dsl, hyperspy, ipyparallel, jupyter-client, jupyterhub, matplotlib, pandas, rfc3161ng
 python-dotenv==0.21.0     # via uvicorn
 python-jose==3.3.0        # via python-keycloak
 python-json-logger==2.0.2  # via jupyter-telemetry, nomad-lab (pyproject.toml)
@@ -199,7 +200,7 @@ pyzmq==24.0.1             # via ipykernel, ipyparallel, jupyter-client, jupyter-
 rdflib==5.0.0             # via nomad-lab (pyproject.toml)
 recommonmark==0.7.1       # via nomad-lab (pyproject.toml)
 redis==4.3.4              # via celery
-requests==2.27.1          # via docker, hyperspy, jupyterhub, nomad-lab (pyproject.toml), optimade, pymatgen, python-keycloak, sphinx
+requests==2.27.1          # via docker, hyperspy, jupyterhub, nomad-lab (pyproject.toml), optimade, pymatgen, python-keycloak, rfc3161ng, sphinx
 rfc3161ng==2.1.3          # via nomad-lab (pyproject.toml)
 rfc3339-validator==0.1.4  # via jsonschema
 rfc3986[idna2008]==1.5.0  # via httpx
@@ -243,7 +244,7 @@ tornado==6.2              # via ipykernel, ipyparallel, jupyter-client, jupyter-
 tqdm==4.64.1              # via hyperspy, ipyparallel, mdanalysis
 traitlets==5.5.0          # via ipykernel, ipyparallel, ipython, jupyter-client, jupyter-core, jupyter-server, jupyter-telemetry, jupyterhub, matplotlib-inline, nbclient, nbconvert, nbformat
 traits==6.4.1             # via hyperspy
-typing-extensions==4.3.0  # via anyio, argon2-cffi, arrow, async-timeout, gitpython, importlib-metadata, kiwisolver, numcodecs, optimade, pydantic, pymatgen, redis, structlog, uvicorn, xarray
+typing-extensions==4.3.0  # via anyio, argon2-cffi, arrow, asgiref, async-timeout, gitpython, importlib-metadata, kiwisolver, numcodecs, optimade, pydantic, pymatgen, redis, structlog, uvicorn, xarray
 typish==1.9.3             # via nptyping
 uncertainties==3.1.7      # via pymatgen
 unidecode==1.3.2          # via nomad-lab (pyproject.toml)
