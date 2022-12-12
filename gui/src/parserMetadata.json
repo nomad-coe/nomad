@@ -102,6 +102,19 @@
     "status": "production",
     "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`*materials.json` | **Mainfile:** a json file containing system info|\n|`*.json` | json files containing workflow results|\n"
   },
+  "BOPfox": {
+    "codeCategory": "Atomistic code",
+    "codeLabel": "BOPfox",
+    "codeLabelStyle": "Capitals: B,O,P",
+    "codeName": "bopfox",
+    "codeUrl": "http://bopfox.de/",
+    "parserDirName": "dependencies/parsers/atomistic/atomisticparsers/bopfox/",
+    "parserGitUrl": "https://github.com/nomad-coe/atomistic-parsers.git",
+    "parserSpecific": "",
+    "preamble": "",
+    "status": "production",
+    "tableOfFiles": ""
+  },
   "BigDFT": {
     "codeCategory": "Atomistic code",
     "codeLabel": "BigDFT",
@@ -533,8 +546,8 @@
     "codeLabelStyle": "Capitals: O,K,I,M",
     "codeName": "openkim",
     "codeUrl": "https://openkim.org/",
-    "parserDirName": "dependencies/parsers/atomistic/atomisticparsers/openkim/",
-    "parserGitUrl": "https://github.com/nomad-coe/atomistic-parsers.git",
+    "parserDirName": "dependencies/parsers/database/databaseparsers/openkim/",
+    "parserGitUrl": "https://github.com/nomad-coe/database-parsers.git",
     "parserSpecific": "",
     "preamble": "",
     "status": "production",
