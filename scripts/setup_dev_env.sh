@@ -20,3 +20,6 @@ pip install -e ".[infrastructure,parsing,dev]"
 mkdocs build
 mkdir -p nomad/app/static/docs
 cp -r site/* nomad/app/static/docs
+
+# Generate a config file for the GUI
+python -m nomad.cli dev gui-config >gui/public/env.js
