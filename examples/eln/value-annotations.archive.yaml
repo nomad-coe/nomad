@@ -1,0 +1,16 @@
+definitions:
+  sections:
+    MySection:
+      quantities:
+        json_value:
+          type: JSON
+        html_value:
+          type: str
+          m_annotations:
+            browser:
+              render_value: HtmlValue
+data:
+  m_def: MySection
+  json_value:
+    some: json data.
+  html_value: some <b>HTML</b> value.
