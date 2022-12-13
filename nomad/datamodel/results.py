@@ -56,6 +56,8 @@ m_package = Package()
 
 from nomad.datamodel.optimade import Species as OptimadeSpecies  # noqa
 from nomad.datamodel.metainfo.simulation.calculation import (
+    RadiusOfGyration as RgCalculation,
+    RadiusOfGyrationValues,
     Dos,
     BandStructure as BandStructureCalculation,
     BandEnergies,
@@ -2045,6 +2047,26 @@ class ThermodynamicProperties(MSection):
     )
 
 
+class RadiusOfGyration(QuantityDynamic, PropertySection):
+    m_def = Section(
+        description='''
+        Contains Radius of Gyration values as a trajectory.
+        ''',
+    )
+    kind = RgCalculation.kind.m_copy()
+    kind.m_annotations['elasticsearch'] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default')
+    ]
+    label = RadiusOfGyrationValues.label.m_copy()
+    label.m_annotations['elasticsearch'] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default')
+    ]
+    atomsgroup_ref = RadiusOfGyrationValues.atomsgroup_ref.m_copy()
+    value = RadiusOfGyrationValues.value.m_copy()
+
+
 class RadialDistributionFunction(PropertySection):
     m_def = Section(
         description='''
@@ -2076,6 +2098,11 @@ class StructuralProperties(MSection):
     )
     radial_distribution_function = SubSection(
         sub_section=RadialDistributionFunction.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+    radius_of_gyration = SubSection(
+        sub_section=RadiusOfGyration.m_def,
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )

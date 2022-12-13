@@ -40,7 +40,8 @@ from nomad.datamodel.metainfo.simulation.method import (
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup, System, Atoms as AtomsSystem)
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies)
+    Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies,
+    RadiusOfGyration, RadiusOfGyrationValues)
 from nomad.datamodel.metainfo.workflow import (
     DiffusionConstantValues,
     IntegrationParameters,
@@ -684,6 +685,15 @@ def molecular_dynamics() -> EntryArchive:
         calc.energy = Energy(
             potential=EnergyEntry(value=step),
         )
+        rg_values = RadiusOfGyrationValues(
+            value=step,
+            label='MOL',
+            atomsgroup_ref=system  # JFR - not sure how to test this, need to ask Laurie
+        )
+        calc.radius_of_gyration = [RadiusOfGyration(
+            kind='molecular',
+            radius_of_gyration_values=[rg_values],
+        )]
         calcs.append(calc)
         run.m_add_sub_section(Run.calculation, calc)
 

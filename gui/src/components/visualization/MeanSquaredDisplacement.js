@@ -21,12 +21,7 @@ import assert from 'assert'
 import { set, get, isNil, isEqual, isArray, has, capitalize, isPlainObject} from 'lodash'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from './Plot'
-import {
-  PropertyGrid,
-  PropertyItem,
-  PropertyMethodologyItem,
-  PropertyMethodologyList
-} from '../entry/properties/PropertyCard'
+import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 import { getLocation, formatNumber, DType } from '../../utils'
 import { Quantity, Unit, useUnits } from '../../units'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
@@ -155,12 +150,6 @@ const MeanSquaredDisplacement = React.memo(({
 
   return <PropertyGrid>
     {plots}
-    {methodology && <PropertyMethodologyList xs={12}>
-      <PropertyMethodologyItem
-        title="Molecular dynamics"
-        data={methodology.molecular_dynamics}
-        path={([...msdPath, 'methodology', 'molecular_dynamics']).join('.')}/>
-    </PropertyMethodologyList>}
   </PropertyGrid>
 })
 
@@ -171,7 +160,7 @@ const msdPlotShape = PropTypes.oneOfType([
   }),
   PropTypes.oneOf([false, undefined])
 ])
-const msdLabelShape = PropTypes.objectOf(PropTypes.arrayOf(msdPlotShape))
+const msdLabelShape = PropTypes.arrayOf(msdPlotShape)
 const msdShape = PropTypes.objectOf(msdLabelShape)
 
 MeanSquaredDisplacement.propTypes = {

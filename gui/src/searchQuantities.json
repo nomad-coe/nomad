@@ -2179,7 +2179,7 @@
   },
   "results.properties.structural.radial_distribution_function.label": {
     "name": "label",
-    "description": "Describes the atoms or molecule types involved in determining the property.",
+    "description": "Describes the group of atoms/molecule/groups of molecules involved in determining the property.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -2211,6 +2211,50 @@
     },
     "shape": []
   },
+  "results.properties.structural.radius_of_gyration.kind": {
+    "name": "kind",
+    "description": "Kind of the quantity.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    },
+    "shape": [],
+    "suggestion": true
+  },
+  "results.properties.structural.radius_of_gyration.label": {
+    "name": "label",
+    "description": "Describes the atoms or molecule types involved in determining the property.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    },
+    "shape": [],
+    "suggestion": true
+  },
+  "results.properties.structural.radius_of_gyration.methodology.molecular_dynamics.time_step": {
+    "name": "time_step",
+    "description": "The timestep at which the numerical integration is performed.",
+    "type": {
+      "type_kind": "numpy",
+      "type_data": "float64"
+    },
+    "unit": "second",
+    "shape": []
+  },
+  "results.properties.structural.radius_of_gyration.methodology.molecular_dynamics.ensemble_type": {
+    "name": "ensemble_type",
+    "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
+    "type": {
+      "type_kind": "Enum",
+      "type_data": [
+        "NVE",
+        "NVT",
+        "NPT",
+        "NPH"
+      ]
+    },
+    "shape": []
+  },
   "results.properties.dynamical.mean_squared_displacement.type": {
     "name": "type",
     "description": "Describes if the correlation function is calculated at the molecular or atomic level.",
@@ -2226,7 +2270,7 @@
   },
   "results.properties.dynamical.mean_squared_displacement.label": {
     "name": "label",
-    "description": "Describes the atoms or molecule types involved in determining the property.",
+    "description": "Describes the group of atoms/molecule/groups of molecules involved in determining the property.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -3240,6 +3284,24 @@
     "repeats": true
   },
   "results.properties.structural.radial_distribution_function.methodology.molecular_dynamics": {
+    "name": "molecular_dynamics",
+    "description": "\n        Methodology for molecular dynamics.\n        ",
+    "nested": false,
+    "repeats": true
+  },
+  "results.properties.structural.radius_of_gyration": {
+    "name": "radius_of_gyration",
+    "description": "\n        Contains Radius of Gyration values as a trajectory.\n        ",
+    "nested": true,
+    "repeats": true
+  },
+  "results.properties.structural.radius_of_gyration.methodology": {
+    "name": "methodology",
+    "description": "\n        Contains methodological information and can be attached to any physical\n        property.\n        ",
+    "nested": false,
+    "repeats": true
+  },
+  "results.properties.structural.radius_of_gyration.methodology.molecular_dynamics": {
     "name": "molecular_dynamics",
     "description": "\n        Methodology for molecular dynamics.\n        ",
     "nested": false,

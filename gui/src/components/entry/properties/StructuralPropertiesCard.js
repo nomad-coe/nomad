@@ -19,7 +19,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
-import { RadialDistributionFunctions } from '../../visualization/RadialDistributionFunction'
+import StructuralProperties from '../../visualization/StructuralProperties'
 
 /**
  * Card for displaying structural properties.
@@ -27,11 +27,21 @@ import { RadialDistributionFunctions } from '../../visualization/RadialDistribut
 const StructuralPropertiesCard = React.memo(({index, properties, archive}) => {
   // Check what data is available and do not show the card if none of the properties are
   // available.
+   // Find out which properties are present
   const hasRdf = properties.has('radial_distribution_function')
-  if (!hasRdf) return null
+  const hasRg = properties.has('radius_of_gyration')
+
+  // Do not show the card if none of the properties are available
+  if (!hasRdf && !hasRg) {
+    return null
+  }
 
   return <PropertyCard title="Structural properties">
-    {hasRdf && <RadialDistributionFunctions index={index} archive={archive}/>}
+    <StructuralProperties
+      index={index}
+      properties={properties}
+      archive={archive}
+    />
   </PropertyCard>
 })
 

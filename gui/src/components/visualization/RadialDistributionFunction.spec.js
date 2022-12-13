@@ -17,9 +17,8 @@
  */
 import React from 'react'
 import { render } from '../conftest.spec'
-import { expectMethodologyItem } from '../entry/conftest.spec'
 import { expectPlot, VisualizationState } from './conftest.spec'
-import RadialDistributionFunction, { rdfError, rdfPath } from './RadialDistributionFunction'
+import RadialDistributionFunction, { rdfError } from './RadialDistributionFunction'
 
 test.each([
   ['no data', VisualizationState.NoData, {molecular: {'MOL-MOL': false}}, undefined],
@@ -31,16 +30,4 @@ test.each([
 ])('rdf plot: %s', async (id, state, data, placeholderTestID) => {
   render(<RadialDistributionFunction rdf={data} />)
   await expectPlot(state, placeholderTestID, rdfError)
-})
-
-test.each([
-  ['no methodology', undefined],
-  ['valid methodology', {molecular_dynamics: {time_step: 2e-15, ensemble_type: 'NVT'}}]
-])('methodology is displayed correctly: %s', async (state, methodology) => {
-  render(<RadialDistributionFunction rdf={{}} methodology={methodology}/>)
-  expectMethodologyItem(
-    'Molecular dynamics',
-    methodology,
-    `${rdfPath.join('.')}.methodology`
-  )
 })

@@ -327,6 +327,19 @@ def test_trajectory(molecular_dynamics):
     assert set(trajectory.available_properties) == set(['pressure', 'volume', 'temperature', 'energy_potential'])
 
 
+def test_rgs(molecular_dynamics):
+    rgs = molecular_dynamics.results.properties.structural.radius_of_gyration
+    n_rgs = len(rgs)
+    assert n_rgs == 1
+    n_steps = 10
+    rg = rgs[0]
+
+    assert 'radius_of_gyration' in molecular_dynamics.results.properties.available_properties
+    assert rg.kind == 'molecular'
+    assert rg.value.size == rg.time.size == n_steps
+    assert rg.label == 'MOL'
+
+
 def test_rdfs(molecular_dynamics):
     rdfs = molecular_dynamics.results.properties.structural.radial_distribution_function
     n_rdfs = len(rdfs)

@@ -35,6 +35,7 @@ from nomad.datamodel.metainfo.simulation.system import System, Symmetry as Syste
 from nomad.datamodel.results import (
     BandGapElectronic,
     RadialDistributionFunction,
+    RadiusOfGyration,
     MeanSquaredDisplacement,
     Results,
     Material,
@@ -120,6 +121,7 @@ class ResultsNormalizer(Normalizer):
             "results.properties.thermodynamic.trajectory": "trajectory",
             "results.properties.structural.radial_distribution_function": "radial_distribution_function",
             "results.properties.dynamical.mean_squared_displacement": "mean_squared_displacement",
+            "results.properties.structural.radius_of_gyration": "radius_of_gyration",
             "results.properties.geometry_optimization": "geometry_optimization",
             "results.properties.mechanical.bulk_modulus": "bulk_modulus",
             "results.properties.mechanical.shear_modulus": "shear_modulus",
@@ -570,6 +572,40 @@ class ResultsNormalizer(Normalizer):
 
         return rdfs
 
+    def rg(self) -> List[RadiusOfGyration]:
+        """Returns a list of Radius of gyration trajectories.
+        """
+        path_workflow = ["workflow"]
+        rgs: List[RadiusOfGyration] = []
+        for workflow in self.traverse_reversed(path_workflow):
+
+            # Check validity
+            if workflow.type == "molecular_dynamics":
+                md = self.get_md_methodology(workflow)
+                if workflow.calculations_ref[0].radius_of_gyration:
+                    for rg_index, rg in enumerate(workflow.calculations_ref[0].radius_of_gyration):
+                        for rg_values_index, __ in enumerate(rg.radius_of_gyration_values):
+                            rg_results = RadiusOfGyration()
+                            rg_value = []
+                            rg_time = []
+                            if md:
+                                rg_results.methodology = Methodology(molecular_dynamics=md)
+                            for calc in workflow.calculations_ref:
+                                sec_rg = calc.radius_of_gyration[rg_index]
+                                rg_results.kind = sec_rg.kind
+                                time = calc.time
+                                if time is not None:
+                                    time = time.magnitude
+                                sec_rg_values = sec_rg.radius_of_gyration_values[rg_values_index]
+                                rg_results.label = sec_rg_values.label
+                                rg_results.atomsgroup_ref = sec_rg_values.atomsgroup_ref
+                                rg_time.append(time)
+                                rg_value.append(sec_rg_values.value.magnitude)
+                            rg_results.time = rg_time
+                            rg_results.value = rg_value
+                    rgs.append(rg_results)
+        return rgs
+
     def msd(self) -> List[MeanSquaredDisplacement]:
         """Returns a list of mean squared displacements.
         """
@@ -703,10 +739,16 @@ class ResultsNormalizer(Normalizer):
 
         # Structural
         rdf = self.rdf()
-        if rdf:
+        rg = self.rg()
+        if rdf or rg:
             structural = StructuralProperties()
             structural.radial_distribution_function = rdf
+            structural.radius_of_gyration = rg
             properties.structural = structural
+        # if rdf:
+        #     structural = StructuralProperties()
+        #     structural.radial_distribution_function = rdf
+        #     properties.structural = structural
 
         # Dynamical
         msd = self.msd()

@@ -56,7 +56,7 @@ export async function expectVisualization(
   if (state === VisualizationState.NoData) {
     // The component should immediately (without any placeholders) display that
     // there is no data.
-    expect(root.getByText('no data')).toBeInTheDocument()
+    expect(root.queryAllByText('no data').length).toBeGreaterThan(0)
   } else if (state === VisualizationState.Loading) {
     // The component should immediately display the placeholder
     expect(root.getByTestId(placeholderTestID)).toBeInTheDocument()
