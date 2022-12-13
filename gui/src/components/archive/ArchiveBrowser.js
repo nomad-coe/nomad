@@ -66,6 +66,7 @@ import UploadIcon from '@material-ui/icons/CloudUpload'
 import { apiBase } from '../../config'
 import { Alert } from '@material-ui/lab'
 import { complex, format } from 'mathjs'
+import ReactJson from 'react-json-view'
 
 export const configState = atom({
   key: 'config',
@@ -633,9 +634,14 @@ function QuantityItemPreview({value, def}) {
       <Typography component="span">reference ...</Typography>
     </Box>
   }
-  if (def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
+  if (def.m_annotations?.browser?.[0]?.render_value === 'HtmlValue' || def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
     return <Box component="span" whiteSpace="nowrap" fontStyle="italic">
       <Typography component="span">rich text</Typography>
+    </Box>
+  }
+  if (def.type.type_data === 'nomad.metainfo.metainfo._JSON') {
+    return <Box component="span" whiteSpace="nowrap" fontStyle="italic">
+      <Typography component="span">JSON data</Typography>
     </Box>
   }
   if (def.shape.length > 0) {
@@ -746,8 +752,16 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
     } else {
       return <Number value={finalValue} exp={16} variant="body1" unit={finalUnit}/>
     }
-  } else if (def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
+  } else if (def.m_annotations?.browser?.[0]?.render_value === 'HtmlValue' || def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
     return <div dangerouslySetInnerHTML={{__html: value}}/>
+  } else if (def.type?.type_data === 'nomad.metainfo.metainfo._JSON') {
+    return <ReactJson
+      name="value"
+      src={value}
+      enableClipboard={false}
+      collapsed={2}
+      displayObjectSize={false}
+    />
   } else {
     if (def.type.type_data.startsWith?.('complex')) {
       value = convertComplexArray(value.re, value.im)
