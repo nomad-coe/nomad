@@ -427,6 +427,19 @@ const DataStore = React.memo(({children}) => {
     } catch (error) {
       dataToUpdate.error = error
     }
+
+    // Check: should we keep current data? (A bit hacky)
+    const oldTimestamp = entryStoreObj.archive?.metadata?.last_processing_time
+    const newTimestamp = dataToUpdate.archive?.metadata?.last_processing_time
+    if (oldTimestamp && oldTimestamp === newTimestamp) {
+      const oldRequireArchive = entryStoreObj.refreshOptions.requireArchive
+      if (oldRequireArchive === '*' || oldRequireArchive?.data === '*') {
+        // Fields under the data key might be edited by the user, so we don't want to overwrite
+        // it with data fetched from the api unless the archive timestamp has changed.
+        dataToUpdate.archive.data = entryStoreObj.archive.data
+      }
+    }
+
     dataToUpdate.isRefreshing = false
     updateEntry(deploymentUrl, entryId, dataToUpdate)
   }
@@ -713,9 +726,11 @@ export default DataStore
  * all data required by the subscription options, the function will return a copy of the store
  * object without the following fields: metadata, metadataApiData, archive, archiveApiData.
  * This is to signal to the component that all data requested is not yet available in the store.
+ * For optimization purposes, we ignore updates from the store that should not invalidate
+ * any of the requested data.
  *
  * Subscription options:
- * @param {*} requireMetadata If we require the store to fetch the entry metadata
+ * @param {Boolean} requireMetadata If we require the store to fetch the entry metadata
  * @param {*} requireArchive If we require the store to fetch the archive, and if so, what
  *    parts of it. Should be one of:
  *      a) undefined (no archive data required)
@@ -725,13 +740,36 @@ export default DataStore
 export function useEntryStoreObj(deploymentUrl, entryId, requireMetadata, requireArchive) {
   const dataStore = useDataStore()
   const [entryStoreObj, setEntryStoreObj] = useState(
-    () => deploymentUrl && entryId
-      ? filteredEntryStoreObj(dataStore.getEntry(deploymentUrl, entryId), requireMetadata, requireArchive)
-      : null)
+    () => {
+      if (deploymentUrl && entryId) {
+        const rawStoreObj = dataStore.getEntry(deploymentUrl, entryId)
+        const satisfiesOptions = entryRefreshSatisfiesOptions(rawStoreObj, requireMetadata, requireArchive)
+        return satisfiesOptions ? rawStoreObj : reducedEntryStoreObj(rawStoreObj)
+      }
+      return null
+    })
+  const oldFilterKey = useRef()
 
   const onEntryStoreUpdated = useCallback((oldStoreObj, newStoreObj) => {
-    setEntryStoreObj(filteredEntryStoreObj(newStoreObj, requireMetadata, requireArchive))
-  }, [setEntryStoreObj, requireMetadata, requireArchive])
+    // Determine if we should actually trigger an update
+    const satisfiesOptions = entryRefreshSatisfiesOptions(newStoreObj, requireMetadata, requireArchive)
+    const newError = newStoreObj.error !== entryStoreObj?.error
+    if (!newError) {
+      if (!satisfiesOptions) {
+        return // Skip update, still waiting for our data.
+      }
+      // Satisfies the options
+      const lastProcessingTime = (
+        newStoreObj.metadata?.last_processing_time || newStoreObj.archive?.metadata?.last_processing_time)
+      const newFilterKey = `${deploymentUrl}${entryId}${lastProcessingTime}${newStoreObj.archiveVersion}`
+      if (newFilterKey === oldFilterKey.current) {
+        return // Skip update, using old data should be fine.
+      }
+      oldFilterKey.current = newFilterKey
+    }
+    // Trigger update
+    setEntryStoreObj(satisfiesOptions ? newStoreObj : reducedEntryStoreObj(newStoreObj))
+  }, [entryStoreObj, setEntryStoreObj, deploymentUrl, entryId, requireMetadata, requireArchive])
 
   useEffect(() => {
     if (deploymentUrl && entryId) {
@@ -746,17 +784,14 @@ export function useEntryStoreObj(deploymentUrl, entryId, requireMetadata, requir
  * Misc internal helper funcions
  */
 
-function filteredEntryStoreObj(entryStoreObj, requireMetadata, requireArchive) {
-  // Returns a filtered entry store obj if all data is not yet available.
-  if (!entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArchive)) {
-    const rv = {...entryStoreObj}
-    delete rv.metadata
-    delete rv.metadataApiData
-    delete rv.archive
-    delete rv.archiveApiData
-    return rv
-  }
-  return entryStoreObj
+function reducedEntryStoreObj(entryStoreObj) {
+  // Returns a reduced entry store obj, signalling that not all data is available.
+  const rv = {...entryStoreObj}
+  delete rv.metadata
+  delete rv.metadataApiData
+  delete rv.archive
+  delete rv.archiveApiData
+  return rv
 }
 
 function uploadRefreshSatisfiesOptions(uploadStoreObj, requireUpload, requireEntriesPage) {
