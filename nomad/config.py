@@ -86,14 +86,227 @@ class NomadSettings(BaseModel):
         return cast(NomadSettingsBound, rv)
 
 
+class Services(NomadSettings):
+    '''
+    Contains basic configuration of the NOMAD services (app, worker, north).
+    '''
+    api_host = Field('localhost', description='''
+        The external hostname that clients can use to reach this NOMAD installation.
+    ''')
+    api_port = Field(8000, description='''
+        The port used to expose the NOMAD app and api to clients.
+    ''')
+    api_base_path = Field('/fairdi/nomad/latest', description='''
+        The base path prefix for the NOMAD app and api.
+    ''')
+    api_secret = Field('defaultApiSecret', description='''
+        A secret that is used to issue download and other tokens.
+    ''')
+    https = Field(False, description='''
+        Set to `True`, if external clients are using *SSL* to connect to this installation.
+        Requires to setup a reverse-proxy (e.g. the one used in the docker-compose
+        based installation) that handles the *SSL* encryption.
+    ''')
+    https_upload = Field(False, description='''
+        Set to `True`, if upload curl commands should suggest the use of SSL for file
+        uploads. This can be configured independently of `https` to suggest large file
+        via regular HTTP.
+    ''')
+    admin_user_id = Field('00000000-0000-0000-0000-000000000000', description='''
+        The admin user `user_id`. All users are treated the same; there are no
+        particular authorization information attached to user accounts. However, the
+        API will grant the user with the given `user_id` more rights, e.g. using the
+        `admin` owner setting in accessing data.
+    ''')
+
+    encyclopedia_base = Field(
+        'https://nomad-lab.eu/prod/rae/encyclopedia/#', description='''
+            This enables links to the given *encyclopedia* installation in the UI.
+        ''')
+    aitoolkit_enabled = Field(False, description='''
+        If true, the UI will show a menu with links to the AI Toolkit notebooks on
+        `nomad-lab.eu`.
+    ''')
+
+    console_log_level = Field(logging.WARNING, description='''
+        The log level that controls console logging for all NOMAD services (app, worker, north).
+        The level is given in Python `logging` log level numbers.
+    ''')
+
+    upload_limit = Field(10, description='''
+        The maximum allowed unpublished uploads per user. If a user exceeds this
+        amount, the user cannot add more uploads.
+    ''')
+    force_raw_file_decoding = Field(False, description='''
+        By default, text raw-files are interpreted with utf-8 encoding. If this fails,
+        the actual encoding is guessed. With this setting, we force to assume iso-8859-1
+        encoding, if a file is not decodable with utf-8.
+    ''')
+    max_entry_download = Field(50000, description='''
+        There is an inherent limit in page-based pagination with Elasticsearch. If you
+        increased this limit with your Elasticsearch, you can also adopt this setting
+        accordingly, changing the maximum amount of entries that can be paginated with
+        page-base pagination.
+
+        Page-after-value-based pagination is independent and can be used without limitations.
+    ''')
+    unavailable_value = Field('unavailable', description='''
+        Value that is used in `results` section Enum fields (e.g. system type, spacegroup, etc.)
+        to indicate that the value could not be determined.
+    ''')
+
+
+services = Services()
+
+
+def api_url(ssl: bool = True, api: str = 'api', api_host: str = None, api_port: int = None):
+    '''
+    Returns the url of the current running nomad API. This is for server-side use.
+    This is not the NOMAD url to use as a client, use `nomad.config.client.url` instead.
+    '''
+    if api_port is None:
+        api_port = services.api_port
+    if api_host is None:
+        api_host = services.api_host
+    protocol = 'https' if services.https and ssl else 'http'
+    host_and_port = api_host
+    if api_port not in [80, 443]:
+        host_and_port += ':' + str(api_port)
+    base_path = services.api_base_path.strip('/')
+    return f'{protocol}://{host_and_port}/{base_path}/{api}'
+
+
+def gui_url(page: str = None):
+    base = api_url(True)[:-3]
+    if base.endswith('/'):
+        base = base[:-1]
+
+    if page is not None:
+        return '%s/gui/%s' % (base, page)
+
+    return '%s/gui' % base
+
+
+class Meta(NomadSettings):
+    '''
+    Metadata about the deployment and how it is presented to clients.
+    '''
+    version = Field(__version__, description='The NOMAD version string.')
+    commit = Field('', description='The source-code commit that this installation\'s NOMAD version is build from.')
+    deployment = Field(
+        'devel', description='Human-friendly name of this nomad deployment.')
+    deployment_url = Field(
+        api_url(), description='The NOMAD deployment\'s url (api url).')
+    label: str = Field(None, description='''
+        An additional log-stash data key-value pair added to all logs. Can be used
+        to differentiate deployments when analyzing logs.
+    ''')
+    service = Field('unknown nomad service', description='''
+        Name for the service that is added to all logs. Depending on how NOMAD is
+        installed, services get a name (app, worker, north) automatically.
+    ''')
+
+    name = Field(
+        'NOMAD',
+        description='Web-site title for the NOMAD UI.',
+        deprecated=True)
+    homepage = Field(
+        'https://nomad-lab.eu', description='Provider homepage.', deprecated=True)
+    source_url = Field(
+        'https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
+        description='URL of the NOMAD source-code repository.',
+        deprecated=True)
+
+    maintainer_email = Field(
+        'markus.scheidgen@physik.hu-berlin.de',
+        description='Email of the NOMAD deployment maintainer.')
+    beta: dict = Field(None, description='''
+        Additional data that describes how the deployment is labeled as a beta-version in the UI.
+    ''')
+
+
+meta = Meta()
+
+
+class Oasis(NomadSettings):
+    '''
+    Settings related to the configuration of a NOMAD Oasis deployment.
+    '''
+    is_oasis = Field(False, description='Set to `True` to indicate that this deployment is a NOMAD Oasis.')
+    allowed_users: str = Field(None, description='''
+        A list of usernames or user account emails. These represent a white-list of
+        allowed users. With this, users will need to login right-away and only the
+        listed users might use this deployment. All API requests must have authentication
+        information as well.''')
+    uses_central_user_management = Field(False, description='''
+        Set to True to use the central user-management. Typically the NOMAD backend is
+        using the configured `keycloak` to access user data. With this, the backend will
+        use the API of the central NOMAD (`central_nomad_deployment_url`) instead.
+    ''')
+    central_nomad_deployment_url = Field('https://nomad-lab.eu/prod/v1/api', description='''
+        The URL of the API of the NOMAD deployment that is considered the *central* NOMAD.
+    ''')
+
+
+oasis = Oasis()
+
+
+_jupyterhub_config_description = '''
+    This setting is forwarded to jupyterhub; refer to the jupyterhub
+    [documentation](https://jupyterhub.readthedocs.io/en/stable/api/app.html#).
+'''
+
+
+class North(NomadSettings):
+    '''
+    Settings related to the operation of the NOMAD remote tools hub service *north*.
+    '''
+    hub_connect_ip: str = Field(None, description='''
+        Overwrites the default hostname that can be used from within a north container
+        to reach the host system.
+
+        Typically has to be set for non Linux hosts. Set this to `host.docker.internal`
+        on windows/macos.
+    ''')
+    hub_connect_url: str = Field(None, description=_jupyterhub_config_description)
+    hub_ip = Field('0.0.0.0', description=_jupyterhub_config_description)
+    docker_network: str = Field(None, description=_jupyterhub_config_description)
+    hub_host = Field('localhost', description='''
+        The internal host name that NOMAD services use to connect to the jupyterhub API.
+    ''')
+    hub_port = Field(9000, description='''
+        The internal port that NOMAD services use to connect to the jupyterhub API.
+    ''')
+    jupyterhub_crypt_key: str = Field(None, description=_jupyterhub_config_description)
+
+    shared_fs = Field('.volumes/fs/north/shared', description='''
+        Path to the shared folder on the host machine. This is mounted into spawned
+        containers to be shared by all users.
+    ''')
+    users_fs = Field('.volumes/fs/north/users', description='''
+        Path to a folder on the host machine. Sub-directories with the username are mounted
+        into spawned containers to persist files per user.
+    ''')
+    nomad_host: str = Field(
+        None, description='The NOMAD app host name that spawned containers use.')
+    windows = Field(
+        True, description='Enable windows OS hacks.')
+
+
+north = North()
+
+
 CELERY_WORKER_ROUTING = 'worker'
 CELERY_QUEUE_ROUTING = 'queue'
 
 
 class RabbitMQ(NomadSettings):
-    host = 'localhost'
-    user = 'rabbitmq'
-    password = 'rabbitmq'
+    '''
+    Configures how NOMAD is connecting to RabbitMQ.
+    '''
+    host = Field('localhost', description='The name of the host that runs RabbitMQ.')
+    user = Field('rabbitmq', description='The RabbitMQ user that is used to connect.')
+    password = Field('rabbitmq', description='The password that is used to connect.')
 
 
 rabbitmq = RabbitMQ()
@@ -162,7 +375,7 @@ keycloak = Keycloak()
 
 
 class Mongo(NomadSettings):
-    ''' All settings related to connect and use mongodb.'''
+    ''' Connection and usage settings for MongoDB.'''
     host: str = Field('localhost', description='The name of the host that runs mongodb.')
     port: int = Field(27017, description='The port to connect with mongodb.')
     db_name: str = Field('nomad_v1', description='The used mongodb database name.')
@@ -181,74 +394,11 @@ class Logstash(NomadSettings):
 logstash = Logstash()
 
 
-class Services(NomadSettings):
-    api_host = 'localhost'
-    api_port = 8000
-    api_base_path = '/fairdi/nomad/latest'
-    api_secret = 'defaultApiSecret'
-    api_chaos = 0
-    admin_user_id = '00000000-0000-0000-0000-000000000000'
-    not_processed_value = 'not processed'
-    unavailable_value = 'unavailable'
-    https = False
-    https_upload = False
-    upload_limit = 10
-    force_raw_file_decoding = False
-    download_scan_size = 500
-    download_scan_timeout = u'30m'
-    encyclopedia_base = "https://nomad-lab.eu/prod/rae/encyclopedia/#"
-    aitoolkit_enabled = False
-    console_log_level = logging.WARNING
-    max_entry_download = 500000
-
-
-services = Services()
-
-
-class Oasis(NomadSettings):
-    central_nomad_deployment_url = 'https://nomad-lab.eu/prod/v1/api',
-    allowed_users: str = Field(
-        None, description='A list of usernames or user account emails.')
-    uses_central_user_management = False,
-    is_oasis = False
-
-
-oasis = Oasis()
-
-
 class Tests(NomadSettings):
     default_timeout = 60
 
 
 tests = Tests()
-
-
-def api_url(ssl: bool = True, api: str = 'api', api_host: str = None, api_port: int = None):
-    '''
-    Returns the url of the current running nomad API. This is for server-side use.
-    This is not the NOMAD url to use as a client, use `nomad.config.client.url` instead.
-    '''
-    if api_port is None:
-        api_port = services.api_port
-    if api_host is None:
-        api_host = services.api_host
-    protocol = 'https' if services.https and ssl else 'http'
-    host_and_port = api_host
-    if api_port not in [80, 443]:
-        host_and_port += ':' + str(api_port)
-    base_path = services.api_base_path.strip('/')
-    return f'{protocol}://{host_and_port}/{base_path}/{api}'
-
-
-def gui_url(page: str = None):
-    base = api_url(True)[:-3]
-    if base.endswith('/'):
-        base = base[:-1]
-
-    if page is not None:
-        return '%s/gui/%s' % (base, page)
-
-    return '%s/gui' % base
 
 
 class Mail(NomadSettings):
@@ -362,27 +512,6 @@ class DataCite(NomadSettings):
 datacite = DataCite()
 
 
-class Meta(NomadSettings):
-    version = __version__
-    commit = ''
-    deployment = Field(
-        'devel', description='Human-friendly name of the nomad deployment')
-    deployment_url = Field(
-        'https://my-oasis.org/api', description='The deployment\'s url (api url).')
-    label: str = None
-    default_domain = 'dft'
-    service = 'unknown nomad service'
-    name = 'novel materials discovery (NOMAD)'
-    description = 'A FAIR data sharing platform for materials science data'
-    homepage = 'https://nomad-lab.eu'
-    source_url = 'https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR'
-    maintainer_email = 'markus.scheidgen@physik.hu-berlin.de'
-    beta: dict = None
-
-
-meta = Meta()
-
-
 class GitLab(NomadSettings):
     private_token = 'not set'
 
@@ -394,7 +523,7 @@ class Reprocess(NomadSettings):
     '''
     Configures standard behaviour when reprocessing.
     Note, the settings only matter for published uploads and entries. For uploads in
-    taging, we always reparse, add newfound entries, and delete unmatched entries.
+    staging, we always reparse, add newfound entries, and delete unmatched entries.
     '''
     rematch_published = True
     reprocess_existing_entries = True
@@ -409,10 +538,10 @@ reprocess = Reprocess()
 
 class Process(NomadSettings):
     store_package_definition_in_mongo = Field(
-        False, description='Configures if to store the corresponding package definition in mongodb.')
+        False, description='Configures whether to store the corresponding package definition in mongodb.')
     add_definition_id_to_reference = Field(
         False, description='''
-            Configures if to attach definition id to `m_def`, note it is different from `m_def_id`.
+            Configures whether to attach definition id to `m_def`, note it is different from `m_def_id`.
             The `m_def_id` will be exported with the `with_def_id=True` via `m_to_dict`.
         ''')
     write_definition_id_to_archive = Field(False, description='Write `m_def_id` to the archive.')
@@ -484,7 +613,7 @@ class BundleImportSettings(NomadSettings):
         True, description='Keeps the bundle_info.json file, not necessary but nice to have.')
     keep_original_timestamps = Field(
         False, description='''
-            If all time stamps (create time, publish time etc) should be imported from
+            If all timestamps (create time, publish time etc) should be imported from
             the bundle.
         ''')
     set_from_oasis = Field(
@@ -506,7 +635,7 @@ class BundleImportSettings(NomadSettings):
 class BundleImport(NomadSettings):
 
     required_nomad_version = Field(
-        '1.1.2', description='Minimum  nomad version of bundles required for import.')
+        '1.1.2', description='Minimum  NOMAD version of bundles required for import.')
 
     default_cli_bundle_import_path = './bundles'
 
@@ -530,26 +659,6 @@ class BundleImport(NomadSettings):
 
 
 bundle_import = BundleImport()
-
-
-class North(NomadSettings):
-    hub_connect_ip: str = Field(
-        None, description='Set this to host.docker.internal on windows/macos.')
-    hub_connect_url: str = None
-    hub_ip = '0.0.0.0'
-    docker_network: str = None
-    hub_host = 'localhost'
-    hub_port = 9000
-    shared_fs = '.volumes/fs/north/shared'
-    users_fs = '.volumes/fs/north/users'
-    jupyterhub_crypt_key: str = None
-    nomad_host: str = Field(
-        None, description='Host name to reach nomad app from spawned containers.')
-    windows = Field(
-        True, description='Enable windows (as in windows the OS) hacks.')
-
-
-north = North()
 
 
 class Archive(NomadSettings):

@@ -20,15 +20,19 @@
 Definitions that are used in the documentation via mkdocs-macro-plugin.
 '''
 
+import yaml
+import json
+import os.path
+from inspect import isclass
+
 from nomad.app.v1.models import (
     query_documentation,
     owner_documentation)
 from nomad.app.v1.routers.entries import archive_required_documentation
-from nomad import utils
+from nomad import utils, config
 
-import yaml
-import json
-import os.path
+
+exported_config_models = set()  # type: ignore
 
 
 doc_snippets = {
@@ -134,3 +138,97 @@ def define_env(env):
             sort_keys=False, default_flow_style=None,
             Dumper=MyYamlDumper)
         return f'\n{indent}'.join(f'{indent}{yaml_string}'.split('\n'))
+
+    @env.macro
+    def config_models(models=None):   # pylint: disable=unused-variable
+        from nomad import config
+
+        results = ''
+        for attribute_name, attribute in config.__dict__.items():
+            if isinstance(attribute, config.NomadSettings):
+                if models and attribute_name not in models:
+                    continue
+
+                if not models and attribute_name in exported_config_models:
+                    continue
+
+                results += pydantic_model_from_model(attribute.__class__, attribute_name)
+                results += '\n\n'
+
+        return results
+
+    def pydantic_model_from_model(model, name=None):
+        fields = model.__fields__
+        required_models = set()
+        if not name:
+            exported_config_models.add(model.__name__)
+            name = model.__name__
+
+        exported_config_models.add(name)
+
+        def default_value(field):
+            value = field.default
+            if isinstance(value, dict):
+                return '<complex dict>'
+            else:
+                return f'`{value}`'
+
+        def description(field):
+            value = field.field_info.description
+
+            if not value:
+                return ''
+
+            value = utils.strip(value)
+            value = value.replace('\n\n', '<br/>').replace('\n', ' ')
+            return value
+
+        def content(field):
+            result = ''
+            if field.field_info.description:
+                result += f'{description(field)}<br/> '
+
+            result += f'*default:* {default_value(field)}'
+
+            if field.field_info.extra.get('deprecated', False):
+                result += '<br/>**deprecated**'
+
+            return result
+
+        def field_row(field):
+            type_ = field.type_
+            if isclass(type_) and issubclass(type_, config.NomadSettings):
+                required_models.add(type_)
+            return f'|{field.name}|{type_.__name__}|{content(field)}|\n'
+
+        result = f'### {name}\n'
+
+        if model.__doc__ and model.__doc__ != '':
+            result += utils.strip(model.__doc__) + '\n\n'
+
+        result += '|name|type| |\n'
+        result += '|----|----|-|\n'
+        result += ''.join([field_row(field) for field in fields.values()])
+
+        for required_model in required_models:
+            if required_model.__name__ not in exported_config_models:
+                result += '\n\n'
+                result += pydantic_model_from_model(required_model)
+
+        return result
+
+    @env.macro
+    def pydantic_model(path):  # pylint: disable=unused-variable
+        '''
+        Produces markdown code for the given pydantic model.
+
+        Arguments:
+            path: The python qualified name of the model class.
+        '''
+        import importlib
+
+        module_name, name = path.rsplit('.', 1)
+        module = importlib.import_module(module_name)
+        model = getattr(module, name)
+
+        return pydantic_model_from_model(model)

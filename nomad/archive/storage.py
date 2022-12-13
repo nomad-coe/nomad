@@ -403,7 +403,7 @@ class ArchiveReader(ArchiveDict):
             if i + 1 == entries_current_block:
                 last = entry_uuid
 
-        self._toc_block_info[i_block] = (first, last)
+        self._toc_block_info[i_block] = (first, last)  # type: ignore
 
         return self._toc_block_info[i_block]
 
