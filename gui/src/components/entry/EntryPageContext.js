@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import React, { useContext, useState, useEffect, useRef, useMemo } from 'react'
+import React, { useContext, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { cloneDeep } from 'lodash'
 import { useDataStore, useEntryStoreObj } from '../DataStore'
@@ -28,19 +28,10 @@ const entryPageContext = React.createContext()
  * Hook for fetching data from the current EntryPageContext.
  *
  * @param {*} requireArchive Optional query filter
- * @param {*} update Whether to keep updating the data for the original entry
- *   if changes beyond the first successfull archive load are made in the store.
- *   Sometimes the first version of the data should be kept to avoid unnecessary
- *   re-renders and layout inconsistencies. Note that if the entry id changes,
- *   the update is forced.
- * @returns
  */
-export const useEntryPageContext = (requireArchive, update = true) => {
+export const useEntryPageContext = (requireArchive) => {
   const {entryId, overview} = useContext(entryPageContext) || {}
-  const entryData = useEntryStoreObj(apiBase, entryId, true, requireArchive)
-  const [data, setData] = useState(entryData)
-  const oldEntryId = useRef()
-  const completed = useRef(false)
+  const entryStoreObj = useEntryStoreObj(apiBase, entryId, true, requireArchive)
 
   // Get the overview config
   const finalOverview = useMemo(() => {
@@ -53,31 +44,10 @@ export const useEntryPageContext = (requireArchive, update = true) => {
     return {options}
   }, [overview])
 
-  // This effect controls how the data returned by this hook is synchronized
-  // with the data coming from the store. If update = true, the data is always
-  // synchronized. If update = false, it is only synchronized until the archive
-  // data is fully set, or the entry changes.
-  useEffect(() => {
-    const newEntryId = entryData?.entryId
-    const isNew = newEntryId !== oldEntryId.current
-    if (update) {
-      setData(entryData)
-    } else if (isNew || !completed.current) {
-      setData(entryData)
-      if (isNew) {
-        completed.current = false
-      }
-      if (entryData?.archive) {
-        completed.current = true
-      }
-    }
-    oldEntryId.current = newEntryId
-  }, [entryData, update])
-
   // The final data is memoized in order to avoid unwanted rerenders
   const context = useMemo(() => {
-    return {...data, overview: finalOverview}
-  }, [data, finalOverview])
+    return {...entryStoreObj, overview: finalOverview}
+  }, [entryStoreObj, finalOverview])
 
   return context
 }

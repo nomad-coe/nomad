@@ -21,7 +21,7 @@ import PropTypes from 'prop-types'
 import { makeStyles, Typography, IconButton, Box, Grid, Button, Tooltip, TextField,
   Dialog, DialogContent, DialogContentText } from '@material-ui/core'
 import DialogActions from '@material-ui/core/DialogActions'
-import { useDataStore } from '../DataStore'
+import { useDataStore, useEntryStoreObj } from '../DataStore'
 import Browser, { Item, Content, Adaptor, browserContext, laneContext, Title, Compartment } from './Browser'
 import { useApi } from '../api'
 import UploadIcon from '@material-ui/icons/CloudUpload'
@@ -562,6 +562,19 @@ function RawFileContent({deploymentUrl, uploadId, path, data, editable}) {
         return tool.file_extensions && tool.file_extensions.includes(fileExtension)
       })
   }, [allNorthTools, path])
+
+  // If we are stepping into an archive, subscribe to the store for updates on this archive
+  const archiveSelected = data.entry_id && lane.next?.key === 'archive'
+  const entryStoreObj = useEntryStoreObj(archiveSelected ? deploymentUrl : null, data.entry_id, false, '*')
+
+  // Invalidate subsequent lanes if the archive is updated
+  useEffect(() => {
+    if (entryStoreObj?.archive && lane.next?.adaptor?.obj) {
+      if (entryStoreObj.archive !== lane.next.adaptor?.obj) {
+        browser.invalidateLanesFromIndex(lane.index)
+      }
+    }
+  }, [browser, lane, entryStoreObj])
 
   const handleDeleteFile = () => {
     setOpenConfirmDeleteFileDialog(false)

@@ -131,7 +131,7 @@ const OverviewView = React.memo((props) => {
     archive,
     archiveApiData,
     overview
-  } = useEntryPageContext(overviewArchiveFilter, false)
+  } = useEntryPageContext(overviewArchiveFilter)
   const classes = useStyles()
   const index = metadata
   const [sections, setSections] = useState([])
