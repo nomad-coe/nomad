@@ -424,7 +424,7 @@ def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> 
         }
         if (names[0] in order):
             if (names[1] in order):
-                if(order[names[0]] < order[names[1]]):
+                if (order[names[0]] < order[names[1]]):
                     # For non-metals:
                     # Swap symbols and counts if first element
                     # is more electronegative than the second one,

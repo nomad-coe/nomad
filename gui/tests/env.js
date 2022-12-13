@@ -12,7 +12,6 @@ window.nomadEnv = {
   "globalLoginRequired": false,
   "servicesUploadLimit": 10,
   "ui": {
-    "default_unit_system": "Custom",
     "entry_context": {
       "overview": {
         "include": [
@@ -1132,6 +1131,7 @@ window.nomadEnv = {
           }
         }
       }
-    }
+    },
+    "default_unit_system": "Custom"
   }
 }

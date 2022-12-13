@@ -26,7 +26,7 @@ from fastapi import HTTPException, status
 class BundleExporter:
     def __init__(
             self, upload: Upload, export_as_stream: bool, export_path: str, zipped: bool, overwrite: bool,
-            export_settings: config.NomadConfig):
+            export_settings: config.BundleExportSettings):
         '''
         Class for exporting an upload as a *bundle*. Bundles are used to export and import
         uploads between different NOMAD installations. After instantiating a BundleExporter,
@@ -48,8 +48,8 @@ class BundleExporter:
                 If the target file/folder should be overwritten by this operation. Not
                 applicable if `export_as_stream` is True.
             export_settings:
-                A NomadConfig with settings for controlling the bundle content. See the
-                `config.bundle_export.default_settings` for applicable options.
+                Settings for controlling the bundle content. See the
+                `config.BundeExportSettings` for applicable options.
                 NOTE: the dictionary must specify a *complete* set of options.
         '''
         BundleExporter.check_export_settings(export_settings)
@@ -61,13 +61,7 @@ class BundleExporter:
         self.export_settings = export_settings
 
     @classmethod
-    def check_export_settings(cls, export_settings: config.NomadConfig):
-        '''
-        Perform quick sanity checks of a dictionary with export settings.
-        NOTE: the dictionary must specify a *complete* set of options.
-        '''
-        ''' Perform quick sanity checks of the settings. '''
-        check_settings(export_settings, config.bundle_export.default_settings)
+    def check_export_settings(cls, export_settings: config.BundleExportSettings):
         assert export_settings.include_archive_files or export_settings.include_raw_files, (
             'Export must include the archive files or the raw files, or both')
 
@@ -112,8 +106,8 @@ class BundleExporter:
         ''' Create the bundle_info.json data '''
         bundle_info: Dict[str, Any] = dict(
             upload_id=self.upload.upload_id,
-            source=config.meta,  # Information about the source system, i.e. this NOMAD installation
-            export_settings=self.export_settings,
+            source=config.meta.dict(),  # Information about the source system, i.e. this NOMAD installation
+            export_settings=self.export_settings.dict(),
             upload=self.upload.to_mongo().to_dict(),
             entries=[entry.to_mongo().to_dict() for entry in self.upload.successful_entries])
         # Handle datasets
@@ -134,7 +128,7 @@ class BundleExporter:
 
 
 class BundleImporter:
-    def __init__(self, user: datamodel.User, import_settings: config.NomadConfig, embargo_length: int = None):
+    def __init__(self, user: datamodel.User, import_settings: config.BundleImportSettings, embargo_length: int = None):
         '''
         Class for importing an upload from a *bundle*.
 
@@ -143,15 +137,14 @@ class BundleImporter:
                 The user requesting the import. Used to check permissions. Of omitted, no
                 permission checks are done.
             import_settings:
-                A NomadConfig with settings for controlling the bundle content. See the
-                `config.bundle_import.default_settings` for applicable options.
+                Settings for controlling the bundle content. See the
+                `config.BundleImportSettings` for applicable options.
                 NOTE: the dictionary must specify a complete set of options.
             embargo_length:
                 Used to set the embargo length. If set to None, the value will be imported
                 from the bundle. The value should be between 0 and 36. A value of 0 means
                 no embargo.
         '''
-        BundleImporter.check_import_settings(import_settings)
         self.user = user
         self.import_settings = import_settings
         self.embargo_length = embargo_length
@@ -177,14 +170,6 @@ class BundleImporter:
                 return False
         return os.path.isfile(os.path.join(path, bundle_info_filename))
 
-    @classmethod
-    def check_import_settings(cls, import_settings: config.NomadConfig):
-        '''
-        Perform quick sanity checks of a dictionary with import settings.
-        NOTE: the dictionary must specify a complete set of options.
-        '''
-        check_settings(import_settings, config.bundle_import.default_settings)
-
     def check_api_permissions(self):
         '''
         Checks if the specified user is allowed to import a bundle via the api. Raises a
@@ -201,8 +186,8 @@ class BundleImporter:
                 status_code=status.HTTP_401_UNAUTHORIZED, detail='User not authorized to import bundles')
 
         if not is_admin:
-            for k, v in self.import_settings.items():
-                if v != config.bundle_import.default_settings.get(k):
+            for k, v in self.import_settings.dict().items():
+                if v != config.bundle_import.default_settings.dict().get(k):
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail=f'Changing the setting {k} requires an admin user')
@@ -279,7 +264,8 @@ class BundleImporter:
             if self.import_settings.trigger_processing:
                 return self._reprocess_upload()
             return None
-        except Exception:
+        except Exception as e:
+            logger.error('could not import bundle', exc_info=e)
             self.bundle.close()
             if self.import_settings.delete_bundle_on_fail:
                 self.delete_bundle()
@@ -294,7 +280,7 @@ class BundleImporter:
                 # Just ensure the upload is deleted from search
                 with utils.timer(logger, 'upload deleted from index'):
                     search.delete_upload(self.upload.upload_id, refresh=True)
-                raise
+                raise e
 
     def close(self):
         if self.bundle:
@@ -515,18 +501,7 @@ class BundleImporter:
                 refresh=True)
 
     def _reprocess_upload(self):
-        reprocess_settings = {
-            k: v for k, v in self.import_settings.items() if k in config.reprocess}
-        return self.upload._process_upload_local(reprocess_settings=reprocess_settings)
-
-
-def check_settings(given_settings: config.NomadConfig, default_settings: config.NomadConfig):
-    ''' Check that the given settings is complete '''
-    assert given_settings, 'No settings provided'
-    missing_keys = [key for key in default_settings.keys() if key not in given_settings]
-    assert not missing_keys, f'Missing value for setting "{missing_keys[0]}"'
-    unknown_keys = [key for key in given_settings.keys() if key not in default_settings]
-    assert not unknown_keys, f'Received unknown setting "{unknown_keys[0]}"'
+        return self.upload._process_upload_local(reprocess_settings=self.import_settings.process_settings)
 
 
 def keys_exist(data: Dict[str, Any], required_keys: Iterable[str], error_message: str):

@@ -29,7 +29,6 @@ entries, and files
 '''
 import base64
 from typing import Optional, cast, Any, List, Tuple, Set, Iterator, Dict, Iterable, Sequence, Union
-
 import rfc3161ng
 from mongoengine import (
     StringField, DateTimeField, BooleanField, IntField, ListField, DictField)
@@ -44,6 +43,7 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 import requests
 from fastapi.exceptions import RequestValidationError
 from pydantic.error_wrappers import ErrorWrapper
+from pydantic import parse_obj_as
 import validators
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
@@ -987,13 +987,15 @@ class Entry(Proc):
                     'last_status_message': 'Parent entry processing'}})
 
         # Load the reprocess settings from the upload, and apply defaults
-        settings = config.reprocess.customize(self.upload.reprocess_settings)
+        settings = config.reprocess
+        if self.upload.reprocess_settings:
+            settings = settings.customize(parse_obj_as(config.Reprocess, self.upload.reprocess_settings))
 
         self.set_last_status_message('Determining action')
         # If this entry has been processed before, or imported from a bundle, nomad_version
         # should be set. If not, this is the initial processing.
         self._is_initial_processing = self.nomad_version is None
-        self._perform_index = self._is_initial_processing or settings.get('index_invidiual_entries', True)
+        self._perform_index = self._is_initial_processing or settings.index_individual_entries
         if not self.upload.published or self._is_initial_processing:
             should_parse = True
         elif not settings.reprocess_existing_entries:
@@ -1026,7 +1028,7 @@ class Entry(Proc):
             for entry in self._main_and_child_entries():
                 entry._initialize_metadata_for_processing()
 
-            if len(self._entry_metadata.files) >= config.auxfile_cutoff:
+            if len(self._entry_metadata.files) >= config.process.auxfile_cutoff:
                 self.warning(
                     'This entry has many aux files in its directory. '
                     'Have you placed many mainfiles in the same directory?')
@@ -1510,7 +1512,8 @@ class Upload(Proc):
 
     @process()
     def process_upload(
-            self, file_operations: List[Dict[str, Any]] = None, reprocess_settings: Dict[str, Any] = None,
+            self, file_operations: List[Dict[str, Any]] = None,
+            reprocess_settings: Dict[str, Any] = None,
             path_filter: str = None, only_updated_files: bool = False):
         '''
         A @process that executes a file operation (if provided), and matches, parses and normalizes
@@ -1530,7 +1533,7 @@ class Upload(Proc):
                 `path` (specifying the path relative to the raw folder which is to be deleted).
                 "COPY" and "MOVE" operations require two arguments: `path_to_existing_file` and
                 `path_to_target_file`.
-            reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
+            reprocess_settings: Optional configuration of the reprocessing behavior.
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
             path_filter: An optional path used to filter out what should be processed.
@@ -1538,10 +1541,14 @@ class Upload(Proc):
                 folder, everything under this folder will be processed.
             only_updated_files: If only files updated by the file operations should be processed.
         '''
-        return self._process_upload_local(file_operations, reprocess_settings, path_filter, only_updated_files)
+        return self._process_upload_local(
+            file_operations,
+            parse_obj_as(config.Reprocess, reprocess_settings) if reprocess_settings else None,
+            path_filter, only_updated_files)
 
     def _process_upload_local(
-            self, file_operations: List[Dict[str, Any]] = None, reprocess_settings: Dict[str, Any] = None,
+            self, file_operations: List[Dict[str, Any]] = None,
+            reprocess_settings: config.Reprocess = None,
             path_filter: str = None, only_updated_files: bool = False):
         '''
         The function doing the actual processing, but locally, not as a @process.
@@ -1549,8 +1556,9 @@ class Upload(Proc):
         '''
         logger = self.get_logger()
         logger.info('starting to (re)process')
-        reprocess_settings = config.reprocess.customize(reprocess_settings)  # Add default settings
-        self.reprocess_settings = reprocess_settings
+        settings = config.reprocess.customize(reprocess_settings)  # Add default settings
+        if reprocess_settings:
+            self.reprocess_settings = reprocess_settings.dict()
 
         # Sanity checks
         if path_filter:
@@ -1558,7 +1566,7 @@ class Upload(Proc):
         assert not (path_filter and only_updated_files), 'Cannot specify both `path_filter` and `only_updated_files`'
         if self.published:
             assert not file_operations, 'Upload is published, cannot update files'
-            assert reprocess_settings.rematch_published or reprocess_settings.reprocess_existing_entries, (
+            assert settings.rematch_published or settings.reprocess_existing_entries, (  # pylint: disable=no-member
                 'Settings do no allow reprocessing of a published upload')
 
         # TODO remove after worker_hostnames are handled correctly
@@ -1571,7 +1579,7 @@ class Upload(Proc):
 
         # All looks ok, process
         updated_files = self.update_files(file_operations, only_updated_files)
-        self.match_all(reprocess_settings, path_filter, updated_files)
+        self.match_all(settings, path_filter, updated_files)
         self.parser_level = None
         if self.parse_next_level(0, path_filter, updated_files):
             self.set_last_status_message(f'Waiting for results (level {self.parser_level})')
@@ -1580,7 +1588,7 @@ class Upload(Proc):
             self.cleanup()
 
     @process_local
-    def put_file_and_process_local(self, path, target_dir, reprocess_settings: Dict[str, Any] = None) -> Entry:
+    def put_file_and_process_local(self, path, target_dir, reprocess_settings: config.Reprocess = None) -> Entry:
         '''
         Pushes a raw file, matches it, and if matched, runs the processing - all as a local process.
         If the the target path exists, it will be overwritten. If matched, we return the
@@ -1594,7 +1602,8 @@ class Upload(Proc):
         if staging_upload_files.raw_path_exists(target_path):
             assert staging_upload_files.raw_path_is_file(target_path), 'Target path is a directory'
 
-        self.reprocess_settings = reprocess_settings
+        if reprocess_settings:
+            self.reprocess_settings = reprocess_settings.dict()
 
         # Push the file
         self.set_last_status_message('Putting the file')
@@ -1811,7 +1820,7 @@ class Upload(Proc):
                         'exception while matching pot. mainfile',
                         mainfile=path_info.path, exc_info=e)
 
-    def match_all(self, reprocess_settings, path_filter: str = None, updated_files: Set[str] = None):
+    def match_all(self, reprocess_settings: config.Reprocess, path_filter: str = None, updated_files: Set[str] = None):
         '''
         The process step used to identify mainfile/parser combinations among the upload's files,
         and create or delete respective :class:`Entry` instances (if needed).
@@ -2219,8 +2228,9 @@ class Upload(Proc):
         from nomad.bundles import BundleImporter
         bundle_importer: BundleImporter = None
         try:
-            bundle_importer = BundleImporter(
-                None, config.bundle_import.default_settings.customize(import_settings), embargo_length)
+            import_settings_obj = parse_obj_as(config.BundleImportSettings, import_settings)
+            import_settings_obj = config.bundle_import.default_settings.customize(import_settings_obj)
+            bundle_importer = BundleImporter(None, import_settings_obj, embargo_length)
             bundle_importer.open(bundle_path)
             return bundle_importer.import_bundle(self, False)
         finally:

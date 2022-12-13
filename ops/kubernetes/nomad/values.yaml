@@ -96,10 +96,6 @@ encyclopedia:
   ## enable links to the 'new' encyclopedia
   enabled: true
 
-aitoolkit:
-  ## enable aitoolkit references
-  enabled: false
-
 ## Everything concerning the nginx that serves the gui, proxies the api
 #  It is run via NodePort service
 proxy:
@@ -199,6 +195,9 @@ datacite:
 
 services:
   jupyterhub:
+    enabled: false
+  aitoolkit:
+    ## enable aitoolkit references
     enabled: false
 
 jupyterhub:

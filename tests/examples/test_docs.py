@@ -38,7 +38,7 @@ def test_python_schema():
 def test_yaml_schema():
     yaml_package = _load_yaml('basic_schema/schema.archive.yaml')['definitions']
     yaml_data = _load_yaml('basic_schema/data.archive.yaml')['data']
-    del(yaml_data['m_def'])
+    del (yaml_data['m_def'])
 
     package = Package.m_from_dict(yaml_package)
     package.init_metainfo()

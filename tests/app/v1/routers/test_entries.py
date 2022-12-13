@@ -482,7 +482,7 @@ def test_entries_raw(
     pytest.param(perform_entries_raw_test, id='raw'),
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
 def test_entries_download_max(monkeypatch, client, example_data, test_method, http_method):
-    monkeypatch.setattr('nomad.config.max_entry_download', 20)
+    monkeypatch.setattr('nomad.config.services.max_entry_download', 20)
 
     test_method(client, status_code=400, http_method=http_method)
 

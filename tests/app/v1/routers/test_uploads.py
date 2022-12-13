@@ -1619,28 +1619,25 @@ def test_post_upload_action_publish(
         assert_gets_published(client, upload_id, user_auth, current_embargo_length=12, **query_args)
 
 
-@pytest.mark.parametrize('kwargs', [
+@pytest.mark.parametrize('import_settings, query_args', [
     pytest.param(
-        dict(
-            import_settings=dict(include_archive_files=False, trigger_processing=True),
-            query_args=dict(embargo_length=0)),
+        config.BundleImportSettings(include_archive_files=False, trigger_processing=True),
+        dict(embargo_length=0),
         id='trigger-processing'),
     pytest.param(
-        dict(
-            import_settings=dict(include_archive_files=True, trigger_processing=False),
-            query_args=dict(embargo_length=28)),
-        id='no-processing')])
+        config.BundleImportSettings(include_archive_files=True, trigger_processing=False),
+        dict(embargo_length=28),
+        id='no-processing')
+])
 def test_post_upload_action_publish_to_central_nomad(
         client, proc_infra, monkeypatch, oasis_publishable_upload,
-        test_users_dict, test_auth_dict, kwargs):
+        test_users_dict, test_auth_dict, import_settings, query_args):
     ''' Tests the publish action with to_central_nomad=True. '''
     upload_id, suffix = oasis_publishable_upload
-    query_args = kwargs.get('query_args', {})
     query_args['to_central_nomad'] = True
     embargo_length = query_args.get('embargo_length')
-    import_settings = kwargs.get('import_settings', {})
-    expected_status_code = kwargs.get('expected_status_code', 200)
-    user = kwargs.get('user', 'test_user')
+    expected_status_code = 200
+    user = 'test_user'
     user_auth, __token = test_auth_dict[user]
     old_upload = Upload.get(upload_id)
 
