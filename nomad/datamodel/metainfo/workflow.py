@@ -1574,8 +1574,6 @@ class MolecularDynamicsResults(MSection):
 
     radial_distribution_functions = SubSection(sub_section=SectionProxy('RadialDistributionFunction'), repeats=True)
 
-    radius_of_gyration = SubSection(sub_section=SectionProxy('RadiusOfGyration'), repeats=True)
-
     mean_squared_displacements = SubSection(sub_section=SectionProxy('MeanSquaredDisplacement'), repeats=True)
 
 
@@ -1657,43 +1655,6 @@ class TrajectoryProperty(MSection):
         ''')
 
 
-class TrajectoryPropertyValues(MSection):
-    '''
-    Generic section containing information regarding the values of a trajectory property.
-    '''
-
-    m_def = Section(validate=False)
-
-    label = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Describes the atoms or molecule types involved in determining the property.
-        ''')
-
-    n_frames = Quantity(
-        type=int,
-        shape=[],
-        description='''
-        Number of frames for which the observable is stored.
-        ''')
-
-    frames = Quantity(
-        type=np.dtype(np.int32),
-        shape=['n_frames'],
-        description='''
-        Frames for which the observable is stored.
-        ''')
-
-    times = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_frames'],
-        unit='s',
-        description='''
-        Times for which the observable is stored.
-        ''')
-
-
 class EnsemblePropertyValues(MSection):
     '''
     Generic section containing information regarding the values of an ensemble property.
@@ -1705,7 +1666,14 @@ class EnsemblePropertyValues(MSection):
         type=str,
         shape=[],
         description='''
-        Describes the atoms or molecule types involved in determining the property.
+        Describes the group of atoms/molecule/groups of molecules involved in determining the property.
+        ''')
+
+    atomsgroup_ref = Quantity(
+        type=Reference(AtomsGroup.m_def),
+        shape=[],
+        description='''
+        References to the atoms_group section containing the group of atoms/molecule/groups of molecules for which the property was calculated.
         ''')
 
     n_bins = Quantity(
@@ -1810,66 +1778,6 @@ class RadialDistributionFunction(EnsembleProperty):
     radial_distribution_function_values = SubSection(sub_section=RadialDistributionFunctionValues.m_def, repeats=True)
 
 
-class RadiusOfGyrationHistogram(EnsemblePropertyValues):
-    '''
-    Section containing the distribution of the Radius of Gyration over some trajectory.
-    '''
-
-    m_def = Section(validate=False)
-
-    bins = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_bins'],
-        unit='m',
-        description='''
-        Values of the radius of gyration.
-        ''')
-
-    value = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_bins'],
-        description='''
-        Histogram counts.
-        ''')
-
-
-class RadiusOfGyrationValues(TrajectoryPropertyValues):
-    '''
-    Section containing information regarding the values of
-    radius of gyration (Rg).
-    '''
-
-    m_def = Section(validate=False)
-
-    molecule_ref = Quantity(
-        type=Reference(AtomsGroup.m_def),
-        shape=[1],
-        description='''
-        References to the atoms_group section containing the molecule for which Rg was calculated.
-        ''')
-
-    value = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_frames'],
-        unit='m',
-        description='''
-        Values of the property.
-        ''')
-
-    radius_of_gyration_histogram = SubSection(sub_section=RadiusOfGyrationHistogram.m_def, repeats=True)
-
-
-class RadiusOfGyration(TrajectoryProperty):
-    '''
-    Section containing information about the calculation of
-    radius of gyration (Rg).
-    '''
-
-    m_def = Section(validate=False)
-
-    radius_of_gyration_values = SubSection(sub_section=RadiusOfGyrationValues.m_def, repeats=True)
-
-
 class CorrelationFunctionValues(MSection):
     '''
     Generic section containing information regarding the values of a correlation function.
@@ -1881,7 +1789,14 @@ class CorrelationFunctionValues(MSection):
         type=str,
         shape=[],
         description='''
-        Describes the atoms or molecule types involved in determining the property.
+        Describes the group of atoms/molecule/groups of molecules involved in determining the property.
+        ''')
+
+    atomsgroup_ref = Quantity(
+        type=Reference(AtomsGroup.m_def),
+        shape=[1],
+        description='''
+        References to the atoms_group section containing the group of atoms/molecule/groups of molecules for which the property was calculated.
         ''')
 
     n_times = Quantity(

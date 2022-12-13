@@ -21,13 +21,7 @@ import assert from 'assert'
 import { set, get, isNil, isEqual, isArray, has, capitalize, isPlainObject} from 'lodash'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from './Plot'
-import {
-  PropertyGrid,
-  PropertyItem,
-  PropertyMethodologyItem,
-  PropertyMethodologyList,
-  PropertySubGrid
-} from '../entry/properties/PropertyCard'
+import { PropertyItem, PropertySubGrid } from '../entry/properties/PropertyCard'
 import { getLocation } from '../../utils'
 import { Quantity, Unit, useUnits } from '../../units'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
@@ -149,15 +143,7 @@ const RadialDistributionFunction = React.memo(({
     return plots
   }, [className, finalData, finalLayout, testID])
 
-  return <PropertyGrid>
-    {plots}
-    {methodology && <PropertyMethodologyList xs={12}>
-      <PropertyMethodologyItem
-        title="Molecular dynamics"
-        data={methodology.molecular_dynamics}
-        path={([...rdfPath, 'methodology', 'molecular_dynamics']).join('.')}/>
-    </PropertyMethodologyList>}
-  </PropertyGrid>
+  return plots
 })
 
 const rdfPlotShape = PropTypes.oneOfType([

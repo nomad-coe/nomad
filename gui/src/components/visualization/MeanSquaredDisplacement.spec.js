@@ -17,9 +17,8 @@
  */
 import React from 'react'
 import { render } from '../conftest.spec'
-import { expectMethodologyItem } from '../entry/conftest.spec'
 import { expectPlot, VisualizationState } from './conftest.spec'
-import MeanSquaredDisplacement, { msdError, msdPath } from './MeanSquaredDisplacement'
+import MeanSquaredDisplacement, { msdError } from './MeanSquaredDisplacement'
 
 test.each([
   ['no data', VisualizationState.NoData, {molecular: false}, undefined],
@@ -31,16 +30,4 @@ test.each([
 ])('msd plot: %s', async (id, state, data, placeholderTestID) => {
   render(<MeanSquaredDisplacement msd={data} />)
   await expectPlot(state, placeholderTestID, msdError)
-})
-
-test.each([
-  ['no methodology', undefined],
-  ['valid methodology', {molecular_dynamics: {time_step: 2e-15, ensemble_type: 'NVT'}}]
-])('methodology is displayed correctly: %s', async (state, methodology) => {
-  render(<MeanSquaredDisplacement msd={{}} methodology={methodology}/>)
-  expectMethodologyItem(
-    'Molecular dynamics',
-    methodology,
-    `${msdPath.join('.')}.methodology`
-  )
 })
