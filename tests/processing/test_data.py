@@ -327,6 +327,7 @@ def test_publish_to_central_nomad(
 
     import_settings = config.bundle_import.default_settings.customize(import_settings)
     monkeypatch.setattr('nomad.config.bundle_import.default_settings', import_settings)
+    monkeypatch.setattr('nomad.config.bundle_import.allow_bundles_from_oasis', True)
 
     old_upload.publish_externally(embargo_length=embargo_length)
     old_upload.block_until_complete()

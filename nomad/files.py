@@ -255,7 +255,10 @@ class FileSource(metaclass=ABCMeta):
     The files in the source are associated with paths and have known sizes.
     '''
     def to_streamed_files(self) -> Iterable[StreamedFile]:
-        ''' Retrieves the files in the source as :class:`StreamedFile` objects. '''
+        '''
+        Retrieves the files in the source as :class:`StreamedFile` objects.
+        The caller should close the streams when consumed.
+        '''
         raise NotImplementedError()
 
     def to_zipstream(self) -> Iterator[bytes]:
@@ -292,8 +295,9 @@ class FileSource(metaclass=ABCMeta):
                 PathObject(os_path).delete()
             os.makedirs(dir_path, exist_ok=True)
             with open(os_path, 'wb') as output_file:
-                for chunk in streamed_file.f:
-                    output_file.write(chunk)
+                with streamed_file.f:
+                    for chunk in streamed_file.f:
+                        output_file.write(chunk)
 
     def close(self):
         ''' Perform "closing" of the source, if applicable. '''
@@ -454,22 +458,18 @@ class ZipFileSource(BrowsableFileSource):
 class CombinedFileSource(FileSource):
     '''
     Class for defining a :class:`FileSource` by combining multiple "subsources" into one.
-    New sources are added using :func:`add_file_source`.
     '''
-    def __init__(self):
-        self.sources = []
-
-    def add_file_source(self, file_source: FileSource):
-        assert isinstance(file_source, FileSource)
-        self.sources.append(file_source)
+    def __init__(self, file_sources=Iterable[FileSource]):
+        ''' file_sources: an Iterable for getting FileSources. '''
+        self.file_sources = file_sources
 
     def to_streamed_files(self) -> Iterable[StreamedFile]:
-        for file_source in self.sources:
+        for file_source in self.file_sources:
             for streamed_file in file_source.to_streamed_files():
                 yield streamed_file
 
     def to_disk(self, destination_dir: str, move_files: bool = False, overwrite: bool = False):
-        for file_source in self.sources:
+        for file_source in self.file_sources:
             file_source.to_disk(destination_dir, move_files, overwrite)
 
 
@@ -511,11 +511,12 @@ def create_zipstream_content(streamed_files: Iterable[StreamedFile]) -> Iterable
     for streamed_file in streamed_files:
 
         def content_generator():
-            while True:
-                data = streamed_file.f.read(1024 * 64)
-                if not data:
-                    break
-                yield data
+            with streamed_file.f as f:
+                while True:
+                    data = f.read(1024 * 64)
+                    if not data:
+                        break
+                    yield data
 
         yield dict(
             arcname=streamed_file.path,
@@ -679,26 +680,22 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
                     utils.get_logger(__name__).error(
                         'could not remove empty prefix dir', directory=parent_directory, exc_info=e)
 
-    def files_to_bundle(
-            self, bundle_info: Dict[str, Any],
-            include_raw_files: bool,
-            include_archive_files: bool) -> FileSource:
+    def files_to_bundle(self, export_settings: config.NomadConfig) -> Iterable[FileSource]:
         '''
-        Returns a :class:`FileSource`, defining the files/folders to be included in an
-        upload bundle when *exporting*. Note, the bundle_info.json file is not included,
-        only the "regular" files, and only those specified by the arguments to the method.
+        A generator of :class:`FileSource` objects, defining the files/folders to be included in an
+        upload bundle when *exporting*. The arguments allows for further filtering of what to include.
+
+        Note, this only yields files to copy from the regular upload directory, not "special" files,
+        like the bundle_info.json file, which is created by the :class:`BundleExporter`.
         '''
         raise NotImplementedError()
 
     @classmethod
     def files_from_bundle(
-            cls, bundle_file_source: BrowsableFileSource,
-            include_raw_files: bool,
-            include_archive_files: bool,
-            include_bundle_info: bool) -> FileSource:
+            cls, bundle_file_source: BrowsableFileSource, import_settings: config.NomadConfig) -> Iterable[FileSource]:
         '''
-        Returns a :class:`FileSource`, defining the files/folders to be included in an
-        upload bundle when *importing*. Only the files specified by the arguments are included.
+        Returns an Iterable of :class:`FileSource`, defining the files/folders to be included in an
+        upload bundle when *importing*. Only the files specified by the import_settings are included.
         '''
         raise NotImplementedError()
 
@@ -1178,33 +1175,23 @@ class StagingUploadFiles(UploadFiles):
             hash.update(mainfile_key.encode('utf8'))
         return utils.make_websave(hash)
 
-    def files_to_bundle(
-            self, bundle_info: Dict[str, Any],
-            include_raw_files: bool, include_archive_files: bool) -> FileSource:
-        # Files to export for staging uploads.
-        rv = CombinedFileSource()
-        rv.add_file_source(StreamedFileSource(json_to_streamed_file(bundle_info, bundle_info_filename)))
-        if include_raw_files:
-            rv.add_file_source(DiskFileSource(self.os_path, 'raw'))
-        if include_archive_files:
-            rv.add_file_source(DiskFileSource(self.os_path, 'archive'))
-        return rv
+    def files_to_bundle(self, export_settings: config.NomadConfig) -> Iterable[FileSource]:
+        # Defines files for upload bundles of staging uploads.
+        if export_settings.include_raw_files:
+            yield DiskFileSource(self.os_path, 'raw')
+        if export_settings.include_archive_files:
+            yield DiskFileSource(self.os_path, 'archive')
 
     @classmethod
     def files_from_bundle(
-            cls, bundle_file_source: BrowsableFileSource,
-            include_raw_files: bool,
-            include_archive_files: bool,
-            include_bundle_info: bool) -> FileSource:
+            cls, bundle_file_source: BrowsableFileSource, import_settings: config.NomadConfig) -> Iterable[FileSource]:
         # Files to import for a staging upload
-        rv = CombinedFileSource()
-        if include_raw_files:
-            rv.add_file_source(bundle_file_source.sub_source('raw'))
-        if include_archive_files:
-            rv.add_file_source(bundle_file_source.sub_source('archive'))
-        if include_bundle_info:
-            rv.add_file_source(bundle_file_source.sub_source(bundle_info_filename))
-        return rv
+        if import_settings.include_raw_files:
+            yield bundle_file_source.sub_source('raw')
+        if import_settings.include_archive_files:
+            yield bundle_file_source.sub_source('archive')
+        if import_settings.include_bundle_info:
+            yield bundle_file_source.sub_source(bundle_info_filename)
 
 
 class PublicUploadFiles(UploadFiles):
@@ -1217,6 +1204,7 @@ class PublicUploadFiles(UploadFiles):
         self._archive_msg_file_object: PathObject = None
         self._archive_msg_file: ArchiveReader = None
         self._access: str = None
+        self._missing_raw_files: bool = None
 
     @classmethod
     def file_area(cls):
@@ -1292,6 +1280,12 @@ class PublicUploadFiles(UploadFiles):
         self._raw_zip_file = zipfile.ZipFile(zip_path)
 
         return self._raw_zip_file
+
+    @property
+    def missing_raw_files(self):
+        if self._missing_raw_files is None:
+            self._missing_raw_files = not os.path.exists(self.raw_zip_file_object().os_path)
+        return self._missing_raw_files
 
     @staticmethod
     def _create_msg_file_object(target_dir: DirectoryObject, access: str) -> PathObject:
@@ -1397,6 +1391,8 @@ class PublicUploadFiles(UploadFiles):
     def raw_path_exists(self, path: str) -> bool:
         if not is_safe_relative_path(path):
             return False
+        if self.missing_raw_files:
+            return not path  # We consider the empty path (i.e. root) to always "exists".
         self._parse_content()
         explicit_directory_path = path.endswith(os.path.sep)
         path = path.rstrip(os.path.sep)
@@ -1414,7 +1410,7 @@ class PublicUploadFiles(UploadFiles):
         return False
 
     def raw_path_is_file(self, path: str) -> bool:
-        if not is_safe_relative_path(path):
+        if not is_safe_relative_path(path) or self.missing_raw_files:
             return False
         self._parse_content()
         base_name = os.path.basename(path)
@@ -1430,6 +1426,8 @@ class PublicUploadFiles(UploadFiles):
     def raw_directory_list(
             self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[RawPathInfo]:
         if not is_safe_relative_path(path):
+            return
+        if not path and self.missing_raw_files:
             return
         self._parse_content()
         path = path.rstrip(os.path.sep)
@@ -1522,96 +1520,21 @@ class PublicUploadFiles(UploadFiles):
         self._raw_zip_file = self._raw_zip_file_object = None
         self._archive_msg_file = self._archive_msg_file_object = None
 
-    def files_to_bundle(
-            self, bundle_info: Dict[str, Any],
-            include_raw_files: bool, include_archive_files: bool) -> FileSource:
+    def files_to_bundle(self, export_settings: config.NomadConfig) -> Iterable[FileSource]:
         # Defines files for upload bundles of published uploads.
-        rv = CombinedFileSource()
-        rv.add_file_source(StreamedFileSource(json_to_streamed_file(bundle_info, bundle_info_filename)))
-        for filename in os.listdir(self.os_path):
-            if filename.startswith('raw-') and include_raw_files:
-                rv.add_file_source(DiskFileSource(self.os_path, filename))
-            if filename.startswith('archive-') and include_archive_files:
-                rv.add_file_source(DiskFileSource(self.os_path, filename))
-        return rv
+        for filename in sorted(os.listdir(self.os_path)):
+            if filename.startswith('raw-') and export_settings.include_raw_files:
+                yield DiskFileSource(self.os_path, filename)
+            if filename.startswith('archive-') and export_settings.include_archive_files:
+                yield DiskFileSource(self.os_path, filename)
 
     @classmethod
     def files_from_bundle(
-            cls, bundle_file_source: BrowsableFileSource,
-            include_raw_files: bool,
-            include_archive_files: bool,
-            include_bundle_info: bool) -> FileSource:
-        rv = CombinedFileSource()
+            cls, bundle_file_source: BrowsableFileSource, import_settings: config.NomadConfig) -> Iterable[FileSource]:
         for filename in bundle_file_source.directory_list(''):
-            if filename.startswith('raw-') and include_raw_files:
-                rv.add_file_source(bundle_file_source.sub_source(filename))
-            if filename.startswith('archive-') and include_archive_files:
-                rv.add_file_source(bundle_file_source.sub_source(filename))
-            if filename == bundle_info_filename and include_bundle_info:
-                rv.add_file_source(bundle_file_source.sub_source(filename))
-        return rv
-
-
-class UploadBundle:
-    '''
-    Class for handling file-related logic for an *upload bundle*. Upload bundles are used
-    to import and export uploads between different NOMAD installations.
-    '''
-    def __init__(self, path: str):
-        ''' Creates an UploadBundle instance. The `path` should denote a zipfile or a folder. '''
-        self.path = path
-        self.file_source: BrowsableFileSource = None
-        self._bundle_info: Dict[str, Any] = None
-        if os.path.isdir(path):
-            self.file_source = DiskFileSource(path)
-        else:
-            assert zipfile.is_zipfile(path), '`path` must define a folder or a zipfile.'
-            zip_file = zipfile.ZipFile(path, 'r')
-            self.file_source = ZipFileSource(zip_file)
-
-    @property
-    def bundle_info(self) -> Dict[str, Any]:
-        if self._bundle_info is None:
-            with self.file_source.open(bundle_info_filename, 'rt') as f:
-                self._bundle_info = json.load(f, cls=StandardJSONDecoder)
-        return self._bundle_info
-
-    def import_upload_files(
-            self, include_raw_files: bool, include_archive_files: bool, include_bundle_info: bool,
-            move_files: bool) -> UploadFiles:
-        '''
-        Creates an :class:`UploadFiles` object of the right type and imports the selected
-        files to it. The target folder must not already exist.
-        '''
-        try:
-            upload_files: UploadFiles = None
-            upload_id: str = self.bundle_info['upload_id']
-            published: bool = self.bundle_info.get('upload', {}).get('publish_time') is not None
-            cls = PublicUploadFiles if published else StagingUploadFiles
-            assert not os.path.exists(cls.base_folder_for(upload_id)), 'Upload folder already exists'
-            upload_files = cls(upload_id, create=True)
-            import_file_source = upload_files.files_from_bundle(
-                self.file_source, include_raw_files, include_archive_files, include_bundle_info)
-            import_file_source.to_disk(upload_files.os_path, move_files=move_files, overwrite=True)
-            return upload_files
-        except Exception:
-            # Some thing went wrong. Delete the files and re-raise the original exception
-            if upload_files:
-                upload_files.delete()
-            raise
-
-    def close(self):
-        self.file_source.close()
-
-    def delete(self, include_parent_folder: bool = False):
-        '''
-        Deletes the bundle files. If `include_parent_folder` is set, and the parent folder
-        is empty, it is also deleted.
-        '''
-        self.close()
-        if os.path.exists(self.path):
-            PathObject(self.path).delete()
-        if include_parent_folder:
-            parent_folder = os.path.dirname(self.path)
-            if not os.listdir(parent_folder):
-                PathObject(parent_folder).delete()
+            if filename.startswith('raw-') and import_settings.include_raw_files:
+                yield bundle_file_source.sub_source(filename)
+            if filename.startswith('archive-') and import_settings.include_archive_files:
+                yield bundle_file_source.sub_source(filename)
+            if filename == bundle_info_filename and import_settings.include_bundle_info:
+                yield bundle_file_source.sub_source(filename)

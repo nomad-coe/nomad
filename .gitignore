@@ -21,11 +21,14 @@ gui/public/env.js
 !ops/docker-compose/nomad-oasis/configs/nomad.yaml
 !ops/docker-compose/nomad-oasis-with-keycloak/configs/nomad.yaml
 
-# Ignore built gui and docs artufacts
+# Ignore built gui and docs artifacts
 nomad/app/static/
 
 nomad/normalizing/data/*.db
 nomad/normalizing/data/*.msg
+
+# Ignore default output dir for the bundle CLI commands
+bundles
 
 # Side effect of examples/dos_analyzer.ipynb
 examples/workdir/

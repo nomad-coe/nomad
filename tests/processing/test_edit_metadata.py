@@ -22,7 +22,7 @@ from fastapi.exceptions import RequestValidationError
 
 from nomad import datamodel, metainfo
 from nomad.processing import Upload, MetadataEditRequestHandler
-from nomad.processing.data import _editable_metadata, _mongo_upload_metadata
+from nomad.processing.data import editable_metadata, mongo_upload_metadata
 from nomad.search import search
 
 
@@ -39,10 +39,10 @@ all_coauthor_metadata = dict(
     datasets=['test_dataset_1'])
 
 all_coauthor_upload_metadata = {
-    k: v for k, v in all_coauthor_metadata.items() if k in _mongo_upload_metadata}
+    k: v for k, v in all_coauthor_metadata.items() if k in mongo_upload_metadata}
 
 all_coauthor_entry_metadata = {
-    k: v for k, v in all_coauthor_metadata.items() if k not in _mongo_upload_metadata}
+    k: v for k, v in all_coauthor_metadata.items() if k not in mongo_upload_metadata}
 
 all_admin_metadata = dict(
     # Every attribute which only admins can set
@@ -53,7 +53,7 @@ all_admin_metadata = dict(
     main_author='lhofstadter')
 
 all_admin_entry_metadata = {
-    k: v for k, v in all_admin_metadata.items() if k not in _mongo_upload_metadata}
+    k: v for k, v in all_admin_metadata.items() if k not in mongo_upload_metadata}
 
 
 def assert_edit_request(user, **kwargs):
@@ -101,7 +101,7 @@ def assert_metadata_edited(
             values_to_check = expected_metadata
             for quantity_name, value_expected in values_to_check.items():
                 # Note, the expected value is provided on the "request format"
-                quantity = _editable_metadata[quantity_name]
+                quantity = editable_metadata[quantity_name]
                 if quantity_name == 'embargo_length':
                     assert upload.embargo_length == value_expected
                     assert entry_metadata_mongo['embargo_length'] == value_expected

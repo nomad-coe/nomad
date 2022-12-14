@@ -408,35 +408,64 @@ rfc3161_timestamp = NomadConfig(
     password=None
 )
 
-bundle_import = NomadConfig(
-    # Basic settings
-    allow_bundles_from_oasis=True,  # If oasis admins can "push" bundles to this NOMAD deployment
-    allow_unpublished_bundles_from_oasis=False,  # If oasis admins can "push" bundles of unpublished uploads
-    required_nomad_version='1.0.0',  # Minimum  nomad version of bundles required for import
+bundle_export = NomadConfig(
+    # General settings
+    default_cli_bundle_export_path='./bundles',
 
+    # Default settings
     default_settings=NomadConfig(
-        # Default settings for the import_bundle process.
-        # Note, admins, and only admins, can override these settings when importing a bundle.
-        # This means that if oasis admins pushes bundles to this NOMAD deployment, these
-        # default settings will be applied.
+        # General default settings.
         include_raw_files=True,
-        include_archive_files=False,
+        include_archive_files=True,
+        include_datasets=True,
+    ),
+
+    default_settings_cli=NomadConfig(
+        # Additional default settings, applied when exporting using the CLI (command-line interface).
+        # This allows to override some of the settings specified in the general default settings above.
+    )
+)
+
+bundle_import = NomadConfig(
+    # General settings
+    required_nomad_version='1.1.2',  # Minimum  nomad version of bundles required for import
+    default_cli_bundle_import_path='./bundles',
+
+    # Permission settings
+    allow_bundles_from_oasis=False,  # If oasis admins can "push" bundles to this NOMAD deployment
+    allow_unpublished_bundles_from_oasis=False,  # If oasis admins can "push" bundles of unpublished uploads
+
+    # Default settings
+    default_settings=NomadConfig(
+        # General default settings.
+        include_raw_files=True,
+        include_archive_files=True,
         include_datasets=True,
         include_bundle_info=True,  # Keeps the bundle_info.json file (not necessary but nice to have)
         keep_original_timestamps=False,  # If all time stamps (create time, publish time etc) should be imported from the bundle
         set_from_oasis=True,  # If the from_oasis flag and oasis_deployment_url should be set
-        delete_upload_on_fail=False,  # If False, it is just removed from the ES index on failure
-        delete_bundle_when_done=True,  # Deletes the source bundle when done (regardless of success)
-        also_delete_bundle_parent_folder=True,  # Also deletes the parent folder, if it is empty.
-        trigger_processing=True,  # If the upload should be processed when the import is done.
+        # Cleanup settings
+        delete_upload_on_fail=False,  # If False, the entries are just removed from the ES index on failure
+        delete_bundle_on_fail=True,  # Deletes the source bundle if the import fails
+        delete_bundle_on_success=True,  # Deletes the source bundle if the import succeeds
+        delete_bundle_include_parent_folder=True,  # When deleting the bundle, also include parent folder, if empty.
 
-        # When importing with trigger_processing=True, the settings below control the
-        # initial processing behaviour (see the config for `reprocess` for more info).
+        # It is possible to trigger processing of the raw files, but it is no longer the
+        # preferred way to import bundles. If used, the settings below control the reprocessing
+        # behaviour (see the config for `reprocess` for more info).
+        trigger_processing=False,  # Set if you want to reprocess after import (not recommended).
         rematch_published=True,
         reprocess_existing_entries=True,
         use_original_parser=False,
         add_matched_entries_to_published=True,
         delete_unmatched_published_entries=False
+    ),
+
+    default_settings_cli=NomadConfig(
+        # Additional default settings, applied when importing using the CLI (command-line interface).
+        # This allows to override some of the settings specified in the general default settings above.
+        delete_bundle_on_fail=False,
+        delete_bundle_on_success=False
     )
 )
 

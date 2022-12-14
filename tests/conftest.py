@@ -36,7 +36,7 @@ import warnings
 import os.path
 from fastapi.testclient import TestClient
 
-from nomad import config, infrastructure, processing, utils, datamodel, files
+from nomad import config, infrastructure, processing, utils, datamodel, bundles
 from nomad.datamodel import User, EntryArchive, OptimadeEntry
 from nomad.utils import structlogging
 from nomad.archive import write_archive, read_archive, write_partial_archive_to_mongo
@@ -663,10 +663,10 @@ def oasis_publishable_upload(
     upload_id = non_empty_processed.upload_id
 
     # Do some tricks to add suffix to the ID fields
-    old_bundle_init = files.UploadBundle.__init__
+    old_bundle_importer_open = bundles.BundleImporter.open
 
-    def new_bundle_init(self, *args, **kwargs):
-        old_bundle_init(self, *args, **kwargs)
+    def new_bundle_importer_open(self, *args, **kwargs):
+        old_bundle_importer_open(self, *args, **kwargs)
         # Change the id's in the bundle_info dict behind the scenes when loading the bundle
         bundle_info = self.bundle_info
         bundle_info['upload_id'] += suffix
@@ -676,12 +676,12 @@ def oasis_publishable_upload(
                 upload_id + suffix, entry_dict['mainfile'], entry_dict.get('mainfile_key'))
             entry_dict['upload_id'] += suffix
 
-    old_bundle_import_files = files.UploadBundle.import_upload_files
+    old_bundle_import_files = bundles.BundleImporter._import_files
 
     def new_bundle_import_files(self, *args, **kwargs):
-        upload_files = old_bundle_import_files(self, *args, **kwargs)
+        old_bundle_import_files(self, *args, **kwargs)
         # Overwrite the archive files with files containing the updated IDs
-        archive_path = upload_files.os_path
+        archive_path = self.upload_files.os_path
         for file_name in os.listdir(archive_path):
             if file_name.endswith('.msg'):
                 full_path = os.path.join(archive_path, file_name)
@@ -698,10 +698,9 @@ def oasis_publishable_upload(
                     section_metadata['entry_id'] = new_entry_id
                     new_data.append((new_entry_id, archive_dict))
                 write_archive(full_path, len(new_data), new_data)
-        return upload_files
 
-    monkeypatch.setattr('nomad.files.UploadBundle.__init__', new_bundle_init)
-    monkeypatch.setattr('nomad.files.UploadBundle.import_upload_files', new_bundle_import_files)
+    monkeypatch.setattr('nomad.bundles.BundleImporter.open', new_bundle_importer_open)
+    monkeypatch.setattr('nomad.bundles.BundleImporter._import_files', new_bundle_import_files)
 
     # Further monkey patching
     def new_post(url, data, params={}, **kwargs):

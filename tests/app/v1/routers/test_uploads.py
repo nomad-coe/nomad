@@ -37,6 +37,7 @@ from tests.app.v1.routers.common import assert_response, assert_browser_download
 from nomad import config, files, infrastructure
 from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
+from nomad.bundles import BundleExporter
 from nomad.datamodel import EntryMetadata
 
 from .test_entries import assert_archive_response
@@ -1645,6 +1646,7 @@ def test_post_upload_action_publish_to_central_nomad(
 
     import_settings = config.bundle_import.default_settings.customize(import_settings)
     monkeypatch.setattr('nomad.config.bundle_import.default_settings', import_settings)
+    monkeypatch.setattr('nomad.config.bundle_import.allow_bundles_from_oasis', True)
 
     # Finally, invoke the method to publish to central nomad
     response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
@@ -1891,11 +1893,11 @@ def test_post_upload_bundle(
     upload_id = upload.upload_id
     export_path = os.path.join(config.fs.tmp, 'bundle_' + upload_id)
     export_args_with_defaults = dict(
-        export_as_stream=False, export_path=export_path,
-        zipped=True, move_files=False, overwrite=True,
-        include_raw_files=True, include_archive_files=True, include_datasets=True)
+        export_as_stream=False, export_path=export_path, zipped=True, overwrite=True,
+        export_settings=config.bundle_export.default_settings)
     export_args_with_defaults.update(export_args)
-    upload.export_bundle(**export_args_with_defaults)
+    BundleExporter(upload, **export_args_with_defaults).export_bundle()
+
     if not test_duplicate:
         # Delete the upload so we can import the bundle without id collisions
         upload.delete_upload_local()

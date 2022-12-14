@@ -420,5 +420,9 @@ def test_local_blocking(worker, mongo, reset_events):
 
 def test_local_failed(worker, mongo, reset_events):
     p = ParentProc.create(parent_id='p')
-    p.local_process(fail=True)
+    try:
+        p.local_process(fail=True)
+        raise RuntimeError('local_process expected to throw an exception')
+    except AssertionError:
+        pass  # Expected to happen
     assert p.process_status == ProcessStatus.FAILURE
