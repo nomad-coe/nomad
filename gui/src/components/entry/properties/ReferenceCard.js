@@ -20,7 +20,7 @@
 import React, { memo, useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
-import { Collapse, List, ListItem, ListItemText, Tooltip } from '@material-ui/core'
+import { Box, Collapse, List, ListItem, ListItemText, Tooltip } from '@material-ui/core'
 import { useApi } from '../../api'
 import { useErrors } from '../../errors'
 import Quantity from '../../Quantity'
@@ -53,16 +53,6 @@ const defaultColumns = [
 ]
 
 const baseQuery = {
-  'exclude': [
-    'atoms',
-    'only_atoms',
-    'files',
-    'quantities',
-    'dft.quantities',
-    'optimade',
-    'dft.labels',
-    'dft.geometries'
-  ],
   'required': {
     'metadata': '*'
   },
@@ -111,10 +101,14 @@ const ReferenceUsingCard = memo(({index}) => {
 
     const referencing_query = {
       ...baseQuery,
-      ...{query: {'entry_id': [...targetEntryIds]}}
+      query: {
+        'entry_id:any': [...targetEntryIds]
+      }
     }
     api.query('entries', referencing_query, {noLoading: true})
-      .then((data) => setReferencingPool(data.data))
+      .then((data) => {
+        setReferencingPool(data.data)
+      })
       .catch(raiseError)
   }, [api, index, raiseError])
 
@@ -147,7 +141,11 @@ const ReferenceUsingCard = memo(({index}) => {
         </Tooltip>
         {openReferencing ? <ExpandLessIcon fontSize="small"/> : <ExpandMoreIcon fontSize="small"/>}
       </ListItem>
-      <Collapse in={openReferencing} timeout="auto">{referencingList}</Collapse>
+      <Collapse in={openReferencing} timeout="auto">
+        <Box marginBottom={3}>
+          {referencingList}
+        </Box>
+      </Collapse>
       <ListItem button onClick={() => setOpenReferenced(!openReferenced)}>
         <Tooltip
           title={(referencedPool?.length >= 20 ? 'Only showing the latest 20 entries. ' : '') + 'Click to expand/collapse'}>
