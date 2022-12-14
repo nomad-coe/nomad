@@ -16,8 +16,11 @@
 # limitations under the License.
 #
 
-import click
 import typing
+import click
+import json
+import os
+import traceback
 
 from nomad import config
 
@@ -556,3 +559,193 @@ def entry_index(ctx, uploads):
 
         if search_results.pagination.total != upload.total_entries_count:
             print(upload.upload_id)
+
+
+@uploads.command(help='''Export one or more uploads as bundles.''')
+@click.argument('UPLOADS', nargs=-1)
+@click.option(
+    '--out-dir', type=str,
+    help=f'Output folder. Default value is "{config.bundle_export.default_cli_bundle_export_path}" (defined in config)')
+@click.option(
+    '--uncompressed', is_flag=True,
+    help='Specify to export each bundle as an uncompressed folder, instead of a zip-file.')
+@click.option(
+    '--overwrite', is_flag=True,
+    help='Specify to, for each bundle, overwrite the destination file/folder if it already exists.')
+@click.option(
+    '--settings', '-s', type=str,
+    help='''The export settings, specified as json. Settings not specified in the dictionary
+            will be set to the default values.''')
+@click.option(
+    '--ignore-errors', '-i', is_flag=True,
+    help='''Specify to ignore errors on individual uploads, and continue exporting (the default
+            behaviour is to abort on first failing upload).''')
+@click.pass_context
+def export_bundle(ctx, uploads, out_dir, uncompressed, overwrite, settings, ignore_errors):
+    from nomad.bundles import BundleExporter
+
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+
+    default_export_settings = config.bundle_export.default_settings.customize(config.bundle_export.default_settings_cli)
+
+    if settings:
+        settings = json.loads(settings)
+        try:
+            export_settings = default_export_settings.customize(settings)
+            BundleExporter.check_export_settings(export_settings)
+        except AssertionError as e:
+            # Invalid setting provided
+            print(e)
+            print('\nAvailable settings and their configured default values:')
+            for k, v in default_export_settings.items():
+                print(f'    {k:<40}: {v}')
+            return -1
+    else:
+        export_settings = default_export_settings
+
+    out_dir = out_dir or config.bundle_export.default_cli_bundle_export_path
+
+    count = 0
+    count_failed = 0
+    try:
+        for upload in uploads:
+            try:
+                count += 1
+                print(f'Exporting upload {count} of {len(uploads)}: {upload.upload_id}')
+                bundle_name = f'bundle_{upload.upload_id}' + ('.zip' if not uncompressed else '')
+                export_path = os.path.abspath(os.path.join(out_dir, bundle_name))
+
+                BundleExporter(
+                    upload,
+                    export_as_stream=False,
+                    export_path=export_path,
+                    zipped=not uncompressed,
+                    overwrite=overwrite,
+                    export_settings=export_settings).export_bundle()
+
+            except Exception:
+                count_failed += 1
+                print(f'ERROR: Failed to export bundle: {upload.upload_id}')
+                traceback.print_exc()
+                if not ignore_errors:
+                    print('Aborting export ...')
+                    return -1
+    finally:
+        print('-' * 80 + '\nSummary:\n' + '-' * 80)
+        print(f'Successfully exported: {count - count_failed} out of {len(uploads)}')
+        if count_failed:
+            print(f'FAILED to export: {count_failed}')
+            if not ignore_errors:
+                print(f'Aborted export for {len(uploads) - count} subsequent uploads.')
+
+
+@uploads.command(help='''Import one or more uploads from bundles. Unless specified by the user,
+                         the configured default import settings are used.''')
+@click.option(
+    '--in', 'input_path', type=str,
+    help='The input path, specifying a bundle or a folder containing multiple bundles.')
+@click.option(
+    '--multi', '-m', is_flag=True,
+    help=f'''Specify this flag if the input_path is a folder containing multiple bundles, and
+             all these should be imported. If this option is specified without specifying --in, we
+             will default the input path to {config.bundle_import.default_cli_bundle_import_path}''')
+@click.option(
+    '--settings', '-s', type=str,
+    help='''The import settings, specified as json. Settings not specified in the dictionary
+            will be set to the default values.''')
+@click.option(
+    '--embargo_length', '-e', type=int,
+    help='''The embargo length (0-36 months). 0 means no embargo. If unspecified, the embargo
+            period defined in the bundle will be used.''')
+@click.option(
+    '--use-celery', '-c', is_flag=True,
+    help='''If specified, uses celery and the worker pool to do the main part of the import.
+            NOTE: this requires that the workers can access the bundle via the exact same path.''')
+@click.option(
+    '--ignore-errors', '-i', is_flag=True,
+    help='''Specify this flag to ignore errors on individual bundles, and continue importing
+            (the default behaviour is to abort on first failing bundle).''')
+@click.pass_context
+def import_bundle(ctx, input_path, multi, settings, embargo_length, use_celery, ignore_errors):
+    from nomad.bundles import BundleImporter
+    from nomad import infrastructure
+
+    for key, value in ctx.obj.uploads_kwargs.items():
+        if value:
+            print(f'Bad argument: "{key}" (query args are not applicable for bundle-import)')
+            return -1
+    if not input_path and not multi:
+        print('Need to specify a bundle source, using --in, --multi, or both.')
+        return -1
+    if multi and not input_path:
+        input_path = config.bundle_import.default_cli_bundle_import_path
+
+    if multi:
+        if not os.path.isdir(input_path):
+            print(f'No such folder: "{input_path}"')
+            return -1
+        bundle_paths = [
+            os.path.abspath(os.path.join(input_path, element)) for element in sorted(os.listdir(input_path))]
+    else:
+        if not os.path.exists(input_path):
+            print(f'Path not found: {input_path}')
+        bundle_paths = [os.path.abspath(input_path)]
+
+    default_import_settings = config.bundle_import.default_settings.customize(config.bundle_import.default_settings_cli)
+
+    if settings:
+        settings = json.loads(settings)
+        try:
+            import_settings = default_import_settings.customize(settings)
+            BundleImporter.check_import_settings(import_settings)
+        except Exception as e:
+            # Invalid setting provided
+            print(e)
+            print('\nAvailable settings and their configured default values:')
+            for k, v in default_import_settings.items():
+                print(f'    {k:<40}: {v}')
+            return -1
+    else:
+        import_settings = default_import_settings
+
+    infrastructure.setup()
+
+    count = count_failed = 0
+    try:
+        for bundle_path in bundle_paths:
+            if BundleImporter.looks_like_a_bundle(bundle_path):
+                count += 1
+                print(f'Importing bundle: {bundle_path}')
+                bundle_importer: BundleImporter = None
+                try:
+                    bundle_importer = BundleImporter(None, import_settings, embargo_length)
+                    bundle_importer.open(bundle_path)
+                    upload = bundle_importer.create_upload_skeleton()
+                    if use_celery:
+                        # Run using celery (as a @process)
+                        bundle_importer.close()
+                        upload.import_bundle(bundle_path, import_settings, embargo_length)
+                    else:
+                        # Run in same thread (as a @process_local)
+                        upload.import_bundle_local(bundle_importer)
+                    if upload.errors:
+                        raise RuntimeError(f'Import failed: {upload.errors[0]}')
+                except Exception:
+                    count_failed += 1
+                    print(f'ERROR: Failed to import bundle: {bundle_path}')
+                    traceback.print_exc()
+                    if not ignore_errors:
+                        print('Aborting import ...')
+                        return -1
+                finally:
+                    if bundle_importer:
+                        bundle_importer.close()
+            else:
+                print(f'Skipping, does not look like a bundle: {bundle_path}')
+    finally:
+        print('-' * 80 + '\nSummary:\n' + '-' * 80)
+        print(f'Number of bundles successfully {"sent to worker" if use_celery else "imported"}: {count - count_failed}')
+        if count_failed:
+            print(f'FAILED to import: {count_failed}')
+            if not ignore_errors:
+                print('Aborted import after first failure.')

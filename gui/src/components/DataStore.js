@@ -168,8 +168,8 @@ const DataStore = React.memo(({children}) => {
     }
     const viewers = newStoreObj.upload?.viewers
     const writers = newStoreObj.upload?.writers
-    newStoreObj.isViewer = user && viewers?.includes(user.sub)
-    newStoreObj.isWriter = user && writers?.includes(user.sub)
+    newStoreObj.isViewer = !!(user && viewers?.includes(user.sub))
+    newStoreObj.isWriter = !!(user && writers?.includes(user.sub))
     newStoreObj.isEditable = newStoreObj.isWriter && !newStoreObj.upload.published
 
     // Update the store

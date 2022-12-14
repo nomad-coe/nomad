@@ -30,7 +30,8 @@ from fastapi.responses import StreamingResponse
 from fastapi.exceptions import RequestValidationError
 
 from nomad import utils, config, files
-from nomad.files import StagingUploadFiles, UploadBundle, is_safe_relative_path, is_safe_basename
+from nomad.files import StagingUploadFiles, is_safe_relative_path, is_safe_basename
+from nomad.bundles import BundleExporter, BundleImporter
 from nomad.processing import Upload, Entry, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
 from nomad.search import search, search_iterator, refresh as search_refresh, QueryValidationError
@@ -1039,13 +1040,6 @@ async def put_upload_raw_path(
                 index_invidiual_entries=True, reprocess_existing_entries=True)
             entry = upload.put_file_and_process_local(
                 upload_path, path, reprocess_settings=reprocess_settings)
-            if upload.process_status == ProcessStatus.FAILURE:
-                # Should only happen if we fail to put the file, match the file, or to *initiate*
-                # entry processing - i.e. normally, this shouldn't happen, not even with
-                # a badly formatted/unparsable mainfile.
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f'Failed to put and process: {upload.errors[0]}')
 
             search_refresh()
 
@@ -1417,7 +1411,7 @@ async def delete_upload(
     not currently processed, can be deleted.
     '''
     upload = _get_upload_with_write_access(
-        upload_id, user, include_published=True, published_requires_admin=True)
+        upload_id, user, include_published=True, published_requires_admin=True, include_failed_imports=True)
 
     try:
         upload.delete_upload()
@@ -1665,11 +1659,25 @@ async def get_upload_bundle(
     upload = _get_upload_with_read_access(upload_id, user, include_others=True)
     _check_upload_not_processing(upload)
 
+    export_settings_dict: Dict[str, Any] = dict(
+        include_raw_files=include_raw_files,
+        include_archive_files=include_archive_files,
+        include_datasets=include_datasets)
+
+    for k, v in export_settings_dict.copy().items():
+        if v is None:
+            del export_settings_dict[k]
+
+    export_settings = config.bundle_export.default_settings.customize(export_settings_dict)
+
     try:
-        stream = upload.export_bundle(
-            export_as_stream=True, export_path=None, zipped=True, move_files=False, overwrite=False,
-            include_raw_files=include_raw_files, include_archive_files=include_archive_files,
-            include_datasets=include_datasets)
+        stream = BundleExporter(
+            upload,
+            export_as_stream=True,
+            export_path=None,
+            zipped=True,
+            overwrite=False,
+            export_settings=export_settings).export_bundle()
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
             Could not export due to error: ''' + str(e)))
@@ -1747,67 +1755,53 @@ async def post_upload_bundle(
     file data in the http body. Both are supported. See the POST `uploads` endpoint for
     examples of curl commands for uploading files.
     '''
-    is_admin = user.is_admin
-    is_oasis = not is_admin and user.is_oasis_admin and config.bundle_import.allow_bundles_from_oasis
+    import_settings_dict: Dict[str, Any] = dict(
+        include_raw_files=include_raw_files,
+        include_archive_files=include_archive_files,
+        include_datasets=include_datasets,
+        include_bundle_info=include_bundle_info,
+        keep_original_timestamps=keep_original_timestamps,
+        set_from_oasis=set_from_oasis,
+        trigger_processing=trigger_processing)
 
-    if not is_admin and not is_oasis:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail='User not authorized to upload bundles')
+    for k, v in import_settings_dict.copy().items():
+        if v is None:
+            del import_settings_dict[k]
 
-    bundle_paths, method = await _get_files_if_provided(
-        tmp_dir_prefix='bundle', request=request, file=file, local_path=local_path, file_name=None, user=user)
+    import_settings = config.bundle_import.default_settings.customize(import_settings_dict)
 
-    if not bundle_paths:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail='No bundle file provided')
-    if len(bundle_paths) > 1:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail='Can only provide one bundle file at a time')
-    bundle_path = bundle_paths[0]
+    bundle_importer: BundleImporter = None
+    bundle_path: str = None
 
     try:
-        bundle: UploadBundle = None
-        bundle = UploadBundle(bundle_path)
+        bundle_importer = BundleImporter(user, import_settings)
+        bundle_importer.check_api_permissions()
 
-        if is_oasis and not config.bundle_import.allow_unpublished_bundles_from_oasis:
-            bundle_info = bundle.bundle_info
-            if not bundle_info.get('upload', {}).get('publish_time'):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f'Bundles uploaded from an oasis must be published in the oasis first.')
+        bundle_paths, method = await _get_files_if_provided(
+            tmp_dir_prefix='bundle', request=request, file=file, local_path=local_path, file_name=None, user=user)
 
-        settings_dict: Dict[str, Any] = dict(
-            include_raw_files=include_raw_files,
-            include_archive_files=include_archive_files,
-            include_datasets=include_datasets,
-            include_bundle_info=include_bundle_info,
-            keep_original_timestamps=keep_original_timestamps,
-            set_from_oasis=set_from_oasis,
-            trigger_processing=trigger_processing)
+        if not bundle_paths:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail='No bundle file provided')
+        if len(bundle_paths) > 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail='Can only provide one bundle file at a time')
+        bundle_path = bundle_paths[0]
 
-        for k, v in settings_dict.copy().items():
-            if v is None:
-                del settings_dict[k]
-            elif v is not None and not is_admin:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f'Specifying setting {k} requires an admin user')
-
-        upload = Upload.create_skeleton_from_bundle(bundle)
-        bundle.close()
-        upload.import_bundle(
-            bundle_path, move_files=False, embargo_length=embargo_length,
-            settings=settings_dict)
-
+        bundle_importer.open(bundle_path)
+        upload = bundle_importer.create_upload_skeleton()
+        bundle_importer.close()
+        # Run the import as a @process
+        upload.import_bundle(bundle_path=bundle_path, import_settings=import_settings, embargo_length=embargo_length)
         return UploadProcDataResponse(
             upload_id=upload.upload_id,
             data=_upload_to_pydantic(upload))
 
     except Exception as e:
-        if bundle:
-            bundle.close()
-        if method != 0:
-            bundle.delete(include_parent_folder=True)
+        if bundle_importer:
+            bundle_importer.close()
+            if bundle_path and method != 0:
+                bundle_importer.delete_bundle()
         if isinstance(e, HTTPException):
             raise
         raise HTTPException(
@@ -1966,7 +1960,7 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
 
 def _get_upload_with_write_access(
         upload_id: str, user: User, include_published: bool = False,
-        published_requires_admin: bool = True) -> Upload:
+        published_requires_admin: bool = True, include_failed_imports: bool = False) -> Upload:
     '''
     Determines if the specified user has write access to the specified upload. If so, the
     corresponding Upload object is returned. If the upload does not exist, or the user has
@@ -1985,10 +1979,12 @@ def _get_upload_with_write_access(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You do not have write access to the specified upload.'''))
     if upload.published:
+        is_failed_import = (
+            upload.current_process.startswith('import_bundle') and upload.process_status == ProcessStatus.FAILURE)
         if not include_published:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 Upload is already published, operation not possible.'''))
-        if published_requires_admin and not user.is_admin:
+        if published_requires_admin and not user.is_admin and not (is_failed_import and include_failed_imports):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 Upload is already published, only admins can perform this operation.'''))
     return upload

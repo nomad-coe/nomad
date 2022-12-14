@@ -1019,9 +1019,8 @@ def process_local(func):
     be a child process (as this means joining with a parent process when done).
 
     If successful, a local process can return a value to the caller (unlike celery processes).
-    Invoking a local process should only throw exceptions if it was not possible to start the
-    process (because some other process is running). Any other errors that happen during the
-    running of the process are handled in the usual way, by setting self.errors etc. The Proc
+    If unsuccessful, an exception will be raised (note that the usual process handling is
+    always applied, i.e. we set self.process_status, self.errors etc. accordingly). The Proc
     object should not have any unsaved changes when a local process is invoked.
     '''
     # Determine canonical class name
@@ -1046,25 +1045,27 @@ def process_local(func):
                 if self.errors:
                     # Should be impossible unless the process has tampered with self.errors, which
                     # it should not do. We will treat it essentially as if it had raised an exception
-                    self.fail('completed with errors but no exception, should not happen', complete=False)
+                    raise RuntimeError('completed with errors but no exception, should not happen')
+                # All looks good
+                self.on_success()
+                self.process_status = ProcessStatus.SUCCESS
+                self.complete_time = datetime.utcnow()
+                if self.warnings:
+                    self.last_status_message = f'Process {func_name} completed with warnings'
                 else:
-                    # All looks good
-                    self.on_success()
-                    self.process_status = ProcessStatus.SUCCESS
-                    self.complete_time = datetime.utcnow()
-                    if self.warnings:
-                        self.last_status_message = f'Process {func_name} completed with warnings'
-                    else:
-                        self.last_status_message = f'Process {func_name} completed successfully'
-                    logger.info('completed process')
-                    return rv
+                    self.last_status_message = f'Process {func_name} completed successfully'
+                logger.info('completed process')
+                return rv
         except SystemExit as e:
             self.fail(e, complete=False)
+            raise
         except ProcessFailure as e:
             # Exception with details about how to call self.fail
             self.fail(*e._errors, log_level=e._log_level, complete=False, **e._kwargs)
+            raise
         except Exception as e:
             self.fail(e, complete=False)
+            raise
         finally:
             self._sync_complete_process()  # Queue should be empty, so nothing more to do
 
