@@ -8,8 +8,7 @@ workflow2:
     - name: ground state calculation of relaxed system
       section: '../upload/raw/ground_state.archive.yaml#/run/0/calculations/0'
   tasks:
-    - name: GeometryOpt
-      m_def: nomad.datamodel.metainfo.workflow2.TaskReference
+    - m_def: nomad.datamodel.metainfo.workflow2.TaskReference
       task: '../upload/raw/geom_opt.archive.yaml#/workflow2'
     - name: GroundStateCalculation
       inputs:

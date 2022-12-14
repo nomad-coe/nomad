@@ -16,9 +16,10 @@
 # limitations under the License.
 #
 
-from nomad.metainfo import Quantity, SubSection
+from nomad.metainfo import Quantity, SubSection, Section
 
 from ..datamodel import ArchiveSection
+from ..data import EntryData
 
 
 class Link(ArchiveSection):
@@ -59,12 +60,19 @@ class TaskReference(Task):
     in a different entry or workflow.
     '''
 
+    m_def = Section(a_eln=dict(hide=['name']))
+
     task = Quantity(type=Task, description=(
         'A reference to the task that this section is a proxy for.'),
         a_eln=dict(component='ReferenceEditQuantity'))
 
+    def normalize(self, archive, logger):
+        super(TaskReference, self).normalize(archive, logger)
+        if not self.name and self.task:
+            self.name = self.task.name
 
-class Workflow(Task):
+
+class Workflow(Task, EntryData):
     '''
     Instances of Workflow are used to represent a set of Tasks that connect input and
     output data objects to produce a provenance graph for those data.
