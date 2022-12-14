@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useState, useRef } from 'react'
 import { Editor } from '@tinymce/tinymce-react'
 import PropTypes from 'prop-types'
 import { Box, FormControl, FormLabel, makeStyles } from '@material-ui/core'
@@ -41,15 +41,20 @@ const RichTextEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange} = props
   const initialHeight = 500
   const {label} = getFieldProps(quantityDef)
-  const [text] = useState(value || '')
+  const initialValue = useRef(value)
+  const editedValue = useRef(value)
   const [focus, setFocus] = useState(false)
   const [initialized, setInitialized] = useState(false)
 
-  // useEffect(() => {
-  //   setText(value || '')
-  // }, [value])
+  if (editedValue.current !== value) {
+    // Means that the value has been changed elsewhere, for example edited in a different tab
+    // In this case we need to force an update to the provided value
+    editedValue.current = value
+    initialValue.current = value
+  }
 
   const handleChange = useCallback((value) => {
+    editedValue.current = value
     if (onChange) {
       onChange(value === '' ? undefined : value)
     }
@@ -91,7 +96,7 @@ const RichTextEditQuantity = React.memo((props) => {
           onEditorChange={handleChange}
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
-          initialValue={text}
+          initialValue={initialValue.current || ''}
         />
       </Box>
     </FormControl>

@@ -1082,6 +1082,53 @@
           "jupyter"
         ]
       }
+    },
+    {
+      "authors": [
+        "Foppa, Lucas",
+        "Purcell, Thomas A. R.",
+        "Levchenko, Sergey V.",
+        "Scheffler, Matthias",
+        "Ghiringhelli, Luca M."
+      ],
+      "email": "foppa@fhi-berlin.mpg.de",
+      "title": "Hierarchical symbolic regression for identifying key physical parameters correlated with materials properties",
+      "description": "In this notebook, we describe a hierarchical symbolic-regression approach for finding, based on data, analytical expressions relating materials properties to simpler physicochemical parameters associated with the underlying processes governing the properties.",
+      "notebook_name": "hierarchical_sisso.ipynb",
+      "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-hierarchical-sisso",
+      "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/hierarchical_sisso.ipynb",
+      "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/hierarchical_sisso.ipynb",
+      "link_paper": "https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.129.055301",
+      "link_doi_paper": "https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.129.055301",
+      "updated": "2022-8-3",
+      "flags": {
+        "featured": true,
+        "top_of_list": false
+      },
+      "labels": {
+        "application_section": [
+          "Timely artificial-intelligence applications to Materials Science"
+        ],
+        "application_system": [
+          "Bulk properties",
+          "Perovskites"
+        ],
+        "category": [
+          "advanced_tutorial"
+        ],
+        "ai_methods": [
+          "Supervised learning",
+          "Regression",
+          "Compressed sensing",
+          "Symbolic regression",
+          "SISSO",
+          "Features selection",
+          "Atomic features"
+        ],
+        "platform": [
+          "jupyter"
+        ]
+      }
     }
   ]
 }
