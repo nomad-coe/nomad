@@ -1,0 +1,25 @@
+workflow2:
+  inputs:
+    - name: input system
+      section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/0'
+  outputs:
+    - name: relaxed system
+      section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
+    - name: ground state calculation of relaxed system
+      section: '../upload/raw/ground_state.archive.yaml#/run/0/calculations/0'
+  tasks:
+    - name: GeometryOpt
+      inputs:
+        - name: input system
+          section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/0'
+      outputs:
+        - name: relaxed system
+          section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
+
+    - name: GroundStateCalculation
+      inputs:
+        - name: input system
+          section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
+      outputs:
+        - name: ground state
+          section: '../upload/raw/ground_state.archive.yaml#/run/0/calculations/0'
