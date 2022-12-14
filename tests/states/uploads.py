@@ -212,3 +212,4 @@ def archive_browser_test():
     upload.staging_upload_files.add_rawfiles('examples/data/custom-schema')
     upload.staging_upload_files.add_rawfiles('tests/data/datamodel/metainfo/eln/material_library')
     upload.process_upload()
+    upload.block_until_complete()

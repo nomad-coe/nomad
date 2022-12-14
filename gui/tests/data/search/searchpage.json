@@ -43,10 +43,10 @@
           },
           "data": [
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "xKLhyKqaSnaRPQ8N7OZmcg",
+              "calc_id": "yds3nLNDTfePBvsTBzsqbA",
               "published": true,
               "writers": [
                 {
@@ -56,7 +56,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -69,195 +69,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.676159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "functional_type": [
-                    "semiconductor",
-                    "solar cell"
-                  ],
-                  "elements": [
-                    "C",
-                    "H",
-                    "I",
-                    "N",
-                    "Pb"
-                  ],
-                  "elements_exclusive": "C H I N Pb",
-                  "material_id": "test_material_id",
-                  "structural_type": "bulk",
-                  "chemical_formula_reduced": "H6Pb1C1I3N1",
-                  "n_elements": 5,
-                  "chemical_formula_descriptive": "MAPbI3",
-                  "material_name": "perovskite",
-                  "chemical_formula_hill": "CH6I3NPb"
-                },
-                "method": {},
-                "properties": {
-                  "optoelectronic": {
-                    "solar_cell": {
-                      "absorber_fabrication": [
-                        "Spin-coating"
-                      ],
-                      "efficiency": 15.9,
-                      "device_stack": [
-                        "SLG",
-                        "ITO",
-                        "PEDOT:PSS",
-                        "Perovskite",
-                        "PCBM-60",
-                        "BCP",
-                        "Ag"
-                      ],
-                      "short_circuit_current_density": 203,
-                      "hole_transport_layer": [
-                        "PEDOT:PSS"
-                      ],
-                      "fill_factor": 0.78,
-                      "illumination_intensity": 1000,
-                      "electron_transport_layer": [
-                        "PCBM-60",
-                        "BCP"
-                      ],
-                      "device_area": 0.0000125,
-                      "back_contact": [
-                        "Ag"
-                      ],
-                      "absorber": [
-                        "MAPbI"
-                      ],
-                      "open_circuit_voltage": 1,
-                      "substrate": [
-                        "SLG",
-                        "ITO"
-                      ],
-                      "device_architecture": "pin"
-                    },
-                    "band_gap": [
-                      {
-                        "value": 2.5634826144e-19
-                      }
-                    ]
-                  },
-                  "available_properties": [
-                    "solar_cell",
-                    "optoelectronic.band_gap_optical"
-                  ]
-                }
-              },
-              "entry_id": "xKLhyKqaSnaRPQ8N7OZmcg",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "iHFQm43iTg-xWcKTomEbGQ",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-27T10:45:35.673159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C",
-                    "H"
-                  ],
-                  "elements_exclusive": "C H",
-                  "chemical_formula_anonymous": "AB2",
-                  "material_id": "test_material_id",
-                  "structural_type": "molecule / cluster",
-                  "chemical_formula_reduced": "CH3",
-                  "n_elements": 2,
-                  "chemical_formula_descriptive": "CH3",
-                  "chemical_formula_hill": "CH3"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "GGA_X_PBE_SOL",
-                        "GGA_C_PBE_SOL"
-                      ]
-                    },
-                    "program_name": "VASP"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "iHFQm43iTg-xWcKTomEbGQ",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "RKilUL13T5eXRrlkO0QPbQ",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-27T10:45:35.675159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.093399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -295,7 +108,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "RKilUL13T5eXRrlkO0QPbQ",
+              "entry_id": "yds3nLNDTfePBvsTBzsqbA",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -305,10 +118,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+              "calc_id": "fl7nQcRTTNSjieJ8PxWnJg",
               "published": true,
               "writers": [
                 {
@@ -318,7 +131,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -331,8 +144,195 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.674159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.091399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C",
+                    "H"
+                  ],
+                  "elements_exclusive": "C H",
+                  "chemical_formula_anonymous": "AB2",
+                  "material_id": "test_material_id",
+                  "structural_type": "molecule / cluster",
+                  "chemical_formula_reduced": "CH3",
+                  "n_elements": 2,
+                  "chemical_formula_descriptive": "CH3",
+                  "chemical_formula_hill": "CH3"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "fl7nQcRTTNSjieJ8PxWnJg",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "VClHGxN3QmikYfg3r3wpww",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.094399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
+                  "elements": [
+                    "C",
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
+                  ],
+                  "elements_exclusive": "C H I N Pb",
+                  "material_id": "test_material_id",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
+                },
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "band_gap_optical": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ],
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    }
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap_optical"
+                  ]
+                }
+              },
+              "entry_id": "VClHGxN3QmikYfg3r3wpww",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "9fPFSohTTjiR3TqN5_coGw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.092399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -366,7 +366,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+              "entry_id": "9fPFSohTTjiR3TqN5_coGw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -379,7 +379,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "9891",
+          "content-length": "9907",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -422,10 +422,10 @@
           },
           "data": [
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+              "calc_id": "9fPFSohTTjiR3TqN5_coGw",
               "published": true,
               "writers": [
                 {
@@ -435,7 +435,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -448,8 +448,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.674159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.092399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -483,7 +483,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+              "entry_id": "9fPFSohTTjiR3TqN5_coGw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -493,10 +493,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "RKilUL13T5eXRrlkO0QPbQ",
+              "calc_id": "VClHGxN3QmikYfg3r3wpww",
               "published": true,
               "writers": [
                 {
@@ -506,7 +506,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -519,155 +519,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.675159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "Hf",
-                    "Nb",
-                    "Ta",
-                    "Ti",
-                    "Zr"
-                  ],
-                  "elements_exclusive": "Hf Nb Ta Ti Zr",
-                  "chemical_formula_anonymous": "ABCDE",
-                  "material_id": "aLzu5XmhATsTfEA4sGIiL45caCMq",
-                  "structural_type": "bulk",
-                  "chemical_formula_reduced": "HfNbTaTiZr",
-                  "n_elements": 5,
-                  "chemical_formula_descriptive": "HfNbTaTiZr",
-                  "chemical_formula_hill": "HfNbTaTiZr"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "GGA_X_PBE_SOL",
-                        "GGA_C_PBE_SOL"
-                      ]
-                    },
-                    "program_name": "VASP"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "RKilUL13T5eXRrlkO0QPbQ",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "iHFQm43iTg-xWcKTomEbGQ",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-27T10:45:35.673159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C",
-                    "H"
-                  ],
-                  "elements_exclusive": "C H",
-                  "chemical_formula_anonymous": "AB2",
-                  "material_id": "test_material_id",
-                  "structural_type": "molecule / cluster",
-                  "chemical_formula_reduced": "CH3",
-                  "n_elements": 2,
-                  "chemical_formula_descriptive": "CH3",
-                  "chemical_formula_hill": "CH3"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "GGA_X_PBE_SOL",
-                        "GGA_C_PBE_SOL"
-                      ]
-                    },
-                    "program_name": "VASP"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "iHFQm43iTg-xWcKTomEbGQ",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "xKLhyKqaSnaRPQ8N7OZmcg",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-27T10:45:35.676159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.094399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -695,6 +548,11 @@
                 "method": {},
                 "properties": {
                   "optoelectronic": {
+                    "band_gap_optical": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ],
                     "solar_cell": {
                       "absorber_fabrication": [
                         "Spin-coating"
@@ -732,12 +590,7 @@
                         "ITO"
                       ],
                       "device_architecture": "pin"
-                    },
-                    "band_gap": [
-                      {
-                        "value": 2.5634826144e-19
-                      }
-                    ]
+                    }
                   },
                   "available_properties": [
                     "solar_cell",
@@ -745,7 +598,154 @@
                   ]
                 }
               },
-              "entry_id": "xKLhyKqaSnaRPQ8N7OZmcg",
+              "entry_id": "VClHGxN3QmikYfg3r3wpww",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "fl7nQcRTTNSjieJ8PxWnJg",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.091399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C",
+                    "H"
+                  ],
+                  "elements_exclusive": "C H",
+                  "chemical_formula_anonymous": "AB2",
+                  "material_id": "test_material_id",
+                  "structural_type": "molecule / cluster",
+                  "chemical_formula_reduced": "CH3",
+                  "n_elements": 2,
+                  "chemical_formula_descriptive": "CH3",
+                  "chemical_formula_hill": "CH3"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "fl7nQcRTTNSjieJ8PxWnJg",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "yds3nLNDTfePBvsTBzsqbA",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.093399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "Hf",
+                    "Nb",
+                    "Ta",
+                    "Ti",
+                    "Zr"
+                  ],
+                  "elements_exclusive": "Hf Nb Ta Ti Zr",
+                  "chemical_formula_anonymous": "ABCDE",
+                  "material_id": "aLzu5XmhATsTfEA4sGIiL45caCMq",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "HfNbTaTiZr",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "HfNbTaTiZr",
+                  "chemical_formula_hill": "HfNbTaTiZr"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "yds3nLNDTfePBvsTBzsqbA",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -758,7 +758,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "9897",
+          "content-length": "9913",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -801,7 +801,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n\t* LPAR\n\t* IDENTIFIER\n\t* SIGNED_INT\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* IDENTIFIER\n\t* NOT\n\t* SIGNED_INT\n\t* LPAR\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
               "type": "value_error.exception"
             }
           ]
@@ -1020,7 +1020,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n\t* LPAR\n\t* IDENTIFIER\n\t* SIGNED_INT\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* IDENTIFIER\n\t* NOT\n\t* SIGNED_INT\n\t* LPAR\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
               "type": "value_error.exception"
             }
           ]
@@ -1366,7 +1366,7 @@
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
-                "size": 5,
+                "size": 6,
                 "type": "terms",
                 "changed": true,
                 "quantity": "results.method.method_name"
@@ -1376,7 +1376,7 @@
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
-                "size": 14,
+                "size": 15,
                 "type": "terms",
                 "changed": true,
                 "quantity": "results.method.workflow_name"
@@ -1418,7 +1418,7 @@
                 "quantity": "results.method.method_name",
                 "exclude_from_search": true,
                 "metrics": [],
-                "size": 5,
+                "size": 6,
                 "data": []
               }
             },
@@ -1427,7 +1427,7 @@
                 "quantity": "results.method.workflow_name",
                 "exclude_from_search": true,
                 "metrics": [],
-                "size": 14,
+                "size": 15,
                 "data": []
               }
             }
@@ -1740,6 +1740,10 @@
                   },
                   {
                     "count": 0,
+                    "value": "Wannier90"
+                  },
+                  {
+                    "count": 0,
                     "value": "WIEN2k"
                   },
                   {
@@ -1762,7 +1766,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5421",
+          "content-length": "5503",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -1804,6 +1808,26 @@
                 "type": "terms",
                 "changed": true,
                 "quantity": "results.method.simulation.dft.xc_functional_names"
+              }
+            },
+            "results.method.simulation.dft.exact_exchange_mixing_factor:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.method.simulation.dft.exact_exchange_mixing_factor"
+              }
+            },
+            "results.method.simulation.dft.hubbard_model.u_effective:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.method.simulation.dft.hubbard_model.u_effective"
               }
             },
             "results.method.simulation.dft.basis_set_type:scroll": {
@@ -1912,6 +1936,24 @@
                 ]
               }
             },
+            "results.method.simulation.dft.exact_exchange_mixing_factor:default_histogram": {
+              "histogram": {
+                "quantity": "results.method.simulation.dft.exact_exchange_mixing_factor",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.method.simulation.dft.hubbard_model.u_effective:default_histogram": {
+              "histogram": {
+                "quantity": "results.method.simulation.dft.hubbard_model.u_effective",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
             "results.method.simulation.dft.basis_set_type:scroll": {
               "terms": {
                 "quantity": "results.method.simulation.dft.basis_set_type",
@@ -1956,7 +1998,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "2419",
+          "content-length": "3025",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -2881,7 +2923,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "8195",
+          "content-length": "8243",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -3726,12 +3768,12 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "offset": 1666867535669,
+                "offset": 1671007405087,
                 "data": [
                   {
                     "count": 4,
                     "nested_count": 4,
-                    "value": 1666867535669
+                    "value": 1671007405087
                   }
                 ]
               }
@@ -3837,21 +3879,13 @@
             "files",
             "quantities",
             "dft.quantities",
-            "optimade",
             "dft.labels",
             "dft.geometries"
           ],
-          "owner": "visible",
-          "query": {},
-          "aggregations": {},
-          "pagination": {
-            "order_by": "upload_create_time",
-            "order": "desc",
-            "page_size": 20
-          }
+          "owner": "visible"
         },
         "headers": {
-          "accept": "application/json, text/plain, */*",
+          "accept": "application/json",
           "content-type": "application/json",
           "cookie": null
         }
@@ -3860,19 +3894,21 @@
         "status": 200,
         "body": {
           "owner": "visible",
-          "query": {},
+          "query": {
+            "and": []
+          },
           "pagination": {
-            "page_size": 20,
-            "order_by": "upload_create_time",
-            "order": "desc",
+            "page_size": 10,
+            "order_by": "entry_id",
+            "order": "asc",
             "total": 4
           },
           "data": [
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "xKLhyKqaSnaRPQ8N7OZmcg",
+              "calc_id": "9fPFSohTTjiR3TqN5_coGw",
               "published": true,
               "writers": [
                 {
@@ -3882,7 +3918,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -3895,8 +3931,79 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.676159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.092399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C"
+                  ],
+                  "elements_exclusive": "C",
+                  "chemical_formula_anonymous": "A",
+                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
+                  "structural_type": "2D",
+                  "chemical_formula_reduced": "C",
+                  "n_elements": 1,
+                  "chemical_formula_descriptive": "C",
+                  "chemical_formula_hill": "C"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "LDA_X_PZ",
+                        "LDA_C_PZ"
+                      ]
+                    },
+                    "program_name": "exciting"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "9fPFSohTTjiR3TqN5_coGw",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "VClHGxN3QmikYfg3r3wpww",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.094399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -3924,6 +4031,11 @@
                 "method": {},
                 "properties": {
                   "optoelectronic": {
+                    "band_gap_optical": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ],
                     "solar_cell": {
                       "absorber_fabrication": [
                         "Spin-coating"
@@ -3961,12 +4073,7 @@
                         "ITO"
                       ],
                       "device_architecture": "pin"
-                    },
-                    "band_gap": [
-                      {
-                        "value": 2.5634826144e-19
-                      }
-                    ]
+                    }
                   },
                   "available_properties": [
                     "solar_cell",
@@ -3974,7 +4081,7 @@
                   ]
                 }
               },
-              "entry_id": "xKLhyKqaSnaRPQ8N7OZmcg",
+              "entry_id": "VClHGxN3QmikYfg3r3wpww",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -3984,10 +4091,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "iHFQm43iTg-xWcKTomEbGQ",
+              "calc_id": "fl7nQcRTTNSjieJ8PxWnJg",
               "published": true,
               "writers": [
                 {
@@ -3997,7 +4104,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -4010,8 +4117,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.673159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.091399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -4046,7 +4153,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "iHFQm43iTg-xWcKTomEbGQ",
+              "entry_id": "fl7nQcRTTNSjieJ8PxWnJg",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -4056,10 +4163,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "RKilUL13T5eXRrlkO0QPbQ",
+              "calc_id": "yds3nLNDTfePBvsTBzsqbA",
               "published": true,
               "writers": [
                 {
@@ -4069,7 +4176,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -4082,8 +4189,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.675159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.093399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -4121,7 +4228,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "RKilUL13T5eXRrlkO0QPbQ",
+              "entry_id": "yds3nLNDTfePBvsTBzsqbA",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -4129,12 +4236,64 @@
                 }
               ],
               "license": "CC BY 4.0"
-            },
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "9913",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {},
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 20,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "total": 4
+          },
+          "data": [
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+              "calc_id": "yds3nLNDTfePBvsTBzsqbA",
               "published": true,
               "writers": [
                 {
@@ -4144,7 +4303,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -4157,8 +4316,270 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.674159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.093399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "Hf",
+                    "Nb",
+                    "Ta",
+                    "Ti",
+                    "Zr"
+                  ],
+                  "elements_exclusive": "Hf Nb Ta Ti Zr",
+                  "chemical_formula_anonymous": "ABCDE",
+                  "material_id": "aLzu5XmhATsTfEA4sGIiL45caCMq",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "HfNbTaTiZr",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "HfNbTaTiZr",
+                  "chemical_formula_hill": "HfNbTaTiZr"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "yds3nLNDTfePBvsTBzsqbA",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "fl7nQcRTTNSjieJ8PxWnJg",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.091399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C",
+                    "H"
+                  ],
+                  "elements_exclusive": "C H",
+                  "chemical_formula_anonymous": "AB2",
+                  "material_id": "test_material_id",
+                  "structural_type": "molecule / cluster",
+                  "chemical_formula_reduced": "CH3",
+                  "n_elements": 2,
+                  "chemical_formula_descriptive": "CH3",
+                  "chemical_formula_hill": "CH3"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "fl7nQcRTTNSjieJ8PxWnJg",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "VClHGxN3QmikYfg3r3wpww",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.094399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
+                  "elements": [
+                    "C",
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
+                  ],
+                  "elements_exclusive": "C H I N Pb",
+                  "material_id": "test_material_id",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
+                },
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "band_gap_optical": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ],
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    }
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap_optical"
+                  ]
+                }
+              },
+              "entry_id": "VClHGxN3QmikYfg3r3wpww",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "9fPFSohTTjiR3TqN5_coGw",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.092399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -4192,7 +4613,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+              "entry_id": "9fPFSohTTjiR3TqN5_coGw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -4205,7 +4626,107 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "9891",
+          "content-length": "9907",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "verify_only": true,
+          "owner": "public",
+          "query": {
+            "optimade_filter": "."
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "detail": [
+            {
+              "loc": [
+                [
+                  "optimade_filter"
+                ]
+              ],
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* IDENTIFIER\n\t* NOT\n\t* SIGNED_INT\n\t* LPAR\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
+              "type": "value_error.exception"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "361",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "verify_only": true,
+          "owner": "public",
+          "query": {
+            "optimade_filter": "."
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "detail": [
+            {
+              "loc": [
+                [
+                  "optimade_filter"
+                ]
+              ],
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* IDENTIFIER\n\t* NOT\n\t* SIGNED_INT\n\t* LPAR\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
+              "type": "value_error.exception"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "361",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -4697,11 +5218,11 @@
         "method": "POST",
         "body": {
           "owner": "visible",
-          "pagination": {
-            "page_size": 0
-          },
           "query": {
             "quantities": "data"
+          },
+          "pagination": {
+            "page_size": 0
           },
           "aggregations": {
             "paths": {
@@ -4733,13 +5254,14 @@
         "body": {
           "owner": "visible",
           "query": {
-            "quantities": "data"
+            "name": "quantities",
+            "value": "data"
           },
           "pagination": {
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 4
+            "total": 0
           },
           "aggregations": {
             "paths": {
@@ -4766,7 +5288,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "662",
+          "content-length": "713",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -4856,12 +5378,12 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "offset": 1666867535669,
+                "offset": 1671007405087,
                 "data": [
                   {
                     "count": 4,
                     "nested_count": 4,
-                    "value": 1666867535669
+                    "value": 1671007405087
                   }
                 ]
               }
@@ -4993,10 +5515,10 @@
           },
           "data": [
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+              "calc_id": "9fPFSohTTjiR3TqN5_coGw",
               "published": true,
               "writers": [
                 {
@@ -5006,7 +5528,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -5019,8 +5541,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.674159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.092399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -5054,7 +5576,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+              "entry_id": "9fPFSohTTjiR3TqN5_coGw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -5064,10 +5586,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "RKilUL13T5eXRrlkO0QPbQ",
+              "calc_id": "VClHGxN3QmikYfg3r3wpww",
               "published": true,
               "writers": [
                 {
@@ -5077,7 +5599,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -5090,8 +5612,195 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.675159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.094399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
+                  "elements": [
+                    "C",
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
+                  ],
+                  "elements_exclusive": "C H I N Pb",
+                  "material_id": "test_material_id",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
+                },
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "band_gap_optical": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ],
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    }
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap_optical"
+                  ]
+                }
+              },
+              "entry_id": "VClHGxN3QmikYfg3r3wpww",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "fl7nQcRTTNSjieJ8PxWnJg",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.091399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C",
+                    "H"
+                  ],
+                  "elements_exclusive": "C H",
+                  "chemical_formula_anonymous": "AB2",
+                  "material_id": "test_material_id",
+                  "structural_type": "molecule / cluster",
+                  "chemical_formula_reduced": "CH3",
+                  "n_elements": 2,
+                  "chemical_formula_descriptive": "CH3",
+                  "chemical_formula_hill": "CH3"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "fl7nQcRTTNSjieJ8PxWnJg",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "yds3nLNDTfePBvsTBzsqbA",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.093399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -5129,194 +5838,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "RKilUL13T5eXRrlkO0QPbQ",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "iHFQm43iTg-xWcKTomEbGQ",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-27T10:45:35.673159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C",
-                    "H"
-                  ],
-                  "elements_exclusive": "C H",
-                  "chemical_formula_anonymous": "AB2",
-                  "material_id": "test_material_id",
-                  "structural_type": "molecule / cluster",
-                  "chemical_formula_reduced": "CH3",
-                  "n_elements": 2,
-                  "chemical_formula_descriptive": "CH3",
-                  "chemical_formula_hill": "CH3"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "GGA_X_PBE_SOL",
-                        "GGA_C_PBE_SOL"
-                      ]
-                    },
-                    "program_name": "VASP"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "iHFQm43iTg-xWcKTomEbGQ",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "xKLhyKqaSnaRPQ8N7OZmcg",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-27T10:45:35.676159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "functional_type": [
-                    "semiconductor",
-                    "solar cell"
-                  ],
-                  "elements": [
-                    "C",
-                    "H",
-                    "I",
-                    "N",
-                    "Pb"
-                  ],
-                  "elements_exclusive": "C H I N Pb",
-                  "material_id": "test_material_id",
-                  "structural_type": "bulk",
-                  "chemical_formula_reduced": "H6Pb1C1I3N1",
-                  "n_elements": 5,
-                  "chemical_formula_descriptive": "MAPbI3",
-                  "material_name": "perovskite",
-                  "chemical_formula_hill": "CH6I3NPb"
-                },
-                "method": {},
-                "properties": {
-                  "optoelectronic": {
-                    "solar_cell": {
-                      "absorber_fabrication": [
-                        "Spin-coating"
-                      ],
-                      "efficiency": 15.9,
-                      "device_stack": [
-                        "SLG",
-                        "ITO",
-                        "PEDOT:PSS",
-                        "Perovskite",
-                        "PCBM-60",
-                        "BCP",
-                        "Ag"
-                      ],
-                      "short_circuit_current_density": 203,
-                      "hole_transport_layer": [
-                        "PEDOT:PSS"
-                      ],
-                      "fill_factor": 0.78,
-                      "illumination_intensity": 1000,
-                      "electron_transport_layer": [
-                        "PCBM-60",
-                        "BCP"
-                      ],
-                      "device_area": 0.0000125,
-                      "back_contact": [
-                        "Ag"
-                      ],
-                      "absorber": [
-                        "MAPbI"
-                      ],
-                      "open_circuit_voltage": 1,
-                      "substrate": [
-                        "SLG",
-                        "ITO"
-                      ],
-                      "device_architecture": "pin"
-                    },
-                    "band_gap": [
-                      {
-                        "value": 2.5634826144e-19
-                      }
-                    ]
-                  },
-                  "available_properties": [
-                    "solar_cell",
-                    "optoelectronic.band_gap_optical"
-                  ]
-                }
-              },
-              "entry_id": "xKLhyKqaSnaRPQ8N7OZmcg",
+              "entry_id": "yds3nLNDTfePBvsTBzsqbA",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -5329,7 +5851,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "9897",
+          "content-length": "9913",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -5372,7 +5894,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n\t* LPAR\n\t* IDENTIFIER\n\t* SIGNED_INT\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* IDENTIFIER\n\t* NOT\n\t* SIGNED_INT\n\t* LPAR\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
               "type": "value_error.exception"
             }
           ]
@@ -5422,7 +5944,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n\t* LPAR\n\t* IDENTIFIER\n\t* SIGNED_INT\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* IDENTIFIER\n\t* NOT\n\t* SIGNED_INT\n\t* LPAR\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
               "type": "value_error.exception"
             }
           ]
@@ -5453,12 +5975,12 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "results.material.functional_type:any": [
                   "solar cell"
                 ]
-              },
-              {}
+              }
             ]
           },
           "aggregations": {},
@@ -5480,6 +6002,7 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "name": "results.material.functional_type",
                 "value": {
@@ -5487,8 +6010,7 @@
                     "solar cell"
                   ]
                 }
-              },
-              {}
+              }
             ]
           },
           "pagination": {
@@ -5499,10 +6021,10 @@
           },
           "data": [
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "xKLhyKqaSnaRPQ8N7OZmcg",
+              "calc_id": "VClHGxN3QmikYfg3r3wpww",
               "published": true,
               "writers": [
                 {
@@ -5512,7 +6034,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -5525,8 +6047,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.676159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.094399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -5554,6 +6076,11 @@
                 "method": {},
                 "properties": {
                   "optoelectronic": {
+                    "band_gap_optical": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ],
                     "solar_cell": {
                       "absorber_fabrication": [
                         "Spin-coating"
@@ -5591,12 +6118,7 @@
                         "ITO"
                       ],
                       "device_architecture": "pin"
-                    },
-                    "band_gap": [
-                      {
-                        "value": 2.5634826144e-19
-                      }
-                    ]
+                    }
                   },
                   "available_properties": [
                     "solar_cell",
@@ -5604,7 +6126,7 @@
                   ]
                 }
               },
-              "entry_id": "xKLhyKqaSnaRPQ8N7OZmcg",
+              "entry_id": "VClHGxN3QmikYfg3r3wpww",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -5617,57 +6139,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "3612",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    },
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
-        "method": "POST",
-        "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
-          "verify_only": true,
-          "owner": "public",
-          "query": {
-            "optimade_filter": "."
-          }
-        },
-        "headers": {
-          "accept": "application/json",
-          "content-type": "application/json",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 422,
-        "body": {
-          "detail": [
-            {
-              "loc": [
-                [
-                  "optimade_filter"
-                ]
-              ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n\t* LPAR\n\t* IDENTIFIER\n\t* SIGNED_INT\n",
-              "type": "value_error.exception"
-            }
-          ]
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "361",
+          "content-length": "3628",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -5710,10 +6182,10 @@
           },
           "data": [
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+              "calc_id": "9fPFSohTTjiR3TqN5_coGw",
               "published": true,
               "writers": [
                 {
@@ -5723,7 +6195,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -5736,8 +6208,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.674159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.092399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -5771,7 +6243,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+              "entry_id": "9fPFSohTTjiR3TqN5_coGw",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -5781,10 +6253,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "RKilUL13T5eXRrlkO0QPbQ",
+              "calc_id": "VClHGxN3QmikYfg3r3wpww",
               "published": true,
               "writers": [
                 {
@@ -5794,7 +6266,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -5807,155 +6279,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-10-27T10:45:35.675159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "Hf",
-                    "Nb",
-                    "Ta",
-                    "Ti",
-                    "Zr"
-                  ],
-                  "elements_exclusive": "Hf Nb Ta Ti Zr",
-                  "chemical_formula_anonymous": "ABCDE",
-                  "material_id": "aLzu5XmhATsTfEA4sGIiL45caCMq",
-                  "structural_type": "bulk",
-                  "chemical_formula_reduced": "HfNbTaTiZr",
-                  "n_elements": 5,
-                  "chemical_formula_descriptive": "HfNbTaTiZr",
-                  "chemical_formula_hill": "HfNbTaTiZr"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "GGA_X_PBE_SOL",
-                        "GGA_C_PBE_SOL"
-                      ]
-                    },
-                    "program_name": "VASP"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "RKilUL13T5eXRrlkO0QPbQ",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "iHFQm43iTg-xWcKTomEbGQ",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-27T10:45:35.673159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C",
-                    "H"
-                  ],
-                  "elements_exclusive": "C H",
-                  "chemical_formula_anonymous": "AB2",
-                  "material_id": "test_material_id",
-                  "structural_type": "molecule / cluster",
-                  "chemical_formula_reduced": "CH3",
-                  "n_elements": 2,
-                  "chemical_formula_descriptive": "CH3",
-                  "chemical_formula_hill": "CH3"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "GGA_X_PBE_SOL",
-                        "GGA_C_PBE_SOL"
-                      ]
-                    },
-                    "program_name": "VASP"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "iHFQm43iTg-xWcKTomEbGQ",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "xKLhyKqaSnaRPQ8N7OZmcg",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-10-27T10:45:35.676159+00:00",
-              "publish_time": "2022-10-27T10:45:35.672159+00:00",
+              "entry_create_time": "2022-12-14T08:43:25.094399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -5983,6 +6308,11 @@
                 "method": {},
                 "properties": {
                   "optoelectronic": {
+                    "band_gap_optical": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ],
                     "solar_cell": {
                       "absorber_fabrication": [
                         "Spin-coating"
@@ -6020,12 +6350,7 @@
                         "ITO"
                       ],
                       "device_architecture": "pin"
-                    },
-                    "band_gap": [
-                      {
-                        "value": 2.5634826144e-19
-                      }
-                    ]
+                    }
                   },
                   "available_properties": [
                     "solar_cell",
@@ -6033,7 +6358,154 @@
                   ]
                 }
               },
-              "entry_id": "xKLhyKqaSnaRPQ8N7OZmcg",
+              "entry_id": "VClHGxN3QmikYfg3r3wpww",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "fl7nQcRTTNSjieJ8PxWnJg",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.091399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C",
+                    "H"
+                  ],
+                  "elements_exclusive": "C H",
+                  "chemical_formula_anonymous": "AB2",
+                  "material_id": "test_material_id",
+                  "structural_type": "molecule / cluster",
+                  "chemical_formula_reduced": "CH3",
+                  "n_elements": 2,
+                  "chemical_formula_descriptive": "CH3",
+                  "chemical_formula_hill": "CH3"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "fl7nQcRTTNSjieJ8PxWnJg",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "yds3nLNDTfePBvsTBzsqbA",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-14T08:43:25.093399+00:00",
+              "publish_time": "2022-12-14T08:43:25.090399+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "Hf",
+                    "Nb",
+                    "Ta",
+                    "Ti",
+                    "Zr"
+                  ],
+                  "elements_exclusive": "Hf Nb Ta Ti Zr",
+                  "chemical_formula_anonymous": "ABCDE",
+                  "material_id": "aLzu5XmhATsTfEA4sGIiL45caCMq",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "HfNbTaTiZr",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "HfNbTaTiZr",
+                  "chemical_formula_hill": "HfNbTaTiZr"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "yds3nLNDTfePBvsTBzsqbA",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -6046,7 +6518,57 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "9897",
+          "content-length": "9913",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "verify_only": true,
+          "owner": "public",
+          "query": {
+            "optimade_filter": "."
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "detail": [
+            {
+              "loc": [
+                [
+                  "optimade_filter"
+                ]
+              ],
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* IDENTIFIER\n\t* NOT\n\t* SIGNED_INT\n\t* LPAR\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
+              "type": "value_error.exception"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "361",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -6070,12 +6592,12 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "results.material.functional_type:any": [
                   "solar cell"
                 ]
-              },
-              {}
+              }
             ]
           },
           "aggregations": {
@@ -6139,6 +6661,7 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "name": "results.material.functional_type",
                 "value": {
@@ -6146,8 +6669,7 @@
                     "solar cell"
                   ]
                 }
-              },
-              {}
+              }
             ]
           },
           "pagination": {
@@ -6269,7 +6791,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n\t* LPAR\n\t* IDENTIFIER\n\t* SIGNED_INT\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* IDENTIFIER\n\t* NOT\n\t* SIGNED_INT\n\t* LPAR\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
               "type": "value_error.exception"
             }
           ]
@@ -6300,12 +6822,12 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "results.material.functional_type:any": [
                   "solar cell"
                 ]
-              },
-              {}
+              }
             ]
           },
           "aggregations": {
@@ -6349,6 +6871,7 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "name": "results.material.functional_type",
                 "value": {
@@ -6356,8 +6879,7 @@
                     "solar cell"
                   ]
                 }
-              },
-              {}
+              }
             ]
           },
           "pagination": {
@@ -6451,12 +6973,12 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "results.material.functional_type:any": [
                   "solar cell"
                 ]
-              },
-              {}
+              }
             ]
           },
           "aggregations": {
@@ -6654,6 +7176,7 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "name": "results.material.functional_type",
                 "value": {
@@ -6661,8 +7184,7 @@
                     "solar cell"
                   ]
                 }
-              },
-              {}
+              }
             ]
           },
           "pagination": {
@@ -6977,7 +7499,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "8380",
+          "content-length": "8428",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -7001,12 +7523,12 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "results.material.functional_type:any": [
                   "solar cell"
                 ]
-              },
-              {}
+              }
             ]
           },
           "aggregations": {
@@ -7070,6 +7592,7 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "name": "results.material.functional_type",
                 "value": {
@@ -7077,8 +7600,7 @@
                     "solar cell"
                   ]
                 }
-              },
-              {}
+              }
             ]
           },
           "pagination": {
@@ -7158,12 +7680,12 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "results.material.functional_type:any": [
                   "solar cell"
                 ]
-              },
-              {}
+              }
             ]
           },
           "aggregations": {
@@ -7207,6 +7729,7 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "name": "results.material.functional_type",
                 "value": {
@@ -7214,8 +7737,7 @@
                     "solar cell"
                   ]
                 }
-              },
-              {}
+              }
             ]
           },
           "pagination": {
@@ -7245,12 +7767,12 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "offset": 1666867535669,
+                "offset": 1671007405087,
                 "data": [
                   {
                     "count": 1,
                     "nested_count": 1,
-                    "value": 1666867535669
+                    "value": 1671007405087
                   }
                 ]
               }
@@ -7284,12 +7806,12 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "results.material.functional_type:any": [
                   "solar cell"
                 ]
-              },
-              {}
+              }
             ]
           },
           "aggregations": {
@@ -7323,6 +7845,7 @@
           "owner": "visible",
           "query": {
             "and": [
+              {},
               {
                 "name": "results.material.functional_type",
                 "value": {
@@ -7330,8 +7853,7 @@
                     "solar cell"
                   ]
                 }
-              },
-              {}
+              }
             ]
           },
           "pagination": {
@@ -7650,9 +8172,9 @@
             {
               "entries": [
                 {
-                  "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+                  "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
                   "origin": "Markus Scheidgen",
-                  "calc_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+                  "calc_id": "9fPFSohTTjiR3TqN5_coGw",
                   "published": true,
                   "writers": [
                     {
@@ -7661,7 +8183,7 @@
                     }
                   ],
                   "datasets": [],
-                  "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+                  "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
                   "main_author": {
                     "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                     "name": "Markus Scheidgen"
@@ -7672,8 +8194,8 @@
                       "name": "Markus Scheidgen"
                     }
                   ],
-                  "entry_create_time": "2022-10-27T10:45:35.674159+00:00",
-                  "publish_time": "2022-10-27T10:45:35.672159+00:00",
+                  "entry_create_time": "2022-12-14T08:43:25.092399+00:00",
+                  "publish_time": "2022-12-14T08:43:25.090399+00:00",
                   "with_embargo": false,
                   "domain": "dft",
                   "results": {
@@ -7695,7 +8217,7 @@
                     },
                     "properties": {}
                   },
-                  "entry_id": "RKXS2zvYSpK0ZqRxwUHOkw",
+                  "entry_id": "9fPFSohTTjiR3TqN5_coGw",
                   "authors": [
                     {
                       "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -7721,9 +8243,9 @@
             {
               "entries": [
                 {
-                  "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+                  "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
                   "origin": "Markus Scheidgen",
-                  "calc_id": "xKLhyKqaSnaRPQ8N7OZmcg",
+                  "calc_id": "VClHGxN3QmikYfg3r3wpww",
                   "published": true,
                   "writers": [
                     {
@@ -7732,7 +8254,7 @@
                     }
                   ],
                   "datasets": [],
-                  "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+                  "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
                   "main_author": {
                     "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                     "name": "Markus Scheidgen"
@@ -7743,8 +8265,8 @@
                       "name": "Markus Scheidgen"
                     }
                   ],
-                  "entry_create_time": "2022-10-27T10:45:35.676159+00:00",
-                  "publish_time": "2022-10-27T10:45:35.672159+00:00",
+                  "entry_create_time": "2022-12-14T08:43:25.094399+00:00",
+                  "publish_time": "2022-12-14T08:43:25.090399+00:00",
                   "with_embargo": false,
                   "domain": "dft",
                   "results": {
@@ -7752,6 +8274,11 @@
                     "method": {},
                     "properties": {
                       "optoelectronic": {
+                        "band_gap_optical": [
+                          {
+                            "value": 2.5634826144e-19
+                          }
+                        ],
                         "solar_cell": {
                           "absorber_fabrication": [
                             "Spin-coating"
@@ -7789,12 +8316,7 @@
                             "ITO"
                           ],
                           "device_architecture": "pin"
-                        },
-                        "band_gap": [
-                          {
-                            "value": 2.5634826144e-19
-                          }
-                        ]
+                        }
                       },
                       "available_properties": [
                         "solar_cell",
@@ -7802,7 +8324,7 @@
                       ]
                     }
                   },
-                  "entry_id": "xKLhyKqaSnaRPQ8N7OZmcg",
+                  "entry_id": "VClHGxN3QmikYfg3r3wpww",
                   "authors": [
                     {
                       "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -7811,9 +8333,9 @@
                   ]
                 },
                 {
-                  "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+                  "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
                   "origin": "Markus Scheidgen",
-                  "calc_id": "iHFQm43iTg-xWcKTomEbGQ",
+                  "calc_id": "fl7nQcRTTNSjieJ8PxWnJg",
                   "published": true,
                   "writers": [
                     {
@@ -7822,7 +8344,7 @@
                     }
                   ],
                   "datasets": [],
-                  "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+                  "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
                   "main_author": {
                     "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                     "name": "Markus Scheidgen"
@@ -7833,8 +8355,8 @@
                       "name": "Markus Scheidgen"
                     }
                   ],
-                  "entry_create_time": "2022-10-27T10:45:35.673159+00:00",
-                  "publish_time": "2022-10-27T10:45:35.672159+00:00",
+                  "entry_create_time": "2022-12-14T08:43:25.091399+00:00",
+                  "publish_time": "2022-12-14T08:43:25.090399+00:00",
                   "with_embargo": false,
                   "domain": "dft",
                   "results": {
@@ -7856,7 +8378,7 @@
                     },
                     "properties": {}
                   },
-                  "entry_id": "iHFQm43iTg-xWcKTomEbGQ",
+                  "entry_id": "fl7nQcRTTNSjieJ8PxWnJg",
                   "authors": [
                     {
                       "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -7890,9 +8412,9 @@
             {
               "entries": [
                 {
-                  "upload_id": "LCicdgHTRqWuT-OHcSXKzA",
+                  "upload_id": "PhgY4So2S7mbiNYQrjNo0g",
                   "origin": "Markus Scheidgen",
-                  "calc_id": "RKilUL13T5eXRrlkO0QPbQ",
+                  "calc_id": "yds3nLNDTfePBvsTBzsqbA",
                   "published": true,
                   "writers": [
                     {
@@ -7901,7 +8423,7 @@
                     }
                   ],
                   "datasets": [],
-                  "upload_create_time": "2022-10-27T10:45:35.669159+00:00",
+                  "upload_create_time": "2022-12-14T08:43:25.087399+00:00",
                   "main_author": {
                     "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                     "name": "Markus Scheidgen"
@@ -7912,8 +8434,8 @@
                       "name": "Markus Scheidgen"
                     }
                   ],
-                  "entry_create_time": "2022-10-27T10:45:35.675159+00:00",
-                  "publish_time": "2022-10-27T10:45:35.672159+00:00",
+                  "entry_create_time": "2022-12-14T08:43:25.093399+00:00",
+                  "publish_time": "2022-12-14T08:43:25.090399+00:00",
                   "with_embargo": false,
                   "domain": "dft",
                   "results": {
@@ -7935,7 +8457,7 @@
                     },
                     "properties": {}
                   },
-                  "entry_id": "RKilUL13T5eXRrlkO0QPbQ",
+                  "entry_id": "yds3nLNDTfePBvsTBzsqbA",
                   "authors": [
                     {
                       "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -7966,7 +8488,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "9915",
+          "content-length": "9931",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -8469,7 +8991,7 @@
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
-                "size": 5,
+                "size": 6,
                 "type": "terms",
                 "changed": true,
                 "quantity": "entries.results.method.method_name"
@@ -8479,7 +9001,7 @@
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
-                "size": 14,
+                "size": 15,
                 "type": "terms",
                 "changed": true,
                 "quantity": "entries.results.method.workflow_name"
@@ -8521,7 +9043,7 @@
                 "quantity": "entries.results.method.method_name",
                 "exclude_from_search": true,
                 "metrics": [],
-                "size": 5,
+                "size": 6,
                 "data": []
               }
             },
@@ -8530,7 +9052,7 @@
                 "quantity": "entries.results.method.workflow_name",
                 "exclude_from_search": true,
                 "metrics": [],
-                "size": 14,
+                "size": 15,
                 "data": []
               }
             }
@@ -8843,6 +9365,10 @@
                   },
                   {
                     "count": 0,
+                    "value": "Wannier90"
+                  },
+                  {
+                    "count": 0,
                     "value": "WIEN2k"
                   },
                   {
@@ -8865,7 +9391,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5435",
+          "content-length": "5517",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -8907,6 +9433,26 @@
                 "type": "terms",
                 "changed": true,
                 "quantity": "entries.results.method.simulation.dft.xc_functional_names"
+              }
+            },
+            "results.method.simulation.dft.exact_exchange_mixing_factor:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "entries.results.method.simulation.dft.exact_exchange_mixing_factor"
+              }
+            },
+            "results.method.simulation.dft.hubbard_model.u_effective:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "entries.results.method.simulation.dft.hubbard_model.u_effective"
               }
             },
             "results.method.simulation.dft.basis_set_type:scroll": {
@@ -9015,6 +9561,24 @@
                 ]
               }
             },
+            "results.method.simulation.dft.exact_exchange_mixing_factor:default_histogram": {
+              "histogram": {
+                "quantity": "entries.results.method.simulation.dft.exact_exchange_mixing_factor",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.method.simulation.dft.hubbard_model.u_effective:default_histogram": {
+              "histogram": {
+                "quantity": "entries.results.method.simulation.dft.hubbard_model.u_effective",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
             "results.method.simulation.dft.basis_set_type:scroll": {
               "terms": {
                 "quantity": "entries.results.method.simulation.dft.basis_set_type",
@@ -9059,7 +9623,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "2465",
+          "content-length": "3087",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -9984,7 +10548,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "8337",
+          "content-length": "8385",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -10829,12 +11393,12 @@
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
-                "offset": 1666867535669,
+                "offset": 1671007405087,
                 "data": [
                   {
                     "count": 4,
                     "nested_count": 4,
-                    "value": 1666867535669
+                    "value": 1671007405087
                   }
                 ]
               }

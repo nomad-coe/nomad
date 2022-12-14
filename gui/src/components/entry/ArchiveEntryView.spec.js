@@ -20,12 +20,18 @@ import { join } from 'path'
 import { waitFor } from '@testing-library/dom'
 import userEvent from '@testing-library/user-event'
 import { render, screen, within, startAPI, closeAPI, blockConsoleOutput, unblockConsoleOutput } from '../conftest.spec'
-import { getLane, navigateTo, browseRecursively } from '../archive/conftest.spec'
+import { getLane, navigateTo, browseRecursively, pseudoRandomNumberGenerator } from '../archive/conftest.spec'
 import EntryPageContext from './EntryPageContext'
 import ArchiveEntryView from './ArchiveEntryView'
 import { minutes } from '../../setupTests'
 import { act } from 'react-dom/test-utils'
 import {fireEvent} from '@testing-library/react'
+
+let rand
+/**
+ * Lower values -> visits fewer locations.
+ */
+const visitProbabilityDecayFactor = 0.7
 
 beforeEach(() => {
   blockConsoleOutput()
@@ -68,7 +74,7 @@ function archiveItemFilter(parentPath, itemKeys) {
     rv.push(`${label}:${indices[0]}`)
     rv.push(`${label}:${indices[indices.length - 1]}`)
   }
-  return rv
+  return rv.filter(() => rand() < visitProbabilityDecayFactor)
 }
 
 test.each([
@@ -104,8 +110,9 @@ test.each([
   }
   await navigateTo(path)
   const laneIndex = path ? path.split('/').length : 0
+  rand = pseudoRandomNumberGenerator()
   await browseRecursively(laneIndex, join(`*ArchiveBrowser ${name}*`, path), archiveItemFilter, filterKeyLength)
-}, 20 * minutes)
+}, 20 * minutes) // NOTE!!! Do not increase this timeout! Rather, adjust the visitProbabilityDecayFactor
 
 test('inheriting sections', async () => {
   await startAPI('tests.states.uploads.archive_browser_test', 'tests/data/uploads/archive_browser_test_inheriting_sectins', 'test', 'password')
@@ -114,6 +121,7 @@ test('inheriting sections', async () => {
 
   const path = 'data'
   const sectionName = '../uploads/archive_browser_test/raw/inheriting-schema.archive.yaml#/definitions/section_definitions/1'
+  const sectionName2 = '../uploads/archive_browser_test/raw/inheriting-schema.archive.yaml#/definitions/section_definitions/2'
   await navigateTo(path)
 
   await userEvent.click(await screen.findByTestId('subsection:C1'))
@@ -123,8 +131,8 @@ test('inheriting sections', async () => {
   const dropDown = await screen.findByTestId(`inheriting:SubSectionBase1`)
   expect(dropDown).toBeInTheDocument()
   const selectInput = within(dropDown).getByRole('textbox', { hidden: true })
-  await waitFor(() => expect(selectInput.value).toEqual(''))
-  await fireEvent.change(selectInput, {target: {value: sectionName}})
+  await waitFor(() => expect(selectInput.value).toEqual(sectionName))
+  await fireEvent.change(selectInput, {target: {value: sectionName2}})
   await waitFor(() => expect(selectLabel).not.toBeInTheDocument())
 })
 

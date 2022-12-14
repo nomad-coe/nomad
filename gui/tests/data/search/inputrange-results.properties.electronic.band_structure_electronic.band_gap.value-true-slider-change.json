@@ -20,12 +20,12 @@
           "aggregations": {
             "results.properties.electronic.band_structure_electronic.band_gap.value:default_histogram": {
               "histogram": {
-                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
-                "changed": true
+                "changed": true,
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value"
               }
             }
           },

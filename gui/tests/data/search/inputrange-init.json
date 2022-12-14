@@ -20,11 +20,11 @@
           "aggregations": {
             "results.properties.electronic.band_structure_electronic.band_gap.value:default_slider": {
               "min_max": {
-                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
                 "exclude_from_search": true,
                 "update": true,
                 "type": "min_max",
-                "changed": true
+                "changed": true,
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value"
               }
             }
           },
@@ -99,12 +99,12 @@
           "aggregations": {
             "results.properties.electronic.band_structure_electronic.band_gap.value:default_histogram": {
               "histogram": {
-                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
-                "changed": true
+                "changed": true,
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value"
               }
             }
           },
@@ -331,11 +331,11 @@
           "aggregations": {
             "results.material.n_elements:default_slider": {
               "min_max": {
-                "quantity": "results.material.n_elements",
                 "exclude_from_search": true,
                 "update": true,
                 "type": "min_max",
-                "changed": true
+                "changed": true,
+                "quantity": "results.material.n_elements"
               }
             }
           },
@@ -410,12 +410,12 @@
           "aggregations": {
             "results.material.n_elements:default_histogram": {
               "histogram": {
-                "quantity": "results.material.n_elements",
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "interval": 1,
-                "changed": true
+                "changed": true,
+                "quantity": "results.material.n_elements"
               }
             }
           },
@@ -515,11 +515,11 @@
           "aggregations": {
             "upload_create_time:default_slider": {
               "min_max": {
-                "quantity": "upload_create_time",
                 "exclude_from_search": true,
                 "update": true,
                 "type": "min_max",
-                "changed": true
+                "changed": true,
+                "quantity": "upload_create_time"
               }
             }
           },
@@ -594,12 +594,12 @@
           "aggregations": {
             "upload_create_time:default_histogram": {
               "histogram": {
-                "quantity": "upload_create_time",
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
-                "changed": true
+                "changed": true,
+                "quantity": "upload_create_time"
               }
             }
           },

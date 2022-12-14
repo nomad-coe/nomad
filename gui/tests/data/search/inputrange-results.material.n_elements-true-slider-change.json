@@ -20,12 +20,12 @@
           "aggregations": {
             "results.material.n_elements:default_histogram": {
               "histogram": {
-                "quantity": "results.material.n_elements",
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "interval": 1,
-                "changed": true
+                "changed": true,
+                "quantity": "results.material.n_elements"
               }
             }
           },

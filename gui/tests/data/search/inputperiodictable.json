@@ -20,12 +20,12 @@
           "aggregations": {
             "results.material.elements:default": {
               "terms": {
-                "quantity": "results.material.elements",
                 "exclude_from_search": false,
                 "update": true,
                 "size": 119,
                 "type": "terms",
-                "changed": true
+                "changed": true,
+                "quantity": "results.material.elements"
               }
             }
           },
@@ -51,7 +51,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -67,13 +67,13 @@
                 "size": 119,
                 "data": [
                   {
-                    "count": 2,
-                    "nested_count": 2,
+                    "count": 3,
+                    "nested_count": 3,
                     "value": "C"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "H"
                   },
                   {
@@ -84,7 +84,22 @@
                   {
                     "count": 1,
                     "nested_count": 1,
+                    "value": "I"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "N"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
                     "value": "Nb"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Pb"
                   },
                   {
                     "count": 1,
@@ -109,7 +124,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "1217",
+          "content-length": "1533",
           "content-type": "application/json",
           "server": "uvicorn"
         }

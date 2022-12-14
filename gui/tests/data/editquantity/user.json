@@ -1,29 +1,4 @@
 {
-  "2a8cbe65e9653c6c7b814d5314109d60": [
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/users?user_id=undefined",
-        "method": "GET",
-        "body": "",
-        "headers": {
-          "accept": "application/json",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 200,
-        "body": {
-          "data": []
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "16",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    }
-  ],
   "4fb167ea4a236fd22afec9242e306b2f": [
     {
       "request": {

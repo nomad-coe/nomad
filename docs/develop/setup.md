@@ -448,8 +448,8 @@ upload files.
 
 !!! note
 
-    The tests are using a custom `nomad-test.yaml` file that specifies a
-    separate database/filesystem config in order to prevent interacting with
+    The tests are using the configuration specified in `gui/tests/nomad.yaml`, that
+    specifies a separate database/filesystem config in order to prevent interacting with
     any other instances of NOMAD.
 
 In order to control how the API traffic is handled, there are three main ways
@@ -473,8 +473,8 @@ for running the test suite, as configured in `package.json`:
     1. Have the docker infrastructure running: `docker compose up`
 
     2. Have the `nomad appworker` running with the config found in
-       nomad-FAIR/nomad-test.yaml. This can be achieved e.g. with the command: `export
-       NOMAD_CONFIG=nomad-test.yaml; nomad admin run appworker`
+       `gui/tests/nomad.yaml`. This can be achieved e.g. with the command: `export
+       NOMAD_CONFIG=gui/tests/nomad.yaml; nomad admin run appworker`
 
     3. Activate the correct python virtual environment before running the tests
        with yarn (yarn will run the python functions that prepare the state).

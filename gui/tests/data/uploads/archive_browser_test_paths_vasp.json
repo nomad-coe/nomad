@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjZDcxMjg0NS05YzJlLTQ2MDktYjYyNS05NmQwMTk0ZjcyYjYiLCJleHAiOjE2NjQzODc3NTQsIm5iZiI6MCwiaWF0IjoxNjY0MzUxNzczLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjZmZjhjNTE2LWNlYjQtNGM5YS1hYTRkLTNhZDE3MjZhZWEzZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.dsttrzBx5xJcr7G5TQeF9Y-7iTZmeWtT5ZIngpe7kvE2m4gB_J80hGAVu9HQNhxWtW74KoRhkffM5RkEN6JVnUOh_Uqs2zylEbT5Z-P3xszu2NR4Ed8k-GpFe0H38JE6oadaRJdUNCyDqciiuacme1a0b3aVJsEwZAmO77SwoWao_DtMh9iIsIu1OwKYVo6JLpBox33a9PJ7-gxEivcJ8x1UK96X0XxGdSrE2_HElCTkdfXLgA6rZOauSEwdMRYHirbVJRBSPs9XVBL-9GswyUSPav0YvPAv6vgpbMgZKmv3obgql54l07atjC4lxtvZneVVpwHOWBRqliOCFDf5Ng",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI2MmUwMzBiYS1hNDQ5LTRjNWMtYmVlZS0xOGI0ODM4NjNiOTYiLCJleHAiOjE2NzEwNTI0NTQsIm5iZiI6MCwiaWF0IjoxNjcxMDE2NDY3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjE2ZDJlZDFlLWRmNDMtNGYwMS05Njg1LTM1NzJmMzBmMmY5MCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.SX8i-qhIe6uLMBa09Xpy0KoWJlZpV2C2OAmtuGo4R3lSVPjiGnZG7J4PcRolsl0gQ0-uwJW5CRrdLU9lBmM4UDXr8LqGewLq89b3uRmACjV29x3N5hAb3hExI7wXdzKOEoGHO8L42qgBfwcrUiK7gonJCOTlo262K9RoMHLTnFvkDvS6ySvR9PvfUrmGwq-dJ-vQtPm8aIv3oRZEW_nnp6PXgQ3LMGcd7Xiu28pp6K99-WLw_yVqNRllmBTW3Q7NmmXzWLkzqgVOYkd60CHxQhT9c_dTYnCVToLKEpAMu1D1JftSBLPdLrLinejMdbciYNNkiVdMPO0gjdMUVgQ6hA",
           "cookie": null
         }
       },
@@ -32,6 +32,11 @@
               "metadata.entry_hash",
               "metadata.entry_id",
               "metadata.entry_name",
+              "metadata.entry_timestamp",
+              "metadata.entry_timestamp.timestamp",
+              "metadata.entry_timestamp.token",
+              "metadata.entry_timestamp.token_seed",
+              "metadata.entry_timestamp.tsa_server",
               "metadata.entry_type",
               "metadata.files",
               "metadata.last_processing_time",
@@ -62,8 +67,14 @@
               "metadata.processed",
               "metadata.processing_errors",
               "metadata.published",
+              "metadata.quantities",
               "metadata.references",
               "metadata.reviewers",
+              "metadata.section_defs",
+              "metadata.section_defs.definition_id",
+              "metadata.section_defs.definition_qualified_name",
+              "metadata.section_defs.used_directly",
+              "metadata.sections",
               "metadata.upload_create_time",
               "metadata.upload_id",
               "metadata.with_embargo",
@@ -74,7 +85,9 @@
               "results.material.chemical_formula_hill",
               "results.material.chemical_formula_reduced",
               "results.material.chemical_formula_reduced_fragments",
+              "results.material.compound_type",
               "results.material.elements",
+              "results.material.functional_type",
               "results.material.material_id",
               "results.material.material_name",
               "results.material.structural_type",
@@ -247,6 +260,12 @@
               "run.system.prototype.aflow_url",
               "run.system.prototype.assignment_method",
               "run.system.prototype.label",
+              "run.system.springer_material",
+              "run.system.springer_material.alphabetical_formula",
+              "run.system.springer_material.classification",
+              "run.system.springer_material.compound_class",
+              "run.system.springer_material.id",
+              "run.system.springer_material.url",
               "run.system.symmetry",
               "run.system.symmetry.bravais_lattice",
               "run.system.symmetry.crystal_system",
@@ -295,13 +314,886 @@
               "workflow.type"
             ],
             "datasets": [],
-            "n_quantities": 408,
-            "nomad_version": "1.1.4",
-            "upload_create_time": "2022-09-28T07:56:10.623000+00:00",
-            "nomad_commit": "d0778d6a",
+            "n_quantities": 961,
+            "nomad_version": "1.1.2.dev666+g502bae475",
+            "upload_create_time": "2022-12-14T11:14:22.105000+00:00",
+            "nomad_commit": "",
+            "section_defs": [
+              {
+                "used_directly": true,
+                "definition_id": "6d9e4402830c6514f2bbd58acbde8426c6ec3ae8",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4f3869e8788de918ae284e6d836983e3a12c773d",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "01688b46801e32552b4929fdd8f60d9113ed28d8",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "38544126654336522114e7eb9efb95fd609e4aad",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9a8c5c5772b794cb7e95207ad0491358916fd2b0",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "22672366adfa52d48b278bed25d715b16e6eabf7",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5a86f7074a4a005b87ccb3b1d2c609940d151b58",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Symmetry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "43afe1f4bcf3056df2182af93d1cfcd7beca9fc0",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "537ea5953b080d2d4caba9cf9cdd9632535e0165",
+                "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e089b42add89bd33949f6dc4b1a25c29c44021a5",
+                "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "12e783dc2e48e956f97816c86806ad8800f0c2f2",
+                "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "739099f66c30eabd7a488731882c98dab1e0b7e7",
+                "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5361a103cbd62693b56ee3ec8bb934a1a3cf123e",
+                "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit_autogenerated.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "cb7cff899338773786be2a62936839dbc6956930",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e2f613d9c9ed7630b1a04fa45fdf8a9d28752791",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "222c0058bfde9c21d7416e4681c315efbc807644",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.BasisSet"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "3d93bc8f21bea2b2bf00f301661734bfc6e500fe",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "572f613d2661c89958be90b3109f3dc6e5942194",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Forces"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "929175a40d709a024dc4d17e1afe6508cb5903e8",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "72883c530f1064e61c7e3d082eb207b0529fc02d",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Scf"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5fdea5862a6a8eb43a619af3673f5dbd9ff54546",
+                "definition_qualified_name": "electronicparsers.castep.metainfo.castep.BasisSetCellDependent"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9f259a72e84a818eb751b8ff1594723f7af8b136",
+                "definition_qualified_name": "electronicparsers.castep.metainfo.castep.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d4550b6c550bea2260acf2dcc3588418d2104ae6",
+                "definition_qualified_name": "electronicparsers.castep.metainfo.castep.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "8d0a6c8651175d31720872a646e51eba7c99c956",
+                "definition_qualified_name": "electronicparsers.castep.metainfo.castep.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "01529258b2dda3908913ff284adb90e9db2f2fdc",
+                "definition_qualified_name": "electronicparsers.castep.metainfo.castep.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "493e8ae435bd6055917a0fcc8ffdca5e2c2c218a",
+                "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2bd651a189e1aa36c7bd8ec9711c9ec9a329e252",
+                "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c9dc0463eb44a097a03b34efa4838144b4cbdf75",
+                "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "3e0b9197ca188dab7781ce0f53cf2a52e956e00e",
+                "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7b06b13b9eb2312531d22e52c09f66bfb77588e2",
+                "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Workflow"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0cab552dae6591235dd61fa991124181f1c0e481",
+                "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e2860f5c605cdcbc89bc3b2ecb488557dce3d0e6",
+                "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "fa082e901d66b6b782c2b040ce5a48f7070c13d4",
+                "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b6761195bafa61db5e40f7055d18b56ffafc31b2",
+                "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4ace5d9b50436cc5ad2a26c66e61b00ba5a92e35",
+                "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "779aefdc6cddcdf0c81055b400dbb5b755eb234c",
+                "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "09eec1cfa8fede71d3e28d67bb49c1f312831300",
+                "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "521641b00ed5288682e8b73b498fe1d9ac4a539f",
+                "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "67620bb8a77d10b8e08ee183e599d2b690515c0c",
+                "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "85c7728b4c106f7e977ee5706730e94c229bb549",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "877ced7d43e13d36760ac16c5057d7e77b03361b",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "71b8743f84eb4904659dd7d393d1af2d8df9e900",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0493602d883f197ce73a767e975f888b97225706",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b11509dc31fac409ac1c9476aab8213d7b8ffb3a",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Program"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "156f370d6fc68f75e97726a73acb5194971cfe17",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "121be0733a129230fce1d0908b9eabc2906b8c92",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2bcf00876184ffd572f3fabeede19abd08fa3bf4",
+                "definition_qualified_name": "electronicparsers.elk.metainfo.elk.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "062a807b226398865fca1333471c1aff272f2655",
+                "definition_qualified_name": "electronicparsers.elk.metainfo.elk.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "af06420b75bd3b274fad6d87112630b909df66a4",
+                "definition_qualified_name": "electronicparsers.elk.metainfo.elk.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c5cc2b29e44607b49f5397c702bcc52f3f2a255a",
+                "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "35a278da4f5c978ea62e0fb17aa71e0c651411a7",
+                "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a0a34b4569939a9833ab44a8ad93589d20370643",
+                "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d623c30c3707e49f3b8c35941881cde3982f542e",
+                "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "802fce1316e8d042764e058bb1c0c9fe8b7937f7",
+                "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "76b14fa5def63cec34b7a89785a882017f65f6fa",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "21766a4f63dd3b0b0c1d5e942e353cd8d357c38a",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "df452ad7e964569ab73cc77028a4361b5d3ce895",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "877937692c8f19c779715bbba5b2caba327e7b8c",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "385aab6d9304650927342548b7ad413009d0ba19",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.ScfIeration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "93124d05eae67667c50a1275fb43d2296673cafa",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "415cdedfd268d89e53c9c88be0b8aeb7b949c145",
+                "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "6579dafb493ce78e9c99c7dc46b51daa1551311e",
+                "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7a0e6aa496ff15eb63bda8a55b2ef517cd0df16f",
+                "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "72120cb4b473fce17afc60baabc332838a66a4c1",
+                "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0c3e40c4ab4736c186095afde73eaa57a396902c",
+                "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.XCFunctional"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "37b72b551b3a773eafba9d15ccba7c47c86d42a3",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2fddfa62d4db7a6574438d865d08ffee99772048",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4959b7a13a038260bd460ccfcc78e76881e6014f",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0f0d5f0efa0d8b322d91c5c9ff234b4a45d27977",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c26b918e91fd1c5710b7012f61df3327ea6314c0",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "bc38d9fd2b65f6d51f27b21d4d50611112fb15fb",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e3670cc522cef09f6a03f8a93f9841afa706ce11",
+                "definition_qualified_name": "electronicparsers.gpaw.metainfo.gpaw.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2c5bed30ade97d89c2eb62d4b50f6336a2d8a23f",
+                "definition_qualified_name": "electronicparsers.gpaw.metainfo.gpaw.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ba3a88d6fca210edc21ac77001a9ed25e5de365e",
+                "definition_qualified_name": "electronicparsers.mopac.metainfo.mopac.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9f1032941f1bb6c105fed0c70f7a241e33e5c54e",
+                "definition_qualified_name": "electronicparsers.mopac.metainfo.mopac.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a095149f77013f646c388f28720457c2ac84b120",
+                "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0ba92885463d34ab9e168b63ca232becd1ea9e3e",
+                "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7a0634f2a16403c70d5a906f7124a639092d718c",
+                "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ecb111bff7e3065a883af6afda8fab3c63b5df8c",
+                "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "fe7649a7694a1b95473a0a9e643b1ce523021504",
+                "definition_qualified_name": "electronicparsers.octopus.metainfo.octopus.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "1edc4788de4c432cf18468bee0a415c080abd07b",
+                "definition_qualified_name": "electronicparsers.octopus.metainfo.octopus.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "44d8422e8313d509efc2d7371dd8c46589b5bfc6",
+                "definition_qualified_name": "electronicparsers.octopus.metainfo.octopus_autogenerated.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "67f3c73642c28d5a2084dea87069828810a84f7f",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "045ca1a5949546718dae0b5e13ee752dd8d68181",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.BasisSetCellDependent"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ae212b484d437bc09a2bc5de98f708414d720d50",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e2e9fcf5815507339b56396df03b2c7a38f2125c",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d269adab02c3c4ec888dca4e4d06972f4499376b",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "50777de07a959b5f153f5b3e14cd720a3b9d3a1b",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b235d50b126303bfbae58cda112b29aab281a961",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a7e26836d5c0c9724364636520c7ff359170bb76",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "8ea9b3776b1cf641cb80cc0cd4181d545ca41a3b",
+                "definition_qualified_name": "electronicparsers.openmx.metainfo.openmx.OpenmxSCC"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "8b03185ad0489a0617b6f5b4e222a734d36ef9d7",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c78a5dc924b0781af3f2ee48b99a4232fdcc6f0f",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.DFT"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "bace5771ffd0eb8c5e697b93fa91d192e9b48bb3",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "491af89c68fa0bcb04f4d100d19490a0dde98af8",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c834b60b9da3129018dae16dd82c2d1a7abac1d2",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Scf"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b91af6f47b121a71d60dda18002682c23b8bb199",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2ce57084bf2359ef383e9939b68bd6c173c65ebc",
+                "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "8ffd19b722d33a0d4ca3b62b874bc70cac2e6828",
+                "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "bc3a6f62a9ea22ece84606941beb6f47a42c204d",
+                "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "04ccc2e707066451a6e847562c3dd60395787312",
+                "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2bd642b49e58a4de4fcce31797a5227ec830b593",
+                "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "48f9172da5febb7a8d725e0fc8a513e23c7d82f6",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "efe11bf0949b10a95c647ad5eb0b374076a03b1a",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "04403792d0b8217d48d86c7c65441d18f76c7747",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "becf05a032c61bd66321ed70d037f34e8cbda1eb",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Functional"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e5e687d90f9a78e7f3bc80390a3976cc55bc5f1b",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "f4f78d8271e4147db0c7d1e5ff311bbd147d0448",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "58ac9168cc4bc17d004cf2ddf8275db9560eafbc",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "1eb5b2a71c7c9063741e212affeb034564400db0",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "cc4af2925076a64770bb926bc7a97055c2436d07",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "aa3c33c61548ef756197eae66680ba6292fab9d2",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0f4fa729f81c959833c74a1aae0a7bef8e7174ce",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "3b493ca1f2bef966e453ac6885d2e27227573ff3",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "04ee57e9723a4ce5c9cd787ab785e7ccad77173e",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "335bee5472f06f37d4fdf737f7c369ea33244138",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "42825bab63cb39d930a62dd619f14406320949c4",
+                "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d352f37629f1822316908ba832e91f81ef1e2196",
+                "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4c7fff1f65c8166eafbc41242aedf94bfaaeeb95",
+                "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d7254bb23948b8647766ce0df1ffef020dd7bc50",
+                "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d28baf0bddab265ddf8cf93a44aa80fc1adfc635",
+                "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ae8cdb1b83577268ea07f50cebf71ba2ac7c19cd",
+                "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "dc6c639907c1ca478d062f1da15255d8deb251bb",
+                "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Program"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "64767cfb00d98ee422236a00661b7eca59effd04",
+                "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                "definition_qualified_name": "nomad.datamodel.data.ArchiveSection"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5065d142af41d4c76ffda1d766074f2d18468ce4",
+                "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c1433047212d95b5607397e0b759bb1508abb19b",
+                "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "92e8b591b01bfb708fd31380c0eed16414307e53",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Atomic"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9f2724982ba167edc218872b7e569fba9e07b55c",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9a52f9aabbdcd1302835f45c957e875bcd8f2c90",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.BaseCalculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2bf1f2f7aa86f076902f32301545b64ad862c8c2",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "65428bbc69bd4eec48eae55e59106a046de6f138",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "39d9c2bf33c30ca53f09bb232e433360a4ebdce4",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.EnergyEntry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4c24448941c6bc9059e8f0217cd40c5077012a75",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Forces"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2900968e4bc11bf8eed8b1cb8f38731bd415cb86",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.ForcesEntry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "da605ba5fc801748f849c13e5f34f23a4da120d2",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "bf2b8d1fd2bce9cf750b011bcdb1655b36d87524",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Stress"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "34e0f85f012e1095ac05020c04e6780b7405cd27",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.StressEntry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "f130c7547f88f3e061ac1dc96a1a0148c1e8181d",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ea212685138e00e6f8f4b214bcef51ad413dd9f6",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.BasisSet"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "88587ebcee7a8bab0c6be62b532d0ba3598817da",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.BasisSetCellDependent"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "1c14c87ba3102cd4f979e0906f95105c184bf6c0",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.DFT"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a2f985b59a33c47d0a17b1aa93a08d0777de9636",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Electronic"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "3bc86f6b013b2e6cca5d7302f6fe9a00e5eb4364",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Functional"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "043f77e74a1faf6d142d7dd3f93fb14bc4276944",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "02f45c4932a5227cd3855245c22220cdf0d776ca",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Model"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b1317e0ef6ecbc4dc9b18995175f197b3a489c93",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Scf"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "517cb8d32af3c10f3948435d5190638f9f622dcb",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.XCFunctional"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9d0685a63e70e0606badc54507afd746863d59f0",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.run.Program"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "09328462a4ebd1091b886945ec1de20165577ef8",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.run.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c488867b53d7df0aeaa1518bef02f04c496eed59",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.Atoms"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c63c7822abff00f53cac5d62171849f8030ac1e9",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.Prototype"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "55ea7e6b2564f5b04118b0dde17ca29aa232b530",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.SpringerMaterial"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d578b5c56b9b55e3220a8decabad1c4752f55f9a",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.Symmetry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c8a3932bb93e54315f89b45eb6ed31ba0f77f788",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b40940c6c09de2337293cfc674a23733112704ee",
+                "definition_qualified_name": "nomad.datamodel.metainfo.workflow.SinglePoint"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0ec7b39c9fdcebe09a6338469c6a87d4bf552fb8",
+                "definition_qualified_name": "nomad.datamodel.metainfo.workflow.Task"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ab63bf39914097c327c882bfea2ebc8285717174",
+                "definition_qualified_name": "nomad.datamodel.metainfo.workflow.Workflow"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "6cd183087658a33d09943e5e7a7bb99f1aa7f1f2",
+                "definition_qualified_name": "nomad.datamodel.optimade.OptimadeEntry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5b6d1cf79926b9cf56a7d2be67f86d4d63674cc8",
+                "definition_qualified_name": "nomad.datamodel.optimade.Species"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d161679d7eac9501d37dfc02d31a95e70fbc2161",
+                "definition_qualified_name": "nomad.datamodel.results.DFT"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5e0294d75705dd1fd99b79088f8a0df47eeb8af8",
+                "definition_qualified_name": "nomad.datamodel.results.LatticeParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "43920083339a4aa13c70d035cc502203940ada12",
+                "definition_qualified_name": "nomad.datamodel.results.Material"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d18dd79c4bf1366a3b5296305c0a868deeffc5ad",
+                "definition_qualified_name": "nomad.datamodel.results.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ffc0625be121b3f17200bece74024685b2f8c32a",
+                "definition_qualified_name": "nomad.datamodel.results.Properties"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "6f36e84e0c6d1de748b4da8afbd15940ccc35b45",
+                "definition_qualified_name": "nomad.datamodel.results.Results"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7c9b61c5d225ca0afdc5f7f73f08db00ca8dbcfe",
+                "definition_qualified_name": "nomad.datamodel.results.Simulation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d3931e10b5195eb3762c2f9568909c26ba45e798",
+                "definition_qualified_name": "nomad.datamodel.results.Structure"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "cd7254d7513a9c8b069c378d51dd317a5bced8b1",
+                "definition_qualified_name": "nomad.datamodel.results.Structures"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "186003211945f18cbddd6c8b6715e1da184eddf5",
+                "definition_qualified_name": "nomad.datamodel.results.Symmetry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a871f00e569db9641717cb4697239ab3e02c1ec9",
+                "definition_qualified_name": "nomad.datamodel.results.WyckoffSet"
+              }
+            ],
             "processing_errors": [],
             "results": {
               "material": {
+                "compound_type": [
+                  "chemical element"
+                ],
+                "functional_type": [
+                  "metal",
+                  "nonmetal",
+                  "semiconductor"
+                ],
+                "structural_type": "bulk",
+                "chemical_formula_descriptive": "Si16",
+                "chemical_formula_hill": "Si16",
                 "symmetry": {
                   "bravais_lattice": "cF",
                   "space_group_symbol": "Fd-3m",
@@ -321,15 +1213,12 @@
                 "elements_exclusive": "Si",
                 "chemical_formula_anonymous": "A16",
                 "material_id": "fh3UBjhUVm4nxzeRd2JJuqw5oXYa",
-                "structural_type": "bulk",
                 "chemical_formula_reduced": "Si16",
                 "n_elements": 1,
-                "chemical_formula_descriptive": "Si16",
                 "material_name": "Silicon",
                 "chemical_formula_reduced_fragments": [
                   "Si"
-                ],
-                "chemical_formula_hill": "Si16"
+                ]
               },
               "method": {
                 "method_name": "DFT",
@@ -398,7 +1287,7 @@
               }
             },
             "entry_name": "Si16 VASP simulation",
-            "last_processing_time": "2022-09-28T07:56:10.874000+00:00",
+            "last_processing_time": "2022-12-14T11:14:22.640000+00:00",
             "optimade": {
               "nperiodic_dimensions": 3,
               "species_at_sites": [
@@ -454,6 +1343,7 @@
             "sections": [
               "nomad.datamodel.datamodel.EntryArchive",
               "nomad.datamodel.datamodel.EntryMetadata",
+              "nomad.datamodel.datamodel.RFC3161Timestamp",
               "nomad.datamodel.metainfo.simulation.calculation.BandEnergies",
               "nomad.datamodel.metainfo.simulation.calculation.Calculation",
               "nomad.datamodel.metainfo.simulation.calculation.Energy",
@@ -476,6 +1366,7 @@
               "nomad.datamodel.metainfo.simulation.run.Run",
               "nomad.datamodel.metainfo.simulation.system.Atoms",
               "nomad.datamodel.metainfo.simulation.system.Prototype",
+              "nomad.datamodel.metainfo.simulation.system.SpringerMaterial",
               "nomad.datamodel.metainfo.simulation.system.Symmetry",
               "nomad.datamodel.metainfo.simulation.system.System",
               "nomad.datamodel.metainfo.workflow.SinglePoint",
@@ -490,9 +1381,7 @@
               "nomad.datamodel.results.Properties",
               "nomad.datamodel.results.Results",
               "nomad.datamodel.results.Simulation",
-              "nomad.datamodel.results.StructureConventional",
-              "nomad.datamodel.results.StructureOriginal",
-              "nomad.datamodel.results.StructurePrimitive",
+              "nomad.datamodel.results.Structure",
               "nomad.datamodel.results.Structures",
               "nomad.datamodel.results.Symmetry",
               "nomad.datamodel.results.WyckoffSet"
@@ -517,7 +1406,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2022-09-28T07:56:10.748000+00:00",
+            "entry_create_time": "2022-12-14T11:14:22.308000+00:00",
             "with_embargo": false,
             "domain": "dft",
             "files": [
@@ -541,7 +1430,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "21863",
+          "content-length": "58322",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -559,7 +1448,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5ZThlYTRmNS0wOWEyLTRkZGItYTZiZC1hYTZiMDQ4ZWZhMDIiLCJleHAiOjE2NjQzODc3NTQsIm5iZiI6MCwiaWF0IjoxNjY0MzUxNzczLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjZmZjhjNTE2LWNlYjQtNGM5YS1hYTRkLTNhZDE3MjZhZWEzZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.R37y_gWYG_Ic4wZBhQduCtok5-_GSKaxoK0vOXCayfo2bpYmhhceXGectB5T2edgUM2Y9q1O7HW__WgT0s7qFGMhgsci-D1jBA8LlLR5thI4V1Q3D-vbB-K_chk_FizeS-9vFGe8ugN7utHmekqMurlT17ieH40UecUaphfJnXNueN8De7DayM6NeC4EQe42zN3dlR8pi0EjVAzwGLRgHXk7bV-3s45tcbAVJQO5560XELYS6lLa51pOT8F4nAn9fTZUfLfY20tO1trgIaEhvIbj8drVUyGGccsOVJZ_udIfxjvi61mNBw0W0KqlDTBINtc722IKp7b89dVa-FX2_g",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI3ZWY3OWZiYS1hYTFmLTQ2N2QtYWEyZC01NGNhODBlNWQzNGYiLCJleHAiOjE2NzEwNTI0NTQsIm5iZiI6MCwiaWF0IjoxNjcxMDE2NDY3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjE2ZDJlZDFlLWRmNDMtNGYwMS05Njg1LTM1NzJmMzBmMmY5MCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.LI9gDFts21DUiDpAcGtxbfBhb_tPeL55eElz29SiuNj9W0rdU5i8bze-U2SjcDpwHxvU1KvAHlFmQWbmY0zRrIXItuQO94bbPmpLTvzXLtoDA1oudN-YetPoHzYIMXe_6wnbky46twMWZHQj5B1gnBQSIyPbJqrI2-B4P2xI__PJkQEj-u_jQtB1cz4aAX4R9SM8MrCsRdMErqtVXjXmMaf24HC8k1a-FMoW37Xn1JcgKs9mXwh_MRF1ymomjsxiwHO_RGB3tlnrs_Vy7B-OUDVUGlNJHY63KwCcdSPAIgHmZp7brRZjScpXDLwNIUzD_N26BhQpvky2yHsZ7dA9Lg",
           "cookie": null
         }
       },
@@ -578,23 +1467,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.10",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.06670022010803223",
+                  "exec_time": "0.047097206115722656",
                   "input_size": "61197",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "step": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.10",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
@@ -602,39 +1491,135 @@
                   "event": "chose \"representative\" section system",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.10",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.07168459892272949",
+                  "exec_time": "0.20593571662902832",
                   "system_size": "16",
                   "event": "system classification executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.06969571113586426",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-14 12:14.22",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-14 12:14.22",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-14 12:14.22",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-14 12:14.22",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-14 12:14.22",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-14 12:14.22",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-14 12:14.22",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-14 12:14.22",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "exec_time": "0.06121373176574707",
                   "system_size": "16",
                   "event": "symmetry analysis executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
@@ -643,24 +1628,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.14383172988891602",
+                  "exec_time": "0.2691359519958496",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "normalizer": "SystemNormalizer",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
@@ -668,11 +1653,11 @@
                   "event": "chose \"representative\" section system",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
@@ -681,24 +1666,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0019545555114746094",
+                  "exec_time": "0.0022041797637939453",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "normalizer": "OptimadeNormalizer",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
@@ -707,24 +1692,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0004153251647949219",
+                  "exec_time": "0.0004277229309082031",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "normalizer": "DosNormalizer",
                   "step": "DosNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
@@ -733,24 +1718,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0003609657287597656",
+                  "exec_time": "0.0003807544708251953",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "normalizer": "BandStructureNormalizer",
                   "step": "BandStructureNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
@@ -759,24 +1744,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.004556417465209961",
+                  "exec_time": "0.00467371940612793",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "normalizer": "WorkflowNormalizer",
                   "step": "WorkflowNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.22",
                   "level": "INFO"
                 },
                 {
@@ -785,24 +1770,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.23",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.037825584411621094",
+                  "exec_time": "0.015816211700439453",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.23",
                   "level": "INFO"
                 },
                 {
@@ -811,46 +1796,46 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.23",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.001422882080078125",
+                  "exec_time": "0.0020818710327148438",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.23",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.012647867202758789",
+                  "exec_time": "0.04019594192504883",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.23",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.019580841064453125",
+                  "exec_time": "0.11658930778503418",
                   "event": "entry metadata indexed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "n-mXR3jkTXm_xB6TD6qi4Q",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-28 09:56.11",
+                  "timestamp": "2022-12-14 12:14.23",
                   "level": "INFO"
                 }
               ],
@@ -1062,6 +2047,1023 @@
                           "aflow_url": "http://www.aflowlib.org/CrystalDatabase/A_cF8_227_a.html",
                           "assignment_method": "normalized-wyckoff",
                           "label": "227-C-cF8"
+                        }
+                      ],
+                      "springer_material": [
+                        {
+                          "id": "sd_1413707",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1413707",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0304951",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0304951",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1622696",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1622696",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1716045",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1716045",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0555836",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0555836",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1822280",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1822280",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1401250",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1401250",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1719937",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1719937",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0558521",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0558521",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1126014",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1126014",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1521661",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1521661",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1521348",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1521348",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0452128",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0452128",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1140138",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1140138",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1903714",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1903714",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0530557",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0530557",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1021274",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1021274",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1231690",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1231690",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0454342",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0454342",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0454343",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0454343",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1602690",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1602690",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0532590",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0532590",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1629301",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1629301",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1825473",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1825473",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0455927",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0455927",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1640543",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1640543",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0549825",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0549825",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0310242",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0310242",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1603279",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1603279",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1906288",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1906288",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0311290",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0311290",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1210773",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1210773",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1210749",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1210749",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1817142",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1817142",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1817094",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1817094",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1605704",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1605704",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1605300",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1605300",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1908155",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1908155",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0313961",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0313961",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1937283",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1937283",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1120453",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1120453",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1921581",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1921581",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1921569",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1921569",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1500920",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1500920",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1939109",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1939109",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1200512",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1200512",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1925041",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1925041",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1939376",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1939376",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1923885",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1923885",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0553633",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0553633",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0553634",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0553634",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_0553566",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_0553566",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "sd_1938073",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/crystallographic/docs/sd_1938073",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": [
+                            "metal",
+                            "nonmetal",
+                            "semiconductor"
+                          ]
+                        },
+                        {
+                          "id": "ppp_486cfa523ede731d2a3ea4c9102884a5",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_486cfa523ede731d2a3ea4c9102884a5",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_0c1efdde9f0919ae8d00c028a8d90900",
+                          "alphabetical_formula": "Si hyp",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_0c1efdde9f0919ae8d00c028a8d90900",
+                          "compound_class": [],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_ff70b8446fffa3847d929f31dc42629b",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_ff70b8446fffa3847d929f31dc42629b",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_829ae19e90c2cbf6de4ee3723d684741",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_829ae19e90c2cbf6de4ee3723d684741",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_52373de73fa75cb990fbff8f1cfeb495",
+                          "alphabetical_formula": "Si hyp",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_52373de73fa75cb990fbff8f1cfeb495",
+                          "compound_class": [],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_3396b325c23b5010aff3ea89f2ca1d45",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_3396b325c23b5010aff3ea89f2ca1d45",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_6299cae533ef5c5ce00837fcb86f4b77",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_6299cae533ef5c5ce00837fcb86f4b77",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_1e411b7518aea58f1f3a7eeae62a7fc3",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_1e411b7518aea58f1f3a7eeae62a7fc3",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_547e83af94689addaf6f49f67dd6d528",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_547e83af94689addaf6f49f67dd6d528",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_b7ff27073c6dd35bbcbd734a908aef6e",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_b7ff27073c6dd35bbcbd734a908aef6e",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_69595a398b69fa217b43b0fc4e11c7fc",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_69595a398b69fa217b43b0fc4e11c7fc",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_8c883e344ee6e2c351ccdf2721e5f37c",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_8c883e344ee6e2c351ccdf2721e5f37c",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_2caf154e06508fa6428ee858daeb71f2",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_2caf154e06508fa6428ee858daeb71f2",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_aee2f02902345ebe64c1ee2458961c93",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_aee2f02902345ebe64c1ee2458961c93",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_f2ab60fde40e384e2210be8602bfcec0",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_f2ab60fde40e384e2210be8602bfcec0",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_f9d554bbb1e5448463d71de5bd092a34",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_f9d554bbb1e5448463d71de5bd092a34",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_af58bfbb06c9ae9f3fadd9642df5dea8",
+                          "alphabetical_formula": "Si hyp",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_af58bfbb06c9ae9f3fadd9642df5dea8",
+                          "compound_class": [],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_bed91998f5742229308e6189505fed5e",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_bed91998f5742229308e6189505fed5e",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_89619b6157837283e856a847da80181d",
+                          "alphabetical_formula": "Si hyp",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_89619b6157837283e856a847da80181d",
+                          "compound_class": [],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_48a7af18bcbdd7284c9b624125a40af9",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_48a7af18bcbdd7284c9b624125a40af9",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_6009c7667698a17831c480963e3fdba4",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_6009c7667698a17831c480963e3fdba4",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_c94138d2d28be25fac203e891306f1d8",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_c94138d2d28be25fac203e891306f1d8",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_b0b56681de41ce54d830cd70831d01a0",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_b0b56681de41ce54d830cd70831d01a0",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_f3caa1f27b113dd86ceff73e8cdcb485",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_f3caa1f27b113dd86ceff73e8cdcb485",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_7816b1cbbb1bbd466151ff22fb1a1846",
+                          "alphabetical_formula": "Si hyp",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_7816b1cbbb1bbd466151ff22fb1a1846",
+                          "compound_class": [],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_53d104b68cb11e6b80658d366cefe91d",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_53d104b68cb11e6b80658d366cefe91d",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_2e2edf6cce0d3af669826203bcdc2bb7",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_2e2edf6cce0d3af669826203bcdc2bb7",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_55c99ac10482b1b1cd3611d358bef8f8",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_55c99ac10482b1b1cd3611d358bef8f8",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_6c770a19763c3ced2849ac6b1db3b8f0",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_6c770a19763c3ced2849ac6b1db3b8f0",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_43ac537a6bbb022c6fbba2709b22b615",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_43ac537a6bbb022c6fbba2709b22b615",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_a138ea6f448bc5f1157b49a5af42bb6d",
+                          "alphabetical_formula": "Si hyp",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_a138ea6f448bc5f1157b49a5af42bb6d",
+                          "compound_class": [],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_49d06da4328a59c0671d537e38ddf689",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_49d06da4328a59c0671d537e38ddf689",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_7f344c97e59696b1f2e5f575e96da874",
+                          "alphabetical_formula": "Si hyp",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_7f344c97e59696b1f2e5f575e96da874",
+                          "compound_class": [],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_7a3252e661e8af5a79060557822334a9",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_7a3252e661e8af5a79060557822334a9",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_0b268ce79b399f25a3ea7c4465205173",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_0b268ce79b399f25a3ea7c4465205173",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_5eac339246de013604934088e5026762",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_5eac339246de013604934088e5026762",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_c217521c2391dba46ddb62c51a6b20ca",
+                          "alphabetical_formula": "Si hyp",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_c217521c2391dba46ddb62c51a6b20ca",
+                          "compound_class": [],
+                          "classification": []
+                        },
+                        {
+                          "id": "ppp_48a88d3adfe3840cd8d00146374443b5",
+                          "alphabetical_formula": "Si",
+                          "url": "http://materials.springer.com/isp/physical-property/docs/ppp_48a88d3adfe3840cd8d00146374443b5",
+                          "compound_class": [
+                            "chemical element"
+                          ],
+                          "classification": []
                         }
                       ],
                       "symmetry": [
@@ -4213,12 +6215,12 @@
               ],
               "metadata": {
                 "upload_id": "archive_browser_test",
-                "upload_create_time": "2022-09-28T07:56:10.623000+00:00",
+                "upload_create_time": "2022-12-14T11:14:22.105000+00:00",
                 "entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
                 "entry_name": "Si16 VASP simulation",
                 "entry_type": "VASP",
                 "entry_hash": "PGjkHV-ALEhA8eiWps243e9kxhmF",
-                "entry_create_time": "2022-09-28T07:56:10.748000+00:00",
+                "entry_create_time": "2022-12-14T11:14:22.308000+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "examples_vasp/xml/Si.xml",
                 "files": [
@@ -4230,10 +6232,10 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-09-28T07:56:10.874321+00:00",
+                "last_processing_time": "2022-12-14T11:14:22.640836+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.1.4",
-                "nomad_commit": "d0778d6a",
+                "nomad_version": "1.1.2.dev666+g502bae475",
+                "nomad_commit": "",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                 "coauthors": [
@@ -4245,7 +6247,7 @@
                 ],
                 "datasets": [],
                 "domain": "dft",
-                "n_quantities": 408,
+                "n_quantities": 961,
                 "quantities": [
                   "",
                   "metadata",
@@ -4258,6 +6260,11 @@
                   "metadata.entry_hash",
                   "metadata.entry_id",
                   "metadata.entry_name",
+                  "metadata.entry_timestamp",
+                  "metadata.entry_timestamp.timestamp",
+                  "metadata.entry_timestamp.token",
+                  "metadata.entry_timestamp.token_seed",
+                  "metadata.entry_timestamp.tsa_server",
                   "metadata.entry_type",
                   "metadata.files",
                   "metadata.last_processing_time",
@@ -4288,8 +6295,14 @@
                   "metadata.processed",
                   "metadata.processing_errors",
                   "metadata.published",
+                  "metadata.quantities",
                   "metadata.references",
                   "metadata.reviewers",
+                  "metadata.section_defs",
+                  "metadata.section_defs.definition_id",
+                  "metadata.section_defs.definition_qualified_name",
+                  "metadata.section_defs.used_directly",
+                  "metadata.sections",
                   "metadata.upload_create_time",
                   "metadata.upload_id",
                   "metadata.with_embargo",
@@ -4300,7 +6313,9 @@
                   "results.material.chemical_formula_hill",
                   "results.material.chemical_formula_reduced",
                   "results.material.chemical_formula_reduced_fragments",
+                  "results.material.compound_type",
                   "results.material.elements",
+                  "results.material.functional_type",
                   "results.material.material_id",
                   "results.material.material_name",
                   "results.material.structural_type",
@@ -4473,6 +6488,12 @@
                   "run.system.prototype.aflow_url",
                   "run.system.prototype.assignment_method",
                   "run.system.prototype.label",
+                  "run.system.springer_material",
+                  "run.system.springer_material.alphabetical_formula",
+                  "run.system.springer_material.classification",
+                  "run.system.springer_material.compound_class",
+                  "run.system.springer_material.id",
+                  "run.system.springer_material.url",
                   "run.system.symmetry",
                   "run.system.symmetry.bravais_lattice",
                   "run.system.symmetry.crystal_system",
@@ -4523,6 +6544,7 @@
                 "sections": [
                   "nomad.datamodel.datamodel.EntryArchive",
                   "nomad.datamodel.datamodel.EntryMetadata",
+                  "nomad.datamodel.datamodel.RFC3161Timestamp",
                   "nomad.datamodel.metainfo.simulation.calculation.BandEnergies",
                   "nomad.datamodel.metainfo.simulation.calculation.Calculation",
                   "nomad.datamodel.metainfo.simulation.calculation.Energy",
@@ -4545,6 +6567,7 @@
                   "nomad.datamodel.metainfo.simulation.run.Run",
                   "nomad.datamodel.metainfo.simulation.system.Atoms",
                   "nomad.datamodel.metainfo.simulation.system.Prototype",
+                  "nomad.datamodel.metainfo.simulation.system.SpringerMaterial",
                   "nomad.datamodel.metainfo.simulation.system.Symmetry",
                   "nomad.datamodel.metainfo.simulation.system.System",
                   "nomad.datamodel.metainfo.workflow.SinglePoint",
@@ -4559,13 +6582,18 @@
                   "nomad.datamodel.results.Properties",
                   "nomad.datamodel.results.Results",
                   "nomad.datamodel.results.Simulation",
-                  "nomad.datamodel.results.StructureConventional",
-                  "nomad.datamodel.results.StructureOriginal",
-                  "nomad.datamodel.results.StructurePrimitive",
+                  "nomad.datamodel.results.Structure",
                   "nomad.datamodel.results.Structures",
                   "nomad.datamodel.results.Symmetry",
                   "nomad.datamodel.results.WyckoffSet"
                 ],
+                "entry_timestamp": {
+                  "m_def": "nomad.datamodel.datamodel.RFC3161Timestamp",
+                  "token_seed": "PGjkHV-ALEhA8eiWps243e9kxhmF",
+                  "token": "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",
+                  "tsa_server": "http://time.certum.pl/",
+                  "timestamp": "2022-12-14T11:14:22+00:00"
+                },
                 "optimade": {
                   "elements": [
                     "Si"
@@ -4713,13 +6741,883 @@
                       ]
                     }
                   ]
-                }
+                },
+                "section_defs": [
+                  {
+                    "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.AtomParameters",
+                    "definition_id": "6d9e4402830c6514f2bbd58acbde8426c6ec3ae8",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.BandEnergies",
+                    "definition_id": "4f3869e8788de918ae284e6d836983e3a12c773d",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Calculation",
+                    "definition_id": "01688b46801e32552b4929fdd8f60d9113ed28d8",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Method",
+                    "definition_id": "38544126654336522114e7eb9efb95fd609e4aad",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Run",
+                    "definition_id": "9a8c5c5772b794cb7e95207ad0491358916fd2b0",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.ScfIteration",
+                    "definition_id": "22672366adfa52d48b278bed25d715b16e6eabf7",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Symmetry",
+                    "definition_id": "5a86f7074a4a005b87ccb3b1d2c609940d151b58",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.System",
+                    "definition_id": "43afe1f4bcf3056df2182af93d1cfcd7beca9fc0",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.Calculation",
+                    "definition_id": "537ea5953b080d2d4caba9cf9cdd9632535e0165",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.Method",
+                    "definition_id": "e089b42add89bd33949f6dc4b1a25c29c44021a5",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.Run",
+                    "definition_id": "12e783dc2e48e956f97816c86806ad8800f0c2f2",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.System",
+                    "definition_id": "739099f66c30eabd7a488731882c98dab1e0b7e7",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit_autogenerated.Run",
+                    "definition_id": "5361a103cbd62693b56ee3ec8bb934a1a3cf123e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.ams.metainfo.ams.AtomParameters",
+                    "definition_id": "cb7cff899338773786be2a62936839dbc6956930",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.ams.metainfo.ams.BandEnergies",
+                    "definition_id": "e2f613d9c9ed7630b1a04fa45fdf8a9d28752791",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.ams.metainfo.ams.BasisSet",
+                    "definition_id": "222c0058bfde9c21d7416e4681c315efbc807644",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Energy",
+                    "definition_id": "3d93bc8f21bea2b2bf00f301661734bfc6e500fe",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Forces",
+                    "definition_id": "572f613d2661c89958be90b3109f3dc6e5942194",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Method",
+                    "definition_id": "929175a40d709a024dc4d17e1afe6508cb5903e8",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Scf",
+                    "definition_id": "72883c530f1064e61c7e3d082eb207b0529fc02d",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.castep.metainfo.castep.BasisSetCellDependent",
+                    "definition_id": "5fdea5862a6a8eb43a619af3673f5dbd9ff54546",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.castep.metainfo.castep.Calculation",
+                    "definition_id": "9f259a72e84a818eb751b8ff1594723f7af8b136",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.castep.metainfo.castep.Method",
+                    "definition_id": "d4550b6c550bea2260acf2dcc3588418d2104ae6",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.castep.metainfo.castep.Run",
+                    "definition_id": "8d0a6c8651175d31720872a646e51eba7c99c956",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.castep.metainfo.castep.System",
+                    "definition_id": "01529258b2dda3908913ff284adb90e9db2f2fdc",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k.Run",
+                    "definition_id": "493e8ae435bd6055917a0fcc8ffdca5e2c2c218a",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Calculation",
+                    "definition_id": "2bd651a189e1aa36c7bd8ec9711c9ec9a329e252",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Method",
+                    "definition_id": "c9dc0463eb44a097a03b34efa4838144b4cbdf75",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Run",
+                    "definition_id": "3e0b9197ca188dab7781ce0f53cf2a52e956e00e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Workflow",
+                    "definition_id": "7b06b13b9eb2312531d22e52c09f66bfb77588e2",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd.Run",
+                    "definition_id": "0cab552dae6591235dd61fa991124181f1c0e481",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.Calculation",
+                    "definition_id": "e2860f5c605cdcbc89bc3b2ecb488557dce3d0e6",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.Method",
+                    "definition_id": "fa082e901d66b6b782c2b040ce5a48f7070c13d4",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.Run",
+                    "definition_id": "b6761195bafa61db5e40f7055d18b56ffafc31b2",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.System",
+                    "definition_id": "4ace5d9b50436cc5ad2a26c66e61b00ba5a92e35",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.Method",
+                    "definition_id": "779aefdc6cddcdf0c81055b400dbb5b755eb234c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.Run",
+                    "definition_id": "09eec1cfa8fede71d3e28d67bb49c1f312831300",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.ScfIteration",
+                    "definition_id": "521641b00ed5288682e8b73b498fe1d9ac4a539f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.System",
+                    "definition_id": "67620bb8a77d10b8e08ee183e599d2b690515c0c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.BandEnergies",
+                    "definition_id": "85c7728b4c106f7e977ee5706730e94c229bb549",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Calculation",
+                    "definition_id": "877ced7d43e13d36760ac16c5057d7e77b03361b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Energy",
+                    "definition_id": "71b8743f84eb4904659dd7d393d1af2d8df9e900",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Method",
+                    "definition_id": "0493602d883f197ce73a767e975f888b97225706",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Program",
+                    "definition_id": "b11509dc31fac409ac1c9476aab8213d7b8ffb3a",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.ScfIteration",
+                    "definition_id": "156f370d6fc68f75e97726a73acb5194971cfe17",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.System",
+                    "definition_id": "121be0733a129230fce1d0908b9eabc2906b8c92",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.elk.metainfo.elk.Calculation",
+                    "definition_id": "2bcf00876184ffd572f3fabeede19abd08fa3bf4",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.elk.metainfo.elk.Energy",
+                    "definition_id": "062a807b226398865fca1333471c1aff272f2655",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.elk.metainfo.elk.Method",
+                    "definition_id": "af06420b75bd3b274fad6d87112630b909df66a4",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.Calculation",
+                    "definition_id": "c5cc2b29e44607b49f5397c702bcc52f3f2a255a",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.Method",
+                    "definition_id": "35a278da4f5c978ea62e0fb17aa71e0c651411a7",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.Run",
+                    "definition_id": "a0a34b4569939a9833ab44a8ad93589d20370643",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.ScfIteration",
+                    "definition_id": "d623c30c3707e49f3b8c35941881cde3982f542e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.System",
+                    "definition_id": "802fce1316e8d042764e058bb1c0c9fe8b7937f7",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.AtomParameters",
+                    "definition_id": "76b14fa5def63cec34b7a89785a882017f65f6fa",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.Calculation",
+                    "definition_id": "21766a4f63dd3b0b0c1d5e942e353cd8d357c38a",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.Method",
+                    "definition_id": "df452ad7e964569ab73cc77028a4361b5d3ce895",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.Run",
+                    "definition_id": "877937692c8f19c779715bbba5b2caba327e7b8c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.ScfIeration",
+                    "definition_id": "385aab6d9304650927342548b7ad413009d0ba19",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.System",
+                    "definition_id": "93124d05eae67667c50a1275fb43d2296673cafa",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.Method",
+                    "definition_id": "415cdedfd268d89e53c9c88be0b8aeb7b949c145",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.Run",
+                    "definition_id": "6579dafb493ce78e9c99c7dc46b51daa1551311e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.ScfIteration",
+                    "definition_id": "7a0e6aa496ff15eb63bda8a55b2ef517cd0df16f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.System",
+                    "definition_id": "72120cb4b473fce17afc60baabc332838a66a4c1",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.XCFunctional",
+                    "definition_id": "0c3e40c4ab4736c186095afde73eaa57a396902c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.BandEnergies",
+                    "definition_id": "37b72b551b3a773eafba9d15ccba7c47c86d42a3",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.Calculation",
+                    "definition_id": "2fddfa62d4db7a6574438d865d08ffee99772048",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.Method",
+                    "definition_id": "4959b7a13a038260bd460ccfcc78e76881e6014f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.Run",
+                    "definition_id": "0f0d5f0efa0d8b322d91c5c9ff234b4a45d27977",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.ScfIteration",
+                    "definition_id": "c26b918e91fd1c5710b7012f61df3327ea6314c0",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.System",
+                    "definition_id": "bc38d9fd2b65f6d51f27b21d4d50611112fb15fb",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.gpaw.metainfo.gpaw.Calculation",
+                    "definition_id": "e3670cc522cef09f6a03f8a93f9841afa706ce11",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.gpaw.metainfo.gpaw.Method",
+                    "definition_id": "2c5bed30ade97d89c2eb62d4b50f6336a2d8a23f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.mopac.metainfo.mopac.Calculation",
+                    "definition_id": "ba3a88d6fca210edc21ac77001a9ed25e5de365e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.mopac.metainfo.mopac.Method",
+                    "definition_id": "9f1032941f1bb6c105fed0c70f7a241e33e5c54e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.Calculation",
+                    "definition_id": "a095149f77013f646c388f28720457c2ac84b120",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.Method",
+                    "definition_id": "0ba92885463d34ab9e168b63ca232becd1ea9e3e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.Run",
+                    "definition_id": "7a0634f2a16403c70d5a906f7124a639092d718c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.System",
+                    "definition_id": "ecb111bff7e3065a883af6afda8fab3c63b5df8c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.octopus.metainfo.octopus.Calculation",
+                    "definition_id": "fe7649a7694a1b95473a0a9e643b1ce523021504",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.octopus.metainfo.octopus.Run",
+                    "definition_id": "1edc4788de4c432cf18468bee0a415c080abd07b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.octopus.metainfo.octopus_autogenerated.Run",
+                    "definition_id": "44d8422e8313d509efc2d7371dd8c46589b5bfc6",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.AtomParameters",
+                    "definition_id": "67f3c73642c28d5a2084dea87069828810a84f7f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.BasisSetCellDependent",
+                    "definition_id": "045ca1a5949546718dae0b5e13ee752dd8d68181",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Calculation",
+                    "definition_id": "ae212b484d437bc09a2bc5de98f708414d720d50",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Energy",
+                    "definition_id": "e2e9fcf5815507339b56396df03b2c7a38f2125c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Method",
+                    "definition_id": "d269adab02c3c4ec888dca4e4d06972f4499376b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Run",
+                    "definition_id": "50777de07a959b5f153f5b3e14cd720a3b9d3a1b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.ScfIteration",
+                    "definition_id": "b235d50b126303bfbae58cda112b29aab281a961",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.System",
+                    "definition_id": "a7e26836d5c0c9724364636520c7ff359170bb76",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.openmx.metainfo.openmx.OpenmxSCC",
+                    "definition_id": "8ea9b3776b1cf641cb80cc0cd4181d545ca41a3b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Calculation",
+                    "definition_id": "8b03185ad0489a0617b6f5b4e222a734d36ef9d7",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.DFT",
+                    "definition_id": "c78a5dc924b0781af3f2ee48b99a4232fdcc6f0f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Method",
+                    "definition_id": "bace5771ffd0eb8c5e697b93fa91d192e9b48bb3",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Run",
+                    "definition_id": "491af89c68fa0bcb04f4d100d19490a0dde98af8",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Scf",
+                    "definition_id": "c834b60b9da3129018dae16dd82c2d1a7abac1d2",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.System",
+                    "definition_id": "b91af6f47b121a71d60dda18002682c23b8bb199",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Calculation",
+                    "definition_id": "2ce57084bf2359ef383e9939b68bd6c173c65ebc",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Energy",
+                    "definition_id": "8ffd19b722d33a0d4ca3b62b874bc70cac2e6828",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Method",
+                    "definition_id": "bc3a6f62a9ea22ece84606941beb6f47a42c204d",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Run",
+                    "definition_id": "04ccc2e707066451a6e847562c3dd60395787312",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.System",
+                    "definition_id": "2bd642b49e58a4de4fcce31797a5227ec830b593",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.AtomParameters",
+                    "definition_id": "48f9172da5febb7a8d725e0fc8a513e23c7d82f6",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.BandEnergies",
+                    "definition_id": "efe11bf0949b10a95c647ad5eb0b374076a03b1a",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Calculation",
+                    "definition_id": "04403792d0b8217d48d86c7c65441d18f76c7747",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Functional",
+                    "definition_id": "becf05a032c61bd66321ed70d037f34e8cbda1eb",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Method",
+                    "definition_id": "e5e687d90f9a78e7f3bc80390a3976cc55bc5f1b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Run",
+                    "definition_id": "f4f78d8271e4147db0c7d1e5ff311bbd147d0448",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.ScfIteration",
+                    "definition_id": "58ac9168cc4bc17d004cf2ddf8275db9560eafbc",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.System",
+                    "definition_id": "1eb5b2a71c7c9063741e212affeb034564400db0",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.BandEnergies",
+                    "definition_id": "cc4af2925076a64770bb926bc7a97055c2436d07",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.Calculation",
+                    "definition_id": "aa3c33c61548ef756197eae66680ba6292fab9d2",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.Method",
+                    "definition_id": "0f4fa729f81c959833c74a1aae0a7bef8e7174ce",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.Run",
+                    "definition_id": "3b493ca1f2bef966e453ac6885d2e27227573ff3",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.ScfIteration",
+                    "definition_id": "04ee57e9723a4ce5c9cd787ab785e7ccad77173e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.System",
+                    "definition_id": "335bee5472f06f37d4fdf737f7c369ea33244138",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.Method",
+                    "definition_id": "42825bab63cb39d930a62dd619f14406320949c4",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.Run",
+                    "definition_id": "d352f37629f1822316908ba832e91f81ef1e2196",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.ScfIteration",
+                    "definition_id": "4c7fff1f65c8166eafbc41242aedf94bfaaeeb95",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.System",
+                    "definition_id": "d7254bb23948b8647766ce0df1ffef020dd7bc50",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Calculation",
+                    "definition_id": "d28baf0bddab265ddf8cf93a44aa80fc1adfc635",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Method",
+                    "definition_id": "ae8cdb1b83577268ea07f50cebf71ba2ac7c19cd",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Program",
+                    "definition_id": "dc6c639907c1ca478d062f1da15255d8deb251bb",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Run",
+                    "definition_id": "64767cfb00d98ee422236a00661b7eca59effd04",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.data.ArchiveSection",
+                    "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive",
+                    "definition_id": "5065d142af41d4c76ffda1d766074f2d18468ce4",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata",
+                    "definition_id": "c1433047212d95b5607397e0b759bb1508abb19b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp",
+                    "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Atomic",
+                    "definition_id": "92e8b591b01bfb708fd31380c0eed16414307e53",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.BandEnergies",
+                    "definition_id": "9f2724982ba167edc218872b7e569fba9e07b55c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.BaseCalculation",
+                    "definition_id": "9a52f9aabbdcd1302835f45c957e875bcd8f2c90",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Calculation",
+                    "definition_id": "2bf1f2f7aa86f076902f32301545b64ad862c8c2",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Energy",
+                    "definition_id": "65428bbc69bd4eec48eae55e59106a046de6f138",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.EnergyEntry",
+                    "definition_id": "39d9c2bf33c30ca53f09bb232e433360a4ebdce4",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Forces",
+                    "definition_id": "4c24448941c6bc9059e8f0217cd40c5077012a75",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.ForcesEntry",
+                    "definition_id": "2900968e4bc11bf8eed8b1cb8f38731bd415cb86",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.ScfIteration",
+                    "definition_id": "da605ba5fc801748f849c13e5f34f23a4da120d2",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Stress",
+                    "definition_id": "bf2b8d1fd2bce9cf750b011bcdb1655b36d87524",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.StressEntry",
+                    "definition_id": "34e0f85f012e1095ac05020c04e6780b7405cd27",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.AtomParameters",
+                    "definition_id": "f130c7547f88f3e061ac1dc96a1a0148c1e8181d",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.BasisSet",
+                    "definition_id": "ea212685138e00e6f8f4b214bcef51ad413dd9f6",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.BasisSetCellDependent",
+                    "definition_id": "88587ebcee7a8bab0c6be62b532d0ba3598817da",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.DFT",
+                    "definition_id": "1c14c87ba3102cd4f979e0906f95105c184bf6c0",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Electronic",
+                    "definition_id": "a2f985b59a33c47d0a17b1aa93a08d0777de9636",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Functional",
+                    "definition_id": "3bc86f6b013b2e6cca5d7302f6fe9a00e5eb4364",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Method",
+                    "definition_id": "043f77e74a1faf6d142d7dd3f93fb14bc4276944",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Model",
+                    "definition_id": "02f45c4932a5227cd3855245c22220cdf0d776ca",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Scf",
+                    "definition_id": "b1317e0ef6ecbc4dc9b18995175f197b3a489c93",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.XCFunctional",
+                    "definition_id": "517cb8d32af3c10f3948435d5190638f9f622dcb",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.run.Program",
+                    "definition_id": "9d0685a63e70e0606badc54507afd746863d59f0",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.run.Run",
+                    "definition_id": "09328462a4ebd1091b886945ec1de20165577ef8",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.Atoms",
+                    "definition_id": "c488867b53d7df0aeaa1518bef02f04c496eed59",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.Prototype",
+                    "definition_id": "c63c7822abff00f53cac5d62171849f8030ac1e9",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.SpringerMaterial",
+                    "definition_id": "55ea7e6b2564f5b04118b0dde17ca29aa232b530",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.Symmetry",
+                    "definition_id": "d578b5c56b9b55e3220a8decabad1c4752f55f9a",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.System",
+                    "definition_id": "c8a3932bb93e54315f89b45eb6ed31ba0f77f788",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.workflow.SinglePoint",
+                    "definition_id": "b40940c6c09de2337293cfc674a23733112704ee",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.workflow.Task",
+                    "definition_id": "0ec7b39c9fdcebe09a6338469c6a87d4bf552fb8",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.workflow.Workflow",
+                    "definition_id": "ab63bf39914097c327c882bfea2ebc8285717174",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.optimade.OptimadeEntry",
+                    "definition_id": "6cd183087658a33d09943e5e7a7bb99f1aa7f1f2",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.optimade.Species",
+                    "definition_id": "5b6d1cf79926b9cf56a7d2be67f86d4d63674cc8",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.DFT",
+                    "definition_id": "d161679d7eac9501d37dfc02d31a95e70fbc2161",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.LatticeParameters",
+                    "definition_id": "5e0294d75705dd1fd99b79088f8a0df47eeb8af8",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Material",
+                    "definition_id": "43920083339a4aa13c70d035cc502203940ada12",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Method",
+                    "definition_id": "d18dd79c4bf1366a3b5296305c0a868deeffc5ad",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Properties",
+                    "definition_id": "ffc0625be121b3f17200bece74024685b2f8c32a",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Results",
+                    "definition_id": "6f36e84e0c6d1de748b4da8afbd15940ccc35b45",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Simulation",
+                    "definition_id": "7c9b61c5d225ca0afdc5f7f73f08db00ca8dbcfe",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Structure",
+                    "definition_id": "d3931e10b5195eb3762c2f9568909c26ba45e798",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Structures",
+                    "definition_id": "cd7254d7513a9c8b069c378d51dd317a5bced8b1",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Symmetry",
+                    "definition_id": "186003211945f18cbddd6c8b6715e1da184eddf5",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.WyckoffSet",
+                    "definition_id": "a871f00e569db9641717cb4697239ab3e02c1ec9",
+                    "used_directly": true
+                  }
+                ]
               },
               "results": {
                 "material": {
                   "material_id": "fh3UBjhUVm4nxzeRd2JJuqw5oXYa",
                   "material_name": "Silicon",
                   "structural_type": "bulk",
+                  "functional_type": [
+                    "metal",
+                    "nonmetal",
+                    "semiconductor"
+                  ],
+                  "compound_type": [
+                    "chemical element"
+                  ],
                   "elements": [
                     "Si"
                   ],
@@ -5100,7 +7998,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "161439",
+          "content-length": "253577",
           "content-type": "application/json",
           "server": "uvicorn"
         }

@@ -20,13 +20,14 @@
           "aggregations": {},
           "pagination": {
             "order_by": "upload_create_time",
-            "order": "desc"
+            "order": "desc",
+            "page_size": 20
           }
         },
         "headers": {
           "accept": "application/json, text/plain, */*",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0NGIxMzNjZi1lMmZhLTQ4NGItOGM2OC1lY2U0NmRjMmU3NjIiLCJleHAiOjE2NjQzMzAyMzMsIm5iZiI6MCwiaWF0IjoxNjY0Mjk0MjQ3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQzZWZhNmRjLTRkZjAtNDc5OC1hNTRkLWNlYzVjZWVjNGRhZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.RH89rgRe4sMsBY2lkcafYm4N5zyLrGY5kPgVlCN9Rgbtqi__ieuCv8T7R3epze9WM22ZMTdYBqjUMtom4gVLbPuukehssjznfiT1pKf-nE6vCNRLxBzwVu5_IsHEkfEm3CdLQ_0pbj3gMk1LItlaRVJ7qmb-BMkKlHbOwFBmIHt8sZvgzyw9zVjtXhxc0aq3dl1_5wSrz0lGsCOrimU2g-9B6T_6wp8ktpXuRW5KCfHKjVST0bB1TkhWCuMVK224c-ZQmYqLk6j19LjwMA1dyFMCjuoKNa6SQmW1ijtPD35311gd_UEI_NRibj3N9BMWQUrsJwEcpCQKylukdnN8fw",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjYjFhYTM5Ni1hZTU5LTQ4NDEtODBjZi0xYTU3ZGJiMmUxMGEiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODIxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.CHXvcuJMJW9svdZnxbv0Zqawt-rtlnmqMQ7Yhm860PMCBsMvla5b2g5JU4ajM2ywgML4aliiwIUjXt8eNszoL5I7iiJZH-AJNToBImmQvR6FNL935uw_aDQqnWebOcAp1E3Mb7vatklpZVkre6pJ44P6y15cmvizwWitof5TE-WRpqsT638gL3psB2gUV2rJSHxj2t1VrXC5EHsqsWMWRu9jKF6SIoouxJkTCxOUw5fpnnXHvbYRCWvHQbRagymfcpI_pK7qJniX9icvtAmqzCGJlRo79ap9e0jTr3UeKu9B6yBzbl8KK4_FwOi1ZwHKeZ7zGlcmAed6Y7fhJdc9Og",
           "cookie": null
         }
       },
@@ -36,17 +37,17 @@
           "owner": "user",
           "query": {},
           "pagination": {
-            "page_size": 10,
+            "page_size": 20,
             "order_by": "upload_create_time",
             "order": "desc",
-            "total": 3
+            "total": 4
           },
           "data": [
             {
-              "upload_id": "eXyPaEkuRWeKrgGbRohlVg",
+              "upload_id": "Va1VNaCMTO661VuzZQ6MDA",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "um6IA3yDTza2Pul4ybmIPw",
+              "calc_id": "sDf2rXzBTnS2cZbOOkL-Kg",
               "published": true,
               "writers": [
                 {
@@ -56,7 +57,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-09-27T15:57:23.473956+00:00",
+              "upload_create_time": "2022-12-13T16:26:57.878908+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -69,154 +70,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-09-27T15:57:23.479956+00:00",
-              "publish_time": "2022-09-27T15:57:23.476956+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "Hf",
-                    "Nb",
-                    "Ta",
-                    "Ti",
-                    "Zr"
-                  ],
-                  "elements_exclusive": "Hf Nb Ta Ti Zr",
-                  "chemical_formula_anonymous": "ABCDE",
-                  "material_id": "test_material_id",
-                  "structural_type": "bulk",
-                  "chemical_formula_reduced": "HfNbTaTiZr",
-                  "n_elements": 5,
-                  "chemical_formula_descriptive": "HfNbTaTiZr",
-                  "chemical_formula_hill": "HfNbTaTiZr"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "GGA_X_PBE_SOL",
-                        "GGA_C_PBE_SOL"
-                      ]
-                    },
-                    "program_name": "VASP"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "um6IA3yDTza2Pul4ybmIPw",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "eXyPaEkuRWeKrgGbRohlVg",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "lYPqAtM6RMqWKzqliyjIMA",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-09-27T15:57:23.473956+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-09-27T15:57:23.478956+00:00",
-              "publish_time": "2022-09-27T15:57:23.476956+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C"
-                  ],
-                  "elements_exclusive": "C",
-                  "chemical_formula_anonymous": "A",
-                  "material_id": "test_material_id",
-                  "structural_type": "2D",
-                  "chemical_formula_reduced": "C",
-                  "n_elements": 1,
-                  "chemical_formula_descriptive": "C",
-                  "chemical_formula_hill": "C"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "LDA_X_PZ",
-                        "LDA_C_PZ"
-                      ]
-                    },
-                    "program_name": "exciting"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "lYPqAtM6RMqWKzqliyjIMA",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "eXyPaEkuRWeKrgGbRohlVg",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "eJ7Y5NzfSjO84UiW_sCNnA",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-09-27T15:57:23.473956+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-09-27T15:57:23.477956+00:00",
-              "publish_time": "2022-09-27T15:57:23.476956+00:00",
+              "entry_create_time": "2022-12-13T16:26:57.882908+00:00",
+              "publish_time": "2022-12-13T16:26:57.881908+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -251,7 +106,7 @@
                 },
                 "properties": {}
               },
-              "entry_id": "eJ7Y5NzfSjO84UiW_sCNnA",
+              "entry_id": "sDf2rXzBTnS2cZbOOkL-Kg",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -259,59 +114,12 @@
                 }
               ],
               "license": "CC BY 4.0"
-            }
-          ]
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "6647",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    },
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
-        "method": "POST",
-        "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "dft.labels",
-            "dft.geometries"
-          ],
-          "owner": "visible"
-        },
-        "headers": {
-          "accept": "application/json",
-          "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjMWJmYTY0NS04MmQ1LTRmYjEtOGNiMS1mYWYwNGU2N2FhZWMiLCJleHAiOjE2NjQzMzAyMzMsIm5iZiI6MCwiaWF0IjoxNjY0Mjk0MjUxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQzZWZhNmRjLTRkZjAtNDc5OC1hNTRkLWNlYzVjZWVjNGRhZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.VZhtBxWyIVTasiI2ZzThfLRoOmdJ4ATow9hiGVzYR-Dm0yZWPUmu2zDe0OpVOKIPKf4pqXutzavtEVuR1prAJnQZxSA6Glg9MnxPoACDYKtTWciocIbNJKET9pDwv-IzbCZROVd5xuvMYLmWj34fx1UZTpnnFTlOI3dRo_HJA_Vt6uLbwZnUOFnOYZgjK-M9nkKdV0vlVE10IDmewMm5MBDOK8WVna1ERv_OhPgcAMZkYfEW-a23pIp_VlNsUUw7Jo2cUf4PctjdQ1DCy3XiHYQbHpT1wWAhHfzX47TdWYo5a64L2CKm4Kj5ctgZXFzpizfdBa4MtIbnrkiw6cqU6A",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 200,
-        "body": {
-          "owner": "visible",
-          "query": {
-            "and": []
-          },
-          "pagination": {
-            "page_size": 10,
-            "order_by": "entry_id",
-            "order": "asc",
-            "total": 3
-          },
-          "data": [
+            },
             {
-              "upload_id": "eXyPaEkuRWeKrgGbRohlVg",
+              "upload_id": "Va1VNaCMTO661VuzZQ6MDA",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "eJ7Y5NzfSjO84UiW_sCNnA",
+              "calc_id": "nBQVQWYHQpq0jT_sjlLCxA",
               "published": true,
               "writers": [
                 {
@@ -321,7 +129,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-09-27T15:57:23.473956+00:00",
+              "upload_create_time": "2022-12-13T16:26:57.878908+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -334,43 +142,86 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-09-27T15:57:23.477956+00:00",
-              "publish_time": "2022-09-27T15:57:23.476956+00:00",
+              "entry_create_time": "2022-12-13T16:26:57.885908+00:00",
+              "publish_time": "2022-12-13T16:26:57.881908+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
                 "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
                   "elements": [
                     "C",
-                    "H"
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
                   ],
-                  "elements_exclusive": "C H",
-                  "chemical_formula_anonymous": "AB2",
+                  "elements_exclusive": "C H I N Pb",
                   "material_id": "test_material_id",
-                  "structural_type": "molecule / cluster",
-                  "chemical_formula_reduced": "CH3",
-                  "n_elements": 2,
-                  "chemical_formula_descriptive": "CH3",
-                  "chemical_formula_hill": "CH3"
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
                 },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "GGA_X_PBE_SOL",
-                        "GGA_C_PBE_SOL"
-                      ]
-                    },
-                    "program_name": "VASP"
-                  }
-                },
-                "properties": {}
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "band_gap_optical": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ],
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    }
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap_optical"
+                  ]
+                }
               },
-              "entry_id": "eJ7Y5NzfSjO84UiW_sCNnA",
+              "entry_id": "nBQVQWYHQpq0jT_sjlLCxA",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -380,10 +231,10 @@
               "license": "CC BY 4.0"
             },
             {
-              "upload_id": "eXyPaEkuRWeKrgGbRohlVg",
+              "upload_id": "Va1VNaCMTO661VuzZQ6MDA",
               "parser_name": "parsers/vasp",
               "origin": "Markus Scheidgen",
-              "calc_id": "lYPqAtM6RMqWKzqliyjIMA",
+              "calc_id": "ja8yWi6aQs6dP6hHfJx30g",
               "published": true,
               "writers": [
                 {
@@ -393,7 +244,7 @@
               ],
               "datasets": [],
               "n_quantities": 0,
-              "upload_create_time": "2022-09-27T15:57:23.473956+00:00",
+              "upload_create_time": "2022-12-13T16:26:57.878908+00:00",
               "processed": true,
               "mainfile": "upload/archive.json",
               "main_author": {
@@ -406,79 +257,8 @@
                   "name": "Markus Scheidgen"
                 }
               ],
-              "entry_create_time": "2022-09-27T15:57:23.478956+00:00",
-              "publish_time": "2022-09-27T15:57:23.476956+00:00",
-              "with_embargo": false,
-              "domain": "dft",
-              "results": {
-                "material": {
-                  "elements": [
-                    "C"
-                  ],
-                  "elements_exclusive": "C",
-                  "chemical_formula_anonymous": "A",
-                  "material_id": "test_material_id",
-                  "structural_type": "2D",
-                  "chemical_formula_reduced": "C",
-                  "n_elements": 1,
-                  "chemical_formula_descriptive": "C",
-                  "chemical_formula_hill": "C"
-                },
-                "method": {
-                  "simulation": {
-                    "program_version": "not processed",
-                    "dft": {
-                      "basis_set_type": "unavailable",
-                      "core_electron_treatment": "unavailable",
-                      "xc_functional_type": "not processed",
-                      "xc_functional_names": [
-                        "LDA_X_PZ",
-                        "LDA_C_PZ"
-                      ]
-                    },
-                    "program_name": "exciting"
-                  }
-                },
-                "properties": {}
-              },
-              "entry_id": "lYPqAtM6RMqWKzqliyjIMA",
-              "authors": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "license": "CC BY 4.0"
-            },
-            {
-              "upload_id": "eXyPaEkuRWeKrgGbRohlVg",
-              "parser_name": "parsers/vasp",
-              "origin": "Markus Scheidgen",
-              "calc_id": "um6IA3yDTza2Pul4ybmIPw",
-              "published": true,
-              "writers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "datasets": [],
-              "n_quantities": 0,
-              "upload_create_time": "2022-09-27T15:57:23.473956+00:00",
-              "processed": true,
-              "mainfile": "upload/archive.json",
-              "main_author": {
-                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "name": "Markus Scheidgen"
-              },
-              "viewers": [
-                {
-                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                  "name": "Markus Scheidgen"
-                }
-              ],
-              "entry_create_time": "2022-09-27T15:57:23.479956+00:00",
-              "publish_time": "2022-09-27T15:57:23.476956+00:00",
+              "entry_create_time": "2022-12-13T16:26:57.884908+00:00",
+              "publish_time": "2022-12-13T16:26:57.881908+00:00",
               "with_embargo": false,
               "domain": "dft",
               "results": {
@@ -492,7 +272,7 @@
                   ],
                   "elements_exclusive": "Hf Nb Ta Ti Zr",
                   "chemical_formula_anonymous": "ABCDE",
-                  "material_id": "test_material_id",
+                  "material_id": "aLzu5XmhATsTfEA4sGIiL45caCMq",
                   "structural_type": "bulk",
                   "chemical_formula_reduced": "HfNbTaTiZr",
                   "n_elements": 5,
@@ -516,7 +296,78 @@
                 },
                 "properties": {}
               },
-              "entry_id": "um6IA3yDTza2Pul4ybmIPw",
+              "entry_id": "ja8yWi6aQs6dP6hHfJx30g",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "Va1VNaCMTO661VuzZQ6MDA",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "d4MdT8uXR6KR5Yk-lT9VYA",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-13T16:26:57.878908+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-13T16:26:57.883908+00:00",
+              "publish_time": "2022-12-13T16:26:57.881908+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C"
+                  ],
+                  "elements_exclusive": "C",
+                  "chemical_formula_anonymous": "A",
+                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
+                  "structural_type": "2D",
+                  "chemical_formula_reduced": "C",
+                  "n_elements": 1,
+                  "chemical_formula_descriptive": "C",
+                  "chemical_formula_hill": "C"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "LDA_X_PZ",
+                        "LDA_C_PZ"
+                      ]
+                    },
+                    "program_name": "exciting"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "d4MdT8uXR6KR5Yk-lT9VYA",
               "authors": [
                 {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -529,7 +380,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "6656",
+          "content-length": "9904",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -559,7 +410,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjMWJmYTY0NS04MmQ1LTRmYjEtOGNiMS1mYWYwNGU2N2FhZWMiLCJleHAiOjE2NjQzMzAyMzMsIm5iZiI6MCwiaWF0IjoxNjY0Mjk0MjUxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQzZWZhNmRjLTRkZjAtNDc5OC1hNTRkLWNlYzVjZWVjNGRhZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.VZhtBxWyIVTasiI2ZzThfLRoOmdJ4ATow9hiGVzYR-Dm0yZWPUmu2zDe0OpVOKIPKf4pqXutzavtEVuR1prAJnQZxSA6Glg9MnxPoACDYKtTWciocIbNJKET9pDwv-IzbCZROVd5xuvMYLmWj34fx1UZTpnnFTlOI3dRo_HJA_Vt6uLbwZnUOFnOYZgjK-M9nkKdV0vlVE10IDmewMm5MBDOK8WVna1ERv_OhPgcAMZkYfEW-a23pIp_VlNsUUw7Jo2cUf4PctjdQ1DCy3XiHYQbHpT1wWAhHfzX47TdWYo5a64L2CKm4Kj5ctgZXFzpizfdBa4MtIbnrkiw6cqU6A",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjY2FjZGIzNy03ZmU1LTQ3NzAtOGQxYy01MDA0M2ExNjAzMTgiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODIzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.UChRYcssVjiPa8JZcLaQJ2fHTjKZpUpHES-GZPAxxFP6JCzKWBon1y0IXjzSzeqEsHwejG4GR1OQyEicSPntXdcy0SMcgz857S6Cpqv-IuN4B2P9NVEGegCNBB1RjP3XCbz2fkbT-g0c0eNBq7NysP3jaFP9Tml1BSG1VwcbbCFGjnkEMd8TJmawpHZi1XgurMH0rOWp8w3I-wbICPaA9TcFdqIoNQT_VDzfIdldHD4WmPAmIyQ_iLtO50hwQNq6K47-joqJYqwvHpCnVn1CzOjdTulwQtGPDJnNuNgNP3Lpcg_Z6bBg179x-nghnUn_NQY_gxsJME8kLRKWydFH-Q",
           "cookie": null
         }
       },
@@ -573,7 +424,7 @@
                   "optimade_filter"
                 ]
               ],
-              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* LPAR\n\t* IDENTIFIER\n\t* SIGNED_INT\n\t* NOT\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* IDENTIFIER\n\t* NOT\n\t* SIGNED_INT\n\t* LPAR\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
               "type": "value_error.exception"
             }
           ]
@@ -581,6 +432,3459 @@
         "headers": {
           "connection": "close",
           "content-length": "361",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible"
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjY2FjZGIzNy03ZmU1LTQ3NzAtOGQxYy01MDA0M2ExNjAzMTgiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODIzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.UChRYcssVjiPa8JZcLaQJ2fHTjKZpUpHES-GZPAxxFP6JCzKWBon1y0IXjzSzeqEsHwejG4GR1OQyEicSPntXdcy0SMcgz857S6Cpqv-IuN4B2P9NVEGegCNBB1RjP3XCbz2fkbT-g0c0eNBq7NysP3jaFP9Tml1BSG1VwcbbCFGjnkEMd8TJmawpHZi1XgurMH0rOWp8w3I-wbICPaA9TcFdqIoNQT_VDzfIdldHD4WmPAmIyQ_iLtO50hwQNq6K47-joqJYqwvHpCnVn1CzOjdTulwQtGPDJnNuNgNP3Lpcg_Z6bBg179x-nghnUn_NQY_gxsJME8kLRKWydFH-Q",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "and": []
+          },
+          "pagination": {
+            "page_size": 10,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "data": [
+            {
+              "upload_id": "Va1VNaCMTO661VuzZQ6MDA",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "d4MdT8uXR6KR5Yk-lT9VYA",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-13T16:26:57.878908+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-13T16:26:57.883908+00:00",
+              "publish_time": "2022-12-13T16:26:57.881908+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C"
+                  ],
+                  "elements_exclusive": "C",
+                  "chemical_formula_anonymous": "A",
+                  "material_id": "jPcWsq-Rb0gtgx2krJDmLvQUxpcL",
+                  "structural_type": "2D",
+                  "chemical_formula_reduced": "C",
+                  "n_elements": 1,
+                  "chemical_formula_descriptive": "C",
+                  "chemical_formula_hill": "C"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "LDA_X_PZ",
+                        "LDA_C_PZ"
+                      ]
+                    },
+                    "program_name": "exciting"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "d4MdT8uXR6KR5Yk-lT9VYA",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "Va1VNaCMTO661VuzZQ6MDA",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "ja8yWi6aQs6dP6hHfJx30g",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-13T16:26:57.878908+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-13T16:26:57.884908+00:00",
+              "publish_time": "2022-12-13T16:26:57.881908+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "Hf",
+                    "Nb",
+                    "Ta",
+                    "Ti",
+                    "Zr"
+                  ],
+                  "elements_exclusive": "Hf Nb Ta Ti Zr",
+                  "chemical_formula_anonymous": "ABCDE",
+                  "material_id": "aLzu5XmhATsTfEA4sGIiL45caCMq",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "HfNbTaTiZr",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "HfNbTaTiZr",
+                  "chemical_formula_hill": "HfNbTaTiZr"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "ja8yWi6aQs6dP6hHfJx30g",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "Va1VNaCMTO661VuzZQ6MDA",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "nBQVQWYHQpq0jT_sjlLCxA",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-13T16:26:57.878908+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-13T16:26:57.885908+00:00",
+              "publish_time": "2022-12-13T16:26:57.881908+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "functional_type": [
+                    "semiconductor",
+                    "solar cell"
+                  ],
+                  "elements": [
+                    "C",
+                    "H",
+                    "I",
+                    "N",
+                    "Pb"
+                  ],
+                  "elements_exclusive": "C H I N Pb",
+                  "material_id": "test_material_id",
+                  "structural_type": "bulk",
+                  "chemical_formula_reduced": "H6Pb1C1I3N1",
+                  "n_elements": 5,
+                  "chemical_formula_descriptive": "MAPbI3",
+                  "material_name": "perovskite",
+                  "chemical_formula_hill": "CH6I3NPb"
+                },
+                "method": {},
+                "properties": {
+                  "optoelectronic": {
+                    "band_gap_optical": [
+                      {
+                        "value": 2.5634826144e-19
+                      }
+                    ],
+                    "solar_cell": {
+                      "absorber_fabrication": [
+                        "Spin-coating"
+                      ],
+                      "efficiency": 15.9,
+                      "device_stack": [
+                        "SLG",
+                        "ITO",
+                        "PEDOT:PSS",
+                        "Perovskite",
+                        "PCBM-60",
+                        "BCP",
+                        "Ag"
+                      ],
+                      "short_circuit_current_density": 203,
+                      "hole_transport_layer": [
+                        "PEDOT:PSS"
+                      ],
+                      "fill_factor": 0.78,
+                      "illumination_intensity": 1000,
+                      "electron_transport_layer": [
+                        "PCBM-60",
+                        "BCP"
+                      ],
+                      "device_area": 0.0000125,
+                      "back_contact": [
+                        "Ag"
+                      ],
+                      "absorber": [
+                        "MAPbI"
+                      ],
+                      "open_circuit_voltage": 1,
+                      "substrate": [
+                        "SLG",
+                        "ITO"
+                      ],
+                      "device_architecture": "pin"
+                    }
+                  },
+                  "available_properties": [
+                    "solar_cell",
+                    "optoelectronic.band_gap_optical"
+                  ]
+                }
+              },
+              "entry_id": "nBQVQWYHQpq0jT_sjlLCxA",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            },
+            {
+              "upload_id": "Va1VNaCMTO661VuzZQ6MDA",
+              "parser_name": "parsers/vasp",
+              "origin": "Markus Scheidgen",
+              "calc_id": "sDf2rXzBTnS2cZbOOkL-Kg",
+              "published": true,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "datasets": [],
+              "n_quantities": 0,
+              "upload_create_time": "2022-12-13T16:26:57.878908+00:00",
+              "processed": true,
+              "mainfile": "upload/archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "entry_create_time": "2022-12-13T16:26:57.882908+00:00",
+              "publish_time": "2022-12-13T16:26:57.881908+00:00",
+              "with_embargo": false,
+              "domain": "dft",
+              "results": {
+                "material": {
+                  "elements": [
+                    "C",
+                    "H"
+                  ],
+                  "elements_exclusive": "C H",
+                  "chemical_formula_anonymous": "AB2",
+                  "material_id": "test_material_id",
+                  "structural_type": "molecule / cluster",
+                  "chemical_formula_reduced": "CH3",
+                  "n_elements": 2,
+                  "chemical_formula_descriptive": "CH3",
+                  "chemical_formula_hill": "CH3"
+                },
+                "method": {
+                  "simulation": {
+                    "program_version": "not processed",
+                    "dft": {
+                      "basis_set_type": "unavailable",
+                      "core_electron_treatment": "unavailable",
+                      "xc_functional_type": "not processed",
+                      "xc_functional_names": [
+                        "GGA_X_PBE_SOL",
+                        "GGA_C_PBE_SOL"
+                      ]
+                    },
+                    "program_name": "VASP"
+                  }
+                },
+                "properties": {}
+              },
+              "entry_id": "sDf2rXzBTnS2cZbOOkL-Kg",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                }
+              ],
+              "license": "CC BY 4.0"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "9913",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "results.material.structural_type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 7,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.structural_type"
+              }
+            },
+            "results.material.functional_type:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.functional_type"
+              }
+            },
+            "results.material.compound_type:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.compound_type"
+              }
+            },
+            "results.material.material_name:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.material_name"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0ZmUyZmIzMS00ZTRmLTQ0OWMtODRlNi1lMjU0ZTNhYWNiZTUiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODI3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.Z_czkEw1cBzE0QQx1Q5p4hw5Eb3HDHJgourClBijX8lHY5Lqqp_HKQUkzGVbORhO0wRRhycfpfme5sEcngFT-YzTvzhGCrWG23tbLX25lHP45ECBQK7i5yQJm9M24wJvagdFalXM5LymzEEoW_tBQmBDqbVUN1M1-QT5EOWfqBKQ5NQO6XvefUa9ReQ-QA4mbiymUPBEg_D83MiR4P8bfLnOtPBZBRV4gKTc94MosJVATOlCbK6Y1v4mz7_COE-p_vOL4lslQRPVlFJJWEpqVEHoarzsA3xp_8dL7mo-hoA12CZKcGv45K9bhlIKF8AGFoTO0OF2LhCPymZo77XBKQ",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.material.structural_type:scroll": {
+              "terms": {
+                "quantity": "results.material.structural_type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 7,
+                "data": [
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "bulk"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "2D"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "molecule / cluster"
+                  }
+                ]
+              }
+            },
+            "results.material.functional_type:scroll": {
+              "terms": {
+                "quantity": "results.material.functional_type",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "semiconductor"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "solar cell"
+                  }
+                ]
+              }
+            },
+            "results.material.compound_type:scroll": {
+              "terms": {
+                "quantity": "results.material.compound_type",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.material.material_name:scroll": {
+              "terms": {
+                "quantity": "results.material.material_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "perovskite"
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1880",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "verify_only": true,
+          "owner": "public",
+          "query": {
+            "optimade_filter": "."
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkMmZhMmM0ZS0wYzliLTQwN2QtOTg1YS1kZWEyY2M3ZDU4NjMiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODI4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.f8e6j5PZHyAMadbbjunVP77jYk8d7Mn2v1VwDckcfSLRVPRpHdy-t9jYeSeSFBIL6uYfu0ivT38fTlNeh2eu3JecpXHpiLltIqpx6elQbPh3A3Kz0ZZNbxa6ULY74uDv5SwkSrO3LtkaJkVW3qp6ghEsoO7Y2LBE9-Nhw5xVkPAZSDb0XGqmJqi4ZUECLSlA2unWo5hC6P1SPnKv6AjJ-FbEClgKI2rKr4mJMacGPKfIEZgv9CETfGCL2JRFuFnx5b24GI5hLFdMTcXADCqQsS1wi5AlF_2Rc0u0oTJP7PmHX4szWH5oi0BM7tNGynMx8QnvMMP0wvIHFXZ9UUvl-g",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "detail": [
+            {
+              "loc": [
+                [
+                  "optimade_filter"
+                ]
+              ],
+              "msg": "Could not parse optimade filter: Syntax error: Unable to parse filter .. Lark traceback: \nNo terminal matches '.' in the current parser context, at line 1 col 1\n\n.\n^\nExpected one of: \n\t* IDENTIFIER\n\t* NOT\n\t* SIGNED_INT\n\t* LPAR\n\t* ESCAPED_STRING\n\t* SIGNED_FLOAT\n",
+              "type": "value_error.exception"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "361",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "results.material.elements:default": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 119,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.elements"
+              }
+            },
+            "results.material.n_elements:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "interval": 1,
+                "changed": true,
+                "quantity": "results.material.n_elements"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkMGE5OGEyOC03NmFlLTRiZWMtOWY1ZC02MzY1ZDFmNGJmMjIiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODI5LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.iiFkw00JdibcyGG1QhGCFDOUIt6xgxj0mu10-HP3JYig-CKsqcbvrPWyjxwgmqVvIQZniavn5hpGDzqNBxOpsy539a0TrkXxLiBjo7Vlw9SQs9gTnuVO0wuBpBlyq-MY0DtyuBcU17dfJYWwNYeAHteU2fLfE5qTSlBfNRtoA_74tTaxDv278-cOKhLyZX0MmFxIJAN9TCBoPU9GoyT2m90IQLMY1TlI-cNdjTvynzliPo3p2xBl9VERq8tVtqVgvJqkZBgueITmlGC-rjMsuLxyw1AqsgYVOC3DEI2kWM9FQAFuE3tq8UUZ4LodxSJH9Cy2uBNVy-kVJJ6K6mpvlA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.material.elements:default": {
+              "terms": {
+                "quantity": "results.material.elements",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 119,
+                "data": [
+                  {
+                    "count": 3,
+                    "nested_count": 3,
+                    "value": "C"
+                  },
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "H"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Hf"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "I"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "N"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Nb"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Pb"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ta"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ti"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Zr"
+                  }
+                ]
+              }
+            },
+            "results.material.n_elements:default_histogram": {
+              "histogram": {
+                "quantity": "results.material.n_elements",
+                "exclude_from_search": true,
+                "metrics": [],
+                "interval": 1,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 2
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 3
+                  },
+                  {
+                    "count": 0,
+                    "nested_count": 0,
+                    "value": 4
+                  },
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": 5
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "2309",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "results.material.symmetry.bravais_lattice:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 14,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.symmetry.bravais_lattice"
+              }
+            },
+            "results.material.symmetry.crystal_system:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 7,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.symmetry.crystal_system"
+              }
+            },
+            "results.material.symmetry.structure_name:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.symmetry.structure_name"
+              }
+            },
+            "results.material.symmetry.strukturbericht_designation:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.material.symmetry.strukturbericht_designation"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjNzljMjk1Zi00OTFkLTRjNjgtYTYwZS05MjRlNzllMWYyNWUiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODMyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.CnN5cb2Cgtk0Ss7bmn_6KYZP5xuE_G41ry_yZrEkeGG9ApFZda_aYIWgpazgHlMcdPBQuNso_vIXiNKo2esy0tGHSK1axBic5YNfGTNC4QGjkH93Wz5wbN58MmAD6EGZXiOI4dVl9ITzRGlETulKw_Es_kfijy6RuMjDFboJrkOfobixusc2fwmou_URwmA0zvX9fK_sO_XuGyJA5Cet1JlK0h0G1r6jJUKN_d6tc1IV3aiAl4O6LVBu523XamUm9OmcE4wro0BtGmIa0d8qQQAYRaZvu0bRYUWGmuPsisxtcRIeEU0fNItlNPiJ2oiObuDHbCOasFJZfRp-erNsKg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.material.symmetry.bravais_lattice:scroll": {
+              "terms": {
+                "quantity": "results.material.symmetry.bravais_lattice",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 14,
+                "data": []
+              }
+            },
+            "results.material.symmetry.crystal_system:scroll": {
+              "terms": {
+                "quantity": "results.material.symmetry.crystal_system",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 7,
+                "data": []
+              }
+            },
+            "results.material.symmetry.structure_name:scroll": {
+              "terms": {
+                "quantity": "results.material.symmetry.structure_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.material.symmetry.strukturbericht_designation:scroll": {
+              "terms": {
+                "quantity": "results.material.symmetry.strukturbericht_designation",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1274",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "results.method.method_name:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 6,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.method.method_name"
+              }
+            },
+            "results.method.workflow_name:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 15,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.method.workflow_name"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjMGNiYzhkMy02ZTlhLTQwN2QtOTQ5OC04OGJmMjA3ZjNlY2QiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODMzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.PF1Csc2CviCQ4wXBBGtNu43SHSrt-VBjlp1ZhUUy2I3XI7AB6vxz0Hjfk3VVCVItYWKwOF6plnlCEj_4dSd7EW7LzEMCG79zgDS9Otz5mh7LFB27CY3KnxpVvWBgobuXq9hKCAtPdKmY7ukRQY2wKiA1cw9oGMxt4dij31hIGnllR6cQd9z8voQPODsdzeEsW1hAmJsMOtjTlq31p-yhtxTAffE7ptE3mmCncoKYfvNB055BzrGzPvJwUV0obwqHwae5JWd9bZokZYvQoq2x1F1eFnY3h6OR6O7AngwkjeEfmGjJb_fUIfL79_WrgElPzqezF7wy7qISQyTGyTKJ4Q",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.method.method_name:scroll": {
+              "terms": {
+                "quantity": "results.method.method_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 6,
+                "data": []
+              }
+            },
+            "results.method.workflow_name:scroll": {
+              "terms": {
+                "quantity": "results.method.workflow_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 15,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "692",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "results.method.simulation.program_name:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.method.simulation.program_name"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwNzlkZDk0Yi03YzJmLTRhZDItOTM5MS1mMTY3NDYwMTNhZDUiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODM0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.X5VyBJvz5nWJZG6UY_7AwzfT_G9yXIpsatsPKvOkUeVsu0VDX5LGPyYOGI1S7wz1pIqdo9NyTfL8MfWC6nQeN9lVBE-qmfdekurEE7jfjkP_s1yleYJLoMQKakByM2yIaeW0kYJ5C0WAZ0OY25qnAHM77QpTgQbGTrSrncwAeaLV1MYbAIxOOEmathCVwk9VWYo2rG5mq6hVaaaCJmBr0BW_p7pzS43NIit6Ha-uzS-ZlzZ479-y6bO11bKfCyVc0859x-qW67YNg02xNXqeu7CsAKf2dW2vth4d1u294JKafq3iX7v7MMarswBBSlHCzf45BxChJpwr32wSeDkF2A",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.method.simulation.program_name:scroll": {
+              "terms": {
+                "quantity": "results.method.simulation.program_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "VASP"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "exciting"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ABACUS"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ABINIT"
+                  },
+                  {
+                    "count": 0,
+                    "value": "AFLOW"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Amber"
+                  },
+                  {
+                    "count": 0,
+                    "value": "AMS"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ASAP"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ASR"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Atomate"
+                  },
+                  {
+                    "count": 0,
+                    "value": "BigDFT"
+                  },
+                  {
+                    "count": 0,
+                    "value": "CASTEP"
+                  },
+                  {
+                    "count": 0,
+                    "value": "CHARMM"
+                  },
+                  {
+                    "count": 0,
+                    "value": "CP2K"
+                  },
+                  {
+                    "count": 0,
+                    "value": "CPMD"
+                  },
+                  {
+                    "count": 0,
+                    "value": "CRYSTAL"
+                  },
+                  {
+                    "count": 0,
+                    "value": "DFTB+"
+                  },
+                  {
+                    "count": 0,
+                    "value": "DL_POLY"
+                  },
+                  {
+                    "count": 0,
+                    "value": "DMol3"
+                  },
+                  {
+                    "count": 0,
+                    "value": "EELSDB"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ElaStic"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Elk"
+                  },
+                  {
+                    "count": 0,
+                    "value": "FHI-aims"
+                  },
+                  {
+                    "count": 0,
+                    "value": "FHI-vibes"
+                  },
+                  {
+                    "count": 0,
+                    "value": "FLEUR"
+                  },
+                  {
+                    "count": 0,
+                    "value": "FPLO"
+                  },
+                  {
+                    "count": 0,
+                    "value": "GAMESS"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Gaussian"
+                  },
+                  {
+                    "count": 0,
+                    "value": "GPAW"
+                  },
+                  {
+                    "count": 0,
+                    "value": "GROMACS"
+                  },
+                  {
+                    "count": 0,
+                    "value": "GROMOS"
+                  },
+                  {
+                    "count": 0,
+                    "value": "GULP"
+                  },
+                  {
+                    "count": 0,
+                    "value": "LAMMPS"
+                  },
+                  {
+                    "count": 0,
+                    "value": "libAtoms"
+                  },
+                  {
+                    "count": 0,
+                    "value": "LOBSTER"
+                  },
+                  {
+                    "count": 0,
+                    "value": "MOFStructures"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Molcas"
+                  },
+                  {
+                    "count": 0,
+                    "value": "MOPAC"
+                  },
+                  {
+                    "count": 0,
+                    "value": "NAMD"
+                  },
+                  {
+                    "count": 0,
+                    "value": "NeXus"
+                  },
+                  {
+                    "count": 0,
+                    "value": "NWChem"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Octopus"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ONETEP"
+                  },
+                  {
+                    "count": 0,
+                    "value": "OpenKIM"
+                  },
+                  {
+                    "count": 0,
+                    "value": "OpenMX"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ORCA"
+                  },
+                  {
+                    "count": 0,
+                    "value": "phonopy"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Psi4"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Qball"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Qbox"
+                  },
+                  {
+                    "count": 0,
+                    "value": "QuantumATK"
+                  },
+                  {
+                    "count": 0,
+                    "value": "QuantumESPRESSO"
+                  },
+                  {
+                    "count": 0,
+                    "value": "QuantumEspressoEPW"
+                  },
+                  {
+                    "count": 0,
+                    "value": "QuantumEspressPhonon"
+                  },
+                  {
+                    "count": 0,
+                    "value": "SIESTA"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Tinker"
+                  },
+                  {
+                    "count": 0,
+                    "value": "TURBOMOLE"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Wannier90"
+                  },
+                  {
+                    "count": 0,
+                    "value": "WIEN2k"
+                  },
+                  {
+                    "count": 0,
+                    "value": "YAMBO"
+                  },
+                  {
+                    "count": 0,
+                    "value": "unavailable"
+                  },
+                  {
+                    "count": 0,
+                    "value": "not processed"
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "5500",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "results.method.simulation.dft.xc_functional_type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 8,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.method.simulation.dft.xc_functional_type"
+              }
+            },
+            "results.method.simulation.dft.xc_functional_names:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.method.simulation.dft.xc_functional_names"
+              }
+            },
+            "results.method.simulation.dft.exact_exchange_mixing_factor:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.method.simulation.dft.exact_exchange_mixing_factor"
+              }
+            },
+            "results.method.simulation.dft.hubbard_model.u_effective:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.method.simulation.dft.hubbard_model.u_effective"
+              }
+            },
+            "results.method.simulation.dft.basis_set_type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 7,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.method.simulation.dft.basis_set_type"
+              }
+            },
+            "results.method.simulation.dft.core_electron_treatment:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 4,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.method.simulation.dft.core_electron_treatment"
+              }
+            },
+            "results.method.simulation.dft.relativity_method:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 3,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.method.simulation.dft.relativity_method"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwYWExZGFiMC1kOGM3LTQ3YzgtYjE5OC1hZTMyNWE1NWVjNzAiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODM2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.dt9lFtL9k1Stk40NX5qJcITadtQ13OdaV62wIRhzmq-5jSlI2Od81L8ocw8VpAVJyONXrjIFEmHbwN_R1LVdneIGud50iE6kffe8OJ4fGR7f3pAzfEooyEZGdhX6bAxxyeHsFYfzljWVQRFKBZlTU8ShOjV3od-i7xNV2SMqGYevOdGh-8XpxrAWQDXaPvWmORz9IoX6cMvJcVtTu_O2uiCTP5lV8knIHrPEjDzFhkMeoZy--bSL2-6q5FljWkETIYKzemiuyQY0PlNaxlw3eTsCryCmHWSJenmNATdEwidV58WJOSQXeT1HdHrsmGK07r75lhvo3_dQ36jJHSluCQ",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.method.simulation.dft.xc_functional_type:scroll": {
+              "terms": {
+                "quantity": "results.method.simulation.dft.xc_functional_type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 8,
+                "data": [
+                  {
+                    "count": 3,
+                    "nested_count": 3,
+                    "value": "not processed"
+                  }
+                ]
+              }
+            },
+            "results.method.simulation.dft.xc_functional_names:scroll": {
+              "terms": {
+                "quantity": "results.method.simulation.dft.xc_functional_names",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "GGA_C_PBE_SOL"
+                  },
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "GGA_X_PBE_SOL"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "LDA_C_PZ"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "LDA_X_PZ"
+                  }
+                ]
+              }
+            },
+            "results.method.simulation.dft.exact_exchange_mixing_factor:default_histogram": {
+              "histogram": {
+                "quantity": "results.method.simulation.dft.exact_exchange_mixing_factor",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.method.simulation.dft.hubbard_model.u_effective:default_histogram": {
+              "histogram": {
+                "quantity": "results.method.simulation.dft.hubbard_model.u_effective",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.method.simulation.dft.basis_set_type:scroll": {
+              "terms": {
+                "quantity": "results.method.simulation.dft.basis_set_type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 7,
+                "data": [
+                  {
+                    "count": 3,
+                    "nested_count": 3,
+                    "value": "unavailable"
+                  }
+                ]
+              }
+            },
+            "results.method.simulation.dft.core_electron_treatment:scroll": {
+              "terms": {
+                "quantity": "results.method.simulation.dft.core_electron_treatment",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 4,
+                "data": [
+                  {
+                    "count": 3,
+                    "nested_count": 3,
+                    "value": "unavailable"
+                  }
+                ]
+              }
+            },
+            "results.method.simulation.dft.relativity_method:scroll": {
+              "terms": {
+                "quantity": "results.method.simulation.dft.relativity_method",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 3,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "3022",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "results.method.simulation.gw.type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 6,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.method.simulation.gw.type"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5ZDliMTNhMy1lYjI0LTQxOWQtYTM2YS01YmMwYWM0NDg2NjQiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODM3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.Nsb-wI8ahrR2eDTSy4pL_1nIhgX6vAeoD6O-DBwhjSRE2itisqXsO9Y36p-O3_iyssC5rjvk35ffixz46613MAft3gbUUHpTwmtLyz-RC8xnKNkoIOZhzw24FjNwF5C5bO9-Bk6A2rxutg2jNCWicBiD-ImuEVzqsWbzrsJI95y7vwIok6iyGHM7RC_YWEGlijDYZILZts4gHSBi0wRamfr9NnSgn_QZIJhYRzTiJfdQvgoYx4d4Ls65fTlspwPbKJNMV56AC6Q7u00ZBicwp01iv7YXdlr6F4ojHtoLfBMAsCcQXIRqzStP-b9KRKYvi5oNy9FbAO2tjRZGM55srw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.method.simulation.gw.type:scroll": {
+              "terms": {
+                "quantity": "results.method.simulation.gw.type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 6,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "478",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "results.properties.spectroscopy.eels.resolution:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.spectroscopy.eels.resolution"
+              }
+            },
+            "results.properties.spectroscopy.eels.min_energy:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.spectroscopy.eels.min_energy"
+              }
+            },
+            "results.properties.spectroscopy.eels.max_energy:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.spectroscopy.eels.max_energy"
+              }
+            },
+            "results.properties.spectroscopy.eels.detector_type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.spectroscopy.eels.detector_type"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1MjM2ZDY2Yy1lMmExLTQ1MWUtYmExMC1hNjAzNzRkZTQ3MDMiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODQwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.aB8FEGrc5ugDtR4EOwdQvLX-UEl9C2t7RTRKq_zIzIQEsEx1oppy1JUrnjQXyFjw7VshrtHXPN7Kd-CUdTIrpIzM3yi01u5MbhtOQkUwEydfF3OWGImMsmbF5FWwKnF1emWkgKw4U1ttiwjb9Zg6dnNAijpSLaUYBlaf6zP2G43qI664OSwXMxxMfkYPkIjHYKNpZTzexdHzHy0NGHmevlrDhUzfCxNRvOghXEN6kRh-pgIJajNWk0d8gWAdXUZHeXhhonrdgtmMifDOHdYrgpo5q5YqyhlLZklcIKoGId8gzS54aOIIv8CkuV5Ue51FtCqumIOt6fbIDtzqiF9YcA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.properties.spectroscopy.eels.resolution:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.spectroscopy.eels.resolution",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.properties.spectroscopy.eels.min_energy:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.spectroscopy.eels.min_energy",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.properties.spectroscopy.eels.max_energy:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.spectroscopy.eels.max_energy",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.properties.spectroscopy.eels.detector_type:scroll": {
+              "terms": {
+                "quantity": "results.properties.spectroscopy.eels.detector_type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1364",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "electronic_properties:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "quantity": "results.properties.available_properties",
+                "include": [
+                  "electronic.band_structure_electronic.band_gap",
+                  "band_structure_electronic",
+                  "dos_electronic"
+                ],
+                "update": true,
+                "type": "terms",
+                "size": 3,
+                "changed": true
+              }
+            },
+            "results.properties.electronic.band_structure_electronic.band_gap.type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 2,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.type"
+              }
+            },
+            "results.properties.electronic.band_structure_electronic.band_gap.value:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value"
+              }
+            },
+            "results.properties.electronic.band_structure_electronic.spin_polarized:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 2,
+                "include": [
+                  "false",
+                  "true"
+                ],
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.electronic.band_structure_electronic.spin_polarized"
+              }
+            },
+            "results.properties.electronic.dos_electronic.spin_polarized:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 2,
+                "include": [
+                  "false",
+                  "true"
+                ],
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.electronic.dos_electronic.spin_polarized"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjMDRmNmEyZC0wMmI1LTRiM2ItYTcxNi0xMjk4Zjk0OWM5YmYiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODQxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.TdPPzTONNhfRuhDwAxwC0jYV7Mn7j_NGnwZGg_ojWehTYYVHB6XUrdVX8sKRaWF9qibs1Dd7ZtxyIMdYomyW5uxvLWEt2EWQ50x6ajvTwFCH853EHUPUU8p3EMEupe2Sf7raZzEnP4OJYNYR4FsxY0v1Ca_bWdOlSrh79xvMqd9F0HotCdB8K9GYmattpXLTpaOyW0AMNW31DrPN4nQjgT4y1GnEflg9oEeAWb3oDE0fQTRpxDJByyJLJHy7TiCnh8cv9QrKQQij7Dv32teq5bGfeBkBHeyJdGFsSegVRhcRGjpyudhCYrwSBOS7JNwD4Est0M9VnqGg0o3OO5INdA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "electronic_properties:scroll": {
+              "terms": {
+                "quantity": "results.properties.available_properties",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 3,
+                "include": [
+                  "electronic.band_structure_electronic.band_gap",
+                  "band_structure_electronic",
+                  "dos_electronic"
+                ],
+                "data": []
+              }
+            },
+            "results.properties.electronic.band_structure_electronic.band_gap.type:scroll": {
+              "terms": {
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 2,
+                "data": []
+              }
+            },
+            "results.properties.electronic.band_structure_electronic.band_gap.value:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.properties.electronic.band_structure_electronic.spin_polarized:scroll": {
+              "terms": {
+                "quantity": "results.properties.electronic.band_structure_electronic.spin_polarized",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 2,
+                "include": [
+                  "false",
+                  "true"
+                ],
+                "data": []
+              }
+            },
+            "results.properties.electronic.dos_electronic.spin_polarized:scroll": {
+              "terms": {
+                "quantity": "results.properties.electronic.dos_electronic.spin_polarized",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 2,
+                "include": [
+                  "false",
+                  "true"
+                ],
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "2005",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "optoelectronic_properties:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "quantity": "results.properties.available_properties",
+                "include": [
+                  "optoelectronic.band_gap_optical",
+                  "solar_cell"
+                ],
+                "update": true,
+                "type": "terms",
+                "size": 2,
+                "changed": true
+              }
+            },
+            "results.properties.optoelectronic.band_gap_optical.type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 2,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.band_gap_optical.type"
+              }
+            },
+            "results.properties.optoelectronic.band_gap_optical.value:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.band_gap_optical.value"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.efficiency:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.fill_factor:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.fill_factor"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.open_circuit_voltage:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.short_circuit_current_density:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.illumination_intensity:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_area:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.device_area"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_architecture:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.device_architecture"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_stack:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.device_stack"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.absorber:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.absorber"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.absorber_fabrication:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.electron_transport_layer:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.hole_transport_layer:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.substrate:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.substrate"
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.back_contact:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.optoelectronic.solar_cell.back_contact"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJmZjNmMTFkNC0wOWQ4LTQwOTAtYjAzYS1kNmE3NjQwNGNkMDAiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODQzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.ZFv1a-r3835NqT7IpOMI29eZUtR1zrKCXw6bEEO1lvZ2jmF_A7lAw-jWDu1PLreR4H36I7olYJAper9mdYmW3Sdder4rZJYnHt3p81FHcdFGpuiSsTT9K9UCO2aT3SCJ0Oi_UY7aaXH_c_WS1CpuCT7FuL1J5foPvG5pQQCZLOON3KDZfckW0cWWfzTcrEnSVarm_KInVfhiRommt4-fRjH6-9gC8nw0ShlfvoMDiBYP61fEn8fxmktqYwF5Q81Q-2nYRMoSyFCBek4VcZb8ItevWnnnOT6gWr-__CN5qqOVdjGZ1uhMiCXBKDfBPxqqDAKLbTdcvKY99T-H-YJ3aQ",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "optoelectronic_properties:scroll": {
+              "terms": {
+                "quantity": "results.properties.available_properties",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 2,
+                "include": [
+                  "optoelectronic.band_gap_optical",
+                  "solar_cell"
+                ],
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "optoelectronic.band_gap_optical"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "solar_cell"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.band_gap_optical.type:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.band_gap_optical.type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 2,
+                "data": []
+              }
+            },
+            "results.properties.optoelectronic.band_gap_optical.value:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.band_gap_optical.value",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 2.5634826144e-19,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 2.5634826144e-19
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.efficiency:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.efficiency",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 15.9,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 15.9
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.fill_factor:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.fill_factor",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 0.78,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 0.78
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.open_circuit_voltage:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 1,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.short_circuit_current_density:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 203,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 203
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.illumination_intensity:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 1000,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 1000
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_area:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.optoelectronic.solar_cell.device_area",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 0.0000125,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": 0.0000125
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_architecture:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.device_architecture",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "pin"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.device_stack:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.device_stack",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ag"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "BCP"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "ITO"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PCBM-60"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PEDOT:PSS"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.absorber:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.absorber",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "MAPbI"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.absorber_fabrication:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Spin-coating"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.electron_transport_layer:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "BCP"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PCBM-60"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.hole_transport_layer:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "PEDOT:PSS"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.substrate:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.substrate",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "ITO"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "SLG"
+                  }
+                ]
+              }
+            },
+            "results.properties.optoelectronic.solar_cell.back_contact:scroll": {
+              "terms": {
+                "quantity": "results.properties.optoelectronic.solar_cell.back_contact",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "Ag"
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "8240",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "vibrational_properties:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "quantity": "results.properties.available_properties",
+                "include": [
+                  "dos_phonon",
+                  "band_structure_phonon",
+                  "energy_free_helmholtz",
+                  "heat_capacity_constant_volume"
+                ],
+                "update": true,
+                "type": "terms",
+                "size": 4,
+                "changed": true
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI3YjcwOTVjOC0zNWQ1LTQ4OGYtYWNkMi05OWYzMjU2NDczZDUiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODQ0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.B59jSqe36hgpGs8ZssBIeQuTSgFzSADZ46WRx3zq4xBx1K7VZBybfaMtcwZ21Q02IHTSb7NHM82ljGPGqafH9x6zsJ7YD1TDD0qqxCl6Ku1uSBvIF_E4P0Q4V23s3az96xVU-lTbE5H2_AzmIWM8XCAiANlfE9HVkeFFL_5Ga8DQZ1sJPQnt5tDPzFfTy81iz4-rzrpnPOWL_zhmo35MVYT1DduRn3wgvgVGBwCKtVJpJbopIGjoyye_Gc49Ltsd0FejD978v3Bv-fYqcl4d88u5_DCAcyos2wm1pBKIEyyRwnZdaRfPZ4DB5nXp3YSgf_eY5Cnmpt7UVxgMr9pHOg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "vibrational_properties:scroll": {
+              "terms": {
+                "quantity": "results.properties.available_properties",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 4,
+                "include": [
+                  "dos_phonon",
+                  "band_structure_phonon",
+                  "energy_free_helmholtz",
+                  "heat_capacity_constant_volume"
+                ],
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "642",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "mechanical_properties:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "quantity": "results.properties.available_properties",
+                "include": [
+                  "bulk_modulus",
+                  "shear_modulus",
+                  "energy_volume_curve"
+                ],
+                "update": true,
+                "type": "terms",
+                "size": 3,
+                "changed": true
+              }
+            },
+            "results.properties.mechanical.bulk_modulus.type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.mechanical.bulk_modulus.type"
+              }
+            },
+            "results.properties.mechanical.bulk_modulus.value:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.mechanical.bulk_modulus.value"
+              }
+            },
+            "results.properties.mechanical.shear_modulus.type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 3,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.mechanical.shear_modulus.type"
+              }
+            },
+            "results.properties.mechanical.shear_modulus.value:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.mechanical.shear_modulus.value"
+              }
+            },
+            "results.properties.mechanical.energy_volume_curve.type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.mechanical.energy_volume_curve.type"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5YWE2OGY1OS1jZjg3LTRkNjUtOGMzZS0xMjg2YWZhNDM2MjUiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODQ2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.EJPN22KDmh2_Rl2uDahGlT_inpJg7JVotMGkjfSIXMmYNYsLkWaIn_qh6ixhqQzNFPYOTnqyLNgFtUHwmw7waHqT59hzTgWYt_YnLBEvlJOD02-oJn-gEB0sT__5mll9fxSxkjulWKIxHifWG08FiRWz0DfVMeOBZJMKHGN_PaBiVs1PCpKMCZyLjEcBmZvPoIe7Vs_cLu-rFzjPOsanb3kgwWcrcJQtxY17S_Lkov9DiSax6A4hTRPG5z9RH08qZN2obqAVmOXuf7mmEZioJfqHEGEW3rjBWjCdwLdW_U8IcsaMr9KLFu9HWGLd897tMnS-NkIIyXxJjQ4cN83REQ",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "mechanical_properties:scroll": {
+              "terms": {
+                "quantity": "results.properties.available_properties",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 3,
+                "include": [
+                  "bulk_modulus",
+                  "shear_modulus",
+                  "energy_volume_curve"
+                ],
+                "data": []
+              }
+            },
+            "results.properties.mechanical.bulk_modulus.type:scroll": {
+              "terms": {
+                "quantity": "results.properties.mechanical.bulk_modulus.type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.properties.mechanical.bulk_modulus.value:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.mechanical.bulk_modulus.value",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.properties.mechanical.shear_modulus.type:scroll": {
+              "terms": {
+                "quantity": "results.properties.mechanical.shear_modulus.type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 3,
+                "data": []
+              }
+            },
+            "results.properties.mechanical.shear_modulus.value:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.mechanical.shear_modulus.value",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.properties.mechanical.energy_volume_curve.type:scroll": {
+              "terms": {
+                "quantity": "results.properties.mechanical.energy_volume_curve.type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1975",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "spectroscopic_properties:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "quantity": "results.properties.available_properties",
+                "include": [
+                  "eels"
+                ],
+                "update": true,
+                "type": "terms",
+                "size": 1,
+                "changed": true
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJhZDgyYjExMi0xYmE4LTQ5OTItYWNhYy00NzRmNmEyZDNjNGQiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODQ4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.j_uRGIzQqCO0c_9D11NwopZRs-mY3KspdLIFOYDfafdrqziwDsHi2rIrqk47gZsTdhpK8SIwWsWFo76wu1BbGz8y7gWmI_wrNNuQ4q9CzrC4bP6YwOj_cI5mKjw0kdMPb2JjEgL8Ju1PKOnBmHSYLo5CaTSA966MkDokbjUgc-72Woovt03NjIb_KrhVbMKUfeaetcOfGgooXM6KGmjE1bpHjAP4WgZwzHZB-NqOhvnLvp1XYRo6aexYPcIOVg4vO8zDWfqibtjXz9FF5-1uAj8PaYwtEUZMddSfC4BXX0jN2_bR8OVcIBg30LVu7TCLNhZnhHT7rRBcUcW4hByuIg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "spectroscopic_properties:scroll": {
+              "terms": {
+                "quantity": "results.properties.available_properties",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 1,
+                "include": [
+                  "eels"
+                ],
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "525",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "thermodynamic_properties:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "quantity": "results.properties.available_properties",
+                "include": [
+                  "trajectory"
+                ],
+                "update": true,
+                "type": "terms",
+                "size": 1,
+                "changed": true
+              }
+            },
+            "results.properties.thermodynamic.trajectory.available_properties:scroll": {
+              "terms": {
+                "exclude_from_search": false,
+                "update": true,
+                "size": 4,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.thermodynamic.trajectory.available_properties"
+              }
+            },
+            "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 4,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type"
+              }
+            },
+            "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyN2UzMTY0My1iNzNkLTQ0Y2ItYmJmNS02ZDA2MzY3Zjg0NTYiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODQ5LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.W79HT-iLbxtWVYS8AXmgOL5SyWE-p2kQaaXMt22hns2ODhNVn-TEkP5CFXikoXICTeMCiJ9WAOve6Tkeds0V4VQQ91pzXXXzMZNQn-EEHb2zF1VyVpw-uCDf3TC4tIbNbZWQys66lQYYROVg9rWUNngU8Goi5r18mx20KF0GEIcQ9z4yyg-YZCdSIG4Lnp8gQhtut-dr7WULiHXRQ1yCGjxxidMsiprKutBwesBZab1GCRfeoyWfe7hXrxIRH1fuKBSzBk1HG34XkuMQpBMZdG03TmUyIvdLLWyUaVOiCocVX_CVnkKWCtvglaQk_L4It7kHcnkBOAvMAD8-Pe7T2Q",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "thermodynamic_properties:scroll": {
+              "terms": {
+                "quantity": "results.properties.available_properties",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 1,
+                "include": [
+                  "trajectory"
+                ],
+                "data": []
+              }
+            },
+            "results.properties.thermodynamic.trajectory.available_properties:scroll": {
+              "terms": {
+                "quantity": "results.properties.thermodynamic.trajectory.available_properties",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 4,
+                "data": []
+              }
+            },
+            "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type:scroll": {
+              "terms": {
+                "quantity": "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 4,
+                "data": []
+              }
+            },
+            "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1536",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "results.properties.geometry_optimization.final_energy_difference:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.geometry_optimization.final_energy_difference"
+              }
+            },
+            "results.properties.geometry_optimization.final_force_maximum:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.geometry_optimization.final_force_maximum"
+              }
+            },
+            "results.properties.geometry_optimization.final_displacement_maximum:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "results.properties.geometry_optimization.final_displacement_maximum"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyNmY3YjAwZi04MzJkLTQ0ZDAtYjQzMC00YjY1OWQwYmVmNjIiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODUwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.VjNzjwwbDvwG8yjdOtPdAMgM5TLnEb-uB0VwbLOQvSZX_-gxANJ2l8caVmi9i-H2et4HjxSzR8DdN4pC-o8cGXCYdvsm6mieOAwTdifo0xTFM7c1BBCLbs5w_J_qBjd0SzfwevzdKQ_0wVsMyPMG-q4jI_cy8wOQ-DZVEdOxs60RHJwFYhMhErHXQwbYa3gNFNrk_ZLhwVAMC7rP05S5BGkpMxY4ZM4BnqsfRxNuPij50U0BlejFnDWtejmtrbhKNEhcKKiXrBoVP9ikKDRJOC_WXR-0_Y5Qww1XHXAOcX1qcFDleXvIG_6LE0VHiMRAiwrm6rEBDkkR8gWCqt0QhA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.properties.geometry_optimization.final_energy_difference:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.geometry_optimization.final_energy_difference",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.properties.geometry_optimization.final_force_maximum:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.geometry_optimization.final_force_maximum",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            },
+            "results.properties.geometry_optimization.final_displacement_maximum:default_histogram": {
+              "histogram": {
+                "quantity": "results.properties.geometry_optimization.final_displacement_maximum",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1193",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "results.eln.sections:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.sections"
+              }
+            },
+            "results.eln.tags:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.tags"
+              }
+            },
+            "results.eln.methods:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.methods"
+              }
+            },
+            "results.eln.instruments:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 5,
+                "type": "terms",
+                "changed": true,
+                "quantity": "results.eln.instruments"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIxYzM5MzQxNS0zNmI5LTQ5NzUtODFhMi1iZjY1NTM1NDFkNGQiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODUyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.e3vB3z3jWGVKLtUqfi_AqRuOWsegVq5pJGwCXcn6J5sD9gzFpul5wc5tcVHg1AjFnsRvff5VlPFjeq9iexK8QjzAhM1X7buRLaA8ZCzqjNKSze9O6cNTZERSsZfIlAhGcVNHV6vcWa4AffJ9tMkEDVfwuExN8zZXSkibMOyGLq6Ntkl_OShtMe3xADzuaEERlPEWIWwzdvpt7eS7nWws8Sc4XB2HjfeNNdMpgyupbjIbRWCxENGHH8AljalW53-CoQuBKUSn6FvdfqNaaApZjTQTaAFibGV8KbU5Gs_Eb-sLl-uAOAMeiCE0TCWli4Uvuvc0BWiKNdYzhBarBE7yqg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.eln.sections:scroll": {
+              "terms": {
+                "quantity": "results.eln.sections",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.eln.tags:scroll": {
+              "terms": {
+                "quantity": "results.eln.tags",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.eln.methods:scroll": {
+              "terms": {
+                "quantity": "results.eln.methods",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            },
+            "results.eln.instruments:scroll": {
+              "terms": {
+                "quantity": "results.eln.instruments",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1081",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "external_db:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 6,
+                "type": "terms",
+                "changed": true,
+                "quantity": "external_db"
+              }
+            },
+            "upload_create_time:default_histogram": {
+              "histogram": {
+                "exclude_from_search": true,
+                "update": true,
+                "type": "histogram",
+                "buckets": 30,
+                "changed": true,
+                "quantity": "upload_create_time"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJhZmY0OWNlMy1iYjE1LTRiNjYtODZhMS1kYmJlYmJlZjM2NjgiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODUzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.ed7JOLw0TFInM_7spsoCn66W-NkFQ2RmjSbyjVoFBCGifmZI1JO9tQDRxwEyrO2aZeZGIeiNUoh-zfUAC5UtFXrWGcMnOOHzzNYqvCGfvbxUMrhqzY7fcpPkIGVCmG9LQBVVTVyyyCn5KxaWSk8aX0tVB6eZHJpeAhvMopFBPzwkVkZs9qSoaBLwWMDdZ4a-fms08KGgKNBNN9DjZyLYbyq-FKozHETCJe6eqY2-gsyTWaxq3aDuWLyzdlMtZBQZWr_oc9-tf2h9t9sGLHcq09pHZVJKWizK7zqUQB39gme0JVlxVW6CsJG_0RIkL5HOEPbBlvukjKDAQCTNRTiCIw",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "external_db:scroll": {
+              "terms": {
+                "quantity": "external_db",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 6,
+                "data": []
+              }
+            },
+            "upload_create_time:default_histogram": {
+              "histogram": {
+                "quantity": "upload_create_time",
+                "exclude_from_search": true,
+                "metrics": [],
+                "buckets": 30,
+                "offset": 1670948817878,
+                "data": [
+                  {
+                    "count": 4,
+                    "nested_count": 4,
+                    "value": 1670948817878
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "820",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "user",
+          "query": {},
+          "aggregations": {
+            "datasets.dataset_name:scroll": {
+              "terms": {
+                "exclude_from_search": true,
+                "update": true,
+                "size": 10,
+                "type": "terms",
+                "changed": true,
+                "quantity": "datasets.dataset_name"
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkYjI0ZGEzYi01NjAyLTRjM2MtOWVkMy02ZThmYzg2NmUxMGEiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODU1LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.aq-1OOmTbUdoIdaD4Y4XAbAjBKchZJBgzaD9PnKVEVzxEqzkW1wK4qIBPjNVh7L9uglrBZJydFLriFtKY8zVWrAFcuq7TTK_NgvcPheg5jK0yrDZo4oIA88Z0x6H13JN7b3VhG1Fk_G-xADl5zP8AwoNeJdyyjJtVn0uYlI67jWTATwl5BripKujgVeFwG2lcjdpLMIeIypx4bPrnPZLpt61tOax1_WtR2BCUsg11OZjnIm-80-Go36IVfkZmXkBC79FWBpkGdTMA95DBn8zczt2Y-YFmEDcFCrENJ_es033WhjKJUICb2G5HOJoTQTlClMS-bwoBjVfrE0-C054sg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "user",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "datasets.dataset_name:scroll": {
+              "terms": {
+                "quantity": "datasets.dataset_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 10,
+                "data": []
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "455",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -607,7 +3911,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjMWJmYTY0NS04MmQ1LTRmYjEtOGNiMS1mYWYwNGU2N2FhZWMiLCJleHAiOjE2NjQzMzAyMzMsIm5iZiI6MCwiaWF0IjoxNjY0Mjk0MjUxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQzZWZhNmRjLTRkZjAtNDc5OC1hNTRkLWNlYzVjZWVjNGRhZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.VZhtBxWyIVTasiI2ZzThfLRoOmdJ4ATow9hiGVzYR-Dm0yZWPUmu2zDe0OpVOKIPKf4pqXutzavtEVuR1prAJnQZxSA6Glg9MnxPoACDYKtTWciocIbNJKET9pDwv-IzbCZROVd5xuvMYLmWj34fx1UZTpnnFTlOI3dRo_HJA_Vt6uLbwZnUOFnOYZgjK-M9nkKdV0vlVE10IDmewMm5MBDOK8WVna1ERv_OhPgcAMZkYfEW-a23pIp_VlNsUUw7Jo2cUf4PctjdQ1DCy3XiHYQbHpT1wWAhHfzX47TdWYo5a64L2CKm4Kj5ctgZXFzpizfdBa4MtIbnrkiw6cqU6A",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjY2FjZGIzNy03ZmU1LTQ3NzAtOGQxYy01MDA0M2ExNjAzMTgiLCJleHAiOjE2NzA5ODQ4MTIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4ODIzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImUyZTU2ZjFkLTdkMWQtNDUwYy04M2MxLTI1NWNiOWZhYzM2YSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.UChRYcssVjiPa8JZcLaQJ2fHTjKZpUpHES-GZPAxxFP6JCzKWBon1y0IXjzSzeqEsHwejG4GR1OQyEicSPntXdcy0SMcgz857S6Cpqv-IuN4B2P9NVEGegCNBB1RjP3XCbz2fkbT-g0c0eNBq7NysP3jaFP9Tml1BSG1VwcbbCFGjnkEMd8TJmawpHZi1XgurMH0rOWp8w3I-wbICPaA9TcFdqIoNQT_VDzfIdldHD4WmPAmIyQ_iLtO50hwQNq6K47-joqJYqwvHpCnVn1CzOjdTulwQtGPDJnNuNgNP3Lpcg_Z6bBg179x-nghnUn_NQY_gxsJME8kLRKWydFH-Q",
           "cookie": null
         }
       },
