@@ -23,8 +23,9 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from difflib import SequenceMatcher
 from functools import reduce
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union, Type, ClassVar
 from urllib.parse import SplitResult, urlsplit, urlunsplit
+from pydantic import BaseModel
 
 import aniso8601
 import numpy as np
@@ -437,6 +438,20 @@ class Annotation:
         annotation to JSON.
         '''
         return str(self.__class__.__name__)
+
+
+class AnnotationModel(Annotation, BaseModel):
+    '''
+    Base class for defining annotation models. Annotations used with simple dict-based
+    values, can be validated by defining and registering a formal pydantic-based
+    model.
+    '''
+
+    m_registry: ClassVar[Dict[str, Type['AnnotationModel']]] = {}
+    ''' A static member that holds all currently known annotations with pydantic model. '''
+
+    def m_to_dict(self, *args, **kwargs):
+        return self.dict(exclude_unset=True)
 
 
 class DefinitionAnnotation(Annotation):

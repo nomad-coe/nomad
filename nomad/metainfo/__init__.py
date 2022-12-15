@@ -65,6 +65,7 @@ from .metainfo import (
     Context,
     m_package,
     Annotation,
+    AnnotationModel,
     DefinitionAnnotation,
     SectionAnnotation,
     SectionProxy,

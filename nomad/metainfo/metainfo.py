@@ -25,6 +25,7 @@ import re
 import sys
 from collections.abc import Iterable as IterableABC
 from functools import reduce
+from pydantic import parse_obj_as
 from typing import (
     Any, Callable as TypingCallable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union, cast)
 
@@ -39,7 +40,8 @@ from nomad.metainfo.util import (
     Annotation, DefinitionAnnotation, MEnum, MQuantity, MRegEx, MSubSectionList, MTypes, ReferenceURL,
     SectionAnnotation, _delta_symbols, check_dimensionality, check_unit, convert_to, default_hash, dict_to_named_list,
     normalize_complex, normalize_datetime, resolve_variadic_name, retrieve_attribute, serialize_complex,
-    split_python_definition, to_dict, to_numpy, to_section_def, validate_shape, validate_url)
+    split_python_definition, to_dict, to_numpy, to_section_def, validate_shape, validate_url,
+    AnnotationModel)
 from nomad.units import ureg as units
 
 # todo: remove magic comment after upgrading pylint
@@ -1091,9 +1093,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 for name, annotation in section_annotation.new(self).items():
                     self.m_annotations[name] = annotation
 
-        # add annotation attributes for names annotations
-        for annotation_name, annotation in self.m_annotations.items():
-            setattr(self, f'a_{annotation_name}', annotation)
+        self.m_validate_annotations()
 
         # set remaining kwargs
         if is_bootstrapping:
@@ -1263,6 +1263,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
                     return m_quantity.value
 
+        if name.startswith('a_'):
+            annotation_name = name[2:]
+            if annotation_name not in self.m_annotations:
+                raise AttributeError(name)
+
+            return self.m_get_annotations(annotation_name)
+
         raise AttributeError(name)
 
     def __set_normalize(self, quantity_def: Quantity, value: Any) -> Any:
@@ -1316,6 +1323,20 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 raise TypeError(f'The value {value} for {quantity_def} is not of type {target_type}.')
 
         return value
+
+    def m_validate_annotations(self):
+        for annotation_name, annotation in self.m_annotations.items():
+            annotation_model = AnnotationModel.m_registry.get(annotation_name)
+            if not annotation_model:
+                continue
+
+            if isinstance(annotation, list):
+                for index, item in enumerate(annotation):
+                    annotation[index] = parse_obj_as(annotation_model, item)
+            else:
+                annotation = parse_obj_as(annotation_model, annotation)
+
+            self.m_annotations[annotation_name] = annotation
 
     def m_set(self, quantity_def: Quantity, value: Any) -> None:
         ''' Set the given value for the given quantity. '''
@@ -2270,6 +2291,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 raise MetainfoError(
                     f'The provided m_annotations is of a wrong type. {type(m_annotations).__name__} was provided.')
             section.m_annotations.update(m_annotations)
+            section.m_validate_annotations()
 
         section.m_update_from_dict(dct)
         return section

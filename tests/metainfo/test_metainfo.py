@@ -26,7 +26,7 @@ import pint.quantity
 
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
-    MetainfoError, Environment, Annotation, SectionAnnotation, Context,
+    MetainfoError, Environment, Annotation, AnnotationModel, SectionAnnotation, Context,
     DefinitionAnnotation, derived)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
 from nomad import utils
@@ -369,6 +369,30 @@ class TestM2:
         assert TestSection.test_quantity.a_test is not None
         assert len(TestSection.list_test_quantity.m_get_annotations(TestDefinitionAnnotation)) == 2
         assert TestSection.test_sub_section.a_test is not None
+
+    @pytest.mark.parametrize('annotation, passes', [
+        pytest.param(dict(string='test_value'), True, id='passes-string'),
+        pytest.param(dict(integer=1), True, id='passes-int'),
+        pytest.param(dict(integer='string'), False, id='fails')
+    ])
+    def test_formal_annotations(self, annotation, passes):
+        class TestAnnotation(AnnotationModel):
+            string: str = 'default'
+            integer: int = 0
+            no_default: str = None
+
+        AnnotationModel.m_registry['test'] = TestAnnotation
+
+        if passes:
+            run = Run(a_test=annotation)
+            assert isinstance(run.a_test, TestAnnotation)
+
+            as_dict = run.m_to_dict(with_meta=True)
+            run = Run.m_from_dict(as_dict)
+            assert isinstance(run.a_test[0], TestAnnotation)
+        else:
+            with pytest.raises(Exception):
+                Run(a_test=annotation)
 
     def test_more_property(self):
         class TestSection(MSection):
