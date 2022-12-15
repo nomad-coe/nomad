@@ -123,7 +123,9 @@ const Details = React.memo(({data}) => {
             const ref = filtersLocked['section_defs.definition_qualified_name'] && [...filtersLocked['section_defs.definition_qualified_name']][0]
             if (ref &&
               (sectionDef._qualifiedName === ref || sectionDef._allBaseSections?.map(section => section._qualifiedName).includes(ref))) {
-              referencedSubSections.push({name: `./${path}`, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: path})
+              const itemLabelKey = sectionDef.more?.label_quantity
+              const name = itemLabelKey && section[itemLabelKey] ? `${section[itemLabelKey]} (./${path})` : `./${path}`
+              referencedSubSections.push({name: name, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: path})
             }
           })
         } else {

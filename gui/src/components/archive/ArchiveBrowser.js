@@ -1051,18 +1051,23 @@ Section.propTypes = ({
   sectionIsInEln: PropTypes.bool
 })
 
+function getItemLabelKey(sectionDef) {
+  let itemLabelKey = sectionDef.more?.label_quantity
+  if (!itemLabelKey) {
+    itemLabelKey = ['name', 'type', 'id'].find(key => (
+      sectionDef._properties[key] && sectionDef._properties[key].m_def === QuantityMDef
+    ))
+  }
+  return itemLabelKey
+}
+
 function SubSection({subSectionDef, section, editable}) {
   const {handleArchiveChanged} = useEntryPageContext() || {}
   const lane = useLane()
   const history = useHistory()
   const {label, getItemLabel} = useMemo(() => {
     const sectionDef = subSectionDef.sub_section
-    let itemLabelKey = sectionDef.more?.label_quantity
-    if (!itemLabelKey) {
-      itemLabelKey = ['name', 'type', 'id'].find(key => (
-        sectionDef._properties[key] && sectionDef._properties[key].m_def === QuantityMDef
-      ))
-    }
+    let itemLabelKey = getItemLabelKey(sectionDef)
     let labelQuantity = itemLabelKey && sectionDef._properties[itemLabelKey]
     if (labelQuantity && quantityUsesFullStorage(labelQuantity)) {
       // We do not yet support label quantities that use full storage
