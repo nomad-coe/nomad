@@ -1416,12 +1416,35 @@ class GW(MSection):
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion='default')
     ]
-    starting_point = Quantity(
+    basis_set_type = Quantity(
+        type=MEnum(basis_set_types),
+        default=unavailable,
+        description='The used basis set functions.',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    basis_set_name = BasisSet.name.m_copy()
+    basis_set_name.m_annotations['elasticsearch'] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default')
+    ]
+    starting_point_type = Quantity(
+        type=MEnum(list(xc_treatments.values()) + [unavailable, not_processed]),
+        default=not_processed,
+        description='The libXC based xc functional classification used in the starting point DFT simulation.',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    starting_point_names = Quantity(
         type=str,
         default=[],
         shape=['*'],
-        description='The list of libXC functional names that were used for the ground state calculation.',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        description='The list of libXC functional names that where used in this entry.',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ]
     )
 
 

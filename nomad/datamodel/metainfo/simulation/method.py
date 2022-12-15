@@ -43,6 +43,13 @@ class KMesh(MSection):
         Number of k points in the mesh (i.e. the k points used to evaluate energy_total).
         ''')
 
+    grid = Quantity(
+        type=np.dtype(np.int32),
+        shape=[3],
+        description='''
+        k-point grid used in notation [nx, ny, nz] in fractional coordinates.
+        ''')
+
     generation_method = Quantity(
         type=str,
         shape=[],
@@ -735,101 +742,38 @@ class GW(MSection):
 
     m_def = Section(validate=False)
 
-    bare_coulomb_cutofftype = Quantity(
-        type=str,
+    type = Quantity(
+        type=MEnum(["G0W0", "scGW", "scGW0", "scG0W", "ev-scGW", "qp-scGW"]),
         shape=[],
         description='''
-        Cutoff type for the calculation of the bare Coulomb potential: none, 0d, 1d, 2d.
-        See Rozzi et al., PRB 73, 205119 (2006)
+        GW Hedin's self-consistency cycle:
+
+        | Name      | Description                      | Reference             |
+
+        | --------- | -------------------------------- | --------------------- |
+
+        | `"G0W0"`  | single-shot                      | -                     |
+
+        | `"scGW"`  | self-consistent GW               | PRB 88, 075105 (2013) |
+
+        | `"scGW0"` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |
+
+        | `"scG0W"` | self-consistent W with fixed G0  | -                     |
+
+        | `"ev-scGW"`  | eigenvalues self-consistent GW   | PRB 34, 5390 (1986)   |
+
+        | `"qp-scGW"`  | quasiparticle self-consistent GW | PRL 96, 226402 (2006) |
         ''')
 
-    bare_coulomb_gmax = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='1 / meter',
-        description='''
-        Maximum G for the pw basis for the Coulomb potential.
-        ''')
+    starting_point = SubSection(sub_section=XCFunctional.m_def)
 
-    basis_set = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Auxillary basis set used for non-local operators: mixed - mixed basis set, Kotani
-        and Schilfgaarde, Solid State Comm. 121, 461 (2002).
-        ''')
-
-    core_treatment = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        It specifies whether the core states are treated in the GW calculation: all - All
-        electron calculation; val - Valence electron only calculation; vab - Core
-        electrons are excluded from the mixed product basis; xal - All electron treatment
-        of the exchange self-energy only
-        ''')
-
-    frequency_grid_type = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Frequency integration grid type for the correlational self energy: 'eqdis' -
-        equidistant frequencies from 0 to freqmax; 'gaulag' - Gauss-Laguerre quadrature
-        from 0 to infinity; 'gauleg' - Gauss-Legendre quadrature from 0 to freqmax;
-        'gaule2' (default) - double Gauss-Legendre quadrature from 0 to freqmax and from
-        freqmax to infinity.
-        ''')
-
-    max_frequency = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        description='''
-        Maximum frequency for the calculation of the self energy.
-        ''')
-
-    mixed_basis_gmax = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='1 / meter',
-        description='''
-        Cut-off parameter for the truncation of the expansion of the plane waves in the
-        interstitial region.
-        ''')
-
-    mixed_basis_lmax = Quantity(
-        type=np.dtype(np.int32),
-        shape=[],
-        description='''
-        Maximum l value used for the radial functions within the muffin-tin.
-        ''')
-
-    mixed_basis_tolerance = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        description='''
-        Eigenvalue threshold below which the egenvectors are discarded in the construction
-        of the radial basis set.
-        ''')
-
-    ngridq = Quantity(
-        type=np.dtype(np.int32),
-        shape=[3],
-        description='''
-        k/q-point grid size used in the GW calculation.
-        ''')
+    q_grid = SubSection(sub_section=KMesh.m_def, repeats=False)
 
     n_frequencies = Quantity(
         type=np.dtype(np.int32),
         shape=[],
         description='''
         Number of frequency points used in the calculation of the self energy.
-        ''')
-
-    frequency_number = Quantity(
-        type=np.dtype(np.int32),
-        shape=['n_frequencies'],
-        description='''
-        Number referring to the frequency used in the calculation of the self energy.
         ''')
 
     frequency_values = Quantity(
@@ -840,99 +784,77 @@ class GW(MSection):
         Values of the frequency used in the calculation of the self energy.
         ''')
 
-    frequency_weights = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_frequencies'],
+    core_treatment = Quantity(
+        type=str,
+        shape=[],
         description='''
-        Weights of the frequency used in the calculation of the self energy.
+        Specifies if core states are treated in the GW calculation:
+
+        | Name    | Description                                             |
+
+        | ------- | ------------------------------------------------------- |
+
+        | `"all"` | All electron calculation                                |
+
+        | `"val"` | Valence electron only calculation                       |
+
+        | `"fc"`  | Frozen-core approximation                               |
+
+        | `"xal"` | All electron treatment of the exchange self-energy only |
         ''')
 
-    polarizability_number_of_empty_states = Quantity(
-        type=int,
+    dielectric_function_treatment = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Model used to calculate the dinamically-screened dielectric function:
+
+        | Name        | Description                                    | Reference             |
+
+        | ----------- | ---------------------------------------------- | --------------------- |
+
+        | `"rpa"`     | Full frequency random-phase approximation      | -                     |
+
+        | `"ppm"`     | Godby-Needs plasmon-pole model                 | PRL 62, 1169 (1989)   |
+
+        | `"ppm_hl"`  | Hybertsen and Louie plasmon-pole model         | PRB 34, 5390 (1986)   |
+
+        | `"ppm_hl2"` | von der Linden and P. Horsh plasmon-pole model | PRB 37, 8351 (1988)   |
+
+        | `"ppm_fe"`  | Farid and Engel plasmon-pole model             | PRB 47, 15931 (1993)  |
+
+        | `"cdm"`     | Countour-deformation method                    | PRB 67, 155208 (2003) |
+        ''')
+
+    self_energy_analytical_continuation = Quantity(
+        type=MEnum(["pade", "multi-pole", "CD"]),
+        shape=[],
+        description='''
+        Analytical continuation approximations of the GW self-energy:
+
+        | Name           | Description         | Reference                        |
+
+        | -------------- | ------------------- | -------------------------------- |
+
+        | `"pade"`       | Pade's approximant  | J. Low Temp. Phys 29, 179 (1977) |
+
+        | `"multi-pole"` | Multi-pole fitting  | PRL 74, 1827 (1995)              |
+
+        | `"CD"`         | Contour deformation | PRB 67, 155208 (2003)            |
+        ''')
+
+    n_empty_states_polarizability = Quantity(
+        type=np.dtype(np.int32),
         shape=[],
         description='''
         Number of empty states used to compute the polarizability P
         ''')
 
-    qp_equation_treatment = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Methods to solve the quasi-particle equation: 'linearization', 'self-consistent'
-        ''')
-
-    screened_coulomb_volume_average = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Type of volume averaging for the dynamically screened Coulomb potential: isotropic
-        - Simple averaging along a specified direction using only diagonal components of
-        the dielectric tensor; anisotropic - Anisotropic screening by C. Freysoldt et al.,
-        CPC 176, 1-13 (2007)
-        ''')
-
-    screened_coulomb = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Model used to calculate the dinamically-screened Coulomb potential: 'rpa' - Full-
-        frequency random-phase approximation; 'ppm' - Godby-Needs plasmon-pole model Godby
-        and Needs, Phys. Rev. Lett. 62, 1169 (1989); 'ppm_hl' - Hybertsen and Louie, Phys.
-        Rev. B 34, 5390 (1986); 'ppm_lh' - von der Linden and P. Horsh, Phys. Rev. B 37,
-        8351 (1988); 'ppm_fe' - Farid and Engel, Phys. Rev. B 47,15931 (1993); 'cdm' -
-        Contour deformation method, Phys. Rev. B 67, 155208 (2003).)
-        ''')
-
-    self_energy_c_analytical_continuation = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Models for the correlation self-energy analytical continuation: 'pade' -  Pade's
-        approximant (by H. J. Vidberg and J. W. Serence, J. Low Temp. Phys. 29, 179
-        (1977)); 'mpf' -  Multi-Pole Fitting (by H. N Rojas, R. W. Godby and R. J. Needs,
-        Phys. Rev. Lett. 74, 1827 (1995)); 'cd' - contour deformation; 'ra' - real axis
-        ''')
-
-    self_energy_c_number_of_empty_states = Quantity(
+    n_empty_states_self_energy = Quantity(
         type=np.dtype(np.int32),
         shape=[],
         description='''
         Number of empty states to be used to calculate the correlation self energy.
-        ''')
-
-    self_energy_c_number_of_poles = Quantity(
-        type=int,
-        shape=[],
-        description='''
-        Number of poles used in the analytical continuation.
-        ''')
-
-    self_energy_singularity_treatment = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Treatment of the integrable singular terms in the calculation of the self energy.
-        Values: 'mpb' - Auxiliary function method by S. Massidda, M. Posternak, and A.
-        Baldereschi, PRB 48, 5058 (1993); 'crg' - Auxiliary function method by P. Carrier,
-        S. Rohra, and A. Goerling, PRB 75, 205126 (2007).
-        ''')
-
-    starting_point = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Exchange-correlation functional of the ground-state calculation.
-        ''')
-
-    type = Quantity(
-        type=MEnum(["G0W0", "scGW", "scGW0", "scG0W", "ev-scGW", "qp-scGW"]),
-        shape=[],
-        description='''
-        GW methodology: G0W0; ev-scGW: (eigenvalues self-consistent GW) – Phys.Rev.B 34,
-        5390 (1986); qp-scGW: (quasi-particle self-consistent GW) – Phys. Rev. Lett. 96,
-        226402 (2006)  scGW0: (self-consistent G with fixed W0) – Phys.Rev.B 54, 8411
-        (1996); scG0W: (self-consistent W with fixed G0); scGW: (self-consistent GW) –
-        Phys. Rev. B 88, 075105 (2013)
         ''')
 
 

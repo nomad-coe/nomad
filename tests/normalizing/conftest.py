@@ -145,6 +145,40 @@ def get_template_dft() -> EntryArchive:
     return template
 
 
+def get_template_gw() -> EntryArchive:
+    '''Returns a basic archive template for a GW calculation.
+    '''
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = Program(name='VASP', version='4.6.35')
+    method = run.m_create(Method)
+    system = run.m_create(System)
+    system.atoms = AtomsSystem(
+        lattice_vectors=[
+            [5.76372622e-10, 0.0, 0.0],
+            [0.0, 5.76372622e-10, 0.0],
+            [0.0, 0.0, 4.0755698899999997e-10]
+        ],
+        positions=[
+            [2.88186311e-10, 0.0, 2.0377849449999999e-10],
+            [0.0, 2.88186311e-10, 2.0377849449999999e-10],
+            [0.0, 0.0, 0.0],
+            [2.88186311e-10, 2.88186311e-10, 0.0],
+        ],
+        labels=['Br', 'K', 'Si', 'Si'],
+        periodic=[True, True, True])
+    scc = run.m_create(Calculation)
+    scc.system_ref = system
+    scc.method_ref = method
+    scc.energy = Energy(
+        free=EnergyEntry(value=-1.5936767191492225e-18),
+        total=EnergyEntry(value=-1.5935696296699573e-18),
+        total_t0=EnergyEntry(value=-3.2126683561907e-22))
+    workflow = template.m_create(Workflow)
+    workflow.type = 'single_point'
+    return template
+
+
 def get_template_eels() -> EntryArchive:
     '''Returns a basic archive template for an EELS experiment.
     '''
@@ -514,23 +548,15 @@ def dft_plus_u() -> EntryArchive:
 @pytest.fixture(scope='session')
 def gw() -> EntryArchive:
     '''GW calculation.'''
-    template = get_template_dft()
+    template = get_template_gw()
     template.run[0].method = None
     run = template.run[0]
-    method_dft = run.m_create(Method)
-    method_dft.electronic = Electronic(
-        method='DFT',
-        smearing=Smearing(kind='gaussian', width=1e-20),
-        n_spin_channels=2, van_der_waals_method='G06',
-        relativity_method='scalar_relativistic')
-    method_dft.scf = Scf(threshold_energy_change=1e-24)
-    method_dft.dft = DFT(xc_functional=XCFunctional())
-    method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
-    method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
-
     method_gw = run.m_create(Method)
-    method_gw.gw = GW(type='G0W0', starting_point='GGA_C_PBE GGA_X_PBE')
-    method_gw.starting_method_ref = run.method[0]
+    method_gw.basis_set.append(BasisSet(type='plane waves'))
+    xc_functional = XCFunctional(
+        exchange=[Functional(name='GGA_X_PBE')],
+        correlation=[Functional(name='GGA_C_PBE')])
+    method_gw.gw = GW(type='G0W0', starting_point=xc_functional)
     return run_normalize(template)
 
 

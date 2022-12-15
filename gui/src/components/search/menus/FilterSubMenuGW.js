@@ -46,6 +46,22 @@ const FilterSubMenuGW = React.memo(({
           disableSearch
         />
       </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputField
+          quantity="results.method.simulation.gw.starting_point_type"
+          visible={visible}
+          xs={12}
+          disableSearch
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputField
+          quantity="results.method.simulation.gw.basis_set_type"
+          visible={visible}
+          xs={12}
+          disableSearch
+        />
+      </InputGridItem>
     </InputGrid>
   </FilterSubMenu>
 })

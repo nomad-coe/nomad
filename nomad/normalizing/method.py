@@ -60,6 +60,7 @@ class MethodNormalizer():
         method_name = config.services.unavailable_value
         methods = self.run.method
         n_methods = len(methods)
+        method.workflow_name = self.workflow_name()
 
         def get_method_name(section_method):
             method_name = config.services.unavailable_value
@@ -72,8 +73,13 @@ class MethodNormalizer():
                     method_name = "Projection"
             return method_name
 
+        # If workflow_name is 'GW', set repr_method as the corresponding method_ref
+        if method.workflow_name is not None and method.workflow_name[0] == 'GW':
+            if self.entry_archive.workflow[0].workflows_ref[-1].calculations_ref[-1].method_ref.gw is not None:
+                repr_method = self.entry_archive.workflow[0].workflows_ref[-1].calculations_ref[-1].method_ref
+                method_name = get_method_name(repr_method)
         # If only one method is specified, use it directly
-        if n_methods == 1:
+        elif n_methods == 1:
             repr_method = methods[0]
             method_name = get_method_name(repr_method)
         # If several methods have been declared, we need to find the "topmost"
@@ -106,22 +112,28 @@ class MethodNormalizer():
                         if method_name != config.services.unavailable_value:
                             repr_method = sec_method
                             break
+
         self.repr_method = repr_method
         self.method_name = method_name
-        settings_basis_set = get_basis_set(self.entry_archive, self.repr_method, self.repr_system, self.logger)
         functional_long_name = self.functional_long_name()
-        method.workflow_name = self.workflow_name()
+        settings_basis_set = get_basis_set(self.entry_archive, self.repr_method, self.repr_system, self.logger)
 
         if method_name == "GW":
             method.method_name = "GW"
             gw = GW()
-            gw.type = repr_method.gw.type
-            gw.starting_point = repr_method.gw.starting_point.split()
+            gw.type = self.repr_method.gw.type
+            try:
+                gw.starting_point_names = self.xc_functional_names(self.repr_method.gw.starting_point)
+                gw.starting_point_type = self.xc_functional_type(gw.starting_point_names)
+            except Exception:
+                self.logger.warn("Error extracting the GW starting point names.")
+            gw.basis_set_type = self.basis_set_type()
+            gw.basis_set_name = self.basis_set_name()
             simulation.gw = gw
         elif method_name == "Projection":
             method.method_name = "Projection"
             projection = Projection()
-            if repr_method.projection.is_maximally_localized:
+            if self.repr_method.projection.is_maximally_localized:
                 projection.localization_type = 'maximally_localized'
             else:
                 projection.localization_type = 'single_shot'
@@ -142,9 +154,12 @@ class MethodNormalizer():
                     dft.spin_polarized = repr_method.electronic.n_spin_channels > 1
                 dft.van_der_Waals_method = repr_method.electronic.van_der_waals_method
                 dft.relativity_method = repr_method.electronic.relativity_method
-            dft.xc_functional_names = self.xc_functional_names()
-            dft.xc_functional_type = self.xc_functional_type(dft.xc_functional_names)
-            dft.exact_exchange_mixing_factor = self.exact_exchange_mixing_factor(dft.xc_functional_names)
+            try:
+                dft.xc_functional_names = self.xc_functional_names(self.repr_method.dft.xc_functional)
+                dft.xc_functional_type = self.xc_functional_type(dft.xc_functional_names)
+                dft.exact_exchange_mixing_factor = self.exact_exchange_mixing_factor(dft.xc_functional_names)
+            except Exception:
+                self.logger.warn("Error extracting the DFT XC functional names.")
             if repr_method.scf is not None:
                 dft.scf_threshold_energy_change = repr_method.scf.threshold_energy_change
             simulation.dft = dft
@@ -403,12 +418,12 @@ class MethodNormalizer():
             treatment = core_electron_treatments.get(code_name, config.services.unavailable_value)
         return treatment
 
-    def xc_functional_names(self) -> Union[List[str], None]:
+    def xc_functional_names(self, method_xc_functional: Section) -> Union[List[str], None]:
         if self.repr_method:
             functionals = set()
             try:
                 for functional_type in ['exchange', 'correlation', 'hybrid', 'contributions']:
-                    functionals.update([f.name for f in self.repr_method.dft.xc_functional[functional_type]])
+                    functionals.update([f.name for f in method_xc_functional[functional_type]])
             except Exception:
                 pass
             if functionals:
@@ -468,20 +483,20 @@ class MethodNormalizer():
             return None
 
         linked_methods = [repr_method]
-        if repr_method.core_method_ref is not None:
-            linked_methods.append(repr_method.core_method_ref)
+        if repr_method.dft:
+            if repr_method.core_method_ref is not None:
+                linked_methods.append(repr_method.core_method_ref)
 
         xc_functional = config.services.unavailable_value
+        # XC functional name
         for method in linked_methods:
-            if method.dft is None:
-                continue
-            try:
+            sec_xc_functionals = None
+            if method.gw:
+                sec_xc_functionals = method.gw.starting_point
+            elif method.dft:
                 sec_xc_functionals = method.dft.xc_functional
-            except KeyError:
-                pass
-            else:
-                if sec_xc_functionals is None:
-                    return xc_functional
+
+            if sec_xc_functionals:
                 components = {}
                 for functional in ['exchange', 'correlation', 'hybrid', 'contributions']:
                     for component in sec_xc_functionals[functional]:
@@ -500,7 +515,9 @@ class MethodNormalizer():
                         result_array.append(components[name])
                     if len(result_array) >= 1:
                         xc_functional = '+'.join(result_array)
-                if method.dft.xc_functional.name is None:
+                if method.gw and method.gw.starting_point.name is None:
+                    method.gw.starting_point.name = xc_functional
+                elif method.dft and method.dft.xc_functional.name is None:
                     method.dft.xc_functional.name = xc_functional
 
         return xc_functional
