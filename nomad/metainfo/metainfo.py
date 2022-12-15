@@ -2328,7 +2328,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 for sub_section in self.m_get_sub_sections(property_def):
                     for i in sub_section.m_traverse():
                         yield i
-
                     yield self, property_def, sub_section.m_parent_index
 
             else:

@@ -320,6 +320,8 @@ registerFilter('results.method.simulation.dft.exact_exchange_mixing_factor', idD
 registerFilter('results.method.simulation.dft.hubbard_model.u_effective', idDFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dft.relativity_method', idDFT, termQuantity)
 registerFilter('results.method.simulation.gw.type', idGW, {...termQuantity, label: 'GW Type'})
+registerFilter('results.method.simulation.gw.starting_point_type', idGW, {...termQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.gw.basis_set_type', idGW, {...termQuantity, scale: '1/4'})
 registerFilter('results.eln.sections', idELN, termQuantity)
 registerFilter('results.eln.tags', idELN, termQuantity)
 registerFilter('results.eln.methods', idELN, termQuantity)
