@@ -1795,6 +1795,7 @@ class EnergyVolumeCurve(MSection):
             'birch_euler',
             'pourier_tarantola',
             'birch_lagrange',
+            'birch_murnaghan',
             'murnaghan',
         ),
         a_elasticsearch=[
@@ -1822,6 +1823,7 @@ class BulkModulus(MSection):
             'birch_euler',
             'pourier_tarantola',
             'birch_lagrange',
+            'birch_murnaghan',
             'murnaghan',
             'voigt_average',
             'reuss_average',
