@@ -20,11 +20,11 @@
           "aggregations": {
             "results.properties.electronic.band_structure_electronic.band_gap.value:default_slider": {
               "min_max": {
-                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
                 "exclude_from_search": true,
                 "update": true,
                 "type": "min_max",
-                "changed": true
+                "changed": true,
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value"
               }
             }
           },

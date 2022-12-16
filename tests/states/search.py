@@ -191,11 +191,11 @@ def histograms():
                 'method': {},
                 'properties': {
                     'electronic': {
-                        'band_structure_electronic': {
+                        'band_structure_electronic': [{
                             'band_gap': [{
                                 'value': (i * ureg.eV).to(ureg.joule).magnitude
                             }]
-                        }
+                        }]
                     }
                 }
             }
@@ -240,11 +240,11 @@ def histograms_one_value():
             'method': {},
             'properties': {
                 'electronic': {
-                    'band_structure_electronic': {
+                    'band_structure_electronic': [{
                         'band_gap': [{
                             'value': (0.5 * ureg.eV).to(ureg.joule).magnitude
                         }]
-                    }
+                    }]
                 }
             }
         }

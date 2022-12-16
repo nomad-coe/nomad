@@ -47,9 +47,9 @@
       "calculation": [
         {
           "system_ref": "/run/0/system/0",
-          "volume": 0,
-          "pressure": 0,
-          "temperature": 0,
+          "volume": 0.0,
+          "pressure": 0.0,
+          "temperature": 0.0,
           "dos_electronic": [
             {
               "energies": [
@@ -59,7 +59,7 @@
               "band_gap": [
                 {
                   "index": 0,
-                  "energy_highest_occupied": 0
+                  "energy_highest_occupied": 0.0
                 }
               ],
               "total": [
@@ -114,7 +114,7 @@
                 {
                   "value": 1e-19,
                   "type": "indirect",
-                  "energy_highest_occupied": 0
+                  "energy_highest_occupied": 0.0
                 }
               ],
               "segment": [
@@ -213,20 +213,20 @@
       ],
       "thermodynamics": {
         "temperature": [
-          0,
-          100
+          0.0,
+          100.0
         ],
         "heat_capacity_c_v": [
-          0,
-          1
+          0.0,
+          1.0
         ],
         "heat_capacity_c_v_specific": [
           0.0,
           2.9873508155649754e+26
         ],
         "vibrational_free_energy_at_constant_volume": [
-          0,
-          1
+          0.0,
+          1.0
         ],
         "vibrational_free_energy_at_constant_volume_specific": [
           0.0,
@@ -242,21 +242,21 @@
       ],
       "equation_of_state": {
         "volumes": [
-          0,
-          1
+          0.0,
+          1.0
         ],
         "energies": [
-          0,
-          1
+          0.0,
+          1.0
         ],
         "eos_fit": [
           {
             "function_name": "murnaghan",
             "fitted_energies": [
-              0,
-              1
+              0.0,
+              1.0
             ],
-            "bulk_modulus": 1
+            "bulk_modulus": 1.0
           }
         ]
       }
@@ -280,15 +280,15 @@
   ],
   "metadata": {
     "upload_id": "dft_upload",
-    "upload_create_time": "2022-09-27T15:48:24.552969+00:00",
+    "upload_create_time": "2022-12-13T16:17:03.997404+00:00",
     "entry_id": "dft_bulk",
     "calc_id": "dft_bulk",
     "entry_hash": "dummy_hash_dft_bulk",
-    "entry_create_time": "2022-09-27T15:48:24.556969+00:00",
+    "entry_create_time": "2022-12-13T16:17:04.001404+00:00",
     "parser_name": "parsers/vasp",
     "mainfile": "vasp.xml",
     "published": true,
-    "publish_time": "2022-09-27T15:48:24.555969+00:00",
+    "publish_time": "2022-12-13T16:17:04.000404+00:00",
     "with_embargo": false,
     "embargo_length": 0,
     "license": "CC BY 4.0",
@@ -430,30 +430,34 @@
         }
       },
       "electronic": {
-        "band_structure_electronic": {
-          "reciprocal_cell": "/run/0/calculation/0/band_structure_electronic/0/reciprocal_cell",
-          "segment": [
-            "/run/0/calculation/0/band_structure_electronic/0/segment/0"
-          ],
-          "band_gap": [
-            {
-              "value": 1e-19,
-              "type": "indirect",
-              "energy_highest_occupied": 0
-            }
-          ]
-        },
-        "dos_electronic": {
-          "energies": "/run/0/calculation/0/dos_electronic/0/energies",
-          "total": [
-            "/run/0/calculation/0/dos_electronic/0/total/0"
-          ],
-          "band_gap": [
-            {
-              "energy_highest_occupied": 0
-            }
-          ]
-        }
+        "band_structure_electronic": [
+          {
+            "reciprocal_cell": "/run/0/calculation/0/band_structure_electronic/0/reciprocal_cell",
+            "segment": [
+              "/run/0/calculation/0/band_structure_electronic/0/segment/0"
+            ],
+            "band_gap": [
+              {
+                "value": 1e-19,
+                "type": "indirect",
+                "energy_highest_occupied": 0.0
+              }
+            ]
+          }
+        ],
+        "dos_electronic": [
+          {
+            "energies": "/run/0/calculation/0/dos_electronic/0/energies",
+            "total": [
+              "/run/0/calculation/0/dos_electronic/0/total/0"
+            ],
+            "band_gap": [
+              {
+                "energy_highest_occupied": 0.0
+              }
+            ]
+          }
+        ]
       },
       "mechanical": {
         "energy_volume_curve": [
@@ -466,13 +470,13 @@
         "bulk_modulus": [
           {
             "type": "murnaghan",
-            "value": 1
+            "value": 1.0
           }
         ],
         "shear_modulus": [
           {
             "type": "voigt_reuss_hill_average",
-            "value": 1
+            "value": 1.0
           }
         ]
       },
@@ -492,26 +496,26 @@
             },
             "temperature": {
               "time": [
-                0
+                0.0
               ],
               "value": [
-                0
+                0.0
               ]
             },
             "pressure": {
               "time": [
-                0
+                0.0
               ],
               "value": [
-                0
+                0.0
               ]
             },
             "volume": {
               "time": [
-                0
+                0.0
               ],
               "value": [
-                0
+                0.0
               ]
             }
           }

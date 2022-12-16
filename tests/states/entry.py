@@ -62,6 +62,7 @@ def eln():
     files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
     upload.staging_upload_files.add_rawfiles('examples/data/eln')
     upload.process_upload()
+    upload.block_until_complete()
 
 
 metadata_dict = {

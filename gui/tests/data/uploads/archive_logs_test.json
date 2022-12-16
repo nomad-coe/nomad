@@ -12,7 +12,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjZTM5NmFkMC02ODg4LTQzZDgtYjBjYy1jMmU1NGM3NzFiZGIiLCJleHAiOjE2NjQzMzA2ODMsIm5iZiI6MCwiaWF0IjoxNjY0Mjk0NzAwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImU1YTRhYjNjLTc5YWEtNGU2Zi05YWZjLTE1YmQ4ZTQzYTVlYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.WYm4gFp0jYT2MlS8Us69v5HrlTbGHtiGUJxdl-k2dsA6BXMJkaXisC6QcBdvd3tP8X_OqDxUvnb4g37ttetwtF_9Unin78KovvnUY-zPN0MIAo0YrNS2SQexvj013n04Q8lprnn5QcInif5lfzEd7ii5CFHzeEmy6tZ5gjobD8-oSqHlLx5Al010UvhsYmwVJv4vGhsPMJYhmMjBub44wwAmq5E5BuObGn5lVNMpreprGGMRugn_POy7Hz66t1m1Xa-0QMNDUCLIkSLa0aeZzfq6KGEkV5VcifdOzIDn1LfQ2r5dtZeOWgAp2vo9B9vD9ZDqsLUXgJeBvogNJ-AYUg",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJlMWMxMGYyNy1hOTIzLTQ5YTAtOWI0Ny1jMjM5ZTA4MTMzMGIiLCJleHAiOjE2NzA5ODU3NDIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ5NzU0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImFlYTEzODg0LTMzOWUtNDJiMC1hNGYwLTNlZGRlNDcxNjE0ZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.jVo7jmPayrEV7Ymv8zNvw_lC1lMUL1MhhVu8NST1_q_QokYrAydmPg_Bt_vmUQI6XIDSwhfU81o958Mdvk_XUvCCAnXnSOMkEUr8X_vHLHRgBzp5eO78PyqJ35DiXhEngYjjAjTfam-9itodSz--NBThHmDHZSofiG_ig6wYd_N84R6lAtHr2iyTZoiqB8sD9qdZQE9bhMu7hhpKNsMJt7Hi1gz2nr19ihQa4MvAgblsKNzjm2W-bsg11vApiPnFYB1Mskcyqaaz_x4__3uFVif6tkpPjnSiWdjNYmdsouBIJR4tO8-_REBQsgKsaq9ZyzEVJENN8gcmjJAbZjynpA",
           "cookie": null
         }
       },
@@ -33,23 +33,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.05600094795227051",
+                  "exec_time": "0.04797554016113281",
                   "input_size": "61197",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -57,39 +57,135 @@
                   "event": "chose \"representative\" section system",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.16130304336547852",
+                  "exec_time": "0.1369175910949707",
                   "system_size": "16",
                   "event": "system classification executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.08744645118713379",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "exec_time": "0.12990140914916992",
                   "system_size": "16",
                   "event": "symmetry analysis executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -98,24 +194,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.2517561912536621",
+                  "exec_time": "0.2682180404663086",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "SystemNormalizer",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -123,11 +219,11 @@
                   "event": "chose \"representative\" section system",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -136,24 +232,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.004655361175537109",
+                  "exec_time": "0.01836228370666504",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "OptimadeNormalizer",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -162,24 +258,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0014331340789794922",
+                  "exec_time": "0.00040793418884277344",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "DosNormalizer",
                   "step": "DosNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -188,24 +284,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0009362697601318359",
+                  "exec_time": "0.00037288665771484375",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "BandStructureNormalizer",
                   "step": "BandStructureNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -214,24 +310,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.012514352798461914",
+                  "exec_time": "0.0045735836029052734",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "WorkflowNormalizer",
                   "step": "WorkflowNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -240,24 +336,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.05535554885864258",
+                  "exec_time": "0.06175827980041504",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -266,46 +362,46 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0010852813720703125",
+                  "exec_time": "0.0006203651428222656",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0034084320068359375",
+                  "exec_time": "0.026888370513916016",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.31",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.02716827392578125",
+                  "exec_time": "0.02724170684814453",
                   "event": "entry metadata indexed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.31",
                   "level": "INFO"
                 }
               ],
@@ -315,7 +411,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "10252",
+          "content-length": "13804",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -333,7 +429,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJhMmI2YTQ1Yi05NGIzLTQxMTYtODRhMy04YWUzMzk2NmRlZTEiLCJleHAiOjE2NjQzMzA2ODMsIm5iZiI6MCwiaWF0IjoxNjY0Mjk0NzAzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImU1YTRhYjNjLTc5YWEtNGU2Zi05YWZjLTE1YmQ4ZTQzYTVlYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.kd2xqvqjYJDrW9WY6jq0gdW5rr5ALWydrfz8-L3abKo7xRAUDCvzzc3wADG8n4oVmIajl6vrQhoc-IFwMJXDoNkzw1-xIRFnwYL3uIn4PFGhZPTZP6z864yFNxZXGZLxupo9iLKJ4fHvA0fwHthjchMf6aXVUKiESaWaG1WXWZPV-ykSwi7-Jtsy2QOCx70SzL1-ceoJklFVVtxhhGeVKACufGaT-Ys7mTL8NqYXxXJtvMdQyhHBVcpvG5Wqzb5qgrEYrtfOc4r-9NLKU2nXcmHwgsUZ_wUwEOQEA6eH0UGrEEoRsrxJ9uOW7maKOhyy-fwxsY0OfjrALjkazk4-Cg",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJhMWJmY2E1Yy0yNjU0LTQ3YzItOWZkOC01MzA0ZDNkMDRlYzIiLCJleHAiOjE2NzA5ODU3NDIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ5NzU4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImFlYTEzODg0LTMzOWUtNDJiMC1hNGYwLTNlZGRlNDcxNjE0ZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.CZyfpkvqT7KyjJ7pTNH56EuP9yEehaVnW8RyMfWRh5L-plNrDReFaUC7DuVzDG9SNfJQBQLIZy2sMTf8taepL0Gyxq7jDpfTlPImcSVXmTnH7I-paqaY3L06poBtu_oPpYeLDYCVH1HNPI_vAd5sJGFyUfHlLpIlGchB1QnLXdj2dNZlx3StXBx0bLJheHxQuH-LnPNAZeLQ4tU3b4N_pdodTKxKiP0qD0EBiFQr3OSctRHYxdABBYJKOWYIkPwoSsTU0ZbK6re_uF7jSQuSSMXBYjhF2TtICAVabInD720b9GZv79xGFloW26niyx0xALatiAr6KYY55kqxabjnmQ",
           "cookie": null
         }
       },
@@ -354,23 +450,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.05600094795227051",
+                  "exec_time": "0.04797554016113281",
                   "input_size": "61197",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -378,39 +474,135 @@
                   "event": "chose \"representative\" section system",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.16130304336547852",
+                  "exec_time": "0.1369175910949707",
                   "system_size": "16",
                   "event": "system classification executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.08744645118713379",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "exec_time": "0.12990140914916992",
                   "system_size": "16",
                   "event": "symmetry analysis executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -419,24 +611,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.2517561912536621",
+                  "exec_time": "0.2682180404663086",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "SystemNormalizer",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -444,11 +636,11 @@
                   "event": "chose \"representative\" section system",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -457,24 +649,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.004655361175537109",
+                  "exec_time": "0.01836228370666504",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "OptimadeNormalizer",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -483,24 +675,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0014331340789794922",
+                  "exec_time": "0.00040793418884277344",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "DosNormalizer",
                   "step": "DosNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -509,24 +701,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0009362697601318359",
+                  "exec_time": "0.00037288665771484375",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "BandStructureNormalizer",
                   "step": "BandStructureNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -535,24 +727,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.012514352798461914",
+                  "exec_time": "0.0045735836029052734",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "WorkflowNormalizer",
                   "step": "WorkflowNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -561,24 +753,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.05535554885864258",
+                  "exec_time": "0.06175827980041504",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -587,46 +779,46 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0010852813720703125",
+                  "exec_time": "0.0006203651428222656",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0034084320068359375",
+                  "exec_time": "0.026888370513916016",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.31",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.02716827392578125",
+                  "exec_time": "0.02724170684814453",
                   "event": "entry metadata indexed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.31",
                   "level": "INFO"
                 }
               ],
@@ -636,7 +828,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "10252",
+          "content-length": "13804",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -654,7 +846,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJlNTljMjg4YS1lYjZhLTQ2MWEtOThkNy03N2UwODAwMDlhNTEiLCJleHAiOjE2NjQzMzA2ODMsIm5iZiI6MCwiaWF0IjoxNjY0Mjk0NzA0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImU1YTRhYjNjLTc5YWEtNGU2Zi05YWZjLTE1YmQ4ZTQzYTVlYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.f0pr9q13yTse7lRXrY1a-7n6RaNCF1rJlzF3c4pipcT9nZsCZ37fpAhdG3xc05c2EYBfNrsvq7dVnRNR93A9nYNFfNxopy7-Plxn52e5QHCiNFgLavRPecGGWhT6NC_eTCFf477gArbaGrNbYkDGcHBQVj69TLUMRzt6vi0VueFZy5DG-GRcX306iI4q1cLmjzqqZVz6SZXvsQ4a5Jz_o_szwpZbg3S48BJzXBJlDKRxl5AoGwoP0cJqJV2IYWJUS_FDcoYB2ZwYvu0NV9wBta7CxoAuXi7jvYKbcLg7F52pxCVbgvoM9m9ZDM44oQnORlLPJlNE9vKOakQ3G4yTcA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkYjY0NmUyNC00YTE1LTQyOWYtYWY4Mi1hM2FjOGVkNTUwNmEiLCJleHAiOjE2NzA5ODU3NDIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ5NzU4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImFlYTEzODg0LTMzOWUtNDJiMC1hNGYwLTNlZGRlNDcxNjE0ZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.Oo46hWMPK3QTD0zn-cnsn9DTOlvKpH3qz0ViPKC0Dl1JCuKwIaAbpCks2R5EAqsLAJPi4OSENb6RPm_ZxnZiJYcMoUf6SjPdj_880VmfddNZuw5mMjfiZZa5JI2ybenRA-XRWGr9FqU8LlfNHKbnqmhkJ9DBdlbvGd_s90o7rzERIqR39_qcXETHSiX89QZYZ81dqwTRar8dH_wEFwffrlrCcwyQDFhqfkk7LdBpf--a9LBptyQ8G3Tkdybc2_rZffVXiwA837apoH0Ty9-QZb-vdEri3JovHR4BItFVZwhMdOVf25CPLNGx3z2hM73BUqLNKAmx-QYUaVVxGMWHAg",
           "cookie": null
         }
       },
@@ -675,23 +867,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.05600094795227051",
+                  "exec_time": "0.04797554016113281",
                   "input_size": "61197",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -699,39 +891,135 @@
                   "event": "chose \"representative\" section system",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.16130304336547852",
+                  "exec_time": "0.1369175910949707",
                   "system_size": "16",
                   "event": "system classification executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
                   "normalizer": "SystemNormalizer",
-                  "exec_time": "0.08744645118713379",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "event": "Mismatch in Springer classification or compounds",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
+                  "parser": "parsers/vasp",
+                  "step": "SystemNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2022-12-13 17:42.30",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "SystemNormalizer",
+                  "exec_time": "0.12990140914916992",
                   "system_size": "16",
                   "event": "symmetry analysis executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -740,24 +1028,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.2517561912536621",
+                  "exec_time": "0.2682180404663086",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "SystemNormalizer",
                   "step": "SystemNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -765,11 +1053,11 @@
                   "event": "chose \"representative\" section system",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -778,24 +1066,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.004655361175537109",
+                  "exec_time": "0.01836228370666504",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "OptimadeNormalizer",
                   "step": "OptimadeNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -804,24 +1092,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0014331340789794922",
+                  "exec_time": "0.00040793418884277344",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "DosNormalizer",
                   "step": "DosNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -830,24 +1118,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0009362697601318359",
+                  "exec_time": "0.00037288665771484375",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "BandStructureNormalizer",
                   "step": "BandStructureNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -856,24 +1144,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.012514352798461914",
+                  "exec_time": "0.0045735836029052734",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "WorkflowNormalizer",
                   "step": "WorkflowNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -882,24 +1170,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.05535554885864258",
+                  "exec_time": "0.06175827980041504",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
@@ -908,46 +1196,46 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0010852813720703125",
+                  "exec_time": "0.0006203651428222656",
                   "input_size": "61197",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.30",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0034084320068359375",
+                  "exec_time": "0.026888370513916016",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.31",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.02716827392578125",
+                  "exec_time": "0.02724170684814453",
                   "event": "entry metadata indexed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "5Ph4A_k9Sea6KWKTTOtOlA",
+                  "process_worker_id": "I0npyD5ZTLmm61FYvkSJTg",
                   "parser": "parsers/vasp",
                   "logger": "nomad.processing",
-                  "timestamp": "2022-09-27 18:04.56",
+                  "timestamp": "2022-12-13 17:42.31",
                   "level": "INFO"
                 }
               ],
@@ -957,7 +1245,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "10252",
+          "content-length": "13804",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -972,7 +1260,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjZTM5NmFkMC02ODg4LTQzZDgtYjBjYy1jMmU1NGM3NzFiZGIiLCJleHAiOjE2NjQzMzA2ODMsIm5iZiI6MCwiaWF0IjoxNjY0Mjk0NzAwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImU1YTRhYjNjLTc5YWEtNGU2Zi05YWZjLTE1YmQ4ZTQzYTVlYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.WYm4gFp0jYT2MlS8Us69v5HrlTbGHtiGUJxdl-k2dsA6BXMJkaXisC6QcBdvd3tP8X_OqDxUvnb4g37ttetwtF_9Unin78KovvnUY-zPN0MIAo0YrNS2SQexvj013n04Q8lprnn5QcInif5lfzEd7ii5CFHzeEmy6tZ5gjobD8-oSqHlLx5Al010UvhsYmwVJv4vGhsPMJYhmMjBub44wwAmq5E5BuObGn5lVNMpreprGGMRugn_POy7Hz66t1m1Xa-0QMNDUCLIkSLa0aeZzfq6KGEkV5VcifdOzIDn1LfQ2r5dtZeOWgAp2vo9B9vD9ZDqsLUXgJeBvogNJ-AYUg",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJlMWMxMGYyNy1hOTIzLTQ5YTAtOWI0Ny1jMjM5ZTA4MTMzMGIiLCJleHAiOjE2NzA5ODU3NDIsIm5iZiI6MCwiaWF0IjoxNjcwOTQ5NzU0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImFlYTEzODg0LTMzOWUtNDJiMC1hNGYwLTNlZGRlNDcxNjE0ZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.jVo7jmPayrEV7Ymv8zNvw_lC1lMUL1MhhVu8NST1_q_QokYrAydmPg_Bt_vmUQI6XIDSwhfU81o958Mdvk_XUvCCAnXnSOMkEUr8X_vHLHRgBzp5eO78PyqJ35DiXhEngYjjAjTfam-9itodSz--NBThHmDHZSofiG_ig6wYd_N84R6lAtHr2iyTZoiqB8sD9qdZQE9bhMu7hhpKNsMJt7Hi1gz2nr19ihQa4MvAgblsKNzjm2W-bsg11vApiPnFYB1Mskcyqaaz_x4__3uFVif6tkpPjnSiWdjNYmdsouBIJR4tO8-_REBQsgKsaq9ZyzEVJENN8gcmjJAbZjynpA",
           "cookie": null
         }
       },
@@ -997,6 +1285,11 @@
               "metadata.entry_hash",
               "metadata.entry_id",
               "metadata.entry_name",
+              "metadata.entry_timestamp",
+              "metadata.entry_timestamp.timestamp",
+              "metadata.entry_timestamp.token",
+              "metadata.entry_timestamp.token_seed",
+              "metadata.entry_timestamp.tsa_server",
               "metadata.entry_type",
               "metadata.files",
               "metadata.last_processing_time",
@@ -1027,8 +1320,14 @@
               "metadata.processed",
               "metadata.processing_errors",
               "metadata.published",
+              "metadata.quantities",
               "metadata.references",
               "metadata.reviewers",
+              "metadata.section_defs",
+              "metadata.section_defs.definition_id",
+              "metadata.section_defs.definition_qualified_name",
+              "metadata.section_defs.used_directly",
+              "metadata.sections",
               "metadata.upload_create_time",
               "metadata.upload_id",
               "metadata.with_embargo",
@@ -1039,7 +1338,9 @@
               "results.material.chemical_formula_hill",
               "results.material.chemical_formula_reduced",
               "results.material.chemical_formula_reduced_fragments",
+              "results.material.compound_type",
               "results.material.elements",
+              "results.material.functional_type",
               "results.material.material_id",
               "results.material.material_name",
               "results.material.structural_type",
@@ -1212,6 +1513,12 @@
               "run.system.prototype.aflow_url",
               "run.system.prototype.assignment_method",
               "run.system.prototype.label",
+              "run.system.springer_material",
+              "run.system.springer_material.alphabetical_formula",
+              "run.system.springer_material.classification",
+              "run.system.springer_material.compound_class",
+              "run.system.springer_material.id",
+              "run.system.springer_material.url",
               "run.system.symmetry",
               "run.system.symmetry.bravais_lattice",
               "run.system.symmetry.crystal_system",
@@ -1260,13 +1567,886 @@
               "workflow.type"
             ],
             "datasets": [],
-            "n_quantities": 408,
-            "nomad_version": "1.1.4",
-            "upload_create_time": "2022-09-27T16:04:56.166000+00:00",
-            "nomad_commit": "d0778d6a",
+            "n_quantities": 961,
+            "nomad_version": "1.1.2.dev644+g460528cbf",
+            "upload_create_time": "2022-12-13T16:42:29.984000+00:00",
+            "nomad_commit": "",
+            "section_defs": [
+              {
+                "used_directly": true,
+                "definition_id": "6d9e4402830c6514f2bbd58acbde8426c6ec3ae8",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4f3869e8788de918ae284e6d836983e3a12c773d",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "01688b46801e32552b4929fdd8f60d9113ed28d8",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "38544126654336522114e7eb9efb95fd609e4aad",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9a8c5c5772b794cb7e95207ad0491358916fd2b0",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "22672366adfa52d48b278bed25d715b16e6eabf7",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5a86f7074a4a005b87ccb3b1d2c609940d151b58",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.Symmetry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "43afe1f4bcf3056df2182af93d1cfcd7beca9fc0",
+                "definition_qualified_name": "electronicparsers.abacus.metainfo.abacus.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "537ea5953b080d2d4caba9cf9cdd9632535e0165",
+                "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e089b42add89bd33949f6dc4b1a25c29c44021a5",
+                "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "12e783dc2e48e956f97816c86806ad8800f0c2f2",
+                "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "739099f66c30eabd7a488731882c98dab1e0b7e7",
+                "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5361a103cbd62693b56ee3ec8bb934a1a3cf123e",
+                "definition_qualified_name": "electronicparsers.abinit.metainfo.abinit_autogenerated.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "cb7cff899338773786be2a62936839dbc6956930",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e2f613d9c9ed7630b1a04fa45fdf8a9d28752791",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "222c0058bfde9c21d7416e4681c315efbc807644",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.BasisSet"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "3d93bc8f21bea2b2bf00f301661734bfc6e500fe",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "572f613d2661c89958be90b3109f3dc6e5942194",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Forces"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "929175a40d709a024dc4d17e1afe6508cb5903e8",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "72883c530f1064e61c7e3d082eb207b0529fc02d",
+                "definition_qualified_name": "electronicparsers.ams.metainfo.ams.Scf"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5fdea5862a6a8eb43a619af3673f5dbd9ff54546",
+                "definition_qualified_name": "electronicparsers.castep.metainfo.castep.BasisSetCellDependent"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9f259a72e84a818eb751b8ff1594723f7af8b136",
+                "definition_qualified_name": "electronicparsers.castep.metainfo.castep.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d4550b6c550bea2260acf2dcc3588418d2104ae6",
+                "definition_qualified_name": "electronicparsers.castep.metainfo.castep.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "8d0a6c8651175d31720872a646e51eba7c99c956",
+                "definition_qualified_name": "electronicparsers.castep.metainfo.castep.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "01529258b2dda3908913ff284adb90e9db2f2fdc",
+                "definition_qualified_name": "electronicparsers.castep.metainfo.castep.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "493e8ae435bd6055917a0fcc8ffdca5e2c2c218a",
+                "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2bd651a189e1aa36c7bd8ec9711c9ec9a329e252",
+                "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c9dc0463eb44a097a03b34efa4838144b4cbdf75",
+                "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "3e0b9197ca188dab7781ce0f53cf2a52e956e00e",
+                "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4633a25ff46b37b1a3982c2a98d68aefd536d0fc",
+                "definition_qualified_name": "electronicparsers.cp2k.metainfo.cp2k_general.Workflow"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0cab552dae6591235dd61fa991124181f1c0e481",
+                "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e2860f5c605cdcbc89bc3b2ecb488557dce3d0e6",
+                "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "fa082e901d66b6b782c2b040ce5a48f7070c13d4",
+                "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b6761195bafa61db5e40f7055d18b56ffafc31b2",
+                "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4ace5d9b50436cc5ad2a26c66e61b00ba5a92e35",
+                "definition_qualified_name": "electronicparsers.cpmd.metainfo.cpmd_general.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "779aefdc6cddcdf0c81055b400dbb5b755eb234c",
+                "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "09eec1cfa8fede71d3e28d67bb49c1f312831300",
+                "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "521641b00ed5288682e8b73b498fe1d9ac4a539f",
+                "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "67620bb8a77d10b8e08ee183e599d2b690515c0c",
+                "definition_qualified_name": "electronicparsers.crystal.metainfo.crystal.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "85c7728b4c106f7e977ee5706730e94c229bb549",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "877ced7d43e13d36760ac16c5057d7e77b03361b",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "71b8743f84eb4904659dd7d393d1af2d8df9e900",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0493602d883f197ce73a767e975f888b97225706",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b11509dc31fac409ac1c9476aab8213d7b8ffb3a",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.Program"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "156f370d6fc68f75e97726a73acb5194971cfe17",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "121be0733a129230fce1d0908b9eabc2906b8c92",
+                "definition_qualified_name": "electronicparsers.dmol3.metainfo.dmol3.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2bcf00876184ffd572f3fabeede19abd08fa3bf4",
+                "definition_qualified_name": "electronicparsers.elk.metainfo.elk.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "062a807b226398865fca1333471c1aff272f2655",
+                "definition_qualified_name": "electronicparsers.elk.metainfo.elk.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "af06420b75bd3b274fad6d87112630b909df66a4",
+                "definition_qualified_name": "electronicparsers.elk.metainfo.elk.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c5cc2b29e44607b49f5397c702bcc52f3f2a255a",
+                "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "35a278da4f5c978ea62e0fb17aa71e0c651411a7",
+                "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a0a34b4569939a9833ab44a8ad93589d20370643",
+                "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d623c30c3707e49f3b8c35941881cde3982f542e",
+                "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "802fce1316e8d042764e058bb1c0c9fe8b7937f7",
+                "definition_qualified_name": "electronicparsers.exciting.metainfo.exciting.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "76b14fa5def63cec34b7a89785a882017f65f6fa",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "21766a4f63dd3b0b0c1d5e942e353cd8d357c38a",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "df452ad7e964569ab73cc77028a4361b5d3ce895",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "877937692c8f19c779715bbba5b2caba327e7b8c",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "385aab6d9304650927342548b7ad413009d0ba19",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.ScfIeration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "93124d05eae67667c50a1275fb43d2296673cafa",
+                "definition_qualified_name": "electronicparsers.fhiaims.metainfo.fhi_aims.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "415cdedfd268d89e53c9c88be0b8aeb7b949c145",
+                "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "6579dafb493ce78e9c99c7dc46b51daa1551311e",
+                "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7a0e6aa496ff15eb63bda8a55b2ef517cd0df16f",
+                "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "72120cb4b473fce17afc60baabc332838a66a4c1",
+                "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0c3e40c4ab4736c186095afde73eaa57a396902c",
+                "definition_qualified_name": "electronicparsers.fleur.metainfo.fleur.XCFunctional"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "37b72b551b3a773eafba9d15ccba7c47c86d42a3",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2fddfa62d4db7a6574438d865d08ffee99772048",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4959b7a13a038260bd460ccfcc78e76881e6014f",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0f0d5f0efa0d8b322d91c5c9ff234b4a45d27977",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c26b918e91fd1c5710b7012f61df3327ea6314c0",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "bc38d9fd2b65f6d51f27b21d4d50611112fb15fb",
+                "definition_qualified_name": "electronicparsers.gaussian.metainfo.gaussian.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e3670cc522cef09f6a03f8a93f9841afa706ce11",
+                "definition_qualified_name": "electronicparsers.gpaw.metainfo.gpaw.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2c5bed30ade97d89c2eb62d4b50f6336a2d8a23f",
+                "definition_qualified_name": "electronicparsers.gpaw.metainfo.gpaw.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ba3a88d6fca210edc21ac77001a9ed25e5de365e",
+                "definition_qualified_name": "electronicparsers.mopac.metainfo.mopac.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9f1032941f1bb6c105fed0c70f7a241e33e5c54e",
+                "definition_qualified_name": "electronicparsers.mopac.metainfo.mopac.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a095149f77013f646c388f28720457c2ac84b120",
+                "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0ba92885463d34ab9e168b63ca232becd1ea9e3e",
+                "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7a0634f2a16403c70d5a906f7124a639092d718c",
+                "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ecb111bff7e3065a883af6afda8fab3c63b5df8c",
+                "definition_qualified_name": "electronicparsers.nwchem.metainfo.nwchem.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "fe7649a7694a1b95473a0a9e643b1ce523021504",
+                "definition_qualified_name": "electronicparsers.octopus.metainfo.octopus.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "1edc4788de4c432cf18468bee0a415c080abd07b",
+                "definition_qualified_name": "electronicparsers.octopus.metainfo.octopus.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "44d8422e8313d509efc2d7371dd8c46589b5bfc6",
+                "definition_qualified_name": "electronicparsers.octopus.metainfo.octopus_autogenerated.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "67f3c73642c28d5a2084dea87069828810a84f7f",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "045ca1a5949546718dae0b5e13ee752dd8d68181",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.BasisSetCellDependent"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ae212b484d437bc09a2bc5de98f708414d720d50",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e2e9fcf5815507339b56396df03b2c7a38f2125c",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d269adab02c3c4ec888dca4e4d06972f4499376b",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "50777de07a959b5f153f5b3e14cd720a3b9d3a1b",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b235d50b126303bfbae58cda112b29aab281a961",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a7e26836d5c0c9724364636520c7ff359170bb76",
+                "definition_qualified_name": "electronicparsers.onetep.metainfo.onetep.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "8ea9b3776b1cf641cb80cc0cd4181d545ca41a3b",
+                "definition_qualified_name": "electronicparsers.openmx.metainfo.openmx.OpenmxSCC"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "8b03185ad0489a0617b6f5b4e222a734d36ef9d7",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c78a5dc924b0781af3f2ee48b99a4232fdcc6f0f",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.DFT"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "bace5771ffd0eb8c5e697b93fa91d192e9b48bb3",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "491af89c68fa0bcb04f4d100d19490a0dde98af8",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c834b60b9da3129018dae16dd82c2d1a7abac1d2",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.Scf"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b91af6f47b121a71d60dda18002682c23b8bb199",
+                "definition_qualified_name": "electronicparsers.psi4.metainfo.psi4.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2ce57084bf2359ef383e9939b68bd6c173c65ebc",
+                "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "8ffd19b722d33a0d4ca3b62b874bc70cac2e6828",
+                "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "bc3a6f62a9ea22ece84606941beb6f47a42c204d",
+                "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "04ccc2e707066451a6e847562c3dd60395787312",
+                "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2bd642b49e58a4de4fcce31797a5227ec830b593",
+                "definition_qualified_name": "electronicparsers.qbox.metainfo.qbox.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "48f9172da5febb7a8d725e0fc8a513e23c7d82f6",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "efe11bf0949b10a95c647ad5eb0b374076a03b1a",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "04403792d0b8217d48d86c7c65441d18f76c7747",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "becf05a032c61bd66321ed70d037f34e8cbda1eb",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Functional"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "e5e687d90f9a78e7f3bc80390a3976cc55bc5f1b",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "f4f78d8271e4147db0c7d1e5ff311bbd147d0448",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "58ac9168cc4bc17d004cf2ddf8275db9560eafbc",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "1eb5b2a71c7c9063741e212affeb034564400db0",
+                "definition_qualified_name": "electronicparsers.quantumespresso.metainfo.quantum_espresso.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "cc4af2925076a64770bb926bc7a97055c2436d07",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "aa3c33c61548ef756197eae66680ba6292fab9d2",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0f4fa729f81c959833c74a1aae0a7bef8e7174ce",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "3b493ca1f2bef966e453ac6885d2e27227573ff3",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "04ee57e9723a4ce5c9cd787ab785e7ccad77173e",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "335bee5472f06f37d4fdf737f7c369ea33244138",
+                "definition_qualified_name": "electronicparsers.turbomole.metainfo.turbomole.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "42825bab63cb39d930a62dd619f14406320949c4",
+                "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d352f37629f1822316908ba832e91f81ef1e2196",
+                "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4c7fff1f65c8166eafbc41242aedf94bfaaeeb95",
+                "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d7254bb23948b8647766ce0df1ffef020dd7bc50",
+                "definition_qualified_name": "electronicparsers.wien2k.metainfo.wien2k.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d28baf0bddab265ddf8cf93a44aa80fc1adfc635",
+                "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ae8cdb1b83577268ea07f50cebf71ba2ac7c19cd",
+                "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "dc6c639907c1ca478d062f1da15255d8deb251bb",
+                "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Program"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "64767cfb00d98ee422236a00661b7eca59effd04",
+                "definition_qualified_name": "electronicparsers.yambo.metainfo.yambo.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                "definition_qualified_name": "nomad.datamodel.data.ArchiveSection"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "58cfa378f3b3d59576b409721424ff2b4f00cfee",
+                "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c1433047212d95b5607397e0b759bb1508abb19b",
+                "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "92e8b591b01bfb708fd31380c0eed16414307e53",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Atomic"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9f2724982ba167edc218872b7e569fba9e07b55c",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.BandEnergies"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9a52f9aabbdcd1302835f45c957e875bcd8f2c90",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.BaseCalculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2bf1f2f7aa86f076902f32301545b64ad862c8c2",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Calculation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "65428bbc69bd4eec48eae55e59106a046de6f138",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Energy"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "39d9c2bf33c30ca53f09bb232e433360a4ebdce4",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.EnergyEntry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4c24448941c6bc9059e8f0217cd40c5077012a75",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Forces"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "2900968e4bc11bf8eed8b1cb8f38731bd415cb86",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.ForcesEntry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "da605ba5fc801748f849c13e5f34f23a4da120d2",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.ScfIteration"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "bf2b8d1fd2bce9cf750b011bcdb1655b36d87524",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.Stress"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "34e0f85f012e1095ac05020c04e6780b7405cd27",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.calculation.StressEntry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "f130c7547f88f3e061ac1dc96a1a0148c1e8181d",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.AtomParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "ea212685138e00e6f8f4b214bcef51ad413dd9f6",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.BasisSet"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "88587ebcee7a8bab0c6be62b532d0ba3598817da",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.BasisSetCellDependent"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "1c14c87ba3102cd4f979e0906f95105c184bf6c0",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.DFT"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a2f985b59a33c47d0a17b1aa93a08d0777de9636",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Electronic"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "3bc86f6b013b2e6cca5d7302f6fe9a00e5eb4364",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Functional"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "043f77e74a1faf6d142d7dd3f93fb14bc4276944",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "02f45c4932a5227cd3855245c22220cdf0d776ca",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Model"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b1317e0ef6ecbc4dc9b18995175f197b3a489c93",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.Scf"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "517cb8d32af3c10f3948435d5190638f9f622dcb",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.method.XCFunctional"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "9d0685a63e70e0606badc54507afd746863d59f0",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.run.Program"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "09328462a4ebd1091b886945ec1de20165577ef8",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.run.Run"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c488867b53d7df0aeaa1518bef02f04c496eed59",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.Atoms"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c63c7822abff00f53cac5d62171849f8030ac1e9",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.Prototype"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "55ea7e6b2564f5b04118b0dde17ca29aa232b530",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.SpringerMaterial"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d578b5c56b9b55e3220a8decabad1c4752f55f9a",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.Symmetry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c8a3932bb93e54315f89b45eb6ed31ba0f77f788",
+                "definition_qualified_name": "nomad.datamodel.metainfo.simulation.system.System"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b40940c6c09de2337293cfc674a23733112704ee",
+                "definition_qualified_name": "nomad.datamodel.metainfo.workflow.SinglePoint"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "0ec7b39c9fdcebe09a6338469c6a87d4bf552fb8",
+                "definition_qualified_name": "nomad.datamodel.metainfo.workflow.Task"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "680cdd92b2594eeab1b481eba91f8a49fec82641",
+                "definition_qualified_name": "nomad.datamodel.metainfo.workflow.Workflow"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "6cd183087658a33d09943e5e7a7bb99f1aa7f1f2",
+                "definition_qualified_name": "nomad.datamodel.optimade.OptimadeEntry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5b6d1cf79926b9cf56a7d2be67f86d4d63674cc8",
+                "definition_qualified_name": "nomad.datamodel.optimade.Species"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d161679d7eac9501d37dfc02d31a95e70fbc2161",
+                "definition_qualified_name": "nomad.datamodel.results.DFT"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5e0294d75705dd1fd99b79088f8a0df47eeb8af8",
+                "definition_qualified_name": "nomad.datamodel.results.LatticeParameters"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "43920083339a4aa13c70d035cc502203940ada12",
+                "definition_qualified_name": "nomad.datamodel.results.Material"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d18dd79c4bf1366a3b5296305c0a868deeffc5ad",
+                "definition_qualified_name": "nomad.datamodel.results.Method"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "30b801dc40a485045ba0bec24b7dcefcdfae4aff",
+                "definition_qualified_name": "nomad.datamodel.results.Properties"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d25d9609ed1ee704f24be15699a04edb0e26bd7b",
+                "definition_qualified_name": "nomad.datamodel.results.Results"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7c9b61c5d225ca0afdc5f7f73f08db00ca8dbcfe",
+                "definition_qualified_name": "nomad.datamodel.results.Simulation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d3931e10b5195eb3762c2f9568909c26ba45e798",
+                "definition_qualified_name": "nomad.datamodel.results.Structure"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "cd7254d7513a9c8b069c378d51dd317a5bced8b1",
+                "definition_qualified_name": "nomad.datamodel.results.Structures"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "186003211945f18cbddd6c8b6715e1da184eddf5",
+                "definition_qualified_name": "nomad.datamodel.results.Symmetry"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a871f00e569db9641717cb4697239ab3e02c1ec9",
+                "definition_qualified_name": "nomad.datamodel.results.WyckoffSet"
+              }
+            ],
             "processing_errors": [],
             "results": {
               "material": {
+                "compound_type": [
+                  "chemical element"
+                ],
+                "functional_type": [
+                  "metal",
+                  "nonmetal",
+                  "semiconductor"
+                ],
+                "structural_type": "bulk",
+                "chemical_formula_descriptive": "Si16",
+                "chemical_formula_hill": "Si16",
                 "symmetry": {
                   "bravais_lattice": "cF",
                   "space_group_symbol": "Fd-3m",
@@ -1286,15 +2466,12 @@
                 "elements_exclusive": "Si",
                 "chemical_formula_anonymous": "A16",
                 "material_id": "fh3UBjhUVm4nxzeRd2JJuqw5oXYa",
-                "structural_type": "bulk",
                 "chemical_formula_reduced": "Si16",
                 "n_elements": 1,
-                "chemical_formula_descriptive": "Si16",
                 "material_name": "Silicon",
                 "chemical_formula_reduced_fragments": [
                   "Si"
-                ],
-                "chemical_formula_hill": "Si16"
+                ]
               },
               "method": {
                 "method_name": "DFT",
@@ -1363,7 +2540,7 @@
               }
             },
             "entry_name": "Si16 VASP simulation",
-            "last_processing_time": "2022-09-27T16:04:56.456000+00:00",
+            "last_processing_time": "2022-12-13T16:42:30.470000+00:00",
             "optimade": {
               "nperiodic_dimensions": 3,
               "species_at_sites": [
@@ -1419,6 +2596,7 @@
             "sections": [
               "nomad.datamodel.datamodel.EntryArchive",
               "nomad.datamodel.datamodel.EntryMetadata",
+              "nomad.datamodel.datamodel.RFC3161Timestamp",
               "nomad.datamodel.metainfo.simulation.calculation.BandEnergies",
               "nomad.datamodel.metainfo.simulation.calculation.Calculation",
               "nomad.datamodel.metainfo.simulation.calculation.Energy",
@@ -1441,6 +2619,7 @@
               "nomad.datamodel.metainfo.simulation.run.Run",
               "nomad.datamodel.metainfo.simulation.system.Atoms",
               "nomad.datamodel.metainfo.simulation.system.Prototype",
+              "nomad.datamodel.metainfo.simulation.system.SpringerMaterial",
               "nomad.datamodel.metainfo.simulation.system.Symmetry",
               "nomad.datamodel.metainfo.simulation.system.System",
               "nomad.datamodel.metainfo.workflow.SinglePoint",
@@ -1455,9 +2634,7 @@
               "nomad.datamodel.results.Properties",
               "nomad.datamodel.results.Results",
               "nomad.datamodel.results.Simulation",
-              "nomad.datamodel.results.StructureConventional",
-              "nomad.datamodel.results.StructureOriginal",
-              "nomad.datamodel.results.StructurePrimitive",
+              "nomad.datamodel.results.Structure",
               "nomad.datamodel.results.Structures",
               "nomad.datamodel.results.Symmetry",
               "nomad.datamodel.results.WyckoffSet"
@@ -1482,7 +2659,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2022-09-27T16:04:56.310000+00:00",
+            "entry_create_time": "2022-12-13T16:42:30.117000+00:00",
             "with_embargo": false,
             "domain": "dft",
             "files": [
@@ -1506,7 +2683,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "21863",
+          "content-length": "58322",
           "content-type": "application/json",
           "server": "uvicorn"
         }

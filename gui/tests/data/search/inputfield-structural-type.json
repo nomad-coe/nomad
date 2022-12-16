@@ -20,12 +20,12 @@
           "aggregations": {
             "results.material.structural_type:scroll": {
               "terms": {
-                "quantity": "results.material.structural_type",
                 "exclude_from_search": true,
                 "update": true,
                 "size": 7,
                 "type": "terms",
-                "changed": true
+                "changed": true,
+                "quantity": "results.material.structural_type"
               }
             }
           },
@@ -51,7 +51,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 12
+            "total": 4
           },
           "required": {
             "include": [
@@ -67,18 +67,18 @@
                 "size": 7,
                 "data": [
                   {
-                    "count": 4,
-                    "nested_count": 4,
-                    "value": "2D"
-                  },
-                  {
-                    "count": 4,
-                    "nested_count": 4,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "bulk"
                   },
                   {
-                    "count": 4,
-                    "nested_count": 4,
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "2D"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
                     "value": "molecule / cluster"
                   }
                 ]
@@ -89,7 +89,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "824",
+          "content-length": "823",
           "content-type": "application/json",
           "server": "uvicorn"
         }

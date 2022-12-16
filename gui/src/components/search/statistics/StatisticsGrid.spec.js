@@ -58,7 +58,7 @@ describe('displaying, removing and re-adding an item in the grid works', () => {
     [
       'InputPeriodicTable',
       'results.material.elements',
-      async (quantity, loaded) => await expectInputPeriodicTable(quantity, loaded, ['H', 'C', 'Ti', 'Zr', 'Nb', 'Hf', 'Ta'])
+      async (quantity, loaded) => await expectInputPeriodicTable(quantity, loaded, ['H', 'C', 'N', 'Ti', 'Zr', 'Nb', 'I', 'Hf', 'Ta', 'Pb'])
     ]
   ])('%s', async (component, quantity, test) => {
     const initialStats = {[quantity]: {index: 0}}

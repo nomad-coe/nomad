@@ -37,7 +37,7 @@ describe('', () => {
   afterEach(() => closeAPI())
 
   test('initial state is loaded correctly', async () => {
-    await expectInputPeriodicTable(quantity, false, ['H', 'C', 'Ti', 'Zr', 'Nb', 'Hf', 'Ta'])
+    await expectInputPeriodicTable(quantity, false, ['H', 'C', 'N', 'Ti', 'Zr', 'Nb', 'I', 'Hf', 'Ta', 'Pb'])
   })
 })
 
@@ -59,7 +59,7 @@ describe('', () => {
     // Test that after selecting C, only H and C are selectable.
     const cButton = screen.getByText('C')
     await userEvent.click(cButton)
-    await expectInputPeriodicTableItems(['C', 'H'])
+    await expectInputPeriodicTableItems(['C', 'H', 'N', 'I', 'Pb'])
 
     // Test that after enabling exclusive search, only C is selectable
     const exclusiveCheckbox = screen.getByRole('checkbox')

@@ -56,7 +56,7 @@ describe('initial state is loaded correctly', () => {
     ],
     [
       'no results',
-      'results.material.functional_type',
+      'results.material.compound_type',
       [],
       undefined
     ]

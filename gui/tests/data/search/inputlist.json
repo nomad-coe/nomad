@@ -20,12 +20,12 @@
           "aggregations": {
             "results.method.simulation.program_name:statistics": {
               "terms": {
-                "quantity": "results.method.simulation.program_name",
                 "exclude_from_search": true,
                 "update": true,
                 "size": 3,
                 "type": "terms",
-                "changed": true
+                "changed": true,
+                "quantity": "results.method.simulation.program_name"
               }
             }
           },
@@ -51,7 +51,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -278,6 +278,14 @@
                   },
                   {
                     "count": 0,
+                    "value": "QuantumEspressoEPW"
+                  },
+                  {
+                    "count": 0,
+                    "value": "QuantumEspressPhonon"
+                  },
+                  {
+                    "count": 0,
                     "value": "SIESTA"
                   },
                   {
@@ -287,6 +295,10 @@
                   {
                     "count": 0,
                     "value": "TURBOMOLE"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Wannier90"
                   },
                   {
                     "count": 0,
@@ -312,7 +324,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5241",
+          "content-length": "5507",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -338,12 +350,12 @@
           "aggregations": {
             "results.method.simulation.dft.xc_functional_names:statistics": {
               "terms": {
-                "quantity": "results.method.simulation.dft.xc_functional_names",
                 "exclude_from_search": false,
                 "update": true,
                 "size": 3,
                 "type": "terms",
-                "changed": true
+                "changed": true,
+                "quantity": "results.method.simulation.dft.xc_functional_names"
               }
             }
           },
@@ -369,7 +381,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -433,12 +445,12 @@
           "aggregations": {
             "results.method.simulation.dft.xc_functional_type:statistics": {
               "terms": {
-                "quantity": "results.method.simulation.dft.xc_functional_type",
                 "exclude_from_search": true,
                 "update": true,
                 "size": 3,
                 "type": "terms",
-                "changed": true
+                "changed": true,
+                "quantity": "results.method.simulation.dft.xc_functional_type"
               }
             }
           },
@@ -464,7 +476,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -516,14 +528,14 @@
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.material.functional_type:statistics": {
+            "results.material.compound_type:statistics": {
               "terms": {
-                "quantity": "results.material.functional_type",
                 "exclude_from_search": false,
                 "update": true,
                 "size": 3,
                 "type": "terms",
-                "changed": true
+                "changed": true,
+                "quantity": "results.material.compound_type"
               }
             }
           },
@@ -549,7 +561,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 3
+            "total": 4
           },
           "required": {
             "include": [
@@ -557,9 +569,9 @@
             ]
           },
           "aggregations": {
-            "results.material.functional_type:statistics": {
+            "results.material.compound_type:statistics": {
               "terms": {
-                "quantity": "results.material.functional_type",
+                "quantity": "results.material.compound_type",
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 3,
@@ -571,7 +583,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "484",
+          "content-length": "480",
           "content-type": "application/json",
           "server": "uvicorn"
         }

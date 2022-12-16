@@ -222,6 +222,7 @@ export async function browseRecursively(laneIndex, path, itemFilter, filterKeyLe
       await userEvent.click(collapsedChips[idx])
       await waitFor(() => {
         expect(within(lane).queryAllByTestId(/^collapsed:/).length).toBe(collapsedChips.length - idx - 1)
+        expect(within(lane).queryAllByTestId(isWaitingForUpdateTestId).length).toBe(0)
       })
     } catch (error) {
       process.stdout.write(`ERROR uncollapsing compartment ${idx}`)
@@ -306,5 +307,22 @@ export async function checkFileLane({lane, lastSegment, entryId, parserName, edi
     expect(within(lane).getByButtonText('delete this file')).toBeEnabled()
   } else {
     expect(within(lane).queryByButtonText('delete this file')).toBeNull()
+  }
+}
+
+/*****************************************************************************************
+ * Misc
+ *****************************************************************************************/
+
+/**
+ * A simple pseudo-random number generator
+ */
+export function pseudoRandomNumberGenerator(seed = 7) {
+  return () => {
+    seed += 0x6D2B79F5
+    let t = seed
+    t = Math.imul(t ^ t >>> 15, t | 1)
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61)
+    return ((t ^ t >>> 14) >>> 0) / 4294967296
   }
 }

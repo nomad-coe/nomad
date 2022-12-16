@@ -24,9 +24,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2022-10-27T08:00:23.826876+00:00",
+            "upload_create_time": "2022-12-13T16:16:15.552489+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2022-10-27T08:00:23.829876+00:00",
+            "publish_time": "2022-12-13T16:16:15.555489+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -86,7 +86,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2022-10-27T08:00:23.830876+00:00",
+            "entry_create_time": "2022-12-13T16:16:15.556489+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -125,6 +125,7 @@
               "properties": {
                 "structures": "*",
                 "structural": "*",
+                "dynamical": "*",
                 "electronic": "include-resolved",
                 "mechanical": "include-resolved",
                 "spectroscopy": "include-resolved",
@@ -157,6 +158,7 @@
               "properties": {
                 "structures": "*",
                 "structural": "*",
+                "dynamical": "*",
                 "electronic": "include-resolved",
                 "mechanical": "include-resolved",
                 "spectroscopy": "include-resolved",
@@ -177,14 +179,14 @@
             "archive": {
               "metadata": {
                 "upload_id": "dft_upload",
-                "upload_create_time": "2022-10-27T08:00:23.826876+00:00",
+                "upload_create_time": "2022-12-13T16:16:15.552489+00:00",
                 "entry_id": "dft_bulk",
                 "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2022-10-27T08:00:23.830876+00:00",
+                "entry_create_time": "2022-12-13T16:16:15.556489+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "vasp.xml",
                 "published": true,
-                "publish_time": "2022-10-27T08:00:23.829876+00:00",
+                "publish_time": "2022-12-13T16:16:15.555489+00:00",
                 "with_embargo": false,
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
@@ -237,7 +239,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "2508",
+          "content-length": "2534",
           "content-type": "application/json",
           "server": "uvicorn"
         }

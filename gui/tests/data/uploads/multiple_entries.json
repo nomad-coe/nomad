@@ -1,30 +1,4 @@
 {
-  "8767910f03914d1fdd73a7a5d27f2edc": [
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload_1/raw/README.md",
-        "method": "GET",
-        "body": "",
-        "headers": {
-          "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIxZmI4ZGM3NC1lMzViLTQ4YmMtYjdjYS1mYmQxNzM2MGRkZjMiLCJleHAiOjE2NjQzMjk0NDQsIm5iZiI6MCwiaWF0IjoxNjY0MjkzNDU3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjAxMmJhNTdkLWVjOGItNDE5Yi1hZGQzLTlhN2Q4ZjM3OTFjNSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.f-mt0X2Pr70h5SUr9kHclMZQjJ8Dp6IMUz-2h2J9-JN13GsWl1SiRN6TJn7234niE31HhxtPjouwy6juOXUoUvDv0ZXNvBG9SwIeE5f8wVobzJlGoUucTiHz2FVPuxmmAChK6FNhcXBnMkwt3JJ0R1zQLUmSYmCeQxAJd1Q5zDLtuquRqC4Zwv-KYzFH4ez2cjxiEze-5dThALtVMZfmBw11z5PYlXhvqRYJcfJlhUiGJlDXG_6SxkfOwcdiLqTiriczyh9pkJduAGsy1JTdAE3F_CDgeB_KwsE5eUrydHXO1ZCIrv6pfHhYFzir_zE92M1Fszk3Aa6RdfiAnDfTlg",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 404,
-        "body": {
-          "detail": "Not found. Invalid path?"
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "37",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    }
-  ],
   "e3bc82493efb4b2ddc1f6806aa6ae78b": [
     {
       "request": {
@@ -33,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIxZmI4ZGM3NC1lMzViLTQ4YmMtYjdjYS1mYmQxNzM2MGRkZjMiLCJleHAiOjE2NjQzMjk0NDQsIm5iZiI6MCwiaWF0IjoxNjY0MjkzNDU3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjAxMmJhNTdkLWVjOGItNDE5Yi1hZGQzLTlhN2Q4ZjM3OTFjNSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.f-mt0X2Pr70h5SUr9kHclMZQjJ8Dp6IMUz-2h2J9-JN13GsWl1SiRN6TJn7234niE31HhxtPjouwy6juOXUoUvDv0ZXNvBG9SwIeE5f8wVobzJlGoUucTiHz2FVPuxmmAChK6FNhcXBnMkwt3JJ0R1zQLUmSYmCeQxAJd1Q5zDLtuquRqC4Zwv-KYzFH4ez2cjxiEze-5dThALtVMZfmBw11z5PYlXhvqRYJcfJlhUiGJlDXG_6SxkfOwcdiLqTiriczyh9pkJduAGsy1JTdAE3F_CDgeB_KwsE5eUrydHXO1ZCIrv6pfHhYFzir_zE92M1Fszk3Aa6RdfiAnDfTlg",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyZDM4YWM2NC0xZGVjLTRjMWEtOWQyNy01MjAwZTQzMWM3N2MiLCJleHAiOjE2NzA5ODM0MzEsIm5iZiI6MCwiaWF0IjoxNjcwOTQ3NDQwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjA5YjA4MTU3LWI4ZDktNDc5YS04ODIyLWVlN2M4NjEyNzA4NSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.QzcksvBfVJ7Qw-tXC6Pbz53x7xItRNbxsKXsghsBE-jG-oDtqvA7Rp2axBL_LW5QoJ-nduA3X3VC5h3ND4Uw2Ws-iAorC_Etf42HwjCEfT5CkHlCy6YFGUyB0DFIfT1xz3vCdIKQW5ASjOKHc3MY4ujqtTGnMnSimejXLzzRodEx2QjxFnSYkS5K2w7NIDW597OH1rXW4u3w1kXBPRiK2R1ejEvysP2mOZxU-9yyTZ-fA4KJM93-zf5EtAUcqrBNEabrTuEBQcLb2PMHvG1tzCEg9WmWUEOr1Wi1VyfU-PjSMnmzGUci6AYFprIh0BPWuHUCzvTr8f606X4idgLF5Q",
           "cookie": null
         }
       },
@@ -59,9 +33,9 @@
             "process_status": "SUCCESS",
             "errors": [],
             "warnings": [],
-            "complete_time": "2022-09-27T15:44:14.019000",
+            "complete_time": "2022-12-13T16:03:56.591000",
             "upload_id": "dft_upload_1",
-            "upload_create_time": "2022-09-27T15:44:14.018000",
+            "upload_create_time": "2022-12-13T16:03:56.590000",
             "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
             "coauthors": [],
             "reviewers": [],
@@ -86,7 +60,7 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk_1",
-              "entry_create_time": "2022-09-27T15:44:14.021000",
+              "entry_create_time": "2022-12-13T16:03:56.593000",
               "mainfile": "vasp_1.xml",
               "upload_id": "dft_upload_1",
               "parser_name": "parsers/vasp",
@@ -109,7 +83,7 @@
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-09-27T15:44:14.018890+00:00",
+                "upload_create_time": "2022-12-13T16:03:56.590387+00:00",
                 "processed": true,
                 "nomad_commit": "bf3c06fa",
                 "mainfile": "vasp_1.xml",
@@ -123,7 +97,7 @@
                     "name": "Markus Scheidgen"
                   }
                 ],
-                "entry_create_time": "2022-09-27T15:44:14.021890+00:00",
+                "entry_create_time": "2022-12-13T16:03:56.593387+00:00",
                 "with_embargo": false,
                 "domain": "dft",
                 "comment": "Mocked",
@@ -224,17 +198,21 @@
                       }
                     },
                     "electronic": {
-                      "dos_electronic": {
-                        "band_gap": []
-                      },
-                      "band_structure_electronic": {
-                        "band_gap": [
-                          {
-                            "type": "indirect",
-                            "value": 1e-19
-                          }
-                        ]
-                      }
+                      "dos_electronic": [
+                        {
+                          "band_gap": []
+                        }
+                      ],
+                      "band_structure_electronic": [
+                        {
+                          "band_gap": [
+                            {
+                              "type": "indirect",
+                              "value": 1e-19
+                            }
+                          ]
+                        }
+                      ]
                     },
                     "thermodynamic": {
                       "trajectory": [
@@ -290,7 +268,7 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk_2",
-              "entry_create_time": "2022-09-27T15:44:14.022000",
+              "entry_create_time": "2022-12-13T16:03:56.594000",
               "mainfile": "vasp_2.xml",
               "upload_id": "dft_upload_1",
               "parser_name": "parsers/vasp",
@@ -313,7 +291,7 @@
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-09-27T15:44:14.018890+00:00",
+                "upload_create_time": "2022-12-13T16:03:56.590387+00:00",
                 "processed": true,
                 "nomad_commit": "bf3c06fa",
                 "mainfile": "vasp_2.xml",
@@ -327,7 +305,7 @@
                     "name": "Markus Scheidgen"
                   }
                 ],
-                "entry_create_time": "2022-09-27T15:44:14.022890+00:00",
+                "entry_create_time": "2022-12-13T16:03:56.594387+00:00",
                 "with_embargo": false,
                 "domain": "dft",
                 "comment": "Mocked",
@@ -428,17 +406,21 @@
                       }
                     },
                     "electronic": {
-                      "dos_electronic": {
-                        "band_gap": []
-                      },
-                      "band_structure_electronic": {
-                        "band_gap": [
-                          {
-                            "type": "indirect",
-                            "value": 1e-19
-                          }
-                        ]
-                      }
+                      "dos_electronic": [
+                        {
+                          "band_gap": []
+                        }
+                      ],
+                      "band_structure_electronic": [
+                        {
+                          "band_gap": [
+                            {
+                              "type": "indirect",
+                              "value": 1e-19
+                            }
+                          ]
+                        }
+                      ]
                     },
                     "thermodynamic": {
                       "trajectory": [
@@ -494,7 +476,7 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk_3",
-              "entry_create_time": "2022-09-27T15:44:14.023000",
+              "entry_create_time": "2022-12-13T16:03:56.595000",
               "mainfile": "vasp_3.xml",
               "upload_id": "dft_upload_1",
               "parser_name": "parsers/vasp",
@@ -517,7 +499,7 @@
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-09-27T15:44:14.018890+00:00",
+                "upload_create_time": "2022-12-13T16:03:56.590387+00:00",
                 "processed": true,
                 "nomad_commit": "bf3c06fa",
                 "mainfile": "vasp_3.xml",
@@ -531,7 +513,7 @@
                     "name": "Markus Scheidgen"
                   }
                 ],
-                "entry_create_time": "2022-09-27T15:44:14.023890+00:00",
+                "entry_create_time": "2022-12-13T16:03:56.595387+00:00",
                 "with_embargo": false,
                 "domain": "dft",
                 "comment": "Mocked",
@@ -632,17 +614,21 @@
                       }
                     },
                     "electronic": {
-                      "dos_electronic": {
-                        "band_gap": []
-                      },
-                      "band_structure_electronic": {
-                        "band_gap": [
-                          {
-                            "type": "indirect",
-                            "value": 1e-19
-                          }
-                        ]
-                      }
+                      "dos_electronic": [
+                        {
+                          "band_gap": []
+                        }
+                      ],
+                      "band_structure_electronic": [
+                        {
+                          "band_gap": [
+                            {
+                              "type": "indirect",
+                              "value": 1e-19
+                            }
+                          ]
+                        }
+                      ]
                     },
                     "thermodynamic": {
                       "trajectory": [
@@ -698,7 +684,7 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk_4",
-              "entry_create_time": "2022-09-27T15:44:14.024000",
+              "entry_create_time": "2022-12-13T16:03:56.596000",
               "mainfile": "vasp_4.xml",
               "upload_id": "dft_upload_1",
               "parser_name": "parsers/vasp",
@@ -721,7 +707,7 @@
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-09-27T15:44:14.018890+00:00",
+                "upload_create_time": "2022-12-13T16:03:56.590387+00:00",
                 "processed": true,
                 "nomad_commit": "bf3c06fa",
                 "mainfile": "vasp_4.xml",
@@ -735,7 +721,7 @@
                     "name": "Markus Scheidgen"
                   }
                 ],
-                "entry_create_time": "2022-09-27T15:44:14.024890+00:00",
+                "entry_create_time": "2022-12-13T16:03:56.596387+00:00",
                 "with_embargo": false,
                 "domain": "dft",
                 "comment": "Mocked",
@@ -836,17 +822,21 @@
                       }
                     },
                     "electronic": {
-                      "dos_electronic": {
-                        "band_gap": []
-                      },
-                      "band_structure_electronic": {
-                        "band_gap": [
-                          {
-                            "type": "indirect",
-                            "value": 1e-19
-                          }
-                        ]
-                      }
+                      "dos_electronic": [
+                        {
+                          "band_gap": []
+                        }
+                      ],
+                      "band_structure_electronic": [
+                        {
+                          "band_gap": [
+                            {
+                              "type": "indirect",
+                              "value": 1e-19
+                            }
+                          ]
+                        }
+                      ]
                     },
                     "thermodynamic": {
                       "trajectory": [
@@ -902,7 +892,7 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk_5",
-              "entry_create_time": "2022-09-27T15:44:14.025000",
+              "entry_create_time": "2022-12-13T16:03:56.597000",
               "mainfile": "vasp_5.xml",
               "upload_id": "dft_upload_1",
               "parser_name": "parsers/vasp",
@@ -925,7 +915,7 @@
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-09-27T15:44:14.018890+00:00",
+                "upload_create_time": "2022-12-13T16:03:56.590387+00:00",
                 "processed": true,
                 "nomad_commit": "bf3c06fa",
                 "mainfile": "vasp_5.xml",
@@ -939,7 +929,7 @@
                     "name": "Markus Scheidgen"
                   }
                 ],
-                "entry_create_time": "2022-09-27T15:44:14.025890+00:00",
+                "entry_create_time": "2022-12-13T16:03:56.597387+00:00",
                 "with_embargo": false,
                 "domain": "dft",
                 "comment": "Mocked",
@@ -1040,17 +1030,21 @@
                       }
                     },
                     "electronic": {
-                      "dos_electronic": {
-                        "band_gap": []
-                      },
-                      "band_structure_electronic": {
-                        "band_gap": [
-                          {
-                            "type": "indirect",
-                            "value": 1e-19
-                          }
-                        ]
-                      }
+                      "dos_electronic": [
+                        {
+                          "band_gap": []
+                        }
+                      ],
+                      "band_structure_electronic": [
+                        {
+                          "band_gap": [
+                            {
+                              "type": "indirect",
+                              "value": 1e-19
+                            }
+                          ]
+                        }
+                      ]
                     },
                     "thermodynamic": {
                       "trajectory": [
@@ -1104,7 +1098,33 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "33317",
+          "content-length": "33767",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "8767910f03914d1fdd73a7a5d27f2edc": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload_1/raw/README.md",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyZDM4YWM2NC0xZGVjLTRjMWEtOWQyNy01MjAwZTQzMWM3N2MiLCJleHAiOjE2NzA5ODM0MzEsIm5iZiI6MCwiaWF0IjoxNjcwOTQ3NDQwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjA5YjA4MTU3LWI4ZDktNDc5YS04ODIyLWVlN2M4NjEyNzA4NSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.QzcksvBfVJ7Qw-tXC6Pbz53x7xItRNbxsKXsghsBE-jG-oDtqvA7Rp2axBL_LW5QoJ-nduA3X3VC5h3ND4Uw2Ws-iAorC_Etf42HwjCEfT5CkHlCy6YFGUyB0DFIfT1xz3vCdIKQW5ASjOKHc3MY4ujqtTGnMnSimejXLzzRodEx2QjxFnSYkS5K2w7NIDW597OH1rXW4u3w1kXBPRiK2R1ejEvysP2mOZxU-9yyTZ-fA4KJM93-zf5EtAUcqrBNEabrTuEBQcLb2PMHvG1tzCEg9WmWUEOr1Wi1VyfU-PjSMnmzGUci6AYFprIh0BPWuHUCzvTr8f606X4idgLF5Q",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "detail": "Not found. Invalid path?"
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "37",
           "content-type": "application/json",
           "server": "uvicorn"
         }

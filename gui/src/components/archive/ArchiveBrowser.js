@@ -56,8 +56,7 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import XYPlot from './XYPlot'
 import {
   appendDataUrl, createEntryUrl, createUploadUrl, formatTimestamp, parseNomadUrl, refType, resolveInternalRef,
-  resolveNomadUrl,
-  systemMetainfoUrl, titleCase
+  resolveNomadUrl, systemMetainfoUrl, titleCase, isWaitingForUpdateTestId
 } from '../../utils'
 import { EntryButton } from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
@@ -1500,6 +1499,6 @@ function ExternalReferences() {
           </Tooltip>
           : entry_list(searchResults)
         : <Alert severity={'info'}>not referenced by other entries</Alert>
-      : <Alert severity={'info'}>loading...</Alert>}
+      : <Alert severity={'info'} data-testid={isWaitingForUpdateTestId}>loading...</Alert>}
   </Compartment>
 }

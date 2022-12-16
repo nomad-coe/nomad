@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjY2M2MzQxOC05YWJjLTQ0ZWMtYTVhNi1jMGNlODExMWFkODMiLCJleHAiOjE2NjQzMjk3MjYsIm5iZiI6MCwiaWF0IjoxNjY0MjkzNzQzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjY1MmFmZDhlLTUxZTAtNDk1Ny04NDRhLWQzNTQ2N2M3OWRhNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.IQ7iwTghtnZ8bVTW5VEFNwqncd9OMTTNSPYBmiYsdyvgTgsBvH1QqjRo_W72J7z5tE_vAY5lmb0uHgmh4SSxuXJhqvY-32HdKPTS2e4c5J7rxoHEXTMjcQugfuW-9B1baQNy8yucTp_2kqFc-OboaEFphd2SLOpKQy88MrPlh9kgXeyY8YTvQinJ-CzLxI1TMW4L02ELIxNFKAnjqVTV9CF7TqVZMPrHS9OzsfSQyPhTQ0bXO5PL7Qid1EDofeIBltbT9Fgywkh0GNQha5b0KGIck7GiqYU1KmTAaQtNmxmBb2XG4h2C0RRK_0WkuZvufmzo-lRsGRi-tMmdg8aMfg",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI4Y2VlYmFiYy00YTJjLTQxNWUtYjU0OS1hZDdkYzBmZDQzYTkiLCJleHAiOjE2NzA5ODQyMzgsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4MjQ5LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjJhY2I0MjkwLTc0NmUtNDE3YS05YzBjLTZkZWViZjc3MzBmYiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.VDXmu-mNAgA83pg21iF5KewwirFlp0MlDwvz5uIjGvP3tbUEjD45NGc73y8ZVqpweAaF57jOYbWEMNBXUFAtuGiOgzw02PDAEa2fxfprWcv40nKUWmZlXMGlbd2LWZkm2kupWn1ug-cYNTtelgj220N8IXuko87Up0gw0MUmtW4Ov_MlwyKkXXyi-OKKAEdAXFgZ4DPPVixzi31FzBGp1YHTJF7sxtoNUZbTa7fnvUoP3gnFyXyGHuJbaiSNfBWWCyvRC_1uQg7zqppiK9EuIJRJK0e_ughMLUs98g_o4FQh8Lv0tgBA5LFs524u9QfNW8fT4GNL5iYE9JjLmxb06g",
           "cookie": null
         }
       },
@@ -50,6 +50,19 @@
               "metadata.entry_hash",
               "metadata.entry_id",
               "metadata.entry_name",
+              "metadata.entry_references",
+              "metadata.entry_references.source_name",
+              "metadata.entry_references.source_path",
+              "metadata.entry_references.source_quantity",
+              "metadata.entry_references.target_entry_id",
+              "metadata.entry_references.target_name",
+              "metadata.entry_references.target_path",
+              "metadata.entry_references.target_reference",
+              "metadata.entry_timestamp",
+              "metadata.entry_timestamp.timestamp",
+              "metadata.entry_timestamp.token",
+              "metadata.entry_timestamp.token_seed",
+              "metadata.entry_timestamp.tsa_server",
               "metadata.entry_type",
               "metadata.files",
               "metadata.last_processing_time",
@@ -62,8 +75,14 @@
               "metadata.processed",
               "metadata.processing_errors",
               "metadata.published",
+              "metadata.quantities",
               "metadata.references",
               "metadata.reviewers",
+              "metadata.section_defs",
+              "metadata.section_defs.definition_id",
+              "metadata.section_defs.definition_qualified_name",
+              "metadata.section_defs.used_directly",
+              "metadata.sections",
               "metadata.upload_create_time",
               "metadata.upload_id",
               "metadata.with_embargo",
@@ -79,10 +98,112 @@
               "results.properties.available_properties"
             ],
             "datasets": [],
-            "n_quantities": 55,
-            "nomad_version": "1.1.4",
-            "upload_create_time": "2022-09-27T15:48:59.681000+00:00",
-            "nomad_commit": "d0778d6a",
+            "n_quantities": 60,
+            "nomad_version": "1.1.2.dev644+g460528cbf",
+            "upload_create_time": "2022-12-13T16:17:26.156000+00:00",
+            "nomad_commit": "",
+            "section_defs": [
+              {
+                "used_directly": true,
+                "definition_id": "b729e4f513a17b6142767e5535beba91708c13bc",
+                "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Process"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "f3e96e7b60388fa6821dc2b45804aaaaef2c74aa",
+                "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4f78f22cb32c9134ab4886289892c86d4c535d4e",
+                "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "5dc1199d73fb589c01643a663f0381456baaa08d",
+                "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.HotplateAnnealing"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "cf78db6a0eb9b133f780f36e6cbcc2066fa5aa01",
+                "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                "definition_qualified_name": "nomad.datamodel.data.ArchiveSection"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "538f52fd8d52b29372066f878319c6aeb03b74d2",
+                "definition_qualified_name": "nomad.datamodel.data.EntryData"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "58cfa378f3b3d59576b409721424ff2b4f00cfee",
+                "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "4e94041db1cb8b110c348717f6ec50a56054df65",
+                "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchiveReference"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c1433047212d95b5607397e0b759bb1508abb19b",
+                "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp"
+              },
+              {
+                "used_directly": false,
+                "definition_id": "452515af5cb7bc8c1d20f9701eca186369f612a1",
+                "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnActivityBaseSection"
+              },
+              {
+                "used_directly": false,
+                "definition_id": "05c13125f04981c8560d309e4647e139cb7ede63",
+                "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+              },
+              {
+                "used_directly": false,
+                "definition_id": "05886ab2544dd913005d5844ee0aec737731e171",
+                "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnWithFormulaBaseSection"
+              },
+              {
+                "used_directly": false,
+                "definition_id": "3772fa53cde966eadb55808e99d9e420d40c16b7",
+                "definition_qualified_name": "nomad.datamodel.metainfo.eln.Process"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "b071aea15c2f8d132e5a562355d110591e3d0de4",
+                "definition_qualified_name": "nomad.datamodel.metainfo.eln.Sample"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "eeed330bd18d40f3a2a00cc35ba6f58808d0c543",
+                "definition_qualified_name": "nomad.datamodel.results.ELN"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "30b801dc40a485045ba0bec24b7dcefcdfae4aff",
+                "definition_qualified_name": "nomad.datamodel.results.Properties"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "d25d9609ed1ee704f24be15699a04edb0e26bd7b",
+                "definition_qualified_name": "nomad.datamodel.results.Results"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c68d61f1feb6d7161177c6935f8ebd2e712e56bb",
+                "definition_qualified_name": "nomad.parsing.tabular.TableData"
+              }
+            ],
             "processing_errors": [],
             "results": {
               "eln": {
@@ -113,8 +234,52 @@
               }
             },
             "entry_name": "ELN example sample",
-            "last_processing_time": "2022-09-27T15:48:59.935000+00:00",
+            "last_processing_time": "2022-12-13T16:17:26.566000+00:00",
             "parser_name": "parsers/archive",
+            "searchable_quantities": [
+              {
+                "text_value": "ELN example sample",
+                "path": "data.name",
+                "quantity_name": "name",
+                "section_definition": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3"
+              },
+              {
+                "text_value": "001",
+                "path": "data.lab_id",
+                "quantity_name": "lab_id",
+                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+              },
+              {
+                "text_value": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>",
+                "path": "data.description",
+                "quantity_name": "description",
+                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+              },
+              {
+                "path": "data.substrate_type",
+                "quantity_name": "substrate_type",
+                "section_definition": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3",
+                "keyword_value": "SLG"
+              },
+              {
+                "path": "data.processes.pvd_evaporation.datetime",
+                "date_value": "2022-05-10T07:20:00+00:00",
+                "quantity_name": "datetime",
+                "section_definition": "nomad.datamodel.metainfo.eln.ElnActivityBaseSection"
+              },
+              {
+                "text_value": "PVDProcess.csv",
+                "path": "data.processes.pvd_evaporation.data_file",
+                "quantity_name": "data_file",
+                "section_definition": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3/inner_section_definitions/0/inner_section_definitions/0"
+              },
+              {
+                "path": "data.processes.hotplate_annealing.datetime",
+                "date_value": "2022-05-10T07:22:00+00:00",
+                "quantity_name": "datetime",
+                "section_definition": "nomad.datamodel.metainfo.eln.ElnActivityBaseSection"
+              }
+            ],
             "calc_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
             "published": false,
             "writers": [
@@ -133,7 +298,9 @@
               "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.HotplateAnnealing",
               "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation",
               "nomad.datamodel.datamodel.EntryArchive",
+              "nomad.datamodel.datamodel.EntryArchiveReference",
               "nomad.datamodel.datamodel.EntryMetadata",
+              "nomad.datamodel.datamodel.RFC3161Timestamp",
               "nomad.datamodel.results.ELN",
               "nomad.datamodel.results.Properties",
               "nomad.datamodel.results.Results"
@@ -158,7 +325,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2022-09-27T15:48:59.855000+00:00",
+            "entry_create_time": "2022-12-13T16:17:26.275000+00:00",
             "with_embargo": false,
             "files": [
               "sample.archive.json",
@@ -169,6 +336,44 @@
               "Tin_II_Selenide.archive.json",
               "Zinc_Selenide.archive.json",
               "schema.archive.yaml"
+            ],
+            "entry_references": [
+              {
+                "target_entry_id": "mvOv85uBWGZG0RmoIOhgxho8yMK5",
+                "target_name": "data",
+                "target_reference": "../upload/raw/Copper_II_Selenide.archive.json#data",
+                "source_path": "data.chemicals",
+                "target_path": "/data",
+                "source_name": "chemicals",
+                "source_quantity": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3/quantities/2"
+              },
+              {
+                "target_entry_id": "IDoCNIYzEGqZN-rPIeKzPl2b6poF",
+                "target_name": "data",
+                "target_reference": "../upload/raw/Tin_II_Selenide.archive.json#data",
+                "source_path": "data.chemicals",
+                "target_path": "/data",
+                "source_name": "chemicals",
+                "source_quantity": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3/quantities/2"
+              },
+              {
+                "target_entry_id": "HJjDrI3HRtHFW40uNbE8eHLiHKqs",
+                "target_name": "data",
+                "target_reference": "../upload/raw/Zinc_Selenide.archive.json#data",
+                "source_path": "data.chemicals",
+                "target_path": "/data",
+                "source_name": "chemicals",
+                "source_quantity": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3/quantities/2"
+              },
+              {
+                "target_entry_id": "Ah-tjm5zSi_pczZJZo-8cjESYGft",
+                "target_name": "data",
+                "target_reference": "../upload/raw/PVD-P.archive.json#data",
+                "source_path": "data.processes.pvd_evaporation.instrument",
+                "target_path": "/data",
+                "source_name": "instrument",
+                "source_quantity": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/2/quantities/0"
+              }
             ],
             "entry_type": "Sample",
             "entry_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
@@ -187,7 +392,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5498",
+          "content-length": "14506",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -210,6 +415,7 @@
               "properties": {
                 "structures": "*",
                 "structural": "*",
+                "dynamical": "*",
                 "electronic": "include-resolved",
                 "mechanical": "include-resolved",
                 "spectroscopy": "include-resolved",
@@ -226,7 +432,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJmMmE5MDk5My0wOGZjLTQ4NjItOWJkOC0zNTIwM2U2NDUyYzIiLCJleHAiOjE2NjQzMjk3MjYsIm5iZiI6MCwiaWF0IjoxNjY0MjkzNzQzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjY1MmFmZDhlLTUxZTAtNDk1Ny04NDRhLWQzNTQ2N2M3OWRhNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.IfmagRV_kILRJt2NXFvZ8LOfOFZTqNcMZvhVz66OOo2WEhZ4bJSjA3qc2imFnDSvhCPU0Im4LfIYYAklz8W9E83wFAgrYBV9kOH62N8l9wxMUWj_pbcyFX7ekg9uyijhBirn9ROWlc3Nd8qy_5mYQ43moykVvq59PJQLXrZ-9uzSbRbnJtnmDu7O9RrSMVIm0z9de8dkG_Oi6juhzJ7og_TG1GmOCh38iIl41Zwt_hSjyyMRG_loG_r0di6zhnUcaN3KeoU-hXTNd8cJ5jYcqe5r_8RW3JTrd-Q1YfFe65MHlr2n2Oriarv7aOg2vR4L6hquhQkjex46S6RUdEy1Xw",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5NTVmZjZjNS05Nzc2LTQ0YWMtOTJkMS1jODZjYjM2NzkzYTkiLCJleHAiOjE2NzA5ODQyMzgsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4MjQ5LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjJhY2I0MjkwLTc0NmUtNDE3YS05YzBjLTZkZWViZjc3MzBmYiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.IfruG6BjAv5J9lpW8fT11JOR2XK2-c8a8ZjROlsuSYt0FP0UoudUUXUACUL0v_UPMzkXDgQ691RmVG-6Vm8C3t9du4aVfXf50k86-ZmRdLwgoyPBeFnqlRs276XuBSVea-kVnXMexvLnZpreVteHTJDTcfaLAtVDZzRS5S-czIoSp19_V4DQXmXLGfec8d0X9LNNIYg_b9mpKSiU4oNqypiwThTqm2I7qe0vOZJTs705SeEpUBgLnROdPSgDSJAssD2sRbtyZWW6lSn5Q1dL8Fxgtx9VRwUegn-rVMXx39DU63M3aVHVHwsUwMyjba0QM_J_eLKqObIcjunY1PSsHQ",
           "cookie": null
         }
       },
@@ -243,6 +449,7 @@
               "properties": {
                 "structures": "*",
                 "structural": "*",
+                "dynamical": "*",
                 "electronic": "include-resolved",
                 "mechanical": "include-resolved",
                 "spectroscopy": "include-resolved",
@@ -263,12 +470,12 @@
             "archive": {
               "metadata": {
                 "upload_id": "eln_upload_id",
-                "upload_create_time": "2022-09-27T15:48:59.681000+00:00",
+                "upload_create_time": "2022-12-13T16:17:26.156000+00:00",
                 "entry_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
                 "entry_name": "ELN example sample",
                 "entry_type": "Sample",
-                "entry_hash": "onBu6z_Xfq3YuDSpkT1Q-akJVQ3y",
-                "entry_create_time": "2022-09-27T15:48:59.855000+00:00",
+                "entry_hash": "CcET_ASxyul-r0csVVafDPmcpvtB",
+                "entry_create_time": "2022-12-13T16:17:26.275000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "sample.archive.json",
                 "files": [
@@ -286,10 +493,10 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-09-27T15:48:59.935299+00:00",
+                "last_processing_time": "2022-12-13T16:17:26.566382+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.1.4",
-                "nomad_commit": "d0778d6a",
+                "nomad_version": "1.1.2.dev644+g460528cbf",
+                "nomad_commit": "",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                 "coauthors": [
@@ -300,7 +507,7 @@
                   "54cb1f64-f84e-4815-9ade-440ce0b5430f"
                 ],
                 "datasets": [],
-                "n_quantities": 55,
+                "n_quantities": 60,
                 "quantities": [
                   "",
                   "data",
@@ -331,6 +538,19 @@
                   "metadata.entry_hash",
                   "metadata.entry_id",
                   "metadata.entry_name",
+                  "metadata.entry_references",
+                  "metadata.entry_references.source_name",
+                  "metadata.entry_references.source_path",
+                  "metadata.entry_references.source_quantity",
+                  "metadata.entry_references.target_entry_id",
+                  "metadata.entry_references.target_name",
+                  "metadata.entry_references.target_path",
+                  "metadata.entry_references.target_reference",
+                  "metadata.entry_timestamp",
+                  "metadata.entry_timestamp.timestamp",
+                  "metadata.entry_timestamp.token",
+                  "metadata.entry_timestamp.token_seed",
+                  "metadata.entry_timestamp.tsa_server",
                   "metadata.entry_type",
                   "metadata.files",
                   "metadata.last_processing_time",
@@ -343,8 +563,14 @@
                   "metadata.processed",
                   "metadata.processing_errors",
                   "metadata.published",
+                  "metadata.quantities",
                   "metadata.references",
                   "metadata.reviewers",
+                  "metadata.section_defs",
+                  "metadata.section_defs.definition_id",
+                  "metadata.section_defs.definition_qualified_name",
+                  "metadata.section_defs.used_directly",
+                  "metadata.sections",
                   "metadata.upload_create_time",
                   "metadata.upload_id",
                   "metadata.with_embargo",
@@ -365,10 +591,203 @@
                   "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.HotplateAnnealing",
                   "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation",
                   "nomad.datamodel.datamodel.EntryArchive",
+                  "nomad.datamodel.datamodel.EntryArchiveReference",
                   "nomad.datamodel.datamodel.EntryMetadata",
+                  "nomad.datamodel.datamodel.RFC3161Timestamp",
                   "nomad.datamodel.results.ELN",
                   "nomad.datamodel.results.Properties",
                   "nomad.datamodel.results.Results"
+                ],
+                "entry_timestamp": {
+                  "m_def": "nomad.datamodel.datamodel.RFC3161Timestamp",
+                  "token_seed": "CcET_ASxyul-r0csVVafDPmcpvtB",
+                  "token": "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",
+                  "tsa_server": "http://time.certum.pl/",
+                  "timestamp": "2022-12-13T16:17:26+00:00"
+                },
+                "section_defs": [
+                  {
+                    "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Process",
+                    "definition_id": "b729e4f513a17b6142767e5535beba91708c13bc",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample",
+                    "definition_id": "f3e96e7b60388fa6821dc2b45804aaaaef2c74aa",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes",
+                    "definition_id": "4f78f22cb32c9134ab4886289892c86d4c535d4e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.HotplateAnnealing",
+                    "definition_id": "5dc1199d73fb589c01643a663f0381456baaa08d",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation",
+                    "definition_id": "cf78db6a0eb9b133f780f36e6cbcc2066fa5aa01",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.data.ArchiveSection",
+                    "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.data.EntryData",
+                    "definition_id": "538f52fd8d52b29372066f878319c6aeb03b74d2",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive",
+                    "definition_id": "58cfa378f3b3d59576b409721424ff2b4f00cfee",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchiveReference",
+                    "definition_id": "4e94041db1cb8b110c348717f6ec50a56054df65",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata",
+                    "definition_id": "c1433047212d95b5607397e0b759bb1508abb19b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp",
+                    "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnActivityBaseSection",
+                    "definition_id": "452515af5cb7bc8c1d20f9701eca186369f612a1",
+                    "used_directly": false
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnBaseSection",
+                    "definition_id": "05c13125f04981c8560d309e4647e139cb7ede63",
+                    "used_directly": false
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnWithFormulaBaseSection",
+                    "definition_id": "05886ab2544dd913005d5844ee0aec737731e171",
+                    "used_directly": false
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.Process",
+                    "definition_id": "3772fa53cde966eadb55808e99d9e420d40c16b7",
+                    "used_directly": false
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.Sample",
+                    "definition_id": "b071aea15c2f8d132e5a562355d110591e3d0de4",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.ELN",
+                    "definition_id": "eeed330bd18d40f3a2a00cc35ba6f58808d0c543",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Properties",
+                    "definition_id": "30b801dc40a485045ba0bec24b7dcefcdfae4aff",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Results",
+                    "definition_id": "d25d9609ed1ee704f24be15699a04edb0e26bd7b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.parsing.tabular.TableData",
+                    "definition_id": "c68d61f1feb6d7161177c6935f8ebd2e712e56bb",
+                    "used_directly": true
+                  }
+                ],
+                "entry_references": [
+                  {
+                    "target_reference": "../upload/raw/Copper_II_Selenide.archive.json#data",
+                    "target_entry_id": "mvOv85uBWGZG0RmoIOhgxho8yMK5",
+                    "target_name": "data",
+                    "target_path": "/data",
+                    "source_name": "chemicals",
+                    "source_path": "data.chemicals",
+                    "source_quantity": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3/quantities/2"
+                  },
+                  {
+                    "target_reference": "../upload/raw/Tin_II_Selenide.archive.json#data",
+                    "target_entry_id": "IDoCNIYzEGqZN-rPIeKzPl2b6poF",
+                    "target_name": "data",
+                    "target_path": "/data",
+                    "source_name": "chemicals",
+                    "source_path": "data.chemicals",
+                    "source_quantity": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3/quantities/2"
+                  },
+                  {
+                    "target_reference": "../upload/raw/Zinc_Selenide.archive.json#data",
+                    "target_entry_id": "HJjDrI3HRtHFW40uNbE8eHLiHKqs",
+                    "target_name": "data",
+                    "target_path": "/data",
+                    "source_name": "chemicals",
+                    "source_path": "data.chemicals",
+                    "source_quantity": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3/quantities/2"
+                  },
+                  {
+                    "target_reference": "../upload/raw/PVD-P.archive.json#data",
+                    "target_entry_id": "Ah-tjm5zSi_pczZJZo-8cjESYGft",
+                    "target_name": "data",
+                    "target_path": "/data",
+                    "source_name": "instrument",
+                    "source_path": "data.processes.pvd_evaporation.instrument",
+                    "source_quantity": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/2/quantities/0"
+                  }
+                ],
+                "searchable_quantities": [
+                  {
+                    "quantity_name": "name",
+                    "section_definition": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3",
+                    "path": "data.name",
+                    "text_value": "ELN example sample"
+                  },
+                  {
+                    "quantity_name": "lab_id",
+                    "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection",
+                    "path": "data.lab_id",
+                    "text_value": "001"
+                  },
+                  {
+                    "quantity_name": "description",
+                    "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection",
+                    "path": "data.description",
+                    "text_value": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>"
+                  },
+                  {
+                    "quantity_name": "substrate_type",
+                    "section_definition": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3",
+                    "path": "data.substrate_type",
+                    "keyword_value": "SLG"
+                  },
+                  {
+                    "quantity_name": "datetime",
+                    "section_definition": "nomad.datamodel.metainfo.eln.ElnActivityBaseSection",
+                    "path": "data.processes.pvd_evaporation.datetime",
+                    "date_value": "2022-05-10T07:20:00+00:00"
+                  },
+                  {
+                    "quantity_name": "data_file",
+                    "section_definition": "../uploads/eln_upload_id/archive/83DS7AzwqTKFVwlrdVeaL3kMSLU_#/definitions/section_definitions/3/inner_section_definitions/0/inner_section_definitions/0",
+                    "path": "data.processes.pvd_evaporation.data_file",
+                    "text_value": "PVDProcess.csv"
+                  },
+                  {
+                    "quantity_name": "datetime",
+                    "section_definition": "nomad.datamodel.metainfo.eln.ElnActivityBaseSection",
+                    "path": "data.processes.hotplate_annealing.datetime",
+                    "date_value": "2022-05-10T07:22:00+00:00"
+                  }
                 ]
               },
               "data": {
@@ -29354,37 +29773,144 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "657686",
+          "content-length": "676062",
           "content-type": "application/json",
           "server": "uvicorn"
         }
       }
     }
   ],
-  "60e8ee7960994a17dba75907439a8103": [
+  "afa783d98e040c74b68e5cfd3d82f3f0": [
     {
       "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/related_resources/?",
-        "method": "GET",
-        "body": "",
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "required": {
+            "metadata": "*"
+          },
+          "owner": "visible",
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          },
+          "query": {
+            "entry_id": [
+              "mvOv85uBWGZG0RmoIOhgxho8yMK5",
+              "IDoCNIYzEGqZN-rPIeKzPl2b6poF",
+              "HJjDrI3HRtHFW40uNbE8eHLiHKqs",
+              "Ah-tjm5zSi_pczZJZo-8cjESYGft"
+            ]
+          }
+        },
         "headers": {
-          "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI4NzE0OGFmNi01Yzg5LTQ1ZmEtYTdkNi1lOTU5NjJjMjZlYWEiLCJleHAiOjE2NjI2NzY4MjcsIm5iZiI6MCwiaWF0IjoxNjYyNjQwODQyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQ0YzRkYjMxLTNmNjEtNDkwOC05Y2NiLTUxMWM5ZTk3ZmY0YiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.iGmN1qaG0OScK6EWj_1oHAa-xFM1TcTikJLiHgPUHSi91VqzsWklp8tbGGmxmKIASmVc3wnlERLRAQ18j4M_a8l6Vgq5lHvH0muc62uAvKie63onbUgUzweuLRy6Po0LUgfkM0wrKMMCcvaTmbS4VTVnep2fNaJpXkcS-eT_YBMwPh137O8JQ9rD-nfn4J9FDMzDlNV7CEsQqKdKBZJ-Z4wBQfIusDtCsryffTcsF69Wctl2KjQJ_BGPt54juXUOHI3ifom2k50r-5pr_0rKf6t8-DP15X2QJiZ527cqFP4MNtGX4OZ8J6aXZO2JFniix4zhx7vLCc3pSI-O1BMLQg",
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0YjZhM2Q0NC0wZjMwLTRjZTktOWY5YS1lYmJkY2E1YzJhY2MiLCJleHAiOjE2NzA5ODQyMzgsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4MjUwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjJhY2I0MjkwLTc0NmUtNDE3YS05YzBjLTZkZWViZjc3MzBmYiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.Bqksx1v45Gmnb6Q1W98Lk0xGVgZ6jqEwtslOHrrXx48-brjGwv9s088VZr8cm1MY_qXZVAWgoC3fTpMbOwaNvYc8KznLAXCdWIq3WrOPh1t_dhrXeYQkb6SwVKzy14qEDY1xHZS7UNjvKZKJeD9O9oJ9DR4N6PnYHLplguXjIDmlNrktIRAjZglNXysm9D_XO-RH2qYtuCoS2iEiuRYrv9aUQRA0sDGxhICYVso_I8iZyzN65Ywg_G2VAqgXNbSM6KL7pL_d9H9z0d2sWtnaWS1S14VBhTliFRP35IUVLRyE80yWiycQrsVy0Mgx-HY8BlAT_fi4pqLDwNKAw_TEYA",
           "cookie": null
         }
       },
       "response": {
         "status": 200,
         "body": {
-          "metadata": {
-            "sources": [],
-            "n_references": []
+          "owner": "visible",
+          "query": {
+            "name": "entry_id",
+            "value": {
+              "all": [
+                "mvOv85uBWGZG0RmoIOhgxho8yMK5",
+                "IDoCNIYzEGqZN-rPIeKzPl2b6poF",
+                "HJjDrI3HRtHFW40uNbE8eHLiHKqs",
+                "Ah-tjm5zSi_pczZJZo-8cjESYGft"
+              ]
+            }
           },
+          "pagination": {
+            "page_size": 20,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "total": 0
+          },
+          "required": {},
           "data": []
         },
         "headers": {
           "connection": "close",
-          "content-length": "79",
+          "content-length": "419",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "required": {
+            "metadata": "*"
+          },
+          "owner": "visible",
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          },
+          "query": {
+            "entry_references.target_entry_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-"
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0YjZhM2Q0NC0wZjMwLTRjZTktOWY5YS1lYmJkY2E1YzJhY2MiLCJleHAiOjE2NzA5ODQyMzgsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4MjUwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjJhY2I0MjkwLTc0NmUtNDE3YS05YzBjLTZkZWViZjc3MzBmYiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.Bqksx1v45Gmnb6Q1W98Lk0xGVgZ6jqEwtslOHrrXx48-brjGwv9s088VZr8cm1MY_qXZVAWgoC3fTpMbOwaNvYc8KznLAXCdWIq3WrOPh1t_dhrXeYQkb6SwVKzy14qEDY1xHZS7UNjvKZKJeD9O9oJ9DR4N6PnYHLplguXjIDmlNrktIRAjZglNXysm9D_XO-RH2qYtuCoS2iEiuRYrv9aUQRA0sDGxhICYVso_I8iZyzN65Ywg_G2VAqgXNbSM6KL7pL_d9H9z0d2sWtnaWS1S14VBhTliFRP35IUVLRyE80yWiycQrsVy0Mgx-HY8BlAT_fi4pqLDwNKAw_TEYA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "prefix": "entry_references",
+            "query": {
+              "name": "target_entry_id",
+              "value": "bC7byHvWJp62Sn9uiuJUB38MT5j-"
+            }
+          },
+          "pagination": {
+            "page_size": 20,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "total": 0
+          },
+          "required": {},
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "326",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -29406,7 +29932,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJhYmZiZGYwYS04YWQ3LTRhZDAtYjMzOS1jNzY4YjMxZjQ0M2QiLCJleHAiOjE2NjQzMjk3MjYsIm5iZiI6MCwiaWF0IjoxNjY0MjkzNzQ0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjY1MmFmZDhlLTUxZTAtNDk1Ny04NDRhLWQzNTQ2N2M3OWRhNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.f6h1iMVrtEJKFQGt9kNEqggedSDndYHbBn7ruKZ3V6ik7fmOkPSNC_GeDHI1A31MVmkKZbTh38sKT7TexZuPofkJzyeH-ITw89nT0vVraspc5XTfnx-HliQ0gdEoUkwCJ8yxZAPNf1bZgJwE9HDM3yp93IdA-qL3eXc1JgqFuWU4yuJu51_xcmWmlJRtgDpp-TbBJBZW8mkywxptMzPdYILs1D2V31PenD6bmtD38iRxeCRy4YQrZRCjbQ_7kHWJy7K6qIK6u7pUCrx3Rtcv3ZqXeCrNvRmOHSAuYH57aBBIgT7ylJP8gGgsAf9XHYphWS1q443GedoJkNtl0mCaMA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0YjZhM2Q0NC0wZjMwLTRjZTktOWY5YS1lYmJkY2E1YzJhY2MiLCJleHAiOjE2NzA5ODQyMzgsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4MjUwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjJhY2I0MjkwLTc0NmUtNDE3YS05YzBjLTZkZWViZjc3MzBmYiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.Bqksx1v45Gmnb6Q1W98Lk0xGVgZ6jqEwtslOHrrXx48-brjGwv9s088VZr8cm1MY_qXZVAWgoC3fTpMbOwaNvYc8KznLAXCdWIq3WrOPh1t_dhrXeYQkb6SwVKzy14qEDY1xHZS7UNjvKZKJeD9O9oJ9DR4N6PnYHLplguXjIDmlNrktIRAjZglNXysm9D_XO-RH2qYtuCoS2iEiuRYrv9aUQRA0sDGxhICYVso_I8iZyzN65Ywg_G2VAqgXNbSM6KL7pL_d9H9z0d2sWtnaWS1S14VBhTliFRP35IUVLRyE80yWiycQrsVy0Mgx-HY8BlAT_fi4pqLDwNKAw_TEYA",
           "cookie": null
         }
       },
@@ -29878,7 +30404,8 @@
                                 "m_annotations": {
                                   "eln": [
                                     {
-                                      "component": "NumberEditQuantity"
+                                      "component": "NumberEditQuantity",
+                                      "minValue": 0
                                     }
                                   ]
                                 },
@@ -29917,12 +30444,12 @@
               },
               "metadata": {
                 "upload_id": "eln_upload_id",
-                "upload_create_time": "2022-09-27T15:48:59.681000+00:00",
+                "upload_create_time": "2022-12-13T16:17:26.156000+00:00",
                 "entry_id": "83DS7AzwqTKFVwlrdVeaL3kMSLU_",
                 "entry_name": "Electronic Lab Notebook example schema",
                 "entry_type": "Schema",
-                "entry_hash": "zck4eiMj4Rpd6sKI4fh5X1PHL7zS",
-                "entry_create_time": "2022-09-27T15:48:59.879000+00:00",
+                "entry_hash": "_n0TrgUeQA1N6K-0HOXBKmXuvDyj",
+                "entry_create_time": "2022-12-13T16:17:26.287000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "schema.archive.yaml",
                 "files": [
@@ -29940,10 +30467,10 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2022-09-27T15:48:59.933849+00:00",
+                "last_processing_time": "2022-12-13T16:17:26.546485+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.1.4",
-                "nomad_commit": "d0778d6a",
+                "nomad_version": "1.1.2.dev644+g460528cbf",
+                "nomad_commit": "",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
                 "coauthors": [
@@ -29954,7 +30481,7 @@
                   "54cb1f64-f84e-4815-9ade-440ce0b5430f"
                 ],
                 "datasets": [],
-                "n_quantities": 149,
+                "n_quantities": 154,
                 "quantities": [
                   "",
                   "definitions",
@@ -30003,6 +30530,11 @@
                   "metadata.entry_hash",
                   "metadata.entry_id",
                   "metadata.entry_name",
+                  "metadata.entry_timestamp",
+                  "metadata.entry_timestamp.timestamp",
+                  "metadata.entry_timestamp.token",
+                  "metadata.entry_timestamp.token_seed",
+                  "metadata.entry_timestamp.tsa_server",
                   "metadata.entry_type",
                   "metadata.files",
                   "metadata.last_processing_time",
@@ -30015,8 +30547,14 @@
                   "metadata.processed",
                   "metadata.processing_errors",
                   "metadata.published",
+                  "metadata.quantities",
                   "metadata.references",
                   "metadata.reviewers",
+                  "metadata.section_defs",
+                  "metadata.section_defs.definition_id",
+                  "metadata.section_defs.definition_qualified_name",
+                  "metadata.section_defs.used_directly",
+                  "metadata.sections",
                   "metadata.upload_create_time",
                   "metadata.upload_id",
                   "metadata.with_embargo",
@@ -30027,12 +30565,82 @@
                 "sections": [
                   "nomad.datamodel.datamodel.EntryArchive",
                   "nomad.datamodel.datamodel.EntryMetadata",
+                  "nomad.datamodel.datamodel.RFC3161Timestamp",
                   "nomad.datamodel.results.Properties",
                   "nomad.datamodel.results.Results",
                   "nomad.metainfo.metainfo.Package",
                   "nomad.metainfo.metainfo.Quantity",
                   "nomad.metainfo.metainfo.Section",
                   "nomad.metainfo.metainfo.SubSection"
+                ],
+                "entry_timestamp": {
+                  "m_def": "nomad.datamodel.datamodel.RFC3161Timestamp",
+                  "token_seed": "_n0TrgUeQA1N6K-0HOXBKmXuvDyj",
+                  "token": "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",
+                  "tsa_server": "http://time.certum.pl/",
+                  "timestamp": "2022-12-13T16:17:26+00:00"
+                },
+                "section_defs": [
+                  {
+                    "definition_qualified_name": "nomad.datamodel.data.ArchiveSection",
+                    "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive",
+                    "definition_id": "58cfa378f3b3d59576b409721424ff2b4f00cfee",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata",
+                    "definition_id": "c1433047212d95b5607397e0b759bb1508abb19b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp",
+                    "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Properties",
+                    "definition_id": "30b801dc40a485045ba0bec24b7dcefcdfae4aff",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Results",
+                    "definition_id": "d25d9609ed1ee704f24be15699a04edb0e26bd7b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.Definition",
+                    "definition_id": "55b8cfcd563d7c38b23e7b48c7a0bd035b30652d",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.Package",
+                    "definition_id": "a94743ce066ba5623b93cfe9b2e77f3035fb378e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.Property",
+                    "definition_id": "c4ce7d97f40568925244fff8f4c95abfc5b1ebb6",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.Quantity",
+                    "definition_id": "a702ec274491e803c6d8b3dfe137a8b14c4564dd",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.Section",
+                    "definition_id": "f6b02a14b8a3ab94a50eac83a4fd329bd70168d6",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.SubSection",
+                    "definition_id": "0beebaee917126daac73d2a20d1ab9b8c7b1c492",
+                    "used_directly": true
+                  }
                 ]
               },
               "m_ref_archives": {}
@@ -30041,7 +30649,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "23732",
+          "content-length": "35403",
           "content-type": "application/json",
           "server": "uvicorn"
         }
