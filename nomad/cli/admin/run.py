@@ -39,7 +39,7 @@ def worker():
 
 @run.command(help='Run the nomad development app with all apis.')
 @click.option('--debug', help='Does run app in debug.', is_flag=True)
-def app(debug: bool, with_chaos: int):
+def app(debug: bool):
     run_app(debug=debug)
 
 

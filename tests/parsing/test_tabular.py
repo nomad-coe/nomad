@@ -323,9 +323,6 @@ data:
             base_section: Substance2''', 'header_0,header_1,header_2\n0_0,0_1,0_2\n1_0,1_1,1_2', id='simple_2_sections'),
     pytest.param('test_3', '', '- subsection_1/my_substance1', f'''subsection_1:
           section:
-            m_annotations:
-              eln:
-                dict()
             sub_sections:
               my_substance1:
                 repeats: true

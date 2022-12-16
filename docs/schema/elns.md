@@ -38,17 +38,9 @@ NOMAD's upload page:
 --8<-- "examples/data/eln/schema.archive.yaml"
 ```
 
-## ELN Annotations
-The `eln` annotations can contain the following keys:
+{{ pydantic_model('nomad.datamodel.metainfo.annotations.ELNAnnotation', heading='## ELN Annotation') }}
 
-{{ get_schema_doc('eln') }}
-
-The `eln` `component` can be one of the following components:
-
-{{ get_schema_doc('component') }}
-
-As part of the GUI, you'll find an overview about all
-ELN edit annotations and components [here]({{ nomad_url() }}/../gui/dev/editquantity).
+{{ pydantic_model('nomad.datamodel.metainfo.annotations.BrowserAnnotation', heading='## Browser Annotation') }}
 
 
 ## Tabular Annotations
@@ -115,16 +107,13 @@ data are assumed to exist in the first sheet
 ```yaml
 --8<-- "examples/data/docs/tabular-parser-entry-mode.archive.yaml"
 ```
-Tabular annotation accepts the following keys:
 
-{{ get_schema_doc('tabular') }}
+Here are all parameters for the two annotations `tabular_parser` and `tabular`.
 
-## Plot Annotations
-Plot annotation is a wrapper for [plotly](https://plotly.com) library. One can use the following keys for plot annotation:
+{{ pydantic_model('nomad.datamodel.metainfo.annotations.TabularParserAnnotation', heading='### tabular_parser') }}
+{{ pydantic_model('nomad.datamodel.metainfo.annotations.TabularAnnotation', heading='### tabular') }}
 
-{{ get_schema_doc('plot') }}
-
-which can be customized by using plotly commands. See [plot examples]({{ nomad_url() }}/../gui/dev/plot).
+{{ pydantic_model('nomad.datamodel.metainfo.annotations.PlotAnnotation', heading='## Plot Annotation') }}
 
 ## Built-in base sections for ELNs
 

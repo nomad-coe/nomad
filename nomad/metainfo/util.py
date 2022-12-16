@@ -23,9 +23,8 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from difflib import SequenceMatcher
 from functools import reduce
-from typing import Any, Dict, Optional, Sequence, Tuple, Union, Type, ClassVar
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 from urllib.parse import SplitResult, urlsplit, urlunsplit
-from pydantic import BaseModel
 
 import aniso8601
 import numpy as np
@@ -192,28 +191,6 @@ class MTypes:
     str_numpy = {np.str_}
     bool_numpy = {np.bool_}
     numpy = num_numpy | str_numpy | bool_numpy
-
-    eln = {
-        'str': ['str', 'string'],
-        'bool': ['bool', 'boolean'],
-        'number': [x.__name__ for x in num_python] + [f'np.{x.__name__}' for x in num_numpy],  # type: ignore
-        'datetime': ['Datetime'],
-        'enum': ['{type_kind: Enum, type_data: [Operator, Responsible_person]}'],
-        'user': ['User'],
-        'author': ['Author'],
-        'reference': ['']
-    }
-
-    eln_component = {
-        'str': ['StringEditQuantity', 'FileEditQuantity', 'RichTextEditQuantity', 'EnumEditQuantity'],
-        'bool': ['BoolEditQuantity'],
-        'number': ['NumberEditQuantity', 'SliderEditQuantity'],
-        'datetime': ['DateTimeEditQuantity'],
-        'enum': ['EnumEditQuantity', 'AutocompleteEditQuantity', 'RadioEnumEditQuantity'],
-        'user': ['UserEditQuantity'],
-        'author': ['AuthorEditQuantity'],
-        'reference': ['ReferenceEditQuantity']
-    }
 
 
 class MEnum(Sequence):
@@ -438,20 +415,6 @@ class Annotation:
         annotation to JSON.
         '''
         return str(self.__class__.__name__)
-
-
-class AnnotationModel(Annotation, BaseModel):
-    '''
-    Base class for defining annotation models. Annotations used with simple dict-based
-    values, can be validated by defining and registering a formal pydantic-based
-    model.
-    '''
-
-    m_registry: ClassVar[Dict[str, Type['AnnotationModel']]] = {}
-    ''' A static member that holds all currently known annotations with pydantic model. '''
-
-    def m_to_dict(self, *args, **kwargs):
-        return self.dict(exclude_unset=True)
 
 
 class DefinitionAnnotation(Annotation):

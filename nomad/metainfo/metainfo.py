@@ -25,10 +25,9 @@ import re
 import sys
 from collections.abc import Iterable as IterableABC
 from functools import reduce
-from pydantic import parse_obj_as
+from pydantic import parse_obj_as, ValidationError, BaseModel, Field
 from typing import (
-    Any, Callable as TypingCallable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union, cast)
-
+    Any, Callable as TypingCallable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union, cast, ClassVar)
 import docstring_parser
 import jmespath
 import numpy as np
@@ -40,8 +39,7 @@ from nomad.metainfo.util import (
     Annotation, DefinitionAnnotation, MEnum, MQuantity, MRegEx, MSubSectionList, MTypes, ReferenceURL,
     SectionAnnotation, _delta_symbols, check_dimensionality, check_unit, convert_to, default_hash, dict_to_named_list,
     normalize_complex, normalize_datetime, resolve_variadic_name, retrieve_attribute, serialize_complex,
-    split_python_definition, to_dict, to_numpy, to_section_def, validate_shape, validate_url,
-    AnnotationModel)
+    split_python_definition, to_dict, to_numpy, to_section_def, validate_shape, validate_url)
 from nomad.units import ureg as units
 
 # todo: remove magic comment after upgrading pylint
@@ -1093,7 +1091,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 for name, annotation in section_annotation.new(self).items():
                     self.m_annotations[name] = annotation
 
-        self.m_validate_annotations()
+        self.m_parse_annotations()
 
         # set remaining kwargs
         if is_bootstrapping:
@@ -1324,17 +1322,36 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return value
 
-    def m_validate_annotations(self):
+    def m_parse_annotations(self):
         for annotation_name, annotation in self.m_annotations.items():
             annotation_model = AnnotationModel.m_registry.get(annotation_name)
             if not annotation_model:
                 continue
 
-            if isinstance(annotation, list):
-                for index, item in enumerate(annotation):
-                    annotation[index] = parse_obj_as(annotation_model, item)
-            else:
-                annotation = parse_obj_as(annotation_model, annotation)
+            def to_model(annotation_model, annotation_data):
+                if annotation_data is None:
+                    return None
+
+                if isinstance(annotation_data, AnnotationModel):
+                    annotation = annotation_data
+                else:
+                    annotation = parse_obj_as(annotation_model, annotation_data)
+                if isinstance(self, Definition):
+                    annotation.m_definition = self
+                return annotation
+
+            try:
+                if isinstance(annotation, list):
+                    for index, item in enumerate(annotation):
+                        annotation[index] = to_model(annotation_model, item)
+                else:
+                    annotation = to_model(annotation_model, annotation)
+            except ValidationError as e:
+                # TODO use the error/warning system that constraints are using at least for schemas
+                from nomad.utils import get_logger
+                get_logger(__name__).error(
+                    'could not validate an annotation', annotation='annotation_name', exc_info=e)
+                raise e
 
             self.m_annotations[annotation_name] = annotation
 
@@ -2291,7 +2308,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 raise MetainfoError(
                     f'The provided m_annotations is of a wrong type. {type(m_annotations).__name__} was provided.')
             section.m_annotations.update(m_annotations)
-            section.m_validate_annotations()
+            section.m_parse_annotations()
 
         section.m_update_from_dict(dct)
         return section
@@ -2578,6 +2595,21 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if self.m_is_set(quantity) and not quantity.derived and quantity != Quantity.default:
                 if not validate_shape(self, quantity, self.m_get(quantity)):
                     errors.append(f'The shape of quantity {quantity} does not match its value.')
+
+        for annotation in self.m_annotations.values():
+            def validate_annotation(annotation):
+                if isinstance(annotation, AnnotationModel):
+                    try:
+                        # Trigger model validation by re-assigning the definition
+                        annotation.m_definition = self
+                    except ValidationError as e:
+                        errors.append(f'Annotation validation error for {self}: {str(e)}')
+
+            if isinstance(annotation, list):
+                for item in annotation:
+                    validate_annotation(item)
+            else:
+                validate_annotation(annotation)
 
         return errors, warnings
 
@@ -3267,14 +3299,6 @@ class Quantity(Property):
         if len(self.shape) > 1:
             assert self.type in MTypes.numpy, \
                 f'Higher dimensional quantities ({self}) need a dtype and will be treated as numpy arrays.'
-
-    @constraint
-    def annotations_are_valid(self):
-        # TODO this should be replaced with a proper mechanism for defining and
-        # validating annotation types
-        if 'eln' in self.m_annotations:
-            from nomad.datamodel.metainfo.eln.annotations import validate_eln_quantity_annotations
-            validate_eln_quantity_annotations(self)
 
     def _hash_seed(self) -> str:
         '''
@@ -4374,3 +4398,33 @@ class Environment(MSection):
             raise KeyError(f'Could not uniquely identify {name}, candidates are {defs}')
 
         raise KeyError(f'Could not resolve {name}')
+
+
+class AnnotationModel(Annotation, BaseModel):
+    '''
+    Base class for defining annotation models. Annotations used with simple dict-based
+    values, can be validated by defining and registering a formal pydantic-based
+    model.
+    '''
+
+    m_definition: Definition = Field(
+        None, description='The definition that this annotation is annotating.')
+
+    m_registry: ClassVar[Dict[str, Type['AnnotationModel']]] = {}
+    ''' A static member that holds all currently known annotations with pydantic model. '''
+
+    def m_to_dict(self, *args, **kwargs):
+        return self.dict(exclude_unset=True)
+
+    class Config:
+        fields = {
+            'm_definition': {
+                'exclude': True,
+            }
+        }
+
+        validate_assignment = True
+        arbitrary_types_allowed = True
+
+
+AnnotationModel.update_forward_refs()

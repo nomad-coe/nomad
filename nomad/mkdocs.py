@@ -72,23 +72,6 @@ def define_env(env):
             in the web-interface.''')
 
     @env.macro
-    def get_schema_doc(key):  # pylint: disable=unused-variable
-        schema_yaml = './docs/schema/suggestions.yaml'
-        with open(schema_yaml, "r") as yaml_file:
-            try:
-                schema = yaml.safe_load(yaml_file)
-            except yaml.YAMLError as exc:
-                print(exc)
-
-        items = schema[key]
-        md_table = ['|Key|Description|', '|---|---|']
-        for item, description in items.items():
-            if key == 'type' and (item == 'log' or item == 'scatter'):
-                continue
-            md_table.append('|{}|{}|'.format(str(item), str(description)))
-        return utils.strip('\n'.join(md_table))
-
-    @env.macro
     def yaml_snippet(path, indent, filter=None):  # pylint: disable=unused-variable
         '''
         Produces a yaml string from a (partial) .json or .yaml file.
@@ -157,7 +140,7 @@ def define_env(env):
 
         return results
 
-    def pydantic_model_from_model(model, name=None):
+    def pydantic_model_from_model(model, name=None, heading=None):
         fields = model.__fields__
         required_models = set()
         if not name:
@@ -165,13 +148,6 @@ def define_env(env):
             name = model.__name__
 
         exported_config_models.add(name)
-
-        def default_value(field):
-            value = field.default
-            if isinstance(value, dict):
-                return '<complex dict>'
-            else:
-                return f'`{value}`'
 
         def description(field):
             value = field.field_info.description
@@ -188,7 +164,14 @@ def define_env(env):
             if field.field_info.description:
                 result += f'{description(field)}<br/> '
 
-            result += f'*default:* {default_value(field)}'
+            default_value = field.default
+            if default_value is not None:
+                if isinstance(default_value, dict):
+                    default_value = '<complex dict>'
+                else:
+                    default_value = f'`{default_value}`'
+
+                result += f'*default:* {default_value}'
 
             if field.field_info.extra.get('deprecated', False):
                 result += '<br/>**deprecated**'
@@ -196,12 +179,21 @@ def define_env(env):
             return result
 
         def field_row(field):
+            if field.name.startswith('m_'):
+                return ''
             type_ = field.type_
             if isclass(type_) and issubclass(type_, config.NomadSettings):
                 required_models.add(type_)
-            return f'|{field.name}|{type_.__name__}|{content(field)}|\n'
+            try:
+                type_name = type_.__name__
+            except Exception:
+                type_name = str(type_)
+            return f'|{field.name}|{type_name}|{content(field)}|\n'
 
-        result = f'### {name}\n'
+        if heading is None:
+            result = f'### {name}\n'
+        else:
+            result = heading + '\n'
 
         if model.__doc__ and model.__doc__ != '':
             result += utils.strip(model.__doc__) + '\n\n'
@@ -218,7 +210,7 @@ def define_env(env):
         return result
 
     @env.macro
-    def pydantic_model(path):  # pylint: disable=unused-variable
+    def pydantic_model(path, heading=None):  # pylint: disable=unused-variable
         '''
         Produces markdown code for the given pydantic model.
 
@@ -231,4 +223,4 @@ def define_env(env):
         module = importlib.import_module(module_name)
         model = getattr(module, name)
 
-        return pydantic_model_from_model(model)
+        return pydantic_model_from_model(model, heading=heading)

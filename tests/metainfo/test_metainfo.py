@@ -375,7 +375,7 @@ class TestM2:
         pytest.param(dict(integer=1), True, id='passes-int'),
         pytest.param(dict(integer='string'), False, id='fails')
     ])
-    def test_formal_annotations(self, annotation, passes):
+    def test_annotation_models(self, annotation, passes):
         class TestAnnotation(AnnotationModel):
             string: str = 'default'
             integer: int = 0
@@ -384,12 +384,14 @@ class TestM2:
         AnnotationModel.m_registry['test'] = TestAnnotation
 
         if passes:
-            run = Run(a_test=annotation)
-            assert isinstance(run.a_test, TestAnnotation)
-
-            as_dict = run.m_to_dict(with_meta=True)
-            run = Run.m_from_dict(as_dict)
-            assert isinstance(run.a_test[0], TestAnnotation)
+            section_def = Section(name='test', a_test=annotation)
+            assert isinstance(section_def.a_test, TestAnnotation)
+            assert section_def.a_test.m_definition is not None
+            as_dict = section_def.m_to_dict(with_meta=True)
+            assert 'm_definition' not in as_dict
+            section_def = Section.m_from_dict(as_dict)
+            assert isinstance(section_def.a_test[0], TestAnnotation)
+            assert section_def.a_test[0].m_definition is not None
         else:
             with pytest.raises(Exception):
                 Run(a_test=annotation)

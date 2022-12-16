@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from . import annotations  # Should be imported first to register the annotations before they are used
 from .simulation import m_env
 from .eln.material_library import m_package
 from .eln.perovskite_solar_cell_database import m_package

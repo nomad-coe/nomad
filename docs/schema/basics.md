@@ -70,7 +70,24 @@ The *names* of *quantity definitions* serve as the *key*, used in respective *se
 ### Type
 This is a list of supported quantity types.
 
-{{ get_schema_doc('type') }}
+|type|description|
+|-|-|
+|`string`||
+|`str`||
+|`float`||
+|`integer`||
+|`int`||
+|`boolean`||
+|`bool`||
+|`np.int32`|Numpy based integer with 32 bits.|
+|`np.int64`|Numpy based integer with 64 bits.|
+|`np.float32`|Numpy based float with 32 bits.|
+|`np.float64`|Numpy based float with 64 bits.|
+|`Datetime`||
+|`User`|A type for NOMAD users as values.|
+|`Author`|A complex type for author information.|
+|`{type_kind: Enum, type_data: []}`|Use `type_data` to specify enum values as list of strings.|
+|*<section name>*|To define a quantity that is a reference to a specific section.|
 
 ### Shape
 
