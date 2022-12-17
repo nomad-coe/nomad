@@ -648,7 +648,7 @@
     "codeCategory": "Workflow manager",
     "codeLabel": "QuantumEspressoEPW",
     "codeLabelStyle": "Capitals: Q, E, E, P, W",
-    "codeName": "quantumespressophonon",
+    "codeName": "quantumespressoepw",
     "codeUrl": "https://www.quantum-espresso.org",
     "parserDirName": "dependencies/workflow/workflowparsers/quantum_espresso_epw",
     "parserGitUrl": "https://github.com/nomad-coe/workflow-parsers.git",
