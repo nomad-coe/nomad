@@ -22,7 +22,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
-from nomad.datamodel.metainfo.simulation.method import Method
+from nomad.datamodel.metainfo.simulation.method import Method, HoppingMatrix
 
 from ..common import FastAccess
 
@@ -1461,46 +1461,6 @@ class Density(Volumetric):
         unit='1 / m ** 3',
         description='''
         Values of the potential evaluated at each grid point.
-        ''')
-
-
-class HoppingMatrix(MSection):
-    '''
-    Section containing the hopping/overlap matrix elements between two projected
-    orbitals.
-    '''
-
-    m_def = Section(validate=False)
-
-    n_orbitals = Quantity(
-        type=np.dtype(np.int32),
-        description='''
-        Number of projected orbitals.
-        ''')
-
-    n_wigner_seitz_points = Quantity(
-        type=np.dtype(np.int32),
-        description='''
-        Number of Wigner-Seitz real points.
-        ''')
-
-    degeneracy_factors = Quantity(
-        type=np.dtype(np.int32),
-        shape=['n_wigner_seitz_points'],
-        description='''
-        Degeneracy of each Wigner-Seitz grid point.
-        ''')
-
-    value = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_wigner_seitz_points', 'n_orbitals * n_orbitals', 7],
-        description='''
-        Real space hopping matrix for each Wigner-Seitz grid point. The elements are
-        defined as follows:
-            n_x   n_y   n_z   orb_1   orb_2   real_part   imag_part
-        where (n_x, n_y, n_z) define the Wigner-Seitz cell vector in fractional coordinates,
-        (orb_1, orb_2) indicates the hopping amplitude between orb_1 and orb_2, and the
-        real and imaginary parts of the hopping in electron_volt.
         ''')
 
 

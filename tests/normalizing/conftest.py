@@ -36,7 +36,7 @@ from nomad.datamodel.optimade import Species
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, BasisSet, Electronic, DFT, XCFunctional, Functional,
-    Electronic, Smearing, Scf, GW, AtomParameters, HubbardModel)
+    Electronic, Smearing, Scf, GW, AtomParameters, HubbardModel, Projection)
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup, System, Atoms as AtomsSystem)
 from nomad.datamodel.metainfo.simulation.calculation import (
@@ -542,6 +542,37 @@ def dft_plus_u() -> EntryArchive:
     method_dft.atom_parameters.append(AtomParameters(label='Ti'))
     method_dft.atom_parameters[0].hubbard_model = HubbardModel(orbital='3d', u=4.5e-19,
                                                                j=1e-19, method='Dudarev', projection_type='on-site')
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def projection() -> EntryArchive:
+    '''(Wannier-like) Projection calculation.'''
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = Program(name='Wannier90', version='3.1.0')
+    method = run.m_create(Method)
+    method.projection = Projection(is_maximally_localized=False)
+    system = run.m_create(System)
+    system.atoms = AtomsSystem(
+        lattice_vectors=[
+            [5.76372622e-10, 0.0, 0.0],
+            [0.0, 5.76372622e-10, 0.0],
+            [0.0, 0.0, 4.0755698899999997e-10]
+        ],
+        positions=[
+            [2.88186311e-10, 0.0, 2.0377849449999999e-10],
+            [0.0, 2.88186311e-10, 2.0377849449999999e-10],
+            [0.0, 0.0, 0.0],
+            [2.88186311e-10, 2.88186311e-10, 0.0],
+        ],
+        labels=['Br', 'K', 'Si', 'Si'],
+        periodic=[True, True, True])
+    scc = run.m_create(Calculation)
+    scc.system_ref = system
+    scc.method_ref = method
+    workflow = template.m_create(Workflow)
+    workflow.type = 'single_point'
     return run_normalize(template)
 
 
