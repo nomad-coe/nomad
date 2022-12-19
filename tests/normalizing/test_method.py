@@ -101,6 +101,15 @@ def test_method_dft_plus_u(dft_plus_u):
     assert method.simulation.dft.hubbard_model[0].projection_type == 'on-site'
 
 
+def test_method_projection(projection):
+    """Methodology from a Projection calculation"""
+    method = projection.results.method
+    assert method.method_name == "Projection"
+    assert method.simulation.program_name == "Wannier90"
+    assert method.simulation.program_version == "3.1.0"
+    assert method.simulation.projection.localization_type == "single_shot"
+
+
 def test_method_gw(gw):
     """Methodology from a GW calculation."""
     method = gw.results.method

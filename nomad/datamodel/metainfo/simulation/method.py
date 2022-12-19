@@ -695,13 +695,13 @@ class Projection(MSection):
     k_mesh = SubSection(sub_section=KMesh.m_def, repeats=False)
 
     n_projected_orbitals = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         description='''
         Number of Wannier orbitals used to fit the DFT band structure
         ''')
 
     n_bands = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         description='''
         Number of input Bloch bands to calculate the projection matrix.
         ''')
@@ -713,13 +713,13 @@ class Projection(MSection):
         ''')
 
     convergence_tolerance_max_localization = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         description='''
         Convergence tolerance for maximal localization of the projected orbitals.
         ''')
 
     energy_window_outer = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='electron_volt',
         shape=[2],
         description='''
@@ -727,12 +727,87 @@ class Projection(MSection):
         ''')
 
     energy_window_inner = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='electron_volt',
         shape=[2],
         description='''
         Bottom and top of the inner energy window used for the projection.
         ''')
+
+
+class HoppingMatrix(MSection):
+    '''
+    Section containing the hopping/overlap matrix elements between N projected
+    orbitals.
+    '''
+
+    m_def = Section(validate=False)
+
+    n_orbitals = Quantity(
+        type=np.int32,
+        description='''
+        Number of projected orbitals.
+        ''')
+
+    n_wigner_seitz_points = Quantity(
+        type=np.int32,
+        description='''
+        Number of Wigner-Seitz real points.
+        ''')
+
+    degeneracy_factors = Quantity(
+        type=np.int32,
+        shape=['n_wigner_seitz_points'],
+        description='''
+        Degeneracy of each Wigner-Seitz grid point.
+        ''')
+
+    value = Quantity(
+        type=np.float64,
+        shape=['n_wigner_seitz_points', 'n_orbitals * n_orbitals', 7],
+        description='''
+        Real space hopping matrix for each Wigner-Seitz grid point. The elements are
+        defined as follows:
+
+            n_x   n_y   n_z   orb_1   orb_2   real_part + j * imag_part
+
+        where (n_x, n_y, n_z) define the Wigner-Seitz cell vector in fractional coordinates,
+        (orb_1, orb_2) indicates the hopping amplitude between orb_1 and orb_2, and the
+        real and imaginary parts of the hopping in electron_volt.
+        ''')
+
+
+class LatticeModelHamiltonian(MSection):
+    '''
+    Section containing the parameters of the non-interacting parts of a lattice model Hamiltonian.
+    '''
+
+    m_def = Section(validate=False)
+
+    lattice_name = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of the lattice to identify the model. E.g., 'Square', 'Honeycomb'.
+        ''')
+
+    n_neighbors = Quantity(
+        type=np.int32,
+        description='''
+        Number of direct neighbors considered for the hopping integrals.
+        ''')
+
+    # I defined t_parameters apart from HoppingMatrix to simplify the parsing (writing
+    # everything in the HoppingMatrix basis might be tedious).
+    # TODO generalize parsers to write HoppingMatrix as default even for simple models.
+    t_parameters = Quantity(
+        type=np.complex128,
+        shape=['n_neighbors'],
+        description='''
+        Hopping parameters for simple models, with [t, t`, t``, etc].
+        ''')
+
+    hopping_matrix = SubSection(sub_section=HoppingMatrix.m_def, repeats=False)
 
 
 class GW(MSection):
@@ -1199,6 +1274,8 @@ class Method(MSection):
     dft = SubSection(sub_section=DFT.m_def)
 
     projection = SubSection(sub_section=Projection.m_def)
+
+    lattice_model_hamiltonian = SubSection(sub_section=LatticeModelHamiltonian.m_def, repeats=True)
 
     gw = SubSection(sub_section=GW.m_def)
 
