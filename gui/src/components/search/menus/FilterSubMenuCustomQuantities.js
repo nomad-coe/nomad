@@ -36,8 +36,8 @@ import { Autocomplete } from '@material-ui/lab'
 const types = {
   str: 'String',
   float: 'Float',
-  'np.float64': 'Float',
-  'np.int32': 'Integer',
+  float64: 'Float',
+  int32: 'Integer',
   int: 'Integer',
   'nomad.metainfo.metainfo._Datetime': 'Datetime'
 }

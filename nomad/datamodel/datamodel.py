@@ -725,7 +725,7 @@ class EntryMetadata(MSection):
                 elif isinstance(value, int):
                     searchable_quantity.long_value = int(value)
                 elif isinstance(value, PintQuantity):
-                    searchable_quantity.double_value = value.m
+                    searchable_quantity.double_value = float(value.m)
                 elif isinstance(value, float):
                     searchable_quantity.double_value = float(value)
                 else:
