@@ -18,7 +18,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
-import { Tooltip, IconButton, Button } from '@material-ui/core'
+import { Tooltip, IconButton } from '@material-ui/core'
 import clsx from 'clsx'
 
 const useActionsStyles = makeStyles((theme) => ({
@@ -101,7 +101,6 @@ const useActionStyles = makeStyles((theme) => ({
   }
 }))
 export const Action = React.memo(({
-  variant,
   color,
   size,
   href,
@@ -114,16 +113,18 @@ export const Action = React.memo(({
   className,
   classes,
   children,
+  ButtonComponent,
+  ButtonProps,
   'data-testid': testID
 }) => {
   const styles = useActionStyles({classes: classes})
 
   return <Tooltip title={tooltip} {...TooltipProps}>
-    {variant === 'icon'
-      ? <IconButton
+    <span className={clsx(className, styles.root)}>
+      <ButtonComponent
+        {...ButtonProps}
         color={color}
         size={size}
-        className={clsx(className, styles.root)}
         onClick={onClick}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
@@ -133,23 +134,8 @@ export const Action = React.memo(({
         data-testid={testID}
       >
         {children}
-      </IconButton>
-      : <Button
-        color={color}
-        variant={variant}
-        size={size}
-        className={clsx(className, styles.root)}
-        onClick={onClick}
-        onMouseDown={onMouseDown}
-        onMouseUp={onMouseUp}
-        disabled={disabled}
-        href={href}
-        aria-label={tooltip}
-        data-testid={testID}
-      >
-        {children}
-      </Button>
-    }
+      </ButtonComponent>
+    </span>
   </Tooltip>
 })
 
@@ -164,6 +150,8 @@ Action.propTypes = {
   onMouseUp: PropTypes.func,
   tooltip: PropTypes.string,
   TooltipProps: PropTypes.object,
+  ButtonComponent: PropTypes.object,
+  ButtonProps: PropTypes.object,
   className: PropTypes.string,
   classes: PropTypes.object,
   children: PropTypes.node,
@@ -172,5 +160,5 @@ Action.propTypes = {
 
 Action.defaultProps = {
   size: 'small',
-  variant: 'icon'
+  ButtonComponent: IconButton
 }

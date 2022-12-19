@@ -18,6 +18,7 @@
 
 import React from 'react'
 import 'regenerator-runtime/runtime'
+import { fireEvent, cleanup } from '@testing-library/react'
 import { waitFor, within } from '@testing-library/dom'
 import { render, screen, expectQuantity, readArchive, startAPI, closeAPI } from '../conftest.spec'
 import { expectPlotButtons } from '../visualization/conftest.spec'
@@ -29,7 +30,6 @@ import {
 import OverviewView from './OverviewView'
 import { ui } from '../../config'
 import EntryPageContext from './EntryPageContext'
-import {fireEvent} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { act } from 'react-dom/test-utils'
 
@@ -43,18 +43,25 @@ test.each([
 ])('correctly renders %s card when card is enabled/disabled in config', async (card, state, label) => {
   await startAPI(`tests.states.entry.${state}`, `tests/data/entry/${card}_card`)
   const overview = ui.entry_context.overview
-  for (const enabled of [true]) {
+  for (const enabled of [true, false]) {
     if (!enabled) overview.exclude = [card]
     render(
       <EntryPageContext entryId={'dft_bulk'} overview={overview}>
         <OverviewView />
       </EntryPageContext>
     )
-    if (enabled) {
-      await screen.findByText(label)
-    } else {
-      await screen.findByText(label).not.toBeInTheDocument()
-    }
+
+    // Wait until initial render is done.
+    const firstLabel = 'Entry References'
+    expect(await screen.findByText(firstLabel))
+
+    // Check that the correct sections are shown
+    enabled
+      ? expect(screen.getByText(label))
+      : expect(screen.queryByText(label)).toBeNull()
+
+    // Manual cleanup since we are running render several times.
+    cleanup()
   }
   closeAPI()
 })
@@ -188,7 +195,8 @@ test('eln overview as a reviewer', async () => {
     </EntryPageContext>
   ))
 
-  await waitFor(() => expect(screen.getByText('HotplateAnnealing')).toBeInTheDocument())
+  // Wait until the initial load is done by checking one of the card titles
+  await screen.findByText('HotplateAnnealing')
 
   expect(screen.queryByTitle("Replace this entry's mainfile")).not.toBeInTheDocument()
   expect(screen.queryByTitle('Save entry')).not.toBeInTheDocument()
@@ -248,7 +256,8 @@ test.each([
     'bC7byHvWJp62Sn9uiuJUB38MT5j-',
     'test',
     'password'
-  ], [
+  ],
+  [
     'a coauthor',
     'tests.states.entry.eln',
     'tests/data/entry/eln-coauthor',
@@ -264,8 +273,8 @@ test.each([
     </EntryPageContext>
   ))
 
+  // Wait until the initial load is done by checking one of the card titles
   await screen.findByText('HotplateAnnealing')
-  await waitFor(() => expect(screen.getByText('HotplateAnnealing')).toBeInTheDocument())
 
   const saveButton = screen.queryByTitle('Save entry').closest('button')
   expect(saveButton).toBeInTheDocument()
@@ -320,6 +329,7 @@ test.each([
     </EntryPageContext>
   )
 
+  // Wait until the initial load is done by checking one of the card titles
   await screen1.findByText('HotplateAnnealing')
 
   const saveButton1 = screen1.getByTitle('Save entry').closest('button')
@@ -337,9 +347,11 @@ test.each([
     </EntryPageContext>
   )
 
+  // Wait until the initial load is done by checking one of the card titles
   await screen2.findByText('HotplateAnnealing')
 
-  // Weird jest problem: sometimes we find multiple hits for 'Save entry'. Workaround: take the first one in the list.
+  // Weird jest problem: sometimes we find multiple hits for 'Save entry'.
+  // Workaround: take the first one in the list.
   const saveButton2 = screen2.queryAllByTitle('Save entry')[0].closest('button')
   expect(saveButton2).toBeInTheDocument()
   expect(saveButton2).toBeDisabled()

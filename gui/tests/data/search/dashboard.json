@@ -5,20 +5,10 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.material.structural_type:statistics": {
+            "results.material.structural_type:0": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
@@ -59,7 +49,7 @@
             ]
           },
           "aggregations": {
-            "results.material.structural_type:statistics": {
+            "results.material.structural_type:0": {
               "terms": {
                 "quantity": "results.material.structural_type",
                 "exclude_from_search": true,
@@ -89,7 +79,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "827",
+          "content-length": "818",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -100,20 +90,10 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.material.n_elements:statistics_histogram": {
+            "results.material.n_elements:0_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
@@ -154,7 +134,7 @@
             ]
           },
           "aggregations": {
-            "results.material.n_elements:statistics_histogram": {
+            "results.material.n_elements:0_histogram": {
               "histogram": {
                 "quantity": "results.material.n_elements",
                 "exclude_from_search": true,
@@ -194,7 +174,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "1026",
+          "content-length": "1017",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -205,20 +185,10 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.material.elements:statistics": {
+            "results.material.elements:default": {
               "terms": {
                 "exclude_from_search": false,
                 "update": true,
@@ -259,7 +229,7 @@
             ]
           },
           "aggregations": {
-            "results.material.elements:statistics": {
+            "results.material.elements:default": {
               "terms": {
                 "quantity": "results.material.elements",
                 "exclude_from_search": false,
@@ -324,7 +294,88 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "1536",
+          "content-length": "1533",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "aggregations": {},
+          "pagination": {
+            "page_size": 1000,
+            "order": "asc",
+            "order_by": "entry_id"
+          },
+          "required": {
+            "include": [
+              "entry_id",
+              "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+              "results.properties.optoelectronic.solar_cell.efficiency",
+              "results.properties.optoelectronic.solar_cell.short_circuit_current_density"
+            ]
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 1000,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 4
+          },
+          "required": {
+            "include": [
+              "entry_id",
+              "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+              "results.properties.optoelectronic.solar_cell.efficiency",
+              "results.properties.optoelectronic.solar_cell.short_circuit_current_density"
+            ]
+          },
+          "data": [
+            {
+              "entry_id": "JzdbQUkxQB-NeTgl2DVeQw"
+            },
+            {
+              "entry_id": "n4uD7zucT2uNAdB1t-C3NA"
+            },
+            {
+              "results": {
+                "properties": {
+                  "optoelectronic": {
+                    "solar_cell": {
+                      "efficiency": 15.9,
+                      "short_circuit_current_density": 203,
+                      "open_circuit_voltage": 1
+                    }
+                  }
+                }
+              },
+              "entry_id": "sW0BAUZURQeBY9KUN5L8TQ"
+            },
+            {
+              "entry_id": "tl4QyvOOQQ2Hu_LLWJik7Q"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "949",
           "content-type": "application/json",
           "server": "uvicorn"
         }

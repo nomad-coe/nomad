@@ -34,19 +34,33 @@ const useStaticStyles = makeStyles(theme => ({
   title: {
     fontWeight: 600,
     color: theme.palette.grey[800]
+  },
+  right: {
+    overflow: 'hidden'
+  },
+  down: {
+    overflow: 'hidden',
+    writingMode: 'vertical-rl',
+    textOrientation: 'mixed'
+  },
+  up: {
+    overflow: 'hidden',
+    writingMode: 'vertical-rl',
+    textOrientation: 'mixed',
+    transform: 'rotate(-180deg)'
   }
 }))
 const InputTitle = React.memo(({
   quantity,
+  label,
   description,
   variant,
   TooltipProps,
   onMouseDown,
   onMouseUp,
-  anchored,
   className,
   classes,
-  style
+  rotation
 }) => {
   const styles = useStaticStyles({classes: classes})
   const { filterData } = useSearchContext()
@@ -56,47 +70,53 @@ const InputTitle = React.memo(({
 
   // Remove underscores from name
   const finalLabel = useMemo(() => {
-    const prefix = section && anchored ? `${filterData[section]?.label} ` : ''
-    let label = `${prefix}${filterData[quantity]?.label}`
+    if (label) return label
+    let finalLabel = filterData[quantity]?.label
     const unit = filterData[quantity]?.unit
     if (unit) {
       const unitDef = new Unit(unit)
-      label = `${label} (${unitDef.toSystem(units).label()})`
+      finalLabel = `${finalLabel} (${unitDef.toSystem(units).label()})`
     }
-    return label
-  }, [filterData, quantity, units, section, anchored])
+    return finalLabel
+  }, [filterData, quantity, units, label])
 
-  const finalDescription = description || filterData[quantity].description || ''
+  const finalDescription = description || filterData[quantity]?.description || ''
 
   return <Tooltip title={finalDescription} placement="bottom" {...(TooltipProps || {})}>
-    <Typography
-      noWrap
-      className={clsx(className, styles.root, (!section || anchored) && styles.title)}
-      variant={variant}
-      onMouseDown={onMouseDown}
-      onMouseUp={onMouseUp}
-      style={style}
-    >
-      {finalLabel}
-    </Typography>
+    <div className={clsx(
+      rotation === 'right' && styles.right,
+      rotation === 'down' && styles.down,
+      rotation === 'up' && styles.up
+    )}>
+      <Typography
+        noWrap
+        className={clsx(className, styles.root, (!section) && styles.title)}
+        variant={variant}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+      >
+        {finalLabel}
+      </Typography>
+    </div>
   </Tooltip>
 })
 
 InputTitle.propTypes = {
-  quantity: PropTypes.string.isRequired,
+  quantity: PropTypes.string,
+  label: PropTypes.string,
   description: PropTypes.string,
   variant: PropTypes.string,
-  anchored: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
-  style: PropTypes.object,
+  rotation: PropTypes.oneOf(['up', 'right', 'down']),
   TooltipProps: PropTypes.object, // Properties forwarded to the Tooltip
   onMouseDown: PropTypes.func,
   onMouseUp: PropTypes.func
 }
 
 InputTitle.defaultProps = {
-  variant: 'body2'
+  variant: 'body2',
+  rotation: 'right'
 }
 
 export default InputTitle

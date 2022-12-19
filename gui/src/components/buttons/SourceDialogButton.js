@@ -70,28 +70,55 @@ Code.propTypes = {
   code: PropTypes.string
 }
 
-const DialogButton = React.memo(function DialogButton(props) {
-  const {tooltip, component, icon, label, title, children, buttonProps, ...dialogProps} = props
-  const [open, setOpen] = useState(false)
+/**
+ * Button that can display content outside the button DOM. This is important to
+ * not trigger any button hover/click events on the child component.
+ */
+export const ContentButton = React.memo(function ContentButton(props) {
+  const {tooltip, children, buttonContent, ButtonComponent, ButtonProps} = props
 
-  const componentToUse = component || (label ? Button : IconButton)
   const button = useMemo(() => {
     return React.createElement(
-      componentToUse,
-      {onClick: () => setOpen(true), 'data-testid': 'source-api-action', ...buttonProps},
-      label || icon || <CodeIcon/>
+      ButtonComponent,
+      {...ButtonProps},
+      buttonContent
     )
-  }, [componentToUse, setOpen, label, icon, buttonProps])
-  const buttonWithTooltip = useMemo(() => {
-    if (tooltip) {
-      return <Tooltip title={tooltip}>{button}</Tooltip>
-    } else {
-      return button
-    }
-  }, [button, tooltip])
+  }, [ButtonComponent, buttonContent, ButtonProps])
 
   return <React.Fragment>
-    <Dialog {...dialogProps} open={open}>
+    {children}
+    {tooltip
+      ? <Tooltip title={tooltip}>{button}</Tooltip>
+      : button
+    }
+  </React.Fragment>
+})
+ContentButton.propTypes = {
+  tooltip: PropTypes.string,
+  buttonContent: PropTypes.node,
+  ButtonComponent: PropTypes.elementType,
+  ButtonProps: PropTypes.object,
+  children: PropTypes.node
+}
+
+ContentButton.defaultProps = {
+  ButtonComponent: IconButton
+}
+
+/**
+ * Button that displays a simple dialog.
+ */
+export const DialogButton = React.memo(function DialogButton(props) {
+  const {tooltip, ButtonComponent, icon, label, title, children, ButtonProps, ...DialogProps} = props
+  const [open, setOpen] = useState(false)
+
+  return <ContentButton
+    tooltip={tooltip}
+    ButtonComponent={ButtonComponent || (label ? Button : IconButton)}
+    ButtonProps={{...ButtonProps, onClick: () => setOpen(true)}}
+    buttonContent={label || icon || <CodeIcon/>}
+  >
+    <Dialog {...DialogProps} open={open}>
       {title && <DialogTitle>{title}</DialogTitle>}
       <DialogContent>
         {children}
@@ -102,28 +129,24 @@ const DialogButton = React.memo(function DialogButton(props) {
         </Button>
       </DialogActions>
     </Dialog>
-    {buttonWithTooltip}
-  </React.Fragment>
+  </ContentButton>
 })
 DialogButton.propTypes = {
   tooltip: PropTypes.string,
   icon: PropTypes.node,
   title: PropTypes.string,
   label: PropTypes.string,
-  component: PropTypes.elementType,
-  buttonProps: PropTypes.object,
-  children: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.node),
-    PropTypes.node
-  ])
+  ButtonComponent: PropTypes.elementType,
+  ButtonProps: PropTypes.object,
+  children: PropTypes.node
 }
 
-export const SourceApiDialogButton = React.memo(function SourceApiDialogButton({description, children, ...props}) {
+export const SourceApiDialogButton = React.memo(function SourceApiDialogButton({description, children, ButtonProps, ...props}) {
   const help = `The information on this page was loaded from the NOMAD API. You can also use
     the API to retrieve this information. Visit also our [API documentation](${appBase}/docs/api.html)
     or [API dashboard](${apiBase}).`
 
-  return <DialogButton title="API" tooltip="API" size="small" {...props}>
+  return <DialogButton title="API" tooltip="API" ButtonProps={ButtonProps} {...props}>
     <Markdown text={description || help} />
     <SourceDialogDivider />
     {children}
@@ -134,7 +157,8 @@ SourceApiDialogButton.propTypes = {
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
-  ])
+  ]),
+  ButtonProps: PropTypes.object
 }
 
 const CopyToClipboardButton = React.memo(function CopyToClipboardButton({code}) {

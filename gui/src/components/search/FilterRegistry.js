@@ -15,15 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import { isNil, isArray } from 'lodash'
+import { isNil, isArray, isEmpty } from 'lodash'
 import { setToArray, getDatatype, getSerializer, getDeserializer, formatLabel, DType } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { Unit } from '../../units'
-import InputList from './input/InputList'
-import InputRange from './input/InputRange'
-import InputSection from './input/InputSection'
-import InputPeriodicTable from './input/InputPeriodicTable'
 import elementData from '../../elementData'
 
 // Containers for filter information
@@ -113,8 +108,7 @@ function getEnumOptions(quantity) {
   *      can specified for this filter. Defaults to 'any'.
   *  - exclusive: Whether this filter is exclusive: only one value is
   *      associated with a single entry.
-  *  - stats: Object that determines how this filter is visualized if it is
-  *      docked above the search results.
+  *  - widget: Object that determines the default widget for this filter.
   *  - options: Object containing explicit options that this filter supports.
   *  - unit: The unit for this filter. If no value is given and the name
   *      corresponds to a metainfo name the data type is read directly from the
@@ -145,6 +139,19 @@ function saveFilter(name, group, config, parent) {
   }
 
   const data = filterData[name] || {}
+  const parts = name.split('.')
+  const path = []
+  function getRepeats(name) {
+    return searchQuantities[name]?.repeats || !isEmpty(searchQuantities[name]?.shape)
+  }
+  data.repeatsRecursive = false
+  for (const part of parts) {
+    path.push(part)
+    if (getRepeats(path.join('.'))) {
+      data.repeatsRecursive = true
+      break
+    }
+  }
   data.options = config.options || getEnumOptions(name)
   data.aggs = config.aggs
   data.value = config.value
@@ -158,10 +165,12 @@ function saveFilter(name, group, config, parent) {
   data.dimension = data.unit && new Unit(data.unit).dimension()
   data.deserializer = config.deserializer || getDeserializer(data.dtype, data.dimension)
   data.label = config.label || formatLabel(searchQuantities[name]?.name || name)
+  data.labelFull = parent ? `${filterData[parent].label} ${data.label}` : data.label
   data.nested = searchQuantities[name]?.nested
   data.section = !isNil(data.nested)
-  data.repeats = searchQuantities[name]?.repeats
-  data.stats = config.stats || getStatsComponent(parent, data.dtype)
+  data.repeats = config.repeats === undefined ? getRepeats(name) : config.repeats
+  data.widget = config.widget || getWidgetConfig(data.dtype)
+  data.parent = parent
   data.description = config.description || searchQuantities[name]?.description
   data.scale = config.scale || 'linear'
   if (data.queryMode && !data.multiple) {
@@ -215,6 +224,7 @@ function registerFilterOptions(name, group, target, label, description, options)
       },
       dtype: DType.Enum,
       multiple: true,
+      repeats: true,
       exclusive: false,
       queryMode: 'all',
       options: options,
@@ -224,53 +234,59 @@ function registerFilterOptions(name, group, target, label, description, options)
   )
 }
 
+const histogramWidgetConfig = {
+  type: 'histogram',
+  scale: 'linear',
+  inputfields: false,
+  autorange: false,
+  nbins: 30,
+  layout: {
+    sm: {w: 8, h: 3, minW: 8, minH: 3},
+    md: {w: 8, h: 3, minW: 8, minH: 3},
+    lg: {w: 8, h: 3, minW: 8, minH: 3},
+    xl: {w: 8, h: 3, minW: 8, minH: 3},
+    xxl: {w: 8, h: 3, minW: 8, minH: 3}
+  }
+}
+
+const termsWidgetConfig = {
+  type: 'terms',
+  scale: 'linear',
+  inputfields: false,
+  layout: {
+    sm: {w: 6, h: 9, minW: 6, minH: 9},
+    md: {w: 6, h: 9, minW: 6, minH: 9},
+    lg: {w: 6, h: 9, minW: 6, minH: 9},
+    xl: {w: 6, h: 9, minW: 6, minH: 9},
+    xxl: {w: 6, h: 9, minW: 6, minH: 9}
+  }
+}
+
+const ptWidgetConfig = {
+  type: 'periodictable',
+  scale: '1/2',
+  layout: {
+    sm: {w: 12, h: 8, minW: 12, minH: 8},
+    md: {w: 12, h: 8, minW: 12, minH: 8},
+    lg: {w: 12, h: 8, minW: 12, minH: 8},
+    xl: {w: 12, h: 8, minW: 12, minH: 8},
+    xxl: {w: 12, h: 8, minW: 12, minH: 8}
+  }
+}
+
 /**
- * Tries to automatically create a suitable statistics component for the given
+ * Tries to automatically create a suitable widget config for the given
  * quantity.
  *
  * @param {string} parent Parent quantity
  * @param {DType} dtype Datatype of the quantity
- * @returns A statistics setup including the component and a layout.
+ * @returns A widget config object.
  */
-const getStatsComponent = (parent, dtype) => {
-  const section = filterData?.[parent]?.section
-  const wrap = (InputComp) => {
-    return section
-      ? (props) => {
-        return <InputSection
-          section={parent}
-          visible
-          disableHeader
-        >
-          <InputComp {...props}/>
-        </InputSection>
-      }
-      : InputComp
-  }
+const getWidgetConfig = (dtype) => {
   if (dtype === DType.Float || dtype === DType.Int || dtype === DType.Timestamp) {
-    return {
-      component: wrap(InputRange),
-      layout: {
-        width: 8,
-        height: 3
-      }
-    }
+    return histogramWidgetConfig
   } else {
-    return {
-      component: wrap(InputList),
-      layout: {
-        width: 6,
-        height: 8
-      }
-    }
-  }
-}
-
-const ptStatConfig = {
-  component: InputPeriodicTable,
-  layout: {
-    width: 12,
-    height: 8
+    return termsWidgetConfig
   }
 }
 
@@ -529,7 +545,7 @@ registerFilter(
   'results.material.elements',
   idElements,
   {
-    stats: ptStatConfig,
+    widget: ptWidgetConfig,
     aggs: {terms: {size: elementData.elements.length}},
     value: {
       set: (newQuery, oldQuery, value) => {

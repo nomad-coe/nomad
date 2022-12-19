@@ -23,9 +23,7 @@ import {
   FormLabel,
   FormControlLabel,
   RadioGroup,
-  Menu,
-  MenuItem,
-  Select
+  Menu
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
@@ -33,10 +31,11 @@ import { useRecoilValue } from 'recoil'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
 import InputTitle from './InputTitle'
 import { Actions, ActionHeader, Action } from '../../Actions'
-import StatisticsToggle from '../statistics/StatisticsToggle'
+import WidgetToggle from '../widgets/WidgetToggle'
 import { scales } from '../../plotting/common'
 import { guiState } from '../../GUIMenu'
 import { useBoolState } from '../../../hooks'
+import { WidgetActionSelect } from '../widgets/WidgetActions'
 
 /**
  * The quantity label and actions shown by all filter components.
@@ -82,7 +81,6 @@ const InputHeader = React.memo(({
   const styles = useStyles({classes: classes})
   const [anchorEl, setAnchorEl] = React.useState(null)
   const isSettingsOpen = Boolean(anchorEl)
-  const [isStatsTooltipOpen, openStatsTooltip, closeStatsTooltip] = useBoolState(false)
   const [isDragging, setDragging, setNotDragging] = useBoolState(false)
   const [isTooltipOpen, openTooltip, closeTooltip] = useBoolState(false)
   const menu = useRecoilValue(guiState('menu'))
@@ -141,19 +139,12 @@ const InputHeader = React.memo(({
         </FormControl>
       </Menu>
     </>
-    : <Action TooltipProps={{title: 'Statistics scaling', open: isStatsTooltipOpen, disableHoverListener: true}}>
-      <Select
-        value={scale}
-        onMouseEnter={openStatsTooltip}
-        onMouseLeave={closeStatsTooltip}
-        onOpen={closeStatsTooltip}
-        onChange={onChangeScale ? (event) => onChangeScale(event.target.value) : undefined}
-      >
-        {Object.entries(scales).map(([key, value]) =>
-          <MenuItem key={key} value={key}>{key}</MenuItem>
-        )}
-      </Select>
-    </Action>
+    : <WidgetActionSelect
+      value={scale}
+      options={Object.keys(scales)}
+      tooltip="Statistics scaling"
+      onChange={onChangeScale}
+    />
 
   return <Actions className={clsx(styles.root, className)}>
     <ActionHeader disableSpacer>
@@ -175,7 +166,7 @@ const InputHeader = React.memo(({
     </ActionHeader>
     {actionsAlign === 'left' && actions}
     {!disableStatistics && menuComp}
-    {!disableAnchoring && <StatisticsToggle quantity={quantity} disabled={disableAnchoring} />}
+    {!disableAnchoring && <WidgetToggle quantity={quantity} disabled={disableAnchoring} />}
     {actionsAlign === 'right' && actions}
   </Actions>
 })

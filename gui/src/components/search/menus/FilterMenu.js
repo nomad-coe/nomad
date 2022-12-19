@@ -33,8 +33,9 @@ import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
 import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import ClearIcon from '@material-ui/icons/Clear'
-import RefreshIcon from '@material-ui/icons/Refresh'
+import ReplayIcon from '@material-ui/icons/Replay'
 import MoreVert from '@material-ui/icons/MoreVert'
+import CodeIcon from '@material-ui/icons/Code'
 import Scrollable from '../../visualization/Scrollable'
 import FilterSummary from '../FilterSummary'
 import FilterSettings from './FilterSettings'
@@ -331,7 +332,7 @@ export const FilterMenuItems = React.memo(({
               tooltip="Refresh results"
               onClick={() => refresh()}
             >
-              <RefreshIcon fontSize="small"/>
+              <ReplayIcon fontSize="small"/>
             </Action>
             <Action
               tooltip="Clear filters"
@@ -339,10 +340,22 @@ export const FilterMenuItems = React.memo(({
             >
               <ClearIcon fontSize="small"/>
             </Action>
-            <SourceApiDialogButton tooltip={null} component={Action} buttonProps={{tooltip: 'API'}} maxWidth="lg" fullWidth>
+            <Action
+              tooltip=""
+              ButtonComponent={SourceApiDialogButton}
+              ButtonProps={{
+                tooltip: "API",
+                maxWidth: "lg",
+                fullWidth: true,
+                icon: <CodeIcon fontSize="small"/>,
+                ButtonProps: {
+                  size: "small"
+                }
+              }}
+            >
               <Typography>
                 NOMAD uses the same query format throughout its API. This is the query
-                based on the current filers:
+                based on the current filters:
               </Typography>
               <SourceJsonCode data={{owner: apiData?.body?.owner, query: apiData?.body?.query}}/>
               <SourceDialogDivider/>
@@ -354,7 +367,7 @@ export const FilterMenuItems = React.memo(({
               <SourceApiCall
                 {...apiData}
               />
-            </SourceApiDialogButton>
+            </Action>
             <Action
               tooltip="Options"
               onClick={openMenu}

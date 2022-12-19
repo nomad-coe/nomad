@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import assert from 'assert'
 import { set, get, isNil, isEqual, isArray, has, capitalize, isPlainObject} from 'lodash'
 import { useTheme } from '@material-ui/core/styles'
-import Plot from './Plot'
+import Plot from '../plotting/Plot'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 import { getLocation, formatNumber, DType } from '../../utils'
 import { Quantity, Unit, useUnits } from '../../units'
@@ -129,11 +129,12 @@ const MeanSquaredDisplacement = React.memo(({
 
   const plots = useMemo(() => {
     const plots = []
+    console.log(finalData)
     finalData && Object.entries(finalData).forEach(([type, values]) => {
       const title = `${capitalize(type)} mean squared displacements`
       plots.push(
         <ErrorHandler message={`Could not load ${title.toLowerCase()}`} key={type}>
-          <PropertyItem xs={12} title={title} height="auto" key={type}>
+          <PropertyItem xs={12} title={title} height="500px" key={type}>
             <Plot
               data={finalData?.[type]}
               layout={finalLayout?.[type]}

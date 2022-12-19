@@ -19,7 +19,7 @@ import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { isNil, get } from 'lodash'
 import { useTheme } from '@material-ui/core/styles'
-import Plot from './Plot'
+import Plot from '../plotting/Plot'
 import { mergeObjects, getLocation } from '../../utils'
 import {
   PropertyGrid,

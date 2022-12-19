@@ -19,7 +19,7 @@ import React from 'react'
 import userEvent from '@testing-library/user-event'
 import { waitFor } from '@testing-library/dom'
 import { startAPI, closeAPI, screen } from '../../conftest.spec'
-import { renderSearchEntry, expectInputPeriodicTable, expectInputPeriodicTableItems } from '../conftest.spec'
+import { renderSearchEntry, expectPeriodicTable, expectPeriodicTableItems } from '../conftest.spec'
 import InputPeriodicTable from './InputPeriodicTable'
 
 const quantity = 'results.material.elements'
@@ -37,7 +37,7 @@ describe('', () => {
   afterEach(() => closeAPI())
 
   test('initial state is loaded correctly', async () => {
-    await expectInputPeriodicTable(quantity, false, ['H', 'C', 'N', 'Ti', 'Zr', 'Nb', 'I', 'Hf', 'Ta', 'Pb'])
+    await expectPeriodicTable(quantity, false, ['H', 'C', 'N', 'I', 'Pb', 'Ti', 'Zr', 'Nb', 'Hf', 'Ta'])
   })
 })
 
@@ -56,14 +56,14 @@ describe('', () => {
     // Wait for hydrogen to become selectable
     await waitFor(() => { expect(screen.getByText('H').closest('button')).not.toHaveAttribute('disabled') })
 
-    // Test that after selecting C, only H and C are selectable.
+    // Test that after selecting C, only the correct elements are selectable.
     const cButton = screen.getByText('C')
     await userEvent.click(cButton)
-    await expectInputPeriodicTableItems(['C', 'H', 'N', 'I', 'Pb'])
+    await expectPeriodicTableItems(['H', 'C', 'N', 'I', 'Pb'])
 
     // Test that after enabling exclusive search, only C is selectable
     const exclusiveCheckbox = screen.getByRole('checkbox')
     await userEvent.click(exclusiveCheckbox)
-    await expectInputPeriodicTableItems(['C'])
+    await expectPeriodicTableItems(['C'])
   })
 })

@@ -40,6 +40,12 @@ jest.setTimeout(2 * minutes)
 // long to render if it competes with other tests over limited CPU resources.
 configure({ asyncUtilTimeout: 10 * seconds })
 
+// Mocks required by Plotly.js:
+// https://github.com/plotly/react-plotly.js/issues/115
+// https://stackoverflow.com/questions/48828759/unit-test-raises-error-because-of-getcontext-is-not-implemented
+window.URL.createObjectURL = function() {}
+HTMLCanvasElement.prototype.getContext = () => {}
+
 const { ResizeObserver } = window
 export const server = setupServer()
 
@@ -54,6 +60,14 @@ beforeAll(() => {
     unobserve: jest.fn(),
     disconnect: jest.fn()
   }))
+})
+
+// This is a default resize-observer result. You should overwrite this if you
+// expect different size in the tests.
+jest.mock('react-resize-detector', () => {
+  return {useResizeDetector: () => {
+    return {width: 500, height: 500, ref: undefined}
+  }}
 })
 
 afterEach(() => {

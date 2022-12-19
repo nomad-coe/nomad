@@ -36,7 +36,7 @@ FROM base_node AS dev_node
 WORKDIR /app/gui
 
 ENV PATH /app/node_modules/.bin:$PATH
-ENV NODE_OPTIONS "--max_old_space_size=3072"
+ENV NODE_OPTIONS "--max_old_space_size=4096"
 
 # Fetch and cache all (but only) the dependencies
 COPY gui/yarn.lock gui/package.json ./

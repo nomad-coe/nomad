@@ -32,8 +32,7 @@ const hourFormat = 'k:mm'
 const minuteFormat = 'k:mm'
 const secondFormat = 'k:mm:ss'
 
-// Mock the useResizeObserver hook. The test environment does not provide any
-// resize events on it's own.
+// Resize-detector size is adjusted to test the axis behaviour.
 jest.mock('react-resize-detector', () => {
   return {useResizeDetector: () => {
     return {height: mockHeight, width: mockWidth, ref: undefined}

@@ -5,16 +5,6 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {},
           "aggregations": {
@@ -51,7 +41,7 @@
             "page_size": 0,
             "order_by": "entry_id",
             "order": "asc",
-            "total": 4
+            "total": 8
           },
           "required": {
             "include": [
@@ -67,53 +57,53 @@
                 "size": 119,
                 "data": [
                   {
-                    "count": 3,
-                    "nested_count": 3,
+                    "count": 6,
+                    "nested_count": 6,
                     "value": "C"
+                  },
+                  {
+                    "count": 4,
+                    "nested_count": 4,
+                    "value": "H"
                   },
                   {
                     "count": 2,
                     "nested_count": 2,
-                    "value": "H"
-                  },
-                  {
-                    "count": 1,
-                    "nested_count": 1,
                     "value": "Hf"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "I"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "N"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "Nb"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "Pb"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "Ta"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "Ti"
                   },
                   {
-                    "count": 1,
-                    "nested_count": 1,
+                    "count": 2,
+                    "nested_count": 2,
                     "value": "Zr"
                   }
                 ]

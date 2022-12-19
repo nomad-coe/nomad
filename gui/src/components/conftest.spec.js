@@ -365,7 +365,7 @@ ${func}()"`)
     // We need to wait here for some tasks to finish. TODO: resolve why this is
     // needed, and how could this simple wait be replaced with something
     // better.
-    await wait(undefined, 2 * seconds)
+    await wait(undefined, 3 * seconds)
   // Use API responses from snapshot files
   } else if (readMode === 'snapshot') {
     if (fs.existsSync(jsonPath)) {

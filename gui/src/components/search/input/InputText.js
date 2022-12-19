@@ -269,3 +269,234 @@ InputTextQuantity.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object
 }
+
+/*
+ * Text field that can be used to submit filter values that target a specific
+ * quantity. Can also suggest values.
+ */
+const useInputTextStyles = makeStyles(theme => ({
+  root: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    boxSizing: 'border-box'
+  }
+}))
+export const InputText = React.memo(({
+  value,
+  error,
+  placeholder,
+  shrink,
+  suggestions,
+  loading,
+  onChange,
+  onAccept,
+  onSelect,
+  onError,
+  disableSuggestions,
+  className,
+  classes,
+  ...TextFieldProps
+}) => {
+  const theme = useTheme()
+  const styles = useInputTextStyles({classes: classes, theme: theme})
+  const [highlighted, setHighlighted] = useState({value: ''})
+  const [open, setOpen] = useState(false)
+
+  // Attach the filter hook
+  const disabled = TextFieldProps.disabled
+
+  // Clears the input and suggestions
+  const clearInputValue = useCallback(() => {
+    onChange && onChange("")
+    setOpen(false)
+  }, [onChange])
+
+  const handleHighlight = useCallback((event, value, reason) => {
+    setHighlighted(value)
+  }, [])
+
+  // Handles special key presses
+  const handleKeyDown = useCallback((event) => {
+    // When escape is pressed, close the menu if it is visible and showing some
+    // items. Otherwise clear the current text input.
+    if (event.key === 'Escape') {
+      if (open && suggestions?.length > 0) {
+        setOpen(false)
+      } else {
+        clearInputValue()
+      }
+      event.stopPropagation()
+      event.preventDefault()
+    }
+    // When enter is pressed, select currently highlighted value and close menu,
+    // or if menu is not open submit the value.
+    if (event.key === 'Enter') {
+      if (open && highlighted?.value) {
+        onSelect && onSelect(highlighted.value.trim())
+      } else {
+        onAccept && onAccept(value && value.trim())
+      }
+      event.stopPropagation()
+      event.preventDefault()
+      setOpen(false)
+    }
+  }, [open, suggestions, highlighted, onSelect, onAccept, value, clearInputValue])
+
+  // Handle typing events.
+  const handleInputChange = useCallback((event, value, reason) => {
+    onError(undefined)
+    // Trigger change when an event is triggering an input change.
+    event && onChange && onChange(value)
+  }, [onChange, onError])
+
+  return <div className={clsx(className, styles.root)}>
+    <Autocomplete
+      freeSolo
+      disabled={disabled}
+      clearOnBlur={false}
+      inputValue={value || ''}
+      value={null}
+      open={open}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
+      onBlur={() => onAccept(value) }
+      fullWidth
+      disableClearable
+      classes={{endAdornment: styles.endAdornment}}
+      options={suggestions}
+      onInputChange={handleInputChange}
+      onHighlightChange={handleHighlight}
+      getOptionLabel={option => option.value}
+      getOptionSelected={(option, value) => false}
+      renderInput={(params) => {
+        // We need to strip out the styling of the input field that is imposed
+        // by Autocomplete. Otherwise the styles enabled by the
+        // hiddenLabel-property will be overridden.
+        params.InputProps.className = undefined
+        return <InputTextField
+          {...params}
+          placeholder={placeholder}
+          helperText={error || undefined}
+          error={!!error}
+          onKeyDown={handleKeyDown}
+          InputLabelProps={{shrink}}
+          InputProps={{
+            ...params.InputProps,
+            endAdornment: (<>
+              {loading ? <CircularProgress color="inherit" size={20} /> : null}
+              {(value?.length || null) && <>
+                <Tooltip title="Clear">
+                  <IconButton
+                    size="small"
+                    onClick={clearInputValue}
+                    className={styles.iconButton}
+                    aria-label="clear"
+                  >
+                    <CloseIcon/>
+                  </IconButton>
+                </Tooltip>
+              </>}
+            </>)
+          }}
+          {...TextFieldProps}
+        />
+      }}
+    />
+  </div>
+})
+
+InputText.propTypes = {
+  value: PropTypes.string,
+  error: PropTypes.string,
+  placeholder: PropTypes.string,
+  shrink: PropTypes.bool,
+  suggestions: PropTypes.array,
+  loading: PropTypes.bool,
+  onChange: PropTypes.func,
+  onAccept: PropTypes.func,
+  onSelect: PropTypes.func,
+  onError: PropTypes.func,
+  disableSuggestions: PropTypes.bool,
+  className: PropTypes.string,
+  classes: PropTypes.object
+}
+
+export const InputMetainfo = React.memo(({
+  value,
+  label,
+  error,
+  onChange,
+  onSelect,
+  onAccept,
+  onError,
+  dtypes,
+  dtypesRepeatable,
+  noEmpty
+}) => {
+  const { filterData } = useSearchContext()
+
+  // Fetch the available metainfo names
+  const [suggestions, options] = useMemo(() => {
+    const suggestions = Object.keys(filterData)
+      .filter((d) => {
+        const dtype = filterData[d]?.dtype
+        return filterData[d]?.repeatsRecursive
+          ? dtypesRepeatable?.has(dtype)
+          : dtypes?.has(dtype)
+      })
+      .map((d) => ({value: d}))
+    const options = new Set(suggestions.map((d) => d.value))
+    return [suggestions, options]
+  }, [filterData, dtypes, dtypesRepeatable])
+
+  // Used to validate the input
+  const validate = useCallback((value) => {
+    const empty = !value || value.length === 0
+    if (!noEmpty && empty) {
+      return {valid: true, error: undefined}
+    } else if (empty) {
+      return {valid: false, error: 'Please specify a value.'}
+    } else if (!(options.has(value))) {
+      return {valid: false, error: 'Invalid value for this field.'}
+    }
+    return {valid: true, error: undefined}
+  }, [options, noEmpty])
+
+  // Handles the final acceptance of a value
+  const handleAccept = useCallback((value) => {
+    const {valid, error} = validate(value)
+    if (valid) {
+      onAccept && onAccept(value)
+    } else {
+      onError && onError(error)
+    }
+  }, [validate, onError, onAccept])
+
+  return <InputText
+    value={value}
+    label={label}
+    error={error}
+    onChange={onChange}
+    onSelect={onSelect}
+    onAccept={handleAccept}
+    onBlur={(event) => onSelect && onSelect(event.target.value)}
+    onError={onError}
+    suggestions={suggestions}
+  />
+})
+
+InputMetainfo.propTypes = {
+  label: PropTypes.string,
+  value: PropTypes.string,
+  error: PropTypes.string,
+  onChange: PropTypes.func,
+  onSelect: PropTypes.func,
+  onAccept: PropTypes.func,
+  onError: PropTypes.func,
+  dtypes: PropTypes.object,
+  dtypesRepeatable: PropTypes.object,
+  noEmpty: PropTypes.bool
+}

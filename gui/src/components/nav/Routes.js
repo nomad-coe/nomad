@@ -205,6 +205,7 @@ const searchRoutes = ui?.search_contexts?.include
             initialRows={context.rows}
             initialFilterMenus={context.filter_menus}
             initialFiltersLocked={context.filters_locked}
+            initialDashboard={context?.dashboard}
           >
             <SearchPage/>
           </SearchContext>
