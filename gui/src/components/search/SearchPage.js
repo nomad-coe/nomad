@@ -24,7 +24,7 @@ import FilterMainMenu from './menus/FilterMainMenu'
 import { collapsedMenuWidth } from './menus/FilterMenu'
 import SearchBar from './SearchBar'
 import SearchResults from './SearchResults'
-import StatisticsGrid from './statistics/StatisticsGrid'
+import Dashboard from './widgets/Dashboard'
 import { useSearchContext } from './SearchContext'
 
 /**
@@ -107,11 +107,11 @@ const SearchPage = React.memo(({
         <Box marginBottom={2}>
           {header}
         </Box>
-        <Box marginBottom={2}>
+        <Box marginBottom={1}>
           <SearchBar className={styles.searchBar} />
         </Box>
-        <Box marginBottom={2} position="relative" zIndex={0}>
-          <StatisticsGrid/>
+        <Box marginBottom={1} zIndex={0}>
+          <Dashboard/>
         </Box>
         <Box position="relative" zIndex={1}>
           <SearchResults />

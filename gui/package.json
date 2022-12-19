@@ -34,7 +34,7 @@
     "object-hash": "^3.0.0",
     "pace": "^0.0.4",
     "pace-js": "^1.0.2",
-    "plotly.js-cartesian-dist-min": "^2.12.1",
+    "plotly.js-dist-min": "^2.16.1",
     "qs": "^6.10.5",
     "react": "^17.0.2",
     "react-app-polyfill": "^1.0.1",
@@ -76,7 +76,8 @@
     "workbox-range-requests": "^6.5.4",
     "workbox-routing": "^6.5.4",
     "workbox-strategies": "^6.5.4",
-    "workbox-streams": "^6.5.4"
+    "workbox-streams": "^6.5.4",
+    "yup": "^0.32.11"
   },
   "scripts": {
     "start": "craco start",
@@ -89,13 +90,13 @@
     "eject": "craco eject"
   },
   "devDependencies": {
+    "@craco/craco": "^6.4.5",
     "@material-ui/codemod": "^4.5.0",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^14.2.0",
     "@welldone-software/why-did-you-render": "^7.0.1",
     "babel-eslint": "^10.1.0",
-    "@craco/craco": "^6.4.5",
     "craco-workbox": "^0.2.0",
     "eslint": "^7.11.0",
     "eslint-config-standard": "^17.0.0",

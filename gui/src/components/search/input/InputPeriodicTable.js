@@ -243,6 +243,8 @@ Element.propTypes = {
 */
 const useTableStyles = makeStyles(theme => ({
   root: {
+    height: '100%',
+    width: '100%',
     display: 'flex',
     flexDirection: 'column'
   },
@@ -274,24 +276,22 @@ function eqSet(as, bs) {
   return true
 }
 
-const InputPeriodicTable = React.memo(({
+export const PeriodicTable = React.memo(({
   quantity,
-  label,
-  description,
   visible,
-  initialScale,
+  scale,
   anchored,
   disableStatistics,
   aggId,
-  className
+  className,
+  'data-testid': testID
 }) => {
   const styles = useTableStyles()
-  const {filterData, useFilterState, useAgg, useIsStatisticsEnabled} = useSearchContext()
+  const {useFilterState, useAgg, useIsStatisticsEnabled} = useSearchContext()
   const isStatisticsEnabled = useIsStatisticsEnabled()
   const [filter, setFilter] = useFilterState(quantity)
   const localFilter = useRef(new Set())
   const [update, setUpdate] = useState(0)
-  const [scale, setScale] = useState(initialScale)
   const aggConfig = useMemo(() => ({type: 'terms'}), [])
   const agg = useAgg(quantity, visible, aggId, aggConfig)
   const availableValues = useMemo(() => {
@@ -302,11 +302,6 @@ const InputPeriodicTable = React.memo(({
   disableStatistics = anchored
     ? false
     : isNil(disableStatistics) ? !isStatisticsEnabled : disableStatistics
-
-  // Determine the description and title
-  const def = filterData[quantity]
-  const descFinal = description || def?.description || ''
-  const labelFinal = label || def?.label
 
   // The selected state of the periodic filter is kept in a local reference.
   // This way simply selecting an element does not cause a full re-render of the
@@ -334,7 +329,104 @@ const InputPeriodicTable = React.memo(({
     })
   }, [setFilter])
 
-  const table = useMemo(() => (<div className={clsx(styles.root, className)}>
+  const table = useMemo(() => {
+    // The colors are normalized with respect to the maximum aggregation size
+    // for an unselected element.
+    const max = agg
+      ? Math.max(...agg.data
+        .filter(option => !localFilter.current.has(option.value))
+        .map(option => option.count))
+      : 0
+    return <div className={clsx(styles.root, className)} data-testid={testID}>
+      <div className={styles.container}>
+        <table className={styles.table}>
+          <tbody>
+            {elements.map((row, i) => (
+              <tr key={i}>
+                {row.map((element, j) => (
+                  <td key={j} className={styles.td}>
+                    {element
+                      ? <Element
+                        element={element}
+                        disabled={!availableValues[element.symbol]}
+                        onClick={() => onElementClicked(element.symbol)}
+                        selected={localFilter.current.has(element.symbol)}
+                        max={max}
+                        count={availableValues[element.symbol]}
+                        localFilter={localFilter.current}
+                        scale={scale}
+                        disableStatistics={disableStatistics}
+                      />
+                      : null}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className={styles.formContainer}>
+          <InputCheckbox
+            quantity="exclusive"
+            label="only compositions that exclusively contain these atoms"
+          ></InputCheckbox>
+        </div>
+      </div>
+    </div>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agg, availableValues, onElementClicked, styles, update, scale, disableStatistics, className, testID])
+
+  return table
+})
+
+PeriodicTable.propTypes = {
+  quantity: PropTypes.string,
+  label: PropTypes.string,
+  description: PropTypes.string,
+  visible: PropTypes.bool,
+  scale: PropTypes.string,
+  anchored: PropTypes.bool,
+  disableStatistics: PropTypes.bool,
+  aggId: PropTypes.string,
+  className: PropTypes.string,
+  'data-testid': PropTypes.string
+}
+
+PeriodicTable.defaultProps = {
+  aggId: 'default',
+  'data-testid': 'periodictable'
+}
+
+/**
+ * Periodic table that directly shows the targeted quantity along with some
+ * extra controls.
+ */
+const useInputPeriodicTableStyles = makeStyles(theme => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column'
+  }
+}))
+const InputPeriodicTable = React.memo(({
+    quantity,
+    label,
+    description,
+    visible,
+    initialScale,
+    anchored,
+    disableStatistics,
+    aggId,
+    className
+  }) => {
+  const styles = useInputPeriodicTableStyles()
+  const [scale, setScale] = useState(initialScale)
+  const {filterData} = useSearchContext()
+
+  // Determine the description and title
+  const def = filterData[quantity]
+  const descFinal = description || def?.description || ''
+  const labelFinal = label || def?.label
+
+  return <div className={clsx(styles.root, className)}>
     <InputHeader
       quantity={quantity}
       label={labelFinal}
@@ -345,51 +437,15 @@ const InputPeriodicTable = React.memo(({
       disableAggSize
       anchored={anchored}
     />
-    <div className={styles.container}>
-      <table className={styles.table}>
-        <tbody>
-          {elements.map((row, i) => (
-            <tr key={i}>
-              {row.map((element, j) => (
-                <td key={j} className={styles.td}>
-                  {element
-                    ? <Element
-                      element={element}
-                      disabled={!availableValues[element.symbol]}
-                      onClick={() => onElementClicked(element.symbol)}
-                      selected={localFilter.current.has(element.symbol)}
-                      // The colors are normalized with respect to the maximum
-                      // aggregation size for an unselected element.
-                      max={agg
-                        ? Math.max(...agg.data
-                          .filter(option => !localFilter.current.has(option.value))
-                          .map(option => option.count))
-                        : 0
-                      }
-                      count={availableValues[element.symbol]}
-                      localFilter={localFilter.current}
-                      scale={scale}
-                      disableStatistics={disableStatistics}
-                    />
-                    : ''}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className={styles.formContainer}>
-        <InputCheckbox
-          quantity="exclusive"
-          label="only compositions that exclusively contain these atoms"
-        ></InputCheckbox>
-      </div>
-    </div>
+    <PeriodicTable
+      quantity={quantity}
+      visible={visible}
+      scale={scale}
+      anchored={anchored}
+      disableStatistics={disableStatistics}
+      aggId={aggId}
+    />
   </div>
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [agg, availableValues, onElementClicked, styles, update, scale, disableStatistics])
-
-  return table
 })
 
 InputPeriodicTable.propTypes = {
@@ -405,8 +461,7 @@ InputPeriodicTable.propTypes = {
 }
 
 InputPeriodicTable.defaultProps = {
-  initialScale: 'linear',
-  aggId: 'default'
+  initialScale: 'linear'
 }
 
 export default InputPeriodicTable

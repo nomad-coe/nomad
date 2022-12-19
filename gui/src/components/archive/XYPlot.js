@@ -4,7 +4,7 @@ import {Quantity as Q, useUnits} from '../../units'
 import {titleCase, resolveInternalRef} from '../../utils'
 import {getLineStyles} from '../plotting/common'
 import { merge } from 'lodash'
-import Plot from '../visualization/Plot'
+import Plot from '../plotting/Plot'
 import PropTypes from 'prop-types'
 import {withErrorHandler} from '../ErrorHandler'
 
@@ -156,7 +156,7 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     return [data, layout]
   }, [plot.layout, plot.lines, xAxis, yAxis, section, sectionDef, theme, title, units])
 
-  return <Box minWidth={500}>
+  return <Box minWidth={500} height={500}>
     <Plot
       data={data}
       layout={layout}

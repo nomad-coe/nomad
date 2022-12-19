@@ -244,10 +244,7 @@ class Api {
         method: 'POST',
         path: `${searchTarget}/query`,
         url: `${apiBase}/${searchTarget}/query`,
-        body: {
-          exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'dft.quantities', 'optimade', 'dft.labels', 'dft.geometries'],
-          ...search
-        }
+        body: search
       }
       const result = await this.axios.post(request.path, request.body, auth)
       if (config.returnRequest) {
@@ -257,7 +254,6 @@ class Api {
         return result.data
       }
     } catch (errors) {
-      // console.log(errors)
       handleApiError(errors)
     } finally {
       this.onFinishLoading(config?.loadingIndicator || false)

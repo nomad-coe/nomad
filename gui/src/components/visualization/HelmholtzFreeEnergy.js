@@ -18,7 +18,7 @@
 import React, {useEffect, useState, useMemo} from 'react'
 import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
-import Plot from '../visualization/Plot'
+import Plot from '../plotting/Plot'
 import { mergeObjects } from '../../utils'
 import { Quantity, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
@@ -27,7 +27,6 @@ const HelmholtzFreeEnergy = React.memo(({
   data,
   layout,
   className,
-  placeholderStyle,
   units,
   'data-testid': testID,
   ...other
@@ -108,8 +107,6 @@ HelmholtzFreeEnergy.propTypes = {
   ]),
   layout: PropTypes.object,
   className: PropTypes.string,
-  placeholderStyle: PropTypes.string,
-  noDataStyle: PropTypes.string,
   units: PropTypes.object, // Contains the unit configuration
   'data-testid': PropTypes.string
 }

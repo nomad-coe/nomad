@@ -38,7 +38,6 @@ import {
   isFunction,
   size,
   isEqual,
-  merge,
   cloneDeep
 } from 'lodash'
 import { Link } from '@material-ui/core'
@@ -52,6 +51,7 @@ import { Quantity, Unit } from '../../units'
 import { useErrors } from '../errors'
 import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
 import { Published } from '../entry/EntryDetails'
+import { getWidgetsObject } from './widgets/Widget'
 import { inputSectionContext } from './input/InputSection'
 import searchQuantities from '../../searchQuantities'
 import {
@@ -105,7 +105,7 @@ export const SearchContext = React.memo(({
   initialRows,
   initialFilterMenus,
   initialPagination,
-  initialStatistics,
+  initialDashboard,
   children
 }) => {
   const {api} = useApi()
@@ -244,6 +244,11 @@ export const SearchContext = React.memo(({
       : undefined
   }, [initialFilterMenus])
 
+  // The initial dashboard configuration
+  const dashboard = useMemo(() => {
+    return {initialDashboard, widgets: getWidgetsObject(initialDashboard?.widgets || [])}
+  }, [initialDashboard])
+
   // Initialize the set of available filters. This may depend on the resource.
   const [filtersLocal, filterDataLocal] = useMemo(() => {
     const filtersLocal = new Set()
@@ -261,7 +266,7 @@ export const SearchContext = React.memo(({
 
   // Initialize the search context state: any parameters in the URL are read and
   // default values as specified in filter registry are loaded
-  const [initialQuery, initialAggs, finalStatistics, filterDefaults] = useMemo(() => {
+  const [initialQuery, initialAggs, filterDefaults] = useMemo(() => {
     const filterDefaults = {}
     for (const [key, value] of Object.entries(filterData)) {
       if (!isNil(value.default)) {
@@ -271,15 +276,10 @@ export const SearchContext = React.memo(({
     const location = window.location.href
     const split = location.split('?')
     let queryURL = {}
-    let statisticsURL = {}
     if (split.length !== 1) {
       const qs = split.pop();
-      [queryURL, statisticsURL] = qsToSearch(qs)
+      [queryURL] = qsToSearch(qs)
     }
-
-    // Any statistics given in the URL override the initial statistics
-    const finalStatistics = merge(initialStatistics || {}, statisticsURL)
-
     const initialAggs = {}
     for (const key of filters) {
       initialAggs[key] = {
@@ -289,10 +289,9 @@ export const SearchContext = React.memo(({
     return [
       queryURL,
       initialAggs,
-      finalStatistics,
       filterDefaults
     ]
-  }, [filterData, filters, initialStatistics])
+  }, [filterData, filters])
 
   // Initialize a bunch of Recoil.js states and hooks. Notice how we are not using a set
   // of global states, but instead each SearchContext gets it's own states. This
@@ -311,6 +310,7 @@ export const SearchContext = React.memo(({
     aggsFamily,
     aggsState,
     paginationState,
+    requiredState,
     resultsUsedState,
     resultsState,
     apiDataState,
@@ -318,11 +318,14 @@ export const SearchContext = React.memo(({
     isMenuOpenState,
     isCollapsedState,
     isStatisticsEnabledState,
-    useStatisticValue,
-    useSetStatistic,
-    useStatisticState,
-    useStatisticsValue,
-    useStatisticsState,
+    useWidgetValue,
+    useSetWidget,
+    useWidgetState,
+    useWidgetsValue,
+    useWidgetsState,
+    useAddWidget,
+    useRemoveWidget,
+    useResetWidgets,
     useResults,
     useApiData,
     useAgg,
@@ -413,66 +416,86 @@ export const SearchContext = React.memo(({
       default: initialPagination
     })
 
+    const requiredState = atom({
+      key: `required_${contextID}`,
+      default: {
+        exclude: resource === 'entries' ? ['quantities', 'sections', 'files'] : undefined
+      }
+    })
+
     const resultsUsedState = atom({
       key: `resultsUsed_${contextID}`,
       default: false
     })
 
-    const statisticFamily = atomFamily({
-      key: `statisticFamily_${contextID}`,
-      default: (name) => finalStatistics[name]
+    const widgetFamily = atomFamily({
+      key: `widgetFamily_${contextID}`,
+      default: (name) => dashboard?.widgets?.[name]
     })
 
-    // Used to get/set the the statistics configuration of all filters
-    const statisticsState = selector({
-      key: `statisticsState_${contextID}`,
-      set: ({set}, stats) => {
-        stats && Object.entries(stats).forEach(([key, value]) => set(statisticFamily(key), value))
+    const widgetIds = atom({
+      key: `widgetIds_${contextID}`,
+      default: [...Object.keys(dashboard?.widgets)]
+    })
+
+    // Used to get/set the widgets configuration
+    const widgetsState = selector({
+      key: `widgetsState_${contextID}`,
+      set: ({set, reset}, value) => {
+        if (value) {
+          const ids = Object.keys(value)
+          Object.entries(value).forEach(([key, val]) => set(widgetFamily(key), val))
+          set(widgetIds, ids)
+        } else {
+          reset(widgetIds)
+          reset(widgetFamily)
+        }
       },
       get: ({get}) => {
         const stats = {}
-        for (const filter of filters) {
-          const stat = get(statisticFamily(filter))
-          if (stat) stats[filter] = stat
+        const ids = get(widgetIds)
+        for (const id of ids) {
+          const stat = get(widgetFamily(id))
+          if (stat) stats[id] = stat
         }
         return stats
       }
     })
 
     /**
-     * This hook will expose a function for reading if filter statistics are shown
+     * This hook will expose a function for reading if widgets are shown
      * on the search page. Use this hook if you intend to only view the value and
      * are not interested in setting the value.
      *
      * @param {string} name Name of the filter.
-     * @returns Whether the filter statistics are shown.
+     * @returns Whether the widgets are shown.
      */
-    function useStatisticValue(name) {
-      return useRecoilValue(statisticFamily(name))
+    function useWidgetValue(name) {
+      return useRecoilValue(widgetFamily(name))
     }
 
     /**
-     * This hook will expose a function for setting if filter statistics are shown
+     * This hook will expose a function for setting if widget are shown
      * on the search page. Use this hook if you intend to only set the value and are
      * not interested in reading it.
      *
      * @param {string} name Name of the quantity to set.
      * @returns Function for setting the value
      */
-    function useSetStatistic(name) {
-      return useSetRecoilState(statisticFamily(name))
+    function useSetWidget(name) {
+      return useSetRecoilState(widgetFamily(name))
     }
 
     /**
      * This hook will expose a function for getting and setting whether the
-     * statistics are shown. Use this hook if you intend to both read and write the
+     * widgets are shown. Use this hook if you intend to both read and write the
      * filter value.
      *
      * @param {string} name Name of the filter.
      * @returns Array containing the value and a function for setting it.
      */
-    function useStatisticState(name) {
-      return useRecoilState(statisticFamily(name))
+    function useWidgetState(name) {
+      return useRecoilState(widgetFamily(name))
     }
 
     /**
@@ -480,18 +503,62 @@ export const SearchContext = React.memo(({
      *
      * @returns A list containing the anchored quantity names.
      */
-    function useStatisticsValue() {
-      return useRecoilValue(statisticsState)
+    function useWidgetsValue() {
+      return useRecoilValue(widgetsState)
     }
 
     /**
      * This hook will expose a function for reading and writing the object
-     * containing all the current statistics.
+     * containing all the current widgets.
      *
      * @returns Array containing the value and a function for setting it.
      */
-    function useStatisticsState() {
-      return useRecoilState(statisticsState)
+    function useWidgetsState() {
+      return useRecoilState(widgetsState)
+    }
+
+    /**
+     * Returns a function that can be used to add a new widget.
+     *
+     * @returns Function for setting a new widget value.
+     */
+    const useAddWidget = () => {
+      const add = useRecoilCallback(({set}) => (id, value) => {
+        set(widgetFamily(id), value)
+        set(widgetIds, (old) => [...old, id])
+      }, [])
+      return add
+    }
+
+    /**
+     * Returns a function that can be used to remove a widget.
+     *
+     * @returns Function for removing a widget by id.
+     */
+    const useRemoveWidget = () => {
+      const remove = useRecoilCallback(({set}) => (id) => {
+        set(widgetFamily(id), undefined)
+        set(widgetIds, (old) => [...old].filter(item => item !== id))
+      }, [])
+      return remove
+    }
+
+    /**
+     * This hook will expose a function for resetting widgets to the initial
+     * configuration.
+     *
+     * @param {string} name Name of the quantity to set.
+     * @returns Function for setting the value
+     */
+    const useResetWidgets = () => {
+      const ids = useRecoilValue(widgetIds)
+      const reset = useRecoilCallback(({reset}) => () => {
+        for (const id of ids) {
+          reset(widgetFamily(id))
+        }
+        reset(widgetIds)
+      }, [])
+      return reset
     }
 
     const resultsState = atom({
@@ -521,8 +588,8 @@ export const SearchContext = React.memo(({
       get: (id) => ({ get }) => {
         return get(aggsFamilyRaw(id))
       },
-      set: (id) => ({set}, meal) => {
-        set(aggsFamilyRaw(id), meal)
+      set: (id) => ({set}, value) => {
+        set(aggsFamilyRaw(id), value)
         set(aggKeys, prev => [...prev, id])
       }
     })
@@ -600,7 +667,6 @@ export const SearchContext = React.memo(({
       const sectionContext = useContext(inputSectionContext)
       const section = sectionContext?.section
       const subname = useMemo(() => section ? name.slice(section.length + 1) : undefined, [name, section])
-
       const setter = useSetRecoilState(queryFamily(section || name))
 
       const handleSet = useCallback((value) => {
@@ -643,12 +709,11 @@ export const SearchContext = React.memo(({
     const useUpdateQueryString = () => {
       const history = useHistory()
       const query = useRecoilValue(queryState)
-      const statistics = useRecoilValue(statisticsState)
 
       return useCallback(() => {
-        const queryString = searchToQs(query, statistics)
+        const queryString = searchToQs(query)
         history.replace(history.location.pathname + '?' + queryString)
-      }, [history, query, statistics])
+      }, [history, query])
     }
 
     /**
@@ -845,6 +910,7 @@ export const SearchContext = React.memo(({
       aggsFamily,
       aggsState,
       paginationState,
+      requiredState,
       resultsUsedState,
       resultsState,
       apiDataState,
@@ -852,17 +918,20 @@ export const SearchContext = React.memo(({
       isMenuOpenState,
       isCollapsedState,
       isStatisticsEnabledState,
-      useStatisticValue,
-      useSetStatistic,
-      useStatisticState,
-      useStatisticsValue,
-      useStatisticsState,
+      useWidgetValue,
+      useSetWidget,
+      useWidgetState,
+      useWidgetsValue,
+      useWidgetsState,
+      useAddWidget,
+      useRemoveWidget,
+      useResetWidgets,
       useResults,
       useApiData,
       useAgg,
       useSetFilters
     ]
-  }, [contextID, initialQuery, filters, initialFiltersLocked, finalStatistics, initialAggs, initialPagination, filterData])
+  }, [contextID, initialQuery, filters, initialFiltersLocked, dashboard, initialAggs, initialPagination, filterData, resource])
 
   const setResults = useSetRecoilState(resultsState)
   const setApiData = useSetRecoilState(apiDataState)
@@ -871,6 +940,7 @@ export const SearchContext = React.memo(({
   const query = useRecoilValue(queryState)
   const filtersLocked = useFiltersLocked()
   const [pagination, setPagination] = useRecoilState(paginationState)
+  const required = useRecoilValue(requiredState)
   const resultsUsed = useRecoilValue(resultsUsedState)
   const updateQueryString = useUpdateQueryString()
 
@@ -883,7 +953,7 @@ export const SearchContext = React.memo(({
    * original order not matter how long the actual call takes.
    */
   const resolve = useCallback(prop => {
-    const {response, timestamp, queryChanged, paginationChanged, search, aggsToUpdate, resource, callback} = prop
+    const {response, timestamp, queryChanged, paginationChanged, search, aggsToUpdate, resource, callbackAgg, callbackHits} = prop
     const data = response.response
     const next = apiQueue.current[0]
     if (next !== timestamp) {
@@ -894,32 +964,30 @@ export const SearchContext = React.memo(({
     // aggregation data is preserved and new information is updated.
     if (!isEmpty(data.aggregations)) {
       const newAggs = toGUIAgg(data.aggregations, aggsToUpdate, resource)
-      callback && callback(newAggs)
-      updateAggsResponse(newAggs)
+      callbackAgg && callbackAgg(newAggs, undefined, true)
     } else {
-      callback && callback(null)
+      callbackAgg && callbackAgg(undefined, undefined, false)
     }
     // Update the query results if new data is received.
     if (queryChanged || paginationChanged) {
-      const isExtend = search.pagination.page_after_value
       paginationResponse.current = data.pagination
-      setResults(old => {
-        const newResults = old ? {...old} : {}
-        isExtend ? newResults.data = [...newResults.data, ...data.data] : newResults.data = data.data
-        newResults.pagination = combinePagination(search.pagination, data.pagination)
-        newResults.setPagination = setPagination
-        return newResults
-      })
+      const newResults = {
+        response: response,
+        pagination: combinePagination(search.pagination, data.pagination),
+        setPagination: setPagination
+      }
+      callbackHits && callbackHits(newResults, undefined, true, search)
+    } else {
+      callbackHits && callbackHits(undefined, undefined, false, search)
     }
     // Remove this query from queue and see if next can be resolved.
     apiQueue.current.shift()
-    setApiData(response)
     const nextTimestamp = apiQueue.current[0]
     const nextResolve = apiMap.current[nextTimestamp]
     if (nextResolve) {
       resolve(nextResolve)
     }
-  }, [setApiData, setPagination, setResults, updateAggsResponse])
+  }, [setPagination])
 
   /**
    * Function that preprocesses API call requests and finally performs the
@@ -928,8 +996,13 @@ export const SearchContext = React.memo(({
    * All of the heavier pre-processing, checking, etc. should be done in this
    * function, as it is the final one that gets called after the debounce
    * interval.
+   *
+   * @param {bool} global Whether the api call is made in the global context
+   * that introduces a series of optimizations by keeping track of the previous
+   * queries. Should be false when making API calls that should not affect the
+   * global context, e.g. when just getting hits with a different pagination etc.
    */
-  const apiCall = useCallback((query, aggs, pagination, resultsUsed, queryChanged, paginationChanged, updateAggs, callback = undefined) => {
+  const apiCall = useCallback((query, aggs, pagination, required, resultsUsed, queryChanged, paginationChanged, updateAggs, callbackAgg = undefined, callbackHits = undefined, global = true) => {
     // Gather aggregations that need to be updated (=require and API call), and
     // the ones that have changed (have changed but do not require an API call).
     const aggsToUpdate = []
@@ -978,7 +1051,8 @@ export const SearchContext = React.memo(({
         aggs,
         resource
       ),
-      pagination: {...pagination}
+      pagination: {...pagination},
+      required: required
     }
 
     // When aggregations have changed but the query has not, we request only the
@@ -997,21 +1071,23 @@ export const SearchContext = React.memo(({
       search.pagination.next_page_after_value = undefined
     }
 
-    // When the query changes, information about the most recent agg update (no
-    // matter if it causes an API call or not) gets stored. When the query has
-    // not changed, the last agg that caused an actual API call is added to the
-    // existing list. This way previous aggregation data can be re-used.
-    if (queryChanged) {
-      updatedAggsMap.current = Object.fromEntries(aggsChanged.map((key) => [key, aggs[key]]))
-    } else {
-      aggsToUpdate.forEach((key) => { updatedAggsMap.current[key] = aggs[key] })
-    }
+    if (global) {
+      // When the query changes, information about the most recent agg update (no
+      // matter if it causes an API call or not) gets stored. When the query has
+      // not changed, the last agg that caused an actual API call is added to the
+      // existing list. This way previous aggregation data can be re-used.
+      if (queryChanged) {
+        updatedAggsMap.current = Object.fromEntries(aggsChanged.map((key) => [key, aggs[key]]))
+      } else {
+        aggsToUpdate.forEach((key) => { updatedAggsMap.current[key] = aggs[key] })
+      }
 
-    // The list of updated filters are always reset.
-    updatedFilters.current = new Set()
-    firstLoad.current = false
-    oldQuery.current = query
-    oldPagination.current = pagination
+      // The list of updated filters are always reset.
+      updatedFilters.current = new Set()
+      firstLoad.current = false
+      oldQuery.current = query
+      oldPagination.current = pagination
+    }
 
     const timestamp = Date.now()
     apiQueue.current.push(timestamp)
@@ -1025,12 +1101,14 @@ export const SearchContext = React.memo(({
           search,
           aggsToUpdate,
           resource,
-          callback
+          callbackAgg,
+          callbackHits
         })
       })
       .catch((error) => {
         raiseError(error)
-        callback && callback(undefined, error)
+        callbackAgg && callbackAgg(undefined, error, true)
+        callbackHits && callbackHits(undefined, error, true, undefined)
       })
   }, [filterDefaults, filtersLocked, resource, api, raiseError, resolve])
 
@@ -1043,7 +1121,7 @@ export const SearchContext = React.memo(({
    * - Calls are debounced when necessary
    * - API calls are made only if necessary
    */
-  const apiCallInterMediate = useCallback((query, aggs, pagination, resultsUsed, callback = undefined, forceUpdate = false) => {
+  const apiCallInterMediate = useCallback((query, aggs, pagination, required, resultsUsed = true, callbackAgg = undefined, callbackHits = undefined, forceUpdate = false, global = true) => {
     if (disableUpdate.current) {
       disableUpdate.current = false
       return
@@ -1070,19 +1148,42 @@ export const SearchContext = React.memo(({
     // Otherwise it is debounced.
     if ((resultsUsed && (paginationChanged || queryChanged)) || updateAggs) {
       if (firstLoad.current || paginationChanged || !queryChanged) {
-        apiCall(query, reducedAggs, pagination, resultsUsed, queryChanged, paginationChanged, updateAggs, callback, false)
+        apiCall(query, reducedAggs, pagination, required, resultsUsed, queryChanged, paginationChanged, updateAggs, callbackAgg, callbackHits, global)
       } else {
-        apiCallDebounced(query, reducedAggs, pagination, resultsUsed, queryChanged, paginationChanged, updateAggs, callback)
+        apiCallDebounced(query, reducedAggs, pagination, required, resultsUsed, queryChanged, paginationChanged, updateAggs, callbackAgg, callbackHits, global)
       }
     } else {
-      callback && callback(undefined, undefined)
+      callbackAgg && callbackAgg(undefined, undefined, false)
+      callbackHits && callbackHits(undefined, undefined, false, undefined)
     }
   }, [apiCall, apiCallDebounced])
 
   // When query, aggregation or pagination changes, update the search context
   useEffect(() => {
-    apiCallInterMediate(query, aggs, pagination, resultsUsed)
-  }, [query, aggs, pagination, resultsUsed, apiCallInterMediate])
+    apiCallInterMediate(
+      query,
+      aggs,
+      pagination,
+      required,
+      resultsUsed,
+      (data, error, update) => (update && !error) && updateAggsResponse(data),
+      (results, error, update, search) => {
+        if (error || !update) return
+        setApiData(results.response)
+        const data = results.response.response
+        const extend = search?.pagination?.page_after_value
+        setResults(old => {
+          const newResults = old ? {...old} : {}
+          extend ? newResults.data = [...newResults.data, ...data.data] : newResults.data = data.data
+          newResults.pagination = combinePagination(search.pagination, data.pagination)
+          newResults.setPagination = setPagination
+          return newResults
+        })
+      },
+      false,
+      true
+    )
+  }, [query, aggs, pagination, required, resultsUsed, apiCallInterMediate, updateAggsResponse, setPagination, setResults, setApiData])
 
   // This updated the query string to represent the latest value within the
   // search context.
@@ -1098,11 +1199,34 @@ export const SearchContext = React.memo(({
       const query = useRecoilValue(queryState)
       const aggs = useRecoilValue(aggsState)
       const pagination = useRecoilValue(paginationState)
+      const required = useRecoilValue(requiredState)
       const resultsUsed = useRecoilValue(resultsUsedState)
 
       const refresh = useCallback(() => {
-        apiCallInterMediate(query, aggs, pagination, resultsUsed, undefined, true)
-      }, [aggs, pagination, query, resultsUsed])
+        apiCallInterMediate(
+          query,
+          aggs,
+          pagination,
+          required,
+          resultsUsed,
+          (data, error, update) => (update && !error) && updateAggsResponse(data),
+          (results, error, update, search) => {
+            if (error || !update) return
+            setApiData(results.response)
+            const data = results.response.response
+            const extend = search?.pagination?.page_after_value
+            setResults(old => {
+              const newResults = old ? {...old} : {}
+              extend ? newResults.data = [...newResults.data, ...data.data] : newResults.data = data.data
+              newResults.pagination = combinePagination(search.pagination, data.pagination)
+              newResults.setPagination = setPagination
+              return newResults
+            })
+          },
+          true,
+          true
+        )
+      }, [aggs, pagination, required, query, resultsUsed])
       return refresh
     }
 
@@ -1112,6 +1236,7 @@ export const SearchContext = React.memo(({
       const key = useMemo(() => `${name}:${id}`, [name, id])
       const query = useRecoilValue(queryState)
       const pagination = useRecoilValue(paginationState)
+      const required = useRecoilValue(requiredState)
       const resultsUsed = useRecoilValue(resultsUsedState)
       const setAgg = useSetRecoilState(aggsFamily(key))
 
@@ -1125,8 +1250,20 @@ export const SearchContext = React.memo(({
       const aggCall = useCallback((config, callback) => {
         const aggs = {[key]: {...config, update: true}}
         apiCallInterMediate(
-          query, aggs, pagination, resultsUsed,
-          (response) => callback(response && response[key])
+          query,
+          aggs,
+          pagination,
+          required,
+          resultsUsed,
+          (response, error, update) => {
+            if (update && !error) {
+              updateAggsResponse(response)
+            }
+            callback(response && response[key], error, update)
+          },
+          undefined,
+          false,
+          true
         )
 
         // We also need to update aggregation request state, otherwise the
@@ -1136,9 +1273,50 @@ export const SearchContext = React.memo(({
         disableUpdate.current = true
         aggs[key].update = false
         setAgg(aggs[key])
-      }, [key, query, pagination, resultsUsed, setAgg])
+      }, [key, query, pagination, required, resultsUsed, setAgg])
 
       return aggCall
+    }
+
+    /**
+     * Hook for fetching an independent set of hits based on the currently set
+     * filters.
+     *
+     * @param {string} id Unique identified for this set of hits
+     * @param {object} required The required field of the API call
+     * @param {object} pagination The API pagination
+     *
+     * @returns {Array} Array of hit objects.
+     */
+    const useHits = (id = 'default', required, pagination, callback) => {
+      const [results, setResults] = useState()
+      const query = useRecoilValue(queryState)
+      const apiCallDebounced = useMemo(() => debounce(apiCall, 400), [])
+
+      // Update hits when query, includes, excludes or pagination change.
+      useEffect(() => {
+        apiCallDebounced(
+          query,
+          {},
+          pagination,
+          required,
+          true,
+          true,
+          true,
+          false,
+          undefined,
+          (results, error, update) => {
+            if (!error && update) {
+              const data = results.response.response
+              update && !error && setResults(data?.data)
+            }
+            callback(results, error, update)
+          },
+          false
+        )
+      }, [query, required, pagination, apiCallDebounced, callback])
+
+      return results
     }
 
     return {
@@ -1153,28 +1331,32 @@ export const SearchContext = React.memo(({
       useIsStatisticsEnabled: () => useRecoilValue(isStatisticsEnabledState),
       useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState),
       useQuery: () => useRecoilValue(queryState),
-      useFilterValue: useFilterValue,
-      useSetFilter: useSetFilter,
-      useFilterState: useFilterState,
-      useFiltersState: useFiltersState,
-      useResetFilters: useResetFilters,
-      useRefresh: useRefresh,
-      useFilterLocked: useFilterLocked,
-      useFiltersLocked: useFiltersLocked,
-      useFiltersLockedState: useFiltersLockedState,
-      useStatisticValue: useStatisticValue,
-      useSetStatistic: useSetStatistic,
-      useStatisticState: useStatisticState,
-      useStatisticsValue: useStatisticsValue,
-      useStatisticsState: useStatisticsState,
-      useUpdateQueryString: useUpdateQueryString,
-      useResults: useResults,
-      useApiData: useApiData,
-      useAgg: useAgg,
-      useAggCall: useAggCall,
-      useSetFilters: useSetFilters,
-      filters: filters,
-      filterData: filterData
+      useFilterValue,
+      useSetFilter,
+      useFilterState,
+      useFiltersState,
+      useResetFilters,
+      useRefresh,
+      useFilterLocked,
+      useFiltersLocked,
+      useFiltersLockedState,
+      useWidgetValue,
+      useSetWidget,
+      useWidgetState,
+      useWidgetsValue,
+      useWidgetsState,
+      useAddWidget,
+      useRemoveWidget,
+      useResetWidgets,
+      useUpdateQueryString,
+      useResults,
+      useHits,
+      useApiData,
+      useAgg,
+      useAggCall,
+      useSetFilters,
+      filters,
+      filterData
     }
   }, [
     resource,
@@ -1189,11 +1371,14 @@ export const SearchContext = React.memo(({
     useFilterLocked,
     useFiltersLocked,
     useFiltersLockedState,
-    useStatisticValue,
-    useSetStatistic,
-    useStatisticState,
-    useStatisticsValue,
-    useStatisticsState,
+    useWidgetValue,
+    useSetWidget,
+    useWidgetState,
+    useWidgetsValue,
+    useWidgetsState,
+    useAddWidget,
+    useRemoveWidget,
+    useResetWidgets,
     useUpdateQueryString,
     useResults,
     useApiData,
@@ -1204,12 +1389,18 @@ export const SearchContext = React.memo(({
     queryState,
     aggsState,
     paginationState,
+    requiredState,
     resultsUsedState,
     apiCallInterMediate,
+    apiCall,
     aggsFamily,
     isMenuOpenState,
     isCollapsedState,
-    isStatisticsEnabledState
+    isStatisticsEnabledState,
+    updateAggsResponse,
+    setPagination,
+    setResults,
+    setApiData
   ])
 
   return <searchContext.Provider value={values}>
@@ -1224,7 +1415,7 @@ SearchContext.propTypes = {
   initialRows: PropTypes.object,
   initialFilterMenus: PropTypes.object,
   initialPagination: PropTypes.object,
-  initialStatistics: PropTypes.object,
+  initialDashboard: PropTypes.object,
   children: PropTypes.node
 }
 
@@ -1245,18 +1436,9 @@ export function useSearchContext() {
 function qsToSearch(queryString) {
   const queryObj = qs.parse(queryString, {comma: true})
 
-  // Deserialize statistics
-  const statistics = {}
-  const stats = queryObj.statistics
-  if (stats) {
-    const statsArray = isArray(stats) ? stats : [stats]
-    statsArray.forEach((name, i) => { statistics[name] = {index: Date.now() + i} })
-    delete queryObj.statistics
-  }
-
   // Deserialize query
   const query = toGUIFilter(queryObj)
-  return [query, statistics]
+  return [query]
 }
 
 /**
@@ -1266,12 +1448,10 @@ function qsToSearch(queryString) {
  * @param {object} search Object representing the currently active search
  * context.
  *  - query: Object representing the active search filters.
- *  - statistics: Object containing the currently shown statistics
  * @returns {object} An object that can e.g. be serialized into a query string.
  */
 export function searchToQsData(search) {
   const query = search.query
-  const statistics = search.statistics
 
   // Used to recursively convert the query into a serializable format.
   function convert(key, value, path) {
@@ -1316,14 +1496,6 @@ export function searchToQsData(search) {
       }
     }
   }
-  // The shown statistics are serialized here: currently we only store a simple
-  // ordered list in the query string. If more properties are needed in the
-  // future, the whole object should be stored.
-  if (!isEmpty(statistics)) {
-    queryStringQuery.statistics = Object.entries(statistics)
-      .sort((a, b) => a[1].index - b[1].index)
-      .map(([key, value]) => key)
-  }
 
   return queryStringQuery
 }
@@ -1331,12 +1503,11 @@ export function searchToQsData(search) {
 /**
  * Converts a query into a valid query string.
  * @param {object} query Query object representing the currently active
- * @param {object} statistics Object containing which filter statistics are docked.
  * filters.
  * @returns URL querystring, not encoded if possible to improve readability.
  */
 function searchToQs(query, statistics) {
-  const queryData = searchToQsData({query, statistics, abbreviate: true})
+  const queryData = searchToQsData({query, abbreviate: true})
   return qs.stringify(queryData, {indices: false, encode: false})
 }
 
@@ -1735,4 +1906,16 @@ export function getValue(def, filter, filterLocked, initialValue) {
   const defaultValue = isNil(initialValue) ? def.default : initialValue
   const val = (def.global && !isNil(filterLocked)) ? filterLocked : filter
   return isNil(val) ? defaultValue : val
+}
+
+/**
+ * Returns the final value that should be shown for the given filter.
+ *
+ * @param {Set} dtypes The targeted data types
+ * @param {string[]} filters The available list of filters
+ * @returns Array of filter names
+ */
+export function getFilterSuggestions(dtypes, repeats, filterData) {
+  return Object.keys(filterData)
+    .filter((d) => dtypes.has(filterData[d]?.dtype) && filterData[d]?.repeats === repeats)
 }

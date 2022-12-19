@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React, { useState, useMemo, useCallback, useEffect, useRef, useContext } from 'react'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
+import { makeStyles } from '@material-ui/core/styles'
 import { Slider, Checkbox, FormControlLabel, Tooltip } from '@material-ui/core'
 import { useRecoilValue } from 'recoil'
 import PropTypes from 'prop-types'
@@ -37,17 +37,15 @@ import { isValid, getTime } from 'date-fns'
 import { guiState } from '../../GUIMenu'
 
 /*
- * Input component for numerical ranges (float, int, timestamps). By default
- * also shows a histogram of the available values.
+ * Component for displaying a numerical range as a slider/histogram together
+ * with query input possibility.
  */
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
-    display: 'flex',
-    flexDirection: 'column'
+    height: '100%'
   },
   histogram: {
-    height: '8rem'
   },
   inputFieldText: {
     marginTop: 0,
@@ -104,29 +102,26 @@ const useStyles = makeStyles(theme => ({
     }
   }
 }))
-const InputRange = React.memo(({
-  label,
+export const Range = React.memo(({
   quantity,
-  description,
   nSteps,
   visible,
-  initialScale,
+  scale,
   nBins,
-  anchored,
   disableHistogram,
-  initialZoom,
+  autorange,
+  inputfields,
   aggId,
   className,
   classes,
   'data-testid': testID
 }) => {
-  const theme = useTheme()
   const units = useUnits()
   const {filterData, useAgg, useFilterState, useIsStatisticsEnabled} = useSearchContext()
   const sectionContext = useContext(inputSectionContext)
   const repeats = sectionContext?.repeats
   const isStatisticsEnabled = useIsStatisticsEnabled()
-  const styles = useStyles({classes: classes, theme: theme})
+  const styles = useStyles({classes})
   const [filter, setFilter] = useFilterState(quantity)
   const [minLocal, setMinLocal] = useState()
   const [maxLocal, setMaxLocal] = useState()
@@ -140,16 +135,12 @@ const InputRange = React.memo(({
   const [range, setRange] = useState({gte: undefined, lte: undefined})
   const [minError, setMinError] = useState(false)
   const [maxError, setMaxError] = useState(false)
-  const [scale, setScale] = useState(initialScale || filterData[quantity].scale)
   const highlight = Boolean(filter)
   const inputVariant = useRecoilValue(guiState('inputVariant'))
-  disableHistogram = anchored
-    ? false
-    : isNil(disableHistogram) ? !isStatisticsEnabled : disableHistogram
+  disableHistogram = isNil(disableHistogram) ? !isStatisticsEnabled : disableHistogram
 
   // Determine the description and units
   const def = filterData[quantity]
-  const desc = description || def?.description || ''
   const unitSI = useMemo(() => {
     return new Unit(def?.unit || 'dimensionless')
   }, [def])
@@ -160,8 +151,6 @@ const InputRange = React.memo(({
   const discretization = dtype === DType.Int ? 1 : undefined
   const isTime = dtype === DType.Timestamp
   const firstLoad = useRef(true)
-  const labelFinal = label || def?.label
-  const [zoom, setZoom] = useState(isNil(initialZoom) ? isTime : initialZoom)
 
   // We need to set a valid initial input state: otherwise the component thinks
   // it is uncontrolled.
@@ -209,7 +198,7 @@ const InputRange = React.memo(({
     } else {
       // Is zoom is not disabled, the current filter defines the histogram
       // boundary.
-      if (zoom) {
+      if (autorange) {
         extended_bounds = filterBounds
         exclude_from_search = false
       } else {
@@ -232,7 +221,7 @@ const InputRange = React.memo(({
     return (isTime || !discretization)
       ? {type: 'histogram', buckets: nBins, exclude_from_search, extended_bounds}
       : {type: 'histogram', interval: discretization, exclude_from_search, extended_bounds}
-  }, [filter, fromFilter, isTime, discretization, nBins, zoom])
+  }, [filter, fromFilter, isTime, discretization, nBins, autorange])
   const agg = useAgg(quantity, visible && !disableHistogram, `${aggId}_histogram`, aggHistogramConfig)
   useEffect(() => {
     if (!isNil(agg)) {
@@ -337,7 +326,7 @@ const InputRange = React.memo(({
     // Helper functions for determining the min/max boundaries.
     const limit = (global, filter, min) => {
       const func = min ? Math.min : Math.max
-      if (zoom) {
+      if (autorange) {
         return filter
       } else {
         return func(global, filter)
@@ -386,7 +375,7 @@ const InputRange = React.memo(({
       setMaxError()
       setMinError()
     }
-  }, [minGlobalSI, maxGlobalSI, filter, unitSI, toInternal, units, def, isTime, zoom])
+  }, [minGlobalSI, maxGlobalSI, filter, unitSI, toInternal, units, def, isTime, autorange])
 
   // Returns whether the given range is an acceptable value to be queried and
   // displayed.
@@ -617,32 +606,7 @@ const InputRange = React.memo(({
     />
   }
 
-  // Component for enabling/disabling zoom
-  const actions = [<Tooltip
-    title="Enable zooming in by defining a filter range that is inside the min/max boundaries."
-    key="zoom"
-  >
-    <FormControlLabel
-      control={<Checkbox
-        checked={zoom}
-        onChange={(event) => (setZoom(event.target.checked))}
-        size="small"
-      />}
-      label="zoom"
-    />
-  </Tooltip>]
-
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <InputHeader
-      label={labelFinal}
-      quantity={quantity}
-      description={desc}
-      scale={scale}
-      onChangeScale={setScale}
-      disableStatistics={disableHistogram}
-      anchored={anchored}
-      actions={actions}
-    />
     <InputTooltip unavailable={unavailable}>
       <div className={styles.column}>
         {!disableHistogram &&
@@ -663,7 +627,7 @@ const InputRange = React.memo(({
             dtypeY={DType.Int}
             onRangeChange={handleRangeChange}
             onRangeCommit={handleRangeCommit}
-            className={clsx(!anchored && styles.histogram)}
+            className={clsx(styles.histogram)}
             onClick={(event, value) => {
               handleRangeChange(event, value, false)
               handleRangeCommit(event, value)
@@ -671,7 +635,7 @@ const InputRange = React.memo(({
             data-testid={`${testID}-histogram`}
           />
         }
-        {!anchored && <div className={styles.row}>
+        {inputfields && <div className={styles.row}>
           {inputMinField}
           {disableHistogram && !isTime
             ? <div className={styles.spacer}>
@@ -696,10 +660,8 @@ const InputRange = React.memo(({
   </div>
 })
 
-InputRange.propTypes = {
-  label: PropTypes.string,
+Range.propTypes = {
   quantity: PropTypes.string.isRequired,
-  description: PropTypes.string,
   /* Target number of steps for the slider that is shown when statistics are
    * disabled. The actual number may vary, as the step is chosen to be a
    * human-readable value that depends on the range and the unit. */
@@ -708,16 +670,118 @@ InputRange.propTypes = {
    * enabled. */
   nBins: PropTypes.number,
   visible: PropTypes.bool,
-  anchored: PropTypes.bool,
-  /* The initial statistics scaling */
-  initialScale: PropTypes.number,
+  /* The statistics scaling */
+  scale: PropTypes.string,
   /* Whether the histogram is disabled */
   disableHistogram: PropTypes.bool,
-  /* Can the user zoom in beyond aggregation limits. */
-  initialZoom: PropTypes.bool,
+  /* Set the range automatically according to data. */
+  autorange: PropTypes.bool,
+  /* Show the input fields for min and max value */
+  inputfields: PropTypes.bool,
   aggId: PropTypes.string,
   className: PropTypes.string,
   classes: PropTypes.object,
+  'data-testid': PropTypes.string
+}
+
+Range.defaultProps = {
+  nSteps: 20,
+  nBins: 30,
+  aggId: 'default',
+  'data-testid': 'inputrange'
+}
+
+/**
+ * A small wrapper around Range for use in the filter menus.
+ */
+const useInputRangeStyles = makeStyles(theme => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  histogram: {
+    height: '8rem'
+  }
+}))
+const InputRange = React.memo(({
+  label,
+  quantity,
+  description,
+  nSteps,
+  visible,
+  initialScale,
+  nBins,
+  disableHistogram,
+  initialAutorange,
+  aggId,
+  className,
+  'data-testid': testID
+}) => {
+  const {filterData} = useSearchContext()
+  const styles = useInputRangeStyles()
+  const [scale, setScale] = useState(initialScale || filterData[quantity].scale)
+  const dtype = filterData[quantity].dtype
+  const isTime = dtype === DType.Timestamp
+  const [autorange, setAutorange] = useState(isNil(initialAutorange) ? isTime : initialAutorange)
+
+  // Determine the description and title
+  const def = filterData[quantity]
+  const descFinal = description || def?.description || ''
+  const labelFinal = label || def?.label
+
+  // Component for enabling/disabling autorange
+  const actions = [<Tooltip
+    title="Enable zooming in by defining a filter range that is inside the min/max boundaries."
+    key="autorange"
+  >
+    <FormControlLabel
+      control={<Checkbox
+        checked={autorange}
+        onChange={(event) => (setAutorange(event.target.checked))}
+        size="small"
+      />}
+      label="autorange"
+    />
+  </Tooltip>]
+
+  return <div className={clsx(styles.root, className)}>
+    <InputHeader
+      label={labelFinal}
+      quantity={quantity}
+      description={descFinal}
+      scale={scale}
+      onChangeScale={setScale}
+      disableStatistics={disableHistogram}
+      actions={actions}
+    />
+    <Range
+      quantity={quantity}
+      nSteps={nSteps}
+      visible={visible}
+      scale={scale}
+      nBins={nBins}
+      disableHistogram={disableHistogram}
+      autorange={autorange}
+      inputfields
+      aggId={aggId}
+      classes={{histogram: styles.histogram}}
+      data-testid={testID}
+    />
+  </div>
+})
+
+InputRange.propTypes = {
+  label: PropTypes.string,
+  quantity: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  nSteps: PropTypes.number,
+  nBins: PropTypes.number,
+  visible: PropTypes.bool,
+  initialScale: PropTypes.string,
+  disableHistogram: PropTypes.bool,
+  initialAutorange: PropTypes.bool,
+  aggId: PropTypes.string,
+  className: PropTypes.string,
   'data-testid': PropTypes.string
 }
 

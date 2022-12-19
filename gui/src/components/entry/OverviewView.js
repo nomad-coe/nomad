@@ -262,7 +262,7 @@ const OverviewView = React.memo((props) => {
             <Quantity quantity="last_processing_version" data={index}/>
           </Quantity>
         </MetadataSection>
-        <SourceApiDialogButton label="API" maxWidth="lg" fullWidth buttonProps={{variant: 'contained', size: 'small'}}>
+        <SourceApiDialogButton label="API" maxWidth="lg" fullWidth ButtonProps={{variant: 'contained', size: 'small'}}>
           {metadataApiData && <SourceApiCall
             {...metadataApiData}
             description="The basic metadata shown on this page is retrieved from the *entry metadata* API."

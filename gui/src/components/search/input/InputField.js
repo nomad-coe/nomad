@@ -85,7 +85,6 @@ const InputField = React.memo(({
   initialScale,
   initialSize,
   increment,
-  anchored,
   disableStatistics,
   disableSearch,
   disableOptions,
@@ -109,9 +108,7 @@ const InputField = React.memo(({
   const aggIndicator = useRecoilValue(guiState('aggIndicator'))
   const aggCollapse = useRecoilValue(guiState('aggCollapse'))
   const [scale, setScale] = useState(initialScale || filterData[quantity]?.scale || 'linear')
-  disableStatistics = anchored
-    ? false
-    : isNil(disableStatistics) ? !isStatisticsEnabled : disableStatistics
+  disableStatistics = isNil(disableStatistics) ? !isStatisticsEnabled : disableStatistics
 
   // See if the filter has a fixed amount of options. These may have been
   // explicitly provided or defined in the metainfo. If you explicitly specify
@@ -186,7 +183,7 @@ const InputField = React.memo(({
   const handleShowMore = useCallback(() => {
     setLoading(true)
     let newSize = requestedAggSize + incr
-    aggCall({type: 'terms', size: newSize}, (response, error) => {
+    aggCall({type: 'terms', size: newSize}, (response) => {
       if (response?.data?.length === requestedAggSize) {
         newSize = requestedAggSize
       }
@@ -355,7 +352,6 @@ const InputField = React.memo(({
       scale={scale}
       onChangeScale={setScale}
       disableStatistics={disableStatistics}
-      anchored={anchored}
     />
     {searchComponent}
     {optionsComponent}
@@ -371,7 +367,6 @@ InputField.propTypes = {
   initialScale: PropTypes.number, // The initial statistics scaling
   initialSize: PropTypes.number, // The initial maximum number of items to load
   increment: PropTypes.number, // The amount of new items to load on 'show more'
-  anchored: PropTypes.bool,
   disableStatistics: PropTypes.bool, // Whether to disable statistics
   disableSearch: PropTypes.bool, // Whether to show the search field
   disableOptions: PropTypes.bool, // Whether to show the options gathered through aggregations

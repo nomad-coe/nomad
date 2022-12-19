@@ -5,20 +5,10 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.method.simulation.program_name:statistics": {
+            "results.method.simulation.program_name:0": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
@@ -59,7 +49,7 @@
             ]
           },
           "aggregations": {
-            "results.method.simulation.program_name:statistics": {
+            "results.method.simulation.program_name:0": {
               "terms": {
                 "quantity": "results.method.simulation.program_name",
                 "exclude_from_search": true,
@@ -111,6 +101,10 @@
                   {
                     "count": 0,
                     "value": "BigDFT"
+                  },
+                  {
+                    "count": 0,
+                    "value": "BOPfox"
                   },
                   {
                     "count": 0,
@@ -324,7 +318,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5507",
+          "content-length": "5577",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -335,20 +329,10 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.method.simulation.dft.xc_functional_names:statistics": {
+            "results.method.simulation.dft.xc_functional_names:0": {
               "terms": {
                 "exclude_from_search": false,
                 "update": true,
@@ -389,7 +373,7 @@
             ]
           },
           "aggregations": {
-            "results.method.simulation.dft.xc_functional_names:statistics": {
+            "results.method.simulation.dft.xc_functional_names:0": {
               "terms": {
                 "quantity": "results.method.simulation.dft.xc_functional_names",
                 "exclude_from_search": false,
@@ -419,7 +403,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "872",
+          "content-length": "863",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -430,20 +414,10 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.method.simulation.dft.xc_functional_type:statistics": {
+            "results.method.simulation.dft.xc_functional_type:0": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
@@ -484,7 +458,7 @@
             ]
           },
           "aggregations": {
-            "results.method.simulation.dft.xc_functional_type:statistics": {
+            "results.method.simulation.dft.xc_functional_type:0": {
               "terms": {
                 "quantity": "results.method.simulation.dft.xc_functional_type",
                 "exclude_from_search": true,
@@ -504,7 +478,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "640",
+          "content-length": "631",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -515,20 +489,10 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {},
           "aggregations": {
-            "results.material.compound_type:statistics": {
+            "results.material.compound_type:0": {
               "terms": {
                 "exclude_from_search": false,
                 "update": true,
@@ -569,7 +533,7 @@
             ]
           },
           "aggregations": {
-            "results.material.compound_type:statistics": {
+            "results.material.compound_type:0": {
               "terms": {
                 "quantity": "results.material.compound_type",
                 "exclude_from_search": false,
@@ -583,7 +547,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "480",
+          "content-length": "471",
           "content-type": "application/json",
           "server": "uvicorn"
         }

@@ -510,9 +510,7 @@ ui = NomadConfig(
                 'spectroscopy',
                 'references'
             ],
-            'exclude': [
-                'relatedResources'
-            ],
+            'exclude': [],
             'options': {
                 'sections': {'error': 'Could not render section card.'},
                 'definitions': {'error': 'Could not render definitions card.'},
@@ -524,6 +522,7 @@ ui = NomadConfig(
                 'mechanical': {'error': 'Could not render mechanical properties.'},
                 'thermodynamic': {'error': 'Could not render thermodynamic properties.'},
                 'structural': {'error': 'Could not render structural properties.'},
+                'dynamical': {'error': 'Could not render dynamical properties.'},
                 'geometry_optimization': {'error': 'Could not render geometry optimization.'},
                 'spectroscopy': {'error': 'Could not render spectroscopic properties.'},
                 'references': {'error': 'Could not render references card.'},
@@ -641,15 +640,9 @@ ui = NomadConfig(
                     }
                 },
                 'rows': {
-                    'actions': {
-                        'enable': True
-                    },
-                    'details': {
-                        'enable': True
-                    },
-                    'selection': {
-                        'enable': True
-                    }
+                    'actions': {'enable': True},
+                    'details': {'enable': True},
+                    'selection': {'enable': True}
                 },
                 'filter_menus': {
                     'include': [
@@ -786,15 +779,9 @@ ui = NomadConfig(
                     }
                 },
                 'rows': {
-                    'actions': {
-                        'enable': True
-                    },
-                    'details': {
-                        'enable': True
-                    },
-                    'selection': {
-                        'enable': True
-                    }
+                    'actions': {'enable': True},
+                    'details': {'enable': True},
+                    'selection': {'enable': True}
                 },
                 'filter_menus': {
                     'include': [
@@ -903,15 +890,9 @@ ui = NomadConfig(
                     }
                 },
                 'rows': {
-                    'actions': {
-                        'enable': True
-                    },
-                    'details': {
-                        'enable': False
-                    },
-                    'selection': {
-                        'enable': False
-                    }
+                    'actions': {'enable': True},
+                    'details': {'enable': False},
+                    'selection': {'enable': False}
                 },
                 'filter_menus': {
                     'include': [
@@ -1033,6 +1014,133 @@ ui = NomadConfig(
                     'order': 'desc',
                     'page_size': 20,
                 },
+                'dashboard': {
+                    'widgets': [
+                        {
+                            "type": "periodictable",
+                            "scale": "linear",
+                            "quantity": "results.material.elements",
+                            "layout": {
+                                "xxl": {"minH": 8, "minW": 12, "h": 8, "w": 13, "y": 0, "x": 0},
+                                "xl": {"minH": 8, "minW": 12, "h": 8, "w": 12, "y": 0, "x": 0},
+                                "lg": {"minH": 8, "minW": 12, "h": 8, "w": 12, "y": 0, "x": 0},
+                                "md": {"minH": 8, "minW": 12, "h": 8, "w": 12, "y": 0, "x": 0},
+                                "sm": {"minH": 8, "minW": 12, "h": 8, "w": 12, "y": 16, "x": 0}
+                            }
+                        },
+                        {
+                            "type": "scatterplot",
+                            "autorange": True,
+                            "size": 1000,
+                            "color": "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
+                            "y": "results.properties.optoelectronic.solar_cell.efficiency",
+                            "x": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+                            "layout": {
+                                "xxl": {"minH": 3, "minW": 3, "h": 8, "w": 12, "y": 0, "x": 24},
+                                "xl": {"minH": 3, "minW": 3, "h": 8, "w": 9, "y": 0, "x": 12},
+                                "lg": {"minH": 3, "minW": 3, "h": 6, "w": 12, "y": 8, "x": 0},
+                                "md": {"minH": 3, "minW": 3, "h": 6, "w": 9, "y": 8, "x": 0},
+                                "sm": {"minH": 3, "minW": 3, "h": 5, "w": 6, "y": 0, "x": 0}
+                            }
+                        },
+                        {
+                            "type": "scatterplot",
+                            "autorange": True,
+                            "size": 1000,
+                            "color": "results.properties.optoelectronic.solar_cell.device_architecture",
+                            "y": "results.properties.optoelectronic.solar_cell.efficiency",
+                            "x": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+                            "layout": {
+                                "xxl": {"minH": 3, "minW": 3, "h": 8, "w": 11, "y": 0, "x": 13},
+                                "xl": {"minH": 3, "minW": 3, "h": 8, "w": 9, "y": 0, "x": 21},
+                                "lg": {"minH": 3, "minW": 3, "h": 6, "w": 12, "y": 14, "x": 0},
+                                "md": {"minH": 3, "minW": 3, "h": 6, "w": 9, "y": 8, "x": 9},
+                                "sm": {"minH": 3, "minW": 3, "h": 5, "w": 6, "y": 0, "x": 6}
+                            }
+                        },
+                        {
+                            "type": "terms",
+                            "inputfields": True,
+                            "scale": "linear",
+                            "quantity": "results.properties.optoelectronic.solar_cell.device_stack",
+                            "layout": {
+                                "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 6, "y": 8, "x": 14},
+                                "xl": {"minH": 3, "minW": 3, "h": 6, "w": 6, "y": 8, "x": 14},
+                                "lg": {"minH": 3, "minW": 3, "h": 6, "w": 6, "y": 0, "x": 12},
+                                "md": {"minH": 3, "minW": 3, "h": 4, "w": 6, "y": 4, "x": 12},
+                                "sm": {"minH": 3, "minW": 3, "h": 6, "w": 4, "y": 10, "x": 0}
+                            }
+                        },
+                        {
+                            "type": "histogram",
+                            "autorange": True,
+                            "nbins": 30,
+                            "scale": "1/4",
+                            "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity",
+                            "layout": {
+                                "xxl": {"minH": 3, "minW": 3, "h": 3, "w": 8, "y": 8, "x": 0},
+                                "xl": {"minH": 3, "minW": 3, "h": 3, "w": 8, "y": 11, "x": 0},
+                                "lg": {"minH": 3, "minW": 3, "h": 4, "w": 12, "y": 12, "x": 12},
+                                "md": {"minH": 3, "minW": 3, "h": 3, "w": 8, "y": 17, "x": 10},
+                                "sm": {"minH": 3, "minW": 3, "h": 3, "w": 8, "y": 13, "x": 4}
+                            }
+                        },
+                        {
+                            "type": "terms",
+                            "inputfields": True,
+                            "scale": "linear",
+                            "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication",
+                            "layout": {
+                                "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 6, "y": 8, "x": 8},
+                                "xl": {"minH": 3, "minW": 3, "h": 6, "w": 6, "y": 8, "x": 8},
+                                "lg": {"minH": 3, "minW": 3, "h": 6, "w": 6, "y": 0, "x": 18},
+                                "md": {"minH": 3, "minW": 3, "h": 4, "w": 6, "y": 0, "x": 12},
+                                "sm": {"minH": 3, "minW": 3, "h": 5, "w": 4, "y": 5, "x": 0}
+                            }
+                        },
+                        {
+                            "type": "histogram",
+                            "inputfields": False,
+                            "autorange": False,
+                            "nbins": 30,
+                            "scale": "1/4",
+                            "quantity": "results.properties.optoelectronic.band_gap_optical.value",
+                            "layout": {
+                                "xxl": {"minH": 3, "minW": 8, "h": 3, "w": 8, "y": 11, "x": 0},
+                                "xl": {"minH": 3, "minW": 8, "h": 3, "w": 8, "y": 8, "x": 0},
+                                "lg": {"minH": 3, "minW": 8, "h": 4, "w": 12, "y": 16, "x": 12},
+                                "md": {"minH": 3, "minW": 8, "h": 3, "w": 8, "y": 14, "x": 10},
+                                "sm": {"minH": 3, "minW": 8, "h": 3, "w": 8, "y": 10, "x": 4}
+                            }
+                        },
+                        {
+                            "type": "terms",
+                            "inputfields": True,
+                            "scale": "linear",
+                            "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer",
+                            "layout": {
+                                "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 6, "y": 8, "x": 20},
+                                "xl": {"minH": 3, "minW": 3, "h": 6, "w": 5, "y": 8, "x": 25},
+                                "lg": {"minH": 3, "minW": 3, "h": 6, "w": 6, "y": 6, "x": 18},
+                                "md": {"minH": 3, "minW": 3, "h": 6, "w": 5, "y": 14, "x": 0},
+                                "sm": {"minH": 3, "minW": 3, "h": 5, "w": 4, "y": 5, "x": 4}
+                            }
+                        },
+                        {
+                            "type": "terms",
+                            "inputfields": True,
+                            "scale": "linear",
+                            "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer",
+                            "layout": {
+                                "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 6, "y": 8, "x": 26},
+                                "xl": {"minH": 3, "minW": 3, "h": 6, "w": 5, "y": 8, "x": 20},
+                                "lg": {"minH": 3, "minW": 3, "h": 6, "w": 6, "y": 6, "x": 12},
+                                "md": {"minH": 3, "minW": 3, "h": 6, "w": 5, "y": 14, "x": 5},
+                                "sm": {"minH": 3, "minW": 3, "h": 5, "w": 4, "y": 5, "x": 8}
+                            }
+                        }
+                    ]
+                },
                 'filters_locked': {
                     'results.material.functional_type': 'solar cell'
                 },
@@ -1053,7 +1161,6 @@ ui = NomadConfig(
                         'results.properties.optoelectronic.solar_cell.open_circuit_voltage',
                         'results.properties.optoelectronic.solar_cell.short_circuit_current_density',
                         'results.properties.optoelectronic.solar_cell.fill_factor',
-                        # 'results.properties.optoelectronic.band_gap[0].value',
                         'results.properties.optoelectronic.solar_cell.device_stack',
                         'results.properties.optoelectronic.solar_cell.device_architecture',
                         'results.properties.optoelectronic.solar_cell.illumination_intensity',
@@ -1113,12 +1220,8 @@ ui = NomadConfig(
                         'results.properties.optoelectronic.solar_cell.illumination_intensity': {
                             'label': 'Illum. intensity',
                             'unit': 'W/m**2',
-                            'format': {
-                                'decimals': 3,
-                                'mode': 'standard',
-                            },
+                            'format': {'decimals': 3, 'mode': 'standard'},
                         },
-                        # 'results.properties.optoelectronic.band_gap[0].value': {'label': 'Bandgap (eV)'},
                         'results.eln.lab_ids': {'label': 'Lab IDs'},
                         'results.eln.sections': {'label': 'Sections'},
                         'results.eln.methods': {'label': 'Methods'},
@@ -1134,15 +1237,9 @@ ui = NomadConfig(
                     },
                 },
                 'rows': {
-                    'actions': {
-                        'enable': True
-                    },
-                    'details': {
-                        'enable': True
-                    },
-                    'selection': {
-                        'enable': True
-                    }
+                    'actions': {'enable': True},
+                    'details': {'enable': True},
+                    'selection': {'enable': True}
                 },
                 'filter_menus': {
                     'include': [

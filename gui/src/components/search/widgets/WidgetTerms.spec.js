@@ -17,21 +17,19 @@
  */
 import React from 'react'
 import { startAPI, closeAPI } from '../../conftest.spec'
-import { renderSearchEntry, expectInputList } from '../conftest.spec'
-import InputList from './InputList'
+import { renderSearchEntry, expectWidgetTerms } from '../conftest.spec'
+import { WidgetTerms } from './WidgetTerms'
 
-// Mock the useResizeObserver hook. The test environment does not provide any
-// resize events on it's own.
+// Resize-detector size is adjusted so that 3 items can fit.
 jest.mock('react-resize-detector', () => {
   return {useResizeDetector: () => {
-    // Size is adjusted so that 3 items can fit.
     return {height: 120, ref: undefined}
   }}
 })
 
 describe('initial state is loaded correctly', () => {
   beforeAll(async () => {
-    await startAPI('tests.states.search.search', 'tests/data/search/inputlist')
+    await startAPI('tests.states.search.search', 'tests/data/search/widgetterms')
   })
   afterAll(() => closeAPI())
 
@@ -61,13 +59,12 @@ describe('initial state is loaded correctly', () => {
       undefined
     ]
   ])('%s', async (name, quantity, items, prompt) => {
-    renderSearchEntry(<InputList
-      quantity={quantity}
-      visible
-      draggable
-      aggId="statistics"
-    />
-    )
-    await expectInputList(quantity, false, items, prompt)
+    const widget = {
+      id: '0',
+      scale: 'linear',
+      quantity: quantity
+    }
+    renderSearchEntry(<WidgetTerms {...widget} />)
+    await expectWidgetTerms(widget, false, items, prompt)
   })
 })

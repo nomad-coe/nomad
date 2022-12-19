@@ -52,6 +52,21 @@ export const renderSearchEntry = (ui, options) =>
 
 /*****************************************************************************/
 // Expects
+
+/**
+ * Tests that the initial state of an InputTitle is correct.
+ *
+ * @param {string} Quantity Full metainfo name for the quantity.
+ * @param {object} root The container to work on.
+ */
+export async function expectInputTitle(quantity, root = screen) {
+  const data = filterData[quantity]
+  const label = data.label
+  const description = data.description
+  expect(await root.findByText(label, {exact: false})).toBeInTheDocument()
+  expect(root.getByTitle(description)).toBeInTheDocument()
+}
+
 /**
  * Tests that the initial state of an InputHeader is correct.
  *
@@ -60,11 +75,8 @@ export const renderSearchEntry = (ui, options) =>
  * @param {object} root The container to work on.
  */
 export async function expectInputHeader(quantity, disableScale, root = screen) {
+  await expectInputTitle(quantity)
   const data = filterData[quantity]
-  const label = data.label
-  const description = data.description
-  expect(await root.findByText(label, {exact: false})).toBeInTheDocument()
-  expect(root.getByTitle(description)).toBeInTheDocument()
   if (!disableScale) {
     const scale = data.scale
     expect(root.getByText(scale)).toBeInTheDocument()
@@ -72,14 +84,14 @@ export async function expectInputHeader(quantity, disableScale, root = screen) {
 }
 
 /**
- * Tests that an InputList is rendered with the given contents.
- * @param {string} quantity The quantity name
- * @param {bool} loaded Whether the data is already loaded.
+ * Tests that a WidgetTerms is rendered with the given contents.
+ * @param {object} widget The widget setup
+ * @param {bool} loaded Whether the data is already loaded
  * @param {string[]} items List of items to be displayed
  * @param {string} prompt The prompt to show at the end. One of 'all', 'first'.
  * If the given list of items is empty, this prompt is ignored.
  */
-export async function expectInputList(quantity, loaded, items, prompt, root = screen) {
+export async function expectWidgetTerms(widget, loaded, items, prompt, root = screen) {
     const prompts = new Set(['all', 'top', 'single'])
     assert(
       items.length === 0 || prompts.has(prompt),
@@ -91,11 +103,11 @@ export async function expectInputList(quantity, loaded, items, prompt, root = sc
     )
 
     // Test immediately displayed elements
-    await expectInputHeader(quantity)
+    await expectInputTitle(widget.quantity)
 
     // Check that placeholder disappears
     if (!loaded) {
-      await waitFor(() => expect(root.queryByTestId('inputlist-placeholder')).toBe(null))
+      await waitFor(() => expect(root.queryByTestId('widgetterms-placeholder')).toBe(null))
     }
 
     // Test elements that are displayed after API response
@@ -112,6 +124,22 @@ export async function expectInputList(quantity, loaded, items, prompt, root = sc
       expect(root.getByText(`Showing top ${items.length} items`)).toBeInTheDocument()
     } else if (prompt === 'single') {
       expect(root.getByText(`Showing the only item`)).toBeInTheDocument()
+    }
+}
+
+/**
+ * Tests that a WidgetScatterPlot is rendered with the given contents.
+ * @param {object} widget The widget setup
+ * @param {bool} loaded Whether the data is already loaded
+ */
+export async function expectWidgetScatterPlot(widget, loaded, root = screen) {
+    // Test immediately displayed elements
+    await expectInputTitle(widget.x)
+    await expectInputTitle(widget.y)
+
+    // Check that placeholder disappears
+    if (!loaded) {
+      await waitFor(() => expect(root.queryByTestId(`${widget.id}-placeholder`)).toBe(null))
     }
 }
 
@@ -166,7 +194,7 @@ export async function expectInputRange(quantity, loaded, histogram, anchored, mi
  * @param {array} elements List of chemical symbols.
  * @param {object} root The root element to perform the search on.
  */
-export async function expectInputPeriodicTable(quantity, loaded, elements, root = screen) {
+export async function expectPeriodicTable(quantity, loaded, elements, root = screen) {
     // Test that all elements are displayed
     elementData.elements.forEach(element => {
       const name = root.getByText(element.symbol)
@@ -183,7 +211,7 @@ export async function expectInputPeriodicTable(quantity, loaded, elements, root 
     await expectInputHeader(quantity)
 
     // Test that only available elements are clickable after API response.
-    await expectInputPeriodicTableItems(elements)
+    await expectPeriodicTableItems(elements)
 }
 
 /**
@@ -191,17 +219,18 @@ export async function expectInputPeriodicTable(quantity, loaded, elements, root 
  * @param {array} elements List of chemical symbols.
  * @param {object} root The root element to perform the search on.
  */
-export async function expectInputPeriodicTableItems(elements, root = screen) {
-    // Test that only available elements are clickable after API response.
+export async function expectPeriodicTableItems(elements, root = screen) {
+    // Because the component does not know when it is loading data, we simply
+    // have to wait if it eventually fullfills the expected results.
     const elementSet = new Set(elements)
     await waitFor(() => {
       elementData.elements.forEach(element => {
         const button = root.getByText(element.symbol).closest('button')
         expect(button).not.toBe(null)
         if (elementSet.has(element.symbol)) {
-          expect(button).not.toHaveAttribute('disabled')
+          expect(button).not.toBeDisabled()
         } else {
-          expect(button).toHaveAttribute('disabled')
+          expect(button).toBeDisabled()
         }
       })
     })

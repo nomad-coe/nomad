@@ -26,7 +26,7 @@ import {
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import StatisticsBar from '../statistics/StatisticsBar'
+import StatisticsBar from '../widgets/StatisticsBar'
 
 /**
  * Represents a selectable item for a filter value.

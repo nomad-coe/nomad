@@ -298,7 +298,7 @@ export const useUnitSelectStyles = makeStyles(theme => ({
   }
 }))
 
-export const UnitSelect = React.memo(({options, unit, onChange, dimension}) => {
+export const UnitSelect = React.memo(({options, unit, onChange, dimension, disabled}) => {
   const classes = useUnitSelectStyles()
   const [error, setError] = useState()
   const [value, setValue] = useState(unit.label())
@@ -347,6 +347,7 @@ export const UnitSelect = React.memo(({options, unit, onChange, dimension}) => {
     className={classes.root}
     size='small'
     freeSolo
+    disabled={disabled}
     forcePopupIcon
     disableClearable
     value={value}
@@ -378,5 +379,6 @@ UnitSelect.propTypes = {
   options: PropTypes.arrayOf(PropTypes.string),
   unit: PropTypes.object.isRequired,
   dimension: PropTypes.string.isRequired,
-  onChange: PropTypes.func
+  onChange: PropTypes.func,
+  disabled: PropTypes.bool
 }

@@ -1,4 +1,3 @@
-
 /*
  * Copyright The NOMAD Authors.
  *
@@ -19,11 +18,15 @@
 import React, { useState, useLayoutEffect, useMemo, useCallback, useRef } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { range } from 'lodash'
+import { cloneDeep, isNil, range } from 'lodash'
 import { Responsive as ResponsiveGridLayout } from "react-grid-layout"
 import { useResizeDetector } from 'react-resize-detector'
 import { Paper } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
+import { WidgetScatterPlot } from './WidgetScatterPlot'
+import { WidgetPeriodicTable } from './WidgetPeriodicTable'
+import { WidgetHistogram } from './WidgetHistogram'
+import { WidgetTerms } from './WidgetTerms'
 import { useSearchContext } from '../SearchContext'
 
 // Breakpoints are designed so that the periodic table is always properly
@@ -34,6 +37,7 @@ const cols = {xxl: 36, xl: 30, lg: 24, md: 18, sm: 12}
 const breakpoints = Object.fromEntries(Object.entries(cols).map(([size, nCols]) => {
   return [size, periodicTableMinWidth / periodicTableCols * nCols]
 }))
+const sizes = Object.entries(breakpoints)
 const margin = [0, 0]
 
 /**
@@ -42,11 +46,12 @@ const margin = [0, 0]
  * @returns The number of columns.
  */
 function getNCols(width) {
-  for (const [key, size] of Object.entries(breakpoints)) {
-    if (width >= size) {
-      return cols[key]
-    }
+  let breakpoint
+  for (const [key, size] of sizes) {
+    breakpoint = key
+    if (width >= size) break
   }
+  return cols[breakpoint]
 }
 
 /**
@@ -69,18 +74,24 @@ class Layout {
    * @param {object} item Object containing at least a width and a height
    */
   add(item) {
-    // Get all suitable locations. A location is suitable if the item fits in
-    // there.
-    const locations = this.getAvailableLocations()
-    const locationsFit = locations
-      .filter((loc) => item.w <= loc.w && item.h <= loc.h)
+    // If the item already has a location, skip the automatization.
+    if (!isNil(item.x) && !isNil(item.y)) {
+      this.items.push(item)
+    // If no location specified, place it in the best available location.
+    } else {
+      // Get all suitable locations. A location is suitable if the item fits in
+      // there.
+      const locations = this.getAvailableLocations()
+      const locationsFit = locations
+        .filter((loc) => item.w <= loc.w && item.h <= loc.h)
 
-    // Choose the best one. Currently the topmost location is the best.
-    locationsFit.sort((a, b) => a.y - b.y)
-    const bestLocation = locationsFit[0]
+      // Choose the best one. Currently the topmost location is the best.
+      locationsFit.sort((a, b) => a.y - b.y)
+      const bestLocation = locationsFit[0]
 
-    // Add item to best location
-    this.items.push({...item, x: bestLocation.x, y: bestLocation.y})
+      // Add item to best location
+      this.items.push({...item, x: bestLocation.x, y: bestLocation.y})
+    }
   }
 
   /**
@@ -160,8 +171,8 @@ class Layout {
 }
 
 /**
- * A component that is used to display all of the 'anchored' statistics in an
- * interactive grid. The items can be moved around and resized.
+ * A component that is used to display all of the widgets in an interactive
+ * grid. The items can be moved around and resized.
  */
 const useStyles = makeStyles(theme => {
   return {
@@ -193,90 +204,82 @@ const useStyles = makeStyles(theme => {
     }
   }
 })
-const StatisticsGrid = React.memo(({
+const WidgetGrid = React.memo(({
   className,
   classes
 }) => {
   const styles = useStyles(classes)
-  const { useStatisticsState, filterData} = useSearchContext()
+  const { useWidgetsState } = useSearchContext()
   const { ref, width } = useResizeDetector()
-  const statistics = useStatisticsState()[0]
-  const [savedLayouts, setSavedLayouts] = useState()
+  const [widgets, setWidgets] = useWidgetsState()
   const [validWidth, setValidWidth] = useState()
   const nCols = getNCols(validWidth)
   const firstLayout = useRef(true)
 
-  // Create the default layouts
-  const defaultLayouts = useMemo(() => {
+  // Create the layouts
+  const layout = useMemo(() => {
     if (!nCols) return {}
 
-    // This is the layout in the format as react-grid-layout would read it. x:
-    // Infinity means that we want to place the item at the very end.
-    let layout = Object.entries(statistics).map(([filter, value]) => {
-      const config = filterData[filter].stats
-      const widthDefault = config.layout.width
-      const heightDefault = config.layout.height
-      return {
-        i: filter,
-        x: Infinity,
-        y: 0,
-        w: widthDefault,
-        h: heightDefault,
-        minW: widthDefault,
-        minH: heightDefault,
-        index: value.index
-      }
-    })
-    // Calculate a sane initial layout using the custom Layout class. The
-    // initial layout as calculated by react-grid-layout is not always very
-    // great.
-    if (firstLayout.current) {
-      layout = new Layout(layout.sort((a, b) => a.index - b.index), nCols).getLayout()
-      firstLayout.current = false
-    }
+    const layouts = {}
+    for (const breakpoint of Object.keys(breakpoints)) {
+      // This is the layout in the format as react-grid-layout would read it. x:
+      // Infinity means that we want to place the item at the very end.
+      // Add widgets
+      let i = 0
+      let layout = Object.entries(widgets)
+        .filter(([id, value]) => value?.visible)
+        .map(([id, value]) => {
+          const layout = value.layout?.[breakpoint]
+          const config = {
+            i: id,
+            x: isNil(layout?.x) ? Infinity : layout?.x,
+            y: isNil(layout?.y) ? 0 : layout?.y,
+            w: isNil(layout?.w) ? 3 : layout?.w,
+            h: isNil(layout?.h) ? 3 : layout?.h,
+            minW: isNil(layout?.minW) ? 3 : layout?.minW,
+            minH: isNil(layout?.minH) ? 3 : layout?.minH,
+            index: i
+          }
+          ++i
+          return config
+        })
 
-    return Object.fromEntries(Object.keys(breakpoints).map((size) => [size, layout]))
-  }, [filterData, statistics, nCols])
-
-  // Create merged layouts. If a saved layout is found, it is used. Otherwise
-  // the default layout is used. Notice that lodash.merge cannot be used
-  // directly here because merging lists with different number of items produces
-  // unexpected results.
-  const layout = useMemo(() => {
-    const layout = {}
-    for (const size of Object.keys(breakpoints)) {
-      const def = defaultLayouts[size] || []
-      const saved = savedLayouts?.[size] || []
-      const mergedLayout = []
-      for (const defl of def) {
-        const savedl = saved.find((item) => item.i === defl.i)
-        mergedLayout.push(savedl || defl)
+      // Calculate a sane initial layout using the custom Layout class. The
+      // initial layout as calculated by react-grid-layout is not always very
+      // great.
+      if (firstLayout.current) {
+        layout = new Layout(layout.sort((a, b) => a.index - b.index), nCols).getLayout()
+        firstLayout.current = false
       }
-      layout[size] = mergedLayout
+      layouts[breakpoint] = layout
     }
-    return layout
-  }, [defaultLayouts, savedLayouts])
+    return layouts
+  }, [widgets, nCols])
 
   // The grid children are memoized as instructed in the docs of
   // 'react-grid-layout' for performance.
   const children = useMemo(() => {
-    return Object.entries(statistics)
+    return Object.entries(widgets)
+        .filter(([id, value]) => value?.visible)
         .sort((a, b) => b[1].index - a[1].index)
-        .map(([filter, value]) => {
-          const config = filterData[filter].stats
-          return <div key={filter} className={styles.containerOuter}>
-            <Paper key={filter} className={styles.containerInner}>
-              <config.component
-                quantity={filter}
+        .map(([id, value]) => {
+          const Comp = {
+            scatterplot: WidgetScatterPlot,
+            periodictable: WidgetPeriodicTable,
+            histogram: WidgetHistogram,
+            terms: WidgetTerms
+          }[value.type]
+          return <div key={id} className={styles.containerOuter}>
+            <Paper className={styles.containerInner}>
+              <Comp
+                id={id}
+                {...value}
                 className={styles.component}
-                visible
-                anchored
-                aggId="statistics"
-              />
+              ></Comp>
             </Paper>
           </div>
         })
-  }, [filterData, statistics, styles])
+  }, [widgets, styles])
 
   // Mount the grid only after the width has been succesfully calculated. Also
   // the latest valid width is stored and used for the actual grid, since upon
@@ -293,8 +296,16 @@ const StatisticsGrid = React.memo(({
   // changed layout back to the component so that it works in a controlled
   // manner.
   const handleLayoutChange = useCallback((layout, allLayouts) => {
-    setSavedLayouts(allLayouts)
-  }, [])
+    setWidgets(old => {
+      const newLayout = cloneDeep(old)
+      for (const [breakpoint, value] of Object.entries(allLayouts)) {
+        for (const layout of value) {
+          newLayout[layout.i].layout[breakpoint] = cloneDeep(layout)
+        }
+      }
+      return newLayout
+    })
+  }, [setWidgets])
 
   return <div ref={ref} className={clsx(className, styles.root)}>
     { validWidth
@@ -321,12 +332,12 @@ const StatisticsGrid = React.memo(({
   </div>
 })
 
-StatisticsGrid.propTypes = {
+WidgetGrid.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object
 }
 
-export default StatisticsGrid
+export default WidgetGrid
 
 /**
  * A custom resize handle component for the grid items.
@@ -344,6 +355,7 @@ const ResizeHandle = React.forwardRef((props, ref) => {
   return <div
     ref={ref}
     className={clsx('react-resizable-handle', `react-resizable-handle-${handleAxis}`, styles.root)}
+    style={{width: '30px', height: '30px'}}
     {...restProps}
     >
     </div>

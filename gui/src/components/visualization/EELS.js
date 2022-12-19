@@ -18,7 +18,7 @@
 import React, {useState, useEffect, useMemo} from 'react'
 import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
-import Plot from '../visualization/Plot'
+import Plot from '../plotting/Plot'
 import { mergeObjects } from '../../utils'
 import { getLineStyles } from '../plotting/common'
 import { Quantity, Unit } from '../../units'

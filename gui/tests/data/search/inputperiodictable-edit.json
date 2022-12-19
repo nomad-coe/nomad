@@ -5,16 +5,6 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {},
           "aggregations": {
@@ -135,16 +125,6 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {
             "results.material.elements:all": [
@@ -251,16 +231,6 @@
         "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
         "method": "POST",
         "body": {
-          "exclude": [
-            "atoms",
-            "only_atoms",
-            "files",
-            "quantities",
-            "dft.quantities",
-            "optimade",
-            "dft.labels",
-            "dft.geometries"
-          ],
           "owner": "visible",
           "query": {
             "results.material.elements_exclusive": "C"

@@ -83,6 +83,7 @@ const UserdataPage = React.memo(() => {
     initialRows={context?.rows}
     initialFilterMenus={context?.filter_menus}
     initialFiltersLocked={initialFiltersLocked}
+    initialDashboard={context?.dashboard}
   >
     <SearchPage/>
   </SearchContext>

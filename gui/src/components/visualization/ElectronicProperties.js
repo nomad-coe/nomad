@@ -77,7 +77,7 @@ const ElectronicProperties = React.memo(({
         layout={bsLayout}
         units={units}
         onRelayouting={handleBSRelayouting}
-        onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
+        onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
         layoutSubject={dosYSubject}
         data-testid="bs-electronic"
       />
@@ -89,7 +89,7 @@ const ElectronicProperties = React.memo(({
         placeHolderStyle={styles.placeholder}
         noDataStyle={styles.nodata}
         onRelayouting={handleDOSRelayouting}
-        onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
+        onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
         units={units}
         layoutSubject={bsYSubject}
         data-testid="dos-electronic"
