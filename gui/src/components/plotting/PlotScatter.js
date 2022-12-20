@@ -22,7 +22,7 @@ import { getDeep, hasWebGLSupport } from '../../utils'
 import { useUnits, Quantity, Unit } from '../../units'
 import * as d3 from 'd3'
 import { isArray, isNil } from 'lodash'
-import InputTitle from '../search/input/InputTitle'
+import FilterTitle from '../search/FilterTitle'
 import Plot from './Plot'
 
 /**
@@ -277,7 +277,7 @@ const PlotScatter = React.memo(forwardRef((
 
   return <div className={styles.root}>
     <div className={styles.yaxis}>
-      <InputTitle quantity={y} variant="caption" rotation="up"/>
+      <FilterTitle quantity={y} variant="caption" rotation="up"/>
     </div>
     <div className={styles.plot}>
       <Plot
@@ -296,11 +296,11 @@ const PlotScatter = React.memo(forwardRef((
     </div>
     <div className={styles.square} />
     <div className={styles.xaxis}>
-      <InputTitle quantity={x} variant="caption"/>
+      <FilterTitle quantity={x} variant="caption"/>
     </div>
     {!discrete && color &&
       <div className={styles.color}>
-        <InputTitle
+        <FilterTitle
           rotation="down"
           quantity={color}
           description=""

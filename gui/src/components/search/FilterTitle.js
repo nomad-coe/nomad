@@ -20,13 +20,14 @@ import { makeStyles } from '@material-ui/core/styles'
 import { Typography, Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { useSearchContext } from '../SearchContext'
-import { inputSectionContext } from './InputSection'
-import { useUnits, Unit } from '../../../units'
+import { useSearchContext } from './SearchContext'
+import { inputSectionContext } from './input/InputSection'
+import { useUnits, Unit } from '../../units'
 
 /**
- * Title for a search filter. The stylized name and description are
- * automatically retrieved from metainfo or the filter data.
+ * Title for a metainfo quantity or section that is used in a search context.
+ * By default the label, description and unit are automatically retrieved from
+ * the filter config.
  */
 const useStaticStyles = makeStyles(theme => ({
   root: {
@@ -50,17 +51,19 @@ const useStaticStyles = makeStyles(theme => ({
     transform: 'rotate(-180deg)'
   }
 }))
-const InputTitle = React.memo(({
+const FilterTitle = React.memo(({
   quantity,
   label,
   description,
   variant,
+  full,
   TooltipProps,
   onMouseDown,
   onMouseUp,
   className,
   classes,
-  rotation
+  rotation,
+  disableUnit
 }) => {
   const styles = useStaticStyles({classes: classes})
   const { filterData } = useSearchContext()
@@ -68,18 +71,22 @@ const InputTitle = React.memo(({
   const units = useUnits()
   const section = sectionContext?.section
 
-  // Remove underscores from name
+  // Create the final label
   const finalLabel = useMemo(() => {
-    if (label) return label
-    let finalLabel = filterData[quantity]?.label
-    const unit = filterData[quantity]?.unit
-    if (unit) {
-      const unitDef = new Unit(unit)
-      finalLabel = `${finalLabel} (${unitDef.toSystem(units).label()})`
+    let finalLabel = label || (full
+      ? filterData[quantity]?.labelFull
+      : filterData[quantity]?.label)
+    if (!disableUnit) {
+      const unit = filterData[quantity]?.unit
+      if (unit) {
+        const unitDef = new Unit(unit)
+        finalLabel = `${finalLabel} (${unitDef.toSystem(units).label()})`
+      }
     }
     return finalLabel
-  }, [filterData, quantity, units, label])
+  }, [filterData, quantity, units, label, disableUnit, full])
 
+  // Determine the final description
   const finalDescription = description || filterData[quantity]?.description || ''
 
   return <Tooltip title={finalDescription} placement="bottom" {...(TooltipProps || {})}>
@@ -101,22 +108,24 @@ const InputTitle = React.memo(({
   </Tooltip>
 })
 
-InputTitle.propTypes = {
+FilterTitle.propTypes = {
   quantity: PropTypes.string,
   label: PropTypes.string,
   description: PropTypes.string,
   variant: PropTypes.string,
+  full: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   rotation: PropTypes.oneOf(['up', 'right', 'down']),
+  disableUnit: PropTypes.bool,
   TooltipProps: PropTypes.object, // Properties forwarded to the Tooltip
   onMouseDown: PropTypes.func,
   onMouseUp: PropTypes.func
 }
 
-InputTitle.defaultProps = {
+FilterTitle.defaultProps = {
   variant: 'body2',
   rotation: 'right'
 }
 
-export default InputTitle
+export default FilterTitle

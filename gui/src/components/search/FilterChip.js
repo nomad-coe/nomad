@@ -21,7 +21,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import LockIcon from '@material-ui/icons/Lock'
 import { Chip, Tooltip, Typography } from '@material-ui/core'
 import PropTypes from 'prop-types'
-import InputTitle from './input/InputTitle'
+import FilterTitle from './FilterTitle'
 
 /**
  * Thin wrapper for MUI Chip that is used for displaying (and possibly removing)
@@ -105,7 +105,7 @@ export const FilterChipGroup = React.memo(({
   const styles = useFilterChipGroupStyles()
 
   return <div className={clsx(className, styles.root)}>
-    <InputTitle
+    <FilterTitle
       quantity={quantity}
       variant="caption"
       className={styles.title}

@@ -26,7 +26,7 @@ import { Action } from '../../Actions'
 import WidgetHeader from './WidgetHeader'
 
 /**
- * A thin wrapper for displaying widgets widget.
+ * A thin wrapper for displaying widgets.
  */
 const useStyles = makeStyles(theme => ({
   root: {
@@ -36,6 +36,7 @@ const useStyles = makeStyles(theme => ({
 }))
 export const Widget = React.memo(({
   id,
+  quantity,
   label,
   description,
   onEdit,
@@ -61,6 +62,7 @@ export const Widget = React.memo(({
   return <div className={clsx(styles.root, className)}>
     <WidgetHeader
       id={id}
+      quantity={quantity}
       label={label}
       description={description}
       actions={actionsFinal}
@@ -72,6 +74,7 @@ export const Widget = React.memo(({
 
 Widget.propTypes = {
   id: PropTypes.string.isRequired,
+  quantity: PropTypes.string,
   label: PropTypes.string,
   description: PropTypes.string,
   onEdit: PropTypes.func,

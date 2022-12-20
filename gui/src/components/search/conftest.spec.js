@@ -28,7 +28,7 @@ import { SearchContext } from './SearchContext'
 import { filterData } from './FilterRegistry'
 import { format } from 'date-fns'
 import { DType } from '../../utils'
-import { Unit } from '../../units'
+import { Unit, unitSystems } from '../../units'
 
 /*****************************************************************************/
 // Renders
@@ -54,17 +54,27 @@ export const renderSearchEntry = (ui, options) =>
 // Expects
 
 /**
- * Tests that the initial state of an InputTitle is correct.
+ * Tests that the initial state of a FilterTitle is correct.
  *
- * @param {string} Quantity Full metainfo name for the quantity.
+ * @param {string} quantity Full metainfo name for the quantity.
+ * @param {string} label Expected label.
+ * @param {string} description Expected description.
+ * @param {string} unit Expected unit label.
+ * @param {string} disableUnit Whether to disable showing unit.
  * @param {object} root The container to work on.
  */
-export async function expectInputTitle(quantity, root = screen) {
+export async function expectFilterTitle(quantity, label, description, unit, disableUnit, root = screen) {
   const data = filterData[quantity]
-  const label = data.label
-  const description = data.description
-  expect(await root.findByText(label, {exact: false})).toBeInTheDocument()
-  expect(root.getByTitle(description)).toBeInTheDocument()
+  let finalLabel = label || data?.label
+  const finalDescription = description || data?.description
+  if (!disableUnit) {
+    const finalUnit = unit || (
+      data?.unit && new Unit(data?.unit).toSystem(unitSystems.Custom.units).label()
+    )
+    if (finalUnit) finalLabel = `${finalLabel} (${finalUnit})`
+  }
+  await root.findByText(finalLabel)
+  expect(root.getByTitle(finalDescription)).toBeInTheDocument()
 }
 
 /**
@@ -75,7 +85,7 @@ export async function expectInputTitle(quantity, root = screen) {
  * @param {object} root The container to work on.
  */
 export async function expectInputHeader(quantity, disableScale, root = screen) {
-  await expectInputTitle(quantity)
+  await expectFilterTitle(quantity)
   const data = filterData[quantity]
   if (!disableScale) {
     const scale = data.scale
@@ -103,7 +113,7 @@ export async function expectWidgetTerms(widget, loaded, items, prompt, root = sc
     )
 
     // Test immediately displayed elements
-    await expectInputTitle(widget.quantity)
+    await expectFilterTitle(widget.quantity)
 
     // Check that placeholder disappears
     if (!loaded) {
@@ -134,8 +144,8 @@ export async function expectWidgetTerms(widget, loaded, items, prompt, root = sc
  */
 export async function expectWidgetScatterPlot(widget, loaded, root = screen) {
     // Test immediately displayed elements
-    await expectInputTitle(widget.x)
-    await expectInputTitle(widget.y)
+    await expectFilterTitle(widget.x)
+    await expectFilterTitle(widget.y)
 
     // Check that placeholder disappears
     if (!loaded) {

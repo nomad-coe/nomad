@@ -18,8 +18,17 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
-import { Tooltip, IconButton } from '@material-ui/core'
+import {
+  Tooltip,
+  IconButton,
+  MenuItem,
+  Select,
+  Checkbox,
+  FormControlLabel
+} from '@material-ui/core'
 import clsx from 'clsx'
+import { isArray } from 'lodash'
+import { useBoolState } from '../hooks'
 
 const useActionsStyles = makeStyles((theme) => ({
   root: {
@@ -65,7 +74,8 @@ const useActionHeaderStyles = makeStyles((theme) => ({
     height: '100%',
     display: 'flex',
     alignItems: 'center',
-    minWidth: 0
+    minWidth: 0,
+    marginRight: theme.spacing(0.5)
   },
   spacer: {
     flexGrow: 1,
@@ -161,4 +171,64 @@ Action.propTypes = {
 Action.defaultProps = {
   size: 'small',
   ButtonComponent: IconButton
+}
+
+/**
+ * Dropdown menu action.
+ */
+export const ActionSelect = React.memo(({value, options, tooltip, onChange}) => {
+  const [isStatsTooltipOpen, openStatsTooltip, closeStatsTooltip] = useBoolState(false)
+  const items = isArray(options)
+    ? Object.fromEntries(options.map(x => [x, x]))
+    : options
+  return <Action
+    TooltipProps={{
+      title: tooltip || "",
+      open: isStatsTooltipOpen,
+      disableHoverListener: true
+  }}>
+    <Select
+      value={value}
+      onMouseEnter={openStatsTooltip}
+      onMouseLeave={closeStatsTooltip}
+      onOpen={closeStatsTooltip}
+      onChange={(event) => onChange && onChange(event.target.value)}
+    >
+      {Object.entries(items).map(([key, value]) =>
+        <MenuItem key={key} value={value}>{key}</MenuItem>
+      )}
+    </Select>
+  </Action>
+})
+
+ActionSelect.propTypes = {
+  value: PropTypes.string,
+  options: PropTypes.oneOfType([PropTypes.object, PropTypes.arrayOf(PropTypes.string)]),
+  tooltip: PropTypes.string,
+  onChange: PropTypes.func
+}
+
+/**
+ * Checkbox action.
+ */
+export const ActionCheckbox = React.memo(({value, label, tooltip, onChange}) => {
+  const styles = useActionStyles()
+  return <Tooltip title={tooltip}>
+      <FormControlLabel
+        control={<Checkbox
+          checked={value}
+          onChange={(event, value) => onChange && onChange(value)}
+          size="small"
+        />}
+        className={styles.root}
+        label={label}
+      />
+    </Tooltip>
+})
+
+ActionCheckbox.propTypes = {
+  value: PropTypes.bool,
+  label: PropTypes.string,
+  tooltip: PropTypes.string,
+  onChange: PropTypes.func
 }

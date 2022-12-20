@@ -17,7 +17,7 @@
  */
 import React, { useState, useMemo, useCallback, useEffect, useRef, useContext } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
-import { Slider, Checkbox, FormControlLabel, Tooltip } from '@material-ui/core'
+import { Slider } from '@material-ui/core'
 import { useRecoilValue } from 'recoil'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
@@ -35,6 +35,8 @@ import { useSearchContext } from '../SearchContext'
 import PlotHistogram from '../../plotting/PlotHistogram'
 import { isValid, getTime } from 'date-fns'
 import { guiState } from '../../GUIMenu'
+import { ActionCheckbox } from '../../Actions'
+import { autorangeDescription } from '../widgets/WidgetHistogram'
 
 /*
  * Component for displaying a numerical range as a slider/histogram together
@@ -730,19 +732,12 @@ const InputRange = React.memo(({
   const labelFinal = label || def?.label
 
   // Component for enabling/disabling autorange
-  const actions = [<Tooltip
-    title="Enable zooming in by defining a filter range that is inside the min/max boundaries."
-    key="autorange"
-  >
-    <FormControlLabel
-      control={<Checkbox
-        checked={autorange}
-        onChange={(event) => (setAutorange(event.target.checked))}
-        size="small"
-      />}
-      label="autorange"
-    />
-  </Tooltip>]
+  const actions = <ActionCheckbox
+    value={autorange}
+    label="zoom"
+    tooltip={autorangeDescription}
+    onChange={(value) => setAutorange(value)}
+  />
 
   return <div className={clsx(styles.root, className)}>
     <InputHeader

@@ -21,7 +21,7 @@ import { string } from 'yup'
 import { TextField, MenuItem } from '@material-ui/core'
 import { useSearchContext } from '../SearchContext'
 import { Widget, schemaWidget } from './Widget'
-import { WidgetActionSelect } from './WidgetActions'
+import { ActionSelect } from '../../Actions'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
 import { PeriodicTable } from '../input/InputPeriodicTable'
 import { scales } from '../../plotting/common'
@@ -38,7 +38,7 @@ export const WidgetPeriodicTable = React.memo((
   scale,
   className
 }) => {
-  const { useSetWidget, filterData } = useSearchContext()
+  const { useSetWidget } = useSearchContext()
   const setWidget = useSetWidget(id)
 
   const handleEdit = useCallback(() => {
@@ -49,19 +49,15 @@ export const WidgetPeriodicTable = React.memo((
     setWidget(old => { return {...old, scale: value} })
   }, [setWidget])
 
-  // Determine the description and title
-  const def = filterData?.[quantity]
-  const descFinal = description || def?.description || ''
-  const labelFinal = label || def?.labelFull
-
   return <Widget
     id={id}
-    label={labelFinal}
-    description={descFinal}
+    quantity={quantity}
+    label={label}
+    description={description}
     onEdit={handleEdit}
     className={className}
     actions={
-      <WidgetActionSelect
+      <ActionSelect
         value={scale}
         options={Object.keys(scales)}
         tooltip="Statistics scaling"
