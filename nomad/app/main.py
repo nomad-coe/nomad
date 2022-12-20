@@ -131,7 +131,7 @@ async def http_exception_handler(request, exc):
         status_code=404, content={
             'detail': 'Not found',
             'info': {
-                'app': config.meta,
+                'app': config.meta.dict(),
                 'apis': {
                     'v1': {
                         'root': f'{app_base}/api/v1',
