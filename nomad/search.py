@@ -57,7 +57,7 @@ from nomad.app.v1.models import (
 from nomad.metainfo.elasticsearch_extension import (
     index_entries, entry_type, entry_index, DocumentType,
     material_type, entry_type, material_entry_type,
-    entry_index, Index, index_entries, DocumentType, SearchQuantity, update_materials)
+    entry_index, Index, DocumentType, SearchQuantity, update_materials)
 
 
 def update_by_query(
@@ -168,18 +168,20 @@ _refresh = refresh
 
 def index(
         entries: Union[EntryArchive, List[EntryArchive]], update_materials: bool = False,
-        refresh: bool = False):
+        refresh: bool = False) -> Dict[str, str]:
     '''
     Index the given entries based on their archive. Either creates or updates the underlying
     elasticsearch documents. If an underlying elasticsearch document already exists it
-    will be fully replaced.
+    will be fully replaced. Returns a dictionary of the format {entry_id: error_message}
+    for all entries that failed to index.
     '''
     if not isinstance(entries, list):
         entries = [entries]
 
-    index_entries(entries, refresh=refresh or update_materials)
+    errors = index_entries(entries, refresh=refresh or update_materials)
     if update_materials:
         index_materials(entries, refresh=refresh)
+    return errors
 
 
 def index_materials(entries: Union[EntryArchive, List[EntryArchive]], **kwargs):
@@ -1328,10 +1330,6 @@ def search_iterator(
 
         if page_after_value is None or len(response.data) == 0:
             break
-
-
-def _index(entries, **kwargs):
-    index_entries(entries, **kwargs)
 
 
 def quantity_values(

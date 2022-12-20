@@ -27,11 +27,8 @@ import { useApi } from '../api'
 import { useEntryPageContext } from './EntryPageContext'
 import Checkbox from '@material-ui/core/Checkbox'
 import FormControlLabel from '@material-ui/core/FormControlLabel'
+import { pluralize } from '../../utils'
 
-const logsDefaultValues = {
-  defaultLogsToShowOnFirstMount: 5,
-  defaultLogsToShowOnEachMount: 10
-}
 const useLogEntryStyles = makeStyles(theme => ({
   warning: {
     color: amber[700]
@@ -44,8 +41,7 @@ const useLogEntryStyles = makeStyles(theme => ({
 
 const LogEntry = React.memo(function LogEntry(props) {
   const classes = useLogEntryStyles()
-  const {entry, keyNames} = props
-  const data = entry
+  const {data, keyNames} = props
 
   const summaryProps = {}
   if (data.level === 'ERROR' || data.level === 'CRITICAL') {
@@ -71,7 +67,7 @@ const LogEntry = React.memo(function LogEntry(props) {
   )
 })
 LogEntry.propTypes = {
-  entry: PropTypes.object.isRequired,
+  data: PropTypes.object.isRequired,
   keyNames: PropTypes.array.isRequired
 }
 
@@ -112,7 +108,7 @@ const FilterLogsByLevel = React.memo(function FilterLogsByLevel(props) {
       <Typography style={{padding: '8px', textAlign: 'bottom'}}>
           Filter Logs by Level:
       </Typography>
-      {Object.keys(logLevels).map((key, i) => {
+      {['ERROR', 'CRITICAL', 'WARNING', 'INFO', 'DEBUG'].map((key, i) => {
         return (
           <FormControlLabel key={i}
             control={<Checkbox
@@ -170,7 +166,7 @@ FilterLogTagsByKeys.propTypes = {
 
 export default function ArchiveLogView(props) {
   const classes = useStyles()
-  const {entryId} = useEntryPageContext()
+  const {entryId, metadata} = useEntryPageContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
 
@@ -185,8 +181,8 @@ export default function ArchiveLogView(props) {
     INFO: true
   })
 
-  const [numberOfLogs, setNumberOflogs] = useState(logsDefaultValues.defaultLogsToShowOnFirstMount)
-  const [keyNames, setkeyNames] = useState(['parser'])
+  const [numberOfLogs, setNumberOflogs] = useState(10)
+  const [keyNames, setkeyNames] = useState(['parser', 'event'])
 
   const handlekeyNamesChanged = (e) => {
     setkeyNames(e.target.value)
@@ -209,11 +205,24 @@ export default function ArchiveLogView(props) {
           raiseError(error)
         }
       })
+  }, [setData, setDoesNotExist, api, raiseError, entryId])
 
-    setNumberOflogs(logsDefaultValues.defaultLogsToShowOnEachMount)
-  }, [setData, setDoesNotExist, api, raiseError, entryId, logLevels])
+  // Calculate extendedData, which is the log entries fetched + a synthetic log entry, created
+  // if the metadata object from the entry page context contains anything in processing_errors.
+  // The reason for this is that the processing_logs is fetched from the archive file, and
+  // does not include errors occuring after the archive file is written, but these can (in most
+  // cases) be found in metadata.processing_errors.
+  const extendedData = data ? [...data] : []
+  if (metadata?.processing_errors?.length) {
+    extendedData.push({
+      event: 'processing error',
+      level: 'ERROR',
+      timestamp: metadata.last_processing_time,
+      processing_errors: metadata.processing_errors
+    })
+  }
 
-  if (doesNotExist) {
+  if (doesNotExist && !extendedData.length) {
     return (
       <Page>
         <Typography>
@@ -225,39 +234,46 @@ export default function ArchiveLogView(props) {
   }
 
   let content = 'loading ...'
-  if (data) {
+  if (extendedData.length) {
     const uniquekeys = [...new Set(
-      data.reduce((aggregatedKeys, item) => [...aggregatedKeys, ...Object.keys(item)], []))]
+      extendedData.reduce((aggregatedKeys, item) => [...aggregatedKeys, ...Object.keys(item)], []))]
+    const filteredIndices = extendedData.map((entry, i) => logLevels[entry.level] ? i : null).filter(el => el !== null)
+
     content =
-    <Grid container alignItems='flex-end'>
       <Grid container alignItems='flex-end'>
-        <Grid item xs={8}>
-          <FilterLogsByLevel logLevels={logLevels} onCheckListChanged={handleCheckListChanged}/>
-        </Grid>
-        <Grid item xs={4} >
-          <FilterLogTagsByKeys
-            className={classes}
-            keyNames={keyNames}
-            onKeyNamesChanged={handlekeyNamesChanged}
-            uniquekeys={uniquekeys}
-          />
-        </Grid>
-        <Grid container spacing={1}>
-          {data
-            .map((entry, i) => (logLevels[entry.level] ? <Grid item xs={12} key={i}><LogEntry key={i} entry={entry} keyNames={keyNames}/></Grid> : null))
-            .slice(0, numberOfLogs)
-            .filter(el => el !== null)}
-        </Grid>
-        <Grid container alignItems='center' justifyContent='center'>
-          {(numberOfLogs > data.length ||
-            data
-              .map((entry, i) => (logLevels[entry.level] ? 1 : null))
-              .filter(el => el !== null).length <= numberOfLogs) ? '' : (<Button className={classes.seeMore} variant='contained' color='primary' onClick={() => setNumberOflogs(numberOfLogs + numberOfLogs)}>
-            See More
-            </Button>)}
+        <Grid container alignItems='flex-end'>
+          <Grid item xs={8}>
+            <FilterLogsByLevel logLevels={logLevels} onCheckListChanged={handleCheckListChanged}/>
+          </Grid>
+          <Grid item xs={4} >
+            <FilterLogTagsByKeys
+              className={classes}
+              keyNames={keyNames}
+              onKeyNamesChanged={handlekeyNamesChanged}
+              uniquekeys={uniquekeys}
+            />
+          </Grid>
+          <Grid container spacing={1}>
+          {filteredIndices.slice(0, numberOfLogs).map(i =>
+            <Grid item xs={12} key={i}><LogEntry key={i} data={extendedData[i]} keyNames={keyNames}/></Grid>)}
+          </Grid>
+          <Grid container alignItems='center' justifyContent='center'>
+            {filteredIndices.length === 0
+              ? <Typography color="error">No log entries matching selected criteria</Typography>
+              : filteredIndices.length > numberOfLogs
+                ? <Typography>{`Showing ${numberOfLogs} of ${filteredIndices.length} matching entries`}</Typography>
+                : <Typography>{`${filteredIndices.length} matching log ${pluralize('entry', filteredIndices.length)} found`}</Typography>}
+          </Grid>
+          <Grid container alignItems='center' justifyContent='center'>
+            {filteredIndices.length > numberOfLogs &&
+              <Button
+                className={classes.seeMore} variant='contained' color='primary'
+                onClick={() => setNumberOflogs(numberOfLogs + 10)}>
+              Load More
+            </Button>}
+          </Grid>
         </Grid>
       </Grid>
-    </Grid>
   }
 
   return (

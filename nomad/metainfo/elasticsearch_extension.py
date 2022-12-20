@@ -929,19 +929,22 @@ def index_entries_with_materials(entries: List, refresh: bool = False):
     update_materials(entries, refresh=refresh)
 
 
-def index_entries(entries: List, refresh: bool = False):
+def index_entries(entries: List, refresh: bool = False) -> Dict[str, str]:
     '''
     Upserts the given entries in the entry index. Optionally updates the materials index
-    as well.
+    as well. Returns a dictionary of the format {entry_id: error_message} for all entries
+    that failed to index.
     '''
+    rv = {}
     # split into reasonably sized problems
     if len(entries) > config.elastic.bulk_size:
         for entries_part in [entries[i:i + config.elastic.bulk_size] for i in range(0, len(entries), config.elastic.bulk_size)]:
-            index_entries(entries_part, refresh=refresh)
-        return
+            errors = index_entries(entries_part, refresh=refresh)
+            rv.update(errors)
+        return rv
 
     if len(entries) == 0:
-        return
+        return rv
 
     logger = utils.get_logger('nomad.search', n_entries=len(entries))
 
@@ -969,10 +972,16 @@ def index_entries(entries: List, refresh: bool = False):
         lnr_event='failed to bulk index entries',
         **timer_kwargs
     ):
-        entry_index.bulk(
+        indexing_result = entry_index.bulk(
             body=actions_and_docs, refresh=refresh,
             timeout=f'{config.elastic.bulk_timeout}s',
             request_timeout=config.elastic.bulk_timeout)
+        # Extract only the errors from the indexing_result
+        if indexing_result['errors']:
+            for item in indexing_result['items']:
+                if item['index']['status'] >= 400:
+                    rv[item['index']['_id']] = str(item['index']['error'])
+        return rv
 
 
 def update_materials(entries: List, refresh: bool = False):

@@ -741,7 +741,7 @@ class Entry(Proc):
         self._is_initial_processing: bool = False
         self._upload: Upload = None
         self._upload_files: StagingUploadFiles = None
-        self._proc_logs: List[Any] = None
+        self._proc_logs: List[Any] = []
         self._child_entries: List['Entry'] = []
 
         self._entry_metadata: EntryMetadata = None
@@ -933,9 +933,6 @@ class Entry(Proc):
             upload_id=self.upload_id, mainfile=self.mainfile, entry_id=self.entry_id,
             parser=self.parser_name, **kwargs)
 
-        if self._proc_logs is None:
-            self._proc_logs = []
-
         def save_to_entry_log(logger, method_name, event_dict):
             try:
                 # sanitize the event_dict, because all kinds of values might have been added
@@ -1093,28 +1090,43 @@ class Entry(Proc):
             except Exception as e:
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
-        except Exception as e:
-            self._parser_results = EntryArchive(
-                m_context=self.upload.archive_context,
-                entry_id=self._parser_results.entry_id,
-                metadata=self._parser_results.metadata,
-                processing_logs=self._parser_results.processing_logs)
 
+            try:
+                self._parser_results.processing_logs = self._filtered_processing_logs()
+            except Exception as e:
+                self.get_logger().error(
+                    'could not apply processing_logs to entry', exc_info=e)
+
+        except Exception as e:
+            self._parser_results = self._create_minimal_failed_archive()
             self.get_logger().error(
                 'could not create minimal metadata after processing failure', exc_info=e)
 
         if self._perform_index:
             try:
-                search.index(self._parser_results)
+                indexing_errors = search.index(self._parser_results)
+                assert not indexing_errors
             except Exception as e:
                 self.get_logger().error(
                     'could not index archive after processing failure', exc_info=e)
+                # As a last resort: try indexing a minimal archive instead
+                try:
+                    search.index(self._create_minimal_failed_archive())
+                except Exception as e:
+                    self.get_logger().error(
+                        'could not index minimal archive after processing failure', exc_info=e)
 
         try:
             self.write_archive(self._parser_results)
         except Exception as e:
             self.get_logger().error(
                 'could not write archive after processing failure', exc_info=e)
+
+    def _create_minimal_failed_archive(self) -> EntryArchive:
+        return EntryArchive(
+            m_context=self.upload.archive_context,
+            metadata=self._parser_results.metadata,
+            processing_logs=self._filtered_processing_logs())
 
     def parent(self) -> 'Upload':
         return self.upload
@@ -1200,7 +1212,9 @@ class Entry(Proc):
         if self._perform_index:
             with utils.timer(logger, 'entry metadata indexed'):
                 assert self._parser_results.metadata == self._entry_metadata
-                search.index(self._parser_results)
+                indexing_errors = search.index(self._parser_results)
+                if indexing_errors:
+                    raise RuntimeError('Failed to index in ES: ' + indexing_errors[self.entry_id])
 
         # persist the archive
         with utils.timer(
@@ -1218,17 +1232,6 @@ class Entry(Proc):
         except Exception as e:
             self.get_logger().error('could not write mongodb archive entry', exc_info=e)
 
-        # add the processing logs to the archive
-        def filter_processing_logs(logs):
-            if len(logs) > 100:
-                return [
-                    log for log in logs
-                    if log.get('level') != 'DEBUG']
-            return logs
-
-        if self._proc_logs is None:
-            self._proc_logs = []
-
         if archive is not None:
             archive = archive.m_copy()
         else:
@@ -1237,7 +1240,7 @@ class Entry(Proc):
         if archive.metadata is None:
             archive.m_add_sub_section(datamodel.EntryArchive.metadata, self._entry_metadata)
 
-        archive.processing_logs = filter_processing_logs(self._proc_logs)
+        archive.processing_logs = self._filtered_processing_logs()
 
         if config.process.store_package_definition_in_mongo:
             if archive.definitions is not None:
@@ -1255,9 +1258,17 @@ class Entry(Proc):
             # most likely failed due to domain data, try to write metadata and processing logs
             archive = datamodel.EntryArchive(m_context=self.upload.archive_context)
             archive.m_add_sub_section(datamodel.EntryArchive.metadata, self._entry_metadata)
-            archive.processing_logs = filter_processing_logs(self._proc_logs)
+            archive.processing_logs = self._filtered_processing_logs()
             self.upload_files.write_archive(self.entry_id, archive.m_to_dict())
             raise
+
+    def _filtered_processing_logs(self):
+        ''' Returns the filtered processing logs, to add to the archive. '''
+        if len(self._proc_logs) > 100:
+            return [
+                log for log in self._proc_logs
+                if log.get('level') != 'DEBUG']
+        return self._proc_logs
 
     def __str__(self):
         return 'entry %s entry_id=%s upload_id%s' % (super().__str__(), self.entry_id, self.upload_id)
@@ -1879,7 +1890,7 @@ class Upload(Proc):
                     logger.warn('Some entries are processing', count=len(processing_entries))
                     with utils.timer(logger, 'processing entries resetted'):
                         Entry._get_collection().update_many(
-                            {'entry_id__in': processing_entries},
+                            {'_id': {'$in': processing_entries}},
                             {'$set': Entry.reset_pymongo_update(
                                 worker_hostname=self.worker_hostname,
                                 process_status=ProcessStatus.FAILURE,
@@ -2057,9 +2068,51 @@ class Upload(Proc):
         with self.entries_metadata() as entries:
             with utils.timer(logger, 'upload entries and materials indexed'):
                 archives = [entry.m_parent for entry in entries]
-                search.index(
+                indexing_errors = search.index(
                     archives, update_materials=config.process.index_materials,
                     refresh=True)
+
+                if indexing_errors:
+                    # Some entries could not be indexed in ES
+                    # Set entry status to failed for the affected entries
+                    with utils.timer(logger, 'updated mongo entries failing to index'):
+                        entry_mongo_writes = [
+                            UpdateOne(
+                                {'_id': entry_id},
+                                {'$set': dict(
+                                    process_status=ProcessStatus.FAILURE,
+                                    last_status_message='Failed to index in ES'),
+                                 '$push': dict(
+                                    errors=f'Failed to index in ES: {error}')})
+                            for entry_id, error in indexing_errors.items()]
+                        Entry._get_collection().bulk_write(entry_mongo_writes)
+                    # Try indexing minimal archives in ES for the ones that failed
+                    failed_archives = []
+                    with utils.timer(logger, 'created minimal archives to re-index'):
+                        for archive in archives:
+                            if archive.entry_id in indexing_errors:
+                                try:
+                                    archive.metadata.processed = False
+                                    if not archive.metadata.processing_errors:
+                                        archive.metadata.processing_errors = []
+                                    archive.metadata.processing_errors.append(
+                                        f'Failed to index in ES: {indexing_errors[archive.entry_id]}')
+                                    failed_archives.append(
+                                        EntryArchive(
+                                            m_context=self.archive_context,
+                                            metadata=archive.metadata))
+                                except Exception as e:
+                                    logger.warn(
+                                        'could not create minimal failed archive',
+                                        entry_id=archive.entry_id, exc_info=e)
+                    with utils.timer(logger, 're-indexed failed entries'):
+                        indexing_errors = search.index(
+                            failed_archives, update_materials=config.process.index_materials,
+                            refresh=True)
+                        if indexing_errors:
+                            logger.warn(
+                                'some failed entries could not be re-indexed',
+                                entry_ids=sorted(indexing_errors.keys()))
 
         # send email about process finish
         if not self.publish_directly and self.main_author_user.email:

@@ -374,6 +374,7 @@ class Proc(Document):
 
         failed_with_exception = False
 
+        # Log the error
         logger = self.get_logger(**kwargs)
         self.errors = []
         for error in errors:
@@ -386,11 +387,11 @@ class Proc(Document):
             else:
                 self.errors.append(str(error))
 
-        self.complete_time = datetime.utcnow()
-
         if not failed_with_exception:
             errors_str = "; ".join([str(error) for error in errors])
             Proc.log(logger, log_level, 'process failed', errors=errors_str)
+
+        self.complete_time = datetime.utcnow()
 
         try:
             self.on_fail()

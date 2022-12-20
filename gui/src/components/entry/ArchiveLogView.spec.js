@@ -13,8 +13,8 @@ test('Correctly renders the page', async () => {
   </EntryPageContext>)
 
   // Checking for the page to be successfully loaded and the See more button appears at the bottom
-  const seeMoreButton = await screen.findByText(/see more/i)
-  expect(seeMoreButton).toBeInTheDocument()
+  const loadMoreButton = await screen.findByText(/load more/i)
+  expect(loadMoreButton).toBeInTheDocument()
   expect(screen.getByText(/filter logs by level:/i)).toBeInTheDocument()
   expect(screen.getByText(/filter keys by:/i)).toBeInTheDocument()
 
@@ -47,11 +47,11 @@ test('Correctly renders the page', async () => {
   // Unchecking the checkbox INFO should re-paint the DOM with only one log and no seeMore button
   await userEvent.click(infoBox)
   await waitFor(() => expect(screen.queryAllByTestId('Accordions')).toHaveLength(1))
-  expect(seeMoreButton).not.toBeInTheDocument()
+  expect(loadMoreButton).not.toBeInTheDocument()
 
   // Re-checking the INFO button should repaint the DOM with the seeMore Button as well as the 10 logs
   await userEvent.click(infoBox)
-  expect(await screen.findByText(/see more/i)).toBeInTheDocument()
+  expect(await screen.findByText(/load more/i)).toBeInTheDocument()
   expect(screen.queryAllByTestId('Accordions')).toHaveLength(10)
 
   // Selecting new key from the dropdown menu would add that key to the description of all logs that exist
@@ -61,7 +61,7 @@ test('Correctly renders the page', async () => {
   await userEvent.click(butt)
   await waitFor(() => expect(screen.queryByTestId('system_size')).toBeInTheDocument())
   await userEvent.click(screen.getByTestId('system_size'))
-  expect(await screen.findByText(/debug: parsers\/vasp \| undefined/i))
+  await screen.findByText(/debug: parsers\/vasp \| Executing celery task \| undefined/i)
 
   closeAPI()
 })
