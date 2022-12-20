@@ -79,7 +79,7 @@ def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tu
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
 
     with open_compressed(mainfile_path, 'rb') as cf:  # type: ignore
-        buffer = cf.read(config.parser_matching_size)
+        buffer = cf.read(config.process.parser_matching_size)
 
     mime_type = magic.from_buffer(buffer, mime=True)
 
@@ -646,7 +646,7 @@ empty_parsers = [
     )
 ]
 
-if config.use_empty_parsers:
+if config.process.use_empty_parsers:
     # There are some entries with PIDs that have mainfiles which do not match what
     # the actual parsers expect. We use the EmptyParser to produce placeholder entries
     # to keep the PIDs. These parsers will not match for new, non migrated data.
@@ -682,8 +682,7 @@ for parser in parsers:
         else:
             code_metadata[code_name] = {}
 code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
-results.Simulation.program_name.a_elasticsearch[0].values = code_names + [
-    config.services.unavailable_value, config.services.not_processed_value]
+results.Simulation.program_name.a_elasticsearch[0].values = code_names + [config.services.unavailable_value]
 
 
 def import_all_parsers():

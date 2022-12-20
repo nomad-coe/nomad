@@ -426,7 +426,7 @@ class DbUpdater:
             return 'uploaded', upload['upload_id']
 
         size = 0.0
-        max_zip_size = config.max_upload_size
+        max_zip_size = config.process.max_upload_size
         dirs = []
         for i in range(len(plist)):
             d, s = self._get_files(self.update_list[plist[i]])

@@ -39,9 +39,7 @@ def worker():
 
 @run.command(help='Run the nomad development app with all apis.')
 @click.option('--debug', help='Does run app in debug.', is_flag=True)
-@click.option('--with-chaos', type=int, default=0, help='Enable a certain percentage of chaos.')
 def app(debug: bool, with_chaos: int):
-    config.services.api_chaos = with_chaos
     run_app(debug=debug)
 
 

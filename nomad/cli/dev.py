@@ -234,13 +234,13 @@ def get_gui_config(proxy: bool = False) -> str:
         'keycloakRealm': config.keycloak.realm_name,
         'keycloakClientId': config.keycloak.client_id,
         'debug': False,
-        'encyclopediaBase': config.encyclopedia_base if config.encyclopedia_base else None,
-        'aitoolkitEnabled': config.aitoolkit_enabled,
+        'encyclopediaBase': config.services.encyclopedia_base if config.services.encyclopedia_base else None,
+        'aitoolkitEnabled': config.services.aitoolkit_enabled,
         'oasis': config.oasis.is_oasis,
         'version': config.meta.beta if config.meta.beta else {},
         'globalLoginRequired': config.oasis.allowed_users is not None,
         'servicesUploadLimit': config.services.upload_limit,
-        'ui': config.ui if config.ui else {}
+        'ui': config.ui.dict() if config.ui else {}
     }
 
     return f'window.nomadEnv = {json.dumps(data, indent=2)}'

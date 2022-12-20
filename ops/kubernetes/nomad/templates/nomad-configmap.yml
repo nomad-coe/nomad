@@ -21,7 +21,6 @@ data:
         isTest: {{ .Values.version.isTest }}
         usesBetaData: {{ .Values.version.usesBetaData }}
         officialUrl: "{{ .Values.version.officialUrl }}"
-    aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
     process:
       reuse_parser: {{ .Values.process.reuseParser }}
       index_materials: {{ .Values.process.indexMaterials }}
@@ -31,7 +30,7 @@ data:
       use_original_parser: {{ .Values.reprocess.useOriginalParser }}
       add_matched_entries_to_published:  {{ .Values.reprocess.addMatchedEntriesToPublished }}
       delete_unmatched_published_entries: {{ .Values.reprocess.deleteUnmatchedPublishedEntries }}
-      index_invidiual_entries: {{ .Values.reprocess.indexIndividualEntries }}
+      index_individual_entries: {{ .Values.reprocess.indexIndividualEntries }}
     fs:
       tmp: ".volumes/fs/staging/tmp"
       prefix_size: {{ .Values.volumes.prefixSize }}
@@ -51,6 +50,7 @@ data:
       https: {{ .Values.proxy.external.https }}
       upload_limit: {{ .Values.api.uploadLimit }}
       admin_user_id: {{ .Values.keycloak.admin_user_id }}
+      aitoolkit_enabled: {{ .Values.services.aitoolkit.enabled }}
     rabbitmq:
       host: "{{ .Release.Name }}-rabbitmq"
     elastic:

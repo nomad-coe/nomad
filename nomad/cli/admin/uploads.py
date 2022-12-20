@@ -586,18 +586,18 @@ def export_bundle(ctx, uploads, out_dir, uncompressed, overwrite, settings, igno
 
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
-    default_export_settings = config.bundle_export.default_settings.customize(config.bundle_export.default_settings_cli)
-
     if settings:
         settings = json.loads(settings)
         try:
+            default_export_settings = config.bundle_export.default_settings.customize(
+                config.bundle_export.default_settings_cli)
             export_settings = default_export_settings.customize(settings)
             BundleExporter.check_export_settings(export_settings)
-        except AssertionError as e:
+        except Exception as e:
             # Invalid setting provided
             print(e)
             print('\nAvailable settings and their configured default values:')
-            for k, v in default_export_settings.items():
+            for k, v in default_export_settings.dict().items():
                 print(f'    {k:<40}: {v}')
             return -1
     else:
@@ -667,6 +667,8 @@ def export_bundle(ctx, uploads, out_dir, uncompressed, overwrite, settings, igno
             (the default behaviour is to abort on first failing bundle).''')
 @click.pass_context
 def import_bundle(ctx, input_path, multi, settings, embargo_length, use_celery, ignore_errors):
+    from pydantic import parse_obj_as
+
     from nomad.bundles import BundleImporter
     from nomad import infrastructure
 
@@ -696,13 +698,13 @@ def import_bundle(ctx, input_path, multi, settings, embargo_length, use_celery, 
     if settings:
         settings = json.loads(settings)
         try:
-            import_settings = default_import_settings.customize(settings)
-            BundleImporter.check_import_settings(import_settings)
+            import_settings = default_import_settings.customize(
+                parse_obj_as(config.BundleExportSettings, settings))
         except Exception as e:
             # Invalid setting provided
             print(e)
             print('\nAvailable settings and their configured default values:')
-            for k, v in default_import_settings.items():
+            for k, v in default_import_settings.dict().items():
                 print(f'    {k:<40}: {v}')
             return -1
     else:

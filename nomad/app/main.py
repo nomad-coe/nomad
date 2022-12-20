@@ -118,7 +118,7 @@ async def http_exception_handler(request, exc):
             <body>
                 <h1>NOMAD app</h1>
                 <h2>info</h2>
-                {'<br/>'.join(f'{key}: {value}' for key, value in config.meta.items())}
+                {'<br/>'.join(f'{key}: {value}' for key, value in config.meta.dict().items())}
                 <h2>apis</h2>
                 <a href="{app_base}/api/v1/extensions/docs">NOMAD API v1</a><br/>
                 <a href="{app_base}/optimade/v1/extensions/docs">Optimade API</a><br/>

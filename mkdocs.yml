@@ -24,7 +24,9 @@ nav:
     - develop/search.md
     - develop/parser.md
     - develop/normalizers.md
-  - Operating NOMAD (Oasis): oasis.md
+  - Operating NOMAD:
+    - oasis.md
+    - config.md
 theme:
   name: material
   palette:

@@ -30,9 +30,6 @@ by python import logic. The categories are choosen along infrastructure componen
 This module also provides utilities to read the configuration from environment variables
 and .yaml files. This is done automatically on import. The precedence is env over .yaml
 over defaults.
-
-.. autoclass:: nomad.config.NomadConfig
-.. autofunction:: nomad.config.load_config
 '''
 
 import logging
@@ -41,8 +38,9 @@ import inspect
 import os.path
 import yaml
 import warnings
-from typing import Dict, List, Any
+from typing import TypeVar, List, Any, cast
 from pkg_resources import get_distribution, DistributionNotFound
+from pydantic import BaseModel, Field
 
 try:
     __version__ = get_distribution("nomad-lab").version
@@ -56,143 +54,109 @@ warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 
-class NomadConfig(dict):
-    '''
-    A class for configuration categories. It is a dict subclass that uses attributes as
-    key/value pairs.
-    '''
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+NomadSettingsBound = TypeVar('NomadSettingsBound', bound='NomadSettings')
 
-    def __getattr__(self, name):
-        if name in self:
-            return self[name]
-        else:
-            raise AttributeError("No such attribute: " + name)
 
-    def __setattr__(self, name, value):
-        self[name] = value
-
-    def __delattr__(self, name):
-        if name in self:
-            del self[name]
-        else:
-            raise AttributeError("No such attribute: " + name)
-
-    def customize(self, custom_settings: Dict[str, Any]) -> 'NomadConfig':
+class NomadSettings(BaseModel):
+    def customize(self: NomadSettingsBound, custom_settings: NomadSettingsBound, **kwargs) -> NomadSettingsBound:
         '''
-        Returns a new NomadConfig object, created by taking a copy of the current config and
+        Returns a new config object, created by taking a copy of the current config and
         updating it with the settings defined in `custom_settings`. The `custom_settings` dict
-        must not contain any new keys (keys not defined in this NomadConfig). If it does,
+        must not contain any new keys (keys not defined in this NomadSettings). If it does,
         an exception will be raised.
         '''
-        rv = NomadConfig(**self)
+
+        rv = self.copy(deep=True)
+
         if custom_settings:
-            for k, v in custom_settings.items():
-                assert k in rv, f'Invalid setting: {k}'
-                rv[k] = v
-        return rv
+            for field_name in custom_settings.__fields__.keys():
+                try:
+                    setattr(rv, field_name, getattr(custom_settings, field_name))
+                except Exception:
+                    raise AssertionError(f'Invalid setting: {field_name}')
+
+        for key, value in kwargs.items():
+            if value is None:
+                continue
+            try:
+                setattr(rv, key, value)
+            except Exception:
+                raise AssertionError(f'Invalid setting: {field_name}')
+
+        return cast(NomadSettingsBound, rv)
 
 
-CELERY_WORKER_ROUTING = 'worker'
-CELERY_QUEUE_ROUTING = 'queue'
+class Services(NomadSettings):
+    '''
+    Contains basic configuration of the NOMAD services (app, worker, north).
+    '''
+    api_host = Field('localhost', description='''
+        The external hostname that clients can use to reach this NOMAD installation.
+    ''')
+    api_port = Field(8000, description='''
+        The port used to expose the NOMAD app and api to clients.
+    ''')
+    api_base_path = Field('/fairdi/nomad/latest', description='''
+        The base path prefix for the NOMAD app and api.
+    ''')
+    api_secret = Field('defaultApiSecret', description='''
+        A secret that is used to issue download and other tokens.
+    ''')
+    https = Field(False, description='''
+        Set to `True`, if external clients are using *SSL* to connect to this installation.
+        Requires to setup a reverse-proxy (e.g. the one used in the docker-compose
+        based installation) that handles the *SSL* encryption.
+    ''')
+    https_upload = Field(False, description='''
+        Set to `True`, if upload curl commands should suggest the use of SSL for file
+        uploads. This can be configured independently of `https` to suggest large file
+        via regular HTTP.
+    ''')
+    admin_user_id = Field('00000000-0000-0000-0000-000000000000', description='''
+        The admin user `user_id`. All users are treated the same; there are no
+        particular authorization information attached to user accounts. However, the
+        API will grant the user with the given `user_id` more rights, e.g. using the
+        `admin` owner setting in accessing data.
+    ''')
 
-rabbitmq = NomadConfig(
-    host='localhost',
-    user='rabbitmq',
-    password='rabbitmq'
-)
+    encyclopedia_base = Field(
+        'https://nomad-lab.eu/prod/rae/encyclopedia/#', description='''
+            This enables links to the given *encyclopedia* installation in the UI.
+        ''')
+    aitoolkit_enabled = Field(False, description='''
+        If true, the UI will show a menu with links to the AI Toolkit notebooks on
+        `nomad-lab.eu`.
+    ''')
+
+    console_log_level = Field(logging.WARNING, description='''
+        The log level that controls console logging for all NOMAD services (app, worker, north).
+        The level is given in Python `logging` log level numbers.
+    ''')
+
+    upload_limit = Field(10, description='''
+        The maximum allowed unpublished uploads per user. If a user exceeds this
+        amount, the user cannot add more uploads.
+    ''')
+    force_raw_file_decoding = Field(False, description='''
+        By default, text raw-files are interpreted with utf-8 encoding. If this fails,
+        the actual encoding is guessed. With this setting, we force to assume iso-8859-1
+        encoding, if a file is not decodable with utf-8.
+    ''')
+    max_entry_download = Field(50000, description='''
+        There is an inherent limit in page-based pagination with Elasticsearch. If you
+        increased this limit with your Elasticsearch, you can also adopt this setting
+        accordingly, changing the maximum amount of entries that can be paginated with
+        page-base pagination.
+
+        Page-after-value-based pagination is independent and can be used without limitations.
+    ''')
+    unavailable_value = Field('unavailable', description='''
+        Value that is used in `results` section Enum fields (e.g. system type, spacegroup, etc.)
+        to indicate that the value could not be determined.
+    ''')
 
 
-def rabbitmq_url():
-    return 'pyamqp://%s:%s@%s//' % (rabbitmq.user, rabbitmq.password, rabbitmq.host)
-
-
-celery = NomadConfig(
-    max_memory=64e6,  # 64 GB
-    timeout=1800,  # 1/2 h
-    acks_late=False,
-    routing=CELERY_QUEUE_ROUTING,
-    priorities={
-        'Upload.process_upload': 5,
-        'Upload.delete_upload': 9,
-        'Upload.publish_upload': 10
-    }
-)
-
-fs = NomadConfig(
-    tmp='.volumes/fs/tmp',
-    staging='.volumes/fs/staging',
-    staging_external=None,
-    public='.volumes/fs/public',
-    public_external=None,
-    local_tmp='/tmp',
-    prefix_size=2,
-    archive_version_suffix='v1',
-    working_directory=os.getcwd(),
-    external_working_directory=None
-)
-
-elastic = NomadConfig(
-    host='localhost',
-    port=9200,
-    timeout=60,
-    bulk_timeout=600,
-    bulk_size=1000,
-    entries_per_material_cap=1000,
-    entries_index='nomad_entries_v1',
-    materials_index='nomad_materials_v1',
-)
-
-keycloak = NomadConfig(
-    server_url='https://nomad-lab.eu/fairdi/keycloak/auth/',
-    public_server_url=None,
-    realm_name='fairdi_nomad_prod',
-    username='admin',
-    password='password',
-    client_id='nomad_public',
-    client_secret=None)
-
-mongo = NomadConfig(
-    host='localhost',
-    port=27017,
-    db_name='nomad_v1'
-)
-
-logstash = NomadConfig(
-    enabled=False,
-    host='localhost',
-    tcp_port='5000',
-    level=logging.DEBUG
-)
-
-services = NomadConfig(
-    api_host='localhost',
-    api_port=8000,
-    api_base_path='/fairdi/nomad/latest',
-    api_secret='defaultApiSecret',
-    api_chaos=0,
-    admin_user_id='00000000-0000-0000-0000-000000000000',
-    not_processed_value='not processed',
-    unavailable_value='unavailable',
-    https=False,
-    https_upload=False,
-    upload_limit=10,
-    force_raw_file_decoding=False,
-    download_scan_size=500,
-    download_scan_timeout=u'30m'
-)
-
-oasis = NomadConfig(
-    central_nomad_deployment_url='https://nomad-lab.eu/prod/v1/api',
-    allowed_users=None,  # a list of usernames or user account emails
-    uses_central_user_management=False,
-    is_oasis=False
-)
-
-tests = NomadConfig(
-    default_timeout=60
-)
+services = Services()
 
 
 def api_url(ssl: bool = True, api: str = 'api', api_host: str = None, api_port: int = None):
@@ -223,276 +187,496 @@ def gui_url(page: str = None):
     return '%s/gui' % base
 
 
-def _check_config():
-    """Used to check that the current configuration is valid. Should only be
-    called once after the final config is loaded.
+class Meta(NomadSettings):
+    '''
+    Metadata about the deployment and how it is presented to clients.
+    '''
+    version = Field(__version__, description='The NOMAD version string.')
+    commit = Field('', description='The source-code commit that this installation\'s NOMAD version is build from.')
+    deployment = Field(
+        'devel', description='Human-friendly name of this nomad deployment.')
+    deployment_url = Field(
+        api_url(), description='The NOMAD deployment\'s url (api url).')
+    label: str = Field(None, description='''
+        An additional log-stash data key-value pair added to all logs. Can be used
+        to differentiate deployments when analyzing logs.
+    ''')
+    service = Field('unknown nomad service', description='''
+        Name for the service that is added to all logs. Depending on how NOMAD is
+        installed, services get a name (app, worker, north) automatically.
+    ''')
 
-    Raises:
-        AssertionError: if there is a contradiction or invalid values in the
-            config file settings.
-    """
-    # The AFLOW symmetry information is checked once on import
-    proto_symmetry_tolerance = normalize.prototype_symmetry_tolerance
-    symmetry_tolerance = normalize.symmetry_tolerance
-    if proto_symmetry_tolerance != symmetry_tolerance:
-        raise AssertionError(
-            "The AFLOW prototype information is outdated due to changed tolerance "
-            "for symmetry detection. Please update the AFLOW prototype information "
-            "by running the CLI command 'nomad admin ops prototype-update "
-            "--matches-only'."
-        )
+    name = Field(
+        'NOMAD',
+        description='Web-site title for the NOMAD UI.',
+        deprecated=True)
+    homepage = Field(
+        'https://nomad-lab.eu', description='Provider homepage.', deprecated=True)
+    source_url = Field(
+        'https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
+        description='URL of the NOMAD source-code repository.',
+        deprecated=True)
 
-    if normalize.springer_db_path and not os.path.exists(normalize.springer_db_path):
-        normalize.springer_db_path = None
-
-    if keycloak.public_server_url is None:
-        keycloak.public_server_url = keycloak.server_url
-
-    def set_external_path(source_obj, source_key, target_obj, target_key, overwrite=False):
-        source_value = getattr(source_obj, source_key)
-        target_value = getattr(target_obj, target_key)
-
-        if target_value and not overwrite:
-            return
-
-        if not source_value:
-            return
-
-        if fs.external_working_directory and not os.path.isabs(source_value):
-            target_value = os.path.join(fs.external_working_directory, source_value)
-        else:
-            target_value = source_value
-
-        setattr(target_obj, target_key, target_value)
-
-    set_external_path(fs, 'staging', fs, 'staging_external')
-    set_external_path(fs, 'public', fs, 'public_external')
-    set_external_path(north, 'users_fs', north, 'users_fs', overwrite=True)
-    set_external_path(north, 'shared_fs', north, 'shared_fs', overwrite=True)
+    maintainer_email = Field(
+        'markus.scheidgen@physik.hu-berlin.de',
+        description='Email of the NOMAD deployment maintainer.')
+    beta: dict = Field(None, description='''
+        Additional data that describes how the deployment is labeled as a beta-version in the UI.
+    ''')
 
 
-mail = NomadConfig(
-    enabled=False,
-    with_login=False,
-    host='',
-    port=8995,
-    user='',
-    password='',
-    from_address='support@nomad-lab.eu',
-    cc_address='support@nomad-lab.eu'
-)
+meta = Meta()
 
-normalize = NomadConfig(
-    # The system size limit for running the dimensionality analysis. For very
-    # large systems the dimensionality analysis will get too expensive.
-    system_classification_with_clusters_threshold=64,
-    # Symmetry tolerance controls the precision used by spglib in order to find
-    # symmetries. The atoms are allowed to move 1/2*symmetry_tolerance from
-    # their symmetry positions in order for spglib to still detect symmetries.
-    # The unit is angstroms. The value of 0.1 is used e.g. by Materials Project
-    # according to
-    # https://pymatgen.org/pymatgen.symmetry.analyzer.html#pymatgen.symmetry.analyzer.SpacegroupAnalyzer
-    symmetry_tolerance=0.1,
-    # The symmetry tolerance used in aflow prototype matching. Should only be
-    # changed before re-running the prototype detection.
-    prototype_symmetry_tolerance=0.1,
-    # Maximum number of atoms in the single cell of a 2D material for it to be
-    # considered valid.
-    max_2d_single_cell_size=7,
-    # The distance tolerance between atoms for grouping them into the same
-    # cluster. Used in detecting system type.
-    cluster_threshold=2.5,
-    # Defines the "bin size" for rounding cell angles for the material hash
-    angle_rounding=float(10.0),  # unit: degree
-    # The threshold for a system to be considered "flat". Used e.g. when
-    # determining if a 2D structure is purely 2-dimensional to allow extra rigid
-    # transformations that are improper in 3D but proper in 2D.
-    flat_dim_threshold=0.1,
-    # The threshold for point equality in k-space. Unit: 1/m.
-    k_space_precision=150e6,
-    # The energy threshold for how much a band can be on top or below the fermi
-    # level in order to still detect a gap. Unit: Joule.
-    band_structure_energy_tolerance=8.01088e-21,  # 0.05 eV
-    springer_db_path=os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        'normalizing/data/springer.msg'
+
+class Oasis(NomadSettings):
+    '''
+    Settings related to the configuration of a NOMAD Oasis deployment.
+    '''
+    is_oasis = Field(False, description='Set to `True` to indicate that this deployment is a NOMAD Oasis.')
+    allowed_users: str = Field(None, description='''
+        A list of usernames or user account emails. These represent a white-list of
+        allowed users. With this, users will need to login right-away and only the
+        listed users might use this deployment. All API requests must have authentication
+        information as well.''')
+    uses_central_user_management = Field(False, description='''
+        Set to True to use the central user-management. Typically the NOMAD backend is
+        using the configured `keycloak` to access user data. With this, the backend will
+        use the API of the central NOMAD (`central_nomad_deployment_url`) instead.
+    ''')
+    central_nomad_deployment_url = Field('https://nomad-lab.eu/prod/v1/api', description='''
+        The URL of the API of the NOMAD deployment that is considered the *central* NOMAD.
+    ''')
+
+
+oasis = Oasis()
+
+
+_jupyterhub_config_description = '''
+    This setting is forwarded to jupyterhub; refer to the jupyterhub
+    [documentation](https://jupyterhub.readthedocs.io/en/stable/api/app.html#).
+'''
+
+
+class North(NomadSettings):
+    '''
+    Settings related to the operation of the NOMAD remote tools hub service *north*.
+    '''
+    hub_connect_ip: str = Field(None, description='''
+        Overwrites the default hostname that can be used from within a north container
+        to reach the host system.
+
+        Typically has to be set for non Linux hosts. Set this to `host.docker.internal`
+        on windows/macos.
+    ''')
+    hub_connect_url: str = Field(None, description=_jupyterhub_config_description)
+    hub_ip = Field('0.0.0.0', description=_jupyterhub_config_description)
+    docker_network: str = Field(None, description=_jupyterhub_config_description)
+    hub_host = Field('localhost', description='''
+        The internal host name that NOMAD services use to connect to the jupyterhub API.
+    ''')
+    hub_port = Field(9000, description='''
+        The internal port that NOMAD services use to connect to the jupyterhub API.
+    ''')
+    jupyterhub_crypt_key: str = Field(None, description=_jupyterhub_config_description)
+
+    shared_fs = Field('.volumes/fs/north/shared', description='''
+        Path to the shared folder on the host machine. This is mounted into spawned
+        containers to be shared by all users.
+    ''')
+    users_fs = Field('.volumes/fs/north/users', description='''
+        Path to a folder on the host machine. Sub-directories with the username are mounted
+        into spawned containers to persist files per user.
+    ''')
+    nomad_host: str = Field(
+        None, description='The NOMAD app host name that spawned containers use.')
+    windows = Field(
+        True, description='Enable windows OS hacks.')
+
+
+north = North()
+
+
+CELERY_WORKER_ROUTING = 'worker'
+CELERY_QUEUE_ROUTING = 'queue'
+
+
+class RabbitMQ(NomadSettings):
+    '''
+    Configures how NOMAD is connecting to RabbitMQ.
+    '''
+    host = Field('localhost', description='The name of the host that runs RabbitMQ.')
+    user = Field('rabbitmq', description='The RabbitMQ user that is used to connect.')
+    password = Field('rabbitmq', description='The password that is used to connect.')
+
+
+rabbitmq = RabbitMQ()
+
+
+def rabbitmq_url():
+    return 'pyamqp://%s:%s@%s//' % (rabbitmq.user, rabbitmq.password, rabbitmq.host)
+
+
+class Celery(NomadSettings):
+    max_memory = 64e6  # 64 GB
+    timeout = 1800  # 1/2 h
+    acks_late = False
+    routing = CELERY_QUEUE_ROUTING
+    priorities = {
+        'Upload.process_upload': 5,
+        'Upload.delete_upload': 9,
+        'Upload.publish_upload': 10
+    }
+
+
+celery = Celery()
+
+
+class FS(NomadSettings):
+    tmp = '.volumes/fs/tmp'
+    staging = '.volumes/fs/staging'
+    staging_external: str = None
+    public = '.volumes/fs/public'
+    public_external: str = None
+    local_tmp = '/tmp'
+    prefix_size = 2
+    archive_version_suffix = 'v1'
+    working_directory = os.getcwd()
+    external_working_directory: str = None
+
+
+fs = FS()
+
+
+class Elastic(NomadSettings):
+    host = 'localhost'
+    port = 9200
+    timeout = 60
+    bulk_timeout = 600
+    bulk_size = 1000
+    entries_per_material_cap = 1000
+    entries_index = 'nomad_entries_v1'
+    materials_index = 'nomad_materials_v1'
+
+
+elastic = Elastic()
+
+
+class Keycloak(NomadSettings):
+    server_url = 'https://nomad-lab.eu/fairdi/keycloak/auth/'
+    public_server_url: str = None
+    realm_name = 'fairdi_nomad_prod'
+    username = 'admin'
+    password = 'password'
+    client_id = 'nomad_public'
+    client_secret: str = None
+
+
+keycloak = Keycloak()
+
+
+class Mongo(NomadSettings):
+    ''' Connection and usage settings for MongoDB.'''
+    host: str = Field('localhost', description='The name of the host that runs mongodb.')
+    port: int = Field(27017, description='The port to connect with mongodb.')
+    db_name: str = Field('nomad_v1', description='The used mongodb database name.')
+
+
+mongo = Mongo()
+
+
+class Logstash(NomadSettings):
+    enabled = False
+    host = 'localhost'
+    tcp_port = '5000'
+    level: int = logging.DEBUG
+
+
+logstash = Logstash()
+
+
+class Tests(NomadSettings):
+    default_timeout = 60
+
+
+tests = Tests()
+
+
+class Mail(NomadSettings):
+    enabled = False
+    with_login = False
+    host = ''
+    port = 8995
+    user = ''
+    password = ''
+    from_address = 'support@nomad-lab.eu'
+    cc_address = 'support@nomad-lab.eu'
+
+
+mail = Mail()
+
+
+class Normalize(NomadSettings):
+    system_classification_with_clusters_threshold = Field(
+        64, description='''
+            The system size limit for running the dimensionality analysis. For very
+            large systems the dimensionality analysis will get too expensive.
+        ''')
+    symmetry_tolerance = Field(
+        0.1, description='''
+            Symmetry tolerance controls the precision used by spglib in order to find
+            symmetries. The atoms are allowed to move 1/2*symmetry_tolerance from
+            their symmetry positions in order for spglib to still detect symmetries.
+            The unit is angstroms. The value of 0.1 is used e.g. by Materials Project
+            according to
+            https://pymatgen.org/pymatgen.symmetry.analyzer.html#pymatgen.symmetry.analyzer.SpacegroupAnalyzer
+        ''')
+    prototype_symmetry_tolerance = Field(
+        0.1, description='''
+            The symmetry tolerance used in aflow prototype matching. Should only be
+            changed before re-running the prototype detection.
+        ''')
+    max_2d_single_cell_size = Field(
+        7, description='''
+            Maximum number of atoms in the single cell of a 2D material for it to be
+            considered valid.
+        ''')
+    cluster_threshold = Field(
+        2.5, description='''
+            The distance tolerance between atoms for grouping them into the same
+            cluster. Used in detecting system type.
+        ''')
+
+    angle_rounding = Field(
+        float(10.0), description='''
+            Defines the "bin size" for rounding cell angles for the material hash in degree.
+        ''')
+    flat_dim_threshold = Field(
+        0.1, description='''
+            The threshold for a system to be considered "flat". Used e.g. when
+            determining if a 2D structure is purely 2-dimensional to allow extra rigid
+            transformations that are improper in 3D but proper in 2D.
+        ''')
+
+    k_space_precision = Field(
+        150e6, description='''
+            The threshold for point equality in k-space. Unit: 1/m.
+        ''')
+    band_structure_energy_tolerance = Field(
+        8.01088e-21, description='''
+            The energy threshold for how much a band can be on top or below the fermi
+            level in order to still detect a gap. Unit: Joule.
+        ''')
+    springer_db_path = Field(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'normalizing/data/springer.msg'))
+
+
+normalize = Normalize()
+
+
+class Resources(NomadSettings):
+    enabled = False
+    db_name = 'nomad_v1_resources'
+    max_time_in_mongo = Field(
+        60 * 60 * 24 * 365., description='''
+            Maxmimum time a resource is stored in mongodb before being updated.
+        ''')
+    download_retries = Field(
+        2, description='Number of retries when downloading resources.')
+    download_retry_delay = Field(
+        10, description='Delay between retries in seconds')
+    max_connections = Field(
+        10, description='Maximum simultaneous connections used to download resources.')
+
+
+resources = Resources()
+
+
+class Client(NomadSettings):
+    user: str = None
+    password: str = None
+    access_token: str = None
+    url = 'http://nomad-lab.eu/prod/v1/api'
+
+
+client = Client()
+
+
+class DataCite(NomadSettings):
+    mds_host = 'https://mds.datacite.org'
+    enabled = False
+    prefix = '10.17172'
+    user = '*'
+    password = '*'
+
+
+datacite = DataCite()
+
+
+class GitLab(NomadSettings):
+    private_token = 'not set'
+
+
+gitlab = GitLab()
+
+
+class Reprocess(NomadSettings):
+    '''
+    Configures standard behaviour when reprocessing.
+    Note, the settings only matter for published uploads and entries. For uploads in
+    staging, we always reparse, add newfound entries, and delete unmatched entries.
+    '''
+    rematch_published = True
+    reprocess_existing_entries = True
+    use_original_parser = False
+    add_matched_entries_to_published = True
+    delete_unmatched_published_entries = False
+    index_individual_entries = False
+
+
+reprocess = Reprocess()
+
+
+class Process(NomadSettings):
+    store_package_definition_in_mongo = Field(
+        False, description='Configures whether to store the corresponding package definition in mongodb.')
+    add_definition_id_to_reference = Field(
+        False, description='''
+            Configures whether to attach definition id to `m_def`, note it is different from `m_def_id`.
+            The `m_def_id` will be exported with the `with_def_id=True` via `m_to_dict`.
+        ''')
+    write_definition_id_to_archive = Field(False, description='Write `m_def_id` to the archive.')
+    index_materials = True
+    reuse_parser = True
+    metadata_file_name = 'nomad'
+    metadata_file_extensions = ('json', 'yaml', 'yml')
+    auxfile_cutoff = 100
+    parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
+    max_upload_size = 32 * (1024 ** 3)
+    use_empty_parsers = False
+
+
+process = Process()
+
+
+class RFC3161Timestamp(NomadSettings):
+    server = Field(
+        'http://time.certum.pl/', description='The rfc3161ng timestamping host.')
+    cert: str = Field(
+        None, description='Path to the optional rfc3161ng timestamping server certificate.')
+    hash_algorithm = Field(
+        'sha256', description='Hash algorithm used by the rfc3161ng timestamping server.')
+    username: str = None
+    password: str = None
+
+
+rfc3161_timestamp = RFC3161Timestamp()
+
+
+class BundleExportSettings(NomadSettings):
+    include_raw_files = True
+    include_archive_files = True
+    include_datasets = True
+
+
+class BundleExport(NomadSettings):
+    default_cli_bundle_export_path: str = './bundles'
+    default_settings = BundleExportSettings()
+    default_settings_cli: BundleExportSettings = Field(None, description='''
+        Additional default settings, applied when exporting using the CLI (command-line interface).
+        This allows to override some of the settings specified in the general default settings above.
+    ''')
+
+
+bundle_export = BundleExport()
+
+
+class BundleImportSettings(NomadSettings):
+    process_settings = Field(
+        Reprocess(
+            rematch_published=True,
+            reprocess_existing_entries=True,
+            use_original_parser=False,
+            add_matched_entries_to_published=True,
+            delete_unmatched_published_entries=False
+        ), description='''
+            It is possible to trigger processing of the raw files, but it is no longer the
+            preferred way to import bundles. If used, the settings below control the reprocessing
+            behaviour (see the config for `reprocess` for more info).
+        '''
     )
-)
 
-resources = NomadConfig(
-    enabled=False,
-    db_name='nomad_v1_resources',
-    # Maxmimum time a resource is stored in mongodb before being updated.
-    max_time_in_mongo=60 * 60 * 24 * 365.,
-    # Number of download retries
-    download_retries=2,
-    # Delay in seconds before each successive retry
-    download_retry_delay=10,
-    # Maximum number of httpx connections
-    max_connections=10
-)
+    include_raw_files = True
+    include_archive_files = False
+    include_datasets = True
 
-paths = NomadConfig(
-    similarity="",
-)
+    include_bundle_info = Field(
+        True, description='Keeps the bundle_info.json file, not necessary but nice to have.')
+    keep_original_timestamps = Field(
+        False, description='''
+            If all timestamps (create time, publish time etc) should be imported from
+            the bundle.
+        ''')
+    set_from_oasis = Field(
+        True, description='If the from_oasis flag and oasis_deployment_url should be set.')
 
-client = NomadConfig(
-    user=None,
-    password=None,
-    access_token=None,
-    url='http://nomad-lab.eu/prod/v1/api'
-)
+    delete_upload_on_fail = Field(
+        False, description='If False, it is just removed from the ES index on failure.')
+    delete_bundle_on_fail = Field(
+        True, description='Deletes the source bundle if the import fails.')
+    delete_bundle_on_success = Field(
+        True, description='Deletes the source bundle if the import succeeds.')
+    delete_bundle_include_parent_folder = Field(
+        True, description='When deleting the bundle, also include parent folder, if empty.')
 
-datacite = NomadConfig(
-    mds_host='https://mds.datacite.org',
-    enabled=False,
-    prefix='10.17172',
-    user='*',
-    password='*'
-)
+    trigger_processing = Field(
+        True, description='If the upload should be processed when the import is done.')
 
-meta = NomadConfig(
-    version=__version__,
-    commit='',
-    deployment='devel',  # A human-friendly name of the nomad deployment
-    deployment_url='https://my-oasis.org/api',  # The deployment's url (api url).
-    label=None,
-    default_domain='dft',
-    service='unknown nomad service',
-    name='novel materials discovery (NOMAD)',
-    description='A FAIR data sharing platform for materials science data',
-    homepage='https://nomad-lab.eu',
-    source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
-    maintainer_email='markus.scheidgen@physik.hu-berlin.de',
-    beta=None
-)
 
-gitlab = NomadConfig(
-    private_token='not set'
-)
+class BundleImport(NomadSettings):
 
-reprocess = NomadConfig(
-    # Configures standard behaviour when reprocessing.
-    # Note, the settings only matter for published uploads and entries. For uploads in
-    # staging, we always reparse, add newfound entries, and delete unmatched entries.
-    rematch_published=True,
-    reprocess_existing_entries=True,
-    use_original_parser=False,
-    add_matched_entries_to_published=True,
-    delete_unmatched_published_entries=False,
-    index_invidiual_entries=False
-)
+    required_nomad_version = Field(
+        '1.1.2', description='Minimum  NOMAD version of bundles required for import.')
 
-process = NomadConfig(
-    # Configures if to store the corresponding package definition in mongodb.
-    store_package_definition_in_mongo=False,
-    # Configures if to attach definition id to `m_def`, note it is different from `m_def_id`.
-    # The `m_def_id` will be exported with the `with_def_id=True` via `m_to_dict`.
-    add_definition_id_to_reference=False,
-    # write `m_def_id` to the archive
-    write_definition_id_to_archive=False,
-    index_materials=True,
-    reuse_parser=True,
-    metadata_file_name='nomad',
-    metadata_file_extensions=('json', 'yaml', 'yml')
-)
+    default_cli_bundle_import_path = './bundles'
 
-rfc3161_timestamp = NomadConfig(
-    # rfc3161ng timestamping server
-    server='http://time.certum.pl/',
-    # cert PATH used for rfc3161ng timestamping server
-    cert=None,
-    # hash algorithm for rfc3161ng timestamping server, depends on the server
-    hash_algorithm='sha256',
-    username=None,
-    password=None
-)
+    allow_bundles_from_oasis = Field(
+        False, description='If oasis admins can "push" bundles to this NOMAD deployment.')
+    allow_unpublished_bundles_from_oasis = Field(
+        False, description='If oasis admins can "push" bundles of unpublished uploads.')
 
-bundle_export = NomadConfig(
-    # General settings
-    default_cli_bundle_export_path='./bundles',
+    default_settings = BundleImportSettings()
 
-    # Default settings
-    default_settings=NomadConfig(
-        # General default settings.
-        include_raw_files=True,
-        include_archive_files=True,
-        include_datasets=True,
-    ),
-
-    default_settings_cli=NomadConfig(
-        # Additional default settings, applied when exporting using the CLI (command-line interface).
-        # This allows to override some of the settings specified in the general default settings above.
+    default_settings_cli = Field(
+        BundleImportSettings(
+            delete_bundle_on_fail=False,
+            delete_bundle_on_success=False
+        ),
+        description='''
+            Additional default settings, applied when importing using the CLI (command-line interface).
+            This allows to override some of the settings specified in the general default settings above.
+        '''
     )
-)
 
-bundle_import = NomadConfig(
-    # General settings
-    required_nomad_version='1.1.2',  # Minimum  nomad version of bundles required for import
-    default_cli_bundle_import_path='./bundles',
 
-    # Permission settings
-    allow_bundles_from_oasis=False,  # If oasis admins can "push" bundles to this NOMAD deployment
-    allow_unpublished_bundles_from_oasis=False,  # If oasis admins can "push" bundles of unpublished uploads
+bundle_import = BundleImport()
 
-    # Default settings
-    default_settings=NomadConfig(
-        # General default settings.
-        include_raw_files=True,
-        include_archive_files=True,
-        include_datasets=True,
-        include_bundle_info=True,  # Keeps the bundle_info.json file (not necessary but nice to have)
-        keep_original_timestamps=False,  # If all time stamps (create time, publish time etc) should be imported from the bundle
-        set_from_oasis=True,  # If the from_oasis flag and oasis_deployment_url should be set
-        # Cleanup settings
-        delete_upload_on_fail=False,  # If False, the entries are just removed from the ES index on failure
-        delete_bundle_on_fail=True,  # Deletes the source bundle if the import fails
-        delete_bundle_on_success=True,  # Deletes the source bundle if the import succeeds
-        delete_bundle_include_parent_folder=True,  # When deleting the bundle, also include parent folder, if empty.
 
-        # It is possible to trigger processing of the raw files, but it is no longer the
-        # preferred way to import bundles. If used, the settings below control the reprocessing
-        # behaviour (see the config for `reprocess` for more info).
-        trigger_processing=False,  # Set if you want to reprocess after import (not recommended).
-        rematch_published=True,
-        reprocess_existing_entries=True,
-        use_original_parser=False,
-        add_matched_entries_to_published=True,
-        delete_unmatched_published_entries=False
-    ),
+class Archive(NomadSettings):
+    block_size = 256 * 1024
+    read_buffer_size = Field(
+        256 * 1024, description='GPFS needs at least 256K to achieve decent performance.')
+    max_process_number = Field(
+        20, description='Maximum number of processes can be assigned to process archive query.')
+    min_entries_per_process = Field(
+        20, description='Minimum number of entries per process.')
 
-    default_settings_cli=NomadConfig(
-        # Additional default settings, applied when importing using the CLI (command-line interface).
-        # This allows to override some of the settings specified in the general default settings above.
-        delete_bundle_on_fail=False,
-        delete_bundle_on_success=False
-    )
-)
 
-north = NomadConfig(
-    hub_connect_ip=None,  # Set this to host.docker.internal on windows/macos.
-    hub_connect_url=None,
-    hub_ip='0.0.0.0',
-    docker_network=None,
-    hub_host='localhost',
-    hub_port=9000,
-    shared_fs='.volumes/fs/north/shared',
-    users_fs='.volumes/fs/north/users',
-    jupyterhub_crypt_key=None,
-    nomad_host=None,  # host name to reach nomad app from spawned containers
-    windows=True,  # enable windows (as in windows the OS) hacks
-)
+archive = Archive()
 
-archive = NomadConfig(
-    block_size=256 * 1024,
-    read_buffer_size=256 * 1024,  # GPFS needs at least 256K to achieve decent performance
-    max_process_number=20,  # maximum number of processes can be assigned to process archive query
-    min_entries_per_process=20  # minimum number of entries per process
-)
 
-ui = NomadConfig(
-    default_unit_system='Custom',
-    entry_context={
+class UIConfig(NomadSettings):
+    default_unit_system = 'Custom'
+    entry_context: dict = {
         'overview': {
             'include': [
                 'sections',
@@ -529,8 +713,8 @@ ui = NomadConfig(
                 'relatedResources': {'error': 'Could not render related resources card.'},
             }
         }
-    },
-    search_contexts={
+    }
+    search_contexts: dict = {
         "include": ["entries", "eln", "materials", "solar_cells"],
         "exclude": [],
         "options": {
@@ -1285,22 +1469,13 @@ ui = NomadConfig(
             }
         }
     }
-)
+
+
+ui = UIConfig()
 
 
 def north_url(ssl: bool = True):
     return api_url(ssl=ssl, api='north', api_host=north.hub_host, api_port=north.hub_port)
-
-
-auxfile_cutoff = 100
-parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
-console_log_level = logging.WARNING
-max_upload_size = 32 * (1024 ** 3)
-raw_file_strip_cutoff = 1000
-max_entry_download = 500000
-encyclopedia_base = "https://nomad-lab.eu/prod/rae/encyclopedia/#"
-aitoolkit_enabled = False
-use_empty_parsers = False
 
 
 def normalize_loglevel(value, default_level=logging.INFO):
@@ -1322,6 +1497,54 @@ _transformations = {
 
 # use std python logger, since logging is not configured while loading configuration
 logger = logging.getLogger(__name__)
+
+
+def _check_config():
+    """Used to check that the current configuration is valid. Should only be
+    called once after the final config is loaded.
+
+    Raises:
+        AssertionError: if there is a contradiction or invalid values in the
+            config file settings.
+    """
+    # The AFLOW symmetry information is checked once on import
+    proto_symmetry_tolerance = normalize.prototype_symmetry_tolerance
+    symmetry_tolerance = normalize.symmetry_tolerance
+    if proto_symmetry_tolerance != symmetry_tolerance:
+        raise AssertionError(
+            "The AFLOW prototype information is outdated due to changed tolerance "
+            "for symmetry detection. Please update the AFLOW prototype information "
+            "by running the CLI command 'nomad admin ops prototype-update "
+            "--matches-only'."
+        )
+
+    if normalize.springer_db_path and not os.path.exists(normalize.springer_db_path):
+        normalize.springer_db_path = None
+
+    if keycloak.public_server_url is None:
+        keycloak.public_server_url = keycloak.server_url
+
+    def set_external_path(source_obj, source_key, target_obj, target_key, overwrite=False):
+        source_value = getattr(source_obj, source_key)
+        target_value = getattr(target_obj, target_key)
+
+        if target_value and not overwrite:
+            return
+
+        if not source_value:
+            return
+
+        if fs.external_working_directory and not os.path.isabs(source_value):
+            target_value = os.path.join(fs.external_working_directory, source_value)
+        else:
+            target_value = source_value
+
+        setattr(target_obj, target_key, target_value)
+
+    set_external_path(fs, 'staging', fs, 'staging_external')
+    set_external_path(fs, 'public', fs, 'public_external')
+    set_external_path(north, 'users_fs', north, 'users_fs', overwrite=True)
+    set_external_path(north, 'shared_fs', north, 'shared_fs', overwrite=True)
 
 
 def _merge(a: dict, b: dict, path: List[str] = None) -> dict:
@@ -1359,6 +1582,7 @@ def _apply(key, value, raise_error: bool = True) -> None:
 
     current = globals()
 
+    current_value: Any = None
     if group_key not in current:
         if key not in current:
             if raise_error:
@@ -1366,12 +1590,14 @@ def _apply(key, value, raise_error: bool = True) -> None:
             return
     else:
         current = current[group_key]
-        if not isinstance(current, NomadConfig):
+        if not isinstance(current, NomadSettings):
             if raise_error:
                 logger.error(f'config key does not exist: {full_key}')
             return
 
-        if config_key not in current:
+        try:
+            current_value = getattr(current, config_key)
+        except AttributeError:
             if raise_error:
                 logger.error(f'config key does not exist: {full_key}')
             return
@@ -1379,14 +1605,16 @@ def _apply(key, value, raise_error: bool = True) -> None:
         key = config_key
 
     try:
-        current_value = current[key]
         if current_value is not None and not isinstance(value, type(current_value)):
             value = _transformations.get(full_key, type(current_value))(value)
 
         if isinstance(value, dict):
-            value = _merge(current[key], value)
+            value = _merge(current_value, value)
 
-        current[key] = value
+        if isinstance(current, dict):
+            current[key] = value
+        else:
+            setattr(current, key, value)
         logger.info(f'set config setting {full_key}={value}')
     except Exception as e:
         logger.error(f'cannot set config setting {full_key}={value}: {e}')

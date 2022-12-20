@@ -207,6 +207,7 @@ def assert_user_metadata(entries_metadata, user_metadata):
             assert value_actual == value_expected, f'Mismatch {k}: {value_expected} != {value_actual}'
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_processing(processed, no_warn, mails, monkeypatch):
     assert_processing(processed)
 
@@ -214,6 +215,7 @@ def test_processing(processed, no_warn, mails, monkeypatch):
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_processing_two_runs(test_user, proc_infra, tmp):
     upload_file = create_template_upload_file(
         tmp, mainfiles=['tests/data/proc/templates/template_tworuns.json'])
@@ -221,6 +223,7 @@ def test_processing_two_runs(test_user, proc_infra, tmp):
     assert_processing(processed)
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_processing_with_large_dir(test_user, proc_infra, tmp):
     upload_path = create_template_upload_file(
         tmp, mainfiles=['tests/data/proc/templates/template.json'], auxfiles=150)
@@ -230,6 +233,7 @@ def test_processing_with_large_dir(test_user, proc_infra, tmp):
         assert len(entry.warnings) == 1
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
     processed = non_empty_processed
     set_upload_entry_metadata(processed, internal_example_user_metadata)
@@ -252,6 +256,7 @@ def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_met
     assert_processing(Upload.get(processed.upload_id), published=True, process='publish_upload')
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_publish_directly(non_empty_uploaded, test_user, proc_infra, no_warn, monkeypatch):
     processed = run_processing(non_empty_uploaded, test_user, publish_directly=True)
 
@@ -262,6 +267,7 @@ def test_publish_directly(non_empty_uploaded, test_user, proc_infra, no_warn, mo
     assert_processing(Upload.get(processed.upload_id), published=True)
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
     processed = non_empty_processed
     set_upload_entry_metadata(processed, internal_example_user_metadata)
@@ -283,6 +289,7 @@ def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_m
         assert_search_upload(entries, additional_keys, published=True)
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_publish_failed(
         non_empty_uploaded: Tuple[str, str], internal_example_user_metadata, test_user,
         monkeypatch, proc_infra):
@@ -307,22 +314,17 @@ def test_publish_failed(
         assert_search_upload(entries, additional_keys, published=True, processed=False)
 
 
-@pytest.mark.parametrize('kwargs', [
+@pytest.mark.parametrize('import_settings, embargo_length', [
     # pytest.param(
-    #     dict(
-    #         import_settings=dict(include_archive_files=True, trigger_processing=False),
-    #         embargo_length=0),
+    #     config.BundleImportSettings(include_archive_files=True, trigger_processing=False), 0,
     #     id='no-processing'),
     pytest.param(
-        dict(
-            import_settings=dict(include_archive_files=False, trigger_processing=True),
-            embargo_length=17),
-        id='trigger-processing')])
+        config.BundleImportSettings(include_archive_files=False, trigger_processing=True), 17,
+        id='trigger-processing')
+])
 def test_publish_to_central_nomad(
-        proc_infra, monkeypatch, oasis_publishable_upload, test_user, no_warn, kwargs):
+        proc_infra, monkeypatch, oasis_publishable_upload, test_user, no_warn, import_settings, embargo_length):
     upload_id, suffix = oasis_publishable_upload
-    import_settings = kwargs.get('import_settings', {})
-    embargo_length = kwargs.get('embargo_length')
     old_upload = Upload.get(upload_id)
 
     import_settings = config.bundle_import.default_settings.customize(import_settings)

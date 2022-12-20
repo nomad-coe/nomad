@@ -27,9 +27,9 @@ from .utils import assert_log
 
 @pytest.fixture
 def with_config():
-    old_values = config.fs.public, config.fs.archive_version_suffix, config.auxfile_cutoff
+    old_values = config.fs.public, config.fs.archive_version_suffix
     yield config
-    config.fs.public, config.fs.archive_version_suffix, config.auxfile_cutoff = old_values
+    config.fs.public, config.fs.archive_version_suffix = old_values
 
 
 def test_apply(with_config, caplog):
@@ -39,16 +39,13 @@ def test_apply(with_config, caplog):
     config._apply('fs_archive_version_suffix', 'test_value')
     assert config.fs.archive_version_suffix == 'test_value'
 
-    config._apply('auxfile_cutoff', '200')
-    assert config.auxfile_cutoff == 200
-
     config._apply('does_not_exist', 'test_value')
     assert_log(caplog, 'ERROR', 'does_not_exist does not exist')
 
     config._apply('fs_does_not_exist', 'test_value')
     assert_log(caplog, 'ERROR', 'fs_does_not_exist does not exist')
 
-    config._apply('max_entry_download', 'not_a_number')
+    config._apply('services_max_entry_download', 'not_a_number')
     assert_log(caplog, 'ERROR', 'cannot set')
 
     config._apply('nounderscore', 'test_value')
@@ -69,9 +66,10 @@ def test_nomad_yaml(raw_files, with_config, monkeypatch, caplog):
             'archive_version_suffix': 'test_value',
             'does_not_exist': 'test_value'
         },
-        'auxfile_cutoff': '200',
         'does_not_exist': 'test_value',
-        'max_entry_download': 'not_a_number'
+        'services': {
+            'max_entry_download': 'not_a_number'
+        }
     }
 
     test_nomad_yaml = os.path.join(config.fs.tmp, 'nomad_test.yaml')
@@ -85,7 +83,6 @@ def test_nomad_yaml(raw_files, with_config, monkeypatch, caplog):
 
     assert config.fs.public == 'test_value'
     assert config.fs.archive_version_suffix == 'test_value'
-    assert config.auxfile_cutoff == 200
     assert_log(caplog, 'ERROR', 'does_not_exist does not exist')
     assert_log(caplog, 'ERROR', 'fs_does_not_exist does not exist')
     assert_log(caplog, 'ERROR', 'cannot set')

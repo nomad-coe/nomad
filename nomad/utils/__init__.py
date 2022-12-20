@@ -92,7 +92,7 @@ except ImportError:
     def get_logger(name, **kwargs):
         return ClassicLogger(name, **kwargs)
 
-    def configure_logging(console_log_level=config.console_log_level):
+    def configure_logging(console_log_level=config.services.console_log_level):
         import logging
         logging.basicConfig(level=console_log_level)
 

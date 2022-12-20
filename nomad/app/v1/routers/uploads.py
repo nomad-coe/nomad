@@ -1036,8 +1036,8 @@ async def put_upload_raw_path(
         upload_path = upload_paths[0]
         full_path = os.path.join(path, os.path.basename(upload_path))
         try:
-            reprocess_settings = dict(
-                index_invidiual_entries=True, reprocess_existing_entries=True)
+            reprocess_settings = config.Reprocess(
+                index_individual_entries=True, reprocess_existing_entries=True)
             entry = upload.put_file_and_process_local(
                 upload_path, path, reprocess_settings=reprocess_settings)
 
@@ -1659,16 +1659,11 @@ async def get_upload_bundle(
     upload = _get_upload_with_read_access(upload_id, user, include_others=True)
     _check_upload_not_processing(upload)
 
-    export_settings_dict: Dict[str, Any] = dict(
+    export_settings = config.bundle_export.default_settings.customize(
+        None,
         include_raw_files=include_raw_files,
         include_archive_files=include_archive_files,
         include_datasets=include_datasets)
-
-    for k, v in export_settings_dict.copy().items():
-        if v is None:
-            del export_settings_dict[k]
-
-    export_settings = config.bundle_export.default_settings.customize(export_settings_dict)
 
     try:
         stream = BundleExporter(
@@ -1755,7 +1750,8 @@ async def post_upload_bundle(
     file data in the http body. Both are supported. See the POST `uploads` endpoint for
     examples of curl commands for uploading files.
     '''
-    import_settings_dict: Dict[str, Any] = dict(
+    import_settings = config.bundle_import.default_settings.customize(
+        None,
         include_raw_files=include_raw_files,
         include_archive_files=include_archive_files,
         include_datasets=include_datasets,
@@ -1763,12 +1759,6 @@ async def post_upload_bundle(
         keep_original_timestamps=keep_original_timestamps,
         set_from_oasis=set_from_oasis,
         trigger_processing=trigger_processing)
-
-    for k, v in import_settings_dict.copy().items():
-        if v is None:
-            del import_settings_dict[k]
-
-    import_settings = config.bundle_import.default_settings.customize(import_settings_dict)
 
     bundle_importer: BundleImporter = None
     bundle_path: str = None
@@ -1792,7 +1782,10 @@ async def post_upload_bundle(
         upload = bundle_importer.create_upload_skeleton()
         bundle_importer.close()
         # Run the import as a @process
-        upload.import_bundle(bundle_path=bundle_path, import_settings=import_settings, embargo_length=embargo_length)
+        upload.import_bundle(
+            bundle_path=bundle_path,
+            import_settings=import_settings.dict(),
+            embargo_length=embargo_length)
         return UploadProcDataResponse(
             upload_id=upload.upload_id,
             data=_upload_to_pydantic(upload))

@@ -290,7 +290,7 @@ root = logging.getLogger()
 
 
 # configure logging in general
-def configure_logging(console_log_level=config.console_log_level):
+def configure_logging(console_log_level=config.services.console_log_level):
     logging.basicConfig(level=logging.DEBUG)
     for handler in root.handlers:
         if not isinstance(handler, LogstashHandler):

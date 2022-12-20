@@ -526,11 +526,11 @@ def _answer_entries_raw_request(owner: Owner, query: Query, files: Files, user: 
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 
-    if response.pagination.total > config.max_entry_download:
+    if response.pagination.total > config.services.max_entry_download:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='The limit of maximum number of entries in a single download (%d) has been exeeded (%d).' % (
-                config.max_entry_download, response.pagination.total))
+                config.services.max_entry_download, response.pagination.total))
 
     files_params = Files() if files is None else files
     search_includes = ['entry_id', 'upload_id', 'mainfile']
@@ -832,12 +832,12 @@ def _answer_entries_archive_download_request(
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 
-    if response.pagination.total > config.max_entry_download:
+    if response.pagination.total > config.services.max_entry_download:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 'The limit of maximum number of entries in a single download (%d) has been '
-                'exeeded (%d).' % (config.max_entry_download, response.pagination.total)))
+                'exeeded (%d).' % (config.services.max_entry_download, response.pagination.total)))
 
     manifest = []
     search_includes = ['entry_id', 'upload_id', 'parser_name']

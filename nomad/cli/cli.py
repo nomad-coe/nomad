@@ -58,12 +58,12 @@ def cli(ctx, verbose: bool, debug: bool, log_label: str):
     config.meta.label = log_label
 
     if debug:
-        config.console_log_level = logging.DEBUG
+        config.services.console_log_level = logging.DEBUG
     elif verbose:
-        config.console_log_level = logging.INFO
+        config.services.console_log_level = logging.INFO
     else:
-        config.console_log_level = logging.WARNING
-    utils.set_console_log_level(config.console_log_level)
+        config.services.console_log_level = logging.WARNING
+    utils.set_console_log_level(config.services.console_log_level)
 
 
 def run_cli():
