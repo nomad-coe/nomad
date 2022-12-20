@@ -66,7 +66,7 @@ const InputRadio = React.memo(({
       quantity={quantity}
       label={labelFinal}
       description={descFinal}
-      disableAnchoring
+      disableWidget
       disableStatistics
     />
     {options && Object.entries(options).map(([key, value]) =>

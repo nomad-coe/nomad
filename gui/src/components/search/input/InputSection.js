@@ -66,7 +66,7 @@ const InputSection = React.memo(({
         label={labelFinal}
         description={descFinal}
         className={styles.label}
-        disableAnchoring
+        disableWidget
         disableStatistics
       />}
       <inputSectionContext.Provider value={{

@@ -28,19 +28,19 @@ import {
   Checkbox,
   FormControlLabel
 } from '@material-ui/core'
+import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
 import { InputMetainfo } from '../input/InputText'
 import { Widget, schemaWidget } from './Widget'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
 import { useSearchContext } from '../SearchContext'
 import Floatable from '../../visualization/Floatable'
 import PlotScatter from '../../plotting/PlotScatter'
-import { Action} from '../../Actions'
+import { Action, ActionCheckbox } from '../../Actions'
 import { CropFree, PanTool, Fullscreen, Replay } from '@material-ui/icons'
-import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
+import { autorangeDescription } from './WidgetHistogram'
 import { styled } from '@material-ui/core/styles'
 import { DType } from '../../../utils'
 import { Quantity, Unit, useUnits } from '../../../units'
-import { WidgetActionCheckbox } from './WidgetActions'
 
 const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   '& .MuiToggleButtonGroup-grouped': {
@@ -70,8 +70,6 @@ const useStyles = makeStyles((theme) => ({
     margin: theme.spacing(0.5, 0.5)
   }
 }))
-
-const autorangeLabel = 'Automatically center the view on the data'
 
 export const WidgetScatterPlot = React.memo((
 {
@@ -168,8 +166,8 @@ export const WidgetScatterPlot = React.memo((
 
   const actions = useMemo(() => {
       return <>
-        <WidgetActionCheckbox
-          tooltip={autorangeLabel}
+        <ActionCheckbox
+          tooltip={autorangeDescription}
           label="autorange"
           value={autorange}
           onChange={(value) => setWidget(old => ({...old, autorange: value}))}
@@ -362,7 +360,7 @@ export const WidgetScatterPlotEdit = React.memo((props) => {
         <WidgetEditOption>
           <FormControlLabel
             control={<Checkbox checked={settings.autorange} onChange={(event, value) => handleChange('autorange', value)}/>}
-            label={autorangeLabel}
+            label={autorangeDescription}
           />
         </WidgetEditOption>
       </WidgetEditGroup>

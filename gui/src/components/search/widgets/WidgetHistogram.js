@@ -27,7 +27,7 @@ import {
 import { useSearchContext } from '../SearchContext'
 import { InputMetainfo } from '../input/InputText'
 import { Widget, schemaWidget } from './Widget'
-import { WidgetActionCheckbox, WidgetActionSelect } from './WidgetActions'
+import { ActionCheckbox, ActionSelect } from '../../Actions'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
 import { Range } from '../input/InputRange'
 import { DType } from '../../../utils'
@@ -36,7 +36,7 @@ import { scales } from '../../plotting/common'
 /**
  * Displays a histogram widget.
  */
-const autorangeLabel = 'Automatically center the view on the data'
+export const autorangeDescription = 'Automatically center the view on the data'
 export const WidgetHistogram = React.memo((
 {
   id,
@@ -49,7 +49,7 @@ export const WidgetHistogram = React.memo((
   inputfields,
   className
 }) => {
-  const { useSetWidget, filterData } = useSearchContext()
+  const { useSetWidget } = useSearchContext()
   const setWidget = useSetWidget(id)
 
   const handleEdit = useCallback(() => {
@@ -60,25 +60,21 @@ export const WidgetHistogram = React.memo((
     setWidget(old => { return {...old, scale: value} })
   }, [setWidget])
 
-  // Determine the description and title
-  const def = filterData?.[quantity]
-  const descFinal = description || def?.description || ''
-  const labelFinal = label || def?.labelFull
-
   return <Widget
     id={id}
-    label={labelFinal}
-    description={descFinal}
+    quantity={quantity}
+    label={label}
+    description={description}
     onEdit={handleEdit}
     className={className}
     actions={<>
-      <WidgetActionCheckbox
-        tooltip={autorangeLabel}
+      <ActionCheckbox
+        tooltip={autorangeDescription}
         label="autorange"
         value={autorange}
         onChange={(value) => setWidget(old => ({...old, autorange: value}))}
       />
-      <WidgetActionSelect
+      <ActionSelect
         value={scale}
         options={Object.keys(scales)}
         tooltip="Statistics scaling"
@@ -213,7 +209,7 @@ export const WidgetHistogramEdit = React.memo((props) => {
         <WidgetEditOption>
           <FormControlLabel
             control={<Checkbox checked={settings.autorange} onChange={(event, value) => handleChange('autorange', value)}/>}
-            label={autorangeLabel}
+            label={autorangeDescription}
           />
         </WidgetEditOption>
         <WidgetEditOption>

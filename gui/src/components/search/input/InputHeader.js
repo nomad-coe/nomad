@@ -29,13 +29,12 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { useRecoilValue } from 'recoil'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
-import InputTitle from './InputTitle'
-import { Actions, ActionHeader, Action } from '../../Actions'
+import FilterTitle from '../FilterTitle'
+import { Actions, ActionHeader, Action, ActionSelect } from '../../Actions'
 import WidgetToggle from '../widgets/WidgetToggle'
 import { scales } from '../../plotting/common'
 import { guiState } from '../../GUIMenu'
 import { useBoolState } from '../../../hooks'
-import { WidgetActionSelect } from '../widgets/WidgetActions'
 
 /**
  * The quantity label and actions shown by all filter components.
@@ -68,14 +67,13 @@ const InputHeader = React.memo(({
   quantity,
   label,
   description,
-  disableAnchoring,
+  disableWidget,
   disableStatistics,
   scale,
   onChangeScale,
   actions,
   actionsAlign,
   className,
-  anchored,
   classes
 }) => {
   const styles = useStyles({classes: classes})
@@ -139,7 +137,7 @@ const InputHeader = React.memo(({
         </FormControl>
       </Menu>
     </>
-    : <WidgetActionSelect
+    : <ActionSelect
       value={scale}
       options={Object.keys(scales)}
       tooltip="Statistics scaling"
@@ -149,24 +147,22 @@ const InputHeader = React.memo(({
   return <Actions className={clsx(styles.root, className)}>
     <ActionHeader disableSpacer>
       <div
-        className={clsx(styles.row, anchored ? 'dragHandle' : undefined)}
-        style={{cursor: anchored ? 'grabbing' : 'unset'}}
+        className={clsx(styles.row)}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >
-        <InputTitle
+        <FilterTitle
           quantity={quantity}
           label={label}
           description={description}
           TooltipProps={tooltipProps}
-          anchored={anchored}
         />
         <div className={styles.spacer}/>
       </div>
     </ActionHeader>
     {actionsAlign === 'left' && actions}
     {!disableStatistics && menuComp}
-    {!disableAnchoring && <WidgetToggle quantity={quantity} disabled={disableAnchoring} />}
+    {!disableWidget && <WidgetToggle quantity={quantity} disabled={disableWidget} />}
     {actionsAlign === 'right' && actions}
   </Actions>
 })
@@ -175,11 +171,10 @@ InputHeader.propTypes = {
   quantity: PropTypes.string.isRequired,
   label: PropTypes.string,
   description: PropTypes.string,
-  disableAnchoring: PropTypes.bool,
+  disableWidget: PropTypes.bool,
   disableStatistics: PropTypes.bool,
   scale: PropTypes.string,
   onChangeScale: PropTypes.func,
-  anchored: PropTypes.bool,
   variant: PropTypes.string,
   actions: PropTypes.node,
   actionsAlign: PropTypes.oneOf(['left', 'right']),
@@ -189,7 +184,7 @@ InputHeader.propTypes = {
 
 InputHeader.defaultProps = {
   underscores: false,
-  disableAnchoring: false,
+  disableWidget: false,
   disableStatistics: false,
   actionsAlign: 'left',
   scale: 'linear'

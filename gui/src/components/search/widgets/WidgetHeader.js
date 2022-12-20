@@ -21,12 +21,12 @@ import { Cancel } from '@material-ui/icons'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { useSearchContext } from '../SearchContext'
-import InputTitle from '../input/InputTitle'
+import FilterTitle from '../FilterTitle'
 import { Actions, ActionHeader, Action } from '../../Actions'
 import { useBoolState } from '../../../hooks'
 
 /**
- * The quantity label and actions shown by all filter components.
+ * The header displayed by all widgets.
  */
 const useStyles = makeStyles(theme => ({
   root: {
@@ -34,12 +34,13 @@ const useStyles = makeStyles(theme => ({
     height: '2.5rem',
     width: '100%'
   },
-  row: {
+  handle: {
     display: 'flex',
     height: '100%',
     alignItems: 'center',
     flexGrow: 1,
-    minWidth: 0
+    minWidth: 0,
+    cursor: 'grabbing'
   },
   spacer: {
     flexGrow: 1,
@@ -48,11 +49,12 @@ const useStyles = makeStyles(theme => ({
 }))
 const WidgetHeader = React.memo(({
   id,
+  quantity,
   label,
   description,
+  disableUnit,
   actions,
   className,
-  anchored,
   classes
 }) => {
   const styles = useStyles({classes: classes})
@@ -83,16 +85,17 @@ const WidgetHeader = React.memo(({
   return <Actions className={clsx(styles.root, className)}>
     <ActionHeader disableSpacer>
       <div
-        className={clsx(styles.row, anchored ? 'dragHandle' : undefined)}
-        style={{cursor: anchored ? 'grabbing' : 'unset'}}
+        className={clsx("dragHandle", styles.handle)}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >
-        <InputTitle
+        <FilterTitle
+          quantity={quantity}
           label={label}
           description={description}
+          disableUnit={disableUnit}
           TooltipProps={tooltipProps}
-          anchored={anchored}
+          full
         />
         <div className={styles.spacer}/>
       </div>
@@ -106,21 +109,14 @@ const WidgetHeader = React.memo(({
 
 WidgetHeader.propTypes = {
   id: PropTypes.string.isRequired,
+  quantity: PropTypes.string,
   label: PropTypes.string,
   description: PropTypes.string,
-  anchored: PropTypes.bool,
+  disableUnit: PropTypes.bool,
   variant: PropTypes.string,
   actions: PropTypes.node,
   className: PropTypes.string,
   classes: PropTypes.object
-}
-
-WidgetHeader.defaultProps = {
-  underscores: false,
-  disableAnchoring: false,
-  disableStatistics: false,
-  actionsAlign: 'left',
-  scale: 'linear'
 }
 
 export default WidgetHeader

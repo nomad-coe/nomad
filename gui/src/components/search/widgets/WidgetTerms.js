@@ -36,7 +36,7 @@ import InputUnavailable from '../input/InputUnavailable'
 import InputTooltip from '../input/InputTooltip'
 import Placeholder from '../../visualization/Placeholder'
 import { Widget, schemaWidget } from './Widget'
-import { WidgetActionSelect } from './WidgetActions'
+import { ActionSelect } from '../../Actions'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
 import { DType, pluralize } from '../../../utils'
 import { scales } from '../../plotting/common'
@@ -113,7 +113,7 @@ export const WidgetTerms = React.memo((
   const styles = useStyles()
   const [filter, setFilter] = useFilterState(quantity)
   const { height, ref } = useResizeDetector()
-  const { useSetWidget, filterData } = useSearchContext()
+  const { useSetWidget } = useSearchContext()
   const setWidget = useSetWidget(id)
 
   // The terms aggregations need to request at least 1 item or an API error is thrown
@@ -121,11 +121,6 @@ export const WidgetTerms = React.memo((
   const aggConfig = useMemo(() => ({type: 'terms', size: aggSize}), [aggSize])
   const agg = useAgg(quantity, !isNil(height), id, aggConfig)
   const max = agg ? Math.max(...agg.data.map(option => option.count)) : 0
-
-  // Determine the description and label
-  const def = filterData?.[quantity]
-  const descFinal = description || def?.description || ''
-  const labelFinal = label || def?.labelFull
 
   const handleChange = useCallback((event, key, selected) => {
     setFilter(old => {
@@ -186,12 +181,13 @@ export const WidgetTerms = React.memo((
 
   return <Widget
     id={id}
-    label={labelFinal}
-    description={descFinal}
+    quantity={quantity}
+    label={label}
+    description={description}
     onEdit={handleEdit}
     className={clsx(className)}
     actions={
-      <WidgetActionSelect
+      <ActionSelect
         value={scale}
         options={Object.keys(scales)}
         tooltip="Statistics scaling"
