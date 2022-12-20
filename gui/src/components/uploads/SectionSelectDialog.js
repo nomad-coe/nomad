@@ -257,6 +257,9 @@ SearchBox.propTypes = {
   selected: PropTypes.object
 }
 
+const initialFilters = {
+  include: ['entry_name', 'mainfile']
+}
 function SectionSelectDialog(props) {
   const {open, onSelectedChanged, selected, onCancel, filtersLocked} = props
 
@@ -277,6 +280,7 @@ function SectionSelectDialog(props) {
     initialRows={rows}
     initialFilterMenus={context?.filter_menus}
     initialFiltersLocked={filtersLocked}
+    initialFilters={initialFilters}
   >
     <SearchBox open={open} onCancel={onCancel} onSelectedChanged={onSelectedChanged} selected={selected}/>
   </SearchContext>

@@ -106,6 +106,7 @@ export const SearchContext = React.memo(({
   initialFilterMenus,
   initialPagination,
   initialDashboard,
+  initialFilters,
   children
 }) => {
   const {api} = useApi()
@@ -251,16 +252,15 @@ export const SearchContext = React.memo(({
 
   // Initialize the set of available filters. This may depend on the resource.
   const [filtersLocal, filterDataLocal] = useMemo(() => {
-    const filtersLocal = new Set()
-    const filterDataLocal = []
-    for (const [key, value] of Object.entries(filterDataGlobal)) {
-      if (value.resources.has(resource)) {
-        filtersLocal.add(key)
-        filterDataLocal[key] = value
-      }
-    }
+    const include = initialFilters?.include || [...Object.keys(filterDataGlobal)]
+    const exclude = initialFilters?.exclude || []
+    const filters = include.filter((key) => !exclude?.includes(key))
+    const filtersLocal = new Set(filters)
+    const filterDataLocal = Object.fromEntries(filters.map(
+      (name) => [name, filterDataGlobal[name]]
+    ))
     return [filtersLocal, filterDataLocal]
-  }, [resource])
+  }, [initialFilters])
   const filters = useState(filtersLocal)[0]
   const filterData = useState(filterDataLocal)[0]
 
@@ -1416,6 +1416,7 @@ SearchContext.propTypes = {
   initialFilterMenus: PropTypes.object,
   initialPagination: PropTypes.object,
   initialDashboard: PropTypes.object,
+  initialFilters: PropTypes.object, // Determines which filters are available
   children: PropTypes.node
 }
 

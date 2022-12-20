@@ -93,8 +93,11 @@ export const InputTextQuantity = React.memo(({
   const [highlighted, setHighlighted] = useState({value: ''})
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
-  const suggestionQuantity = useMemo(() => [quantity], [quantity])
-  const [suggestionsAuto, loadingAuto] = useSuggestions(suggestionQuantity, suggestionInput)
+  const [quantitiesSuggestion, quantitiesAll] = useMemo(() => [
+    [{name: quantity, size: 5}],
+    new Set([quantity])
+  ], [quantity])
+  const [suggestionsAuto, loadingAuto] = useSuggestions(quantitiesSuggestion, quantitiesAll, suggestionInput)
   const finalSuggestions = suggestions || suggestionsAuto
   const finalLoading = loading || loadingAuto
   const disableSuggestionsFinal = suggestions

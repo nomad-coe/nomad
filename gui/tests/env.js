@@ -403,6 +403,13 @@ window.nomadEnv = {
                 "menu_items": {}
               }
             }
+          },
+          "filters": {
+            "exclude": [
+              "mainfile",
+              "entry_name",
+              "combine"
+            ]
           }
         },
         "eln": {
@@ -621,6 +628,13 @@ window.nomadEnv = {
                 "menu_items": {}
               }
             }
+          },
+          "filters": {
+            "exclude": [
+              "mainfile",
+              "entry_name",
+              "combine"
+            ]
           }
         },
         "materials": {
@@ -878,6 +892,12 @@ window.nomadEnv = {
                 }
               }
             }
+          },
+          "filters": {
+            "exclude": [
+              "mainfile",
+              "entry_name"
+            ]
           }
         },
         "solar_cells": {
@@ -1572,6 +1592,13 @@ window.nomadEnv = {
                 "menu_items": {}
               }
             }
+          },
+          "filters": {
+            "exclude": [
+              "mainfile",
+              "entry_name",
+              "combine"
+            ]
           }
         }
       }

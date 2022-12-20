@@ -44,7 +44,7 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
     data.create_entry(
         upload_id=upload_id,
         entry_id="suggestions_entry_1",
-        mainfile="test_content/test_entry/mainfile.json",
+        mainfile="test_content/test_entry/main-file.json",
         results={
             "material": {
                 "material_name": "alpha/beta",
@@ -86,7 +86,7 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
     data.create_entry(
         upload_id=upload_id,
         entry_id="suggestions_entry_2",
-        mainfile="test_content/test_entry/mainfile.json",
+        mainfile="test_content/test_entry/main-file.json",
         results={
             "material": {
                 "chemical_formula_hill": "ClNa",
@@ -96,7 +96,7 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
     data.create_entry(
         upload_id=upload_id,
         entry_id="suggestions_entry_3",
-        mainfile="test_content/test_entry/mainfile.json",
+        mainfile="test_content/test_entry/main-file.json",
         results={
             "material": {
                 "chemical_formula_hill": "Ni2O2",
@@ -106,7 +106,7 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
     data.create_entry(
         upload_id=upload_id,
         entry_id="suggestions_entry_4",
-        mainfile="test_content/test_entry/mainfile.json",
+        mainfile="test_content/test_entry/main-file.json",
         results={
             "material": {
                 "chemical_formula_hill": "Mg2O2",
@@ -124,9 +124,10 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
 
 
 def run_query(quantities, input, client):
+    quantities = [quantities] if isinstance(quantities, str) else quantities
     body = {
         "input": input,
-        "quantities": [quantities] if isinstance(quantities, str) else quantities
+        "quantities": [{'name': x} for x in quantities]
     }
     response = client.post("suggestions", json=body, headers={})
     return response
@@ -174,6 +175,8 @@ def test_suggestions_all(client, example_data_suggestions):
     ("results.method.simulation.program_name", ["te", "na"], "test_name"),  # Underscore tokenization
     ("results.material.material_name", ["al", "be"], "alpha/beta"),  # Slash tokenization
     ("results.method.simulation.program_version", ["10", "12"], "10.12"),  # Dot tokenization and numbers
+    ("results.method.simulation.program_version", ["10", "12"], "10.12"),  # Dot tokenization and numbers
+    ("mainfile", ["main", "file"], "test_content/test_entry/main-file.json"),  # Dash tokenization
     # Input that spans across several tokenized words and does not start from the beginning
     ("results.method.simulation.dft.xc_functional_names", "PBE_SOL", ["GGA_C_PBE_SOL", "GGA_X_PBE_SOL"]),
 

@@ -409,6 +409,7 @@ class EntryMetadata(MSection):
         description='A brief human readable name for the entry.',
         a_elasticsearch=[
             Elasticsearch(material_entry_type, _es_field='keyword'),
+            Elasticsearch(suggestion='default'),
             Elasticsearch(
                 material_entry_type, field='prefix',
                 es_query='match_phrase_prefix', mapping='text', _es_field='')
@@ -453,7 +454,7 @@ class EntryMetadata(MSection):
     mainfile = Quantity(
         type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],
         description='The path to the mainfile from the root directory of the uploaded files',
-        a_elasticsearch=PathSearch())
+        a_elasticsearch=PathSearch() + [Elasticsearch(suggestion='default')])
 
     mainfile_key = Quantity(
         type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],

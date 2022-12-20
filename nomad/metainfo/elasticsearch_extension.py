@@ -543,7 +543,7 @@ def get_tokenizer(regex):
     return tokenizer
 
 
-tokenizer_default = get_tokenizer(r'[_\s\.\/]+')
+tokenizer_default = get_tokenizer(r'[_\s\.\/-]+')
 
 
 class Elasticsearch(DefinitionAnnotation):

@@ -37,7 +37,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "suggestion": true
   },
   "entry_name.prefix": {
     "name": "entry_name",
@@ -85,7 +86,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "suggestion": true
   },
   "mainfile.path": {
     "name": "mainfile",
