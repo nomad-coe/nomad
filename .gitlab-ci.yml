@@ -139,7 +139,7 @@ python tests:
   stage: test
   image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
   services:
-    - name: rabbitmq:3.9.13
+    - name: rabbitmq:3.11.5
       alias: rabbitmq
     - name: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
       alias: elastic

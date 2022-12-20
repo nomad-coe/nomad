@@ -23,7 +23,7 @@ services:
   # broker for celery
   rabbitmq:
     restart: "no"
-    image: rabbitmq:3.9.13
+    image: rabbitmq:3.11.5
     container_name: nomad_rabbitmq
     environment:
       - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
