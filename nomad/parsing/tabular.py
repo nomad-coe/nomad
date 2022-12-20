@@ -29,6 +29,7 @@ from nomad.datamodel.context import Context
 from nomad.metainfo import Section, Quantity, Package, Reference, SectionProxy, MSection, Property
 from nomad.metainfo.metainfo import MetainfoError, SubSection
 from nomad.parsing.parser import MatchingParser
+from nomad.datamodel.metainfo.annotations import TabularMode, TabularAnnotation, TabularParserAnnotation
 
 # We define a simple base schema for tabular data. The parser will then generate more
 # specialized sections based on the table headers. These specialized definitions will use
@@ -63,12 +64,12 @@ class TableData(ArchiveSection):
     def normalize(self, archive, logger):
         super(TableData, self).normalize(archive, logger)
 
-        for quantity in self.m_def.all_quantities.values():
-            tabular_parser_annotation = quantity.m_annotations.get('tabular_parser', {})
-            if tabular_parser_annotation:
-                self.tabular_parser(quantity, archive, logger, **tabular_parser_annotation)
+        for quantity_def in self.m_def.all_quantities.values():
+            annotation = quantity_def.m_get_annotations('tabular_parser')
+            if annotation:
+                self.tabular_parser(quantity_def, archive, logger, annotation)
 
-    def tabular_parser(self, quantity_def: Quantity, archive, logger, **kwargs):
+    def tabular_parser(self, quantity_def: Quantity, archive, logger, annotation: TabularParserAnnotation):
         if logger is None:
             logger = utils.get_logger(__name__)
 
@@ -80,16 +81,16 @@ class TableData(ArchiveSection):
             return
 
         with archive.m_context.raw_file(self.data_file) as f:
-            data = read_table_data(self.data_file, f, **kwargs)
+            data = read_table_data(self.data_file, f, **annotation.dict(include={'sep', 'comment', 'skiprows'}))
 
-        tabular_parser_mode = 'column' if kwargs.get('mode') is None else kwargs.get('mode')
-        if tabular_parser_mode == 'column':
+        tabular_parser_mode = annotation.mode
+        if tabular_parser_mode == TabularMode.column:
             parse_columns(data, self)
 
-        elif tabular_parser_mode == 'row':
+        elif tabular_parser_mode == TabularMode.row:
             # Getting list of all repeating sections where new instances are going to be read from excel/csv file
             # and appended.
-            section_names: List[str] = kwargs.get('target_sub_section')
+            section_names: List[str] = annotation.target_sub_section
             # A list to track if the top level section has ever been read.
             top_level_section_list: List[str] = []
             for section_name in section_names:
@@ -118,7 +119,7 @@ class TableData(ArchiveSection):
                         self_updated.append(section_updated[0])
 
         else:
-            raise MetainfoError(f'The provided mode {tabular_parser_mode} should be either "column" or "row".')
+            raise MetainfoError(f'The provided mode {tabular_parser_mode.value} should be either "column" or "row".')
 
 
 m_package.__init_metainfo__()
@@ -136,9 +137,9 @@ def _create_column_to_quantity_mapping(section_def: Section):
                 continue
             properties.add(quantity)
 
-            tabular_annotation = quantity.m_annotations.get('tabular', {})
-            if tabular_annotation and 'name' in tabular_annotation:
-                col_name = tabular_annotation['name']
+            annotation = quantity.m_get_annotations('tabular')
+            if annotation and annotation.name:
+                col_name = annotation.name
             else:
                 col_name = quantity.name
                 if len(path) > 0:
@@ -149,7 +150,10 @@ def _create_column_to_quantity_mapping(section_def: Section):
                     f'The schema has non unique column names. {col_name} exists twice. '
                     f'Column names must be unique, to be used for tabular parsing.')
 
-            def set_value(section: MSection, value, path=path, quantity=quantity, tabular_annotation=tabular_annotation):
+            def set_value(
+                    section: MSection, value, path=path, quantity=quantity,
+                    annotation: TabularAnnotation = annotation):
+
                 import numpy as np
                 for sub_section, section_def in path:
                     next_section = None
@@ -162,8 +166,8 @@ def _create_column_to_quantity_mapping(section_def: Section):
                         section.m_add_sub_section(sub_section, next_section, -1)
                     section = next_section
 
-                if tabular_annotation and 'unit' in tabular_annotation:
-                    value *= ureg(tabular_annotation['unit'])
+                if annotation and annotation.unit:
+                    value *= ureg(annotation.unit)
 
                 # NaN values are not supported in the metainfo. Set as None
                 # which means that they are not stored.
@@ -273,7 +277,9 @@ def parse_table(pd_dataframe, section_def: Section, logger):
     return sections
 
 
-def read_table_data(path, file_or_path=None, **kwargs):
+def read_table_data(
+        path, file_or_path=None,
+        comment: str = None, sep: str = None, skiprows: int = None):
     import pandas as pd
     df = pd.DataFrame()
 
@@ -285,22 +291,16 @@ def read_table_data(path, file_or_path=None, **kwargs):
             file_or_path if isinstance(file_or_path, str) else file_or_path.name)
         for sheet_name in excel_file.sheet_names:
             df.loc[0, sheet_name] = [
-                pd.read_excel(excel_file, sheet_name=sheet_name,
-                              comment=kwargs.get('comment'),
-                              skiprows=kwargs.get('skiprows')).to_dict()]
+                pd.read_excel(excel_file, sheet_name=sheet_name, comment=comment).to_dict()
+            ]
     else:
-        if kwargs.get('sep') is not None:
-            sep_keyword = kwargs.get('sep')
-        elif kwargs.get('separator') is not None:
-            sep_keyword = kwargs.get('sep')
-        else:
-            sep_keyword = None
         df.loc[0, 0] = [
-            pd.read_csv(file_or_path, engine='python',
-                        comment=kwargs.get('comment'),
-                        sep=sep_keyword,
-                        skipinitialspace=True
-                        ).to_dict()
+            pd.read_csv(
+                file_or_path, engine='python',
+                comment=comment,
+                sep=sep,
+                skipinitialspace=True
+            ).to_dict()
         ]
 
     return df
@@ -380,8 +380,9 @@ class TabularDataParser(MatchingParser):
             logger.error('Schema for tabular data must inherit from TableRow.')
             return
 
-        tabular_parser_annotation = section_def.m_annotations.get('tabular-parser', {})
-        data = read_table_data(mainfile, **tabular_parser_annotation)
+        annotation: TabularParserAnnotation = section_def.m_get_annotations('tabular_parser')
+        kwargs = annotation.dict(include={'comment', 'sep', 'skiprows'}) if annotation else {}
+        data = read_table_data(mainfile, **kwargs)
         child_sections = parse_table(data, section_def, logger=logger)
         assert len(child_archives) == len(child_sections)
 

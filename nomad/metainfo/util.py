@@ -192,28 +192,6 @@ class MTypes:
     bool_numpy = {np.bool_}
     numpy = num_numpy | str_numpy | bool_numpy
 
-    eln = {
-        'str': ['str', 'string'],
-        'bool': ['bool', 'boolean'],
-        'number': [x.__name__ for x in num_python] + [f'np.{x.__name__}' for x in num_numpy],  # type: ignore
-        'datetime': ['Datetime'],
-        'enum': ['{type_kind: Enum, type_data: [Operator, Responsible_person]}'],
-        'user': ['User'],
-        'author': ['Author'],
-        'reference': ['']
-    }
-
-    eln_component = {
-        'str': ['StringEditQuantity', 'FileEditQuantity', 'RichTextEditQuantity', 'EnumEditQuantity'],
-        'bool': ['BoolEditQuantity'],
-        'number': ['NumberEditQuantity', 'SliderEditQuantity'],
-        'datetime': ['DateTimeEditQuantity'],
-        'enum': ['EnumEditQuantity', 'AutocompleteEditQuantity', 'RadioEnumEditQuantity'],
-        'user': ['UserEditQuantity'],
-        'author': ['AuthorEditQuantity'],
-        'reference': ['ReferenceEditQuantity']
-    }
-
 
 class MEnum(Sequence):
     '''

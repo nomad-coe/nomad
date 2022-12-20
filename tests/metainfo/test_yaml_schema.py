@@ -120,7 +120,7 @@ def test_yaml_deserialization():
     assert sample_id.name == des_sample_id.name == 'sample_id'
     assert sample_id.type == des_sample_id.type == str
     assert sample_id.shape == des_sample_id.shape
-    assert sample_id.m_annotations["eln"]["component"] == des_sample_id.m_annotations["eln"]["component"]
+    assert sample_id.m_annotations["eln"].component == des_sample_id.m_annotations["eln"].component
     assert sample_id.description == des_sample_id.description.rstrip('\n')
 
     assert process.name == des_process.name == "Process"

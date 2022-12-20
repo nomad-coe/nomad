@@ -23,7 +23,7 @@ from nomad.metainfo import MetainfoError
 from nomad.datamodel.context import ServerContext
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
 from nomad.datamodel.data import UserReference, AuthorReference
-from nomad.datamodel.metainfo.eln.annotations import validElnTypes, validElnComponents
+from nomad.datamodel.metainfo.annotations import valid_eln_types, valid_eln_components
 from nomad.parsing.parser import ArchiveParser
 from nomad.processing.data import Upload
 from nomad.utils import get_logger, strip
@@ -72,8 +72,8 @@ def test_eln_annotation_validation_parsing(raw_files, caplog):
     assert has_error
 
 
-@pytest.mark.parametrize("eln_type", validElnTypes.keys())
-@pytest.mark.parametrize("eln_component", sum(validElnComponents.values(), []))
+@pytest.mark.parametrize("eln_type", valid_eln_types.keys())
+@pytest.mark.parametrize("eln_component", sum(valid_eln_components.values(), []))
 def test_eln_annotation_validation(eln_type, eln_component):
     base_schema = strip('''
         m_def: 'nomad.metainfo.metainfo.Package'
@@ -96,13 +96,13 @@ def test_eln_annotation_validation(eln_type, eln_component):
                                 component: eln_component
     ''')
 
-    for quantity_type in validElnTypes[eln_type]:
+    for quantity_type in valid_eln_types[eln_type]:
         if eln_type == 'reference':
             yaml_schema = base_schema.replace("quantity_type", "'#/Sample'").replace("eln_component", eln_component)
         else:
             yaml_schema = base_schema.replace("quantity_type", quantity_type).replace("eln_component", eln_component)
 
-        if eln_component not in validElnComponents[eln_type]:
+        if eln_component not in valid_eln_components[eln_type]:
             package = yaml_to_package(yaml_schema)
             type_name = quantity_type
             if eln_type in ['number', 'datetime', 'enum', 'reference']:
@@ -113,11 +113,11 @@ def test_eln_annotation_validation(eln_type, eln_component):
                 package.__init_metainfo__()
 
             assert isinstance(exception.value, MetainfoError)
-            assert exception.value.args[0] == (
-                f'One constraint was violated: The component {eln_component} '
+            error_str = (
+                f'The component {eln_component} '
                 f'is not compatible with the quantity quantity_name of the type {type_name}. '
-                f'Accepted components: {", ".join(validElnComponents[eln_type])} '
-                f'(there are 0 more violations)')
+                f'Accepted components: {", ".join(valid_eln_components[eln_type])}')
+            assert error_str in exception.value.args[0]
 
 
 def test_user_author_yaml_deserialization():
