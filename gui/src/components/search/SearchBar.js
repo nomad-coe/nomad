@@ -18,7 +18,8 @@
 import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { isNil } from 'lodash'
+import assert from 'assert'
+import { isNil, has } from 'lodash'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import { makeStyles } from '@material-ui/core/styles'
 import SearchIcon from '@material-ui/icons/Search'
@@ -35,7 +36,7 @@ import { DType, getDatatype } from '../../utils'
 import { useSuggestions } from '../../hooks'
 import { useSearchContext, toGUIFilterSingle } from './SearchContext'
 import searchQuantities from '../../searchQuantities'
-import { filterFullnames } from './FilterRegistry'
+import { filterFullnames, quantityNameSearch } from './FilterRegistry'
 
 const opMap = {
   '<=': 'lte',
@@ -86,10 +87,10 @@ const useStyles = makeStyles(theme => ({
 }))
 
 /**
- * This component shows a searchbar with autocomplete functionality. It does its
- * on API calls to provide autocomplete suggestion options.
+ * This component shows a search bar with autocomplete functionality.
  */
 const SearchBar = React.memo(({
+  quantities,
   className
 }) => {
   const styles = useStyles()
@@ -107,43 +108,67 @@ const SearchBar = React.memo(({
   const [error, setError] = useState(false)
   const filtersLocked = useFiltersLocked()
   const setFilter = useSetFilters()
-  const filterList = useMemo(() => [...filters], [filters])
 
-  // Create a list of values for which suggestions are enabled. Notice that the
-  // list has a specific order because we want to prioritize certain items.
-  const quantitySetSuggestable = useMemo(() => {
-    // Prioritized items
-    const quantities = new Set([
-      'results.material.elements',
-      'results.material.chemical_formula_hill',
-      'results.material.chemical_formula_anonymous',
-      'results.material.structural_type',
-      'results.material.symmetry.structure_name',
-      'results.method.simulation.program_name',
-      'authors.name'
-    ])
-    // Rest of suggestable items
-    filterList
-      .filter(q => !quantities.has(q) && searchQuantities[q]?.suggestion)
-      .forEach(q => quantities.add(q))
-    // Quantity names at the very end
-    quantities.add('quantity name')
-    return quantities
-  }, [filterList])
-  const [quantityList, setQuantityList] = useState([...quantitySetSuggestable])
-  const [suggestions, loading] = useSuggestions(quantityList, suggestionInput)
+  const [quantitiesAll, quantitiesAllSet, quantitiesSuggestable] = useMemo(() => {
+    let quantitySetSuggestable, quantityList
+    // Custom list of quantities. They are validated against the current search
+    // context.
+    if (quantities) {
+      for (const quantity of quantities) {
+        assert(
+          quantity.name === quantityNameSearch || has(filterData, quantity.name),
+          `Quantity ${quantity.name} does not exist in the current search context.`
+        )
+      }
+      quantityList = [...quantities]
+      quantitySetSuggestable = new Set(
+        quantityList
+          .map(q => q.name)
+          .filter(name => name === quantityNameSearch || searchQuantities[name]?.suggestion)
+      )
+    // Default quantities to use. Certain quantities are prioritized, others
+    // come in alphabetical order.
+    } else {
+      quantitySetSuggestable = new Set([
+        'results.material.elements',
+        'results.material.chemical_formula_hill',
+        'results.material.chemical_formula_anonymous',
+        'results.material.structural_type',
+        'results.material.symmetry.structure_name',
+        'results.method.simulation.program_name',
+        'authors.name'
+      ])
+      const filterList = [...filters]
+      filterList
+        .filter(q => !quantitySetSuggestable.has(q) && searchQuantities[q]?.suggestion)
+        .forEach(q => quantitySetSuggestable.add(q))
+      quantityList = filterList.map((name) => ({name, size: 5}))
+      // The list of available quantity names is provided at the very
+      // bottom.
+      quantitySetSuggestable.add(quantityNameSearch)
+      quantityList.push({name: quantityNameSearch})
+    }
+    const quantitySet = new Set(quantityList.map((q) => q.name))
+    return [quantityList, quantitySet, quantitySetSuggestable]
+  }, [quantities, filterData, filters])
+
+  const [suggestionNames, setSuggestionNames] = useState(quantitiesSuggestable)
+  const suggestionQuantities = useMemo(() => {
+    return quantitiesAll.filter((q) => suggestionNames.has(q.name))
+  }, [quantitiesAll, suggestionNames])
+  const [suggestions, loading] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput)
 
   // Used to check the validity of the given quantity name
   const checkMetainfo = useCallback((name) => {
     const fullName = filterFullnames[name] || name
-    if (!filters.has(fullName)) {
-      return [undefined, `Unknown quantity name`]
+    if (!quantitiesAllSet.has(fullName)) {
+      return [undefined, `The quantity '${name}' is not supported`]
     }
     if (filterData[fullName].section) {
       return [fullName, `Cannot target metainfo sections`]
     }
     return [fullName, undefined]
-  }, [filters, filterData])
+  }, [quantitiesAllSet, filterData])
 
   // Triggered when a value is submitted by pressing enter or clicking the
   // search icon.
@@ -314,21 +339,21 @@ const SearchBar = React.memo(({
     // quantity name and an equals-sign, we extract the quantity name and the
     // typed input
     const split = value.split('=', 2)
-    let quantityList = [...quantitySetSuggestable]
+    let quantitySet = quantitiesSuggestable
     if (split.length === 2) {
       const quantityName = split[0].trim()
       const quantityFullname = filterFullnames[quantityName]
-      if (quantitySetSuggestable.has(quantityName)) {
-        quantityList = [quantityName]
+      if (quantitiesSuggestable.has(quantityName)) {
+        quantitySet = new Set([quantityName])
         value = split[1].trim()
-      } else if (quantitySetSuggestable.has(quantityFullname)) {
-        quantityList = [quantityFullname]
+      } else if (quantitiesSuggestable.has(quantityFullname)) {
+        quantitySet = new Set([quantityFullname])
         value = split[1].trim()
       }
     }
-    setQuantityList(quantityList)
+    setSuggestionNames(quantitySet)
     setSuggestionInput(value)
-  }, [quantitySetSuggestable])
+  }, [quantitiesSuggestable])
 
   return <Paper className={clsx(className, styles.root)}>
     <Autocomplete
@@ -390,6 +415,12 @@ const SearchBar = React.memo(({
 })
 
 SearchBar.propTypes = {
+ // List of quantities that the search targets. The suggestions are returned in
+ // the same order.
+  quantities: PropTypes.arrayOf(PropTypes.shape({
+    name: PropTypes.string,
+    size: PropTypes.number
+  })),
   className: PropTypes.string
 }
 

@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 import { useCallback, useEffect, useState, useRef, useMemo } from 'react'
-import { debounce, size } from 'lodash'
+import { debounce, isEmpty } from 'lodash'
 import { useApi } from './components/api'
-import { staticSuggestions } from './components/search/FilterRegistry'
+import { getStaticSuggestions } from './components/search/FilterRegistry'
 
 /**
  * Function for returning the current window size.
@@ -70,8 +70,11 @@ export function useBoolState(initialValue) {
  * The fetching is debounced and retrieval of only the latest results is
  * ensured. Notice that not all quantities support suggestions.
  *
- * @param {array} quantities List of quantity names for which suggestions are
- *   fetched for. Notice that the suggestions are returned in this order.
+ * @param {array} quantitiesSuggest List of quantity definitions for which
+  * suggestions are fetched for. Notice that the suggestions are returned in this
+  * order.
+ * @param {set} quantitiesAll Set of all quantity names. Used to return
+ *   suggestions for quantity names.
  * @param {str} input Text input used for the suggestions. Must be non-empty in
  * order to fetch any suggestions.
  * @param {number} minLength Minimum input length before any dynamic
@@ -84,11 +87,12 @@ export function useBoolState(initialValue) {
  * @return {object} Array of suggestions containing the suggested value and the
  * quantity name.
  */
-export function useSuggestions(quantities, input, minLength = 2, debounceTime = 150) {
+export function useSuggestions(quantitiesSuggest, quantitiesAll, input, minLength = 2, debounceTime = 150) {
   const {api} = useApi()
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState([])
   const currentRequest = useRef()
+  const staticSuggestions = useMemo(() => getStaticSuggestions(quantitiesAll), [quantitiesAll])
 
   // Used to retrieve suggestions for this field.
   const fetchSuggestions = useCallback((quantities, input) => {
@@ -98,8 +102,8 @@ export function useSuggestions(quantities, input, minLength = 2, debounceTime = 
     function flatten(value) {
       let suggestionsList = []
       quantities.forEach(q => {
-        const options = value[q]
-        if (size(options)) {
+        const options = value[q.name]
+        if (!isEmpty(options)) {
           suggestionsList = suggestionsList.concat(options)
         }
       })
@@ -110,18 +114,19 @@ export function useSuggestions(quantities, input, minLength = 2, debounceTime = 
     const quantitiesFixed = []
     const quantitiesDynamic = []
     for (const quantity of quantities) {
-      if (quantity in staticSuggestions) {
+      if (quantity.name in staticSuggestions) {
         quantitiesFixed.push(quantity)
       } else {
         quantitiesDynamic.push(quantity)
       }
     }
 
-    // Gather the fixed suggestions first
+    // Gather the fixed suggestions first. The fixed suggestion size is
+    // currently not limited.
     const suggestionsTemp = {}
     for (const quantity of quantitiesFixed) {
-      const fixed = staticSuggestions[quantity]
-      suggestionsTemp[quantity] = fixed.filter(input)
+      const fixed = staticSuggestions[quantity.name]
+      suggestionsTemp[quantity.name] = fixed.filter(input)
     }
 
     // Start loading the dynamic suggestions
@@ -132,12 +137,12 @@ export function useSuggestions(quantities, input, minLength = 2, debounceTime = 
         .then(data => {
           if (currentRequest.current === promise) {
             for (const quantity of quantitiesDynamic) {
-              const esSuggestions = data[quantity]
+              const esSuggestions = data[quantity.name]
               if (esSuggestions) {
-                suggestionsTemp[quantity] = esSuggestions.map(suggestion => ({
-                  category: quantity,
+                suggestionsTemp[quantity.name] = esSuggestions.map(suggestion => ({
+                  category: quantity.name,
                   value: suggestion.value,
-                  text: `${quantity}=${suggestion.value}`
+                  text: `${quantity.name}=${suggestion.value}`
                 }))
               }
             }
@@ -156,22 +161,23 @@ export function useSuggestions(quantities, input, minLength = 2, debounceTime = 
       setSuggestions(flatten(suggestionsTemp))
       setLoading(false)
     }
-  }, [api, minLength])
+  }, [api, minLength, staticSuggestions])
 
-  // Debounced version
+  // Debounced version. Notice that we specify a maxWait option in order to keep
+  // on suggesting while the user is typing.
   const fetchSuggestionsDebounced = useMemo(() => (
-    debounce(fetchSuggestions, debounceTime)
+    debounce(fetchSuggestions, debounceTime, {maxWait: 300})
   ), [fetchSuggestions, debounceTime])
 
   // Whenever input or the targeted quantities change, fetch suggestions
   useEffect(() => {
     const trimmedInput = input?.trim()
     if (trimmedInput && trimmedInput.length > 0) {
-      fetchSuggestionsDebounced(quantities, input)
+      fetchSuggestionsDebounced(quantitiesSuggest, input)
     } else {
       setSuggestions(old => old.length > 0 ? [] : old)
     }
-  }, [fetchSuggestionsDebounced, quantities, input])
+  }, [fetchSuggestionsDebounced, quantitiesSuggest, input])
 
   const results = useMemo(() => [suggestions, loading], [suggestions, loading])
   return results

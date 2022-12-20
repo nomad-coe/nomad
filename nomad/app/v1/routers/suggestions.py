@@ -45,8 +45,16 @@ class Suggestion(BaseModel):
     weight: Optional[float] = Field(None, description='The suggestion weight.')
 
 
+class Quantity(BaseModel):
+    name: str = Field(None, description='The name of the targeted quantity.')
+    size: int = Field(
+        5,
+        description='The maximum number of suggestion results to query for this quantity.'
+    )
+
+
 class SuggestionsRequest(BaseModel):
-    quantities: List[str] = Field(  # type: ignore
+    quantities: List[Quantity] = Field(  # type: ignore
         None,
         description='List of quantities for which the suggestions are retrieved.'
     )
@@ -73,29 +81,30 @@ async def get_suggestions(
         suggestable_quantities = set(entry_type.suggestions.keys())
 
     search = Search(index=entry_index.index_name)
-    quantities: List[str] = data.quantities
-    quantities_es = [x.replace(".", "-") for x in quantities]
-    for index, (quantity, quantity_es) in enumerate(zip(quantities, quantities_es)):
-        if quantity not in suggestable_quantities:
+    names = [x.name for x in data.quantities]
+    names_es = [x.name.replace(".", "-") for x in data.quantities]
+    for index, quantity in enumerate(data.quantities):
+        name_es = names_es[index]
+        if quantity.name not in suggestable_quantities:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=[dict(
                     msg=(
-                        f'The string "{quantity}" does not represent a suggestable quantity. '
+                        f'The string "{quantity.name}" does not represent a suggestable quantity. '
                         f'Possible values are {", ".join(suggestable_quantities)}.'),
                     loc=['quantities', index])
                 ]
             )
 
-        annotation = entry_type.suggestions[quantity]
+        annotation = entry_type.suggestions[quantity.name]
         postfix = ".suggestion" if annotation.field else "__suggestion"
-        search = search.suggest(quantity_es, data.input, completion={
-            'field': f'{quantity}{postfix}',
-            'size': 5,
+        search = search.suggest(name_es, data.input, completion={
+            'field': f'{quantity.name}{postfix}',
+            'size': quantity.size,
             'skip_duplicates': True,
             # 'fuzzy': {},
         })
-    search = search.extra(_source=quantities)
+    search = search.extra(_source=names)
 
     try:
         # For some reason calling the search.extra()-method messes up the type
@@ -103,20 +112,20 @@ async def get_suggestions(
         # here.
         es_response = search.execute()  # pylint: disable=no-member
     except RequestError as e:
-        raise SuggestionError(e)
+        raise SuggestionError from e
 
     # We return the original field in the source document.
     response: Dict[str, List[Suggestion]] = defaultdict(list)
     suggestions: Dict[str, Dict[str, float]] = defaultdict(dict)
 
-    def add_suggestion(quantity, value, weight):
-        values = suggestions[quantity]
+    def add_suggestion(name, value, weight):
+        values = suggestions[name]
         if value not in values or values[value] < weight:
-            suggestions[quantity][value] = weight
+            suggestions[name][value] = weight
 
-    for quantity, quantity_es in zip(quantities, quantities_es):
-        variants = entry_type.suggestions[quantity].variants
-        for option in es_response.suggest[quantity_es][0].options:
+    for name, name_es in zip(names, names_es):
+        variants = entry_type.suggestions[name].variants
+        for option in es_response.suggest[name_es][0].options:
             weight = option._score
 
             # We use the original input text to do the matching. This works
@@ -131,7 +140,7 @@ async def get_suggestions(
                 nested_field = option._nested.field
             except AttributeError:
                 nested_field = None
-            quantity_path = quantity[len(nested_field):] if nested_field else quantity
+            quantity_path = name[len(nested_field):] if nested_field else name
 
             # Gather all options recursively. The source may contain
             # inner/nested sections and also values may be lists.
@@ -168,9 +177,9 @@ async def get_suggestions(
                         if match_start >= 0 and match_start < best_match:
                             best_match = match_start
                             best_option = variant
-                    add_suggestion(quantity, best_option, weight)
+                    add_suggestion(name, best_option, weight)
                 elif text in option.lower().strip():
-                    add_suggestion(quantity, option, weight)
+                    add_suggestion(name, option, weight)
 
     for name, suggestion in suggestions.items():
         for value, weight in suggestion.items():

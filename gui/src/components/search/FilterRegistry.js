@@ -127,9 +127,6 @@ function getEnumOptions(quantity) {
   *      itself.
   *  - default: A default value which is implicitly enforced in the API call.
   *      This value will not be serialized in the search bar.
-  *  - resources: A list of resources (entries, materials) for which this filter
-  *      is enabled. Default is that a filter is available both for entries and
-  *      materials.
   */
 function saveFilter(name, group, config, parent) {
   if (group) {
@@ -182,7 +179,6 @@ function saveFilter(name, group, config, parent) {
     throw Error('Only filters that do not correspond to a metainfo value may have default values set.')
   }
   data.default = config.default
-  data.resources = new Set(config.resources || ['entries', 'materials'])
   filterData[name] = data
 }
 
@@ -351,6 +347,8 @@ registerFilter('upload_create_time', idAuthor, {...numberHistogramQuantity, scal
 registerFilter('datasets.dataset_name', idDataset, {...termQuantityLarge, label: 'Dataset Name'})
 registerFilter('datasets.doi', idDataset, {...termQuantity, label: 'Dataset DOI'})
 registerFilter('entry_id', idIDs, termQuantity)
+registerFilter('entry_name', idIDs, termQuantity)
+registerFilter('mainfile', idIDs, termQuantity)
 registerFilter('upload_id', idIDs, termQuantity)
 registerFilter('quantities', idArchive, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
 registerFilter('section_defs.definition_qualified_name', idArchive, {...noAggQuantity, label: 'Section defs qualified name', queryMode: 'all'})
@@ -523,7 +521,6 @@ registerFilter(
   {
     ...noQueryQuantity,
     default: true,
-    resources: ['materials'],
     description: 'If selected, your filters may be matched from several entries that contain the same material. When unchecked, the material has to have a single entry that matches all your filters.'
   }
 )
@@ -731,9 +728,12 @@ function getSuggestions(
  * Creates static suggestion for all metainfo quantities that have an enum
  * value. Also provides suggestions for quantity names.
  */
-function getStaticSuggestions() {
+export const quantityNameSearch = 'quantity name'
+export function getStaticSuggestions(quantities) {
   const suggestions = {}
-  const filters = Object.keys(filterData)
+  const filters = quantities
+    ? [...quantities]
+    : Object.keys(filterData)
 
   // Add suggestions from metainfo
   for (const quantity of filters) {
@@ -753,12 +753,12 @@ function getStaticSuggestions() {
   }
 
   // Add suggestions for quantity names
-  suggestions['quantity name'] = getSuggestions(
-    'quantity name',
-    filters.filter(value => !filterData[value].section),
-    2
-  )
+  if (quantities.has(quantityNameSearch)) {
+    suggestions[quantityNameSearch] = getSuggestions(
+      quantityNameSearch,
+      filters.filter(value => value !== quantityNameSearch && !filterData[value].section),
+      2
+    )
+  }
   return suggestions
 }
-
-export const staticSuggestions = getStaticSuggestions()

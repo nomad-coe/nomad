@@ -698,6 +698,9 @@ ui = NomadConfig(
                         'processed_data_quantities': {'label': 'Processed Data Quantities', 'level': 0, 'size': 'medium', 'menu_items': {}},
                         'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium', 'menu_items': {}},
                     }
+                },
+                "filters": {
+                    "exclude": ['mainfile', 'entry_name', 'combine']
                 }
             },
             "eln": {
@@ -809,6 +812,9 @@ ui = NomadConfig(
                         'processed_data_quantities': {'label': 'Processed Data Quantities', 'level': 0, 'size': 'medium', 'menu_items': {}},
                         'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium', 'menu_items': {}},
                     }
+                },
+                "filters": {
+                    "exclude": ['mainfile', 'entry_name', 'combine']
                 }
             },
             "materials": {
@@ -961,6 +967,9 @@ ui = NomadConfig(
                             }
                         }
                     }
+                },
+                "filters": {
+                    "exclude": ['mainfile', 'entry_name']
                 }
             },
             "solar_cells": {
@@ -1269,6 +1278,9 @@ ui = NomadConfig(
                         'processed_data_quantities': {'label': 'Processed Data Quantities', 'level': 0, 'size': 'medium', 'menu_items': {}},
                         'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium', 'menu_items': {}},
                     }
+                },
+                "filters": {
+                    "exclude": ['mainfile', 'entry_name', 'combine']
                 }
             }
         }
