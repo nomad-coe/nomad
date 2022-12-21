@@ -19,13 +19,16 @@
 import numpy as np
 from nomad import utils
 from nomad.units import ureg
-from nomad.datamodel.data import EntryData, ArchiveSection, user_reference, author_reference
+from nomad.datamodel.data import EntryData, ArchiveSection, author_reference
 from nomad.metainfo.metainfo import SectionProxy
 from nomad.datamodel.results import ELN, Results, Material, BandGapOptical
 from nomad.metainfo import Package, Quantity, Datetime, Reference, Section
 from nomad.datamodel.metainfo.eln.perovskite_solar_cell_database import addSolarCell
 
-m_package = Package(name='material_library')
+from nomad.datamodel.metainfo.eln.nexus_data_converter import NexusDataConverter
+
+
+m_package = Package(name='eln')
 
 
 class ElnBaseSection(ArchiveSection):
@@ -52,7 +55,7 @@ class ElnBaseSection(ArchiveSection):
     description = Quantity(
         type=str,
         description=(
-            'A humand description. This provides room for human readable information '
+            'A human description. This provides room for human readable information '
             'that could not be captured in the ELN.'),
         a_eln=dict(component='RichTextEditQuantity'))
 

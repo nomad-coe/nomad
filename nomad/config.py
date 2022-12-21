@@ -539,11 +539,10 @@ reprocess = Reprocess()
 class Process(NomadSettings):
     store_package_definition_in_mongo = Field(
         False, description='Configures whether to store the corresponding package definition in mongodb.')
-    add_definition_id_to_reference = Field(
-        False, description='''
-            Configures whether to attach definition id to `m_def`, note it is different from `m_def_id`.
-            The `m_def_id` will be exported with the `with_def_id=True` via `m_to_dict`.
-        ''')
+    add_definition_id_to_reference = Field(False, description='''
+        Configures whether to attach definition id to `m_def`, note it is different from `m_def_id`.
+        The `m_def_id` will be exported with the `with_def_id=True` via `m_to_dict`.
+    ''')
     write_definition_id_to_archive = Field(False, description='Write `m_def_id` to the archive.')
     index_materials = True
     reuse_parser = True
@@ -553,6 +552,10 @@ class Process(NomadSettings):
     parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
     max_upload_size = 32 * (1024 ** 3)
     use_empty_parsers = False
+    redirect_stdouts: bool = Field(False, description='''
+        True will redirect lines to stdout (e.g. print output) that occur during
+        processing (e.g. created by parsers or normalizers) as log entries.
+    ''')
 
 
 process = Process()

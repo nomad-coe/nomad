@@ -1,0 +1,18 @@
+definitions:
+  name: "IV Temp ELN Example"
+  sections:
+    IV_TEMP:
+      base_sections:
+        - "nomad.datamodel.metainfo.eln.NexusDataConverter"
+        - "nomad.datamodel.data.EntryData"
+      m_annotations:
+        template:
+          reader: json_map
+          nxdl: NXiv_temp.nxdl
+          input_files": [
+            "IV_temp.mapping.json",
+            "IV_temp.pickle"
+          ]
+          output: IV_temp.nxs
+        eln:
+          hide: []

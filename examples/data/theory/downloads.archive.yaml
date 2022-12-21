@@ -1,0 +1,15 @@
+data:
+  m_def: nomad.datamodel.metainfo.downloads.Downloads
+  mainfiles:
+    - Cu2Se/1/aims.out
+    - ZnSe/2/ZnSe_ZB.scf
+    - ZnSe/4/vasprun.xml.relax1
+    - Cu2Se/2/aims.out
+    - ZnSe/3/output_in_0.01
+    - ZnSe/1/run.abo
+    - Sn2Se/2/vasprun.xml.relax1.gz
+    - Sn2Se/1/INFO_GS.OUT
+  downloads:
+    - url: https://www.dropbox.com/s/8zd7aqe91lza2r4/theory-example-upload.zip?dl=1
+      output: theory-example-upload.zip
+      extract: true

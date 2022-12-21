@@ -29,6 +29,7 @@ import Quantity, {QuantityCell, QuantityRow, QuantityTable} from '../../Quantity
 import {Editor} from '@tinymce/tinymce-react'
 import { pluralize } from '../../../utils'
 import {Matrix} from '../../archive/visualizations'
+import { isEditable } from '../../archive/metainfo'
 
 const useStyles = makeStyles(theme => ({
   subSection: {
@@ -197,7 +198,7 @@ const SectionCard = React.memo(({archivePath, sectionDef, section, readOnly, ...
       </Box>
     )}
     <Box margin={2}>
-      {readOnly
+      {(readOnly || !isEditable(sectionDef))
         ? (
           <SectionPreview
             sectionDef={sectionDef}

@@ -450,7 +450,7 @@
     "description": "A list of user curated datasets this entry belongs to.",
     "type": {
       "type_kind": "reference",
-      "type_data": "/packages/10/section_definitions/0"
+      "type_data": "/packages/12/section_definitions/0"
     },
     "shape": [
       "0..*"

@@ -21,7 +21,7 @@ from typing import Optional
 
 import numpy as np
 
-from nexusparser.tools import nexus as read_nexus
+from nexusutils.nexus import nexus as read_nexus
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import MSection, nexus
 from nomad.metainfo.util import MQuantity, resolve_variadic_name
@@ -156,13 +156,14 @@ class NexusParser(MatchingParser):
                     if len(attr_value) == 1:
                         attr_value = attr_value[0]
 
+                attr_name = attr_name + "__attribute"
                 current = _to_section(attr_name, nx_def, nx_attr, current)
 
                 try:
                     if nx_parent.tag.endswith('group'):
                         current.m_set_section_attribute(attr_name, attr_value)
                     else:
-                        current.m_set_quantity_attribute(parent_name, attr_name, attr_value)
+                        current.m_set_quantity_attribute(parent_name + "__field", attr_name, attr_value)
                 except Exception as e:
                     self._logger.warning('Error while setting attribute.', target_name=attr_name, exe_info=str(e))
         else:
@@ -174,7 +175,7 @@ class NexusParser(MatchingParser):
                 field = np.array([np.mean(field), np.var(field), np.min(field), np.max(field)])
 
             # get the corresponding field name
-            field_name = nx_path[-1].get('name')
+            field_name = nx_path[-1].get('name') + "__field"
             metainfo_def = resolve_variadic_name(current.m_def.all_properties, field_name)
 
             # check if unit is given
@@ -193,7 +194,7 @@ class NexusParser(MatchingParser):
                     pass
 
             if metainfo_def.use_full_storage:
-                field = MQuantity.wrap(field, hdf_node.name.split('/')[-1])
+                field = MQuantity.wrap(field, hdf_node.name.split('/')[-1] + '__field')
             elif metainfo_def.unit is None and pint_unit is not None:
                 metainfo_def.unit = pint_unit
 

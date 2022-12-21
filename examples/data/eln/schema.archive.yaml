@@ -206,7 +206,6 @@ definitions:
                       m_annotations:
                         eln:
                           component: NumberEditQuantity  # A component to enter numbers (with units)
-                          minValue: 0
                     duration:
                       type: np.float64
                       unit: s

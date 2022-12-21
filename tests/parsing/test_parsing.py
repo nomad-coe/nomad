@@ -77,7 +77,8 @@ parser_examples = [
     ('parsers/psi4', 'tests/data/parsers/psi4/adc1/output.ref'),
     ('parsers/yambo', 'tests/data/parsers/yambo/hBN/r-10b_1Ry_HF_and_locXC_gw0_em1d_ppa'),
     ('parsers/archive', 'tests/data/parsers/archive.json'),
-    ('parsers/nexus', 'tests/data/parsers/nexus/201805_WSe2_arpes.nxs')
+    ('parsers/nexus', 'tests/data/parsers/nexus/201805_WSe2_arpes.nxs'),
+    ('parsers/nexus', 'tests/data/parsers/nexus/SiO2onSi.ellips.nxs')
 ]
 
 # We need to remove some cases with external mainfiles, which might not exist
@@ -88,7 +89,7 @@ for parser, mainfile in parser_examples:
         fixed_parser_examples.append((parser, mainfile))
 parser_examples = fixed_parser_examples
 
-correct_num_output_files = 122
+correct_num_output_files = 123
 
 
 def create_reference(data, pretty):
