@@ -24,13 +24,14 @@ import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
 import PropTypes from 'prop-types'
 import {SearchContext, useSearchContext} from "../search/SearchContext"
+import searchQuantities from '../../searchQuantities'
 import {ui} from "../../config"
 import SearchBar from '../search/SearchBar'
 import {useApi} from '../api'
 import {useUploadPageContext} from './UploadPageContext'
 import {useEntryPageContext} from '../entry/EntryPageContext'
 import {traverse, useGlobalMetainfo} from '../archive/metainfo'
-import { filterGroups } from '../search/FilterRegistry'
+import { filterGroups, quantityNameSearch } from '../search/FilterRegistry'
 import SearchResults from '../search/SearchResults'
 import {useDataStore} from '../DataStore'
 import {pluralize, resolveNomadUrlNoThrow} from "../../utils"
@@ -168,14 +169,19 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
   const {user} = useApi()
   const [onlyMine, setOnlyMine] = useState(!!user?.sub)
   const [onlyThisUpload, setOnlyThisUpload] = useState(false)
-  const {useFilterState, useFiltersState, useFiltersLocked} = useSearchContext()
+  const {
+    useSetFilter,
+    useFiltersState,
+    useFiltersLocked,
+    filters: filterList
+  } = useSearchContext()
   const filtersLocked = useFiltersLocked()
   const [filters, setFilters] = useFiltersState([...allFilters].filter(filter => filter !== 'visibility' && filter !== 'upload_id' && !filtersLocked[filter]))
   const uploadContext = useUploadPageContext()
   const entryContext = useEntryPageContext()
   const {uploadId} = uploadContext || entryContext
-  const [, setVisibilityFilter] = useFilterState('visibility')
-  const [, setUploadIdFilter] = useFilterState('upload_id')
+  const setVisibilityFilter = useSetFilter('visibility')
+  const setUploadIdFilter = useSetFilter('upload_id')
 
   const handleCancel = useCallback(() => {
     onCancel()
@@ -203,10 +209,32 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
     })
   }
 
+  // Customize the search bar suggestions priority.
+  const quantities = useMemo(() => {
+    let quantities = new Set([
+      'entry_name',
+      'mainfile',
+      'results.material.elements',
+      'results.material.chemical_formula_hill',
+      'results.material.chemical_formula_anonymous',
+      'results.material.structural_type',
+      'results.material.symmetry.structure_name',
+      'results.method.simulation.program_name',
+      'authors.name'
+    ])
+    const allQuantities = [...filterList]
+    allQuantities
+      .filter(q => !quantities.has(q) && searchQuantities[q]?.suggestion)
+      .forEach(q => quantities.add(q))
+    quantities = [...quantities].map((name) => ({name, size: 5}))
+    quantities.push({name: quantityNameSearch})
+    return quantities
+  }, [filterList])
+
   return <searchDialogContext.Provider value={contextValue}>
     <Dialog classes={{paper: classes.dialog}} open={open} data-testid='section-select-dialog'>
       <DialogContent className={classes.dialogContent}>
-        <SearchBar className={classes.searchBar} />
+        <SearchBar quantities={quantities} className={classes.searchBar} />
         <Typography className={classes.filters} variant="body1">
           Filters
         </Typography>
@@ -257,12 +285,8 @@ SearchBox.propTypes = {
   selected: PropTypes.object
 }
 
-const initialFilters = {
-  include: ['entry_name', 'mainfile']
-}
 function SectionSelectDialog(props) {
   const {open, onSelectedChanged, selected, onCancel, filtersLocked} = props
-
   const columns = context?.columns
   const rows = context?.rows
   columns['enable'] = shownColumns
@@ -270,7 +294,7 @@ function SectionSelectDialog(props) {
   rows['actions'] = {enable: false}
 
   if (!open) {
-    return ''
+    return null
   }
 
   return <SearchContext
@@ -280,7 +304,6 @@ function SectionSelectDialog(props) {
     initialRows={rows}
     initialFilterMenus={context?.filter_menus}
     initialFiltersLocked={filtersLocked}
-    initialFilters={initialFilters}
   >
     <SearchBox open={open} onCancel={onCancel} onSelectedChanged={onSelectedChanged} selected={selected}/>
   </SearchContext>
