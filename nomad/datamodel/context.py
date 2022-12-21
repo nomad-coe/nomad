@@ -146,6 +146,10 @@ class Context(MetainfoContext):
         ''' Use to check if a raw path already exists. '''
         raise NotImplementedError()
 
+    def raw_path(self) -> str:
+        ''' The path to the uploads raw files directory. '''
+        return os.path.curdir
+
     def process_updated_raw_file(self, path, allow_modify=False):
         '''
         Use when parsing or normalizing a file causes another file to be added or modified.
@@ -225,7 +229,9 @@ class ServerContext(Context):
         # base install, files however requires [infrastructure].
         # TODO move server context to some infrastructure package!
         from nomad import files
-        return files.UploadFiles.get(upload_id)
+        upload_files = files.UploadFiles.get(upload_id)
+        assert upload_files and upload_files.upload_id == upload_id
+        return upload_files
 
     def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
         upload_files = self._get_upload_files(upload_id, installation_url)
@@ -256,6 +262,9 @@ class ServerContext(Context):
             return archive
         except Exception:
             raise MetainfoReferenceError(f'Could not load {path}.')
+
+    def raw_path(self):
+        return self.upload_files._raw_dir.os_path
 
     def raw_file(self, *args, **kwargs):
         return self.upload_files.raw_file(*args, **kwargs)

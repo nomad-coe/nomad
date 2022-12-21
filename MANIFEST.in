@@ -21,7 +21,7 @@ recursive-include dependencies/parsers/eelsdb/eelsdbparser *.py metadata.yaml
 include dependencies/parsers/electronic/README.md
 recursive-include dependencies/parsers/electronic/electronicparsers *.py metadata.yaml
 include dependencies/parsers/nexus/README.md
-recursive-include dependencies/parsers/nexus/nexusparser *.py
-recursive-include dependencies/parsers/nexus/nexusparser/definitions *.xml *.xsd
+recursive-include dependencies/parsers/nexus/nexusutils *.py
+recursive-include dependencies/parsers/nexus/nexusutils/definitions *.xml *.xsd
 include dependencies/parsers/workflow/README.md
 recursive-include dependencies/parsers/workflow/workflowparsers *.py metadata.yaml

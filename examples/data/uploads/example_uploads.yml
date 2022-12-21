@@ -22,3 +22,61 @@ tables:
     file in combination with a custom schema. The schema describes what the columns
     in the excel file mean and NOMAD can parse everything accordingly to
     produce a **FAIR** dataset.
+ellips:
+  path: examples/data/uploads/ellips.zip
+  title: Ellipsometry
+  description: |
+    This example presents the capabilities of the NOMAD platform to store and standardize ellipsometry data.
+    It shows the generation of a NeXus file according to the [NXellipsometry](https://manual.nexusformat.org/classes/contributed_definitions/NXellipsometry.html#nxellipsometry)
+    application definition and a successive analysis of a SiO2 on Si Psi/Delta measurement.
+mpes:
+  path: examples/data/uploads/mpes.zip
+  title: Mpes
+  description: |
+    This example presents the capabilities of the NOMAD platform to store and standardize multi photoemission spectroscopy (MPES) experimental data. It contains three major examples:
+
+      - Taking a pre-binned file, here stored in a h5 file, and converting it into the standardized MPES NeXus format.
+        There exists a [NeXus application definition for MPES](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes) which details the internal structure of such a file.
+      - Binning of raw data (see [here](https://www.nature.com/articles/s41597-020-00769-8) for additional resources) into a h5 file and consecutively generating a NeXus file from it.
+      - An analysis example using data in the NeXus format and employing the [pyARPES](https://github.com/chstan/arpes) analysis tool to reproduce the main findings of [this paper](https://arxiv.org/pdf/2107.07158.pdf).
+xps:
+  path: examples/data/uploads/xps.zip
+  title: XPS
+  description: |
+    This example presents the capabilities of the NOMAD platform to store and standardize XPS data.
+    It shows the generation of a NeXus file according to the
+    [NXmpes](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes)
+    application definition and a successive analysis of an example data set.
+apm:
+  path: examples/data/uploads/apm.zip
+  title: Electronic Lab Notebook for Atom Probe Microscopy (APM)
+  description: |
+    This is an example for atom probe microscopy.
+    The example contains a custom NOMAD *schema* to create an **Electronic
+    Lab Notebook (ELN)** with which users can enter metadata that are usually
+    not stored in vendor or community file formats. The example serves two
+    purposes. On the one hand it shows how custom NOMAD *schema* can be
+    created for a research community, here atom probe. On the other hand it
+    shows how all required data in a NeXus NXapm file can be added to supplement
+    content from vendor and community files.
+em_spctrscpy:
+  path: examples/data/uploads/em_spctrscpy.zip
+  title: Electronic Lab Notebook for Electron Microscopy (EM)
+  description: |
+    This is an example for electron microscopy.
+    Specifically for spectroscopy methods in the SEM and TEM, exemplified
+    for energy-dispersive X-ray (EDXS/EDS) spectroscopy and
+    electron energy loss spectroscopy (EELS).
+    The example contains a custom NOMAD *schema* to create an **Electronic
+    Lab Notebook (ELN)** with which users can enter metadata that are usually
+    not stored in vendor or community file formats. The example serves two
+    purposes. On the one hand it shows how custom NOMAD *schema* can be
+    created for a research community, here electron microscopy. On the other hand
+    it shows how required data in a NeXus NXem file can be added to supplement
+    content from vendor and community files.
+iv_temp:
+  path: examples/data/uploads/iv_temp.zip
+  title: Sensor Scan - IV Temperature Curve
+  description: |
+    This example shows users how to take data from a Python framework and map it out to a Nexus application definition for IV Temperature measurements, [NXiv_temp](https://fairmat-experimental.github.io/nexus-fairmat-proposal/1c3806dba40111f36a16d0205cc39a5b7d52ca2e/classes/contributed_definitions/NXiv_temp.html#nxiv-temp).
+    We use the Nexus ELN features of Nomad to generate a Nexus file.

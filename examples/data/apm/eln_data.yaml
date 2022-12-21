@@ -1,0 +1,81 @@
+atom_probe:
+  analysis_chamber_pressure:
+    unit: torr
+    value: 1.0e-10
+  control_software_program: IVAS
+  control_software_program__attr_version: 3.6.4
+  fabrication_capabilities: n/a
+  fabrication_identifier: n/a
+  fabrication_model: LEAP3000
+  fabrication_vendor: AMETEK/Camcca
+  flight_path_length:
+    unit: m
+    value: 0.9
+  instrument_name: LEAP 3000
+  ion_detector_model: cameca
+  ion_detector_name: none
+  ion_detector_serial_number: n/a
+  ion_detector_type: mcp_dld
+  local_electrode_name: electrode 1
+  pulser:
+    laser_gun_name: laser
+    laser_gun_power:
+      unit: W
+      value: 2.0e-08
+    laser_gun_pulse_energy:
+      unit: J
+      value: 1.2e-11
+    laser_gun_wavelength:
+      unit: m
+      value: 4.8e-07
+    pulse_fraction: 0.1
+    pulse_frequency:
+      unit: kHz
+      value: 250
+    pulse_mode: laser
+  reflectron_applied: true
+  specimen_monitoring_detection_rate: 0.6
+  specimen_monitoring_initial_radius:
+    unit: nm
+    value: 30
+  specimen_monitoring_shank_angle:
+    unit: °
+    value: 5
+  stage_lab_base_temperature:
+    unit: K
+    value: 30
+entry:
+  attr_version: nexus-fairmat-proposal successor of 50433d9039b3f33299bab338998acb5335cd8951
+  definition: NXapm
+  end_time: '2022-09-22T20:00:00+00:00'
+  experiment_description: some details for nomad, ODS steel precipitates for testing
+    a developmental clustering algorithm called OPTICS.
+  experiment_identifier: R31-06365-v02
+  operation_mode: apt
+  program: IVAS
+  program__attr_version: 3.6.4
+  run_number: '6365'
+  start_time: '2022-09-20T20:00:00+00:00'
+ranging:
+  program: IVAS
+  program__attr_version: 3.6.4
+reconstruction:
+  crystallographic_calibration: n/a
+  parameter: kf = 1.8, ICF = 1.02, Vat = 60 at/nm^3
+  program: IVAS
+  program__attr_version: 3.6.4
+  protocol_name: cameca
+specimen:
+  atom_types:
+  - Fe
+  - Cr
+  - Y
+  - O
+  description: ODS steel, i.e. material with Y2O3 dispersoids
+  name: ODS-Specimen 1
+  preparation_date: '2022-09-12T20:01:00+00:00'
+  sample_history: undocumented
+  short_title: ODS
+user:
+- name: Jing Wang
+- name: Daniel Schreiber

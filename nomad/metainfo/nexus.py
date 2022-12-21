@@ -27,7 +27,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 from toposort import toposort_flatten
 
-from nexusparser.tools import nexus
+from nexusutils.nexus import nexus
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import (
     Attribute, Bytes, Datetime, Definition, MEnum, Package, Property, Quantity, Section, SubSection)
@@ -287,7 +287,7 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Propert
     todo: account for more attributes of attribute, e.g., default, minOccurs
     '''
     for attribute in xml_node.findall('nx:attribute', __XML_NAMESPACES):
-        name = attribute.get('name')
+        name = attribute.get('name') + "__attribute"
 
         nx_enum = __get_enumeration(attribute)
         if nx_enum:
@@ -337,7 +337,7 @@ def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
 
     # name
     assert 'name' in xml_attrs, 'Expecting name to be present'
-    name = xml_attrs['name']
+    name = xml_attrs['name'] + '__field'
 
     # type
     nx_type = xml_attrs.get('type', 'NX_CHAR')

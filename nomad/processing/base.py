@@ -86,6 +86,8 @@ if config.celery.routing == config.CELERY_WORKER_ROUTING:
     app.conf.update(worker_direct=True)
 
 app.conf.task_queue_max_priority = 10
+app.conf.worker_redirect_stdouts = config.process.redirect_stdouts
+app.conf.worker_redirect_stdouts_level = "INFO"
 
 
 class ProcessStatus:

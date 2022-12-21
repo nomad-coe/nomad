@@ -1,0 +1,8 @@
+data:
+  m_def: nomad.datamodel.metainfo.downloads.Downloads
+  mainfiles:
+    - apm.archive.json
+  downloads:
+    - url: https://zenodo.org/record/6808516/files/R31_06365-v02.tar.gz?download=1
+      output: R31_06365-v02.tar.gz
+      extract: true

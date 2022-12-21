@@ -2,7 +2,7 @@ codeName: nexus
 codeLabel: NeXus
 codeCategory: Database manager
 status: production
-codeLabelStyle: 'capitals: N, X.'
+codeLabelStyle: "capitals: N, X."
 codeUrl: https://www.nexusformat.org/
 parserDirName: dependencies/parsers/nexus/
 parserGitUrl: https://github.com/nomad-coe/nomad-parser-nexus.git
@@ -33,7 +33,7 @@ preamble: |
   ```
   git clone https://github.com/nomad-coe/nomad-parser-nexus.git parser-nexus
   cd parser-nexus
-  python -m nexusparser tests/data/nexus.out
+  python -m nexusutils tests/data/nexus.out
   ```
 
   There are also a basic test framework written in [pytest](https://docs.pytest.org/en/stable/).
