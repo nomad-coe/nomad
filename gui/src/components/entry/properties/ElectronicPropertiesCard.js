@@ -64,7 +64,9 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
       const sourceArchive = match ? (archive.m_ref_archives[match[1]] || archive.m_ref_archives[reference.energies.split('#')[0]]) : archive
       if (sourceArchive) {
         d.energies = resolveInternalRef(path, sourceArchive)
-        d.densities = resolveInternalRef(totalPath, sourceArchive).map(dos => dos.value)
+        const internalRef = resolveInternalRef(totalPath, sourceArchive)
+        d.densities = internalRef.map(dos => dos.value)
+        d.normalization_factors = internalRef.map(dos => dos.normalization_factor)
       }
       d.name = reference.label
       if (reference.band_gap) {

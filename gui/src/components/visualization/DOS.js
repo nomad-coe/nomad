@@ -15,15 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useEffect, useState, useMemo} from 'react'
+import React, {useEffect, useState, useMemo, useCallback} from 'react'
 import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
+import { MoreVert } from '@material-ui/icons'
 import Plot from '../plotting/Plot'
 import { add, mergeObjects } from '../../utils'
 import { Quantity, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
+import { Action } from '../Actions'
 import { msgNormalizationWarning } from '../../config'
 import { getLineStyles } from '../plotting/common'
+import { Checkbox, Menu, MenuItem, FormControlLabel } from '@material-ui/core'
 
 const energyUnit = new Unit('joule')
 const valueUnit = new Unit('1/joule')
@@ -67,6 +70,8 @@ const DOS = React.memo(({
   const [finalLayout, setFinalLayout] = useState(initialLayout)
   const [normalizedToHOE, setNormalizedToHOE] = useState(true)
   const theme = useTheme()
+  const [dosNormalize, setDosNormalize] = useState(false)
+  const [anchorEl, setAnchorEl] = React.useState(null)
 
   // Side effect that runs when the data that is displayed should change. By
   // running all this heavy stuff within useEffect (instead of e.g. useMemo),
@@ -83,9 +88,17 @@ const DOS = React.memo(({
     let normalized
     const mins = []
     const maxes = []
-    const channels = data.map(d => d.densities.length)
+    const dosRenormalized = data.map(d => {
+      const densities = dosNormalize
+      ? d.densities.map((density, index) => {
+        return density.map(density_intensity => density_intensity * d.normalization_factors[index])
+      })
+      : d.densities
+      return {...d, densities: densities}
+    })
+    const channels = dosRenormalized.map(d => d.densities.length)
     const lines = getLineStyles(channels.reduce((a, b) => a + b, 0), null, channels.length > 0 ? channels[0] : null).values()
-    data.forEach((d, n) => {
+    dosRenormalized.forEach(d => {
       // Determine the energy reference.
       let energyHighestOccupied
       if (type === 'vibrational') {
@@ -165,7 +178,7 @@ const DOS = React.memo(({
       {
         xaxis: {
           title: {
-            text: `states ${valueUnit.toSystem(units).label()}`
+            text: dosNormalize ? `${valueUnit.toSystem(units).label()}` : `states ${valueUnit.toSystem(units).label()}`
           },
           range: range
         },
@@ -180,19 +193,58 @@ const DOS = React.memo(({
     setFinalData(plotData)
     setFinalLayout(computedLayout)
     setNormalizedToHOE(normalized)
-  }, [data, units, initialLayout, normalizedToHOE, theme, type])
+  }, [data, units, initialLayout, normalizedToHOE, theme, type, dosNormalize])
 
-  return <Plot
-    data={finalData}
-    layout={finalLayout}
-    floatTitle="Density of states"
-    warning={normalizedToHOE === false ? msgNormalizationWarning : null}
-    metaInfoLink={data ? data[0]?.m_path : null}
-    data-testid={testID}
-    className={className}
-    {...other}
-  >
-  </Plot>
+  const open = Boolean(anchorEl)
+  const openMenu = useCallback((event) => {
+    setAnchorEl(event.currentTarget)
+  }, [])
+  const closeMenu = useCallback(() => {
+    setAnchorEl(null)
+  }, [])
+
+  return <>
+    <Plot
+      data={finalData}
+      layout={finalLayout}
+      floatTitle="Density of states"
+      warning={normalizedToHOE === false ? msgNormalizationWarning : null}
+      metaInfoLink={data ? data[0]?.m_path : null}
+      data-testid={testID}
+      className={className}
+      actions={
+        <Action tooltip='Options' onClick={openMenu}>
+          <MoreVert/>
+        </Action>
+      }
+      {...other}
+    >
+    </Plot>
+    <Menu
+      id='settings-menu'
+      anchorEl={anchorEl}
+      getContentAnchorEl={null}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      keepMounted
+        open={open}
+        onClose={closeMenu}
+    >
+      <MenuItem key='normalization'>
+        <FormControlLabel control={
+          <Checkbox
+            onChange={() => {
+              setDosNormalize(data[0].normalization_factors ? (dosNormalize) => !dosNormalize : false)
+            }}
+            color="primary"
+            checked={dosNormalize}
+          />
+          }
+          label='Normalize intensities'
+        />
+      </MenuItem>
+    </Menu>
+  </>
 })
 
 DOS.propTypes = {

@@ -1598,8 +1598,7 @@ class DOS(MSection):
         type=DosValues,
         shape=['*'],
         description='''
-        Density of states (DOS) values normalized with unit cell volume and
-        number of atoms.
+        Density of states (DOS) values for the entire system and all species.
         ''',
     )
 
