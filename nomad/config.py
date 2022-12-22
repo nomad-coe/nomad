@@ -38,7 +38,7 @@ import inspect
 import os.path
 import yaml
 import warnings
-from typing import TypeVar, List, Any, cast
+from typing import TypeVar, List, Dict, Any, Union, cast
 from pkg_resources import get_distribution, DistributionNotFound
 from pydantic import BaseModel, Field
 
@@ -58,30 +58,33 @@ NomadSettingsBound = TypeVar('NomadSettingsBound', bound='NomadSettings')
 
 
 class NomadSettings(BaseModel):
-    def customize(self: NomadSettingsBound, custom_settings: NomadSettingsBound, **kwargs) -> NomadSettingsBound:
+    def customize(
+            self: NomadSettingsBound,
+            custom_settings: Union[NomadSettingsBound, Dict[str, Any]]) -> NomadSettingsBound:
         '''
         Returns a new config object, created by taking a copy of the current config and
-        updating it with the settings defined in `custom_settings`. The `custom_settings` dict
-        must not contain any new keys (keys not defined in this NomadSettings). If it does,
-        an exception will be raised.
+        updating it with the settings defined in `custom_settings`. The `custom_settings` can
+        be a NomadSettings or a dictionary (in the latter case it must not contain any new keys
+        (keys not defined in this NomadSettings). If it does, an exception will be raised.
         '''
 
         rv = self.copy(deep=True)
 
         if custom_settings:
-            for field_name in custom_settings.__fields__.keys():
-                try:
-                    setattr(rv, field_name, getattr(custom_settings, field_name))
-                except Exception:
-                    raise AssertionError(f'Invalid setting: {field_name}')
-
-        for key, value in kwargs.items():
-            if value is None:
-                continue
-            try:
-                setattr(rv, key, value)
-            except Exception:
-                raise AssertionError(f'Invalid setting: {field_name}')
+            if isinstance(custom_settings, BaseModel):
+                for field_name in custom_settings.__fields__.keys():
+                    try:
+                        setattr(rv, field_name, getattr(custom_settings, field_name))
+                    except Exception:
+                        raise AssertionError(f'Invalid setting: {field_name}')
+            elif isinstance(custom_settings, dict):
+                for key, value in custom_settings.items():
+                    if value is None:
+                        continue
+                    try:
+                        setattr(rv, key, value)
+                    except Exception:
+                        raise AssertionError(f'Invalid setting: {field_name}')
 
         return cast(NomadSettingsBound, rv)
 
@@ -519,23 +522,6 @@ class GitLab(NomadSettings):
 gitlab = GitLab()
 
 
-class Reprocess(NomadSettings):
-    '''
-    Configures standard behaviour when reprocessing.
-    Note, the settings only matter for published uploads and entries. For uploads in
-    staging, we always reparse, add newfound entries, and delete unmatched entries.
-    '''
-    rematch_published = True
-    reprocess_existing_entries = True
-    use_original_parser = False
-    add_matched_entries_to_published = True
-    delete_unmatched_published_entries = False
-    index_individual_entries = False
-
-
-reprocess = Reprocess()
-
-
 class Process(NomadSettings):
     store_package_definition_in_mongo = Field(
         False, description='Configures whether to store the corresponding package definition in mongodb.')
@@ -561,6 +547,23 @@ class Process(NomadSettings):
 process = Process()
 
 
+class Reprocess(NomadSettings):
+    '''
+    Configures standard behaviour when reprocessing.
+    Note, the settings only matter for published uploads and entries. For uploads in
+    staging, we always reparse, add newfound entries, and delete unmatched entries.
+    '''
+    rematch_published = True
+    reprocess_existing_entries = True
+    use_original_parser = False
+    add_matched_entries_to_published = True
+    delete_unmatched_published_entries = False
+    index_individual_entries = False
+
+
+reprocess = Reprocess()
+
+
 class RFC3161Timestamp(NomadSettings):
     server = Field(
         'http://time.certum.pl/', description='The rfc3161ng timestamping host.')
@@ -576,25 +579,62 @@ rfc3161_timestamp = RFC3161Timestamp()
 
 
 class BundleExportSettings(NomadSettings):
-    include_raw_files = True
-    include_archive_files = True
-    include_datasets = True
+    include_raw_files: bool = Field(
+        True, description='If the raw files should be included in the export')
+    include_archive_files: bool = Field(
+        True, description='If the parsed archive files should be included in the export')
+    include_datasets: bool = Field(
+        True, description='If the datasets should be included in the export')
 
 
 class BundleExport(NomadSettings):
-    default_cli_bundle_export_path: str = './bundles'
-    default_settings = BundleExportSettings()
-    default_settings_cli: BundleExportSettings = Field(None, description='''
-        Additional default settings, applied when exporting using the CLI (command-line interface).
-        This allows to override some of the settings specified in the general default settings above.
-    ''')
+    ''' Controls behaviour related to exporting bundles. '''
+    default_cli_bundle_export_path: str = Field(
+        './bundles', description='Default path used when exporting bundles using the CLI command.')
+    default_settings: BundleExportSettings = Field(
+        BundleExportSettings(), description='''
+            General default settings.
+        ''')
+    default_settings_cli: BundleExportSettings = Field(
+        None, description='''
+            Additional default settings, applied when exporting using the CLI. This allows
+            to override some of the settings specified in the general default settings above.
+        ''')
 
 
 bundle_export = BundleExport()
 
 
 class BundleImportSettings(NomadSettings):
-    process_settings = Field(
+    include_raw_files: bool = Field(
+        True, description='If the raw files should be included in the import')
+    include_archive_files: bool = Field(
+        True, description='If the parsed archive files should be included in the import')
+    include_datasets: bool = Field(
+        True, description='If the datasets should be included in the import')
+
+    include_bundle_info: bool = Field(
+        True, description='If the bundle_info.json file should be kept (not necessary but may be nice to have.')
+    keep_original_timestamps: bool = Field(
+        False, description='''
+            If all timestamps (create time, publish time etc) should be imported from
+            the bundle.
+        ''')
+    set_from_oasis: bool = Field(
+        True, description='If the from_oasis flag and oasis_deployment_url should be set.')
+
+    delete_upload_on_fail: bool = Field(
+        False, description='If False, it is just removed from the ES index on failure.')
+    delete_bundle_on_fail: bool = Field(
+        True, description='Deletes the source bundle if the import fails.')
+    delete_bundle_on_success: bool = Field(
+        True, description='Deletes the source bundle if the import succeeds.')
+    delete_bundle_include_parent_folder: bool = Field(
+        True, description='When deleting the bundle, also include parent folder, if empty.')
+
+    trigger_processing: bool = Field(
+        False, description='If the upload should be processed when the import is done (not recommended).')
+    process_settings: Reprocess = Field(
         Reprocess(
             rematch_published=True,
             reprocess_existing_entries=True,
@@ -602,63 +642,41 @@ class BundleImportSettings(NomadSettings):
             add_matched_entries_to_published=True,
             delete_unmatched_published_entries=False
         ), description='''
-            It is possible to trigger processing of the raw files, but it is no longer the
-            preferred way to import bundles. If used, the settings below control the reprocessing
-            behaviour (see the config for `reprocess` for more info).
+            When trigger_processing is set to True, these settings control the reprocessing
+            behaviour (see the config for `reprocess` for more info). NOTE: reprocessing is
+            no longer the recommended method to import bundles.
         '''
     )
 
-    include_raw_files = True
-    include_archive_files = False
-    include_datasets = True
-
-    include_bundle_info = Field(
-        True, description='Keeps the bundle_info.json file, not necessary but nice to have.')
-    keep_original_timestamps = Field(
-        False, description='''
-            If all timestamps (create time, publish time etc) should be imported from
-            the bundle.
-        ''')
-    set_from_oasis = Field(
-        True, description='If the from_oasis flag and oasis_deployment_url should be set.')
-
-    delete_upload_on_fail = Field(
-        False, description='If False, it is just removed from the ES index on failure.')
-    delete_bundle_on_fail = Field(
-        True, description='Deletes the source bundle if the import fails.')
-    delete_bundle_on_success = Field(
-        True, description='Deletes the source bundle if the import succeeds.')
-    delete_bundle_include_parent_folder = Field(
-        True, description='When deleting the bundle, also include parent folder, if empty.')
-
-    trigger_processing = Field(
-        True, description='If the upload should be processed when the import is done.')
-
 
 class BundleImport(NomadSettings):
-
-    required_nomad_version = Field(
+    ''' Controls behaviour related to importing bundles. '''
+    required_nomad_version: str = Field(
         '1.1.2', description='Minimum  NOMAD version of bundles required for import.')
 
-    default_cli_bundle_import_path = './bundles'
+    default_cli_bundle_import_path: str = Field(
+        './bundles', description='Default path used when importing bundles using the CLI command.')
 
-    allow_bundles_from_oasis = Field(
+    allow_bundles_from_oasis: bool = Field(
         False, description='If oasis admins can "push" bundles to this NOMAD deployment.')
-    allow_unpublished_bundles_from_oasis = Field(
+    allow_unpublished_bundles_from_oasis: bool = Field(
         False, description='If oasis admins can "push" bundles of unpublished uploads.')
 
-    default_settings = BundleImportSettings()
+    default_settings: BundleImportSettings = Field(
+        BundleImportSettings(),
+        description='''
+            General default settings.
+        ''')
 
-    default_settings_cli = Field(
+    default_settings_cli: BundleImportSettings = Field(
         BundleImportSettings(
             delete_bundle_on_fail=False,
             delete_bundle_on_success=False
         ),
         description='''
-            Additional default settings, applied when importing using the CLI (command-line interface).
-            This allows to override some of the settings specified in the general default settings above.
-        '''
-    )
+            Additional default settings, applied when importing using the CLI. This allows
+            to override some of the settings specified in the general default settings above.
+        ''')
 
 
 bundle_import = BundleImport()

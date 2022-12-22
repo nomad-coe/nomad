@@ -586,11 +586,11 @@ def export_bundle(ctx, uploads, out_dir, uncompressed, overwrite, settings, igno
 
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
+    default_export_settings = config.bundle_export.default_settings.customize(
+        config.bundle_export.default_settings_cli)
     if settings:
         settings = json.loads(settings)
         try:
-            default_export_settings = config.bundle_export.default_settings.customize(
-                config.bundle_export.default_settings_cli)
             export_settings = default_export_settings.customize(settings)
             BundleExporter.check_export_settings(export_settings)
         except Exception as e:
@@ -667,8 +667,6 @@ def export_bundle(ctx, uploads, out_dir, uncompressed, overwrite, settings, igno
             (the default behaviour is to abort on first failing bundle).''')
 @click.pass_context
 def import_bundle(ctx, input_path, multi, settings, embargo_length, use_celery, ignore_errors):
-    from pydantic import parse_obj_as
-
     from nomad.bundles import BundleImporter
     from nomad import infrastructure
 
@@ -693,13 +691,13 @@ def import_bundle(ctx, input_path, multi, settings, embargo_length, use_celery, 
             print(f'Path not found: {input_path}')
         bundle_paths = [os.path.abspath(input_path)]
 
-    default_import_settings = config.bundle_import.default_settings.customize(config.bundle_import.default_settings_cli)
+    default_import_settings = config.bundle_import.default_settings.customize(
+        config.bundle_import.default_settings_cli)
 
     if settings:
         settings = json.loads(settings)
         try:
-            import_settings = default_import_settings.customize(
-                parse_obj_as(config.BundleExportSettings, settings))
+            import_settings = default_import_settings.customize(settings)
         except Exception as e:
             # Invalid setting provided
             print(e)
