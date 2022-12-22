@@ -19,7 +19,9 @@
 from typing import List, Any, Union, Dict
 from enum import Enum
 from pydantic import Field, validator
+import re
 
+from nomad.utils import strip
 from nomad.metainfo import AnnotationModel, MEnum, MTypes, Datetime, Reference, Quantity
 
 
@@ -346,6 +348,7 @@ class TabularAnnotation(AnnotationModel):
 class PlotAnnotation(AnnotationModel):
     '''
     This annotation can be used to add a plot to a section or quantity. Example:
+
     ```python
     class Evaporation(MSection):
         m_def = Section(a_plot={
@@ -361,23 +364,57 @@ class PlotAnnotation(AnnotationModel):
         substrate_temperature = Quantity(type=float, shape=['*'], unit='K')
         chamber_pressure = Quantity(type=float, shape=['*'], unit='Pa')
     ```
+
+    You can create multi-line plots by using lists of the properties `y` (and `x`).
+    You either have multiple sets of `y`-values over a single set of `x`-values. Or
+    you have pairs of `x` and `y` values. For this purpose the annotation properties
+    `x` and `y` can reference a single quantity or a list of quantities.
     '''
 
+    def __init__(self, *args, **kwargs):
+        # pydantic does not seem to support multiple aliases per field
+        super(PlotAnnotation, self).__init__(
+            *args,
+            x=kwargs.pop('x', None) or kwargs.pop('xAxis', None) or kwargs.pop('x_axis', None),
+            y=kwargs.pop('y', None) or kwargs.pop('yAxis', None) or kwargs.pop('y_axis', None),
+            **kwargs
+        )
+
     label: str = Field(None, description='Is passed to plotly to define the label of the plot.')
-    x: str = Field(None, description='''
-        A path to the quantity that holds the x-axis value. The path is a `/` separated
+    x: Union[List[str], str] = Field(..., description='''
+        A path or list of paths to the x-axes values. Each path is a `/` separated
         list of sub-section and quantity names that leads from the annotation section
         to the quantity.
     ''')
-    y: Union[List[str], str] = Field(None, description='''
-        A path or list of paths to the y-axes values. Multiple paths will lead to a
-        plot with multiple line. Each path is a `/` separated
-        list of sub-section and quantity names that leads from the annotation section
-        to the quantity.
+    y: Union[List[str], str] = Field(..., description='''
+        A path or list of paths to the y-axes values. list of sub-section and quantity
+        names that leads from the annotation section to the quantity.
     ''')
     lines: List[dict] = Field(None, description='Is passed to plotly to configure the lines of the plot.')
     layout: dict = Field(None, description='Is passed to plotly as `layout`.')
     config: dict = Field(None, description='Is passed to plotly as `config`.')
+
+    @validator('y')
+    def validate_y(cls, y, values):  # pylint: disable=no-self-argument
+        x = values.get('x', [])
+        if not isinstance(x, list):
+            x = [x]
+
+        if isinstance(x, list):
+            assert len(x) == 1 or len(x) == len(y), strip(f'''
+                You must use on set of x-values, or the amount x-quantities ({len(x)})
+                has to match the amount of y-quantities ({len(y)}).
+            ''')
+
+        return y
+
+    @validator('x', 'y')
+    def validate_quantity_references(cls, value):  # pylint: disable=no-self-argument
+        values = value if isinstance(value, list) else [value]
+        for item in values:
+            assert re.match(r'^(\./)?(\w+/)*\w+$', item), f'{item} is not a valid quantity reference.'
+
+        return value
 
 
 AnnotationModel.m_registry['eln'] = ELNAnnotation
