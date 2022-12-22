@@ -1,0 +1,166 @@
+---
+title: 'NOMAD: A distributed web-based platform for managing materials science research data'
+tags:
+  - Python
+  - javascript
+  - database
+  - materials science
+  - data management
+  - electronic lab notebook
+  - FAIR
+authors:
+  - name: Markus Scheidgen
+    email: markus.scheidgen@physik.hu-berlin.de
+    corresponding: true
+    equal-contrib: true
+    affiliation: 1
+  - name: Lauri Himanen
+    email: lauri.himanen@gmail.com
+    equal-contrib: true
+    affiliation: 1
+  - name: David Sikter
+    email: david.sikter@physik.hu-berlin.de
+    equal-contrib: true
+    affiliation: 1
+  - name: Adam Fekete
+    email: adam@fekete.co.uk
+    equal-contrib: true
+    affiliation: 1
+  - name: Alvin Noe Ladines
+    email: ladinesalvinnoe@gmail.com
+    equal-contrib: true
+    affiliation: 1
+  - name: Mohammad Nakhaee
+    email: mohammad.nakhaee@physik.hu-berlin.de
+    equal-contrib: true
+    affiliation: 1
+  - name: Theodore Chang
+    email: theodore.chang@physik.hu-berlin.de
+    equal-contrib: true
+    affiliation: 1
+  - name: Amir Golparvar
+    email: amir.golparvar@physik.hu-berlin.de
+    equal-contrib: true
+    affiliation: 1
+  - name: Jose Marquez Prieto
+    email: jose.marquez@physik.hu-berlin.de
+    affiliation: 1
+  - name: Sandor Brockhauser
+    email: sandor.brockhauser@physik.hu-berlin.de
+    affiliation: 1
+  - name: Sebastian Brückner
+    affiliation: 3
+  - name: Luca Ghiringhelli
+    affiliation: 1
+  - name: Felix Dietrich
+    affiliation: 4
+  - name: Daniel Lehmberg
+    affiliation: 4
+  - name: Sherjeel Shabih
+    email: sherjeel.shabih@physik.hu-berlin.de
+    affiliation: 1
+  - name: Joseph Rudzinski
+    email: josepth.rudzinski@physik.hu-berlin.de
+    affiliation: 1
+  - name: Martin Kuban
+    email: kuban@physik.hu-berlin.de
+    affiliation: 1
+  - name: Luigi Sbailo
+    email: sbailo@fhi-berlin.mpg.de
+    affiliation: 2
+  - name: Maja-Olivia Lenz
+    email: lenz@fhi-berlin.mpg.de
+    affiliation: 2
+  - name: Thea, Denell
+    email: denell@physik.hu-berlin.de
+    affiliation: 1
+  - name: Draxl, Claudia
+    email: claudia.draxl@physik.hu-berlin.de
+    affiliation: 1
+affiliations:
+  - name: Institut für Physik, Humboldt-Universität zu Berlin, Germany
+    index: 1
+  - name: Fritz-Haber-Institut der Max-Planck-Gesellschaft, Germany
+    index: 2
+  - name: Leibnitz Institut für Kristallzüchtung, Germany
+    index: 3
+  - name: Technische Universität München, Germany
+    index: 4
+date: 1 October 2022
+bibliography: paper.bib
+---
+
+# Summary
+
+Materials science research is a increasingly data-driven and requires increased efforts
+to manage, share, and publish data. NOMAD is a web-based application that
+provides data management for materials science research data.
+Besides core data management functions like uploading and sharing files,
+NOMAD allows structured data entry with customizable forms, it automatically extracts
+rich metadata from supported file-formats, it normalizes and converts data from such formats,
+provides a faceted search with materials science specific filters based on extracted metadata,
+and integrates data analysis and machine learning tools.
+NOMAD installations can be connected to shared data between research institutes and publish
+data to an open central NOMAD service.
+
+- nomad and nomad-oasis
+- nomad python package
+- nomad parsers
+
+# Statement of need
+
+In materials science, researchers use many methods, instruments, tools, and workflows
+to produce large volumes of heterogeneous data artifacts. The contained data often
+describes related research objects (materials, samples, or properties) and it is believed
+that all combined data hold great potential for data re-use and machine learning [@scheffler:2022].
+
+While individual researchers struggle in organizing and analyzing more and more data
+artifacts, communities face new challenges in making data findable, accessible, inter-operable,
+and re-produceable (FAIR) [@wilkinson:2016]. A key factor to FAIR data, is to combine data with meta-data
+and to put all data into machine and human comprehensible representations [@ghiringhelli:2022].
+
+NOMAD addresses these needs in two ways. First, NOMAD improves the data-driven workflows of individuals
+and small labs by formalizing data acquisition, organizing and sharing data, homogenizing and normalizing data
+for analysis, and integrating with analysis tools. This way NOMAD provides the incentives and tools for research individuals
+to put the necessary efforts into preparing FAIR (meta-)data. Secondly, NOMAD allows to share or
+publish prepared data and can be used by communities as a repository for FAIR data.
+
+# Usage of NOMAD and related software
+
+The NOMAD software is used to operate NOMAD, an open service to share and publish
+materials science research data (https://nomad-lab.eu). NOMAD contains over 12 million
+individual materials science simulations and increasing number of entries describing
+materials science experiments. NOMAD is available since 2014 and includes data from
+over 500 international authors.
+
+The NOMAD software is increased by an increasing number of research institutes to operate
+a local repository for local research data management. These NOMAD Oasis can be
+used freely as per our OSI license following the instruction in the NOMAD documentation (TODO).
+
+The [NFDI consortium FAIRmat](https://www.fairmat-nfdi.eu/fairmat)
+uses NOMAD software as the bases for its federated FAID data infrastructure [@scheffler:2022].
+
+[OPTIMADE](https://www.optimade.org/) [@andersen:2022] is an API specification (with associated
+software implementation) for materials science databases. NOMAD implements OPTIMADE
+as is active part of the OPTIMADE consortia.
+
+Other materials science databases (and the respective software) focus on only publishing
+data that were produced by the database itself. Typical examples are databases of
+high-throughput simulations that try to systematically explore theoretical materials. Three
+of the larger databases of this kind are the [Materials Project](https://materialsproject.org/)
+[@jain:2013], [AFLOW](https://aflow.org/) [@curtarolo:2012], and [OQMD](https://oqmd.org/) [@saal:2013].
+The raw data of these databases has also been published on NOMAD. The project [AiiDA](https://aiida.net/) [@huber:2020]
+allows scientists to design and run simulation workflows. AiiDA data can be published
+to AiiDA's [materialscloud](https://www.materialscloud.org/).
+
+NOMAD relies on many Open Source software; a few more notable ones from the materials
+science domains are: *MatID*, a software package to identify material structure system types and symmetries [@himanen:2018]),
+*ASE*, a software package to manipulate material structures in Python [@larsen:2017], and *neXus*,
+a file-format standard, schemas, and tools for experimental materials science data [@konnecke:2015].
+
+# Acknowledgements
+
+NOMAD software development was funded by the NOMAD CoE phase 1 and 2 (EU Horizon 2020 676580 and 951786),
+the Max-Planck Netzwerk BigMax, and the NDFI consortia FAIRmat.
+
+# References
