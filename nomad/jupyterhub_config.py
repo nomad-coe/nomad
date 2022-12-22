@@ -121,7 +121,7 @@ class NomadAuthenticator(GenericOAuthenticator):
             spawner.environment['NOMAD_CLIENT_ACCESS_TOKEN'] = access_token
 
             uploads_response = requests.get(
-                f'{config.api_url().rstrip("/")}/v1/uploads?is_published=false&per_page=100',
+                f'{config.api_url().rstrip("/")}/v1/uploads?is_published=false&page_size=100',
                 headers=api_headers)
         except Exception as e:
             self.log.error('Cannot access Nomad API: %s', e)
