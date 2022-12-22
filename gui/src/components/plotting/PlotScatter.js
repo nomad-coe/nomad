@@ -288,7 +288,7 @@ const PlotScatter = React.memo(forwardRef((
         autorange={autorange}
         onSelected={onSelected}
         onDeselect={onDeselect}
-        noAction
+        disableDefaultActions
         throttleResize
         data-testid={testID}
         ref={canvas}

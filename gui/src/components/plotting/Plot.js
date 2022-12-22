@@ -27,9 +27,9 @@ import {
   Tooltip
 } from '@material-ui/core'
 import {
+  CameraAlt,
   Fullscreen,
   FullscreenExit,
-  CameraAlt,
   Replay,
   ViewList,
   Warning
@@ -122,7 +122,8 @@ const Plot = React.memo(forwardRef(({
   onClick,
   onWebglContextLost,
   layoutSubject,
-  noAction,
+  disableDefaultActions,
+  actions,
   throttleResize,
   'data-testid': testID
 }, canvas) => {
@@ -563,6 +564,31 @@ const Plot = React.memo(forwardRef(({
     return null
   }, [loading, data, styles, placeHolderStyle, testID])
 
+  // Determine the final list of actions to show
+  const allActions = useMemo(() => {
+    const defaultActions = disableDefaultActions
+      ? null
+      : <>
+      <Action key="reset" tooltip='Reset view' onClick={handleReset}>
+        <Replay/>
+      </Action>
+      <Action key="fullscreen" tooltip='Toggle fullscreen' onClick={handleFloat}>
+        {float ? <FullscreenExit/> : <Fullscreen/>}
+      </Action>
+      <Action key="capture" tooltip='Capture image' onClick={handleCapture}>
+        <CameraAlt/>
+      </Action>
+      <Action key="archive" tooltip='View data in the archive' onClick={() => { history.push(metaInfoLink) }}>
+        <ViewList/>
+      </Action>
+    </>
+    return (defaultActions || actions)
+      ? <div className={styles.footer}>
+          <Actions>{defaultActions}{actions}</Actions>
+        </div>
+      : null
+  }, [actions, disableDefaultActions, float, handleCapture, handleFloat, handleReset, history, metaInfoLink, styles])
+
   // Even if the plots are still loading, all the html elements need to be
   // placed in the DOM. During loading, they are placed underneath the
   // placeholder with visibility=hidden. This way Plotly still has access to
@@ -596,24 +622,7 @@ const Plot = React.memo(forwardRef(({
               </Tooltip>}
             </div>
           </div>
-          {!noAction && <div className={styles.footer}>
-            <Actions>
-              <Action tooltip='Reset view' onClick={handleReset}>
-                <Replay/>
-              </Action>
-              <Action tooltip='Toggle fullscreen' onClick={handleFloat}>
-                {float ? <FullscreenExit/> : <Fullscreen/>}
-              </Action>
-              <Action tooltip='Capture image' onClick={handleCapture}>
-                <CameraAlt/>
-              </Action>
-              {metaInfoLink &&
-                <Action tooltip='View data in the archive' onClick={() => { history.push(metaInfoLink) }}>
-                  <ViewList/>
-                </Action>
-              }
-            </Actions>
-          </div>}
+          {allActions}
         </div>
       </div>
     </Floatable>
@@ -642,7 +651,8 @@ Plot.propTypes = {
   onSelecting: PropTypes.func,
   onDeselect: PropTypes.func,
   onClick: PropTypes.func,
-  noAction: PropTypes.bool,
+  disableDefaultActions: PropTypes.bool, // Whether to show the default plot actions.
+  actions: PropTypes.node, // Additional actions.
   onWebglContextLost: PropTypes.func,
   throttleResize: PropTypes.bool, // Whether to throttle resize using requestAnimationFrame
   /**
@@ -651,7 +661,9 @@ Plot.propTypes = {
    * layout object.
   */
   layoutSubject: PropTypes.any,
-  'data-testid': PropTypes.string
+  'data-testid': PropTypes.string,
+  showOptions: PropTypes.bool,
+  onClickOptions: PropTypes.func
 }
 Plot.defaultProps = {
   floatTitle: '',

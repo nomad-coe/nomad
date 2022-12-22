@@ -1082,10 +1082,9 @@ class DosValues(AtomicValues):
     normalization_factor = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        unit='1 / (m ** 3)',
         description='''
-        Normalization factor for DOS values to get a cell-independent intensive DOS.
-        For total dos, this is given by 1 / (unit cell volume).
+        Normalization factor for DOS values to get a cell-independent intensive DOS,
+        defined as the DOS integral from the lowest energy state to the Fermi level for a neutrally charged system.
         ''')
 
     value = Quantity(
@@ -1101,7 +1100,7 @@ class DosValues(AtomicValues):
         type=np.dtype(np.float64),
         shape=['n_energies'],
         description='''
-        Integrated DOS starting from the mimunum energy up to given a energy.
+        A cumulative DOS starting from the mimunum energy available up to the energy level specified in `energies`.
         ''')
 
 

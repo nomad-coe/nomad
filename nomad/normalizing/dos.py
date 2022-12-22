@@ -23,7 +23,6 @@ from nomad import config
 from nomad_dos_fingerprints import DOSFingerprint
 from nomad.datamodel.metainfo.simulation.calculation import (
     Dos, DosFingerprint, BandGap)
-from nomad.atomutils import get_volume
 
 from .normalizer import Normalizer
 
@@ -59,14 +58,13 @@ class DosNormalizer(Normalizer):
                 for dos in dos_electronic:
 
                     # Add normalization factor
-                    number_of_atoms = self.add_normalization_factor(calc, dos)
-                    if number_of_atoms is None:
+                    set_normalization_factor = self.add_electronic_normalization_factor(calc, dos)
+                    if not set_normalization_factor:
                         continue
 
                     # Add energy references
-                    dos_values_normalized = [
-                        dos_total.value.magnitude * dos_total.normalization_factor.magnitude for dos_total in dos.total]
-                    self.add_energy_references(dos, energy_fermi, energy_highest, energy_lowest, dos_values_normalized)
+                    dos_values = [dos_total.value.magnitude for dos_total in dos.total]
+                    self.add_energy_references(dos, energy_fermi, energy_highest, energy_lowest, dos_values)
 
                     # Calculate the DOS fingerprint for successfully normalized DOS
                     normalization_reference = None
@@ -83,8 +81,7 @@ class DosNormalizer(Normalizer):
                         try:
                             dos_fingerprint = DOSFingerprint().calculate(
                                 dos_energies_normalized.magnitude,
-                                dos_values_normalized,
-                                n_atoms=number_of_atoms
+                                dos_values
                             )
                         except Exception as e:
                             self.logger.error('could not generate dos fingerprint', exc_info=e)
@@ -97,38 +94,42 @@ class DosNormalizer(Normalizer):
                             sec_dos_fingerprint.filling_factor = dos_fingerprint.filling_factor
 
             # Normalize phonon DOS
-            dos_phonon = calc.dos_phonon
-            if dos_phonon is not None:
-                for dos in dos_phonon:
-                    self.add_normalization_factor(calc, dos)
+            dos_phonons = calc.dos_phonon
+            if dos_phonons is not None:
+                for dos_phonon in dos_phonons:
+                    self.add_phononic_normalization_factor(calc, dos_phonon)
 
-    def add_normalization_factor(self, calc, dos):
-        # Perform normalization only for total dos
-        if dos.total is None:
-            return
-
-        """Returns the factor that normalizes DOS values to be 1/J/atom/m^3."""
-        system = calc.system_ref
-        if not system or system.atoms is None:
+    def add_electronic_normalization_factor(self, calc, dos):
+        """Returns a factor that returns a size intensive electronic DOS.
+        The values are divided by integral(DOS, lowest state, Fermi energy), or likewise sum(<atomic numbers>)."""
+        atoms = calc.system_ref.atoms
+        if not len(dos.total):
             self.logger.error('referenced system for dos calculation could not be found')
             return
-        atom_positions = system.atoms.positions
-        lattice_vectors = system.atoms.lattice_vectors
-        if atom_positions is None:
-            self.logger.error('required quantity atom_positions is not available')
+        elif not len(atoms.species):
+            self.logger.error('referenced system for atomic species could not be found')
             return
-        if lattice_vectors is None:
-            self.logger.error('required quantity lattice_vectors is not available')
-            return
-        number_of_atoms = np.shape(atom_positions)[0]
-        unit_cell_volume = get_volume(lattice_vectors.magnitude)
-        normalization_factor = 1 / (number_of_atoms * unit_cell_volume)
-
-        if normalization_factor:
+        else:
+            normalization_factor = 1 / sum(atoms.species)
             for dos_total in dos.total:
                 dos_total.normalization_factor = normalization_factor
+            return normalization_factor
 
-        return number_of_atoms
+    def add_phononic_normalization_factor(self, calc, dos):
+        """Returns a factor that returns a size intensive phononic DOS.
+        The values are divided by integral(DOS, 0, infinity), or likewise <no. degrees of freedom>"""
+        atoms = calc.system_ref.atoms
+        if not len(dos.total):
+            self.logger.error('referenced system for dos calculation could not be found')
+            return
+        elif not len(atoms.species):
+            self.logger.error('referenced system for the number of atoms could not be found')
+            return
+        else:
+            normalization_factor = 1 / (3 * len(atoms.species))
+            for dos_total in dos.total:
+                dos_total.normalization_factor = normalization_factor
+            return normalization_factor
 
     def add_energy_references(
             self,
@@ -136,7 +137,7 @@ class DosNormalizer(Normalizer):
             energy_fermi: float,
             energy_highest: float,
             energy_lowest: float,
-            dos_values_normalized: NDArray) -> None:
+            dos_values: NDArray) -> None:
         """Given the band structure and information about energy references,
         determines the energy references separately for all spin channels.
         """
@@ -167,7 +168,7 @@ class DosNormalizer(Normalizer):
         dos_energies = dos.energies
 
         for i_channel in range(n_channels):
-            dos_values = dos_values_normalized[i_channel]
+            dos_channel = dos_values[i_channel]
             info = dos.band_gap[i_channel]
             fermi_idx = (np.abs(dos.energies - eref)).argmin()
 
@@ -183,7 +184,7 @@ class DosNormalizer(Normalizer):
                 idx_descend = fermi_idx
                 while True:
                     try:
-                        value = dos_values[idx]
+                        value = dos_channel[idx]
                         energy_distance = np.abs(eref - dos_energies[idx])
                     except IndexError:
                         break
@@ -199,7 +200,7 @@ class DosNormalizer(Normalizer):
                 idx_ascend = fermi_idx
                 while True:
                     try:
-                        value = dos_values[idx]
+                        value = dos_channel[idx]
                         energy_distance = np.abs(eref - dos_energies[idx])
                     except IndexError:
                         break
@@ -221,7 +222,7 @@ class DosNormalizer(Normalizer):
                 idx = idx_descend
                 while True:
                     try:
-                        value = dos_values[idx]
+                        value = dos_channel[idx]
                     except IndexError:
                         break
                     if value > value_threshold:
@@ -234,7 +235,7 @@ class DosNormalizer(Normalizer):
                 idx = idx_ascend
                 while True:
                     try:
-                        value = dos_values[idx]
+                        value = dos_channel[idx]
                     except IndexError:
                         break
                     if value > value_threshold:
