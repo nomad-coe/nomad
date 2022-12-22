@@ -469,11 +469,6 @@ parsers = [
         mainfile_name_re=r'.*.traj$', mainfile_mime_re=r'application/octet-stream'
     ),
     MatchingParserInterface(
-        'atomisticparsers.BOPfoxParser',
-        metadata_path=f'{prefix_atomistic}/bopfox/metadata.yaml',
-        mainfile_contents_re=r'BOPfox \(v \d'
-    ),
-    MatchingParserInterface(
         'atomisticparsers.DFTBPlusParser',
         metadata_path=f'{prefix_atomistic}/dftbplus/metadata.yaml',
         mainfile_contents_re=r'\|  DFTB\+',
@@ -482,7 +477,7 @@ parsers = [
     MatchingParserInterface(
         'atomisticparsers.DLPolyParser',
         metadata_path=f'{prefix_atomistic}/dlpoly/metadata.yaml',
-        mainfile_contents_re=(r'\*\* DL_POLY \*\*'),
+        mainfile_contents_re=(r'\*\*\s+DL_POLY.+\*\*'),
     ),
     MatchingParserInterface(
         'atomisticparsers.GromacsParser',

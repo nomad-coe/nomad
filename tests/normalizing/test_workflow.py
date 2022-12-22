@@ -53,6 +53,16 @@ def test_single_point_workflow(workflow_archive):
     assert not sec_workflow.single_point.with_volumetric_data
     assert not sec_workflow.single_point.with_excited_states
     assert sec_workflow.single_point.is_converged
+    sec_workflow2 = vasp_archive.workflow2
+    assert sec_workflow2.method.method == 'DFT'
+    assert sec_workflow2.results.n_scf_steps == 9
+    assert sec_workflow2.results.final_scf_energy_difference > 0
+    assert sec_workflow2.results.dos is not None
+    assert sec_workflow2.results.band_structure is None
+    assert sec_workflow2.results.eigenvalues is not None
+    assert sec_workflow2.results.density_charge is None
+    assert sec_workflow2.results.excited_states is None
+    assert sec_workflow2.results.is_converged
 
 
 def test_geometry_optimization_workflow(workflow_archive):
@@ -74,6 +84,14 @@ def test_geometry_optimization_workflow(workflow_archive):
     assert task[1].input_calculation == sec_workflow.calculations_ref[0]
     assert task[-1].output_workflow == sec_workflow
 
+    sec_workflow2 = vasp_archive.workflow2
+    assert sec_workflow2.method.type == 'cell_shape'
+    assert sec_workflow2.results.calculation_result_ref.m_def.name == 'Calculation'
+    assert sec_workflow2.results.final_energy_difference > 0.0
+    assert sec_workflow2.results.optimization_steps == 3
+    assert sec_workflow2.results.final_force_maximum > 0.0
+    assert sec_workflow2.results.is_converged_geometry
+
 
 def test_elastic_workflow(workflow_archive):
     elastic_archive = workflow_archive(
@@ -88,6 +106,14 @@ def test_elastic_workflow(workflow_archive):
     assert sec_workflow.elastic.is_mechanically_stable
     assert sec_workflow.elastic.fitting_error_maximum > 0.0
     assert sec_workflow.elastic.strain_maximum > 0.0
+
+    sec_workflow2 = elastic_archive.workflow2
+    sec_workflow2.results.calculation_result_ref.m_def.name == 'Calculation'
+    sec_workflow2.method.calculation_method == 'energy'
+    sec_workflow2.method.elastic_constants_order == 2
+    sec_workflow2.results.is_mechanically_stable
+    sec_workflow2.method.fitting_error_maximum > 0.0
+    sec_workflow2.method.strain_maximum > 0.0
 
 
 def test_phonon_workflow(workflow_archive):
@@ -106,6 +132,15 @@ def test_phonon_workflow(workflow_archive):
     assert not sec_workflow.phonon.with_non_analytic_correction
     assert not sec_workflow.phonon.with_grueneisen_parameters
 
+    sec_workflow2 = phonopy_archive.workflow2
+    assert sec_workflow2.results.calculation_result_ref.m_def.name == 'Calculation'
+    assert sec_workflow2.method.force_calculator == 'fhi-aims'
+    assert sec_workflow2.method.mesh_density > 0.0
+    assert sec_workflow2.results.n_imaginary_frequencies > 0
+    assert not sec_workflow2.method.random_displacements
+    assert not sec_workflow2.method.with_non_analytic_correction
+    assert not sec_workflow2.method.with_grueneisen_parameters
+
 
 def test_molecular_dynamics_workflow(workflow_archive):
     lammmps_archive = workflow_archive(
@@ -117,3 +152,8 @@ def test_molecular_dynamics_workflow(workflow_archive):
     assert sec_workflow.calculation_result_ref.m_def.name == 'Calculation'
     assert sec_workflow.molecular_dynamics.finished_normally
     assert sec_workflow.molecular_dynamics.with_trajectory
+
+    sec_workflow2 = lammmps_archive.workflow2
+    sec_workflow2.results.calculation_result_ref.m_def.name == 'Calculation'
+    assert sec_workflow2.results.finished_normally
+    assert sec_workflow2.results.trajectory

@@ -102,19 +102,6 @@
     "status": "production",
     "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`*materials.json` | **Mainfile:** a json file containing system info|\n|`*.json` | json files containing workflow results|\n"
   },
-  "BOPfox": {
-    "codeCategory": "Atomistic code",
-    "codeLabel": "BOPfox",
-    "codeLabelStyle": "Capitals: B,O,P",
-    "codeName": "bopfox",
-    "codeUrl": "http://bopfox.de/",
-    "parserDirName": "dependencies/parsers/atomistic/atomisticparsers/bopfox/",
-    "parserGitUrl": "https://github.com/nomad-coe/atomistic-parsers.git",
-    "parserSpecific": "",
-    "preamble": "",
-    "status": "production",
-    "tableOfFiles": ""
-  },
   "BigDFT": {
     "codeCategory": "Atomistic code",
     "codeLabel": "BigDFT",
