@@ -20,6 +20,7 @@ import numpy as np            # pylint: disable=unused-import
 import typing
 
 from pint.util import SharedRegistryObject                 # pylint: disable=unused-import
+from nomad.datamodel.data import ArchiveSection
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
@@ -1213,7 +1214,7 @@ class Electronic(MSection):
     smearing = SubSection(sub_section=Smearing.m_def)
 
 
-class Method(MSection):
+class Method(ArchiveSection):
     '''
     Section containing the various parameters that define the theory and the
     approximations (convergence, thresholds, etc.) behind the calculation.

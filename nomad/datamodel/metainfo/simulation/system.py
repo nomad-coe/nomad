@@ -21,6 +21,7 @@ import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
+from nomad.datamodel.data import ArchiveSection
 
 from ..common import FastAccess
 
@@ -479,7 +480,7 @@ class Constraint(MSection):
         ''')
 
 
-class System(MSection):
+class System(ArchiveSection):
     '''
     Contains parameters describing a system of atomic configuration. These inclue the
     compound name, atomic positions, lattice vectors, contraints on the atoms, etc.

@@ -23,6 +23,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, MEnum, derived)
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import Method, HoppingMatrix
+from nomad.datamodel.data import ArchiveSection
 
 from ..common import FastAccess
 
@@ -1603,7 +1604,7 @@ class RadiusOfGyration(AtomicGroup):
     radius_of_gyration_values = SubSection(sub_section=RadiusOfGyrationValues.m_def, repeats=True)
 
 
-class BaseCalculation(MSection):
+class BaseCalculation(ArchiveSection):
     '''
     Contains computed properties of a configuration as defined by the corresponding
     section system and with the simulation method defined by section method. The
