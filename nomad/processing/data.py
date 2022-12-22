@@ -43,7 +43,6 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 import requests
 from fastapi.exceptions import RequestValidationError
 from pydantic.error_wrappers import ErrorWrapper
-from pydantic import parse_obj_as
 import validators
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
@@ -984,9 +983,7 @@ class Entry(Proc):
                     'last_status_message': 'Parent entry processing'}})
 
         # Load the reprocess settings from the upload, and apply defaults
-        settings = config.reprocess
-        if self.upload.reprocess_settings:
-            settings = settings.customize(parse_obj_as(config.Reprocess, self.upload.reprocess_settings))
+        settings = config.reprocess.customize(self.upload.reprocess_settings)
 
         self.set_last_status_message('Determining action')
         # If this entry has been processed before, or imported from a bundle, nomad_version
@@ -1554,12 +1551,12 @@ class Upload(Proc):
         '''
         return self._process_upload_local(
             file_operations,
-            parse_obj_as(config.Reprocess, reprocess_settings) if reprocess_settings else None,
+            reprocess_settings,
             path_filter, only_updated_files)
 
     def _process_upload_local(
             self, file_operations: List[Dict[str, Any]] = None,
-            reprocess_settings: config.Reprocess = None,
+            reprocess_settings: Dict[str, Any] = None,
             path_filter: str = None, only_updated_files: bool = False):
         '''
         The function doing the actual processing, but locally, not as a @process.
@@ -1567,9 +1564,9 @@ class Upload(Proc):
         '''
         logger = self.get_logger()
         logger.info('starting to (re)process')
-        settings = config.reprocess.customize(reprocess_settings)  # Add default settings
+        settings: config.Reprocess = config.reprocess.customize(reprocess_settings)  # Add default settings
         if reprocess_settings:
-            self.reprocess_settings = reprocess_settings.dict()
+            self.reprocess_settings = settings.dict()
 
         # Sanity checks
         if path_filter:
@@ -2281,8 +2278,7 @@ class Upload(Proc):
         from nomad.bundles import BundleImporter
         bundle_importer: BundleImporter = None
         try:
-            import_settings_obj = parse_obj_as(config.BundleImportSettings, import_settings)
-            import_settings_obj = config.bundle_import.default_settings.customize(import_settings_obj)
+            import_settings_obj = config.bundle_import.default_settings.customize(import_settings)
             bundle_importer = BundleImporter(None, import_settings_obj, embargo_length)
             bundle_importer.open(bundle_path)
             return bundle_importer.import_bundle(self, False)

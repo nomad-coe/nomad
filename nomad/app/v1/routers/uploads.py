@@ -1660,10 +1660,10 @@ async def get_upload_bundle(
     _check_upload_not_processing(upload)
 
     export_settings = config.bundle_export.default_settings.customize(
-        None,
-        include_raw_files=include_raw_files,
-        include_archive_files=include_archive_files,
-        include_datasets=include_datasets)
+        dict(
+            include_raw_files=include_raw_files,
+            include_archive_files=include_archive_files,
+            include_datasets=include_datasets))
 
     try:
         stream = BundleExporter(
@@ -1751,14 +1751,14 @@ async def post_upload_bundle(
     examples of curl commands for uploading files.
     '''
     import_settings = config.bundle_import.default_settings.customize(
-        None,
-        include_raw_files=include_raw_files,
-        include_archive_files=include_archive_files,
-        include_datasets=include_datasets,
-        include_bundle_info=include_bundle_info,
-        keep_original_timestamps=keep_original_timestamps,
-        set_from_oasis=set_from_oasis,
-        trigger_processing=trigger_processing)
+        dict(
+            include_raw_files=include_raw_files,
+            include_archive_files=include_archive_files,
+            include_datasets=include_datasets,
+            include_bundle_info=include_bundle_info,
+            keep_original_timestamps=keep_original_timestamps,
+            set_from_oasis=set_from_oasis,
+            trigger_processing=trigger_processing))
 
     bundle_importer: BundleImporter = None
     bundle_path: str = None
