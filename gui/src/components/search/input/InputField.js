@@ -127,7 +127,14 @@ const InputField = React.memo(({
   const nMaxOptions = fixedOptions && Object.keys(fixedOptions).length
   const incr = useState(increment || minSize)[0]
   const [loading, setLoading] = useState(false)
-  const aggConfig = useMemo(() => ({type: 'terms', size: minSize}), [minSize])
+  const aggConfig = useMemo(() => {
+    const config = {type: 'terms', size: minSize}
+    // If a fixed list of options is used, we must restrict the aggregation
+    // return values with 'include'. Otherwise the returned results may not
+    // contain the correct values.
+    if (fixedOptions) config.include = Object.keys(fixedOptions)
+    return config
+  }, [minSize, fixedOptions])
   const agg = useAgg(quantity, visible && !disableOptions && !(disableStatistics && fixedOptions), 'scroll', aggConfig)
   const aggCall = useAggCall(quantity, 'scroll')
   const receivedAggSize = agg?.data?.length

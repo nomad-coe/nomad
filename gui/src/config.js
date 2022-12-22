@@ -128,16 +128,12 @@ export const formatQuantity = (x) => {
 }
 
 export function normalizeDisplayValue(value) {
-  if (value === 'not processed' || value === 'unavailbale') {
+  if (value === 'not processed' || value === 'unavailable') {
     return '-'
   }
   return value
 }
 
-/**
- * The available aggregation sizes for an ES aggregation result.
- */
-export const aggregationSizes = [10, 20, 30, 40, 50, 100, 200]
 /**
  * The range of electronic energies in eV.
  */
