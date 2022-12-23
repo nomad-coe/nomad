@@ -13,7 +13,7 @@ standards like the [Optimade](http://www.optimade.org/) API.
 Furthermore, this projects aims at establishing NOMAD as a distributed platform for
 material science data sharing and management. This includes the on-site deployment of
 NOMAD as a standalone service (*oasis*), the federated use of NOMAD through a
-serious of full and partial *mirrors*. 
+serious of full and partial *mirrors*.
 
 ## Getting started
 
@@ -42,6 +42,17 @@ contributing, and API reference.
 ## Change log
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
+
+### v1.1.6
+- application dashboards with solar cell as an example
+- detailed selection of schemas and reference targets in ELN GUI elements
+- reference navigation in archive browser sections and on the entry overview
+- new workflow model and updated workflow parsing/normalization for computational codes
+- examples from FAIRmats experimental material science area
+- search for custom quantities
+- initial implementation of bundle import/export from CLI
+- formalized and documented configuration and metainfo annotations
+- new build system for docker image and Python package
 
 ### v1.1.0
 - example uploads
