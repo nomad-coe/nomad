@@ -73,6 +73,12 @@ class InfoModel(BaseModel):
     version: str
     deployment: str
     oasis: bool
+    # TODO this should be removed in later releases, once most regular NOMAD users
+    # should have switched to a new GUI version.
+    git: dict = Field(None, description=strip('''
+        A deprecated field that always contains an empty value to retain some compatibility
+        with older GUIs.
+    '''))
 
 
 _statistics: Dict[str, Any] = None
@@ -98,7 +104,7 @@ def statistics():
     response_model=InfoModel)
 async def get_info():
     ''' Return information about the nomad backend and its configuration. '''
-    return {
+    return InfoModel(**{
         'parsers': [
             key[key.index('/') + 1:]
             for key in parsers.parser_dict.keys()],
@@ -122,5 +128,6 @@ async def get_info():
         },
         'version': config.meta.version,
         'deployment': config.meta.deployment,
-        'oasis': config.oasis.is_oasis
-    }
+        'oasis': config.oasis.is_oasis,
+        'git': {}
+    })
