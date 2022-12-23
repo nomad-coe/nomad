@@ -102,22 +102,26 @@ provides a faceted search with materials science specific filters based on extra
 and integrates data analysis and machine learning tools.
 NOMAD installations can be connected to shared data between research institutes and publish
 data to an open central NOMAD service.
-
-- nomad and nomad-oasis
-- nomad python package
-- nomad parsers
+NOMAD software is distributed as an Docker image to create data management services and
+as a Python package to automatize the client use of such services.
 
 # Statement of need
 
 In materials science, researchers use many methods, instruments, tools, and workflows
 to produce large volumes of heterogeneous data artifacts. The contained data often
 describes related research objects (materials, samples, or properties) and it is believed
-that all combined data hold great potential for data re-use and machine learning [@scheffler:2022].
+that all combined data hold great potential for data re-use and machine learning [@scheffler:2022]. 
 
 While individual researchers struggle in organizing and analyzing more and more data
 artifacts, communities face new challenges in making data findable, accessible, inter-operable,
 and re-produceable (FAIR) [@wilkinson:2016]. A key factor to FAIR data, is to combine data with meta-data
 and to put all data into machine and human comprehensible representations [@ghiringhelli:2022].
+
+There is great demand in services (and software to run such services) that provide the
+mentioned features and make data FAIR. This is evident in the great number of published
+datasets on services like [NOMAD](https://nomad-lab.eu), the main user of the NOMAD software [@draxl:2018],
+and an increasing number of materials science database that all re-implement very similar functionality
+web-based application to publish their data.
 
 NOMAD addresses these needs in two ways. First, NOMAD improves the data-driven workflows of individuals
 and small labs by formalizing data acquisition, organizing and sharing data, homogenizing and normalizing data
@@ -133,9 +137,17 @@ individual materials science simulations and increasing number of entries descri
 materials science experiments. NOMAD is available since 2014 and includes data from
 over 500 international authors.
 
-The NOMAD software is increased by an increasing number of research institutes to operate
-a local repository for local research data management. These NOMAD Oasis can be
-used freely as per our OSI license following the instruction in the NOMAD documentation (TODO).
+The NOMAD software can also be independently hosted by universities and other institutions when 
+the use of the central service is not possible. Such self-managed installations are called NOMAD 
+Oases to distinguish them from the central service. A NOMAD Oasis might be required when an 
+institution needs to significantly customize the software for a specific need, the data volumes 
+are too large to be conveniently transferred over the public internet, or when there are concerns 
+about privacy or security. It should be noted that there is the possibility to transfer data 
+between different installations, and in order to adhere to the FAIR principles, the data in 
+these Oases would ideally be made public by later publishing it in the central service or 
+by allowing public access to these installations. This NOMAD Oasis is used by an increasing 
+number of research institutes. NOMAD Oasis can be used freely as per our OSI license following 
+the instruction in the [NOMAD documentation](https://nomad-lab.eu/prod/v1/docs/oasis.html).
 
 The [NFDI consortium FAIRmat](https://www.fairmat-nfdi.eu/fairmat)
 uses NOMAD software as the bases for its federated FAID data infrastructure [@scheffler:2022].
@@ -155,7 +167,8 @@ to AiiDA's [materialscloud](https://www.materialscloud.org/).
 
 NOMAD relies on many Open Source software; a few more notable ones from the materials
 science domains are: *MatID*, a software package to identify material structure system types and symmetries [@himanen:2018]),
-*ASE*, a software package to manipulate material structures in Python [@larsen:2017], and *neXus*,
+*ASE*, a software package to manipulate material structures in Python [@larsen:2017], 
+pymatgen, open-source python library for materials analysis [@ong:2013], and *neXus*,
 a file-format standard, schemas, and tools for experimental materials science data [@konnecke:2015].
 
 # Acknowledgements
