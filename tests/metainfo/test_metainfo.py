@@ -393,8 +393,11 @@ class TestM2:
             assert isinstance(section_def.a_test[0], TestAnnotation)
             assert section_def.a_test[0].m_definition is not None
         else:
-            with pytest.raises(Exception):
-                Run(a_test=annotation)
+            section_def = Section(name='test', a_test=annotation)
+            assert isinstance(section_def.a_test, AnnotationModel)
+            assert section_def.a_test.m_error is not None
+            errors, _ = section_def.m_all_validate()
+            assert len(errors) == 1
 
     def test_more_property(self):
         class TestSection(MSection):

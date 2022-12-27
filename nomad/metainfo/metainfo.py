@@ -1332,28 +1332,28 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if annotation_data is None:
                     return None
 
-                if isinstance(annotation_data, AnnotationModel):
-                    annotation = annotation_data
-                else:
-                    annotation = parse_obj_as(annotation_model, annotation_data)
-                if isinstance(self, Definition):
-                    annotation.m_definition = self
+                try:
+                    if isinstance(annotation_data, AnnotationModel):
+                        annotation = annotation_data
+                    else:
+                        annotation = parse_obj_as(annotation_model, annotation_data)
+
+                    if isinstance(self, Definition):
+                        annotation.m_definition = self
+
+                except ValidationError as e:
+                    annotation = AnnotationModel(m_error=str(e))
+
                 return annotation
 
-            try:
-                if isinstance(annotation, list):
-                    for index, item in enumerate(annotation):
-                        annotation[index] = to_model(annotation_model, item)
-                else:
-                    annotation = to_model(annotation_model, annotation)
-            except ValidationError as e:
-                # TODO use the error/warning system that constraints are using at least for schemas
-                from nomad.utils import get_logger
-                get_logger(__name__).error(
-                    'could not validate an annotation', annotation='annotation_name', exc_info=e)
-                raise e
+            if isinstance(annotation, list):
+                for index, item in enumerate(annotation):
+                    annotation[index] = to_model(annotation_model, item)
+            else:
+                annotation = to_model(annotation_model, annotation)
 
-            self.m_annotations[annotation_name] = annotation
+            if annotation:
+                self.m_annotations[annotation_name] = annotation
 
     def m_set(self, quantity_def: Quantity, value: Any) -> None:
         ''' Set the given value for the given quantity. '''
@@ -2599,6 +2599,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         for annotation in self.m_annotations.values():
             def validate_annotation(annotation):
                 if isinstance(annotation, AnnotationModel):
+                    if annotation.m_error:
+                        # This annotation could not be parsed and only contains the error.
+                        errors.append(annotation.m_error)
+                        return
+
                     try:
                         # Trigger model validation by re-assigning the definition
                         annotation.m_definition = self
@@ -4410,6 +4415,8 @@ class AnnotationModel(Annotation, BaseModel):
     m_definition: Definition = Field(
         None, description='The definition that this annotation is annotating.')
 
+    m_error: str = Field(None, description='Holds a potential validation error.')
+
     m_registry: ClassVar[Dict[str, Type['AnnotationModel']]] = {}
     ''' A static member that holds all currently known annotations with pydantic model. '''
 
@@ -4420,6 +4427,9 @@ class AnnotationModel(Annotation, BaseModel):
         fields = {
             'm_definition': {
                 'exclude': True,
+            },
+            'm_error': {
+                'exclude': True
             }
         }
 

@@ -19,7 +19,25 @@
 import pytest
 from pydantic import ValidationError
 
-from nomad.datamodel.metainfo.annotations import PlotAnnotation
+from nomad.metainfo import Quantity
+from nomad.datamodel.metainfo.annotations import PlotAnnotation, ELNAnnotation
+
+
+@pytest.mark.parametrize('quantity, annotation, result, error', [
+    pytest.param(Quantity(type=str), {}, {}, False, id='empty'),
+    pytest.param(Quantity(type=str), {'component': 'StringEditQuantity'}, None, False, id='plain'),
+    pytest.param(Quantity(type=str), {'component': 'NumberEditQuantity'}, None, True, id='wrong-type'),
+    pytest.param(Quantity(type=str, shape=[1, 2]), {'component': 'StringEditQuantity'}, None, True, id='bad-shape')
+])
+def test_eln_validation(quantity, annotation, result, error):
+    if error:
+        with pytest.raises(ValidationError):
+            annotation_model = ELNAnnotation(**annotation)
+            annotation_model.m_definition = quantity
+    else:
+        annotation_model = ELNAnnotation(**annotation)
+        annotation_model.m_definition = quantity
+        assert annotation_model.dict(exclude_none=True) == (result or annotation)
 
 
 @pytest.mark.parametrize('annotation, result, error', [
