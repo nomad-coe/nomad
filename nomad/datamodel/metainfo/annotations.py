@@ -199,6 +199,8 @@ class ELNAnnotation(AnnotationModel):
         type_ = quantity.type
         name = quantity.name
 
+        assert len(quantity.shape) <= 1, 'Only scalars or lists can be edited.'
+
         if isinstance(type_, type):
             if type_.__name__ == 'str':
                 assert_component(component, name, type_.__name__, valid_eln_components['str'])
