@@ -36,6 +36,14 @@ from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
 
 from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
+from nomad.units import ureg
+
+import warnings
+from MDAnalysis.core.topology import Topology
+from MDAnalysis.core._get_readers import get_reader_for
+from MDAnalysis.core.universe import Universe
+
+import logging
 
 
 def get_summed_atomic_mass(atomic_numbers: NDArray[Any]) -> float:
@@ -756,3 +764,292 @@ class Formula():
         '''Returns the list of chemical elements present in the formula.
         '''
         return sorted(self.ase_formula.count().keys())
+
+
+def create_empty_universe(n_atoms: int, n_frames: int = 1, n_residues: int = 1, n_segments: int = 1,
+                          atom_resindex: List[int] = None, residue_segindex: List[int] = None,
+                          flag_trajectory: bool = False, flag_velocities: bool = False, flag_forces: bool = False):
+    """Create a blank Universe
+
+    This function was adapted from the function empty() within the MDA class Universe().
+    The only difference is that the Universe() class is imported directly here, whereas in the
+    original function is is passed as a function argument, since the function there is a classfunction.
+
+    Useful for building a Universe without requiring existing files,
+    for example for system building.
+
+    If `flag_trajectory` is set to True, a
+    :class:`MDAnalysis.coordinates.memory.MemoryReader` will be
+    attached to the Universe.
+
+    Parameters
+    ----------
+    n_atoms: int
+      number of Atoms in the Universe
+    n_residues: int, default 1
+      number of Residues in the Universe, defaults to 1
+    n_segments: int, default 1
+      number of Segments in the Universe, defaults to 1
+    atom_resindex: array like, optional
+      mapping of atoms to residues, e.g. with 6 atoms,
+      `atom_resindex=[0, 0, 1, 1, 2, 2]` would put 2 atoms
+      into each of 3 residues.
+    residue_segindex: array like, optional
+      mapping of residues to segments
+    flag_trajectory: bool, optional
+      if True, attaches a :class:`MDAnalysis.coordinates.memory.MemoryReader`
+      allowing coordinates to be set and written.  Default is False
+    flag_velocities: bool, optional
+      include velocities in the :class:`MDAnalysis.coordinates.memory.MemoryReader`
+    flag_forces: bool, optional
+      include forces in the :class:`MDAnalysis.coordinates.memory.MemoryReader`
+
+    Returns
+    -------
+    MDAnalysis.Universe object
+
+    Examples
+    --------
+    For example to create a new Universe with 6 atoms in 2 residues, with
+    positions for the atoms and a mass attribute:
+
+    >>> u = mda.Universe.empty(6, 2,
+                                atom_resindex=np.array([0, 0, 0, 1, 1, 1]),
+                                flag_trajectory=True,
+            )
+    >>> u.add_TopologyAttr('masses')
+
+    .. versionadded:: 0.17.0
+    .. versionchanged:: 0.19.0
+        The attached Reader when flag_trajectory=True is now a MemoryReader
+    .. versionchanged:: 1.0.0
+        Universes can now be created with 0 atoms
+    """
+
+    if not n_atoms:
+        n_residues = 0
+        n_segments = 0
+
+    if atom_resindex is None:
+        warnings.warn(
+            'Residues specified but no atom_resindex given.  '
+            'All atoms will be placed in first Residue.',
+            UserWarning)
+
+    if residue_segindex is None:
+        warnings.warn(
+            'Segments specified but no segment_resindex given.  '
+            'All residues will be placed in first Segment',
+            UserWarning)
+
+    top = Topology(n_atoms, n_residues, n_segments,
+                   atom_resindex=atom_resindex,
+                   residue_segindex=residue_segindex)
+
+    u = Universe(top)
+
+    if flag_trajectory:
+        coords = np.zeros((n_frames, n_atoms, 3), dtype=np.float32)
+        vels = np.zeros_like(coords) if flag_velocities else None
+        forces = np.zeros_like(coords) if flag_forces else None
+
+        # grab and attach a MemoryReader
+        u.trajectory = get_reader_for(coords)(
+            coords, order='fac', n_atoms=n_atoms,
+            velocities=vels, forces=forces)
+
+    return u
+
+
+def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, model_index: int = -1):
+    """Extract the topology from a provided run section of an archive entry
+
+        Input:
+
+            archive_sec_run: section run of an EntryArchive
+
+            system_index: list index of archive.run[].system to be used for topology extraction
+
+            method_index: list index of archive.run[].method to be used for atom parameter (charges and masses) extraction
+
+            model_index: list index of archive.run[].method[].force_field.model for bond list extraction
+
+        Variables:
+
+            n_frames (int):
+
+            n_atoms (int):
+
+            atom_names (str, shape=(n_atoms)):
+
+            atom_types (str, shape=(n_atoms)):
+
+            atom_resindex (str, shape=(n_atoms)):
+
+            atom_resnames (str, shape=(n_atoms)):
+
+            atom_segids (str, shape=(n_atoms)):
+
+            n_segments (int): Segments correspond to a group of the same type of molecules.
+
+            n_residues (int): The number of distinct residues (nb - individual molecules are also denoted as a residue).
+
+            resnames (str, shape=(n_residues)): The name of each residue.
+
+            residue_segindex (int, shape=(n_residues)): The segment index that each residue belongs to.
+
+            residue_molnums (int, shape=(n_residues)): The molecule index that each residue belongs to.
+
+            residue_moltypes (int, shape=(n_residues)): The molecule type of each residue.
+
+            n_molecules (int):
+
+            masses (float, shape=(n_atoms)):  atom masses, units = amu
+
+            charges (float, shape=(n_atoms)): atom partial charges, units = e
+
+            positions (float, shape=(n_frames,n_atoms,3)): atom positions
+
+            velocities (float, shape=(n_frames,n_atoms,3)): atom velocities
+
+            dimensions (float, shape=(n_frames,6)): box dimensions (nb - currently assuming a cubic box!)
+
+            bonds (tuple, shape=([])): list of tuples with the atom indices of each bond
+    """
+
+    try:
+        sec_run = archive.run[-1]
+        sec_system = sec_run.system
+        sec_system_top = sec_run.system[system_index]
+        sec_atoms = sec_system_top.atoms
+        sec_atoms_group = sec_system_top.atoms_group
+        sec_method = sec_run.method[method_index] if sec_run.get('method') is not None else None
+        sec_model = sec_method.force_field.model[model_index] if sec_method is not None else None
+    except IndexError:
+        logging.error('Supplied indices do not exist in archive.')
+        return
+
+    n_atoms = sec_atoms.get('n_atoms')
+    if n_atoms is None:
+        logging.error('No atoms found in the archive. Cannot build the MDA universe.')
+    n_frames = len(sec_system) if sec_system is not None else None
+    atom_names = sec_atoms.get('labels')
+    atom_types = atom_names
+    atom_resindex = np.arange(n_atoms)
+    atom_resnames = np.array(range(n_atoms), dtype='object')
+    atoms_segindices = np.empty(n_atoms)
+    atom_segids = np.array(range(n_atoms), dtype='object')
+    molecule_groups = sec_atoms_group
+    n_segments = len(molecule_groups)
+
+    res_ctr = 0
+    mol_ctr = 0
+    residue_segindex = []
+    resnames = []
+    residue_molnums = []
+    residue_moltypes = []
+    for mol_group_ind, mol_group in enumerate(molecule_groups):
+        atoms_segindices[mol_group.atom_indices] = mol_group_ind
+        atom_segids[mol_group.atom_indices] = mol_group.label
+        molecules = mol_group.atoms_group if mol_group.atoms_group is not None else []
+        for mol in molecules:
+            monomer_groups = mol.atoms_group
+            if monomer_groups:
+                for mon_group in monomer_groups:
+                    monomers = mon_group.atoms_group
+                    for mon in monomers:
+                        atom_resindex[mon.atom_indices] = res_ctr
+                        atom_resnames[mon.atom_indices] = mon.label
+                        resnames.append(mon.label)
+                        residue_segindex.append(mol_group_ind)
+                        residue_molnums.append(mol_ctr)
+                        residue_moltypes.append(mol.label)
+                        res_ctr += 1
+            else:  # no monomers => whole molecule is it's own residue
+                atom_resindex[mol.atom_indices] = res_ctr
+                atom_resnames[mol.atom_indices] = mol.label
+                resnames.append(mol.label)
+                residue_segindex.append(mol_group_ind)
+                residue_molnums.append(mol_ctr)
+                residue_moltypes.append(mol.label)
+                res_ctr += 1
+            mol_ctr += 1
+    n_residues = res_ctr
+    # n_molecules = mol_ctr  # unused
+
+    # get the atom masses and charges
+    masses = np.empty(n_atoms)
+    charges = np.empty(n_atoms)
+    atom_parameters = sec_method.get('atom_parameters') if sec_method is not None else []
+    atom_parameters = atom_parameters if atom_parameters is not None else []
+    for atom_ind, atom in enumerate(atom_parameters):
+        if atom.get('mass'):
+            masses[atom_ind] = ureg.convert(atom.mass.magnitude, atom.mass.units, ureg.amu)
+        if atom.get('charge'):
+            charges[atom_ind] = ureg.convert(atom.charge.magnitude, atom.charge.units, ureg.e)
+
+    # get the atom positions, velocites, and box dimensions
+    positions = np.empty(shape=(n_frames, n_atoms, 3))
+    velocities = np.empty(shape=(n_frames, n_atoms, 3))
+    dimensions = np.empty(shape=(n_frames, 6))
+    for frame_ind, frame in enumerate(sec_system):
+        sec_atoms_fr = frame.get('atoms')
+        if sec_atoms_fr is not None:
+            positions_frame = sec_atoms_fr.positions
+            positions[frame_ind] = ureg.convert(positions_frame.magnitude, positions_frame.units, ureg.angstrom) if positions_frame is not None else None
+            velocities_frame = sec_atoms_fr.velocities
+            velocities[frame_ind] = ureg.convert(velocities_frame.magnitude, velocities_frame.units, ureg.angstrom / ureg.picosecond) if velocities_frame is not None else None
+            latt_vec_tmp = sec_atoms_fr.get('lattice_vectors')
+            if latt_vec_tmp is not None:
+                length_conversion = ureg.convert(1.0, sec_atoms_fr.lattice_vectors.units, ureg.angstrom)
+                dimensions[frame_ind] = [sec_atoms_fr.lattice_vectors.magnitude[0][0] * length_conversion,
+                                         sec_atoms_fr.lattice_vectors.magnitude[1][1] * length_conversion,
+                                         sec_atoms_fr.lattice_vectors.magnitude[2][2] * length_conversion,
+                                         90, 90, 90]  # TODO: extend to non-cubic boxes
+
+    # get the bonds
+    bonds = []
+    contributions = sec_model.get('contributions') if sec_model is not None else []
+    contributions = contributions if contributions is not None else []
+    for inter in contributions:
+        if inter.type == 'bond':
+            bonds.append(tuple(inter.atom_indices))
+
+    # create the Universe
+    metainfo_universe = create_empty_universe(n_atoms, n_frames=n_frames,
+                                              n_residues=n_residues,
+                                              n_segments=n_segments,
+                                              atom_resindex=atom_resindex,
+                                              residue_segindex=residue_segindex,
+                                              flag_trajectory=True, flag_velocities=True)
+
+    # set the positions and velocities
+    for frame_ind, frame in enumerate(metainfo_universe.trajectory):
+        metainfo_universe.atoms.positions = positions[frame_ind]
+        metainfo_universe.atoms.velocities = velocities[frame_ind]
+
+    # add the atom attributes
+    metainfo_universe.add_TopologyAttr('name', atom_names)
+    metainfo_universe.add_TopologyAttr('type', atom_types)
+    metainfo_universe.add_TopologyAttr('mass', masses)
+    metainfo_universe.add_TopologyAttr('charge', charges)
+    if n_segments != 0:
+        metainfo_universe.add_TopologyAttr('segids', np.unique(atom_segids))
+    if n_residues != 0:
+        metainfo_universe.add_TopologyAttr('resnames', resnames)
+        metainfo_universe.add_TopologyAttr('resids', np.unique(atom_resindex) + 1)
+        metainfo_universe.add_TopologyAttr('resnums', np.unique(atom_resindex) + 1)
+    if len(residue_molnums) > 0:
+        metainfo_universe.add_TopologyAttr('molnums', residue_molnums)
+    if len(residue_moltypes) > 0:
+        metainfo_universe.add_TopologyAttr('moltypes', residue_moltypes)
+
+    # add the box dimensions
+    for frame_ind, frame in enumerate(metainfo_universe.trajectory):
+        metainfo_universe.atoms.dimensions = dimensions[frame_ind]
+
+    # add the bonds
+    assert not hasattr(metainfo_universe, 'bonds')
+    metainfo_universe.add_TopologyAttr('bonds', bonds)
+
+    return metainfo_universe
