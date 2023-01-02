@@ -35,6 +35,7 @@ const idMethod = 'method'
 const idSimulation = 'simulation'
 const idDFT = 'dft'
 const idGW = 'gw'
+const idProjection = 'projection'
 const idProperties = 'properties'
 const idElectronic = 'electronic'
 const idOptoelectronic = 'optoelectronic'
@@ -334,6 +335,8 @@ registerFilter('results.method.simulation.dft.relativity_method', idDFT, termQua
 registerFilter('results.method.simulation.gw.type', idGW, {...termQuantity, label: 'GW Type'})
 registerFilter('results.method.simulation.gw.starting_point_type', idGW, {...termQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.gw.basis_set_type', idGW, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.simulation.projection.type', idProjection, {...termQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.projection.localization_type', idProjection, {...termQuantity, scale: '1/2'})
 registerFilter('results.eln.sections', idELN, termQuantity)
 registerFilter('results.eln.tags', idELN, termQuantity)
 registerFilter('results.eln.methods', idELN, termQuantity)

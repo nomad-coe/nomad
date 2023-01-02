@@ -239,6 +239,7 @@ window.nomadEnv = {
               "simulation",
               "dft",
               "gw",
+              "projection",
               "experiment",
               "eels",
               "properties",
@@ -297,6 +298,12 @@ window.nomadEnv = {
               },
               "gw": {
                 "label": "GW",
+                "level": 2,
+                "size": "small",
+                "menu_items": {}
+              },
+              "projection": {
+                "label": "Projection",
                 "level": 2,
                 "size": "small",
                 "menu_items": {}
@@ -713,6 +720,7 @@ window.nomadEnv = {
               "simulation",
               "dft",
               "gw",
+              "projection",
               "experiment",
               "eels",
               "properties",
@@ -772,6 +780,12 @@ window.nomadEnv = {
               },
               "gw": {
                 "label": "GW",
+                "level": 2,
+                "size": "small",
+                "menu_items": {}
+              },
+              "projection": {
+                "label": "Projection",
                 "level": 2,
                 "size": "small",
                 "menu_items": {}
