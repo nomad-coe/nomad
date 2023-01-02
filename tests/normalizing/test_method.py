@@ -107,6 +107,7 @@ def test_method_projection(projection):
     assert method.method_name == "Projection"
     assert method.simulation.program_name == "Wannier90"
     assert method.simulation.program_version == "3.1.0"
+    assert method.simulation.projection.type == 'wannier'
     assert method.simulation.projection.localization_type == "single_shot"
 
 

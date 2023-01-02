@@ -36,7 +36,7 @@ from nomad.datamodel.optimade import Species
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, BasisSet, Electronic, DFT, XCFunctional, Functional,
-    Electronic, Smearing, Scf, GW, AtomParameters, HubbardModel, Projection)
+    Electronic, Smearing, Scf, GW, AtomParameters, HubbardModel, Projection, Wannier)
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup, System, Atoms as AtomsSystem)
 from nomad.datamodel.metainfo.simulation.calculation import (
@@ -547,12 +547,13 @@ def dft_plus_u() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def projection() -> EntryArchive:
-    '''(Wannier-like) Projection calculation.'''
+    '''Wannier Projection calculation.'''
     template = EntryArchive()
     run = template.m_create(Run)
     run.program = Program(name='Wannier90', version='3.1.0')
     method = run.m_create(Method)
-    method.projection = Projection(is_maximally_localized=False)
+    method_proj = method.m_create(Projection)
+    method_proj.wannier = Wannier(is_maximally_localized=False)
     system = run.m_create(System)
     system.atoms = AtomsSystem(
         lattice_vectors=[
