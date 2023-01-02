@@ -2107,9 +2107,22 @@
     "unit": "joule",
     "shape": []
   },
+  "results.method.simulation.projection.type": {
+    "name": "type",
+    "description": "Projection type for the virtual orbitals: Wannier or Slater-Koster formalisms, or a\ncustom tight-binding model.",
+    "type": {
+      "type_kind": "Enum",
+      "type_data": [
+        "wannier",
+        "slater_koster",
+        "custom"
+      ]
+    },
+    "suggestion": true
+  },
   "results.method.simulation.projection.localization_type": {
     "name": "localization_type",
-    "description": "Projection method type for the virtual (Wannier) orbitals.",
+    "description": "Localization type of the virtual Wannier orbitals.",
     "type": {
       "type_kind": "Enum",
       "type_data": [

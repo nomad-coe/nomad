@@ -133,10 +133,16 @@ class MethodNormalizer():
         elif method_name == "Projection":
             method.method_name = "Projection"
             projection = Projection()
-            if self.repr_method.projection.is_maximally_localized:
-                projection.localization_type = 'maximally_localized'
+            if hasattr(self.repr_method.projection, 'wannier'):
+                projection.type = 'wannier'
+                if self.repr_method.projection.wannier.is_maximally_localized:
+                    projection.localization_type = 'maximally_localized'
+                else:
+                    projection.localization_type = 'single_shot'
+            elif hasattr(self.repr_method.projection, 'slater_koster'):
+                projection.type = 'slater_koster'
             else:
-                projection.localization_type = 'single_shot'
+                projection.type = 'custom'
             simulation.projection = projection
         elif method_name in {"DFT", "DFT+U"}:
             method.method_name = "DFT"

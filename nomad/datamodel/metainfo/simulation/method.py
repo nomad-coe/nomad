@@ -686,9 +686,9 @@ class DFT(MSection):
     xc_functional = SubSection(sub_section=XCFunctional.m_def)
 
 
-class Projection(MSection):
+class Wannier(MSection):
     '''
-    Section containing the various parameters that define a Wannier90-like projection
+    Section containing the various parameters that define a Wannier tight-binding method.
     '''
 
     m_def = Section(validate=False)
@@ -734,6 +734,16 @@ class Projection(MSection):
         description='''
         Bottom and top of the inner energy window used for the projection.
         ''')
+
+
+class Projection(MSection):
+    '''
+    Section containing the various parameters that define a Wannier90-like projection
+    '''
+
+    m_def = Section(validate=False)
+
+    wannier = SubSection(sub_section=Wannier.m_def, repeats=False)
 
 
 class HoppingMatrix(MSection):

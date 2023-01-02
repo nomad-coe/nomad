@@ -1393,10 +1393,21 @@ class Projection(MSection):
         Methodology for a Projection calculation.
         '''
     )
+    type = Quantity(
+        type=MEnum(['wannier', 'slater_koster', 'custom']),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+        description='''
+        Projection type for the virtual orbitals: Wannier or Slater-Koster formalisms, or a
+        custom tight-binding model.
+        '''
+    )
     localization_type = Quantity(
         type=MEnum(['single_shot', 'maximally_localized']),
         description='''
-        Projection method type for the virtual (Wannier) orbitals.
+        Localization type of the virtual Wannier orbitals.
         ''',
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
