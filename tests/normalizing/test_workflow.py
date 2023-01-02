@@ -22,6 +22,10 @@ import tests
 from .conftest import run_normalize
 
 
+def approx(value, abs=0, rel=1e-6):
+    return pytest.approx(value, abs=abs, rel=rel)
+
+
 @pytest.fixture(scope='function')
 def workflow_archive():
     def _archive(parser_name, filepath):
@@ -157,3 +161,176 @@ def test_molecular_dynamics_workflow(workflow_archive):
     sec_workflow2.results.calculation_result_ref.m_def.name == 'Calculation'
     assert sec_workflow2.results.finished_normally
     assert sec_workflow2.results.trajectory
+
+
+def test_rdf_gromacs(workflow_archive):
+    archive = workflow_archive(
+        'parsers/gromacs', 'dependencies/parsers/atomistic/tests/data/gromacs/fe_test/mdrun.out')
+
+    sec_workflow2 = archive.workflow2
+    section_md = sec_workflow2.molecular_dynamics.results
+
+    assert section_md.radial_distribution_functions[0].type == 'molecular'
+    assert section_md.radial_distribution_functions[0].n_smooth == 2
+    assert section_md.radial_distribution_functions[0].variables_name[0] == 'distance'
+
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].label == 'SOL-Protein'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(7.624056451320648 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(1.093694948374587)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_start == 0
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_end == 2
+
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].label == 'SOL-SOL'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].magnitude == approx(6.389391438961029 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].value[55] == approx(0.8368052672121375)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_start == 0
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_end == 2
+
+
+def test_msd_gromacs(workflow_archive):
+    archive = workflow_archive(
+        'parsers/gromacs', 'dependencies/parsers/atomistic/tests/data/gromacs/cgwater/mdrun.log')
+
+    sec_workflow2 = archive.workflow2
+    section_md = sec_workflow2.molecular_dynamics.results
+
+    assert section_md.mean_squared_displacements[0].type == 'molecular'
+    assert section_md.mean_squared_displacements[0].direction == 'xyz'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].label == 'LJ'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].magnitude == approx(95.0 * 10**(-12))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].units == 'second'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].magnitude == approx(250.15309179080856 * 10**(-20))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].units == 'meter^2'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.magnitude == approx(1.1311880364159048 * 10**(-8))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.units == 'meter^2/second'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.error_type == 'Pearson correlation coefficient'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.errors == 0.9999312519176002
+
+
+# def test_radius_of_gyration_gromacs(workflow_archive):
+#     archive = workflow_archive(
+#         'parsers/gromacs', 'dependencies/parsers/atomistic/tests/data/gromacs/protein_fsfg/nvt.log')
+
+#     sec_calc = archive.run[0].calculation[4]
+#     sec_rg = sec_calc.radius_of_gyration[0]
+#     sec_rgvals = sec_rg.radius_of_gyration_values[0]
+
+#     assert sec_rg.kind == 'molecular'
+
+#     assert sec_rgvals.label == 'Protein-index_0'
+#     assert sec_rgvals.value.magnitude == approx(5.464423436523278e-10)
+#     assert sec_rgvals.value.units == 'meter'
+
+#     sec_calc = archive.run[0].calculation[7]
+#     sec_rg = sec_calc.radius_of_gyration[0]
+#     sec_rgvals = sec_rg.radius_of_gyration_values[1]
+
+#     assert sec_rg.kind == 'molecular'
+#     assert sec_rgvals.label == 'Protein-index_1'
+#     assert sec_rgvals.value.magnitude == approx(7.326346215313874e-10)
+#     assert sec_rgvals.value.units == 'meter'
+
+
+def test_rdf_lammps(workflow_archive):
+    archive = workflow_archive(
+        'parsers/lammps', 'dependencies/parsers/atomistic/tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
+
+    sec_workflow2 = archive.workflow2
+    section_md = sec_workflow2.molecular_dynamics.results
+
+    assert section_md.radial_distribution_functions[0].type == 'molecular'
+    assert section_md.radial_distribution_functions[0].n_smooth == 2
+    assert section_md.radial_distribution_functions[0].variables_name[0] == 'distance'
+
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].label == '0-0'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(6.923255643844605 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(0.0)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_start == 0
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_end == 40
+
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].label == '0-0'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].bins[65].magnitude == approx(3.727906885147095 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].bins[65].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].value[52] == approx(0.0)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].frame_start == 120
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[3].frame_end == 201
+
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].label == '1-0'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].bins[102].magnitude == approx(5.802080640792847 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].bins[102].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].value[55] == approx(0.0)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].frame_start == 40
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[5].frame_end == 201
+
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].label == '1-1'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].bins[44].magnitude == approx(2.550673131942749 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].bins[44].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].value[101] == approx(1.4750986777470825)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].frame_start == 80
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].frame_end == 201
+
+
+def test_msd_lammps(workflow_archive):
+    archive = workflow_archive(
+        'parsers/lammps', 'dependencies/parsers/atomistic/tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
+
+    sec_workflow2 = archive.workflow2
+    section_md = sec_workflow2.molecular_dynamics.results
+
+    assert section_md.mean_squared_displacements[0].type == 'molecular'
+    assert section_md.mean_squared_displacements[0].direction == 'xyz'
+
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].label == '0'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[13].magnitude == approx(1.3 * 10**(-11))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[13].units == 'second'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].magnitude == approx(8.98473539965496 * 10**(-19))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].units == 'meter^2'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.magnitude == approx(6.09812270414572 * 10**(-9))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.units == 'meter^2/second'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.error_type == 'Pearson correlation coefficient'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.errors == approx(0.9924847048341159)
+
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].label == '1'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].n_times == 54
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].times[13].magnitude == approx(1.3 * 10**(-11))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].times[13].units == 'second'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].value[32].magnitude == approx(8.448369705677565 * 10**(-19))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].value[32].units == 'meter^2'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.value.magnitude == approx(5.094072039759048 * 10**(-9))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.value.units == 'meter^2/second'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.error_type == 'Pearson correlation coefficient'
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.errors == approx(0.9965870174917716)
+
+
+# def test_radius_of_gyration_lammps(workflow_archive):
+#     archive = workflow_archive(
+#         'parsers/lammps', 'dependencies/parsers/atomistic/tests/data/lammps/polymer_melt/Equil/nohup.out')
+
+#     sec_calc = archive.run[0].calculation[4]
+#     sec_rg = sec_calc.radius_of_gyration[0]
+#     sec_rgvals = sec_rg.radius_of_gyration_values[10]
+
+#     assert sec_rg.kind == 'molecular'
+#     assert sec_rgvals.label == '0-index_10'
+#     assert sec_rgvals.value.magnitude == approx(6.892062676599172e-10)
+#     assert sec_rgvals.value.units == 'meter'
+
+#     sec_calc = archive.run[0].calculation[7]
+#     sec_rg = sec_calc.radius_of_gyration[0]
+#     sec_rgvals = sec_rg.radius_of_gyration_values[27]
+
+#     assert sec_rg.kind == 'molecular'
+#     assert sec_rgvals.label == '0-index_27'
+#     assert sec_rgvals.value.magnitude == approx(5.233325827723867e-10)
+#     assert sec_rgvals.value.units == 'meter'
