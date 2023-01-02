@@ -33,6 +33,7 @@ import FilterSubMenuMethod from './FilterSubMenuMethod'
 import FilterSubMenuSimulation from './FilterSubMenuSimulation'
 import FilterSubMenuDFT from './FilterSubMenuDFT'
 import FilterSubMenuGW from './FilterSubMenuGW'
+import FilterSubMenuProjection from './FilterSubMenuProjection'
 import FilterSubMenuEELS from './FilterSubMenuEELS'
 import FilterSubMenuElectronic from './FilterSubMenuElectronic'
 import FilterSubMenuOptoElectronic from './FilterSubMenuOptoelectronic'
@@ -61,6 +62,7 @@ const menuMap = {
   simulation: FilterSubMenuSimulation,
   dft: FilterSubMenuDFT,
   gw: FilterSubMenuGW,
+  projection: FilterSubMenuProjection,
   eels: FilterSubMenuEELS,
   electronic: FilterSubMenuElectronic,
   optoelectronic: FilterSubMenuOptoElectronic,
