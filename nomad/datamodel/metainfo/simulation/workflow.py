@@ -1256,35 +1256,27 @@ class RadialDistributionFunction(EnsembleProperty):
     radial_distribution_function_values = SubSection(sub_section=RadialDistributionFunctionValues.m_def, repeats=True)
 
 
-class RadiusOfGyrationHistogram(EnsemblePropertyValues):
+class TrajectoryProperty(MSection):
     '''
-    Section containing the distribution of the Radius of Gyration over some trajectory.
-    '''
-
-    m_def = Section(validate=False)
-
-    bins = Quantity(
-        type=np.float64,
-        shape=['n_bins'],
-        unit='m',
-        description='''
-        Values of the radius of gyration.
-        ''')
-
-    value = Quantity(
-        type=np.float64,
-        shape=['n_bins'],
-        description='''
-        Histogram counts.
-        ''')
-
-
-class TrajectoryPropertyValues(MSection):
-    '''
-    Generic section containing information regarding the values of a trajectory property.
+    Generic section containing information about a calculation of any observable
+    defined and stored at each individual frame of a trajectory.
     '''
 
     m_def = Section(validate=False)
+
+    type = Quantity(
+        type=MEnum('molecular', 'atomic'),
+        shape=[],
+        description='''
+        Describes if the observable is calculated at the molecular or atomic level.
+        ''')
+
+    error_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Describes the type of error reported for this observable.
+        ''')
 
     label = Quantity(
         type=str,
@@ -1315,16 +1307,30 @@ class TrajectoryPropertyValues(MSection):
         Times for which the observable is stored.
         ''')
 
+    value = Quantity(
+        type=np.float64,
+        shape=['n_frames'],
+        description='''
+        Values of the property.
+        ''')
 
-class RadiusOfGyrationValues(TrajectoryPropertyValues):
+    errors = Quantity(
+        type=np.float64,
+        shape=['*'],
+        description='''
+        Error associated with the determination of the property.
+        ''')
+
+
+class RadiusOfGyration(TrajectoryProperty):
     '''
-    Section containing information regarding the values of
+    Section containing information about the calculation of
     radius of gyration (Rg).
     '''
 
     m_def = Section(validate=False)
 
-    molecule_ref = Quantity(
+    atomsgroup_ref = Quantity(
         type=Reference(AtomsGroup.m_def),
         shape=[1],
         description='''
@@ -1338,42 +1344,6 @@ class RadiusOfGyrationValues(TrajectoryPropertyValues):
         description='''
         Values of the property.
         ''')
-
-    radius_of_gyration_histogram = SubSection(sub_section=RadiusOfGyrationHistogram.m_def, repeats=True)
-
-
-class TrajectoryProperty(MSection):
-    '''
-    Generic section containing information about a calculation of any observable
-    defined and stored at each individual frame of a trajectory.
-    '''
-
-    m_def = Section(validate=False)
-
-    type = Quantity(
-        type=MEnum('molecular', 'atomic'),
-        shape=[],
-        description='''
-        Describes if the observable is calculated at the molecular or atomic level.
-        ''')
-
-    error_type = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Describes the type of error reported for this observable.
-        ''')
-
-
-class RadiusOfGyration(TrajectoryProperty):
-    '''
-    Section containing information about the calculation of
-    radius of gyration (Rg).
-    '''
-
-    m_def = Section(validate=False)
-
-    radius_of_gyration_values = SubSection(sub_section=RadiusOfGyrationValues.m_def, repeats=True)
 
 
 class DiffusionConstantValues(MSection):
@@ -1624,14 +1594,14 @@ class MolecularDynamics(SerialSimulation):
         # calculate radius of gyration for polymers
         flag_rgs = False
         for i_calc, calc in enumerate(sec_calc):
-            sec_rgs = calc.get('radius_of_gyration')
-            if sec_rgs:
+            sec_rgs_calc = calc.get('radius_of_gyration')
+            if sec_rgs_calc:
                 flag_rgs = True
                 break
 
         if not flag_rgs:
             flag_warned = False
-            sec_rgs = None
+            sec_rgs_calc = None
             for molgroup in sec_system.get('atoms_group'):
                 for molecule in molgroup.get('atoms_group'):
                     sec_monomer_groups = molecule.get('atoms_group')
@@ -1641,6 +1611,17 @@ class MolecularDynamics(SerialSimulation):
                     rg_results = calc_radius_of_gyration(universe, molecule.atom_indices)
                     if rg_results:
                         n_frames = len(rg_results['times'])
+
+                        # store trajectory results directly in workflow
+                        sec_rgs = sec_results.m_create(RadiusOfGyration)
+                        sec_rgs.type = 'molecular'
+                        sec_rgs.label = molecule.label + '-index_' + str(molecule.index)
+                        sec_rgs.atomsgroup_ref = molecule
+                        sec_rgs.n_frames = n_frames
+                        sec_rgs.times = rg_results['times']
+                        sec_rgs.value = rg_results['value']
+
+                        # disperse results into calculation section
                         if len(sec_calc) == 0:
                             for __ in range(n_frames):
                                 sec_calc = self.run.m_create(Calculation)
@@ -1648,19 +1629,20 @@ class MolecularDynamics(SerialSimulation):
                             if not flag_warned:
                                 self.logger.warning(
                                     'Unexpected mismatch in number of calculations and number of'
-                                    'trajectory frames. Not storing Rg values.')
+                                    'trajectory frames. Not storing Rg values under calculation.')
                                 flag_warned = True
-                            break
+                            # TODO sync calculation and system sections to be able to store the Rgs under calculation
+                            continue
                         for i_calc, calc in enumerate(sec_calc):
-                            sec_rgs = calc.get('radius_of_gyration')
-                            if not sec_rgs:
-                                sec_rgs = calc.m_create(RadiusOfGyrationCalculation)
-                                sec_rgs.kind = 'molecular'
+                            sec_rgs_calc = calc.get('radius_of_gyration')
+                            if not sec_rgs_calc:
+                                sec_rgs_calc = calc.m_create(RadiusOfGyrationCalculation)
+                                sec_rgs_calc.kind = 'molecular'
                             else:
-                                sec_rgs = sec_rgs[0]
-                            sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValuesCalculation)
-                            sec_rg_values.atomsgroup_ref = molecule
-                            sec_rg_values.label = molecule.label + '-index_' + str(molecule.index)
+                                sec_rgs_calc = sec_rgs_calc[0]
+                            sec_rg_values = sec_rgs_calc.m_create(RadiusOfGyrationValuesCalculation)
+                            sec_rg_values.atomsgroup_ref = sec_rgs.atomsgroup_ref
+                            sec_rg_values.label = sec_rgs.label
                             sec_rg_values.value = rg_results['value'][i_calc]
 
         # calculate the molecular mean squared displacements
