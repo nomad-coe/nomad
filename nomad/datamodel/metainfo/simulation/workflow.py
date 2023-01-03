@@ -27,7 +27,9 @@ from nomad.datamodel.metainfo.workflow2 import Workflow, Link, Task
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import Method
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Dos, BandStructure, BandEnergies, Density, Potential, ExcitedStates)
+    Calculation, Dos, BandStructure, BandEnergies, Density, Potential, ExcitedStates,
+    RadiusOfGyration as RadiusOfGyrationCalculation,
+    RadiusOfGyrationValues as RadiusOfGyrationValuesCalculation)
 from nomad.atomutils import archive_to_universe
 from nomad.atomutils import (
     calc_molecular_rdf,
@@ -1603,7 +1605,7 @@ class MolecularDynamics(SerialSimulation):
             n_prune = int(universe.trajectory.n_frames / len(archive.run[-1].system))
             rdf_results = calc_molecular_rdf(universe, n_traj_split=n_traj_split,
                                              n_prune=n_prune, interval_indices=interval_indices)
-            if rdf_results is not None:
+            if rdf_results:
                 sec_rdfs = sec_results.m_create(RadialDistributionFunction)
                 sec_rdfs.type = 'molecular'
                 sec_rdfs.n_smooth = rdf_results.get('n_smooth')
@@ -1619,52 +1621,52 @@ class MolecularDynamics(SerialSimulation):
                     sec_rdf_values.frame_start = rdf_results.get('frame_start', [[]] * i_pair)[i_pair]
                     sec_rdf_values.frame_end = rdf_results.get('frame_end', [[]] * i_pair)[i_pair]
 
-        # # calculate radius of gyration for polymers
-        # flag_rgs = False
-        # for i_calc, calc in enumerate(sec_calc):
-        #     sec_rgs = calc.get('radius_of_gyration')
-        #     if sec_rgs is not None:
-        #         flag_rgs = True
-        #         break
+        # calculate radius of gyration for polymers
+        flag_rgs = False
+        for i_calc, calc in enumerate(sec_calc):
+            sec_rgs = calc.get('radius_of_gyration')
+            if sec_rgs:
+                flag_rgs = True
+                break
 
-        # if not flag_rgs:
-        #     flag_warned = False
-        #     sec_rgs = None
-        #     for molgroup in sec_system.get('atoms_group'):
-        #         for molecule in molgroup.get('atoms_group'):
-        #             sec_monomer_groups = molecule.get('atoms_group')
-        #             group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
-        #             if group_type != 'monomer_group':
-        #                 continue
-        #             rg_results = calc_radius_of_gyration(universe, molecule.atom_indices)
-        #             if rg_results is not None:
-        #                 n_frames = len(rg_results['times'])
-        #                 if len(sec_calc) == 0:
-        #                     for __ in range(n_frames):
-        #                         sec_calc = self.run.m_create(Calculation)
-        #                 elif n_frames != len(sec_calc):
-        #                     if not flag_warned:
-        #                         self.logger.warning(
-        #                             'Unexpected mismatch in number of calculations and number of'
-        #                             'trajectory frames. Not storing Rg values.')
-        #                         flag_warned = True
-        #                     break
-        #                 for i_calc, calc in enumerate(sec_calc):
-        #                     sec_rgs = calc.get('radius_of_gyration')
-        #                     if not sec_rgs:
-        #                         sec_rgs = calc.m_create(RadiusOfGyration)
-        #                         sec_rgs.kind = 'molecular'
-        #                     else:
-        #                         sec_rgs = sec_rgs[0]
-        #                     sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValues)
-        #                     sec_rg_values.atomsgroup_ref = molecule
-        #                     sec_rg_values.label = f'{molecule.label}-index_{molecule.index}'
-        #                     sec_rg_values.value = rg_results['value'][i_calc]
+        if not flag_rgs:
+            flag_warned = False
+            sec_rgs = None
+            for molgroup in sec_system.get('atoms_group'):
+                for molecule in molgroup.get('atoms_group'):
+                    sec_monomer_groups = molecule.get('atoms_group')
+                    group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
+                    if group_type != 'monomer_group':
+                        continue
+                    rg_results = calc_radius_of_gyration(universe, molecule.atom_indices)
+                    if rg_results:
+                        n_frames = len(rg_results['times'])
+                        if len(sec_calc) == 0:
+                            for __ in range(n_frames):
+                                sec_calc = self.run.m_create(Calculation)
+                        elif n_frames != len(sec_calc):
+                            if not flag_warned:
+                                self.logger.warning(
+                                    'Unexpected mismatch in number of calculations and number of'
+                                    'trajectory frames. Not storing Rg values.')
+                                flag_warned = True
+                            break
+                        for i_calc, calc in enumerate(sec_calc):
+                            sec_rgs = calc.get('radius_of_gyration')
+                            if not sec_rgs:
+                                sec_rgs = calc.m_create(RadiusOfGyrationCalculation)
+                                sec_rgs.kind = 'molecular'
+                            else:
+                                sec_rgs = sec_rgs[0]
+                            sec_rg_values = sec_rgs.m_create(RadiusOfGyrationValuesCalculation)
+                            sec_rg_values.atomsgroup_ref = molecule
+                            sec_rg_values.label = molecule.label + '-index_' + str(molecule.index)
+                            sec_rg_values.value = rg_results['value'][i_calc]
 
         # calculate the molecular mean squared displacements
         if not sec_msds:
             msd_results = calc_molecular_mean_squared_displacements(universe)
-            if msd_results is not None:
+            if msd_results:
                 sec_msds = sec_results.m_create(MeanSquaredDisplacement)
                 sec_msds.type = 'molecular'
                 sec_msds.direction = 'xyz'

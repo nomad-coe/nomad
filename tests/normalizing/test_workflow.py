@@ -212,28 +212,28 @@ def test_msd_gromacs(workflow_archive):
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.errors == 0.9999312519176002
 
 
-# def test_radius_of_gyration_gromacs(workflow_archive):
-#     archive = workflow_archive(
-#         'parsers/gromacs', 'dependencies/parsers/atomistic/tests/data/gromacs/protein_fsfg/nvt.log')
+def test_radius_of_gyration_gromacs(workflow_archive):
+    archive = workflow_archive(
+        'parsers/gromacs', 'dependencies/parsers/atomistic/tests/data/gromacs/protein_fsfg/nvt.log')
 
-#     sec_calc = archive.run[0].calculation[4]
-#     sec_rg = sec_calc.radius_of_gyration[0]
-#     sec_rgvals = sec_rg.radius_of_gyration_values[0]
+    sec_calc = archive.run[0].calculation[4]
+    sec_rg = sec_calc.radius_of_gyration[0]
+    sec_rgvals = sec_rg.radius_of_gyration_values[0]
 
-#     assert sec_rg.kind == 'molecular'
+    assert sec_rg.kind == 'molecular'
 
-#     assert sec_rgvals.label == 'Protein-index_0'
-#     assert sec_rgvals.value.magnitude == approx(5.464423436523278e-10)
-#     assert sec_rgvals.value.units == 'meter'
+    assert sec_rgvals.label == 'Protein-index_0'
+    assert sec_rgvals.value.magnitude == approx(5.464423436523278e-10)
+    assert sec_rgvals.value.units == 'meter'
 
-#     sec_calc = archive.run[0].calculation[7]
-#     sec_rg = sec_calc.radius_of_gyration[0]
-#     sec_rgvals = sec_rg.radius_of_gyration_values[1]
+    sec_calc = archive.run[0].calculation[7]
+    sec_rg = sec_calc.radius_of_gyration[0]
+    sec_rgvals = sec_rg.radius_of_gyration_values[1]
 
-#     assert sec_rg.kind == 'molecular'
-#     assert sec_rgvals.label == 'Protein-index_1'
-#     assert sec_rgvals.value.magnitude == approx(7.326346215313874e-10)
-#     assert sec_rgvals.value.units == 'meter'
+    assert sec_rg.kind == 'molecular'
+    assert sec_rgvals.label == 'Protein-index_1'
+    assert sec_rgvals.value.magnitude == approx(7.326346215313874e-10)
+    assert sec_rgvals.value.units == 'meter'
 
 
 def test_rdf_lammps(workflow_archive):
@@ -313,24 +313,24 @@ def test_msd_lammps(workflow_archive):
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.errors == approx(0.9965870174917716)
 
 
-# def test_radius_of_gyration_lammps(workflow_archive):
-#     archive = workflow_archive(
-#         'parsers/lammps', 'dependencies/parsers/atomistic/tests/data/lammps/polymer_melt/Equil/nohup.out')
+def test_radius_of_gyration_lammps(workflow_archive):
+    archive = workflow_archive(
+        'parsers/lammps', 'dependencies/parsers/atomistic/tests/data/lammps/polymer_melt/Equil/nohup.out')
 
-#     sec_calc = archive.run[0].calculation[4]
-#     sec_rg = sec_calc.radius_of_gyration[0]
-#     sec_rgvals = sec_rg.radius_of_gyration_values[10]
+    sec_calc = archive.run[0].calculation[4]
+    sec_rg = sec_calc.radius_of_gyration[0]
+    sec_rgvals = sec_rg.radius_of_gyration_values[10]
 
-#     assert sec_rg.kind == 'molecular'
-#     assert sec_rgvals.label == '0-index_10'
-#     assert sec_rgvals.value.magnitude == approx(6.892062676599172e-10)
-#     assert sec_rgvals.value.units == 'meter'
+    assert sec_rg.kind == 'molecular'
+    assert sec_rgvals.label == '0-index_10'
+    assert sec_rgvals.value.magnitude == approx(6.892062676599172e-10)
+    assert sec_rgvals.value.units == 'meter'
 
-#     sec_calc = archive.run[0].calculation[7]
-#     sec_rg = sec_calc.radius_of_gyration[0]
-#     sec_rgvals = sec_rg.radius_of_gyration_values[27]
+    sec_calc = archive.run[0].calculation[7]
+    sec_rg = sec_calc.radius_of_gyration[0]
+    sec_rgvals = sec_rg.radius_of_gyration_values[27]
 
-#     assert sec_rg.kind == 'molecular'
-#     assert sec_rgvals.label == '0-index_27'
-#     assert sec_rgvals.value.magnitude == approx(5.233325827723867e-10)
-#     assert sec_rgvals.value.units == 'meter'
+    assert sec_rg.kind == 'molecular'
+    assert sec_rgvals.label == '0-index_27'
+    assert sec_rgvals.value.magnitude == approx(5.233325827723867e-10)
+    assert sec_rgvals.value.units == 'meter'
