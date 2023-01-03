@@ -168,7 +168,7 @@ def test_rdf_gromacs(workflow_archive):
         'parsers/gromacs', 'dependencies/parsers/atomistic/tests/data/gromacs/fe_test/mdrun.out')
 
     sec_workflow2 = archive.workflow2
-    section_md = sec_workflow2.molecular_dynamics.results
+    section_md = sec_workflow2.results
 
     assert section_md.radial_distribution_functions[0].type == 'molecular'
     assert section_md.radial_distribution_functions[0].n_smooth == 2
@@ -196,7 +196,7 @@ def test_msd_gromacs(workflow_archive):
         'parsers/gromacs', 'dependencies/parsers/atomistic/tests/data/gromacs/cgwater/mdrun.log')
 
     sec_workflow2 = archive.workflow2
-    section_md = sec_workflow2.molecular_dynamics.results
+    section_md = sec_workflow2.results
 
     assert section_md.mean_squared_displacements[0].type == 'molecular'
     assert section_md.mean_squared_displacements[0].direction == 'xyz'
@@ -241,7 +241,7 @@ def test_rdf_lammps(workflow_archive):
         'parsers/lammps', 'dependencies/parsers/atomistic/tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
 
     sec_workflow2 = archive.workflow2
-    section_md = sec_workflow2.molecular_dynamics.results
+    section_md = sec_workflow2.results
 
     assert section_md.radial_distribution_functions[0].type == 'molecular'
     assert section_md.radial_distribution_functions[0].n_smooth == 2
@@ -285,7 +285,7 @@ def test_msd_lammps(workflow_archive):
         'parsers/lammps', 'dependencies/parsers/atomistic/tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
 
     sec_workflow2 = archive.workflow2
-    section_md = sec_workflow2.molecular_dynamics.results
+    section_md = sec_workflow2.results
 
     assert section_md.mean_squared_displacements[0].type == 'molecular'
     assert section_md.mean_squared_displacements[0].direction == 'xyz'
