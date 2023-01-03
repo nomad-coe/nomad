@@ -235,6 +235,25 @@ def test_radius_of_gyration_gromacs(workflow_archive):
     assert sec_rgvals.value.magnitude == approx(7.326346215313874e-10)
     assert sec_rgvals.value.units == 'meter'
 
+    sec_workflow2 = archive.workflow2
+    sec_rg = sec_workflow2.results.radius_of_gyration[0]
+    frame = 4
+
+    assert sec_rg.type == 'molecular'
+
+    assert sec_rg.label == 'Protein-index_0'
+    assert sec_rg.value[frame].magnitude == approx(5.464423436523278e-10)
+    assert sec_rg.value[frame].units == 'meter'
+
+    frame = 7
+    sec_rg = sec_workflow2.results.radius_of_gyration[1]
+    sec_calc = archive.run[0].calculation[7]
+
+    assert sec_rg.type == 'molecular'
+    assert sec_rg.label == 'Protein-index_1'
+    assert sec_rg.value[frame].magnitude == approx(7.326346215313874e-10)
+    assert sec_rg.value[frame].units == 'meter'
+
 
 def test_rdf_lammps(workflow_archive):
     archive = workflow_archive(
@@ -334,3 +353,20 @@ def test_radius_of_gyration_lammps(workflow_archive):
     assert sec_rgvals.label == '0-index_27'
     assert sec_rgvals.value.magnitude == approx(5.233325827723867e-10)
     assert sec_rgvals.value.units == 'meter'
+
+    sec_workflow2 = archive.workflow2
+    sec_rg = sec_workflow2.results.radius_of_gyration[10]
+    frame = 4
+
+    assert sec_rg.type == 'molecular'
+    assert sec_rg.label == '0-index_10'
+    assert sec_rg.value[frame].magnitude == approx(6.892062676599172e-10)
+    assert sec_rg.value[frame].units == 'meter'
+
+    sec_rg = sec_workflow2.results.radius_of_gyration[27]
+    frame = 7
+
+    assert sec_rg.type == 'molecular'
+    assert sec_rg.label == '0-index_27'
+    assert sec_rg.value[frame].magnitude == approx(5.233325827723867e-10)
+    assert sec_rg.value[frame].units == 'meter'
