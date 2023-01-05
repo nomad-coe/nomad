@@ -179,7 +179,7 @@ class AtomicValues(MSection):
         ''')
 
 
-class AtomicGroup(MSection):
+class AtomicGroup(ArchiveSection):
     '''
     Generic section containing the values and information reqarding a molecular or sub-molecular
     quantity that is a function of an atomic group such as radius of gyration...
@@ -195,7 +195,7 @@ class AtomicGroup(MSection):
         ''')
 
 
-class AtomicGroupValues(MSection):
+class AtomicGroupValues(ArchiveSection):
     '''
     Generic section containing information regarding the values of a trajectory property.
     '''
@@ -1592,6 +1592,9 @@ class RadiusOfGyrationValues(AtomicGroupValues):
         Value of Rg.
         ''')
 
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+
 
 class RadiusOfGyration(AtomicGroup):
     '''
@@ -1602,6 +1605,9 @@ class RadiusOfGyration(AtomicGroup):
     m_def = Section(validate=False)
 
     radius_of_gyration_values = SubSection(sub_section=RadiusOfGyrationValues.m_def, repeats=True)
+
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
 
 
 class BaseCalculation(ArchiveSection):
