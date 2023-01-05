@@ -74,9 +74,9 @@ const testAddRemoveMembers = async (dialog) => {
   searchMembers.focus()
   // assign an incomplete value to the input field
   fireEvent.change(autocompleteInput, { target: { value: 'teste' } })
-  await waitForGUI()
+  await waitForGUI(700, true)
   await waitFor(() => expect(autocompleteInput.value).toEqual('teste'))
-  await waitForGUI()
+  await waitForGUI(700, true)
   fireEvent.keyDown(searchMembers, { key: 'ArrowDown' })
   fireEvent.keyDown(searchMembers, { key: 'Enter' })
   await waitForGUI()
@@ -89,9 +89,9 @@ const testAddRemoveMembers = async (dialog) => {
   // assign an incomplete value to the input field
   fireEvent.change(autocompleteInput, { target: { value: '' } })
   fireEvent.change(autocompleteInput, { target: { value: 'admin' } })
-  await waitForGUI()
+  await waitForGUI(700, true)
   await waitFor(() => expect(autocompleteInput.value).toEqual('admin'))
-  await waitForGUI()
+  await waitForGUI(700, true)
   fireEvent.keyDown(searchMembers, { key: 'ArrowDown' })
   fireEvent.keyDown(searchMembers, { key: 'Enter' })
   await waitForGUI()
@@ -185,7 +185,7 @@ test.each([
   await testAddRemoveMembers(dialog)
 
   await submitChanges(dialog)
-  await waitForGUI(2000)
+  await waitForGUI(2000, true)
 
   if (username === 'test') {
     const newDialog = await openMembersDialog()

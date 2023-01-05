@@ -82,7 +82,7 @@
   "scripts": {
     "start": "craco start",
     "build": "export CI=true && craco build",
-    "test": "craco test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --maxWorkers=4",
+    "test": "export WAIT_FOR_GUI=None && craco test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --maxWorkers=4",
     "watch-test": "craco test --testPathIgnorePatterns=.*/conftest.spec.js --maxWorkers=4",
     "test-integration": "export READ_MODE=api WRITE_MODE=none && craco test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --runInBand",
     "test-record": "export READ_MODE=api WRITE_MODE=snapshot && craco test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --runInBand",
