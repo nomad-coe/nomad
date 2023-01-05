@@ -1587,13 +1587,16 @@ class MolecularDynamicsResults(ThermodynamicsResults):
                 self.mean_squared_displacements.append(sec_msds)
 
         # calculate radius of gyration for polymers
-        sec_system = archive.run[-1].system[0]
-        sec_calc = archive.run[-1].calculation
-        sec_calc = sec_calc if sec_calc is not None else []
+        try:
+            sec_system = archive.run[-1].system[0]
+            sec_calc = archive.run[-1].calculation
+            sec_calc = sec_calc if sec_calc is not None else []
+        except Exception:
+            return
+
         flag_rgs = False
         for i_calc, calc in enumerate(sec_calc):
-            sec_rgs_calc = calc.get('radius_of_gyration')
-            if sec_rgs_calc:
+            if calc.radius_of_gyration:
                 flag_rgs = True
                 break  # TODO Should transfer Rg's to workflow results if they are already supplied in calculation
 
@@ -1622,35 +1625,16 @@ class MolecularDynamicsResults(ThermodynamicsResults):
                         # TODO sync calculation and system sections to be able to store the Rgs under calculation
                         continue
                     for i_calc, calc in enumerate(sec_calc):
-                        sec_rgs_calc = calc.get('radius_of_gyration')
+                        sec_rgs_calc = calc.radius_of_gyration
                         if not sec_rgs_calc:
-                            sec_rgs_calc = RadiusOfGyrationCalculation()
-                            sec_rgs_calc._rg_results = rg
-                            sec_rgs_calc._i_calc = i_calc
+                            sec_rgs_calc = calc.m_create(RadiusOfGyrationCalculation)
                             sec_rgs_calc.kind = rg.get('type')
-                            calc.radius_of_gyration.append(sec_rgs)
                         else:
-                            sec_rgs_calc = sec_rgs_calc[-1]
-                        sec_rg_values = RadiusOfGyrationValuesCalculation()
-                        sec_rg_values._rg_results = rg
-                        sec_rg_values._i_calc = i_calc
+                            sec_rgs_calc = sec_rgs_calc[0]
+                        sec_rg_values = sec_rgs_calc.m_create(RadiusOfGyrationValuesCalculation)
                         sec_rg_values.atomsgroup_ref = rg.get('atomsgroup_ref')
                         sec_rg_values.label = rg.get('label')
                         sec_rg_values.value = rg.get('value')[i_calc]
-                        sec_rgs_calc.radius_of_gyration_values.append(sec_rg_values)
-
-                    # OLD working
-                    # for i_calc, calc in enumerate(sec_calc):
-                    #     sec_rgs_calc = calc.get('radius_of_gyration')
-                    #     if not sec_rgs_calc:
-                    #         sec_rgs_calc = calc.m_create(RadiusOfGyrationCalculation)
-                    #         sec_rgs_calc.kind = rg.get('type')
-                    #     else:
-                    #         sec_rgs_calc = sec_rgs_calc[0]
-                    #     sec_rg_values = sec_rgs_calc.m_create(RadiusOfGyrationValuesCalculation)
-                    #     sec_rg_values.atomsgroup_ref = rg.get('atomsgroup_ref')
-                    #     sec_rg_values.label = rg.get('label')
-                    #     sec_rg_values.value = rg.get('value')[i_calc]
 
 
 class MolecularDynamics(SerialSimulation):
