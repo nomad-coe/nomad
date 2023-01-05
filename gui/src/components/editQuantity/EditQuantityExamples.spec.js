@@ -142,9 +142,9 @@ test('Test AuthorEditQuantity', async () => {
   userField.focus()
   // assign an incomplete value to the input field
   fireEvent.change(userFieldInput, { target: { value: 'schei' } })
-  await waitForGUI()
+  await waitForGUI(700, true)
   await waitFor(() => expect(userFieldInput.value).toEqual('schei'))
-  await waitForGUI()
+  await waitForGUI(700, true)
   fireEvent.keyDown(userField, { key: 'ArrowDown' })
   fireEvent.keyDown(userField, { key: 'Enter' })
   await waitForGUI()

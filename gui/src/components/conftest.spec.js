@@ -643,9 +643,12 @@ export function wait(value, ms = 100) {
  * determining when they are completed, or we use this as a temporary workaround until we
  * have a proper solution.
  * @param {number} ms delay in milliseconds
+ * @param waitInActualTest force to wait in the actual test e.g. when the delay comes from a debounce
  */
-export async function waitForGUI(ms = 1000) {
-  await act(async () => { await new Promise(resolve => setTimeout(resolve, ms)) })
+export async function waitForGUI(ms = 1000, waitInActualTest = false) {
+  if (process.env.WAIT_FOR_GUI !== 'None' || waitInActualTest) {
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, ms)) })
+  }
 }
 
 /**
