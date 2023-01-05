@@ -1302,6 +1302,8 @@ def calc_molecular_rdf(universe, n_traj_split=10, n_prune=1, interval_indices=No
 
     rdf_results = {}
     rdf_results['n_smooth'] = n_smooth
+    rdf_results['n_prune'] = n_prune
+    rdf_results['type'] = 'molecular'
     rdf_results['types'] = []
     rdf_results['variables_name'] = []
     rdf_results['bins'] = []
@@ -1369,6 +1371,8 @@ def calc_molecular_mean_squared_displacements(universe):
     times = np.arange(n_frames) * dt
 
     msd_results = {}
+    msd_results['type'] = 'molecular'
+    msd_results['direction'] = 'xyz'
     msd_results['value'] = []
     msd_results['times'] = []
     msd_results['diffusion_constant'] = []
@@ -1446,8 +1450,7 @@ def get_nojump_positions(universe, selection):
 
 def calc_radius_of_gyration(universe, molecule_atom_indices):
     '''
-    Calculates the radius of gyration as a function of time for the atoms "molecule_atom_indices"
-    as well of the corresponding histogram.
+    Calculates the radius of gyration as a function of time for the atoms "molecule_atom_indices".
     '''
 
     if universe is None:
@@ -1459,12 +1462,34 @@ def calc_radius_of_gyration(universe, molecule_atom_indices):
     selection = f'index {selection}'
     molecule = universe.select_atoms(selection)
     rg_results = {}
+    rg_results['type'] = 'molecular'
     rg_results['times'] = []
     rg_results['value'] = []
     for __ in universe.trajectory:
         rg_results['times'].append(universe.trajectory.time)
         rg_results['value'].append(molecule.radius_of_gyration())
+    rg_results['n_frames'] = len(rg_results['times'])
     rg_results['times'] = np.array(rg_results['times']) * ureg.picosecond
     rg_results['value'] = np.array(rg_results['value']) * ureg.angstrom
+
+    return rg_results
+
+
+def calc_molecular_radius_of_gyration(universe, system_topology):
+    '''
+    Calculates the radius of gyration as a function of time for each polymer in the system.
+    '''
+
+    rg_results = []
+    for molgroup in system_topology:
+        for molecule in molgroup.get('atoms_group'):
+            sec_monomer_groups = molecule.get('atoms_group')
+            group_type = sec_monomer_groups[0].type if sec_monomer_groups else None
+            if group_type != 'monomer_group':
+                continue
+            rg_result = calc_radius_of_gyration(universe, molecule.atom_indices)
+            rg_result['label'] = molecule.label + '-index_' + str(molecule.index)
+            rg_result['atomsgroup_ref'] = molecule
+            rg_results.append(rg_result)
 
     return rg_results
