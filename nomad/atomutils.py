@@ -22,7 +22,7 @@ import math
 import re
 from string import ascii_uppercase
 from functools import reduce
-from typing import List, Dict, Tuple, Any, Union, Iterable, cast
+from typing import List, Dict, Tuple, Any, Union, Iterable, cast, Callable
 from nptyping import NDArray
 
 from ase.utils import pbc2pbc
@@ -33,6 +33,7 @@ from ase.formula import Formula as ASEFormula
 
 import numpy as np
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
+from scipy.stats import linregress
 
 from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
@@ -738,7 +739,7 @@ class Formula():
             n_matched_chars = sum([len(match[0]) for match in matches])
             n_formula = len(formula.strip())
             if n_matched_chars == n_formula:
-                formula = "".join(["{}{}".format(match[1], match[2]) for match in matches])
+                formula = ''.join(['{}{}'.format(match[1], match[2]) for match in matches])
         return formula
 
     def formula_anonymous(self):
@@ -775,7 +776,7 @@ class Formula():
 def create_empty_universe(n_atoms: int, n_frames: int = 1, n_residues: int = 1, n_segments: int = 1,
                           atom_resindex: List[int] = None, residue_segindex: List[int] = None,
                           flag_trajectory: bool = False, flag_velocities: bool = False, flag_forces: bool = False):
-    """Create a blank Universe
+    '''Create a blank Universe
 
     This function was adapted from the function empty() within the MDA class Universe().
     The only difference is that the Universe() class is imported directly here, whereas in the
@@ -830,7 +831,7 @@ def create_empty_universe(n_atoms: int, n_frames: int = 1, n_residues: int = 1, 
         The attached Reader when flag_trajectory=True is now a MemoryReader
     .. versionchanged:: 1.0.0
         Universes can now be created with 0 atoms
-    """
+    '''
 
     if not n_atoms:
         n_residues = 0
@@ -848,11 +849,10 @@ def create_empty_universe(n_atoms: int, n_frames: int = 1, n_residues: int = 1, 
             'All residues will be placed in first Segment',
             UserWarning)
 
-    top = Topology(n_atoms, n_residues, n_segments,
-                   atom_resindex=atom_resindex,
-                   residue_segindex=residue_segindex)
+    topology = Topology(n_atoms, n_residues, n_segments, atom_resindex=atom_resindex,
+                        residue_segindex=residue_segindex)
 
-    u = Universe(top)
+    universe = Universe(topology)
 
     if flag_trajectory:
         coords = np.zeros((n_frames, n_atoms, 3), dtype=np.float32)
@@ -860,15 +860,15 @@ def create_empty_universe(n_atoms: int, n_frames: int = 1, n_residues: int = 1, 
         forces = np.zeros_like(coords) if flag_forces else None
 
         # grab and attach a MemoryReader
-        u.trajectory = get_reader_for(coords)(
+        universe.trajectory = get_reader_for(coords)(
             coords, order='fac', n_atoms=n_atoms,
             velocities=vels, forces=forces)
 
-    return u
+    return universe
 
 
 def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, model_index: int = -1):
-    """Extract the topology from a provided run section of an archive entry
+    '''Extract the topology from a provided run section of an archive entry
 
         Input:
 
@@ -921,7 +921,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
             dimensions (float, shape=(n_frames,6)): box dimensions (nb - currently assuming a cubic box!)
 
             bonds (tuple, shape=([])): list of tuples with the atom indices of each bond
-    """
+    '''
 
     try:
         sec_run = archive.run[-1]
@@ -933,11 +933,13 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         sec_model = sec_method.force_field.model[model_index] if sec_method is not None else None
     except IndexError:
         logging.error('Supplied indices do not exist in archive.')
-        return
+        return []
 
     n_atoms = sec_atoms.get('n_atoms')
     if n_atoms is None:
         logging.error('No atoms found in the archive. Cannot build the MDA universe.')
+        return []
+
     n_frames = len(sec_system) if sec_system is not None else None
     atom_names = sec_atoms.get('labels')
     atom_types = atom_names
@@ -948,8 +950,8 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     molecule_groups = sec_atoms_group
     n_segments = len(molecule_groups)
 
-    res_ctr = 0
-    mol_ctr = 0
+    res_counter = 0
+    mol_counter = 0
     residue_segindex = []
     resnames = []
     residue_molnums = []
@@ -964,24 +966,24 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
                 for mon_group in monomer_groups:
                     monomers = mon_group.atoms_group
                     for mon in monomers:
-                        atom_resindex[mon.atom_indices] = res_ctr
+                        atom_resindex[mon.atom_indices] = res_counter
                         atom_resnames[mon.atom_indices] = mon.label
                         resnames.append(mon.label)
                         residue_segindex.append(mol_group_ind)
-                        residue_molnums.append(mol_ctr)
+                        residue_molnums.append(mol_counter)
                         residue_moltypes.append(mol.label)
-                        res_ctr += 1
+                        res_counter += 1
             else:  # no monomers => whole molecule is it's own residue
-                atom_resindex[mol.atom_indices] = res_ctr
+                atom_resindex[mol.atom_indices] = res_counter
                 atom_resnames[mol.atom_indices] = mol.label
                 resnames.append(mol.label)
                 residue_segindex.append(mol_group_ind)
-                residue_molnums.append(mol_ctr)
+                residue_molnums.append(mol_counter)
                 residue_moltypes.append(mol.label)
-                res_ctr += 1
-            mol_ctr += 1
-    n_residues = res_ctr
-    # n_molecules = mol_ctr  # unused
+                res_counter += 1
+            mol_counter += 1
+    n_residues = res_counter
+    # n_molecules = mol_counter  # unused
 
     # get the atom masses and charges
     masses = np.empty(n_atoms)
@@ -1002,32 +1004,32 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         sec_atoms_fr = frame.get('atoms')
         if sec_atoms_fr is not None:
             positions_frame = sec_atoms_fr.positions
-            positions[frame_ind] = ureg.convert(positions_frame.magnitude, positions_frame.units, ureg.angstrom) if positions_frame is not None else None
+            positions[frame_ind] = ureg.convert(positions_frame.magnitude, positions_frame.units,
+                                                ureg.angstrom) if positions_frame is not None else None
             velocities_frame = sec_atoms_fr.velocities
-            velocities[frame_ind] = ureg.convert(velocities_frame.magnitude, velocities_frame.units, ureg.angstrom / ureg.picosecond) if velocities_frame is not None else None
+            velocities[frame_ind] = ureg.convert(velocities_frame.magnitude, velocities_frame.units,
+                                                 ureg.angstrom / ureg.picosecond) if velocities_frame is not None else None
             latt_vec_tmp = sec_atoms_fr.get('lattice_vectors')
             if latt_vec_tmp is not None:
                 length_conversion = ureg.convert(1.0, sec_atoms_fr.lattice_vectors.units, ureg.angstrom)
-                dimensions[frame_ind] = [sec_atoms_fr.lattice_vectors.magnitude[0][0] * length_conversion,
-                                         sec_atoms_fr.lattice_vectors.magnitude[1][1] * length_conversion,
-                                         sec_atoms_fr.lattice_vectors.magnitude[2][2] * length_conversion,
-                                         90, 90, 90]  # TODO: extend to non-cubic boxes
+                dimensions[frame_ind] = [
+                    sec_atoms_fr.lattice_vectors.magnitude[0][0] * length_conversion,
+                    sec_atoms_fr.lattice_vectors.magnitude[1][1] * length_conversion,
+                    sec_atoms_fr.lattice_vectors.magnitude[2][2] * length_conversion,
+                    90, 90, 90]  # TODO: extend to non-cubic boxes
 
     # get the bonds
     bonds = []
     contributions = sec_model.get('contributions') if sec_model is not None else []
     contributions = contributions if contributions is not None else []
-    for inter in contributions:
-        if inter.type == 'bond':
-            bonds.append(tuple(inter.atom_indices))
+    for contribution in contributions:
+        if contribution.type == 'bond':  # and contribution.atom_indices is not None:
+            bonds.append(tuple(contribution.atom_indices))
 
     # create the Universe
-    metainfo_universe = create_empty_universe(n_atoms, n_frames=n_frames,
-                                              n_residues=n_residues,
-                                              n_segments=n_segments,
-                                              atom_resindex=atom_resindex,
-                                              residue_segindex=residue_segindex,
-                                              flag_trajectory=True, flag_velocities=True)
+    metainfo_universe = create_empty_universe(
+        n_atoms, n_frames=n_frames, n_residues=n_residues, n_segments=n_segments, atom_resindex=atom_resindex,
+        residue_segindex=residue_segindex, flag_trajectory=True, flag_velocities=True)
 
     # set the positions and velocities
     for frame_ind, frame in enumerate(metainfo_universe.trajectory):
@@ -1055,7 +1057,9 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         metainfo_universe.atoms.dimensions = dimensions[frame_ind]
 
     # add the bonds
-    assert not hasattr(metainfo_universe, 'bonds')
+    if hasattr(metainfo_universe, 'bonds'):
+        logging.error('archive_to_universe() failed, universe already has bonds.')
+        return []
     metainfo_universe.add_TopologyAttr('bonds', bonds)
 
     return metainfo_universe
@@ -1064,16 +1068,16 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
 class BeadGroup(object):
     # see https://github.com/MDAnalysis/mdanalysis/issues/1891#issuecomment-387138110
     # by @richardjgowers with performance improvements
-    def __init__(self, atoms, compound="fragments"):
-        """Initialize with an AtomGroup instance.
+    def __init__(self, atoms, compound='fragments'):
+        '''Initialize with an AtomGroup instance.
         Will split based on keyword 'compounds' (residues or fragments).
-        """
+        '''
         self._atoms = atoms
         self.compound = compound
         self._nbeads = len(getattr(self._atoms, self.compound))
         # for caching
         self._cache = {}
-        self._cache["positions"] = None
+        self._cache['positions'] = None
         self.__last_frame = None
 
     def __len__(self):
@@ -1083,65 +1087,33 @@ class BeadGroup(object):
     def positions(self):
         # cache positions for current frame
         if self.universe.trajectory.frame != self.__last_frame:
-            self._cache["positions"] = self._atoms.center_of_mass(
+            self._cache['positions'] = self._atoms.center_of_mass(
                 unwrap=True, compound=self.compound)
             self.__last_frame = self.universe.trajectory.frame
-        return self._cache["positions"]
+        return self._cache['positions']
 
     @property  # type: ignore
-    @MDAnalysis.lib.util.cached("universe")
+    @MDAnalysis.lib.util.cached('universe')
     def universe(self):
         return self._atoms.universe
 
 
-# class CoordinateTransform(object):
-#     def __init__(self, atoms, compound="fragments"):
-#         """Initialize with an AtomGroup instance.
-#         Will split based on keyword 'compounds' (residues or fragments).
-#         """
-#         self._atoms = atoms
-#         self.compound = compound
-#         self._nbeads = len(getattr(self._atoms, self.compound))
-#         # for caching
-#         self._cache = {}
-#         self._cache["positions"] = None
-#         self.__last_frame = None
-
-#     def __len__(self):
-#         return self._nbeads
-
-#     @property
-#     def positions(self):
-#         # cache positions for current frame
-#         if self.universe.trajectory.frame != self.__last_frame:
-#             self._cache["positions"] = self._atoms.center_of_mass(
-#                 unwrap=True, compound=self.compound)
-#             self.__last_frame = self.universe.trajectory.frame
-#         return self._cache["positions"]
-
-#     @property  # type: ignore
-#     @MDAnalysis.lib.util.cached("universe")
-#     def universe(self):
-#         return self._atoms.universe
-
-
-def log_indices(first, last, num=100):
+def __log_indices(first: int, last: int, num: int = 100):
     ls = np.logspace(0, np.log10(last - first + 1), num=num)
     return np.unique(np.int_(ls) - 1 + first)
 
 
-def correlation(function, positions):
+def __correlation(function, positions: List[float]):
     iterator = iter(positions)
     start_frame = next(iterator)
     return map(lambda f: function(start_frame, f), chain([start_frame], iterator))
 
 
-def shifted_correlation(function, times, positions,
-                        index_distribution=log_indices, correlation=correlation,
-                        segments=10, window=0.5, skip=0,
-                        average=False, ):
+def shifted_correlation_average(function: Callable, times: NDArray, positions: NDArray,
+                                index_distribution: Callable = __log_indices, correlation: Callable = __correlation,
+                                segments: int = 10, window: float = 0.5, skip: int = 0):
 
-    """
+    '''
     Code adapted from MDevaluate module: https://github.com/mdevaluate/mdevaluate.git
 
     Calculate the time series for a correlation function.
@@ -1149,9 +1121,11 @@ def shifted_correlation(function, times, positions,
     The times at which the correlation is calculated are determined automatically by the
     function given as ``index_distribution``. The default is a logarithmic distribution.
 
+    The function has been edited so that the average is always calculated, i.e., average=True below.
+
     Args:
         function:   The function that should be correlated
-        frames:     The coordinates of the simulation data
+        positions:     The coordinates of the simulation data
         index_distribution (opt.):
                     A function that returns the indices for which the timeseries
                     will be calculated
@@ -1168,7 +1142,7 @@ def shifted_correlation(function, times, positions,
         counter (bool, opt.):
                     If True, returns length of frames (in general number of particles specified)
         average (bool, opt.):
-                    If True, returns averaged correlation function
+                    If True,
     Returns:
         tuple:
             A list of length N that contains the indices of the frames at which
@@ -1182,8 +1156,12 @@ def shifted_correlation(function, times, positions,
         Calculating the mean square displacement of a coordinates object named ``coords``:
 
         >>> indices, data = shifted_correlation(msd, coords)
-    """
-    assert window + skip < 1
+    '''
+    if window + skip >= 1:
+        warnings.warn('Invalid parameters for shifted_correlation(), '
+                      'resetting to defaults.', UserWarning)
+        window = 0.5
+        skip = 0
 
     start_frames = np.unique(np.linspace(
         len(positions) * skip, len(positions) * (1 - window),
@@ -1199,79 +1177,52 @@ def shifted_correlation(function, times, positions,
 
     correlation_times = np.array([times[i] for i in idx]) - times[0]
 
-    result = 0 if average else []
-    for __, start_frame in enumerate(start_frames):
-        if average:
-            result += np.array(list(correlate(start_frame)))
+    result: NDArray
+    for i_start_frame, start_frame in enumerate(start_frames):
+        if i_start_frame == 0:
+            result = np.array(list(correlate(start_frame)))
         else:
-            result.append(list(correlate(start_frame)))
+            result += np.array(list(correlate(start_frame)))
     result = np.array(result)
-    if average:
-        result = result / len(start_frames)
-    output = correlation_times, result
-    return output
+    result = result / len(start_frames)
+
+    return correlation_times, result
 
 
-def mean_squared_displacement(start, current):
-    """
-    Calculates mean square displacement between current and initial (start) coordinates.
-    """
-    vec = start - current
-    return (vec ** 2).sum(axis=1).mean()
-
-
-def calc_diffusion_constant(times, values, dim=3):
-    """
+def __calc_diffusion_constant(times: NDArray, values: NDArray, dim: int = 3):
+    '''
     Determines the diffusion constant from a fit of the mean squared displacement
     vs. time according to the Einstein relation.
-    """
-    from scipy.stats import linregress
+    '''
     linear_model = linregress(times, values)
     slope = linear_model.slope
     error = linear_model.rvalue
     return slope * 1 / (2 * dim), error
 
 
-def get_molecular_bead_groups(universe, moltypes=None):
+def __get_molecular_bead_groups(universe: MDAnalysis.Universe, moltypes: List[str] = None):
 
     if moltypes is None:
-        atoms_moltypes = getattr(universe.atoms, "moltypes", [])
+        atoms_moltypes = getattr(universe.atoms, 'moltypes', [])
         moltypes = np.unique(atoms_moltypes)
     bead_groups = {}
     for moltype in moltypes:
         ags_by_moltype = universe.select_atoms('moltype ' + moltype)
         ags_by_moltype = ags_by_moltype[ags_by_moltype.masses > abs(1e-2)]  # remove any virtual/massless sites (needed for, e.g., 4-bead water models)
-        bead_groups[moltype] = BeadGroup(ags_by_moltype, compound="fragments")
+        bead_groups[moltype] = BeadGroup(ags_by_moltype, compound='fragments')
 
     return bead_groups
 
 
-def calc_molecular_rdf(universe, n_traj_split=10, n_prune=1, interval_indices=None):
+def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_prune: int = 1, interval_indices=None):
     '''
     Calculates the radial distribution functions between for each unique pair of
     molecule types as a function of their center of mass distance.
 
     interval_indices: 2D array specifying the groups of the n_traj_split intervals to be averaged
     '''
-    def get_rdf_avg(rdf_results_tmp, rdf_results, interval_indices, n_frames_split):
-        split_weights = n_frames_split[np.array(interval_indices)] / np.sum(n_frames_split[np.array(interval_indices)])
-        assert abs(np.sum(split_weights) - 1.0) < 1e-6
-        rdf_values_avg = split_weights[0] * rdf_results_tmp['value'][interval_indices[0]]
-        for i_interval, interval in enumerate(interval_indices[1:]):
-            assert (rdf_results_tmp['types'][interval] == rdf_results_tmp['types'][interval - 1])
-            assert (rdf_results_tmp['variables_name'][interval] == rdf_results_tmp['variables_name'][interval - 1])
-            assert (rdf_results_tmp['bins'][interval] == rdf_results_tmp['bins'][interval - 1]).all()
-            rdf_values_avg += split_weights[i_interval + 1] * rdf_results_tmp['value'][interval]
-        rdf_results['types'].append(rdf_results_tmp['types'][interval_indices[0]])
-        rdf_results['variables_name'].append(rdf_results_tmp['variables_name'][interval_indices[0]])
-        rdf_results['bins'].append(rdf_results_tmp['bins'][interval_indices[0]])
-        rdf_results['value'].append(rdf_values_avg)
-        rdf_results['frame_start'].append(int(rdf_results_tmp['frame_start'][interval_indices[0]]))
-        rdf_results['frame_end'].append(int(rdf_results_tmp['frame_end'][interval_indices[-1]]))
 
-    if universe is None:
-        return
-    if universe.trajectory[0].dimensions is None:
+    if universe is None or universe.trajectory is None or universe.trajectory[0].dimensions is None:
         return
 
     n_frames = universe.trajectory.n_frames
@@ -1287,20 +1238,23 @@ def calc_molecular_rdf(universe, n_traj_split=10, n_prune=1, interval_indices=No
         frames_end = frames_start + run_len
         frames_end[-1] = n_frames
         n_frames_split = frames_end - frames_start
-        assert np.sum(n_frames_split) == n_frames
+        if np.sum(n_frames_split) != n_frames:
+            logging.error('Something went wrong with input parameters in calc_molecular_rdf().'
+                          'Radial distribution functions will not be calculated.')
+            return
         if not interval_indices:
             interval_indices = [[i] for i in range(n_traj_split)]
 
-    atoms_moltypes = getattr(universe.atoms, "moltypes", [])
+    atoms_moltypes = getattr(universe.atoms, 'moltypes', [])
     moltypes = np.unique(atoms_moltypes)
-    bead_groups = get_molecular_bead_groups(universe, moltypes=moltypes)
+    bead_groups = __get_molecular_bead_groups(universe, moltypes=moltypes)
 
     min_box_dimension = np.min(universe.trajectory[0].dimensions[:3])
     max_rdf_dist = min_box_dimension / 2
     n_bins = 200
     n_smooth = 2
 
-    rdf_results = {}
+    rdf_results: Dict[str, Any] = {}
     rdf_results['n_smooth'] = n_smooth
     rdf_results['n_prune'] = n_prune
     rdf_results['type'] = 'molecular'
@@ -1321,56 +1275,88 @@ def calc_molecular_rdf(universe, n_traj_split=10, n_prune=1, interval_indices=No
                 exclusion_block = (1, 1)  # remove self-distance
             else:
                 exclusion_block = None
-            pair_type = moltype_i + '-' + moltype_j
-            rdf_results_tmp = {}
-            rdf_results_tmp['types'] = []
-            rdf_results_tmp['variables_name'] = []
-            rdf_results_tmp['bins'] = []
-            rdf_results_tmp['value'] = []
-            rdf_results_tmp['frame_start'] = []
-            rdf_results_tmp['frame_end'] = []
+            pair_type = f'{moltype_i}-{moltype_j}'
+            rdf_results_interval: Dict[str, Any] = {}
+            rdf_results_interval['types'] = []
+            rdf_results_interval['variables_name'] = []
+            rdf_results_interval['bins'] = []
+            rdf_results_interval['value'] = []
+            rdf_results_interval['frame_start'] = []
+            rdf_results_interval['frame_end'] = []
             for i_interval in range(n_traj_split):
-                rdf_results_tmp['types'].append(pair_type)
-                rdf_results_tmp['variables_name'].append(['distance'])
-                rdf = MDA_RDF.InterRDF(bead_groups[moltype_i], bead_groups[moltype_j],
-                                       range=(0, max_rdf_dist),
-                                       exclusion_block=exclusion_block,
-                                       nbins=n_bins).run(frames_start[i_interval], frames_end[i_interval], n_prune)
-                rdf_results_tmp['frame_start'].append(frames_start[i_interval])
-                rdf_results_tmp['frame_end'].append(frames_end[i_interval])
+                rdf_results_interval['types'].append(pair_type)
+                rdf_results_interval['variables_name'].append(['distance'])
+                rdf = MDA_RDF.InterRDF(
+                    bead_groups[moltype_i], bead_groups[moltype_j], range=(0, max_rdf_dist),
+                    exclusion_block=exclusion_block, nbins=n_bins).run(
+                    frames_start[i_interval], frames_end[i_interval], n_prune)
+                rdf_results_interval['frame_start'].append(frames_start[i_interval])
+                rdf_results_interval['frame_end'].append(frames_end[i_interval])
 
-                rdf_results_tmp['bins'].append(rdf.results.bins[int(n_smooth / 2):-int(n_smooth / 2)] * ureg.angstrom)
-                rdf_results_tmp['value'].append(np.convolve(
+                rdf_results_interval['bins'].append(rdf.results.bins[int(n_smooth / 2):-int(n_smooth / 2)] * ureg.angstrom)
+                rdf_results_interval['value'].append(np.convolve(
                     rdf.results.rdf, np.ones((n_smooth,)) / n_smooth,
                     mode='same')[int(n_smooth / 2):-int(n_smooth / 2)])
 
             for interval_group in interval_indices:
-                get_rdf_avg(rdf_results_tmp, rdf_results, interval_group, n_frames_split)
+                split_weights = n_frames_split[np.array(interval_group)] / np.sum(n_frames_split[np.array(interval_group)])
+                if abs(np.sum(split_weights) - 1.0) > 1e-6:
+                    logging.error('Something went wrong in calc_molecular_rdf(), interval group weights do not sum to 1.'
+                                  'Skipping this interval group.')
+                    continue
+                rdf_values_avg = split_weights[0] * rdf_results_interval['value'][interval_group[0]]
+                for i_interval, interval in enumerate(interval_group[1:]):
+                    if rdf_results_interval['types'][interval] != rdf_results_interval['types'][interval - 1]:
+                        logging.error('Something went wrong in calc_molecular_rdf(), trying to average different rdf types.'
+                                      'Skipping this interval group.')
+                        continue
+                    if rdf_results_interval['variables_name'][interval] != rdf_results_interval['variables_name'][interval - 1]:
+                        logging.error('Something went wrong in calc_molecular_rdf(), trying to average rdfs with different variables_name.'
+                                      'Skipping this interval group.')
+                        continue
+                    if not (rdf_results_interval['bins'][interval] == rdf_results_interval['bins'][interval - 1]).all():
+                        logging.error('Something went wrong in calc_molecular_rdf(), trying to average rdfs with different bins.'
+                                      'Skipping this interval group.')
+                        continue
+                    rdf_values_avg += split_weights[i_interval + 1] * rdf_results_interval['value'][interval]
+                rdf_results['types'].append(rdf_results_interval['types'][interval_group[0]])
+                rdf_results['variables_name'].append(rdf_results_interval['variables_name'][interval_group[0]])
+                rdf_results['bins'].append(rdf_results_interval['bins'][interval_group[0]])
+                rdf_results['value'].append(rdf_values_avg)
+                rdf_results['frame_start'].append(int(rdf_results_interval['frame_start'][interval_group[0]]))
+                rdf_results['frame_end'].append(int(rdf_results_interval['frame_end'][interval_group[-1]]))
 
     return rdf_results
 
 
-def calc_molecular_mean_squared_displacements(universe):
+def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe):
     '''
     Calculates the mean squared displacement for the center of mass of each
     molecule type.
     '''
-    if universe is None:
-        return
-    if universe.trajectory[0].dimensions is None:
+
+    def mean_squared_displacement(start: NDArray, current: NDArray):
+        '''
+        Calculates mean square displacement between current and initial (start) coordinates.
+        '''
+        vec = start - current
+        return (vec ** 2).sum(axis=1).mean()
+
+    if universe is None or universe.trajectory is None or universe.trajectory[0].dimensions is None:
         return
 
     n_frames = universe.trajectory.n_frames
     if n_frames < 50:
+        warnings.warn('Less than 50 frames in trajectory, not calculating molecular'
+                      'mean squared displacements.', UserWarning)
         return
 
-    atoms_moltypes = getattr(universe.atoms, "moltypes", [])
+    atoms_moltypes = getattr(universe.atoms, 'moltypes', [])
     moltypes = np.unique(atoms_moltypes)
-    bead_groups = get_molecular_bead_groups(universe, moltypes=moltypes)
-    dt = universe.trajectory.dt
-    times = np.arange(n_frames) * dt
+    bead_groups = __get_molecular_bead_groups(universe, moltypes=moltypes)
+    times = np.arange(n_frames) * universe.trajectory.dt
 
-    msd_results = {}
+    msd_results: Dict[str, Any] = {}
     msd_results['type'] = 'molecular'
     msd_results['direction'] = 'xyz'
     msd_results['value'] = []
@@ -1378,15 +1364,14 @@ def calc_molecular_mean_squared_displacements(universe):
     msd_results['diffusion_constant'] = []
     msd_results['error_diffusion_constant'] = []
     for moltype in moltypes:
-        positions = get_nojump_positions(universe, bead_groups[moltype])
-        results = shifted_correlation(
-            mean_squared_displacement, times, positions, average=True
-        )
-        msd_results['value'].append(results[1])
-        msd_results['times'].append(results[0])
-        diffusion_constant, error = calc_diffusion_constant(*results)
-        msd_results['diffusion_constant'].append(diffusion_constant)
-        msd_results['error_diffusion_constant'].append(error)
+        positions = __get_nojump_positions(universe, bead_groups[moltype])
+        results = shifted_correlation_average(mean_squared_displacement, times, positions)
+        if results:
+            msd_results['value'].append(results[1])
+            msd_results['times'].append(results[0])
+            diffusion_constant, error = __calc_diffusion_constant(*results)
+            msd_results['diffusion_constant'].append(diffusion_constant)
+            msd_results['error_diffusion_constant'].append(error)
 
     msd_results['types'] = moltypes
     msd_results['times'] = np.array(msd_results['times']) * ureg.picosecond
@@ -1398,10 +1383,9 @@ def calc_molecular_mean_squared_displacements(universe):
     return msd_results
 
 
-def parse_jumps(universe, selection):
-    from copy import deepcopy
+def __parse_jumps(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):
     __ = universe.trajectory[0]
-    prev = deepcopy(selection.positions)
+    prev = np.array(selection.positions)
     box = universe.trajectory[0].dimensions[:3]
     sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])
     jump_data = (
@@ -1411,9 +1395,9 @@ def parse_jumps(universe, selection):
     )
 
     for i_frame, _ in enumerate(universe.trajectory[1:]):
-        curr = deepcopy(selection.positions)
+        curr = np.array(selection.positions)
         delta = ((curr - prev) / box).round().astype(np.int8)
-        prev = deepcopy(curr)
+        prev = np.array(curr)
         for d in range(3):
             col, = np.where(delta[:, d] != 0)
             jump_data[d].col.extend(col)
@@ -1423,19 +1407,19 @@ def parse_jumps(universe, selection):
     return jump_data
 
 
-def generate_nojump_matrices(universe, selection):
-    jump_data = parse_jumps(universe, selection)
-    N = len(universe.trajectory)
-    M = selection.positions.shape[0]
+def __generate_nojump_matrices(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):
+    jump_data = __parse_jumps(universe, selection)
+    n_frames = len(universe.trajectory)
+    n_atoms = selection.positions.shape[0]
 
     nojump_matrices = tuple(
-        sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(N, M)) for m in jump_data
+        sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(n_frames, n_atoms)) for m in jump_data
     )
     return nojump_matrices
 
 
-def get_nojump_positions(universe, selection):
-    nojump_matrices = generate_nojump_matrices(universe, selection)
+def __get_nojump_positions(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):
+    nojump_matrices = __generate_nojump_matrices(universe, selection)
     box = universe.trajectory[0].dimensions[:3]
 
     nojump_positions = []
@@ -1448,20 +1432,18 @@ def get_nojump_positions(universe, selection):
     return np.array(nojump_positions)
 
 
-def calc_radius_of_gyration(universe, molecule_atom_indices):
+def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices: NDArray):
     '''
-    Calculates the radius of gyration as a function of time for the atoms "molecule_atom_indices".
+    Calculates the radius of gyration as a function of time for the atoms 'molecule_atom_indices'.
     '''
 
-    if universe is None:
-        return
-    if universe.trajectory[0].dimensions is None:
+    if universe is None or universe.trajectory is None or universe.trajectory[0].dimensions is None:
         return
 
     selection = ' '.join([str(i) for i in molecule_atom_indices])
     selection = f'index {selection}'
     molecule = universe.select_atoms(selection)
-    rg_results = {}
+    rg_results: Dict[str, Any] = {}
     rg_results['type'] = 'molecular'
     rg_results['times'] = []
     rg_results['value'] = []
@@ -1475,10 +1457,13 @@ def calc_radius_of_gyration(universe, molecule_atom_indices):
     return rg_results
 
 
-def calc_molecular_radius_of_gyration(universe, system_topology):
+def calc_molecular_radius_of_gyration(universe: MDAnalysis.Universe, system_topology):
     '''
     Calculates the radius of gyration as a function of time for each polymer in the system.
     '''
+
+    if not system_topology:
+        return []
 
     rg_results = []
     for molgroup in system_topology:

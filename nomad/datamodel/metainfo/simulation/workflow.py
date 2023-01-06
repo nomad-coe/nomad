@@ -1253,6 +1253,8 @@ class RadialDistributionFunction(EnsembleProperty):
 
     m_def = Section(validate=False)
 
+    _rdf_results = None
+
     radial_distribution_function_values = SubSection(sub_section=RadialDistributionFunctionValues.m_def, repeats=True)
 
     def normalize(self, archive, logger):
@@ -1347,6 +1349,8 @@ class RadiusOfGyration(TrajectoryProperty):
     '''
 
     m_def = Section(validate=False)
+
+    _rg_results = None
 
     atomsgroup_ref = Quantity(
         type=Reference(AtomsGroup.m_def),
@@ -1497,6 +1501,8 @@ class MeanSquaredDisplacement(CorrelationFunction):
 
     m_def = Section(validate=False)
 
+    _msd_results = None
+
     mean_squared_displacement_values = SubSection(sub_section=MeanSquaredDisplacementValues.m_def, repeats=True)
 
     def normalize(self, archive, logger):
@@ -1604,37 +1610,35 @@ class MolecularDynamicsResults(ThermodynamicsResults):
             flag_warned = False
             sec_rgs_calc = None
             system_topology = sec_system.get('atoms_group')
-            if system_topology:
-                rg_results = calc_molecular_radius_of_gyration(universe, system_topology)
-                for rg in rg_results:
-                    sec_rgs = RadiusOfGyration()
-                    sec_rgs._rg_results = rg
-                    self.radius_of_gyration.append(sec_rgs)
+            rg_results = calc_molecular_radius_of_gyration(universe, system_topology)
+            for rg in rg_results:
+                sec_rgs = RadiusOfGyration()
+                sec_rgs._rg_results = rg
+                self.radius_of_gyration.append(sec_rgs)
 
-                    # disperse results into calculation section
-                    n_frames = rg.get('n_frames')
-                    if len(sec_calc) == 0:
-                        for __ in range(n_frames):
-                            sec_calc = self.run.m_create(Calculation)
-                    elif n_frames != len(sec_calc):
-                        if not flag_warned:
-                            self.logger.warning(
-                                'Unexpected mismatch in number of calculations and number of'
-                                'trajectory frames. Not storing Rg values under calculation.')
-                            flag_warned = True
-                        # TODO sync calculation and system sections to be able to store the Rgs under calculation
-                        continue
-                    for i_calc, calc in enumerate(sec_calc):
-                        sec_rgs_calc = calc.radius_of_gyration
-                        if not sec_rgs_calc:
-                            sec_rgs_calc = calc.m_create(RadiusOfGyrationCalculation)
-                            sec_rgs_calc.kind = rg.get('type')
-                        else:
-                            sec_rgs_calc = sec_rgs_calc[0]
-                        sec_rg_values = sec_rgs_calc.m_create(RadiusOfGyrationValuesCalculation)
-                        sec_rg_values.atomsgroup_ref = rg.get('atomsgroup_ref')
-                        sec_rg_values.label = rg.get('label')
-                        sec_rg_values.value = rg.get('value')[i_calc]
+                # disperse results into calculation section
+                n_frames = rg.get('n_frames')
+                if len(sec_calc) == 0:
+                    sec_calc = [self.run.m_create(Calculation) for _ in range(n_frames)]
+                elif n_frames != len(sec_calc):
+                    if not flag_warned:
+                        self.logger.warning(
+                            'Unexpected mismatch in number of calculations and number of'
+                            'trajectory frames. Not storing Rg values under calculation.')
+                        flag_warned = True
+                    # TODO sync calculation and system sections to be able to store the Rgs under calculation
+                    continue
+                for i_calc, calc in enumerate(sec_calc):
+                    sec_rgs_calc = calc.radius_of_gyration
+                    if not sec_rgs_calc:
+                        sec_rgs_calc = calc.m_create(RadiusOfGyrationCalculation)
+                        sec_rgs_calc.kind = rg.get('type')
+                    else:
+                        sec_rgs_calc = sec_rgs_calc[0]
+                    sec_rg_values = sec_rgs_calc.m_create(RadiusOfGyrationValuesCalculation)
+                    sec_rg_values.atomsgroup_ref = rg.get('atomsgroup_ref')
+                    sec_rg_values.label = rg.get('label')
+                    sec_rg_values.value = rg.get('value')[i_calc]
 
 
 class MolecularDynamics(SerialSimulation):
