@@ -1298,27 +1298,26 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
                     rdf.results.rdf, np.ones((n_smooth,)) / n_smooth,
                     mode='same')[int(n_smooth / 2):-int(n_smooth / 2)])
 
+            flag_logging_error = False
             for interval_group in interval_indices:
                 split_weights = n_frames_split[np.array(interval_group)] / np.sum(n_frames_split[np.array(interval_group)])
                 if abs(np.sum(split_weights) - 1.0) > 1e-6:
-                    logging.error('Something went wrong in calc_molecular_rdf(), interval group weights do not sum to 1.'
-                                  'Skipping this interval group.')
+                    flag_logging_error = True
                     continue
                 rdf_values_avg = split_weights[0] * rdf_results_interval['value'][interval_group[0]]
                 for i_interval, interval in enumerate(interval_group[1:]):
                     if rdf_results_interval['types'][interval] != rdf_results_interval['types'][interval - 1]:
-                        logging.error('Something went wrong in calc_molecular_rdf(), trying to average different rdf types.'
-                                      'Skipping this interval group.')
+                        flag_logging_error = True
                         continue
                     if rdf_results_interval['variables_name'][interval] != rdf_results_interval['variables_name'][interval - 1]:
-                        logging.error('Something went wrong in calc_molecular_rdf(), trying to average rdfs with different variables_name.'
-                                      'Skipping this interval group.')
+                        flag_logging_error = True
                         continue
                     if not (rdf_results_interval['bins'][interval] == rdf_results_interval['bins'][interval - 1]).all():
-                        logging.error('Something went wrong in calc_molecular_rdf(), trying to average rdfs with different bins.'
-                                      'Skipping this interval group.')
+                        flag_logging_error = True
                         continue
                     rdf_values_avg += split_weights[i_interval + 1] * rdf_results_interval['value'][interval]
+                if flag_logging_error:
+                    logging.error('Something went wrong in calc_molecular_rdf(). Some interval groups were skipped.')
                 rdf_results['types'].append(rdf_results_interval['types'][interval_group[0]])
                 rdf_results['variables_name'].append(rdf_results_interval['variables_name'][interval_group[0]])
                 rdf_results['bins'].append(rdf_results_interval['bins'][interval_group[0]])
