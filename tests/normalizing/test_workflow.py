@@ -165,7 +165,7 @@ def test_molecular_dynamics_workflow(workflow_archive):
 
 def test_rdf_gromacs(workflow_archive):
     archive = workflow_archive(
-        'parsers/gromacs', 'dependencies/parsers/atomistic/tests/data/gromacs/fe_test/mdrun.out')
+        'parsers/gromacs', 'tests/data/parsers/gromacs/fe_test/mdrun.out')
 
     sec_workflow2 = archive.workflow2
     section_md = sec_workflow2.results
@@ -193,7 +193,7 @@ def test_rdf_gromacs(workflow_archive):
 
 def test_msd_gromacs(workflow_archive):
     archive = workflow_archive(
-        'parsers/gromacs', 'dependencies/parsers/atomistic/tests/data/gromacs/cgwater/mdrun.log')
+        'parsers/gromacs', 'tests/data/parsers/gromacs/cgwater/mdrun.log')
 
     sec_workflow2 = archive.workflow2
     section_md = sec_workflow2.results
@@ -214,7 +214,7 @@ def test_msd_gromacs(workflow_archive):
 
 def test_radius_of_gyration_gromacs(workflow_archive):
     archive = workflow_archive(
-        'parsers/gromacs', 'dependencies/parsers/atomistic/tests/data/gromacs/protein_fsfg/nvt.log')
+        'parsers/gromacs', 'tests/data/parsers/gromacs/protein_fsfg/nvt.log')
 
     sec_calc = archive.run[0].calculation[4]
     sec_rg = sec_calc.radius_of_gyration[0]
@@ -257,7 +257,7 @@ def test_radius_of_gyration_gromacs(workflow_archive):
 
 def test_rdf_lammps(workflow_archive):
     archive = workflow_archive(
-        'parsers/lammps', 'dependencies/parsers/atomistic/tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
+        'parsers/lammps', 'tests/data/parsers/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
 
     sec_workflow2 = archive.workflow2
     section_md = sec_workflow2.results
@@ -301,7 +301,7 @@ def test_rdf_lammps(workflow_archive):
 
 def test_msd_lammps(workflow_archive):
     archive = workflow_archive(
-        'parsers/lammps', 'dependencies/parsers/atomistic/tests/data/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
+        'parsers/lammps', 'tests/data/parsers/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
 
     sec_workflow2 = archive.workflow2
     section_md = sec_workflow2.results
@@ -334,7 +334,7 @@ def test_msd_lammps(workflow_archive):
 
 def test_radius_of_gyration_lammps(workflow_archive):
     archive = workflow_archive(
-        'parsers/lammps', 'dependencies/parsers/atomistic/tests/data/lammps/polymer_melt/Equil/nohup.out')
+        'parsers/lammps', 'tests/data/parsers/lammps/polymer_melt/Equil/nohup.out')
 
     sec_calc = archive.run[0].calculation[4]
     sec_rg = sec_calc.radius_of_gyration[0]

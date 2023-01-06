@@ -1,0 +1,18 @@
+# This file was created Tue Jul 25 19:07:31 2017
+# Created by:
+#                   :-) GROMACS - gmx mdrun, VERSION 5.1.4 (-:
+# 
+# Executable:   /Users/bonat/GROMACS/BUILD/bin/gmx_mpi
+# Data prefix:  /Users/bonat/GROMACS/BUILD
+# Command line:
+#   gmx_mpi mdrun -notunepme
+# gmx mdrun is part of G R O M A C S:
+#
+# Groningen Machine for Chemical Simulation
+#
+@    title "dH/d\xl\f{}"
+@    xaxis  label "Time (ps)"
+@    yaxis  label "dH/d\xl\f{} (kJ/mol [\xl\f{}]\S-1\N)"
+@TYPE xy
+@ subtitle "T = 298 (K) "
+0.0000 -99.382027

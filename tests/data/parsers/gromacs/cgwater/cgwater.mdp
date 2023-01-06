@@ -1,0 +1,49 @@
+; Run Control
+integrator          =  sd
+tinit               =  0.0
+dt                  =  0.002	; 1.0 fs
+nsteps              =  100000	; 100 ns	
+nstcomm             =  1   	; no. steps between removing com motion
+comm-mode	    =  linear	; remove com translation
+
+; Output Control
+nstxout	            =  500	; no. steps between printing coords to trr file => 1ps
+nstvout             =  500     ; no. steps between printing veloc  to trr file
+nstfout             =  500     ; no. steps between printing forces to trr file => 1ps
+nstlog              =  500     ; no. steps between printing energy to log file => 1ps
+nstenergy           =  500     ; no. steps between printing energy to edr file => 1ps
+nstxtcout           =  0        ; no. stpes between printing coords to xtc file
+energygrps          =  System   ; groups for writing energy file    
+
+; Neighbor searching
+cutoff-scheme            = Group
+nstlist             =  1	; update neighbor list every step
+ns_type             =  grid	; check neighbor list using grid
+rlist               =  0.9	; cutoff distance (nm) for short-range neighbor list
+rlistlong = 0.9
+pbc                 =  xyz
+
+; Electrostatics and VdW
+coulombtype         =  User	; fast particle-mesh ewald electrostatics
+;rcoulomb            =  0.9	; distance for the Coulomb cut-off
+vdwtype	            =  User	; truncated LJ interactions
+;rvdw		    =  0.9 	; distance for LJ cut-off
+;DispCorr	    =  EnerPres	; apply long range disp. correct. for Energy/Pres
+;fourierspacing	    =  0.08	; max grid spacing fr FFT grid in PME
+;pme_order	    =  6 	; interpolation order for PME
+;ewald_rtol	    =  1e-06	; relative strength of direct potential at cutoff
+;optimize_fft	    =  yes	; optimize fft_grids
+
+; Temperature Coupling
+;tcoupl	            =  nose-hoover	; nose-hoover for correct ensemble
+tc_grps             =  System           ; groups to couple separtly to temp. bath
+tau_t               =  0.5 		; time constant for coupling
+ref_t		    =  298  		; ref. temperature for coupling
+
+; Velocity generation
+gen_vel             =  yes              ; generate velocities with Max. dist.
+gen_temp            =  298              ; temp. for Max. dist.
+gen_seed            =  173529           ; for random number generator
+
+
+

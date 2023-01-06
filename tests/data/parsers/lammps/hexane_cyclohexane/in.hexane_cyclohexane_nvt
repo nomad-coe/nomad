@@ -1,0 +1,52 @@
+# input script for topotools tutorial step 2d
+units real
+boundary p p p
+atom_style full
+
+read_data data.hexane_cyclohexane
+
+# interaction styles
+pair_style lj/cut/coul/cut 12.0
+bond_style harmonic
+angle_style harmonic
+dihedral_style opls
+pair_modify mix geometric tail yes
+
+# OPLS considers 1-4 interactions with 50%. 
+special_bonds lj/coul 0.0 0.0 0.5
+
+# force field parameters
+# missing nonbonded parameters are inferred from mixing.
+pair_coeff   1 1  0.066  3.50     # CT
+pair_coeff   2 2  0.03  2.50     # HC
+bond_coeff   1   268.0  1.529    # CT-CT
+bond_coeff   2   340.0  1.090    # CT-HC
+angle_coeff  1    58.35 112.7    # CT-CT-CT
+angle_coeff  2    37.5  110.7    # CT-CT-HC
+angle_coeff  3    33.0  107.8    # HC-CT-HC
+dihedral_coeff 1 1.740 -0.157 0.279 0.00 # CT-CT-CT-CT
+dihedral_coeff 2 0.000 0.000 0.366 0.000 # CT-CT-CT-HC
+dihedral_coeff 3 0.000 0.000 0.318 0.000 # HC-CT-CT-HC
+
+timestep 0.25
+reset_timestep 0
+neigh_modify every 10 delay 20 check yes
+thermo 400
+thermo_style multi
+
+fix 1 all nvt temp 300.0 300.0 100.0
+
+# equilibration trajectory
+dump 1 all custom 400 hexane_cyclohexane_nvt_20ps.lammpstrj id type x y z ix iy iz
+# dump_modify 1 unwrap yes
+
+log log.hexane_cyclohexane_nvt-thermo_style_multi
+
+# 20.0ps
+run 80000
+
+# keep a restart of this, too.
+write_restart hexane_cyclohexane_nvt.restart
+# this still has not been relaxed for pressure,
+# but it should be pretty close.
+
