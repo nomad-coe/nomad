@@ -1508,23 +1508,25 @@ class MeanSquaredDisplacement(CorrelationFunction):
     def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
-        if self._msd_results:
-            self.type = self._msd_results.get('type')
-            self.direction = self._msd_results.get('direction')
-            for i_type, moltype in enumerate(self._msd_results.get('types', [])):
-                sec_msd_values = self.m_create(MeanSquaredDisplacementValues)
-                sec_msd_values.label = str(moltype)
-                sec_msd_values.n_times = len(self._msd_results.get('times', [[]] * i_type)[i_type])
-                sec_msd_values.times = self._msd_results['times'][i_type] if self._msd_results.get(
-                    'times') is not None else []
-                sec_msd_values.value = self._msd_results['value'][i_type] if self._msd_results.get(
-                    'value') is not None else []
-                sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
-                sec_diffusion.value = self._msd_results['diffusion_constant'][i_type] if self._msd_results.get(
-                    'diffusion_constant') is not None else []
-                sec_diffusion.error_type = 'Pearson correlation coefficient'
-                sec_diffusion.errors = self._msd_results['error_diffusion_constant'][i_type] if self._msd_results.get(
-                    'error_diffusion_constant') is not None else []
+        if not self._msd_results:
+            return
+
+        self.type = self._msd_results.get('type')
+        self.direction = self._msd_results.get('direction')
+        for i_type, moltype in enumerate(self._msd_results.get('types', [])):
+            sec_msd_values = self.m_create(MeanSquaredDisplacementValues)
+            sec_msd_values.label = str(moltype)
+            sec_msd_values.n_times = len(self._msd_results.get('times', [[]] * i_type)[i_type])
+            sec_msd_values.times = self._msd_results['times'][i_type] if self._msd_results.get(
+                'times') is not None else []
+            sec_msd_values.value = self._msd_results['value'][i_type] if self._msd_results.get(
+                'value') is not None else []
+            sec_diffusion = sec_msd_values.m_create(DiffusionConstantValues)
+            sec_diffusion.value = self._msd_results['diffusion_constant'][i_type] if self._msd_results.get(
+                'diffusion_constant') is not None else []
+            sec_diffusion.error_type = 'Pearson correlation coefficient'
+            sec_diffusion.errors = self._msd_results['error_diffusion_constant'][i_type] if self._msd_results.get(
+                'error_diffusion_constant') is not None else []
 
 
 class MolecularDynamicsResults(ThermodynamicsResults):
