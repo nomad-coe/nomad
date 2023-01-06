@@ -1222,7 +1222,7 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
     interval_indices: 2D array specifying the groups of the n_traj_split intervals to be averaged
     '''
 
-    if universe is None or universe.trajectory is None or universe.trajectory[0].dimensions is None:
+    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
         return
 
     n_frames = universe.trajectory.n_frames
@@ -1342,7 +1342,7 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe):
         vec = start - current
         return (vec ** 2).sum(axis=1).mean()
 
-    if universe is None or universe.trajectory is None or universe.trajectory[0].dimensions is None:
+    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
         return
 
     n_frames = universe.trajectory.n_frames
@@ -1437,7 +1437,7 @@ def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices
     Calculates the radius of gyration as a function of time for the atoms 'molecule_atom_indices'.
     '''
 
-    if universe is None or universe.trajectory is None or universe.trajectory[0].dimensions is None:
+    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
         return
 
     selection = ' '.join([str(i) for i in molecule_atom_indices])
