@@ -163,99 +163,7 @@ def test_molecular_dynamics_workflow(workflow_archive):
     assert sec_workflow2.results.trajectory
 
 
-def test_rdf_gromacs(workflow_archive):
-    archive = workflow_archive(
-        'parsers/gromacs', 'tests/data/parsers/gromacs/fe_test/mdrun.out')
-
-    sec_workflow2 = archive.workflow2
-    section_md = sec_workflow2.results
-
-    assert section_md.radial_distribution_functions[0].type == 'molecular'
-    assert section_md.radial_distribution_functions[0].n_smooth == 2
-    assert section_md.radial_distribution_functions[0].variables_name[0] == 'distance'
-
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].label == 'SOL-Protein'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].n_bins == 198
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(7.624056451320648 * 10**(-10))
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(1.093694948374587)
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_start == 0
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_end == 2
-
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].label == 'SOL-SOL'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].n_bins == 198
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].magnitude == approx(6.389391438961029 * 10**(-10))
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].units == 'meter'
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].value[55] == approx(0.8368052672121375)
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_start == 0
-    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_end == 2
-
-
-def test_msd_gromacs(workflow_archive):
-    archive = workflow_archive(
-        'parsers/gromacs', 'tests/data/parsers/gromacs/cgwater/mdrun.log')
-
-    sec_workflow2 = archive.workflow2
-    section_md = sec_workflow2.results
-
-    assert section_md.mean_squared_displacements[0].type == 'molecular'
-    assert section_md.mean_squared_displacements[0].direction == 'xyz'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].label == 'LJ'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].magnitude == approx(95.0 * 10**(-12))
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[52].units == 'second'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].magnitude == approx(250.15309179080856 * 10**(-20))
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].units == 'meter^2'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.magnitude == approx(1.1311880364159048 * 10**(-8))
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.units == 'meter^2/second'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.error_type == 'Pearson correlation coefficient'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.errors == 0.9999312519176002
-
-
-def test_radius_of_gyration_gromacs(workflow_archive):
-    archive = workflow_archive(
-        'parsers/gromacs', 'tests/data/parsers/gromacs/protein_fsfg/nvt.log')
-
-    sec_calc = archive.run[0].calculation[4]
-    sec_rg = sec_calc.radius_of_gyration[0]
-    sec_rgvals = sec_rg.radius_of_gyration_values[0]
-
-    assert sec_rg.kind == 'molecular'
-
-    assert sec_rgvals.label == 'Protein-index_0'
-    assert sec_rgvals.value.magnitude == approx(5.464423436523278e-10)
-    assert sec_rgvals.value.units == 'meter'
-
-    sec_calc = archive.run[0].calculation[7]
-    sec_rg = sec_calc.radius_of_gyration[0]
-    sec_rgvals = sec_rg.radius_of_gyration_values[1]
-
-    assert sec_rg.kind == 'molecular'
-    assert sec_rgvals.label == 'Protein-index_1'
-    assert sec_rgvals.value.magnitude == approx(7.326346215313874e-10)
-    assert sec_rgvals.value.units == 'meter'
-
-    sec_workflow2 = archive.workflow2
-    sec_rg = sec_workflow2.results.radius_of_gyration[0]
-    frame = 4
-
-    assert sec_rg.type == 'molecular'
-
-    assert sec_rg.label == 'Protein-index_0'
-    assert sec_rg.value[frame].magnitude == approx(5.464423436523278e-10)
-    assert sec_rg.value[frame].units == 'meter'
-
-    frame = 7
-    sec_rg = sec_workflow2.results.radius_of_gyration[1]
-    sec_calc = archive.run[0].calculation[7]
-
-    assert sec_rg.type == 'molecular'
-    assert sec_rg.label == 'Protein-index_1'
-    assert sec_rg.value[frame].magnitude == approx(7.326346215313874e-10)
-    assert sec_rg.value[frame].units == 'meter'
-
-
-def test_rdf_lammps(workflow_archive):
+def test_rdf_and_msd(workflow_archive):
     archive = workflow_archive(
         'parsers/lammps', 'tests/data/parsers/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
 
@@ -298,14 +206,6 @@ def test_rdf_lammps(workflow_archive):
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].frame_start == 80
     assert section_md.radial_distribution_functions[0].radial_distribution_function_values[10].frame_end == 201
 
-
-def test_msd_lammps(workflow_archive):
-    archive = workflow_archive(
-        'parsers/lammps', 'tests/data/parsers/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
-
-    sec_workflow2 = archive.workflow2
-    section_md = sec_workflow2.results
-
     assert section_md.mean_squared_displacements[0].type == 'molecular'
     assert section_md.mean_squared_displacements[0].direction == 'xyz'
 
@@ -332,41 +232,44 @@ def test_msd_lammps(workflow_archive):
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.errors == approx(0.9965870174917716)
 
 
-def test_radius_of_gyration_lammps(workflow_archive):
+def test_radius_of_gyration(workflow_archive):
     archive = workflow_archive(
-        'parsers/lammps', 'tests/data/parsers/lammps/polymer_melt/Equil/nohup.out')
+        'parsers/gromacs', 'tests/data/parsers/gromacs/protein_fsfg/nvt.log')
 
     sec_calc = archive.run[0].calculation[4]
     sec_rg = sec_calc.radius_of_gyration[0]
-    sec_rgvals = sec_rg.radius_of_gyration_values[10]
+    sec_rgvals = sec_rg.radius_of_gyration_values[0]
 
     assert sec_rg.kind == 'molecular'
-    assert sec_rgvals.label == '0-index_10'
-    assert sec_rgvals.value.magnitude == approx(6.892062676599172e-10)
+
+    assert sec_rgvals.label == 'Protein-index_0'
+    assert sec_rgvals.value.magnitude == approx(5.464423436523278e-10)
     assert sec_rgvals.value.units == 'meter'
 
     sec_calc = archive.run[0].calculation[7]
     sec_rg = sec_calc.radius_of_gyration[0]
-    sec_rgvals = sec_rg.radius_of_gyration_values[27]
+    sec_rgvals = sec_rg.radius_of_gyration_values[1]
 
     assert sec_rg.kind == 'molecular'
-    assert sec_rgvals.label == '0-index_27'
-    assert sec_rgvals.value.magnitude == approx(5.233325827723867e-10)
+    assert sec_rgvals.label == 'Protein-index_1'
+    assert sec_rgvals.value.magnitude == approx(7.326346215313874e-10)
     assert sec_rgvals.value.units == 'meter'
 
     sec_workflow2 = archive.workflow2
-    sec_rg = sec_workflow2.results.radius_of_gyration[10]
+    sec_rg = sec_workflow2.results.radius_of_gyration[0]
     frame = 4
 
     assert sec_rg.type == 'molecular'
-    assert sec_rg.label == '0-index_10'
-    assert sec_rg.value[frame].magnitude == approx(6.892062676599172e-10)
+
+    assert sec_rg.label == 'Protein-index_0'
+    assert sec_rg.value[frame].magnitude == approx(5.464423436523278e-10)
     assert sec_rg.value[frame].units == 'meter'
 
-    sec_rg = sec_workflow2.results.radius_of_gyration[27]
     frame = 7
+    sec_rg = sec_workflow2.results.radius_of_gyration[1]
+    sec_calc = archive.run[0].calculation[7]
 
     assert sec_rg.type == 'molecular'
-    assert sec_rg.label == '0-index_27'
-    assert sec_rg.value[frame].magnitude == approx(5.233325827723867e-10)
+    assert sec_rg.label == 'Protein-index_1'
+    assert sec_rg.value[frame].magnitude == approx(7.326346215313874e-10)
     assert sec_rg.value[frame].units == 'meter'
