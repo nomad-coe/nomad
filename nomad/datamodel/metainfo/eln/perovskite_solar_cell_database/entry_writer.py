@@ -21,6 +21,7 @@ import pandas as pd
 import json
 import numpy
 from collections import defaultdict
+from datetime import date, datetime
 import os
 
 
@@ -35,7 +36,7 @@ class PerovskiteEntryWriter():
 
         """
         self.csv_database_path = csv_database_path
-        self.df_db = pd.read_csv(self.csv_database_path, skiprows=0)
+        self.df_db = pd.read_csv(self.csv_database_path, skiprows=0, parse_dates=["Ref_publication_date"])
 
     def read_columns(self):
         '''
@@ -120,7 +121,6 @@ class PerovskiteEntryWriter():
                 target_dict = dict(target_dict)
                 id = target_dict['data']["ref"]['ID']
                 sufix = '.archive.json'
-
             save_path = os.path.join(target_dir, str(id) + sufix)
             with open(save_path, 'w') as fp:
                 json.dump(target_dict, fp, cls=MyEncoder)
@@ -137,5 +137,7 @@ class MyEncoder(json.JSONEncoder):
             return bool(obj)
         elif isinstance(obj, numpy.ndarray):
             return obj.tolist()
+        elif isinstance(obj, (datetime, date,)):
+            return obj.isoformat()
         else:
             return super(MyEncoder, self).default(obj)
