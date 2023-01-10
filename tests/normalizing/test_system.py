@@ -216,6 +216,12 @@ def test_symmetry_classification_fcc():
     assert all(origin_shift == expected_origin_shift)
 
 
+def test_to_ase():
+    archive = parse_file(fcc_symmetry)
+    archive = run_normalize(archive)
+    assert archive.run[0].system[0].atoms.to_ase() is not None
+
+
 def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
     """Tests that the system classification is correct for different kind of systems
     """
