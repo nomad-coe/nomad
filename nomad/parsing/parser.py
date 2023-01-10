@@ -26,6 +26,8 @@ from functools import lru_cache
 import importlib
 from pydantic import BaseModel, Extra  # pylint: disable=unused-import
 import yaml
+import h5py
+import numpy as np
 
 from nomad import config, utils
 from nomad.datamodel import EntryArchive, EntryMetadata
@@ -186,6 +188,8 @@ class MatchingParser(Parser):
         mainfile_mime_re: A regexp that is used to match against a files mime type
         mainfile_contents_re: A regexp that is used to match the first 1024 bytes of a
             potential mainfile.
+        mainfile_contents_dict: A nested dictionary to match the contents of the file. If provided
+            will load the file and match the value of the key(s) provided.
         mainfile_name_re: A regexp that is used to match the paths of potential mainfiles
         mainfile_alternative: If True files are mainfile if no mainfile_name_re matching file
             is present in the same directory.
@@ -205,6 +209,7 @@ class MatchingParser(Parser):
             mainfile_mime_re: str = r'text/.*',
             mainfile_name_re: str = r'.*',
             mainfile_alternative: bool = False,
+            mainfile_contents_dict: dict = None,
             domain='dft',
             supported_compressions: List[str] = []) -> None:
 
@@ -254,6 +259,7 @@ class MatchingParser(Parser):
             self._mainfile_binary_header_re = re.compile(mainfile_binary_header_re)
         else:
             self._mainfile_binary_header_re = None
+        self._mainfile_contents_dict = mainfile_contents_dict
         self._supported_compressions = supported_compressions
 
         self._ls = lru_cache(maxsize=16)(lambda directory: os.listdir(directory))
@@ -312,6 +318,41 @@ class MatchingParser(Parser):
                     os.path.isfile(sibling)
                 if sibling_is_mainfile:
                     return False
+
+        if self._mainfile_contents_dict is not None:
+            is_match = False
+            if mime.startswith('application/x-hdf'):
+                try:
+                    def match(value, reference):
+                        if not isinstance(value, dict):
+                            equal = value == reference[()]
+                            return equal.all() if isinstance(equal, np.ndarray) else equal
+
+                        if not hasattr(reference, 'keys'):
+                            return False
+
+                        matches = []
+                        reference_keys = list(reference.keys())
+                        for key, val in value.items():
+                            if key == '__has_key':
+                                matches.append(val in reference_keys)
+                            elif key == '__has_all_keys':
+                                assert isinstance(val, list)
+                                matches.append(False not in [v in reference_keys for v in val])
+                            else:
+                                if key not in reference_keys:
+                                    matches.append(False)
+                                    continue
+
+                                matches.append(match(val, reference[key]))
+                        return False not in matches
+
+                    with h5py.File(filename) as f:
+                        is_match = match(self._mainfile_contents_dict, f)
+                except Exception:
+                    pass
+            if not is_match:
+                return False
 
         return True
 

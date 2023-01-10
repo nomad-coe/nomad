@@ -23,8 +23,8 @@ from shutil import copyfile
 
 from nomad import utils, files
 from nomad.datamodel import EntryArchive
-from nomad.parsing import BrokenParser
-from nomad.parsing.parsers import parser_dict, match_parser, run_parser
+from nomad.parsing import BrokenParser, MatchingParserInterface
+from nomad.parsing.parsers import parser_dict, match_parser, run_parser, prefix_workflow, parsers
 from nomad.utils import dump_json
 
 parser_examples = [
@@ -188,10 +188,45 @@ def with_latin_1_file(raw_files):
     os.remove('tests/data/parsers/latin-1.out')
 
 
-def test_match(raw_files, with_latin_1_file, no_warn):
+@pytest.mark.parametrize('parsers, num_output_files', [
+    ([[MatchingParserInterface(
+        'workflowparsers.FHIVibesParser',
+        metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
+        mainfile_name_re=(r'^.*\.(nc)$'),
+        mainfile_mime_re=r'(application/x-hdf)',
+        mainfile_binary_header_re=br'^\x89HDF',
+        mainfile_contents_dict={'__has_all_keys': ['I', 'a', 'b']}
+    )], 1]),
+    ([[MatchingParserInterface(
+        'workflowparsers.FHIVibesParser',
+        metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
+        mainfile_mime_re=r'(application/x-hdf)',
+        mainfile_binary_header_re=br'^\x89HDF',
+        mainfile_contents_dict={'__has_key': 'aims_uuid'}
+    )], 1]),
+    ([[MatchingParserInterface(
+        'workflowparsers.FHIVibesParser',
+        metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
+        mainfile_mime_re=r'(application/x-hdf)',
+        mainfile_binary_header_re=br'^\x89HDF',
+        mainfile_contents_dict={'a': [0, 0, 0]}
+    )], 1]),
+    ([[MatchingParserInterface(
+        'workflowparsers.FHIVibesParser',
+        metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
+        mainfile_mime_re=r'(application/x-hdf)',
+        mainfile_binary_header_re=br'^\x89HDF',
+        mainfile_contents_dict={'I': [0, 0]}
+    )], 0]),
+    (parsers, correct_num_output_files),
+])
+def test_match(raw_files, with_latin_1_file, no_warn, parsers, num_output_files, monkeypatch):
     example_upload_id = 'example_upload_id'
     upload_files = files.StagingUploadFiles(example_upload_id, create=True)
     upload_files.add_rawfiles('tests/data/parsers')
+
+    if parsers:
+        monkeypatch.setattr('nomad.parsing.parsers.parsers', parsers)
 
     matched_mainfiles = {}
     for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
@@ -200,7 +235,7 @@ def test_match(raw_files, with_latin_1_file, no_warn):
         if parser is not None and not isinstance(parser, BrokenParser):
             matched_mainfiles[mainfile] = parser
 
-    assert len(matched_mainfiles) == correct_num_output_files, ', '.join([
+    assert len(matched_mainfiles) == num_output_files, ', '.join([
         '%s: %s' % (parser.name, mainfile)
         for mainfile, parser in matched_mainfiles.items()])
 

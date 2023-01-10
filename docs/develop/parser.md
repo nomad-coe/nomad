@@ -283,7 +283,10 @@ class ExampleParser(MatchingParser):
         super().__init__(
             name='parsers/example', code_name='EXAMPLE', code_homepage='https://www.example.eu/',
             mainfile_mime_re=r'(application/.*)|(text/.*)',
-            mainfile_contents_re=(r'^\s*#\s*This is example output'))
+            mainfile_contents_re=(r'^\s*#\s*This is example output'),
+            supported_compressions=["gz", "bz2", "xz"],
+            mainfile_alternative=False,
+            mainfile_contents_dict={'program': {'version': '1', 'name': 'EXAMPLE'}})
 ```
 
 - `mainfile_mime_re`: A regular expression on the mime type of files. The parser is run only
@@ -291,6 +294,11 @@ class ExampleParser(MatchingParser):
 - `mainfile_contents_re`: A regular expression that is applied to the first 4k of a file.
 The parser is run only on files where this matches.
 - `mainfile_name_re`: A regular expression that can be used to match against the name and path of the file.
+- `supported compressions`: A list of [gz, bz2], if the parser supports compressed files
+- `mainfile_alternative`: If True files are mainfile if no mainfile_name_re matching file
+is present in the same directory.
+- `mainfile_contents_dict`: A dictionary to match the contents of the file. If provided
+will load the file and match the value of the key(s) provided.
 
 Not all of these attributes have to be used. Those that are given must all match in order
 to use the parser on a file.
