@@ -552,8 +552,10 @@ parsers = [
     MatchingParserInterface(
         'workflowparsers.FHIVibesParser',
         metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
-        mainfile_name_re=(r'^.*\.(nc)$'), mainfile_mime_re=r'(application/x-hdf)',
-        mainfile_binary_header_re=br'^\x89HDF'
+        mainfile_name_re=(r'^.*\.(nc)$'),
+        mainfile_mime_re=r'(application/x-hdf)',
+        mainfile_binary_header_re=br'^\x89HDF',
+        mainfile_contents_dict={'__has_all_keys': ['I', 'a', 'b']}
     ),
     MatchingParserInterface(
         'workflowparsers.LobsterParser',
