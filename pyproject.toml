@@ -53,7 +53,7 @@ parsing = [
     'panedr==0.2',
     'parmed==3.0.0',
     'mdtraj==1.9.6',
-    'mdanalysis',
+    'mdanalysis==2.1.0',
     'xarray',
     'phonopy==2.11.0',
     'pymatgen==2022.0.17',
