@@ -506,7 +506,8 @@ class ResultsNormalizer(Normalizer):
                 potential_energy = []
                 potential_energy_time = []
 
-                for calc in workflow.calculations_ref:
+                calculations_ref = workflow.calculations_ref if workflow.calculations_ref else []
+                for calc in calculations_ref:
                     time = calc.time
                     if time is not None:
                         time = time.magnitude
@@ -582,7 +583,7 @@ class ResultsNormalizer(Normalizer):
             # Check validity
             if workflow.type == "molecular_dynamics":
                 md = self.get_md_methodology(workflow)
-                if workflow.calculations_ref[0].radius_of_gyration:
+                if workflow.calculations_ref and workflow.calculations_ref[0].radius_of_gyration:
                     for rg_index, rg in enumerate(workflow.calculations_ref[0].radius_of_gyration):
                         for rg_values_index, __ in enumerate(rg.radius_of_gyration_values):
                             rg_results = RadiusOfGyration()
