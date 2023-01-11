@@ -954,36 +954,60 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     mol_counter = 0
     residue_segindex = []
     resnames = []
-    residue_molnums = []
     residue_moltypes = []
+    residue_min_atom_index = []
+    residue_n_atoms = []
+    molecule_n_res = []
     for mol_group_ind, mol_group in enumerate(molecule_groups):
         atoms_segindices[mol_group.atom_indices] = mol_group_ind
         atom_segids[mol_group.atom_indices] = mol_group.label
         molecules = mol_group.atoms_group if mol_group.atoms_group is not None else []
         for mol in molecules:
             monomer_groups = mol.atoms_group
+            mol_res_counter = 0
             if monomer_groups:
                 for mon_group in monomer_groups:
                     monomers = mon_group.atoms_group
                     for mon in monomers:
-                        atom_resindex[mon.atom_indices] = res_counter
-                        atom_resnames[mon.atom_indices] = mon.label
                         resnames.append(mon.label)
                         residue_segindex.append(mol_group_ind)
-                        residue_molnums.append(mol_counter)
                         residue_moltypes.append(mol.label)
+                        residue_min_atom_index.append(np.min(mon.atom_indices))
+                        residue_n_atoms.append(len(mon.atom_indices))
                         res_counter += 1
+                        mol_res_counter += 1
             else:  # no monomers => whole molecule is it's own residue
-                atom_resindex[mol.atom_indices] = res_counter
-                atom_resnames[mol.atom_indices] = mol.label
                 resnames.append(mol.label)
                 residue_segindex.append(mol_group_ind)
-                residue_molnums.append(mol_counter)
                 residue_moltypes.append(mol.label)
+                residue_min_atom_index.append(np.min(mol.atom_indices))
+                residue_n_atoms.append(len(mol.atom_indices))
                 res_counter += 1
+                mol_res_counter += 1
+            molecule_n_res.append(mol_res_counter)
             mol_counter += 1
     n_residues = res_counter
     # n_molecules = mol_counter  # unused
+
+    # reorder the residues by atom_indices
+    residue_data = np.array([
+        [residue_min_atom_index[i], residue_n_atoms[i], residue_segindex[i], residue_moltypes[i], resnames[i]]
+        for i in range(len(residue_min_atom_index))], dtype=object)
+    residue_data = np.array(sorted(residue_data, key=lambda x: x[0], reverse=False)).T
+    residue_n_atoms = residue_data[1].astype(int)
+    residue_segindex = residue_data[2].astype(int)
+    residue_moltypes = residue_data[3]
+    resnames = residue_data[4]
+    res_index_counter = 0
+    for i_residue, res_n_atoms in enumerate(residue_n_atoms):
+        atom_resindex[res_index_counter:res_index_counter + res_n_atoms] = i_residue
+        atom_resnames[res_index_counter:res_index_counter + res_n_atoms] = resnames[i_residue]
+        res_index_counter += res_n_atoms
+    residue_molnums = np.array(range(n_residues), dtype='object')
+    mol_index_counter = 0
+    for i_molecule, n_res in enumerate(molecule_n_res):
+        residue_molnums[mol_index_counter:mol_index_counter + n_res] = i_molecule
+        mol_index_counter += n_res
 
     # get the atom masses and charges
     masses = np.empty(n_atoms)
