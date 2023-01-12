@@ -500,7 +500,8 @@ parsers = [
     MatchingParserInterface(
         'atomisticparsers.LammpsParser',
         metadata_path=f'{prefix_atomistic}/lammps/metadata.yaml',
-        mainfile_contents_re=r'^LAMMPS [(][0-9]{2} [a-zA-Z]{3} [0-9]{4}[)]'
+        # mainfile_contents_re=r'^LAMMPS [(][0-9]{2} [a-zA-Z]{3} [0-9]{4}[)]'
+        mainfile_contents_re=r'^LAMMPS'
     ),
     MatchingParserInterface(
         'atomisticparsers.LibAtomsParser',
