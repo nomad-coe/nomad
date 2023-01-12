@@ -149,12 +149,13 @@ class NexusParser(MatchingParser):
                 parent_name = nx_parent.get('name', parent_type)  # type: ignore
 
                 attr_name = nx_attr.get('name')
-                # by default, we assume it is a 1D array
+                # It could be 1D array, float or int
                 attr_value = hdf_node.attrs[attr_name]
                 if not isinstance(attr_value, str):
-                    attr_value = [value for value in attr_value]
-                    if len(attr_value) == 1:
-                        attr_value = attr_value[0]
+                    if isinstance(attr_value, np.ndarray):
+                        attr_value = [value for value in attr_value]
+                        if len(attr_value) == 1:
+                            attr_value = attr_value[0]
 
                 attr_name = attr_name + "__attribute"
                 current = _to_section(attr_name, nx_def, nx_attr, current)
