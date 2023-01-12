@@ -57,7 +57,7 @@
         "short_description": "An example for analyzing ellipsometric data.",
         "description": "This example presents the capabilities of the NOMAD platform to store and standardize ellipsometry data. It shows the generation of a NeXus file according to the [NXellipsometry](https://manual.nexusformat.org/classes/contributed_definitions/NXellipsometry.html#nxellipsometry) application definition and a successive analysis of a SiO2 on Si Psi/Delta measurement.",
         "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/ellips-jupyter",
-        "path_prefix": "lab",
+        "path_prefix": "lab/tree",
         "mount_path": "/home/jovyan",
         "icon": "jupyter_logo.svg",
         "file_extensions": [
@@ -95,9 +95,11 @@
     },
     "xps": {
         "short_description": "An example for analyzing XPS data.",
-        "description": "Includes tools for analyzing XPS spectra and converting SPECS xml files into NeXus.",
-        "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/xps-jupyter",
-        "mount_path": "/home/jovyan",
+        "description": "Includes tools for analyzing X-ray Photoelectron Spectroscopy (XPS) spectra and converting SPECS xml files into NeXus.",
+        "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/xps-jupyter:0.1",
+        "path_prefix": "lab/tree",
+	"icon": "jupyter_logo.svg",
+	"mount_path": "/home/jovyan",
         "file_extensions": [
             "ipynb",
             "nxs",
@@ -108,6 +110,10 @@
             {
                 "name": "Florian Dobener",
                 "email": "florian.dobener@physik.hu-berlin.de"
+            },
+            {
+                "name": "Rubel Mozumder",
+                "email": "rubel.mozumder@physik.hu-berlin.de"
             }
         ]
     },
