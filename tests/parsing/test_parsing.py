@@ -59,13 +59,13 @@ parser_examples = [
     ('parsers/gpaw', 'tests/data/parsers/gpaw2/H2_lcao.gpw2'),
     ('parsers/atk', 'tests/data/parsers/atk/Si2.nc'),
     ('parsers/gulp', 'tests/data/parsers/gulp/example6.got'),
-    # ('parsers/siesta', 'tests/data/parsers/siesta/Fe/out'),
+    ('parsers/siesta', 'tests/data/parsers/siesta/Fe/out'),
     ('parsers/elk', 'tests/data/parsers/elk/Al/INFO.OUT'),
     ('parsers/elastic', 'dependencies/parsers/elastic/test/examples/2nd/INFO_ElaStic'),  # 70Mb file 2big4git
     ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out'),
     ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out'),
     ('parsers/dmol', 'tests/data/parsers/dmol3/h2o.outmol'),
-    # ('parser/fleur', 'tests/data/parsers/fleur/out'),
+    ('parser/fleur', 'tests/data/parsers/fleur/out'),
     ('parser/molcas', 'tests/data/parsers/molcas/test000.input.out'),
     ('parsers/qbox', 'tests/data/parsers/qbox/01_h2ogs.r'),
     ('parser/onetep', 'tests/data/parsers/onetep/fluor/12-difluoroethane.out'),
@@ -89,7 +89,7 @@ for parser, mainfile in parser_examples:
         fixed_parser_examples.append((parser, mainfile))
 parser_examples = fixed_parser_examples
 
-correct_num_output_files = 124
+correct_num_output_files = 126
 
 
 def create_reference(data, pretty):
