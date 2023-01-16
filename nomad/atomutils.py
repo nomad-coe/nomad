@@ -892,8 +892,6 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
 
             atom_resindex (str, shape=(n_atoms)):
 
-            atom_resnames (str, shape=(n_atoms)):
-
             atom_segids (str, shape=(n_atoms)):
 
             n_segments (int): Segments correspond to a group of the same type of molecules.
@@ -944,14 +942,13 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     atom_names = sec_atoms.get('labels')
     atom_types = atom_names
     atom_resindex = np.arange(n_atoms)
-    atom_resnames = np.array(range(n_atoms), dtype='object')
     atoms_segindices = np.empty(n_atoms)
     atom_segids = np.array(range(n_atoms), dtype='object')
     molecule_groups = sec_atoms_group
     n_segments = len(molecule_groups)
 
-    res_counter = 0
-    mol_counter = 0
+    n_residues = 0
+    n_molecules = 0
     residue_segindex = []
     resnames = []
     residue_moltypes = []
@@ -974,7 +971,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
                         residue_moltypes.append(mol.label)
                         residue_min_atom_index.append(np.min(mon.atom_indices))
                         residue_n_atoms.append(len(mon.atom_indices))
-                        res_counter += 1
+                        n_residues += 1
                         mol_res_counter += 1
             else:  # no monomers => whole molecule is it's own residue
                 resnames.append(mol.label)
@@ -982,11 +979,11 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
                 residue_moltypes.append(mol.label)
                 residue_min_atom_index.append(np.min(mol.atom_indices))
                 residue_n_atoms.append(len(mol.atom_indices))
-                res_counter += 1
+                n_residues += 1
                 mol_res_counter += 1
             molecule_n_res.append(mol_res_counter)
-            mol_counter += 1
-    n_residues = res_counter
+            n_molecules += 1
+    n_residues = n_residues
 
     # reorder the residues by atom_indices
     residue_data = np.array([
@@ -1000,9 +997,8 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     res_index_counter = 0
     for i_residue, res_n_atoms in enumerate(residue_n_atoms):
         atom_resindex[res_index_counter:res_index_counter + res_n_atoms] = i_residue
-        atom_resnames[res_index_counter:res_index_counter + res_n_atoms] = resnames[i_residue]
         res_index_counter += res_n_atoms
-    residue_molnums = np.array(range(n_residues), dtype='object')
+    residue_molnums = np.array(range(n_residues))
     mol_index_counter = 0
     for i_molecule, n_res in enumerate(molecule_n_res):
         residue_molnums[mol_index_counter:mol_index_counter + n_res] = i_molecule
