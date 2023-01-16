@@ -987,7 +987,6 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
             molecule_n_res.append(mol_res_counter)
             mol_counter += 1
     n_residues = res_counter
-    # n_molecules = mol_counter  # unused
 
     # reorder the residues by atom_indices
     residue_data = np.array([
