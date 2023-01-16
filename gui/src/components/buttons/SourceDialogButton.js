@@ -109,13 +109,13 @@ ContentButton.defaultProps = {
  * Button that displays a simple dialog.
  */
 export const DialogButton = React.memo(function DialogButton(props) {
-  const {tooltip, ButtonComponent, icon, label, title, children, ButtonProps, ...DialogProps} = props
+  const {tooltip, buttonComponent, icon, label, title, children, buttonProps, ...DialogProps} = props
   const [open, setOpen] = useState(false)
 
   return <ContentButton
     tooltip={tooltip}
-    ButtonComponent={ButtonComponent || (label ? Button : IconButton)}
-    ButtonProps={{...ButtonProps, onClick: () => setOpen(true)}}
+    ButtonComponent={buttonComponent || (label ? Button : IconButton)}
+    ButtonProps={{...buttonProps, onClick: () => setOpen(true)}}
     buttonContent={label || icon || <CodeIcon/>}
   >
     <Dialog {...DialogProps} open={open}>
@@ -136,17 +136,17 @@ DialogButton.propTypes = {
   icon: PropTypes.node,
   title: PropTypes.string,
   label: PropTypes.string,
-  ButtonComponent: PropTypes.elementType,
-  ButtonProps: PropTypes.object,
+  buttonComponent: PropTypes.elementType,
+  buttonProps: PropTypes.object,
   children: PropTypes.node
 }
 
-export const SourceApiDialogButton = React.memo(function SourceApiDialogButton({description, children, ButtonProps, ...props}) {
+export const SourceApiDialogButton = React.memo(function SourceApiDialogButton({description, children, buttonProps, ...props}) {
   const help = `The information on this page was loaded from the NOMAD API. You can also use
     the API to retrieve this information. Visit also our [API documentation](${appBase}/docs/api.html)
     or [API dashboard](${apiBase}).`
 
-  return <DialogButton title="API" tooltip="API" ButtonProps={ButtonProps} {...props}>
+  return <DialogButton title="API" tooltip="API" buttonProps={buttonProps} {...props}>
     <Markdown text={description || help} />
     <SourceDialogDivider />
     {children}
@@ -158,7 +158,7 @@ SourceApiDialogButton.propTypes = {
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ]),
-  ButtonProps: PropTypes.object
+  buttonProps: PropTypes.object
 }
 
 const CopyToClipboardButton = React.memo(function CopyToClipboardButton({code}) {

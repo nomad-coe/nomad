@@ -65,6 +65,23 @@ def eln():
     upload.block_until_complete()
 
 
+def references():
+    infrastructure.setup()
+    main_author = infrastructure.user_management.get_user(username='test').user_id
+    coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
+    upload = Upload(
+        upload_id='references_upload_id',
+        main_author=main_author,
+        coauthors=coauthors,
+        reviewers=reviewers)
+    upload.save()
+    files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
+    upload.staging_upload_files.add_rawfiles('examples/data/references')
+    upload.process_upload()
+    upload.block_until_complete()
+
+
 metadata_dict = {
     'upload_create_time': '2021-03-17T13:47:32.899000',
     'last_processing_time': '2021-03-17T15:47:32.899000',

@@ -446,22 +446,22 @@ ItemLink.propTypes = {
   itemKey: PropTypes.string.isRequired
 }
 
-export function ItemButton({itemKey, ...props}) {
+export function ItemButton({itemKey, itemLink, icon, ...props}) {
   // ItemButtons are often used in clickable context and we should stop the propagation
   // of click events to prevent unwanted behavior.
   const handleClick = useCallback((event) => {
     event.stopPropagation()
   }, [])
   return (
-    <div onClick={handleClick}>
-      <IconButton {...props} component={ItemLink} itemKey={itemKey}>
-        <NavigateIcon />
+      <IconButton {...props} component={itemLink || ItemLink} itemKey={itemKey} onClick={handleClick}>
+        {icon || <NavigateIcon/>}
       </IconButton>
-    </div>
   )
 }
 ItemButton.propTypes = {
-  itemKey: PropTypes.string.isRequired
+  itemKey: PropTypes.string.isRequired,
+  itemLink: PropTypes.element,
+  icon: PropTypes.node
 }
 
 export function Item({children, itemKey, disabled, highlighted, icon, actions, chip}) {
