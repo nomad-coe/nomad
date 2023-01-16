@@ -1050,7 +1050,7 @@ Section.propTypes = ({
   sectionIsInEln: PropTypes.bool
 })
 
-function getItemLabelKey(sectionDef) {
+export function getItemLabelKey(sectionDef) {
   let itemLabelKey = sectionDef.more?.label_quantity
   if (!itemLabelKey) {
     itemLabelKey = ['name', 'type', 'id'].find(key => (

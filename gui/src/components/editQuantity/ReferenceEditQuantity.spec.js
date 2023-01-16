@@ -19,39 +19,75 @@
 import React from 'react'
 import 'regenerator-runtime/runtime'
 import { waitFor, within } from '@testing-library/dom'
-import {render, screen, startAPI, closeAPI} from '../conftest.spec'
+import {render, screen, startAPI, closeAPI, waitForGUI} from '../conftest.spec'
 import OverviewView from '../entry/OverviewView'
 import EntryPageContext from '../entry/EntryPageContext'
-import { act } from 'react-dom/test-utils'
 import userEvent from '@testing-library/user-event'
 import {fireEvent} from '@testing-library/react'
+import {act} from 'react-dom/test-utils'
 
 const testSectionSelectDialog = async () => {
   const dialog = screen.getByTestId('section-select-dialog')
   expect(within(dialog).queryByText('Filters')).toBeInTheDocument()
 
-  await waitFor(() => expect(within(dialog).queryAllByTestId('datatable-row').length).toBe(4))
+  await waitFor(() => expect(within(dialog).queryAllByTestId('datatable-row').length).toBe(5))
   const rows = within(dialog).getAllByTestId('datatable-row')
 
-  await waitFor(() => expect(within(rows[0]).queryByText('Copper (II) Selenide')).toBeInTheDocument())
-  await waitFor(() => expect(within(rows[0]).queryByText('Chemical')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[0]).queryByText('ref2.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[0]).queryByText('Substance')).toBeInTheDocument())
 
-  await waitFor(() => expect(within(rows[1]).queryByText('./data')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[1]).queryByText('ref4.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[1]).queryByText('Structure')).toBeInTheDocument())
 
-  const sections = within(rows[1]).queryAllByRole('menuitem')
-  expect(sections.length).toBe(1)
-  await waitFor(() => expect(within(sections[0]).queryByText('./data')).toBeInTheDocument())
-  await waitFor(() => expect(within(sections[0]).getByTestId('check-icon')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[2]).queryByText('mySubstance2 (./data/mySample/mySubstance)')).toBeInTheDocument())
 
-  await waitFor(() => expect(within(rows[2]).queryByText('Tin (II) Selenide')).toBeInTheDocument())
-  await waitFor(() => expect(within(rows[2]).queryByText('Chemical')).toBeInTheDocument())
+  const sections = within(rows[2]).queryAllByRole('menuitem')
+  expect(sections.length).toBe(2)
+  await waitFor(() => expect(within(sections[0]).queryByText('mySubstance1 (./data/mySubstance)')).toBeInTheDocument())
+  await waitFor(() => expect(within(sections[0]).queryByTestId('check-icon')).not.toBeInTheDocument())
+  await waitFor(() => expect(within(sections[1]).queryByText('mySubstance2 (./data/mySample/mySubstance)')).toBeInTheDocument())
+  await waitFor(() => expect(within(sections[1]).queryByTestId('check-icon')).toBeInTheDocument())
 
-  await waitFor(() => expect(within(rows[3]).queryByText('Zinc Selenide')).toBeInTheDocument())
-  await waitFor(() => expect(within(rows[3]).queryByText('Chemical')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[3]).queryByText('ref3.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[3]).queryByText('Sample')).toBeInTheDocument())
+
+  await waitFor(() => expect(within(rows[4]).queryByText('ref5.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[4]).queryByText('SubstanceList')).toBeInTheDocument())
 
   // close the dialog
   await userEvent.click(within(dialog).getByRole('button', {name: /cancel/i}))
   await waitFor(() => expect(screen.queryByTestId('section-select-dialog')).not.toBeInTheDocument())
+}
+
+const testSectionSelectAutocomplete = async () => {
+  await waitFor(() => expect(screen.queryAllByTestId('section-select-entry-deactivate').length).toBe(4))
+
+  const sectionSelectEntries = screen.getAllByTestId('section-select-entry-activated')
+  expect(sectionSelectEntries.length).toBe(4)
+
+  await waitFor(() => expect(within(sectionSelectEntries[0]).queryByText('ref5.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[0]).queryByText('upload id: references_upload_id')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[1]).queryByText('ref3.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[1]).queryByText('upload id: references_upload_id')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[2]).queryByText('ref4.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[2]).queryByText('upload id: references_upload_id')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[3]).queryByText('ref2.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[3]).queryByText('upload id: references_upload_id')).toBeInTheDocument())
+
+  const sectionSelectDeactivateEntries = screen.getAllByTestId('section-select-entry-deactivate')
+
+  await waitFor(() => expect(within(sectionSelectDeactivateEntries[0]).queryByText('ref1.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectDeactivateEntries[1]).queryByText('ref6.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectDeactivateEntries[2]).queryByText('correct-reference.data.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectDeactivateEntries[3]).queryByText('lost-reference.data.archive.yaml')).toBeInTheDocument())
+
+  const sectionSelectPaths = screen.getAllByTestId('section-select-path')
+  expect(sectionSelectPaths.length).toBe(2)
+
+  await waitFor(() => expect(within(sectionSelectPaths[0]).queryByText('mySubstance1 (./data/mySubstance)')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectPaths[1]).queryByText('mySubstance2 (./data/mySample/mySubstance)')).toBeInTheDocument())
+
+  await act(async () => { userEvent.click(sectionSelectPaths[0]) })
 }
 
 const testCreateReferenceDialog = async () => {
@@ -73,61 +109,116 @@ const testCreateReferenceDialog = async () => {
 
 test.each([
   [
-    'test referenceEditQuantity',
-    'tests.states.entry.eln',
+    'referenceEditQuantity',
+    'tests.states.entry.references',
     'tests/data/editquantity/referenceEditQuantity',
-    'bC7byHvWJp62Sn9uiuJUB38MT5j-',
+    'AAa34yQsLMIVGUWiQJUxEMK_Fstf',
     'test',
     'password'
   ]
-])('eln %s', async (name, state, snapshot, entryId, username, password) => {
+])('test %s', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  await act(async () => render(
+  await render(
     <EntryPageContext entryId={entryId}>
       <OverviewView />
     </EntryPageContext>
-  ))
+  )
 
-  await waitFor(() => expect(screen.getByText('HotplateAnnealing')).toBeInTheDocument())
+  await waitForGUI(2000)
+
+  await waitFor(() => expect(screen.getByText('Powder_mixture')).toBeInTheDocument())
 
   const sectionCards = screen.queryAllByTestId('property-card')
-  const cardSample = sectionCards[0]
-  const cardPvdEvaporation = sectionCards[1]
+  const powderMixture = sectionCards[0]
 
-  const referenceEditQuantities = within(cardSample).getAllByTestId('reference-edit-quantity')
+  const referenceEditQuantities = within(powderMixture).getAllByTestId('reference-edit-quantity')
   const referenceEditQuantity = referenceEditQuantities[0]
   const inputTextField = within(referenceEditQuantity).getByRole('textbox')
-  await waitFor(() => expect(inputTextField.value).toEqual('Copper_II_Selenide.archive.json'))
+  await waitFor(() => expect(inputTextField.value).toEqual('ref4.archive.yaml#data/mySample/mySubstance'))
 
+  // test section select dialog
   const editReferenceButton = within(referenceEditQuantity).getByTitle('Search for the references').closest('button')
   expect(editReferenceButton).toBeEnabled()
 
   expect(within(referenceEditQuantity).queryByTitle('Create and assign a new reference')).not.toBeInTheDocument()
 
   // open edit section select dialog
-  await userEvent.click(editReferenceButton)
+  await act(async () => { userEvent.click(editReferenceButton) })
+
+  await waitForGUI(1000, true)
 
   await testSectionSelectDialog()
 
-  // test delete reference
-  const pvdReferenceEditQuantities = within(cardPvdEvaporation).getAllByTestId('reference-edit-quantity')
-  const pvdReferenceEditQuantity = pvdReferenceEditQuantities[0]
-  const pvdInputTextField = within(pvdReferenceEditQuantity).getByRole('textbox')
-  await waitFor(() => expect(pvdInputTextField.value).toEqual('PVD-P.archive.json'))
+  // test section select combo
+  fireEvent.change(inputTextField, { target: { value: 'ref' } })
+  await waitForGUI(2000) // the input changes have been debounced
 
-  const deleteReferenceButton = within(pvdReferenceEditQuantity).getByTitle('Delete the reference').closest('button')
+  await testSectionSelectAutocomplete()
+
+  await waitFor(() => expect(inputTextField.value).toEqual('ref4.archive.yaml#data/mySubstance'))
+
+  // test delete reference
+  const deleteReferenceButton = within(referenceEditQuantity).getByTitle('Clear').closest('button')
   expect(deleteReferenceButton).toBeEnabled()
-  await userEvent.click(deleteReferenceButton)
-  await waitFor(() => expect(pvdInputTextField.value).toEqual(''))
+  await act(async () => { await userEvent.click(deleteReferenceButton) })
+  await waitFor(() => expect(inputTextField.value).toEqual(''))
 
   // when the reference is undefined the create reference button should appear
-  const createReferenceButton = within(pvdReferenceEditQuantity).getByTitle('Create and assign a new reference').closest('button')
+  const createReferenceButton = within(referenceEditQuantity).getByTitle('Create and assign a new reference').closest('button')
   expect(createReferenceButton).toBeEnabled()
-  await userEvent.click(createReferenceButton)
+  await act(async () => { await userEvent.click(createReferenceButton) })
 
   await testCreateReferenceDialog()
 
-  await waitFor(() => expect(pvdInputTextField.value).toEqual('newReference.archive.json'))
+  await waitForGUI(1000, true)
+  await waitFor(() => expect(inputTextField.value).toEqual('newReference.archive.json'))
+
+  closeAPI()
+})
+
+test.each([
+  [
+    'referenceEditQuantity lost entry',
+    'tests.states.entry.references',
+    'tests/data/editquantity/referenceEditQuantity-lost-entry',
+    '6kU3WY1DH5XCpywRJ1lMzNcNL7uX',
+    'test',
+    'password',
+    '',
+    'The referenced value does not exist anymore'
+  ],
+  [
+    'referenceEditQuantity lost path',
+    'tests.states.entry.references',
+    'tests/data/editquantity/referenceEditQuantity-lost-path',
+    'GfxzIA3M8X-I719ZuD7wKX_DQJ8S',
+    'test',
+    'password',
+    'ref4.archive.yaml#wrong/path',
+    'The provided path does not exist'
+  ]
+])('test %s', async (name, state, snapshot, entryId, username, password, inputValue, error) => {
+  await startAPI(state, snapshot, username, password)
+  await render(
+    <EntryPageContext entryId={entryId}>
+      <OverviewView />
+    </EntryPageContext>
+  )
+
+  await waitForGUI(2000)
+
+  await waitFor(() => expect(screen.getByText('Powder_mixture')).toBeInTheDocument())
+
+  const sectionCards = screen.queryAllByTestId('property-card')
+  const powderMixture = sectionCards[0]
+
+  within(powderMixture).getAllByTestId('reference-edit-quantity')
+  const referenceEditQuantities = within(powderMixture).getAllByTestId('reference-edit-quantity')
+  const referenceEditQuantity = referenceEditQuantities[0]
+  const inputTextField = within(referenceEditQuantity).getByRole('textbox')
+  await waitFor(() => expect(inputTextField.value).toEqual(inputValue))
+
+  within(powderMixture).getByText(error)
 
   closeAPI()
 })

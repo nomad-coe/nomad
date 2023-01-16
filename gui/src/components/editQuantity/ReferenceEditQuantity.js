@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, {useCallback, useContext, useEffect, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
@@ -25,21 +25,29 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton, InputAdornment, makeStyles,
+  IconButton, makeStyles,
   TextField,
   Tooltip
 } from '@material-ui/core'
 import { useEntryPageContext } from '../entry/EntryPageContext'
-import { ItemButton } from '../archive/Browser'
+import {ItemButton} from '../archive/Browser'
 import { getFieldProps } from './StringEditQuantity'
-import { isWaitingForUpdateTestId, refType, resolveNomadUrl } from '../../utils'
+import { refType, resolveNomadUrl } from '../../utils'
 import AddIcon from '@material-ui/icons/AddCircle'
 import { getUrlFromDefinition, QuantityMDef } from '../archive/metainfo'
 import EditIcon from '@material-ui/icons/Edit'
 import SectionSelectDialog from '../uploads/SectionSelectDialog'
 import DialogContentText from '@material-ui/core/DialogContentText'
-import ClearIcon from '@material-ui/icons/Clear'
 import AutoComplete from '@material-ui/lab/Autocomplete'
+import SectionSelectAutocomplete from '../uploads/SectionSelectAutocomplete'
+import {Link} from "react-router-dom"
+import DetailsIcon from '@material-ui/icons/MoreHoriz'
+
+const referenceEditQuantityContext = React.createContext(undefined)
+
+function useReferenceEditQuantityContext() {
+  return useContext(referenceEditQuantityContext)
+}
 
 const useStyles = makeStyles(theme => ({
   dialog: {
@@ -48,16 +56,23 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
+function addIconButtonToEndAdornment(endAdornment, actions) {
+  const children = React.Children.toArray(endAdornment.props.children)
+  actions.forEach(iconButton => {
+    children.push(iconButton)
+  })
+  return React.cloneElement(endAdornment, {}, children)
+}
+
 function getReferencedSection(quantityDef) {
   const referencedDefinition = quantityDef.type._referencedDefinition
   const referencedSection = referencedDefinition.m_def === QuantityMDef ? referencedDefinition._section : referencedDefinition
   return referencedSection
 }
 
-const CreateNewReference = React.memo(({quantityDef, onSuccess, onFailed}) => {
+const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFailed, onCanceled}) => {
   const classes = useStyles()
   const {deploymentUrl, uploadId} = useEntryPageContext('*')
-  const [open, setOpen] = useState(false)
   const {user, api} = useApi()
   const {raiseError} = useErrors()
   const [value, setValue] = useState('')
@@ -137,7 +152,6 @@ const CreateNewReference = React.memo(({quantityDef, onSuccess, onFailed}) => {
           onFailed(new Error(error))
         }
       })
-    setOpen(false)
   }, [createNewEntry, onFailed, onSuccess, value])
 
   useEffect(() => {
@@ -156,20 +170,13 @@ const CreateNewReference = React.memo(({quantityDef, onSuccess, onFailed}) => {
           onFailed(new Error(error))
         })
     setAskForOverwrite(false)
-    setOpen(false)
   }
 
   const handleOverwriteNoClicked = () => {
     setAskForOverwrite(false)
-    setOpen(false)
   }
 
-  return <Box>
-    <IconButton disabled={!user?.sub} onClick={() => setOpen(true)}>
-      <Tooltip title="Create and assign a new reference">
-        <AddIcon/>
-      </Tooltip>
-    </IconButton>
+  return <React.Fragment>
     <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown data-testid='create-reference-dialog'>
       <DialogTitle>Create new reference</DialogTitle>
       <DialogContent>
@@ -197,7 +204,7 @@ const CreateNewReference = React.memo(({quantityDef, onSuccess, onFailed}) => {
       </DialogContent>
       <DialogActions>
         <span style={{flexGrow: 1}} />
-        <Button onClick={() => setOpen(false)} color="secondary">
+        <Button onClick={() => onCanceled()} color="secondary">
           Cancel
         </Button>
         <Button onClick={handleCreateClick} disabled={!value || !selectedUpload?.upload_id} color="secondary">
@@ -222,32 +229,43 @@ const CreateNewReference = React.memo(({quantityDef, onSuccess, onFailed}) => {
         </Button>
       </DialogActions>
     </Dialog>
-  </Box>
+  </React.Fragment>
 })
-CreateNewReference.propTypes = {
+CreateNewReferenceDialog.propTypes = {
   quantityDef: PropTypes.object.isRequired,
+  open: PropTypes.bool,
   onSuccess: PropTypes.func,
-  onFailed: PropTypes.func
+  onFailed: PropTypes.func,
+  onCanceled: PropTypes.func
+}
+
+export const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, ref) {
+  const reference = useReferenceEditQuantityContext()
+  return <Link
+    {...props}
+    data-testid={`item:${itemKey}`}
+    to={`/user/uploads/upload/id/${reference?.archive?.upload_id}/entry/id/${reference?.archive?.entry_id}/data/data`}
+  />
+})
+ItemLink.propTypes = {
+  itemKey: PropTypes.string.isRequired
 }
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
-  const {archive, url} = useEntryPageContext('*')
+  const {url} = useEntryPageContext('*')
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const [open, setOpen] = useState(false)
-  const {api} = useApi()
+  const [createEntryDialogOpen, setCreateEntryDialogOpen] = useState(false)
+  const {user, api} = useApi()
   const {raiseError} = useErrors()
-  const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState()
 
-  const referencedSectionQualifiedName = useMemo(() => {
-    const referencedSection = getReferencedSection(quantityDef)
-    return referencedSection._qualifiedName
-  }, [quantityDef])
+  const referencedSectionDef = useMemo(() => getReferencedSection(quantityDef), [quantityDef])
+  const referencedSectionQualifiedName = useMemo(() => referencedSectionDef?._qualifiedName, [referencedSectionDef])
 
   useEffect(() => {
     if (!value || value === '') {
-      setInputValue('')
       setError(null)
       return
     }
@@ -269,20 +287,17 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       const entry = response.data.archive.metadata
       if (entry.processing_errors.length === 0) {
         setEntry(entry)
-        const shownValue = resolvedUrl?.path && resolvedUrl.path !== '/data' ? `${entry.mainfile}#${resolvedUrl.path}` : entry.mainfile
-        setInputValue(shownValue)
         setError(null)
       } else {
         setEntry(null)
-        setInputValue(archive.metadata.mainfile)
       }
     }
     resolveValue()
       .catch(() => {
         setEntry(null)
-        setError('the referenced value does not exist anymore')
+        setError('The referenced value does not exist anymore')
       })
-  }, [value, api, raiseError, archive, url, setError])
+  }, [api, url, value])
 
   const changeValue = useCallback((value) => {
     if (value?.entry_id && value?.upload_id && value?.path) {
@@ -304,11 +319,6 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     setOpen(false)
   }, [changeValue])
 
-  const handleClearReference = useCallback(() => {
-    setInputValue(undefined)
-    changeValue(undefined)
-  }, [changeValue])
-
   const itemKey = useMemo(() => {
     if (!isNaN(index)) {
       return `${quantityDef.name}:${index}`
@@ -320,7 +330,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const {helpDescription, ...otherProps} = getFieldProps(quantityDef)
 
   const handleSuccess = useCallback((value) => {
-    setInputValue(value.entry.mainfile)
+    setCreateEntryDialogOpen(false)
+    setEntry(value.entry)
     changeValue({
       entry_name: value.entry.mainfile,
       upload_id: value.upload_id,
@@ -329,48 +340,86 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   }, [changeValue])
 
   const handleFailed = useCallback((error) => {
+    setCreateEntryDialogOpen(false)
     raiseError(error)
   }, [raiseError])
 
+  const handleCanceled = useCallback(() => {
+    setCreateEntryDialogOpen(false)
+  }, [])
+
   const filtersLocked = useMemo(() => ({'section_defs.definition_qualified_name': [referencedSectionQualifiedName]}), [referencedSectionQualifiedName])
 
-  return <Box display="flex" flexDirection="row" alignItems="center" >
-    <Box flexGrow={1}>
-      <TextField
-          fullWidth variant='filled' size='small'
-          {...otherProps}
-          {...(value && !entry ? {'data-testid': isWaitingForUpdateTestId} : {})}
-          error={!!error}
-          helperText={error}
-          InputProps={{
-            endAdornment: <InputAdornment position="end">
-              {!!inputValue && <IconButton onClick={handleClearReference}>
-                <Tooltip title="Delete the reference">
-                  <ClearIcon/>
-                </Tooltip>
-              </IconButton>}
-              {!inputValue && <CreateNewReference quantityDef={quantityDef} onSuccess={handleSuccess} onFailed={handleFailed}/>}
-              <IconButton onClick={() => setOpen(true)}>
-                <Tooltip title="Search for the references">
-                  <EditIcon/>
-                </Tooltip>
-              </IconButton>
-              {!!inputValue && <ItemButton size="small" itemKey={itemKey} />}
-            </InputAdornment>,
-            readOnly: true
+  const actions = useMemo(() => {
+    const isEntryData = referencedSectionDef?._allBaseSections.find(section => section._qualifiedName === 'nomad.datamodel.data.EntryData')
+    const actions = []
+    if (!value && isEntryData) {
+      actions.push(<IconButton key={'createAction'} size={'small'} disabled={!user?.sub} onClick={() => setCreateEntryDialogOpen(true)}>
+        <Tooltip title="Create and assign a new reference">
+          <AddIcon/>
+        </Tooltip>
+      </IconButton>)
+    }
+    actions.push(<IconButton key={'editAction'} size={'small'} onClick={() => setOpen(true)}>
+      <Tooltip title="Search for the references">
+        <EditIcon/>
+      </Tooltip>
+    </IconButton>)
+    if (value) {
+      actions.push(<ItemButton key={'navigateAction'} size="small" itemKey={itemKey} itemLink={ItemLink} icon={<DetailsIcon/>}/>)
+      actions.push(<ItemButton key={'navigateAction'} size="small" itemKey={itemKey}/>)
+    }
+    return actions
+  }, [value, itemKey, user, referencedSectionDef])
+
+  const referencedValue = useMemo(() => {
+    return value && entry ? {entry_id: entry?.entry_id, value: value.split('#')[1], archive: entry} : null
+  }, [entry, value])
+
+  const handleError = useCallback((error) => {
+    setError(error)
+  }, [])
+
+  if (value && referencedValue === undefined) {
+    return ''
+  }
+
+  return <referenceEditQuantityContext.Provider value={referencedValue}>
+    <Box display="flex" flexDirection="row" alignItems="center" >
+      <Box flexGrow={1}>
+        <SectionSelectAutocomplete
+          onValueChanged={handleValueChange}
+          value={referencedValue}
+          filtersLocked={filtersLocked}
+          onError={handleError}
+          renderInput={(params) => {
+            return (
+              <TextField
+                {...params}
+                variant="filled"
+                error={!!error}
+                helperText={error}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: addIconButtonToEndAdornment(params.InputProps.endAdornment, actions)
+                }}
+                {...otherProps}
+                data-testid='reference-edit-quantity'
+              />
+            )
           }}
-          value={inputValue}
-          data-testid='reference-edit-quantity'
-      />
-    </Box>
-    <SectionSelectDialog
+        />
+        <CreateNewReferenceDialog open={createEntryDialogOpen} quantityDef={quantityDef} onSuccess={handleSuccess} onFailed={handleFailed} onCanceled={handleCanceled}/>
+      </Box>
+      <SectionSelectDialog
         open={open}
         onCancel={() => setOpen(false)}
         onSelectedChanged={handleValueChange}
-        selected={value && {entry_id: entry?.entry_id, value: value.split('#')[1]}}
+        selected={value && entry && {entry_id: entry?.entry_id, value: value.split('#')[1]}}
         filtersLocked={filtersLocked}
-    />
-  </Box>
+      />
+    </Box>
+  </referenceEditQuantityContext.Provider>
 })
 ReferenceEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,

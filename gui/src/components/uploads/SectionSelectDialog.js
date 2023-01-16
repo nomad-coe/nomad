@@ -37,6 +37,7 @@ import {useDataStore} from '../DataStore'
 import {pluralize, resolveNomadUrlNoThrow} from "../../utils"
 import {Check} from '@material-ui/icons'
 import { cloneDeep } from 'lodash'
+import {getItemLabelKey} from '../archive/ArchiveBrowser'
 
 const searchDialogContext = React.createContext()
 const context = cloneDeep(ui?.search_contexts?.options?.entries)
@@ -77,6 +78,63 @@ const shownColumns = [
   'upload_create_time'
 ]
 
+export async function getSectionsInfo(api, dataStore, reference, url, entry_id) {
+  let response
+  try {
+    response = await api.post(`entries/archive/query`, {
+      owner: 'visible',
+      query: {
+        entry_id: entry_id,
+        processed: true
+      }
+    })
+  } catch (e) {
+    return []
+  }
+  const dataArchive = response?.data?.[0].archive
+  const m_def = dataArchive?.data?.m_def
+  const referencedSubSections = []
+  if (m_def) {
+    const dataMetainfoDefUrl = resolveNomadUrlNoThrow(m_def, url)
+    const sectionDef = await dataStore.getMetainfoDefAsync(dataMetainfoDefUrl)
+    traverse(dataArchive?.data, sectionDef, 'data', (section, sectionDef, path) => {
+      const ref = reference && [...reference][0]
+      if (ref &&
+          (sectionDef._qualifiedName === ref || sectionDef._allBaseSections?.map(section => section._qualifiedName).includes(ref))) {
+        const itemLabelKey = getItemLabelKey(sectionDef)
+        const name = itemLabelKey && section[itemLabelKey] ? `${section[itemLabelKey]} (./${path})` : `./${path}`
+        referencedSubSections.push({name: name, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: path})
+      }
+    })
+  } else {
+    referencedSubSections.push({name: `./data`, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: '/data'})
+  }
+  const references = referencedSubSections || []
+  return references.map(reference => ({
+    label: reference.name,
+    mainfile: dataArchive?.metadata?.mainfile,
+    entry_name: dataArchive?.metadata?.entry_name,
+    entry_id: reference.entry_id,
+    upload_id: reference.upload_id,
+    shownValue: reference?.path && reference.path !== '/data' && reference.path !== 'data' ? `${dataArchive?.metadata?.mainfile}#${reference.path}` : dataArchive?.metadata?.mainfile,
+    value: reference.path,
+    data: reference}))
+}
+
+export async function getSchemaInfo(globalMetainfo, entry_id) {
+  const customMetainfo = await globalMetainfo.fetchAllCustomMetainfos(true, {entry_id: entry_id})
+  const schemaArchive = customMetainfo[0]?._data
+  const sectionDefs = schemaArchive?.definitions?.section_definitions
+  return sectionDefs.map(sectionDef => {
+    return {
+      label: sectionDef.name,
+      entry_id: schemaArchive.metadata.entry_id,
+      value: sectionDef.name,
+      data: {sectionDef: sectionDef, archive: schemaArchive}
+    }
+  })
+}
+
 const Details = React.memo(({data}) => {
   const {api} = useApi()
   const entry_id = data?.entry_id
@@ -95,45 +153,11 @@ const Details = React.memo(({data}) => {
     }
     async function fetch() {
       if (filtersLocked.entry_type?.has('Schema')) {
-        const customMetainfo = await globalMetainfo.fetchAllCustomMetainfos(true, {entry_id: entry_id})
-        const schemaArchive = customMetainfo[0]?._data
-        const sectionDefs = schemaArchive?.definitions?.section_definitions
-        setSections(sectionDefs.map(sectionDef => {
-          return {
-            label: sectionDef.name,
-            entry_id: schemaArchive.metadata.entry_id,
-            value: sectionDef.name,
-            data: {sectionDef: sectionDef, archive: schemaArchive}
-          }
-        }))
+        const schemas = await getSchemaInfo(globalMetainfo, entry_id)
+        setSections(schemas)
       } else {
-        const response = await api.post(`entries/archive/query`, {
-          owner: 'visible',
-          query: {
-            entry_id: entry_id,
-            processed: true
-          }
-        })
-        const dataArchive = response?.data?.[0].archive
-        const m_def = dataArchive?.data?.m_def
-        const referencedSubSections = []
-        if (m_def) {
-          const dataMetainfoDefUrl = resolveNomadUrlNoThrow(m_def, url)
-          const sectionDef = await dataStore.getMetainfoDefAsync(dataMetainfoDefUrl)
-          traverse(dataArchive?.data, sectionDef, 'data', (section, sectionDef, path) => {
-            const ref = filtersLocked['section_defs.definition_qualified_name'] && [...filtersLocked['section_defs.definition_qualified_name']][0]
-            if (ref &&
-              (sectionDef._qualifiedName === ref || sectionDef._allBaseSections?.map(section => section._qualifiedName).includes(ref))) {
-              const itemLabelKey = sectionDef.more?.label_quantity
-              const name = itemLabelKey && section[itemLabelKey] ? `${section[itemLabelKey]} (./${path})` : `./${path}`
-              referencedSubSections.push({name: name, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: path})
-            }
-          })
-        } else {
-          referencedSubSections.push({name: `./data`, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: '/data'})
-        }
-        const references = referencedSubSections || []
-        setSections(references.map(reference => ({label: reference.name, entry_id: reference.entry_id, value: reference.path, data: reference})))
+        const references = await getSectionsInfo(api, dataStore, filtersLocked['section_defs.definition_qualified_name'], url, entry_id)
+        setSections(references)
       }
     }
   }, [api, dataStore, entry_id, filtersLocked, globalMetainfo, url])
