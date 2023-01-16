@@ -64,6 +64,7 @@ from nomad.datamodel.results import (
     BandStructurePhonon,
     DOSElectronic,
     DOSPhonon,
+    GreensFunctionsElectronic,
     EnergyFreeHelmholtz,
     HeatCapacityConstantVolume,
 )
@@ -114,6 +115,7 @@ class ResultsNormalizer(Normalizer):
             "results.properties.electronic.band_structure_electronic.band_gap": "electronic.band_structure_electronic.band_gap",
             "results.properties.electronic.band_structure_electronic": "band_structure_electronic",
             "results.properties.electronic.dos_electronic": "dos_electronic",
+            "results.properties.electronic.greens_functions_electronic": "greens_functions_electronic",
             "results.properties.vibrational.dos_phonon": "dos_phonon",
             "results.properties.vibrational.band_structure_phonon": "band_structure_phonon",
             "results.properties.vibrational.energy_free_helmholtz": "energy_free_helmholtz",
@@ -349,6 +351,43 @@ class ResultsNormalizer(Normalizer):
             dos = resolve_dos(["run", "calculation", "dos_electronic"])
             if dos:
                 return [dos]
+        return None
+
+    def greens_functions_electronic(self) -> Union[List[GreensFunctionsElectronic], None]:
+        """Returns a reference to the section containing the electronic Green's functions.
+        In the case of multiple valid Green's functions sections, only the latest one is reported.
+
+       Green's functions are reported only under the following conditions:
+          - There is a non-empty array of greens_function_tau or self_energy_iw or occupancies.
+          - There is a non-empty array of tau or matsubara_freq.
+        """
+
+        def resolve_greens_functions(path):
+            for gfs in self.traverse_reversed(path):
+                tau = gfs.tau
+                iw = gfs.matsubara_freq
+                values_gtau = np.array([gtau for gtau in gfs.greens_function_tau.real])
+                values_siw = np.array([siw for siw in gfs.self_energy_iw.imag])
+                if (valid_array(tau) and valid_array(values_gtau)) or (valid_array(iw) and valid_array(values_siw)):
+                    gfs_new = GreensFunctionsElectronic()
+                    gfs_new.chemical_potential = gfs.chemical_potential
+                    if valid_array(tau) and valid_array(values_gtau):
+                        gfs_new.tau = tau
+                        gfs_new.real_greens_function_tau = values_gtau
+                    if valid_array(iw) and valid_array(values_siw):
+                        gfs_new.matsubara_freq = iw
+                        gfs_new.imag_self_energy_iw = values_siw
+                    if valid_array(gfs.occupancies):
+                        norb = gfs.occupancies.shape[0]
+                        nspin = gfs.occupancies.shape[1]
+                        gfs_new.double_occupancies = np.array(
+                            [gfs.occupancies[i][j][i][j] for j in range(nspin) for i in range(norb)])
+                    return gfs_new
+            return None
+
+        gfs = resolve_greens_functions(["run", "calculation", "greens_functions"])
+        if gfs:
+            return [gfs]
         return None
 
     def band_structure_phonon(self) -> Union[BandStructurePhonon, None]:
@@ -688,12 +727,15 @@ class ResultsNormalizer(Normalizer):
         # Electronic
         bs_electronic = self.band_structure_electronic()
         dos_electronic = self.dos_electronic()
-        if bs_electronic or dos_electronic:
+        gfs_electronic = self.greens_functions_electronic()
+        if bs_electronic or dos_electronic or gfs_electronic:
             electronic = ElectronicProperties()
             if bs_electronic:
                 electronic.band_structure_electronic = bs_electronic
             if dos_electronic:
                 electronic.dos_electronic = dos_electronic
+            if gfs_electronic:
+                electronic.greens_functions_electronic = gfs_electronic
             properties.electronic = electronic
 
         # Vibrational

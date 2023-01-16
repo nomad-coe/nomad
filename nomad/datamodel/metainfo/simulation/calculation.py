@@ -1503,6 +1503,69 @@ class ExcitedStates(MSection):
         ''')
 
 
+class GreensFunctions(MSection):
+    '''
+    Green's functions properties in different time/frequency basis.
+    '''
+
+    m_def = Section(validate=False)
+
+    matsubara_freq = Quantity(
+        type=np.float64,
+        shape=['2 * n_matsubara_freq'],
+        description='''
+        Matsubara frequencies (imaginary frequencies).
+        ''')
+
+    tau = Quantity(
+        type=np.float64,
+        shape=['n_tau'],
+        description='''
+        Imaginary times.
+        ''')
+
+    chemical_potential = Quantity(
+        type=np.float64,
+        unit='electron_volt',
+        description='''
+        Chemical potential.
+        ''')
+
+    self_energy_iw = Quantity(
+        type=np.complex128,
+        shape=['n_correlated_orbitals', 2, '2 * n_matsubara_freq'],
+        description='''
+        Self-energy matrix in Matsubara frequencies.
+        ''')
+
+    greens_function_iw = Quantity(
+        type=np.complex128,
+        shape=['n_correlated_orbitals', 2, '2 * n_matsubara_freq'],
+        description='''
+        Green's function matrix in Matsubara frequencies.
+        ''')
+
+    greens_function_freq = Quantity(
+        type=np.complex128,
+        description='''
+        Green's function matrix in real frequencies.
+        ''')
+
+    greens_function_tau = Quantity(
+        type=np.complex128,
+        shape=['n_correlated_orbitals', 2, 'n_tau'],
+        description='''
+        Green's function matrix in tau (imaginary time).
+        ''')
+
+    occupancies = Quantity(
+        type=np.float64,
+        shape=['n_correlated_orbitals', 2, 'n_correlated_orbitals', 2],
+        description='''
+        Occupancies of each orbital.
+        ''')
+
+
 class VibrationalFrequenciesValues(MSection):
     '''
     Section describing a vibrational spectrum.
@@ -1732,6 +1795,8 @@ class BaseCalculation(ArchiveSection):
     hopping_matrix = SubSection(sub_section=HoppingMatrix.m_def, repeats=True)
 
     excited_states = SubSection(sub_section=ExcitedStates.m_def, repeats=True)
+
+    greens_functions = SubSection(sub_section=GreensFunctions.m_def, repeats=True)
 
     vibrational_frequencies = SubSection(sub_section=VibrationalFrequencies.m_def, repeats=True)
 

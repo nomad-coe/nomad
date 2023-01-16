@@ -60,13 +60,15 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     RadiusOfGyrationValues,
     Dos,
     BandStructure as BandStructureCalculation,
+    GreensFunctions as GreensFunctionsCalculation,
     BandEnergies,
     DosValues,
     Calculation
 )  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
     BasisSet, Scf, Electronic, Smearing,
-    GW as GWMethod, HubbardModel as Hubbard, AtomParameters
+    GW as GWMethod, HubbardModel as Hubbard, AtomParameters,
+    DMFT as DMFTMethod, HubbardKanamoriModel as HubbardKanamori
 )  # noqa
 from nomad.datamodel.metainfo.workflow import (
     GeometryOptimization as MGeometryOptimization,
@@ -1459,6 +1461,45 @@ class GW(MSection):
     )
 
 
+class DMFT(MSection):
+    m_def = Section(
+        description='''
+        Methodology for a DMFT calculation.
+        '''
+    )
+    impurity_solver_type = DMFTMethod.impurity_solver.m_copy()
+    impurity_solver_type.m_annotations['elasticsearch'] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default')
+    ]
+    total_filling = Quantity(
+        type=np.float64,
+        description='''
+        Total filling of the correlated atoms in the unit cell per spin ∈[0.0, 1.0]. E.g., half-filling
+        is defined as 0.5.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    inverse_temperature = DMFTMethod.inverse_temperature.m_copy()
+    inverse_temperature.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    magnetic_state = DMFTMethod.magnetic_state.m_copy()
+    magnetic_state.description = 'Magnetic state in which the DMFT calculation is done.'
+    magnetic_state.m_annotations['elasticsearch'] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default')
+    ]
+    u = HubbardKanamori.u.m_copy()
+    u.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    u.description = 'Value of the Hubbard local interaction in eV.'
+    hunds_hubbard_ratio = Quantity(
+        type=np.float64,
+        description='''
+        Ratio JH/U, with JH being the Hunds coupling and U being the Hubbard local interaction.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+
 class QuantumCircuit(MSection):
     processors = Quantity(type=str, shape=['0..*'])
     number_of_registers = Quantity(type=int)
@@ -1502,6 +1543,7 @@ class Simulation(MSection):
     dft = SubSection(sub_section=DFT.m_def, repeats=False)
     projection = SubSection(sub_section=Projection.m_def, repeats=False)
     gw = SubSection(sub_section=GW.m_def, repeats=False)
+    dmft = SubSection(sub_section=DMFT.m_def, repeats=False)
     quantum_cms = SubSection(sub_section=QuantumCMS.m_def, repeats=False)
 
 
@@ -1541,7 +1583,7 @@ class Method(MSection):
         ''',
     )
     method_name = Quantity(
-        type=MEnum(['DFT', 'Projection', 'GW', 'EELS', 'XPS', config.services.unavailable_value]),
+        type=MEnum(['DFT', 'Projection', 'GW', 'DMFT', 'EELS', 'XPS', config.services.unavailable_value]),
         description='''
         Common name for the used method.
         ''',
@@ -1731,6 +1773,40 @@ class BandStructureElectronic(BandStructure):
         Fermi energy.
         '''
     )
+
+
+class GreensFunctionsElectronic(MSection):
+    m_def = Section(
+        description='''
+        Base class for Green's functions information.
+        ''',
+    )
+    tau = GreensFunctionsCalculation.tau.m_copy()
+    real_greens_function_tau = Quantity(
+        type=np.float64,
+        shape=['n_correlated_orbitals', 2, 'n_tau'],
+        description='''
+        Real part (extraction done in normalizer) of the Green's function in tau (imaginary time).
+        '''
+    )
+    matsubara_freq = GreensFunctionsCalculation.matsubara_freq.m_copy()
+    imag_self_energy_iw = Quantity(
+        type=np.float64,
+        shape=['n_correlated_orbitals', 2, '2 * n_matsubara_freq'],
+        description='''
+        Imaginary part (extraction done in normalizer) of the Self energy in Matsubara (imaginary frequency).
+        '''
+    )
+    double_occupancies = Quantity(
+        type=np.float64,
+        shape=['2 * n_correlated_orbitals'],
+        description='''
+        Double occupancie of each orbital and spin degree of freedom. The total doping is
+        equal to the sum of these double occupancies divided by the number of orbitals and the
+        spin number (= 2).
+        '''
+    )
+    chemical_potential = GreensFunctionsCalculation.chemical_potential.m_copy()
 
 
 class HeatCapacityConstantVolume(MSection):
@@ -1947,6 +2023,7 @@ class ElectronicProperties(MSection):
     )
     band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=True)
     dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=True)
+    greens_functions_electronic = SubSection(sub_section=GreensFunctionsElectronic.m_def, repeats=True)
 
 
 class QuantityDynamic(MSection):

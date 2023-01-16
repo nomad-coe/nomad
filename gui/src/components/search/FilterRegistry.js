@@ -36,6 +36,7 @@ const idSimulation = 'simulation'
 const idDFT = 'dft'
 const idGW = 'gw'
 const idProjection = 'projection'
+const idDMFT = 'dmft'
 const idProperties = 'properties'
 const idElectronic = 'electronic'
 const idOptoelectronic = 'optoelectronic'
@@ -337,6 +338,12 @@ registerFilter('results.method.simulation.gw.starting_point_type', idGW, {...ter
 registerFilter('results.method.simulation.gw.basis_set_type', idGW, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.projection.type', idProjection, {...termQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.projection.localization_type', idProjection, {...termQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.dmft.impurity_solver_type', idDMFT, {...termQuantity})
+registerFilter('results.method.simulation.dmft.total_filling', idDMFT, {...numberHistogramQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.dmft.magnetic_state', idDMFT, {...termQuantity})
+registerFilter('results.method.simulation.dmft.inverse_temperature', idDMFT, {...numberHistogramQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.dmft.u', idDMFT, {...numberHistogramQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.dmft.hunds_hubbard_ratio', idDMFT, {...numberHistogramQuantity, label: 'J\u2095 / U', scale: '1/2'})
 registerFilter('results.eln.sections', idELN, termQuantity)
 registerFilter('results.eln.tags', idELN, termQuantity)
 registerFilter('results.eln.methods', idELN, termQuantity)
@@ -574,7 +581,8 @@ registerFilterOptions(
   {
     'electronic.band_structure_electronic.band_gap': {label: 'Band gap electronic'},
     band_structure_electronic: {label: 'Band structure'},
-    dos_electronic: {label: 'Density of states'}
+    dos_electronic: {label: 'Density of states'},
+    greens_functions_electronic: {label: 'Green\u0027s functions'}
   }
 )
 

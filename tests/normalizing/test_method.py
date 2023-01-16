@@ -123,6 +123,19 @@ def test_method_gw(gw):
     assert method.simulation.gw.basis_set_type == "plane waves"
 
 
+def test_method_dmft(dmft):
+    """Methodology from a DMFT calculation"""
+    method = dmft.results.method
+    assert method.method_name == "DMFT"
+    assert method.simulation.program_name == "w2dynamics"
+    assert method.simulation.dmft.impurity_solver_type == "CT-HYB"
+    assert method.simulation.dmft.total_filling == 0.5 / 3.0
+    assert method.simulation.dmft.inverse_temperature == 60.0
+    assert method.simulation.dmft.magnetic_state == "paramagnetic"
+    assert method.simulation.dmft.u.magnitude == 4.0
+    assert method.simulation.dmft.hunds_hubbard_ratio == 0.6 / 4.0
+
+
 def test_method_eels(eels):
     method = eels.results.method
     assert method.method_name == "EELS"

@@ -614,6 +614,13 @@ parsers = [
         mainfile_contents_re=r'\|\s*WANNIER90\s*\|'
     ),
     MatchingParserInterface(
+        'electronicparsers.W2DynamicsParser',
+        metadata_path=f'{prefix_electronic}/w2dynamics/metadata.yaml',
+        mainfile_name_re=(r'^.*\.(h5|hdf5)$'),
+        mainfile_mime_re=r'(application/x-hdf)',
+        mainfile_binary_header_re=br'^\x89HDF[\s\S]*general.nat'
+    ),
+    MatchingParserInterface(
         'nomad.parsing.nexus.NexusParser',
         metadata_path=os.path.join(os.path.dirname(__file__), 'metadata.yaml'),
         mainfile_mime_re=r'(application/.*)|(text/.*)',

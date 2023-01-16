@@ -34,6 +34,7 @@ from nomad.datamodel.results import (
     DFT,
     Projection,
     GW,
+    DMFT,
     xc_treatments,
 )
 
@@ -71,6 +72,8 @@ class MethodNormalizer():
                     method_name = "GW"
                 elif section_method.projection is not None:
                     method_name = "Projection"
+                elif section_method.dmft is not None:
+                    method_name = "DMFT"
             return method_name
 
         # If workflow_name is 'GW', set repr_method as the corresponding method_ref
@@ -144,6 +147,21 @@ class MethodNormalizer():
             else:
                 projection.type = 'custom'
             simulation.projection = projection
+        elif method_name == "DMFT":
+            method.method_name = "DMFT"
+            dmft = DMFT()
+            dmft.impurity_solver_type = self.repr_method.dmft.impurity_solver
+            dmft.total_filling = 0.5 * self.repr_method.dmft.n_correlated_electrons / np.sum(repr_method.dmft.n_correlated_orbitals)
+            dmft.inverse_temperature = self.repr_method.dmft.inverse_temperature
+            dmft.magnetic_state = self.repr_method.dmft.magnetic_state
+            # TODO update U to be U/W when linking between DFT>Projection>DMFT (@ should
+            # be extracted from the bands obtained by Projection).
+            model_hamiltonian = self.repr_method.starting_method_ref.lattice_model_hamiltonian
+            if model_hamiltonian is not None:
+                dmft.u = model_hamiltonian[0].hubbard_kanamori_model[0].u  # taking U,JH values from the first atom
+                if dmft.u.magnitude != 0.0:
+                    dmft.hunds_hubbard_ratio = model_hamiltonian[0].hubbard_kanamori_model[0].jh.magnitude / dmft.u.magnitude
+            simulation.dmft = dmft
         elif method_name in {"DFT", "DFT+U"}:
             method.method_name = "DFT"
             dft = DFT()
