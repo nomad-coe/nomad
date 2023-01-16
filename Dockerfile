@@ -151,14 +151,15 @@ FROM base_python AS builder
 
 RUN apt-get update \
  && apt-get install --yes --quiet --no-install-recommends \
-       libgomp1 \
-       libmagic1 \
-       file \
-       gcc \
-       build-essential \
-       curl \
-       zip \
-       unzip \
+      libgomp1 \
+      libmagic1 \
+      file \
+      gcc \
+      build-essential \
+      curl \
+      zip \
+      unzip \
+      git \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -189,13 +190,13 @@ FROM base_python AS final
 RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
  && apt-get update \
  && apt-get install --yes --quiet --no-install-recommends \
-       nodejs \
-       npm \
-       libgomp1 \
-       libmagic1 \
-       curl \
-       zip \
-       unzip \
+      nodejs \
+      npm \
+      libgomp1 \
+      libmagic1 \
+      curl \
+      zip \
+      unzip \
  && rm -rf /var/lib/apt/lists/* \
  && npm install -g configurable-http-proxy \
  && npm uninstall -g npm

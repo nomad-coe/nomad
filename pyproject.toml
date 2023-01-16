@@ -106,6 +106,7 @@ infrastructure = [
     'validators==0.18.2',
     'aiofiles==0.8.0',
     'joblib==1.1.0',
+    'importlib-metadata~=4.13.0' # Needed because of https://github.com/python/importlib_metadata/issues/411
 ]
 dev = [
     'build',
@@ -113,8 +114,8 @@ dev = [
     'markupsafe',
     'gitpython==3.1.24',
     'mypy==0.730',
-    'typed-ast==1.4.2',
-    'astroid==2.5.1',
+    'typed-ast>=1.4.2',
+    'astroid>=2.5.1',
     'pylint==2.3.1',
     'pylint_plugin_utils==0.5',
     'pylint_mongoengine==0.3.3',

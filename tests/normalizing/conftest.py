@@ -36,7 +36,8 @@ from nomad.datamodel.optimade import Species
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, BasisSet, Electronic, DFT, XCFunctional, Functional,
-    Electronic, Smearing, Scf, GW, AtomParameters, HubbardModel, Projection, Wannier)
+    Electronic, Smearing, Scf, GW, AtomParameters, HubbardModel, Projection, Wannier,
+    DMFT, LatticeModelHamiltonian, HubbardKanamoriModel)
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup, System, Atoms as AtomsSystem)
 from nomad.datamodel.metainfo.simulation.calculation import (
@@ -589,6 +590,43 @@ def gw() -> EntryArchive:
         exchange=[Functional(name='GGA_X_PBE')],
         correlation=[Functional(name='GGA_C_PBE')])
     method_gw.gw = GW(type='G0W0', starting_point=xc_functional)
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dmft() -> EntryArchive:
+    '''DMFT calculation.'''
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = Program(name='w2dynamics')
+    input_method = run.m_create(Method)
+    input_model = input_method.m_create(LatticeModelHamiltonian)
+    input_model.hubbard_kanamori_model.append(HubbardKanamoriModel(orbital='d', u=4.0, jh=0.6, up=2.8, j=0.6))
+    method_dmft = run.m_create(Method)
+    method_dmft.dmft = DMFT(
+        impurity_solver='CT-HYB', n_atoms_per_unit_cell=1, n_correlated_electrons=1.0, n_correlated_orbitals=[3.0],
+        inverse_temperature=60.0, magnetic_state='paramagnetic')
+    method_dmft.starting_method_ref = input_method
+    system = run.m_create(System)
+    system.atoms = AtomsSystem(
+        lattice_vectors=[
+            [5.76372622e-10, 0.0, 0.0],
+            [0.0, 5.76372622e-10, 0.0],
+            [0.0, 0.0, 4.0755698899999997e-10]
+        ],
+        positions=[
+            [2.88186311e-10, 0.0, 2.0377849449999999e-10],
+            [0.0, 2.88186311e-10, 2.0377849449999999e-10],
+            [0.0, 0.0, 0.0],
+            [2.88186311e-10, 2.88186311e-10, 0.0],
+        ],
+        labels=['Br', 'K', 'Si', 'Si'],
+        periodic=[True, True, True])
+    scc = run.m_create(Calculation)
+    scc.system_ref = system
+    scc.method_ref = method_dmft
+    workflow = template.m_create(Workflow)
+    workflow.type = 'single_point'
     return run_normalize(template)
 
 

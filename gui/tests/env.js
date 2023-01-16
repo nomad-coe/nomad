@@ -240,6 +240,7 @@ window.nomadEnv = {
               "dft",
               "gw",
               "projection",
+              "dmft",
               "experiment",
               "eels",
               "properties",
@@ -304,6 +305,12 @@ window.nomadEnv = {
               },
               "projection": {
                 "label": "Projection",
+                "level": 2,
+                "size": "small",
+                "menu_items": {}
+              },
+              "dmft": {
+                "label": "DMFT",
                 "level": 2,
                 "size": "small",
                 "menu_items": {}
@@ -721,6 +728,7 @@ window.nomadEnv = {
               "dft",
               "gw",
               "projection",
+              "dmft",
               "experiment",
               "eels",
               "properties",
@@ -786,6 +794,12 @@ window.nomadEnv = {
               },
               "projection": {
                 "label": "Projection",
+                "level": 2,
+                "size": "small",
+                "menu_items": {}
+              },
+              "dmft": {
+                "label": "DMFT",
                 "level": 2,
                 "size": "small",
                 "menu_items": {}

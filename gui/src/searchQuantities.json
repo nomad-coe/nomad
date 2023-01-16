@@ -1883,6 +1883,7 @@
         "DFT",
         "Projection",
         "GW",
+        "DMFT",
         "EELS",
         "XPS",
         "unavailable"
@@ -2206,6 +2207,77 @@
       "*"
     ],
     "suggestion": true
+  },
+  "results.method.simulation.dmft.impurity_solver_type": {
+    "name": "impurity_solver_type",
+    "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `\"CT-INT\"`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `\"CT-HYB\"`        | Werner et al., PRL 97 (2006)         |\n\n| `\"CT-AUX\"`        | Gull et al., EPL 82 (2008)           |\n\n| `\"ED\"`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `\"NRG\"`           | Bulla et al., RMP 80 (2008)          |\n\n| `\"MPS\"`           | Ganahl et al., PRB 90 (2014)         |\n\n| `\"IPT\"`           | Georges et al., PRB 45 (1992)        |\n\n| `\"NCA\"`           | Pruschke et al., PRB 47 (1993)       |\n\n| `\"OCA\"`           | Pruschke et al., PRB 47 (1993)       |\n\n| `\"slave_bosons\"`  | Kotliar et al., PRL 57 (1986)        |\n\n| `\"hubbard_I\"`     | -                                    |",
+    "type": {
+      "type_kind": "Enum",
+      "type_data": [
+        "CT-INT",
+        "CT-HYB",
+        "CT-AUX",
+        "ED",
+        "NRG",
+        "MPS",
+        "IPT",
+        "NCA",
+        "OCA",
+        "slave_bosons",
+        "hubbard_I"
+      ]
+    },
+    "shape": [],
+    "suggestion": true
+  },
+  "results.method.simulation.dmft.total_filling": {
+    "name": "total_filling",
+    "description": "Total filling of the correlated atoms in the unit cell per spin \u2208[0.0, 1.0]. E.g., half-filling\nis defined as 0.5.",
+    "type": {
+      "type_kind": "numpy",
+      "type_data": "float64"
+    }
+  },
+  "results.method.simulation.dmft.inverse_temperature": {
+    "name": "inverse_temperature",
+    "description": "Inverse temperature = 1/(kB*T).",
+    "type": {
+      "type_kind": "numpy",
+      "type_data": "float64"
+    },
+    "shape": []
+  },
+  "results.method.simulation.dmft.magnetic_state": {
+    "name": "magnetic_state",
+    "description": "Magnetic state in which the DMFT calculation is done.",
+    "type": {
+      "type_kind": "Enum",
+      "type_data": [
+        "paramagnetic",
+        "ferromagnetic",
+        "antiferromagnetic"
+      ]
+    },
+    "shape": [],
+    "suggestion": true
+  },
+  "results.method.simulation.dmft.u": {
+    "name": "u",
+    "description": "Value of the Hubbard local interaction in eV.",
+    "type": {
+      "type_kind": "numpy",
+      "type_data": "float64"
+    },
+    "unit": "electron_volt",
+    "shape": []
+  },
+  "results.method.simulation.dmft.hunds_hubbard_ratio": {
+    "name": "hunds_hubbard_ratio",
+    "description": "Ratio JH/U, with JH being the Hunds coupling and U being the Hubbard local interaction.",
+    "type": {
+      "type_kind": "numpy",
+      "type_data": "float64"
+    }
   },
   "results.properties.n_calculations": {
     "name": "n_calculations",
@@ -3314,6 +3386,12 @@
     "nested": false,
     "repeats": false
   },
+  "results.method.simulation.dmft": {
+    "name": "dmft",
+    "description": "\n        Methodology for a DMFT calculation.\n        ",
+    "nested": false,
+    "repeats": false
+  },
   "results.method.simulation.quantum_cms": {
     "name": "quantum_cms",
     "nested": false,
@@ -3528,6 +3606,12 @@
     "name": "band_gap",
     "description": "\n        Band gap information for electronic structure.\n        ",
     "nested": true,
+    "repeats": true
+  },
+  "results.properties.electronic.greens_functions_electronic": {
+    "name": "greens_functions_electronic",
+    "description": "\n        Base class for Green's functions information.\n        ",
+    "nested": false,
     "repeats": true
   },
   "results.properties.optoelectronic": {

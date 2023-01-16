@@ -774,5 +774,20 @@
     "preamble": "",
     "status": "production",
     "tableOfFiles": ""
+  },
+  "w2dynamics": {
+    "codeCategory": "Atomistic code",
+    "codeLabel": "w2dynamics",
+    "codeLabelStyle": "All in lowercase",
+    "codeName": "w2dynamics",
+    "codeUrl": "https://github.com/w2dynamics/w2dynamics",
+    "codeVersion": "",
+    "parserDirName": "dependencies/parsers/electronic/electronicparsers/w2dynamics/",
+    "parserGitUrl": "https://github.com/nomad-coe/electronic-parsers.git",
+    "parserLastUpdate": "02.11.2022",
+    "parserSpecific": "",
+    "preamble": "",
+    "status": "production",
+    "tableOfFiles": "| Input Filename | Description |\n| --- | --- |\n| `*.hdf5` | **Mainfile:** hdf5 file containing all i/o parameters w/ arbitrary name |\n| `*.in` | input text file containing [general], [atoms], and [QMC] input parameters |\n| `epsk` | plain text, discrete bath levels |\n| `Vk` | plain text, hybridizations |\n| `w2d.log` | output log error file |\n"
   }
 }
