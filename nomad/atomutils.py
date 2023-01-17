@@ -940,7 +940,8 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
 
     n_frames = len(sec_system) if sec_system is not None else None
     atom_names = sec_atoms.get('labels')
-    atom_types = atom_names
+    model_atom_parameters = sec_method.get('atom_parameters')
+    atom_types = [atom.label for atom in model_atom_parameters] if model_atom_parameters else atom_names
     atom_resindex = np.arange(n_atoms)
     atoms_segindices = np.empty(n_atoms)
     atom_segids = np.array(range(n_atoms), dtype='object')
