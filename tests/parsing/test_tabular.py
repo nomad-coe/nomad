@@ -401,6 +401,7 @@ data:
     pytest.param(
         strip('''
             definitions:
+                name: 'space in header'
                 sections:
                     MyTable:
                         base_section: nomad.parsing.tabular.TableData
@@ -427,7 +428,7 @@ data:
     pytest.param(
         strip('''
             definitions:
-                name: 'my_parsing_test'
+                name: 'datetime in row mode'
                 sections:
                     MyTableWithDatetime:
                         base_section: nomad.parsing.tabular.TableData
@@ -462,6 +463,86 @@ data:
             2018-03-19 13:01:48+01, 2
             2018-03-19 13:01:49+01, 3
         '''), id='datetime in row mode'
+    ),
+    pytest.param(
+        strip('''
+        definitions:
+          name: 'data file as reference'
+          sections:
+            Base_Class:
+              quantities:
+                name:
+                  type: str
+            Main_Class:
+              base_sections:
+                - nomad.parsing.tabular.TableData
+                - nomad.datamodel.data.EntryData
+              quantities:
+                csv_file:
+                  type: str
+                  m_annotations:
+                    tabular_parser:
+                      mode: row
+                      target_sub_section:
+                      - subsection_1
+              sub_sections:
+                subsection_1:
+                  repeats: True
+                  section: '#/Base_Class'
+            Class_1:
+              base_sections:
+              - '#/Base_Class'
+              -  nomad.parsing.tabular.TableData
+              quantities:
+                data_file_1:
+                  type: str
+                  m_annotations:
+                    tabular_parser:
+                      path_to_data_file: '#data/csv_file'
+                      mode: row
+                      target_sub_section:
+                      - subsection_1
+              sub_sections:
+                subsection_1:
+                  repeats: true
+                  section:
+                    quantities:
+                      header_0:
+                        type: str
+                        m_annotations:
+                          tabular:
+                            name: header_0
+            Class_2:
+              base_sections:
+              -  nomad.parsing.tabular.TableData
+              quantities:
+                data_file_2:
+                  type: str
+                  m_annotations:
+                    tabular_parser:
+                      path_to_data_file: '#data/csv_file'
+              sub_sections:
+                subsection_1:
+                  section:
+                    quantities:
+                      header_1:
+                        type: str
+                        shape: ['*']
+                        m_annotations:
+                          tabular:
+                            name: header_1
+        data:
+          m_def: Main_Class
+          csv_file: test.my_schema.archive.csv
+          subsection_1:
+          - m_def: Class_1
+          - m_def: Class_2
+        '''),
+        strip('''
+            header_0,header_1
+            0_0,0_1
+            1_0,1_1
+        '''), id='data file as reference'
     )
 ])
 def test_tabular_csv(raw_files, monkeypatch, schema, content):
@@ -479,11 +560,17 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
     main_archive, _ = get_archives(context, schema_file, None)
     ArchiveParser().parse(schema_file, main_archive)
     run_normalize(main_archive)
-    if 'header_1' in main_archive.data:
+    if re.search('space in header', schema):
         assert main_archive.data.header_1 is not None
-    if 'MySubsection' in main_archive.data:
+    elif re.search('datetime in row mode', schema):
         for instance in [0, 1, 2]:
             assert isinstance(main_archive.data.MySubsection[instance].header_0, datetime.datetime)
+    elif re.search('data file as reference', schema):
+        assert len(main_archive.data.subsection_1) == 2
+        assert len(main_archive.data.subsection_1[0].subsection_1) == 2
+        assert main_archive.data.subsection_1[0].subsection_1[0].header_0 == '0_0'
+        assert main_archive.data.subsection_1[0].subsection_1[1].header_0 == '1_0'
+        assert main_archive.data.subsection_1[1].subsection_1.header_1 == ['0_1', '1_1']
 
 
 @pytest.mark.parametrize('schema,content,missing', [
