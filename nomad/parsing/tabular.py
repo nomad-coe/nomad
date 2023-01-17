@@ -38,12 +38,33 @@ from nomad.datamodel.metainfo.annotations import TabularMode, TabularAnnotation,
 m_package = Package()
 
 
+def traverse_to_target_data_file(section, path_list: List[str]):
+    if len(path_list) == 0 and isinstance(section, str):
+        return section
+    else:
+        try:
+            temp = path_list.pop(0)
+            return traverse_to_target_data_file(getattr(section, temp), path_list)
+        except AttributeError:
+            raise MetainfoError(f'The path {temp} in path_to_data_file does not exist')
+
+
 def to_camel_case(snake_str: str):
     '''Take as input a snake case variable and return a camel case one'''
 
     components = snake_str.split('_')
 
     return ''.join(f'{x[0].upper()}{x[1:].lower()}' for x in components)
+
+
+def extract_tabular_parser_annotation(archive):
+    for quantity_def in archive.m_def.all_quantities.values():
+        annotation = quantity_def.m_get_annotations('tabular_parser')
+        if not annotation:
+            pass
+        else:
+            return annotation, quantity_def
+    return None, None
 
 
 class TableRow(EntryData):
@@ -64,10 +85,10 @@ class TableData(ArchiveSection):
     def normalize(self, archive, logger):
         super(TableData, self).normalize(archive, logger)
 
-        for quantity_def in self.m_def.all_quantities.values():
-            annotation = quantity_def.m_get_annotations('tabular_parser')
-            if annotation:
-                self.tabular_parser(quantity_def, archive, logger, annotation)
+        annotation, quantity_def = extract_tabular_parser_annotation(self)
+
+        if annotation:
+            self.tabular_parser(quantity_def, archive, logger, annotation)
 
     def tabular_parser(self, quantity_def: Quantity, archive, logger, annotation: TabularParserAnnotation):
         if logger is None:
@@ -76,12 +97,21 @@ class TableData(ArchiveSection):
         if not quantity_def.is_scalar:
             raise NotImplementedError('CSV parser is only implemented for single files.')
 
-        value = self.m_get(quantity_def)
-        if not value:
+        if annotation.path_to_data_file:
+            self.m_set(
+                quantity_def,
+                traverse_to_target_data_file(
+                    archive,
+                    annotation.path_to_data_file.split('#')[1].split('/')
+                )
+            )
+
+        data_file = self.m_get(quantity_def)
+        if not data_file:
             return
 
-        with archive.m_context.raw_file(self.data_file) as f:
-            data = read_table_data(self.data_file, f, **annotation.dict(include={'sep', 'comment', 'skiprows'}))
+        with archive.m_context.raw_file(data_file) as f:
+            data = read_table_data(data_file, f, **annotation.dict(include={'sep', 'comment', 'skiprows'}))
 
         tabular_parser_mode = annotation.mode
         if tabular_parser_mode == TabularMode.column:
@@ -250,7 +280,7 @@ def parse_table(pd_dataframe, section_def: Section, logger):
     # the corresponding sheet_name from the data is extracted, otherwise its assumed that
     # the columns are to be extracted from first sheet of the excel file.
     for column in mapping:
-        if column == 'data_file':
+        if column == section_def.name:
             continue
         if '/' in column:
             sheet_name = column.split('/')[0]
