@@ -64,7 +64,7 @@ const FilterSubMenuDFT = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputRange
-          quantity="results.method.simulation.dft.hubbard_model.u_effective"
+          quantity="results.method.simulation.dft.hubbard_kanamori_model.u_effective"
           visible={visible}
           xs={12}
         />

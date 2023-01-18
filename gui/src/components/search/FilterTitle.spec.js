@@ -23,23 +23,23 @@ test.each([
   [
     'default',
     {
-      quantity: 'results.method.simulation.dft.hubbard_model.u_effective'
+      quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective'
     },
     {
-      quantity: 'results.method.simulation.dft.hubbard_model.u_effective',
+      quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
       label: 'U Effective',
-      description: 'Value of the effective U parameter (U-J).',
+      description: 'Value of the effective U parameter (u - j).',
       unit: 'eV'
     }
   ],
   [
     'custom label',
     {
-      quantity: 'results.method.simulation.dft.hubbard_model.u_effective',
+      quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
       label: 'Custom Label'
     },
     {
-      quantity: 'results.method.simulation.dft.hubbard_model.u_effective',
+      quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
       label: 'Custom Label',
       unit: 'eV'
     }
@@ -47,11 +47,11 @@ test.each([
   [
     'custom description',
     {
-      quantity: 'results.method.simulation.dft.hubbard_model.u_effective',
+      quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
       description: 'This is a custom description.'
     },
     {
-      quantity: 'results.method.simulation.dft.hubbard_model.u_effective',
+      quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
       label: 'U Effective',
       description: 'This is a custom description.',
       unit: 'eV'
@@ -72,11 +72,11 @@ test.each([
   [
     'disable unit',
     {
-      quantity: 'results.method.simulation.dft.hubbard_model.u_effective',
+      quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
       disableUnit: true
     },
     {
-      quantity: 'results.method.simulation.dft.hubbard_model.u_effective',
+      quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
       label: 'U Effective',
       unit: undefined
     }

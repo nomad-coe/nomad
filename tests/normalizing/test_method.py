@@ -92,13 +92,12 @@ def test_method_dft_plus_u(dft_plus_u):
     assert method.simulation.dft.scf_threshold_energy_change == 1e-24 * ureg.joule
     assert method.simulation.dft.van_der_Waals_method == "G06"
     assert method.simulation.dft.relativity_method == "scalar_relativistic"
-    assert method.simulation.dft.hubbard_model[0].atom_label == 'Ti'
-    assert method.simulation.dft.hubbard_model[0].orbital == '3d'
-    assert method.simulation.dft.hubbard_model[0].u_effective == 3.5e-19 * ureg.joule
-    assert method.simulation.dft.hubbard_model[0].u == 4.5e-19 * ureg.joule
-    assert method.simulation.dft.hubbard_model[0].j == 1e-19 * ureg.joule
-    assert method.simulation.dft.hubbard_model[0].method == 'Dudarev'
-    assert method.simulation.dft.hubbard_model[0].projection_type == 'on-site'
+    assert method.simulation.dft.hubbard_kanamori_model[0].atom_label == 'Ti'
+    assert method.simulation.dft.hubbard_kanamori_model[0].orbital == '3d'
+    assert method.simulation.dft.hubbard_kanamori_model[0].u_effective.magnitude == 3.5e-19
+    assert method.simulation.dft.hubbard_kanamori_model[0].u.magnitude == 4.5e-19
+    assert method.simulation.dft.hubbard_kanamori_model[0].j.magnitude == 1e-19
+    assert method.simulation.dft.hubbard_kanamori_model[0].double_counting_correction == 'Dudarev'
 
 
 def test_method_projection(projection):
@@ -132,8 +131,8 @@ def test_method_dmft(dmft):
     assert method.simulation.dmft.total_filling == 0.5 / 3.0
     assert method.simulation.dmft.inverse_temperature == 60.0
     assert method.simulation.dmft.magnetic_state == "paramagnetic"
-    assert method.simulation.dmft.u.magnitude == 4.0
-    assert method.simulation.dmft.hunds_hubbard_ratio == 0.6 / 4.0
+    assert method.simulation.dmft.u.magnitude == 4.0e-19
+    assert method.simulation.dmft.hunds_hubbard_ratio == 0.6e-19 / 4.0e-19
 
 
 def test_method_eels(eels):
