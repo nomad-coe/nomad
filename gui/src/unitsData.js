@@ -1011,6 +1011,17 @@ export const unitList = [
     offset: 0.0
   },
   {
+    name: 'gauss',
+    dimension: 'magnetic_field',
+    label: 'Gauss',
+    abbreviation: 'G',
+    aliases: [
+      'G'
+    ],
+    definition: '0.0001 kilogram / ampere / second ^ 2',
+    offset: 0.0
+  },
+  {
     name: 'gigapascal',
     dimension: 'pressure',
     label: 'Gigapascal',

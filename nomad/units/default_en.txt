@@ -384,6 +384,7 @@ unit_pole = µ_0 * biot * centimeter
 [magnetic_field] = [magnetic_flux] / [area]
 tesla = weber / meter ** 2 = T
 gamma = 1e-9 * tesla = γ
+gauss = 1e-4 * tesla = G
 
 # Magnetic field strength
 [magnetic_field_strength] = [current] / [length]

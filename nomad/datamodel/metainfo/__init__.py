@@ -22,3 +22,4 @@ from .eln.material_library import m_package
 from .eln.perovskite_solar_cell_database import m_package
 from .downloads import m_package
 from .eln.labfolder import m_package
+from .eln.ikz_hall import m_package

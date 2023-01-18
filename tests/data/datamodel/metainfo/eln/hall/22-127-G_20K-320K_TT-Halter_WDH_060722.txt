@@ -1,0 +1,278 @@
+[Sample parameters]
+Sample Type:	van der Pauw
+Hall Factor =	1.0
+Thickness =	1.8 [µm]
+L =	15.0 [mm]
+Depletion Layer Correction:	Off
+22-127-G
+[Measurements]
+<Step 1: Variable Temperature Measurement>
+Start Time:	07/06/22 15:15:51
+Time Completed:	07/06/22 16:07:52
+Elapsed Time:	0:52:1
+
+Starting Temperature:	20.0 [K]
+Ending Temperature:	28.0 [K]
+Spacing:	Linear Spacing
+Temperature Step:	2.0 [K]
+Field at:	3.0 [kG]
+Field Reversal with Positive field first
+Measurement Type:	Hall and Resistivity Measurement
+Excitation Current:	1.0 [nA]
+Resistance Range:	High
+Dwell Time:	2.0 [Sec]
+Current Reversal:	On
+Geometry selection:	A and B
+
+Temperature [K]	Field [G]	Zero-field Resistivity [ohm cm]
+20.786	-4.5000E-2	1.0047E+4
+21.611	7.0000E-2	8.9558E+3
+23.69	-2.5000E-3	6.5835E+3
+25.939	-1.4250E-1	4.6878E+3
+28.155	-3.5000E-2	3.3844E+3
+
+Temperature [K]	Field [G]	Resistivity [ohm cm]	Hall Coefficient [cm³/C]	Carrier Density [1/cm³]	Hall Mobility [cm²/(VS)]
+20.741	3.0000E+3	1.0250E+4	-4.7289E+5	-1.3200E+13	-4.7070E+1
+22.04	2.9997E+3	8.4042E+3	-9.4955E+4	-6.5739E+13	-1.0603E+1
+24.043	3.0001E+3	6.2073E+3	-2.3685E+5	-2.6355E+13	-3.5976E+1
+26.301	3.0002E+3	4.4470E+3	-1.6306E+5	-3.8282E+13	-3.4783E+1
+28.627	3.0001E+3	3.0685E+3	-5.5256E+5	-1.1297E+13	-1.6327E+2
+
+<Step 2: Variable Temperature Measurement>
+Start Time:	07/06/22 16:07:53
+Time Completed:	07/06/22 16:30:57
+Elapsed Time:	0:23:4
+
+Starting Temperature:	30.0 [K]
+Ending Temperature:	32.0 [K]
+Spacing:	Linear Spacing
+Temperature Step:	2.0 [K]
+Field at:	3.0 [kG]
+Field Reversal with Positive field first
+Measurement Type:	Hall and Resistivity Measurement
+Excitation Current:	2.0 [nA]
+Resistance Range:	High
+Dwell Time:	2.0 [Sec]
+Current Reversal:	On
+Geometry selection:	A and B
+
+Temperature [K]	Field [G]	Zero-field Resistivity [ohm cm]
+30.079	-1.1375E-1	2.4010E+3
+32.219	-1.4250E-1	1.5657E+3
+
+Temperature [K]	Field [G]	Resistivity [ohm cm]	Hall Coefficient [cm³/C]	Carrier Density [1/cm³]	Hall Mobility [cm²/(VS)]
+30.712	3.0001E+3	2.1056E+3	-6.1042E+5	-1.0226E+13	-2.5423E+2
+32.784	3.0004E+3	1.3582E+3	-4.8864E+5	-1.2775E+13	-3.1209E+2
+
+<Step 3: Variable Temperature Measurement>
+Start Time:	07/06/22 16:30:57
+Time Completed:	07/06/22 17:00:59
+Elapsed Time:	0:30:2
+
+Starting Temperature:	35.0 [K]
+Ending Temperature:	41.0 [K]
+Spacing:	Linear Spacing
+Temperature Step:	3.0 [K]
+Field at:	3.0 [kG]
+Field Reversal with Positive field first
+Measurement Type:	Hall and Resistivity Measurement
+Excitation Current:	6.0 [nA]
+Resistance Range:	High
+Dwell Time:	2.0 [Sec]
+Current Reversal:	On
+Geometry selection:	A and B
+
+Temperature [K]	Field [G]	Zero-field Resistivity [ohm cm]
+34.959	1.0750E-1	8.4461E+2
+37.852	-6.0000E-2	4.2113E+2
+40.543	1.8000E-1	2.2253E+2
+
+Temperature [K]	Field [G]	Resistivity [ohm cm]	Hall Coefficient [cm³/C]	Carrier Density [1/cm³]	Hall Mobility [cm²/(VS)]
+35.749	2.9998E+3	6.9053E+2	-4.0711E+5	-1.5333E+13	-4.8201E+2
+38.57	2.9999E+3	3.4782E+2	-2.9449E+5	-2.1197E+13	-6.9928E+2
+41.475	2.9998E+3	1.7561E+2	-1.7208E+5	-3.6276E+13	-7.7328E+2
+
+<Step 4: Variable Temperature Measurement>
+Start Time:	07/06/22 17:01:00
+Time Completed:	07/06/22 17:32:06
+Elapsed Time:	0:31:6
+
+Starting Temperature:	45.0 [K]
+Ending Temperature:	55.0 [K]
+Spacing:	Linear Spacing
+Temperature Step:	5.0 [K]
+Field at:	3.0 [kG]
+Field Reversal with Positive field first
+Measurement Type:	Hall and Resistivity Measurement
+Excitation Current:	50.0 [nA]
+Resistance Range:	High
+Dwell Time:	2.0 [Sec]
+Current Reversal:	On
+Geometry selection:	A and B
+
+Temperature [K]	Field [G]	Zero-field Resistivity [ohm cm]
+44.443	-2.5000E-3	9.3317E+1
+49.414	-5.5000E-2	3.5101E+1
+54.367	-8.4703E-18	1.5362E+1
+
+Temperature [K]	Field [G]	Resistivity [ohm cm]	Hall Coefficient [cm³/C]	Carrier Density [1/cm³]	Hall Mobility [cm²/(VS)]
+45.395	3.0000E+3	7.5012E+1	-8.2393E+4	-7.5761E+13	-8.8294E+2
+50.276	3.0000E+3	2.9651E+1	-3.5299E+4	-1.7684E+14	-1.0057E+3
+55.161	3.0000E+3	1.3489E+1	-1.6693E+4	-3.7394E+14	-1.0867E+3
+
+<Step 5: Variable Temperature Measurement>
+Start Time:	07/06/22 17:32:06
+Time Completed:	07/06/22 18:48:24
+Elapsed Time:	1:16:18
+
+Starting Temperature:	60.0 [K]
+Ending Temperature:	80.0 [K]
+Spacing:	Linear Spacing
+Temperature Step:	5.0 [K]
+Field at:	3.0 [kG]
+Field Reversal with Positive field first
+Measurement Type:	Hall and Resistivity Measurement
+Excitation Current:	1.0 [µA]
+Resistance Range:	Low
+Dwell Time:	2.0 [Sec]
+Current Reversal:	On
+Geometry selection:	A and B
+
+Temperature [K]	Field [G]	Zero-field Resistivity [ohm cm]
+59.252	3.7500E-3	7.7305E+0
+64.535	-2.9000E-1	4.1074E+0
+69.655	1.4250E-1	2.5168E+0
+74.464	1.1000E-1	1.7207E+0
+79.194	3.0000E-2	1.2613E+0
+
+Temperature [K]	Field [G]	Resistivity [ohm cm]	Hall Coefficient [cm³/C]	Carrier Density [1/cm³]	Hall Mobility [cm²/(VS)]
+59.958	2.9999E+3	6.9608E+0	-9.0340E+3	-6.9097E+14	-1.1686E+3
+64.996	3.0000E+3	3.9989E+0	-4.7162E+3	-1.3236E+15	-1.1482E+3
+70.662	3.0003E+3	2.2969E+0	-2.9711E+3	-2.1010E+15	-1.1805E+3
+75.418	3.0001E+3	1.5990E+0	-2.0587E+3	-3.0321E+15	-1.1965E+3
+79.382	3.0002E+3	1.2512E+0	-1.5676E+3	-3.9819E+15	-1.2429E+3
+
+<Step 6: Variable Temperature Measurement>
+Start Time:	07/06/22 18:48:25
+Skipped at:	07/07/22 03:44:11
+Elapsed Time:	8:55:46
+
+Starting Temperature:	85.0 [K]
+Ending Temperature:	320.0 [K]
+Spacing:	Linear Spacing
+Temperature Step:	5.0 [K]
+Field at:	3.0 [kG]
+Field Reversal with Positive field first
+Measurement Type:	Hall and Resistivity Measurement
+Excitation Current:	10.0 [µA]
+Resistance Range:	Low
+Dwell Time:	2.0 [Sec]
+Current Reversal:	On
+Geometry selection:	A and B
+
+Temperature [K]	Field [G]	Zero-field Resistivity [ohm cm]
+84.381	2.3750E-2	9.4965E-1
+90.005	-1.1750E-1	7.4872E-1
+95.957	-1.5125E-1	6.1270E-1
+99.856	8.8750E-2	5.5329E-1
+105.008	3.2500E-2	4.9283E-1
+109.753	-1.7000E-1	4.5296E-1
+114.675	1.8875E-1	4.2276E-1
+119.682	4.2500E-2	4.0065E-1
+124.701	1.4750E-1	3.8466E-1
+129.733	-1.4375E-1	3.7373E-1
+134.762	1.0000E-2	3.6686E-1
+139.772	4.6250E-2	3.6294E-1
+144.753	7.5000E-3	3.6156E-1
+149.801	-6.5000E-2	3.6229E-1
+154.769	1.2500E-1	3.6481E-1
+159.785	2.0125E-1	3.6891E-1
+164.784	-2.7500E-2	3.7432E-1
+169.796	4.2500E-2	3.8098E-1
+174.793	-2.5000E-3	3.8872E-1
+179.794	-1.3625E-1	3.9744E-1
+184.805	2.9625E-1	4.0712E-1
+189.833	-5.7500E-2	4.1773E-1
+194.821	1.0875E-1	4.2919E-1
+199.85	7.6250E-2	4.4167E-1
+204.854	-3.5000E-2	4.5513E-1
+209.812	-1.3250E-1	4.6956E-1
+214.818	2.6250E-2	4.8488E-1
+219.727	6.8750E-2	4.9973E-1
+224.758	2.2375E-1	5.1270E-1
+229.764	1.2500E-3	5.2253E-1
+234.73	7.5000E-3	5.3218E-1
+239.691	4.1250E-2	5.4399E-1
+244.633	-1.3500E-1	5.5707E-1
+249.605	4.1250E-3	5.7102E-1
+254.582	-3.7500E-2	5.8553E-1
+259.539	1.8375E-1	6.0056E-1
+264.528	1.1750E-1	6.1604E-1
+269.453	1.7500E-2	6.3174E-1
+274.47	7.5000E-3	6.4807E-1
+279.536	1.7500E-2	6.6468E-1
+284.469	-1.7500E-2	6.8111E-1
+289.476	4.9750E-2	6.9800E-1
+294.484	1.2500E-2	7.1522E-1
+299.534	-3.3750E-2	7.3240E-1
+304.472	-2.2250E-1	7.4977E-1
+309.466	-8.2500E-2	7.6715E-1
+314.612	1.0625E-1	7.8456E-1
+200.506	-8.1250E-2	1.0000E+101
+
+Temperature [K]	Field [G]	Resistivity [ohm cm]	Hall Coefficient [cm³/C]	Carrier Density [1/cm³]	Hall Mobility [cm²/(VS)]
+85.918	3.0001E+3	8.7643E-1	-1.0963E+3	-5.6938E+15	-1.1544E+3
+90.348	3.0000E+3	7.3884E-1	-8.7005E+2	-7.1745E+15	-1.1621E+3
+95.684	3.0001E+3	6.1736E-1	-6.9943E+2	-8.9247E+15	-1.1416E+3
+101.546	3.0001E+3	5.2842E-1	-5.7381E+2	-1.0879E+16	-1.0371E+3
+106.243	2.9998E+3	4.7949E-1	-4.9732E+2	-1.2552E+16	-1.0091E+3
+111.115	3.0002E+3	4.4231E-1	-4.3576E+2	-1.4325E+16	-9.6203E+2
+116.083	3.0000E+3	4.1489E-1	-3.8706E+2	-1.6127E+16	-9.1555E+2
+121.041	2.9999E+3	3.9509E-1	-3.4834E+2	-1.7920E+16	-8.6946E+2
+126.079	3.0001E+3	3.8094E-1	-3.1624E+2	-1.9739E+16	-8.2213E+2
+131.093	3.0000E+3	3.7139E-1	-2.8994E+2	-2.1529E+16	-7.7580E+2
+136.115	3.0001E+3	3.6534E-1	-2.6873E+2	-2.3228E+16	-7.3253E+2
+141.158	2.9998E+3	3.6226E-1	-2.5100E+2	-2.4870E+16	-6.9156E+2
+146.162	3.0002E+3	3.6159E-1	-2.3535E+2	-2.6524E+16	-6.5091E+2
+151.169	3.0001E+3	3.6293E-1	-2.2257E+2	-2.8046E+16	-6.1433E+2
+156.147	3.0003E+3	3.6596E-1	-2.1126E+2	-2.9547E+16	-5.7910E+2
+161.149	2.9999E+3	3.7049E-1	-2.0131E+2	-3.1008E+16	-5.4569E+2
+166.142	3.0000E+3	3.7629E-1	-1.9278E+2	-3.2379E+16	-5.1503E+2
+171.166	2.9999E+3	3.8332E-1	-1.8516E+2	-3.3713E+16	-4.8600E+2
+176.184	3.0000E+3	3.9139E-1	-1.7839E+2	-3.4992E+16	-4.5891E+2
+181.181	2.9999E+3	4.0045E-1	-1.7230E+2	-3.6229E+16	-4.3352E+2
+186.176	3.0002E+3	4.1039E-1	-1.6721E+2	-3.7331E+16	-4.1071E+2
+191.188	3.0002E+3	4.2125E-1	-1.6219E+2	-3.8486E+16	-3.8828E+2
+196.197	3.0001E+3	4.3301E-1	-1.5781E+2	-3.9556E+16	-3.6769E+2
+201.197	2.9999E+3	4.4577E-1	-1.5396E+2	-4.0543E+16	-3.4860E+2
+206.187	2.9999E+3	4.5951E-1	-1.5061E+2	-4.1445E+16	-3.3092E+2
+211.18	3.0000E+3	4.7430E-1	-1.4751E+2	-4.2317E+16	-3.1415E+2
+216.184	3.0002E+3	4.8973E-1	-1.4475E+2	-4.3123E+16	-2.9854E+2
+221.117	2.9999E+3	5.0419E-1	-1.4186E+2	-4.4004E+16	-2.8386E+2
+226.13	3.0000E+3	5.1613E-1	-1.3817E+2	-4.5179E+16	-2.6949E+2
+231.117	2.9999E+3	5.2545E-1	-1.3420E+2	-4.6515E+16	-2.5683E+2
+236.09	3.0001E+3	5.3571E-1	-1.3022E+2	-4.7936E+16	-2.4469E+2
+241.07	3.0000E+3	5.4805E-1	-1.2727E+2	-4.9046E+16	-2.3396E+2
+246.014	3.0000E+3	5.6147E-1	-1.2466E+2	-5.0072E+16	-2.2379E+2
+250.994	2.9998E+3	5.7567E-1	-1.2231E+2	-5.1034E+16	-2.1420E+2
+255.939	2.9998E+3	5.9032E-1	-1.2005E+2	-5.1999E+16	-2.0502E+2
+260.929	2.9999E+3	6.0559E-1	-1.1789E+2	-5.2949E+16	-1.9630E+2
+265.909	3.0001E+3	6.2114E-1	-1.1585E+2	-5.3880E+16	-1.8806E+2
+270.815	3.0001E+3	6.3697E-1	-1.1410E+2	-5.4707E+16	-1.8062E+2
+275.905	2.9996E+3	6.5354E-1	-1.1234E+2	-5.5566E+16	-1.7334E+2
+280.872	3.0001E+3	6.6993E-1	-1.1078E+2	-5.6349E+16	-1.6666E+2
+285.858	3.0000E+3	6.8663E-1	-1.0912E+2	-5.7203E+16	-1.6021E+2
+290.82	3.0001E+3	7.0349E-1	-1.0773E+2	-5.7943E+16	-1.5434E+2
+295.907	3.0000E+3	7.2079E-1	-1.0633E+2	-5.8704E+16	-1.4867E+2
+300.829	3.0002E+3	7.3790E-1	-1.0503E+2	-5.9432E+16	-1.4341E+2
+305.822	3.0001E+3	7.5547E-1	-1.0365E+2	-6.0223E+16	-1.3824E+2
+310.81	3.0002E+3	7.7281E-1	-1.0233E+2	-6.1003E+16	-1.3338E+2
+316.028	3.0001E+3	7.8981E-1	-1.0139E+2	-6.1563E+16	-1.2924E+2
+0.0	0.0000E+0	1.0000E+101	0.0000E+0	0.0000E+0	1.0000E+103
+
+<Step 7: Go to Temperature 300.0 [K]>
+Start Time:	
+Time Completed:	
+Elapsed Time:	0:0:0
+
+
