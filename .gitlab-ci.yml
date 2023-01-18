@@ -43,6 +43,12 @@ stages:
   - deploy
   - release
 
+update changelog:
+  stage: build
+  script:
+    - curl -X POST "https://gitlab.mpcdf.mpg.de/api/v4/projects/$CI_PROJECT_ID/repository/changelog?version=${CI_COMMIT_TAG:1}&access_token=$CI_ACCESS_TOKEN&message=Add%20changelog%20for%20version%20$CI_COMMIT_TAG%20%5Bskip-ci%5D"
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
 
 build:
   stage: build
@@ -64,7 +70,6 @@ build:
     - if: $CI_COMMIT_TAG
       when: never
     - when: on_success
-
 
 python linting:
   stage: test

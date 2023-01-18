@@ -13,7 +13,7 @@ standards like the [Optimade](http://www.optimade.org/) API.
 Furthermore, this projects aims at establishing NOMAD as a distributed platform for
 material science data sharing and management. This includes the on-site deployment of
 NOMAD as a standalone service (*oasis*), the federated use of NOMAD through a
-serious of full and partial *mirrors*.
+series of full and partial *mirrors*.
 
 ## Getting started
 
@@ -41,7 +41,9 @@ contributing, and API reference.
 
 ## Change log
 
-Omitted versions are plain bugfix releases with only minor changes and fixes.
+Omitted versions are plain bugfix releases with only minor changes and fixes. The
+file `CHANGELOG.md` might contain more detailed change information for the latest
+versions.
 
 ### v1.1.6
 - application dashboards with solar cell as an example
