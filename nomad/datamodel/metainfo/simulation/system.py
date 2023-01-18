@@ -232,6 +232,31 @@ class Atoms(MSection):
         zero.
         ''')
 
+    def to_ase(self, raise_exp: bool = False):
+        '''
+        Returns an ASE Object that represents the data in this section.
+
+        Arguments:
+            raise_exp: Optional flag to raise an exception instead of return None, if
+                the ASE object could not be created.
+
+        Returns:
+            The ASE Object or None, if the ASE Object could not be created (e.g. due
+            to missing data).
+        '''
+        try:
+            from ase import Atoms
+            return Atoms(
+                symbols=self.labels,
+                positions=self.positions.m,
+                cell=self.lattice_vectors.m,
+                pbc=self.periodic
+            )
+        except Exception as e:
+            if raise_exp:
+                raise e
+            return None
+
 
 class Symmetry(MSection):
     '''
