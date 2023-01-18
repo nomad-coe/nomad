@@ -65,6 +65,11 @@ to run. The solution can be discussed in the merge request.
 ### Code review and merge
 
 When you are satisfied with your solution, and your CI/CD pipeline passes you can mark your MR as *ready*.
+Make sure that the `delete` option is checked to automatically remove you branch after
+merge. In most cases you should also check `squash` commits. This will replace all the
+commits in the MR with a single *squash* commit. If you do not want to *squash* your
+branch, make sure that you produce a reasonable and [clean version history](#clean-version-history).
+
 To review GUI changes, you should deploy your branch to the dev-cluster via CI/CD actions.
 Find someone on the NOMAD developer team to review your MR and request a review through
 GitLab. The review should be performed shortly and should not stall the MR longer than
@@ -74,6 +79,40 @@ The reviewer will open *threads* that need to be solved by the MR author. If all
 threads are resolved, you can re-request a review. The reviewer should eventually merge
 the MR. Typically we squash MRs to keep the revision history short.
 This will typically auto-close the issue.
+
+## Changelog
+
+We have an automatically generated changelog in the repository file `CHANGELOG.md`.
+This changelog is produced from commit messages and to maintain this file, you
+need to write commit messages accordingly.
+
+To trigger a changelog entry, your commit needs to end with a so called *git trailer*
+called `Changelog`. A typical commit message for a changelog entry should look like this:
+
+```
+A brief one line title of the change.
+
+A longer *markdown* formatted description of the change. Keep in mind that gitlab
+will automatically link the changelog entry with this commit and a respective merge
+requests. You do not need to manually link to any gitlab resources.
+
+This could span multiple paragraphs. However, keep it short. Documentation should
+go into the actual documentation, but you should mention breaks in backward compatibility,
+deprecation of features, etc.
+
+Changelog: Fixed
+```
+
+The trailer value (`Fixed` in the example) has to be one of the following values:
+
+- `Fixed`, for bugfixes.
+- `Added`, for new features.
+- `Changed`, for general improvements, e.g. updated documentation, refactoring,
+improving performance, etc.
+
+These categories are consistent with (keepachangelog.com)[https://keepachangelog.com/].
+For more information about the changelog generation read the [gitlab documentation](https://docs.gitlab.com/ee/api/repositories.html#add-changelog-data-to-a-changelog-file).
+
 
 ## Clean version history
 
