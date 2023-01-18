@@ -30,7 +30,7 @@ from nomad.datamodel.results import (
     Method,
     Electronic,
     Simulation,
-    HubbardModel,
+    HubbardKanamoriModel,
     DFT,
     Projection,
     GW,
@@ -187,8 +187,8 @@ class MethodNormalizer():
             if repr_method.scf is not None:
                 dft.scf_threshold_energy_change = repr_method.scf.threshold_energy_change
             simulation.dft = dft
-            hubbard_models = self.hubbard_model(methods)
-            simulation.dft.hubbard_model = hubbard_models if len(hubbard_models) else None
+            hubbard_kanamori_models = self.hubbard_kanamori_model(methods)
+            simulation.dft.hubbard_kanamori_model = hubbard_kanamori_models if len(hubbard_kanamori_models) else None
 
         method.equation_of_state_id = self.equation_of_state_id(method.method_id, self.material.chemical_formula_hill)
         simulation.program_name = self.run.program.name
@@ -196,15 +196,15 @@ class MethodNormalizer():
         method.simulation = simulation
         return method
 
-    def hubbard_model(self, methods) -> List[HubbardModel]:
-        """Generate a list of normalized HubbardModels for `results.method`"""
-        hubbard_models = []
+    def hubbard_kanamori_model(self, methods) -> List[HubbardKanamoriModel]:
+        """Generate a list of normalized HubbardKanamoriModel for `results.method`"""
+        hubbard_kanamori_models = []
         for sec_method in methods:
             for param in sec_method.atom_parameters:
-                if param.hubbard_model is not None:
-                    hubb_run = param.hubbard_model
-                    if all([hubb_run.orbital, hubb_run.method, hubb_run.projection_type]):
-                        hubb_results = HubbardModel()
+                if param.hubbard_kanamori_model is not None:
+                    hubb_run = param.hubbard_kanamori_model
+                    if all([hubb_run.orbital, hubb_run.double_counting_correction]):
+                        hubb_results = HubbardKanamoriModel()
                         hubb_results.atom_label = param.label
                         valid = False
                         for quant in hubb_run.m_def.quantities:
@@ -222,8 +222,8 @@ class MethodNormalizer():
                             hubb_results.u_effective = hubb_results.u
                             if hubb_results.j is not None:
                                 hubb_results.u_effective -= hubb_results.j
-                        hubbard_models.append(hubb_results)
-        return hubbard_models
+                        hubbard_kanamori_models.append(hubb_results)
+        return hubbard_kanamori_models
 
     def workflow_name(self):
         workflow_name = None

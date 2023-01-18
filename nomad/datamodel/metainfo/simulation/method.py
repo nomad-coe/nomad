@@ -128,9 +128,9 @@ class Scf(MSection):
         ''')
 
 
-class HubbardModel(MSection):
+class HubbardKanamoriModel(MSection):
     '''
-    Setup of the Hubbard model used in DFT+U
+    Setup of the local Hubbard model.
     '''
 
     m_def = Section(validate=False)
@@ -139,46 +139,89 @@ class HubbardModel(MSection):
         type=str,
         shape=[],
         description='''
-        Orbital label corresponding to the parameter setting following the notation:
-        '(3)d', '(4)f', ...
+        Orbital label corresponding to the Hubbard model. The typical orbitals with strong
+        Hubbard interactions have partially filled '3d', '4d' and '4f' orbitals.
         ''')
 
-    u_effective = Quantity(
-        type=np.dtype(np.float64),
+    n_orbital = Quantity(
+        type=np.int32,
         shape=[],
-        unit='joule',
         description='''
-        Value of the effective U parameter (U-J).
+        Number of non-degenerated orbitals of the same type (s, p, d, f, ...).
         ''')
 
     u = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='joule',
         description='''
-        Value of the on-site Coulomb interaction U
+        Value of the (intraorbital) Hubbard interaction
+        ''')
+
+    jh = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the (interorbital) Hund's coupling.
+        ''')
+
+    up = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the (interorbital) Coulomb interaction. In rotational invariant
+        systems, up = u - 2 * jh.
         ''')
 
     j = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='joule',
         description='''
-        Value of the exchange interaction J
+        Value of the exchange interaction. In rotational invariant systems, j = jh.
         ''')
 
-    method = Quantity(
+    u_effective = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the effective U parameter (u - j).
+        ''')
+
+    slater_integrals = Quantity(
+        type=np.float64,
+        shape=[3],
+        unit='joule',
+        description='''
+        Value of the Slater integrals (F0, F2, F4) in spherical harmonics used to derive
+        the local Hubbard interactions:
+
+            u = ((2.0 / 7.0) ** 2) * (F0 + 5.0 * F2 + 9.0 * F4) / (4.0*np.pi)
+
+            up = ((2.0 / 7.0) ** 2) * (F0 - 5.0 * F2 + 3.0 * 0.5 * F4) / (4.0*np.pi)
+
+            jh = ((2.0 / 7.0) ** 2) * (5.0 * F2 + 15.0 * 0.25 * F4) / (4.0*np.pi)
+
+        Ref.: Elbio Dagotto, Nanoscale Phase Separation and Colossal Magnetoresistance,
+        Chapter 4, Springer Berlin (2003).
+        ''')
+
+    umn = Quantity(
+        type=np.float64,
+        shape=['n_orbital', 'n_orbital'],
+        unit='joule',
+        description='''
+        Value of the local Coulomb interaction matrix.
+        ''')
+
+    double_counting_correction = Quantity(
         type=str,
         shape=[],
         description='''
-        Name of the correction algorithm applied
-        ''')
-
-    projection_type = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Type of orbitals used for projection in order to calculate occupation numbers.
+        Name of the double counting correction algorithm applied.
         ''')
 
 
@@ -270,7 +313,7 @@ class AtomParameters(MSection):
         Values of the charge corresponding to each orbital.
         ''')
 
-    hubbard_model = SubSection(sub_section=HubbardModel.m_def, repeats=False)
+    hubbard_kanamori_model = SubSection(sub_section=HubbardKanamoriModel.m_def, repeats=False)
 
 
 class MoleculeParameters(MSection):
@@ -785,103 +828,6 @@ class HoppingMatrix(MSection):
         where (n_x, n_y, n_z) define the Wigner-Seitz cell vector in fractional coordinates,
         (orb_1, orb_2) indicates the hopping amplitude between orb_1 and orb_2, and the
         real and imaginary parts of the hopping in electron_volt.
-        ''')
-
-
-class HubbardKanamoriModel(MSection):
-    '''
-    Setup of the local Hubbard model.
-    '''
-
-    m_def = Section(validate=False)
-
-    orbital = Quantity(
-        type=MEnum(["s", "p", "d", "f"]),
-        shape=[],
-        description='''
-        Orbital label corresponding to the parameter setting following the notation:
-        '(3)d', '(4)f', ...
-        ''')
-
-    n_orbital = Quantity(
-        type=np.int32,
-        shape=[],
-        description='''
-        Number of non-degenerated orbitals of the same type (s, p, d, f, ...).
-        ''')
-
-    u = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='electron_volt',
-        description='''
-        Value of the (intraorbital) Hubbard interaction
-        ''')
-
-    jh = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='electron_volt',
-        description='''
-        Value of the (interorbital) Hund's coupling.
-        ''')
-
-    up = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='electron_volt',
-        description='''
-        Value of the (interorbital) Coulomb interaction. In rotational invariant
-        systems, up = u - 2 * jh.
-        ''')
-
-    j = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='electron_volt',
-        description='''
-        Value of the exchange interaction. In rotational invariant systems, j = jh.
-        ''')
-
-    u_effective = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='joule',
-        description='''
-        Value of the effective U parameter (u - j).
-        ''')
-
-    slater_integrals = Quantity(
-        type=np.float64,
-        shape=[3],
-        unit='electron_volt',
-        description='''
-        Value of the Slater integrals (F0, F2, F4) in spherical harmonics used to derive
-        the local Hubbard interactions:
-
-            u = ((2.0 / 7.0) ** 2) * (F0 + 5.0 * F2 + 9.0 * F4) / (4.0*np.pi)
-
-            up = ((2.0 / 7.0) ** 2) * (F0 - 5.0 * F2 + 3.0 * 0.5 * F4) / (4.0*np.pi)
-
-            jh = ((2.0 / 7.0) ** 2) * (5.0 * F2 + 15.0 * 0.25 * F4) / (4.0*np.pi)
-
-        Ref.: Elbio Dagotto, Nanoscale Phase Separation and Colossal Magnetoresistance,
-        Chapter 4, Springer Berlin (2003).
-        ''')
-
-    umn = Quantity(
-        type=np.float64,
-        shape=['n_orbital', 'n_orbital'],
-        unit='electron_volt',
-        description='''
-        Value of the local Coulomb interaction matrix.
-        ''')
-
-    double_counting_correction = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Name of the double counting correction algorithm applied.
         ''')
 
 

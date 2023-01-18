@@ -67,8 +67,8 @@ from nomad.datamodel.metainfo.simulation.calculation import (
 )  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
     BasisSet, Scf, Electronic, Smearing,
-    GW as GWMethod, HubbardModel as Hubbard, AtomParameters,
-    DMFT as DMFTMethod, HubbardKanamoriModel as HubbardKanamori
+    GW as GWMethod, HubbardKanamoriModel as HubbardKanamori, AtomParameters,
+    DMFT as DMFTMethod
 )  # noqa
 from nomad.datamodel.metainfo.workflow import (
     GeometryOptimization as MGeometryOptimization,
@@ -1284,7 +1284,7 @@ class Material(MSection):
     )
 
 
-class HubbardModel(MSection):
+class HubbardKanamoriModel(MSection):
     '''
     Setup of the Hubbard model used in DFT+U
     '''
@@ -1292,15 +1292,14 @@ class HubbardModel(MSection):
     m_def = Section(validate=False)
 
     atom_label = AtomParameters.label.m_copy()
-    orbital = Hubbard.orbital.m_copy()
-    u_effective = Hubbard.u_effective.m_copy()
+    orbital = HubbardKanamori.orbital.m_copy()
+    u_effective = HubbardKanamori.u_effective.m_copy()
     u_effective.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    u = Hubbard.u.m_copy()
+    u = HubbardKanamori.u.m_copy()
     u.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    j = Hubbard.j.m_copy()
+    j = HubbardKanamori.j.m_copy()
     j.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    method = Hubbard.method.m_copy()
-    projection_type = Hubbard.projection_type.m_copy()
+    double_counting_correction = HubbardKanamori.double_counting_correction.m_copy()
 
 
 class DFT(MSection):
@@ -1385,8 +1384,9 @@ class DFT(MSection):
         description='Amount of exact exchange mixed in with the XC functional (value range = [0,1]).',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
-    hubbard_model = SubSection(sub_section=HubbardModel.m_def, repeats=True,
-                               a_elasticsearch=[Elasticsearch(material_entry_type, nested=True)])
+    hubbard_kanamori_model = SubSection(
+        sub_section=HubbardKanamoriModel.m_def, repeats=True,
+        a_elasticsearch=[Elasticsearch(material_entry_type, nested=True)])
 
 
 class Projection(MSection):
@@ -1490,7 +1490,6 @@ class DMFT(MSection):
     ]
     u = HubbardKanamori.u.m_copy()
     u.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    u.description = 'Value of the Hubbard local interaction in eV.'
     hunds_hubbard_ratio = Quantity(
         type=np.float64,
         description='''

@@ -2078,9 +2078,9 @@
       "type_data": "float64"
     }
   },
-  "results.method.simulation.dft.hubbard_model.u_effective": {
+  "results.method.simulation.dft.hubbard_kanamori_model.u_effective": {
     "name": "u_effective",
-    "description": "Value of the effective U parameter (U-J).",
+    "description": "Value of the effective U parameter (u - j).",
     "type": {
       "type_kind": "numpy",
       "type_data": "float64"
@@ -2088,9 +2088,9 @@
     "unit": "joule",
     "shape": []
   },
-  "results.method.simulation.dft.hubbard_model.u": {
+  "results.method.simulation.dft.hubbard_kanamori_model.u": {
     "name": "u",
-    "description": "Value of the on-site Coulomb interaction U",
+    "description": "Value of the (intraorbital) Hubbard interaction",
     "type": {
       "type_kind": "numpy",
       "type_data": "float64"
@@ -2098,9 +2098,9 @@
     "unit": "joule",
     "shape": []
   },
-  "results.method.simulation.dft.hubbard_model.j": {
+  "results.method.simulation.dft.hubbard_kanamori_model.j": {
     "name": "j",
-    "description": "Value of the exchange interaction J",
+    "description": "Value of the exchange interaction. In rotational invariant systems, j = jh.",
     "type": {
       "type_kind": "numpy",
       "type_data": "float64"
@@ -2263,12 +2263,12 @@
   },
   "results.method.simulation.dmft.u": {
     "name": "u",
-    "description": "Value of the Hubbard local interaction in eV.",
+    "description": "Value of the (intraorbital) Hubbard interaction",
     "type": {
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "electron_volt",
+    "unit": "joule",
     "shape": []
   },
   "results.method.simulation.dmft.hunds_hubbard_ratio": {
@@ -3368,8 +3368,8 @@
     "nested": false,
     "repeats": false
   },
-  "results.method.simulation.dft.hubbard_model": {
-    "name": "hubbard_model",
+  "results.method.simulation.dft.hubbard_kanamori_model": {
+    "name": "hubbard_kanamori_model",
     "description": "Setup of the Hubbard model used in DFT+U",
     "nested": true,
     "repeats": true

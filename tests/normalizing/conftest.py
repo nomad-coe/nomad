@@ -36,8 +36,8 @@ from nomad.datamodel.optimade import Species
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, BasisSet, Electronic, DFT, XCFunctional, Functional,
-    Electronic, Smearing, Scf, GW, AtomParameters, HubbardModel, Projection, Wannier,
-    DMFT, LatticeModelHamiltonian, HubbardKanamoriModel)
+    Electronic, Smearing, Scf, GW, DMFT, AtomParameters, Projection, Wannier,
+    LatticeModelHamiltonian, HubbardKanamoriModel)
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup, System, Atoms as AtomsSystem)
 from nomad.datamodel.metainfo.simulation.calculation import (
@@ -541,8 +541,8 @@ def dft_plus_u() -> EntryArchive:
     method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
     method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
     method_dft.atom_parameters.append(AtomParameters(label='Ti'))
-    method_dft.atom_parameters[0].hubbard_model = HubbardModel(orbital='3d', u=4.5e-19,
-                                                               j=1e-19, method='Dudarev', projection_type='on-site')
+    method_dft.atom_parameters[0].hubbard_kanamori_model = HubbardKanamoriModel(
+        orbital='3d', u=4.5e-19, j=1.0e-19, double_counting_correction='Dudarev')
     return run_normalize(template)
 
 
@@ -601,7 +601,7 @@ def dmft() -> EntryArchive:
     run.program = Program(name='w2dynamics')
     input_method = run.m_create(Method)
     input_model = input_method.m_create(LatticeModelHamiltonian)
-    input_model.hubbard_kanamori_model.append(HubbardKanamoriModel(orbital='d', u=4.0, jh=0.6, up=2.8, j=0.6))
+    input_model.hubbard_kanamori_model.append(HubbardKanamoriModel(orbital='d', u=4.0e-19, jh=0.6e-19))
     method_dmft = run.m_create(Method)
     method_dmft.dmft = DMFT(
         impurity_solver='CT-HYB', n_atoms_per_unit_cell=1, n_correlated_electrons=1.0, n_correlated_orbitals=[3.0],
