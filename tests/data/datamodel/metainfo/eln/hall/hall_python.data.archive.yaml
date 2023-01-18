@@ -1,0 +1,8 @@
+data:
+  m_def: ../upload/raw/hall_python.schema.archive.yaml#Hall_experiment
+  instrument:
+    data_file: HMS-Configuration-Pietsch_Hall-TT-Halter_15-350K.txt
+  tasks:
+    - m_def: ../upload/raw/hall_python.schema.archive.yaml#Hall_measurement
+      data_file: 22-127-G_20K-320K_TT-Halter_WDH_060722.txt
+      name: Hall measurement

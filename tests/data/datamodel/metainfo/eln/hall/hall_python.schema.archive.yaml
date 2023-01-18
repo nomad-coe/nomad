@@ -1,0 +1,15 @@
+definitions:
+  name: "Electronic Lab Notebook for Hall"
+  sections:
+    Hall_measurement:
+      base_sections:
+        - 'nomad.datamodel.metainfo.eln.ikz_hall.HallData'
+        - "../upload/raw/base_classes.schema.archive.yaml#Task"
+    Hall_experiment:
+      base_section: ../upload/raw/base_classes.schema.archive.yaml#Experiment
+      m_annotations:
+        eln:
+      sub_sections:
+        instrument:
+          section:
+            base_section: 'nomad.datamodel.metainfo.eln.ikz_hall.HallInstrument'

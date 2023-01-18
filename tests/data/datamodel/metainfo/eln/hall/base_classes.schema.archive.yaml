@@ -1,0 +1,148 @@
+definitions:
+  name: 'Multiple Base Classes for Experiments'
+  sections:  # Schemes consist of section definitions
+    ElnBaseSection:
+      base_sections:
+        - nomad.datamodel.data.ArchiveSection
+      quantities:
+        name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        timestamp:
+          type: Datetime
+          m_annotations:
+            eln:
+              component: DateTimeEditQuantity
+        notes:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+      sub_sections:
+        users:
+          section:
+            quantities:
+              responsible_person:
+                type: Author
+                shape: ['*']
+                m_annotations:
+                  eln:
+                    component: AuthorEditQuantity
+    Entity:
+      m_annotations:
+        eln:
+      base_sections:
+       - '#/ElnBaseSection' #nomad.datamodel.metainfo.eln.ElnBaseSection
+       - nomad.datamodel.data.EntryData
+      quantities:
+        comment:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+      sub_sections:
+        users:
+          section:
+            quantities:
+              responsible_person:
+                type: Author
+                shape: ['*']
+                m_annotations:
+                  eln:
+                    component: AuthorEditQuantity
+              operator:
+                type: Author
+                shape: ['*']
+                m_annotations:
+                  eln:
+                    component: AuthorEditQuantity
+        history:
+          section:
+            # m_annotations:
+            #   eln:
+            quantities:
+              activities:
+                type: Activity
+                shape: ['*']
+                m_annotations:
+                  eln:
+                    component: ReferenceEditQuantity
+    Experiment:
+      base_sections:
+      - '#/ElnBaseSection' #nomad.datamodel.metainfo.eln.ElnBaseSection
+      - '#/Activity'
+      - 'nomad.datamodel.data.EntryData'
+      m_annotations:
+        eln:
+    Link:
+      description: |
+        Instances of Link are used to represent either a single input or single
+        output of a Task. Using a separate section for links allows to put
+        additional information (e.g. a name) on an input or output.
+      base_section: nomad.datamodel.data.ArchiveSection
+      m_annotations:
+        eln:
+      quantities:
+        name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        reference:
+          type: '#/Entity'
+          m_annotations:
+            eln:
+              component: ReferenceEditQuantity
+    Task:
+      description: |
+        Instances of Task are used to represent an activity that happened during workflow
+        execution and that was acting on inputs to produce outputs.
+      base_section: '#/ElnBaseSection'
+      m_annotations:
+        eln:
+      sub_sections:
+        inputs:
+          repeats: True
+          section: '#/Link'
+        outputs:
+          repeats: True
+          section: '#/Link'
+    Workflow:
+      description: |
+        Instances of Workflow are used to represent a set of Tasks that connect input and
+        output data objects to produce a provenance graph for those data.
+
+        Workflows themselves can be tasks. This allows to build nested workflows where some
+        of the workflow tasks are workflows themselves.
+      base_section: '#/Task'
+      sub_sections:
+        tasks:
+          description: |
+            The tasks of this workflow as a repeating sub section. Use TaskReference if
+            tasks cannot be contained.
+          repeats: True
+          section: '#/Task'
+    Activity:
+      base_sections:
+       - '#/Workflow'
+      sub_sections:
+        users:
+          section:
+            quantities:
+              responsible_person:
+                type: Author
+                shape: ['*']
+                m_annotations:
+                  eln:
+                    component: AuthorEditQuantity
+              operator:
+                type: Author
+                shape: ['*']
+                m_annotations:
+                  eln:
+                    component: AuthorEditQuantity
+        instrument:
+          repeats: True
+          section: '#/Link'
