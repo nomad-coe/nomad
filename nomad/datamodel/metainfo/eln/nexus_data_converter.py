@@ -53,11 +53,16 @@ class NexusDataConverter(EntryData):
 
         eln_dict = archive.m_to_dict(transform=transform, exclude=exclude)
         del eln_dict['data']['m_def']
-        with archive.m_context.raw_file('eln_data.yaml', 'w') as eln_file:
-            yaml.dump(eln_dict['data'], eln_file, allow_unicode=True)
 
         if archive.data.input_files is None:
             archive.data.input_files = []
+
+        if len(eln_dict['data']) > 0:
+            with archive.m_context.raw_file('eln_data.yaml', 'w') as eln_file:
+                yaml.dump(eln_dict['data'], eln_file, allow_unicode=True)
+
+            if "eln_data.yaml" not in archive.data.input_files:
+                archive.data.input_files.append("eln_data.yaml")
 
         converter_params = {
             'reader': archive.data.reader,
