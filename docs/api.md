@@ -347,6 +347,13 @@ response = requests.post(
 ```
 You will get the next 10 results.
 
+Here is a full example that collects the first 100 formulas from entries that match
+a certain query by paginating.
+
+```python
+--8<-- "examples/docs/api/pagination.py"
+```
+
 ### Authentication
 
 Most of the API operations do not require any authorization and can be freely used
