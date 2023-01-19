@@ -326,7 +326,7 @@ class TabularParserAnnotation(AnnotationModel):
     ''')
     path_to_data_file: str = Field(None, description='''
         A string indicating if a data_file name (i.e. a csv or xls file)
-        should be retrieved from the base class. Default value is set to false.
+        should be retrieved from the base class. Default value is set to `None`.
     ''')
 
     @validator('path_to_data_file')

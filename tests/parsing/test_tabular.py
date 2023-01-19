@@ -631,6 +631,111 @@ def test_missing_data(raw_files, monkeypatch, schema, content, missing):
         assert getattr(child_archives[key].data, quantity) is None
 
 
+@pytest.mark.parametrize('schema,content', [
+    pytest.param(
+        strip('''
+        definitions:
+            name: 'TableData checkbox'
+            sections:
+                Main_Class:
+                    base_section: nomad.parsing.tabular.TableData
+                    quantities:
+                        data_file:
+                            type: str
+                            m_annotations:
+                                tabular_parser:
+                                    comment: '#'
+                                    mode: row
+                                    target_sub_section:
+                                        - MySubsection
+                    sub_sections:
+                        MySubsection:
+                            repeats: true
+                            section:
+                                quantities:
+                                    header_0:
+                                        type: str
+                                        m_annotations:
+                                            tabular:
+                                                name: header_0
+        data:
+          m_def: Main_Class
+          data_file: test.my_schema.archive.csv
+        '''),
+        strip('''
+            header_0,header_1
+            a,b
+        '''), id='checkoing checkbox'
+    ),
+    pytest.param(
+        strip('''
+        definitions:
+            name: 'hiding checkbox'
+            sections:
+                Main_Class:
+                    base_section: nomad.parsing.tabular.TableData
+                    m_annotations:
+                        eln:
+                            hide: ['fill_archive_from_datafile']
+                    quantities:
+                        data_file:
+                            type: str
+                            m_annotations:
+                                tabular_parser:
+                                    comment: '#'
+                                    mode: row
+                                    target_sub_section:
+                                        - MySubsection
+                    sub_sections:
+                        MySubsection:
+                            repeats: true
+                            section:
+                                quantities:
+                                    header_0:
+                                        type: str
+                                        m_annotations:
+                                            tabular:
+                                                name: header_0
+        data:
+          m_def: Main_Class
+          data_file: test.my_schema.archive.csv
+        '''),
+        strip('''
+            header_0,header_1
+            a,b
+        '''), id='hide checkbox')
+])
+def test_tabular_checkbox(raw_files, monkeypatch, schema, content):
+    '''Tests that missing data is handled correctly. Pandas by default
+        interprets missing numeric values as NaN, which are incompatible with
+        metainfo.
+        '''
+    csv_file, schema_file = get_files(schema, content)
+
+    class MyContext(ClientContext):
+        def raw_file(self, path, *args, **kwargs):
+            return open(csv_file, *args, **kwargs)
+
+    context = MyContext(local_dir='')
+
+    main_archive, _ = get_archives(context, schema_file, None)
+    ArchiveParser().parse(schema_file, main_archive)
+    run_normalize(main_archive)
+
+    if 'TableData checkbox' in schema:
+        assert main_archive.data.MySubsection[0].header_0 == 'a'
+        assert main_archive.data.fill_archive_from_datafile is False
+        main_archive.data.MySubsection[0].header_0 = 'c'
+        run_normalize(main_archive)
+        assert main_archive.data.MySubsection[0].header_0 == 'c'
+    elif 'fill_archive_from_datafile' in schema:
+        assert main_archive.data.MySubsection[0].header_0 == 'a'
+        assert main_archive.data.fill_archive_from_datafile is True
+        main_archive.data.MySubsection[0].header_0 = 'c'
+        run_normalize(main_archive)
+        assert main_archive.data.MySubsection[0].header_0 == 'a'
+
+
 def get_files(schema=None, content=None):
     '''Prepares files containing schema and data in the temporary file
     directory.

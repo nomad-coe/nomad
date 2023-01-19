@@ -30,6 +30,7 @@ from nomad.metainfo import Section, Quantity, Package, Reference, SectionProxy, 
 from nomad.metainfo.metainfo import MetainfoError, SubSection
 from nomad.parsing.parser import MatchingParser
 from nomad.datamodel.metainfo.annotations import TabularMode, TabularAnnotation, TabularParserAnnotation
+from nomad.metainfo.util import MSubSectionList
 
 # We define a simple base schema for tabular data. The parser will then generate more
 # specialized sections based on the table headers. These specialized definitions will use
@@ -82,13 +83,24 @@ class Table(EntryData):
 
 
 class TableData(ArchiveSection):
+
+    fill_archive_from_datafile = Quantity(
+        type=bool,
+        a_eln=dict(component='BoolEditQuantity'),
+        description='''While checked, it allows the parser to fill all the Quantities from the data file.
+        Be cautious though! as checking this box will cause overwriting your fields with data parsed from the data file
+        ''',
+        default=True)
+
     def normalize(self, archive, logger):
         super(TableData, self).normalize(archive, logger)
 
-        annotation, quantity_def = extract_tabular_parser_annotation(self)
-
-        if annotation:
-            self.tabular_parser(quantity_def, archive, logger, annotation)
+        if self.fill_archive_from_datafile:
+            annotation, quantity_def = extract_tabular_parser_annotation(self)
+            if annotation:
+                if isinstance(annotation, list):
+                    annotation = annotation[0]
+                self.tabular_parser(quantity_def, archive, logger, annotation)
 
     def tabular_parser(self, quantity_def: Quantity, archive, logger, annotation: TabularParserAnnotation):
         if logger is None:
@@ -121,35 +133,52 @@ class TableData(ArchiveSection):
             # Getting list of all repeating sections where new instances are going to be read from excel/csv file
             # and appended.
             section_names: List[str] = annotation.target_sub_section
-            # A list to track if the top level section has ever been read.
-            top_level_section_list: List[str] = []
+
+            # A list to track if the top-most level section has ever been visited
+            list_of_visited_sections: List[str] = []
+
             for section_name in section_names:
                 section_name_list = section_name.split('/')
                 section_name_str = section_name_list[0]
-                section_def = self.__getattribute__(to_camel_case(section_name_str)).m_def
-                if top_level_section_list.count(section_name_str):
-                    continue
-                elif len(section_name_list) != 1:
-                    top_level_section_list.append(section_name_str)
-                    # The (sub)section needs to be instantiated first
-                    self.__setattr__(section_name_str, section_def.section_cls())
+                section_def = getattr(self, to_camel_case(section_name_str)).m_def
+
+                if not list_of_visited_sections.count(section_name_str):
+                    list_of_visited_sections.append(section_name_str)
+
+                    # The (sub)section needs to be cleared first
+                    if isinstance(getattr(self, section_name_str), MSubSectionList):
+                        getattr(self, section_name_str).clear()
+                    else:
+                        setattr(self, section_name_str, section_def.section_cls())
+
                 sections = parse_table(data, section_def, logger=logger)
                 for section in sections:
-                    section_name_list = section_name.split('/')
-                    top_level_section = section_name_list[0]
-                    self_updated = self.__getattr__(top_level_section)
-                    section_updated = section
-                    section_name_list.pop(0)
-                    for section_path in section_name_list:
-                        self_updated = self_updated[section_path]
-                        section_updated = section_updated[section_path]
-                    if len(section_name_list) == 0:
-                        self_updated.append(section_updated)
-                    else:
-                        self_updated.append(section_updated[0])
+                    self.append_section_to_subsection(section_name, section)
 
         else:
             raise MetainfoError(f'The provided mode {tabular_parser_mode.value} should be either "column" or "row".')
+
+        # If the `fill_archive_from_datafile` checkbox is set to be hidden for this specific section, parser's logic
+        # also needs to be modified to 'Always run the parser if it's been called'.
+        eln_annotation = self.m_def.m_get_annotations('eln', None)
+        try:
+            self.fill_archive_from_datafile = 'fill_archive_from_datafile' in eln_annotation.hide
+        except AttributeError:
+            self.fill_archive_from_datafile = False
+
+    def append_section_to_subsection(self, section_name: str, section: MSection):
+        section_name_list = section_name.split('/')
+        top_level_section = section_name_list[0]
+        self_updated = getattr(self, top_level_section)
+        section_updated = section
+        section_name_list.pop(0)
+        for section_path in section_name_list:
+            self_updated = self_updated[section_path]
+            section_updated = section_updated[section_path]
+        if len(section_name_list) == 0:
+            self_updated.append(section_updated)
+        else:
+            self_updated.append(section_updated[0])
 
 
 m_package.__init_metainfo__()
@@ -168,6 +197,7 @@ def _create_column_to_quantity_mapping(section_def: Section):
             properties.add(quantity)
 
             annotation = quantity.m_get_annotations('tabular')
+            annotation = annotation[0] if isinstance(annotation, list) else annotation
             if annotation and annotation.name:
                 col_name = annotation.name
             else:
