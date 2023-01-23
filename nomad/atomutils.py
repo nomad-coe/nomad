@@ -16,41 +16,40 @@
 # limitations under the License.
 #
 
+import warnings
 import functools
 import itertools
+from collections import namedtuple
+from array import array
+from itertools import chain
 import math
 import re
 from string import ascii_uppercase
 from functools import reduce
 from typing import List, Dict, Tuple, Any, Union, Iterable, cast, Callable
+import logging
 from nptyping import NDArray
 
+import numpy as np
+from scipy import sparse
+from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
+from scipy.stats import linregress
 from ase.utils import pbc2pbc
 import ase.geometry
 import ase.data
 from ase import Atoms
 from ase.formula import Formula as ASEFormula
-
-import numpy as np
-from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
-from scipy.stats import linregress
-
-from nomad.aflow_prototypes import aflow_prototypes
-from nomad.constants import atomic_masses
-from nomad.units import ureg
-
-import warnings
+from pymatgen.core.periodic_table import get_el_sp
+from pymatgen.core import Composition
 import MDAnalysis
 from MDAnalysis.core.topology import Topology
 from MDAnalysis.core._get_readers import get_reader_for
 from MDAnalysis.core.universe import Universe
 import MDAnalysis.analysis.rdf as MDA_RDF
-from itertools import chain
-from scipy import sparse
-from typing import Any, Dict
-from collections import namedtuple
-from array import array
-import logging
+
+from nomad.aflow_prototypes import aflow_prototypes
+from nomad.constants import atomic_masses
+from nomad.units import ureg
 
 
 def get_summed_atomic_mass(atomic_numbers: NDArray[Any]) -> float:
@@ -356,22 +355,6 @@ def get_symmetry_string(space_group: int, wyckoff_sets: List[Any], is_2d: bool =
         string = '{} {}'.format(space_group, wyckoff_string)
 
     return string
-
-
-def get_formula_hill(formula: str) -> str:
-    '''
-    Converts the given chemical formula into the Hill format.
-
-    Args:
-        formula: Original formula.
-
-    Returns:
-        Chemical formula in the Hill format.
-    '''
-    if formula is None:
-        return formula
-
-    return ASEFormula(formula).format('hill')
 
 
 def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> Tuple[List[str], List[int]]:
@@ -699,40 +682,90 @@ class Formula():
     '''Helper class for extracting formulas used by NOMAD.
     '''
     formula_parentheses = re.compile(r'([A-Z][a-z]?)\((\d+)\)')
+    symbols = set(ase.data.chemical_symbols[1:])
+    placeholder_symbol = 'X'
 
-    def __init__(self, formula: str):
-        self.formula = formula
+    def __init__(self, formula: str, unknown: str = 'replace'):
+        '''
+        Args:
+            formula: Chemical formula to work on
+            unknown: The handling of unknown species. Can be one of:
+            - 'replace': Replaces the unknown species with X.
+            - 'remove': Removes the unknown species.
+            - 'keep': Keeps the labels for the unknown species.
 
-        # Try to parse formula with ASE. If not successfull, try to normalize
-        # the formula.
+        Raises:
+            ValueError if no meaningful formula can be extracted.
+        '''
+        # Try if ASE can directly make sense of the formula
         try:
             self.ase_formula = ASEFormula(formula)
+        # Try if can be interpreted as fractional formula
         except Exception:
-            self.ase_formula = ASEFormula(self.normalize(formula))
+            try:
+                self.ase_formula = ASEFormula(Composition(formula).get_integer_formula_and_factor()[0])
+            # Try if formula contains parentheses that can be removed
+            except Exception:
+                self.ase_formula = ASEFormula(self._remove_parentheses(formula))
+
+        count = self.ase_formula.count()
+        if unknown == 'remove':
+            for key in list(count.keys()):
+                if key not in self.symbols:
+                    del count[key]
+        elif unknown == 'replace':
+            for key, value in list(count.items()):
+                if key not in self.symbols and key != self.placeholder_symbol:
+                    if self.placeholder_symbol not in count:
+                        count[self.placeholder_symbol] = value
+                    else:
+                        count[self.placeholder_symbol] += value
+                    del count[key]
+        elif unknown == 'keep':
+            pass
+        else:
+            raise ValueError('Invalid option for the argument "unknown"')
+        self._count = count
+        if len(count) == 0:
+            raise ValueError(f'Could not extract any species from the formula "{formula}"')
+
+    def count(self) -> Dict[str, int]:
+        '''Return dictionary that maps chemical symbol to number of atoms.
+        '''
+        return self._count.copy()
 
     def format(self, fmt: str) -> str:
         '''
         Args:
             fmt: The used format. Available options:
-            - hill: Formula in Hill notation.
-            - reduce: Reduced formula
-            - anonymous: Anonymized formula
+            - hill: Formula in Hill notation (see chemical_formula_hill)
+            - iupac: The IUPAC formula (see chemical_formula_iupac)
+            - reduced: Reduced formula (see chemical_formula_reduced)
+            - anonymous: Anonymized formula (see chemical_formula_anonymous)
         '''
+        if fmt == 'hill':
+            return self._formula_hill()
+        if fmt == 'iupac':
+            return self._formula_iupac()
+        if fmt == 'reduced':
+            return self._formula_reduced()
         if fmt == 'anonymous':
-            return self.formula_anonymous()
-        if fmt == 'reduce':
-            return self.formula_reduce()
+            return self._formula_anonymous()
         else:
-            return self.ase_formula.format(fmt)
+            raise ValueError(f'Invalid format option "{fmt}"')
 
-    def normalize(self, formula: str) -> str:
-        '''Used to normalize a formula.
+    def elements(self) -> List[str]:
+        '''Returns the list of chemical elements present in the formula.
+        '''
+        return sorted(self.count().keys())
+
+    def _remove_parentheses(self, formula: str) -> str:
+        '''Used to remove parentheses from a formula. E.g. C(2)O(1) becomes C2O1
         Args:
             formula: the original formula
 
         Returns:
-            A normalized version (=one accepted by ASE) of the formula if one
-            can be constructed.
+            The formula without parentheses.
         '''
         matches = list(re.finditer(self.formula_parentheses, formula))
         if matches:
@@ -742,35 +775,67 @@ class Formula():
                 formula = ''.join(['{}{}'.format(match[1], match[2]) for match in matches])
         return formula
 
-    def formula_anonymous(self):
-        '''Returns the anonymous formula.
+    def _formula_hill(self) -> str:
+        '''Returns the Hill formula.
         '''
-        ase_formula = self.ase_formula.count()
-        result_formula = ''
-        for index, element_count in enumerate(reversed(sorted(ase_formula.values()))):
-            result_formula += ascii_uppercase[index]
-            if element_count > 1:
-                result_formula += str(element_count)
+        count = self.count()
+        count_hill = {}
+        if 'C' in count:
+            count_hill['C'] = count.pop('C')
+            if 'H' in count:
+                count_hill['H'] = count.pop('H')
+        for symb, n in sorted(count.items()):
+            count_hill[symb] = n
 
-        return result_formula
+        return self._dict2str(count_hill)
 
-    def formula_reduce(self):
+    def _formula_iupac(self) -> str:
+        '''Returns the IUPAC formula.
+        '''
+        count = self.count()
+        counts = count.values()
+        symbols = list(count.keys())
+        gcd = reduce(math.gcd, counts)
+        symbols_sorted = sorted(
+            symbols,
+            key=lambda x: float('inf') if x == self.placeholder_symbol else get_el_sp(x).iupac_ordering)
+        count_iupac = {symbol: int(count[symbol] / gcd) for symbol in symbols_sorted}
+
+        return self._dict2str(count_iupac)
+
+    def _formula_reduced(self) -> str:
         '''Returns the reduced formula.
         '''
-        ase_formula = self.ase_formula.count()
-        result_formula = ''
-        for element in sorted(ase_formula.keys()):
-            result_formula += element
-            element_count = ase_formula[element]
-            if element_count > 1:
-                result_formula += str(element_count)
+        count = self.count()
+        counts = count.values()
+        gcd = reduce(math.gcd, counts)
+        count_reduced = {key: int(value / gcd) for key, value in sorted(count.items())}
 
-        return result_formula
+        return self._dict2str(count_reduced)
 
-    def elements(self):
-        '''Returns the list of chemical elements present in the formula.
+    def _formula_anonymous(self) -> str:
+        '''Returns the anonymous formula.
         '''
-        return sorted(self.ase_formula.count().keys())
+        count = self.count()
+        counts = count.values()
+        gcd = reduce(math.gcd, counts)
+        count_anonymous = {
+            ascii_uppercase[index]: int(value / gcd)
+            for index, value in enumerate(reversed(sorted(count.values())))
+        }
+        return self._dict2str(count_anonymous)
+
+    def _dict2str(self, dct: Dict[str, int]) -> str:
+        '''Convert symbol-to-count dict to a string. Omits the chemical
+        proportion number 1.
+
+        Args:
+            dct: The dictionary of symbol-to-count items to convert.
+
+        Returns:
+            Chemical formula as a string.
+        '''
+        return ''.join(symb + (str(n) if n > 1 else '') for symb, n in dct.items())
 
 
 def create_empty_universe(n_atoms: int, n_frames: int = 1, n_residues: int = 1, n_segments: int = 1,

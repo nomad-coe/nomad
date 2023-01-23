@@ -25,17 +25,32 @@ from matid.symmetry.wyckoffset import WyckoffSet
 from nomad.units import ureg
 from nomad import atomutils
 from nomad.utils import hash
-from tests.normalizing.conftest import get_template_for_structure, get_template_topology, single_Cu_surface_atoms, single_Cu_surface_topology, single_Cr_surface_atoms, single_Cr_surface_topology, stacked_Cu_Ni_surface, single_2D_graphene_layer_atoms, single_2D_graphene_layer_topology, single_2D_BN_layer_atoms, single_2D_BN_layer_topology, single_2D_MoS2_layer_atoms, single_2D_MoS2_layer_topology, stacked_C_BN_2D_layers
-# TODO: @ Lauri: is it possible to bypass these imports with '@pytest.fixture(scope='session')' or is this the way to do it?
+from tests.normalizing.conftest import (
+    get_template_for_structure,
+    get_template_topology,
+    single_Cu_surface_atoms,
+    single_Cu_surface_topology,
+    single_Cr_surface_atoms,
+    single_Cr_surface_topology,
+    stacked_Cu_Ni_surface,
+    single_2D_graphene_layer_atoms,
+    single_2D_graphene_layer_topology,
+    single_2D_BN_layer_atoms,
+    single_2D_BN_layer_topology,
+    single_2D_MoS2_layer_atoms,
+    single_2D_MoS2_layer_topology,
+    stacked_C_BN_2D_layers
+)
 
 
 def assert_material(material):
     assert material.elements
     assert material.n_elements
-    assert material.chemical_formula_descriptive
-    assert material.chemical_formula_reduced
     assert material.chemical_formula_hill
+    assert material.chemical_formula_iupac
+    assert material.chemical_formula_reduced
     assert material.chemical_formula_anonymous
+    assert material.chemical_formula_descriptive
     assert material.chemical_formula_reduced_fragments
 
 
@@ -131,9 +146,10 @@ def test_material_1d(one_d):
     assert material.compound_type is None
     assert material.material_name is None
     assert material.chemical_formula_hill == "C2H2"
+    assert material.chemical_formula_iupac == "CH"
     assert material.chemical_formula_descriptive == "C2H2"
-    assert material.chemical_formula_reduced == "C2H2"
-    assert material.chemical_formula_anonymous == "A2B2"
+    assert material.chemical_formula_reduced == "CH"
+    assert material.chemical_formula_anonymous == "AB"
     assert material.elements == ["C", "H"]
     assert material.n_elements == 2
     assert material.symmetry is None
@@ -168,9 +184,10 @@ def test_material_2d(two_d):
     assert material.compound_type is None
     assert material.material_name is None
     assert material.chemical_formula_hill == "C2"
+    assert material.chemical_formula_iupac == "C"
     assert material.chemical_formula_descriptive == "C2"
-    assert material.chemical_formula_reduced == "C2"
-    assert material.chemical_formula_anonymous == "A2"
+    assert material.chemical_formula_reduced == "C"
+    assert material.chemical_formula_anonymous == "A"
     assert material.elements == ["C"]
     assert material.n_elements == 1
     assert material.symmetry is None
@@ -210,7 +227,6 @@ def test_material_surface(surface):
 
 
 def test_material_bulk(bulk):
-
     # Material
     material = bulk.results.material
     assert_material(material)
@@ -220,9 +236,10 @@ def test_material_bulk(bulk):
     assert material.compound_type
     assert material.material_name == "Silicon"
     assert material.chemical_formula_hill == "Si8"
+    assert material.chemical_formula_iupac == "Si"
     assert material.chemical_formula_descriptive == "Si8"
-    assert material.chemical_formula_reduced == "Si8"
-    assert material.chemical_formula_anonymous == "A8"
+    assert material.chemical_formula_reduced == "Si"
+    assert material.chemical_formula_anonymous == "A"
     assert material.elements == ["Si"]
     assert material.n_elements == 1
     assert_symmetry(material.symmetry)
@@ -252,7 +269,8 @@ def test_material_eels(eels):
     assert material.n_elements == 2
     assert material.elements == ["Si", "O"]
     assert material.chemical_formula_hill == "OSi"
-    assert material.chemical_formula_reduced == "SiO"
+    assert material.chemical_formula_iupac == "SiO"
+    assert material.chemical_formula_reduced == "OSi"
     assert material.chemical_formula_descriptive == "OSi"
 
 
@@ -586,8 +604,8 @@ def test_topology_calculation(pbc):
     expected_pbc[:] = pbc
     assert original.atoms_ref.dimension_types == expected_pbc.tolist()
     assert original.formula_hill == "H4O2"
-    assert original.formula_reduced == "H4O2"
-    assert original.formula_anonymous == "A4B2"
+    assert original.formula_reduced == "H2O"
+    assert original.formula_anonymous == "A2B"
     assert original.elements == ["H", "O"]
     assert original.n_elements == 2
     assert original.n_atoms == 6
@@ -599,8 +617,8 @@ def test_topology_calculation(pbc):
     assert mol_group.structural_type == "group"
     assert np.array_equal(mol_group.indices, [[0, 1, 2, 3, 4, 5]])
     assert original.formula_hill == "H4O2"
-    assert original.formula_reduced == "H4O2"
-    assert original.formula_anonymous == "A4B2"
+    assert original.formula_reduced == "H2O"
+    assert original.formula_anonymous == "A2B"
     assert mol_group.elements == ["H", "O"]
     assert mol_group.n_elements == 2
     assert mol_group.n_atoms == 6
@@ -625,8 +643,8 @@ def test_topology_calculation(pbc):
     assert mon_group.structural_type == "group"
     assert np.array_equal(mon_group.indices, [[0, 1]])
     assert mon_group.formula_hill == "H2"
-    assert mon_group.formula_reduced == "H2"
-    assert mon_group.formula_anonymous == "A2"
+    assert mon_group.formula_reduced == "H"
+    assert mon_group.formula_anonymous == "A"
     assert mon_group.elements == ["H"]
     assert mon_group.n_elements == 1
     assert mon_group.n_atoms == 2
@@ -638,8 +656,8 @@ def test_topology_calculation(pbc):
     assert mon.structural_type == "monomer"
     assert np.array_equal(mon.indices, [[0, 1]])
     assert mon.formula_hill == "H2"
-    assert mon.formula_reduced == "H2"
-    assert mon.formula_anonymous == "A2"
+    assert mon.formula_reduced == "H"
+    assert mon.formula_anonymous == "A"
     assert mon.elements == ["H"]
     assert mon.n_elements == 1
     assert mon.n_atoms == 2

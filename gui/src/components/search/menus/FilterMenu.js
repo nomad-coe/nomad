@@ -66,7 +66,7 @@ export const collapsedMenuWidth = 3.3
 const useFilterMenuTopHeaderStyles = makeStyles(theme => {
   return {
     root: {
-      paddingTop: theme.spacing(0.7),
+      paddingTop: theme.spacing(1.2),
       paddingRight: theme.spacing(paddingHorizontal),
       paddingLeft: theme.spacing(paddingHorizontal)
     },
@@ -74,7 +74,8 @@ const useFilterMenuTopHeaderStyles = makeStyles(theme => {
       display: 'flex',
       alignItems: 'center',
       fontSize: '0.75rem',
-      marginBottom: -2
+      marginTop: -3,
+      marginBottom: -3
     }
   }
 })
@@ -106,8 +107,8 @@ const useFilterMenuHeaderStyles = makeStyles(theme => {
   return {
     root: {
       height: theme.spacing(3),
-      paddingBottom: theme.spacing(0.8),
-      paddingTop: theme.spacing(0.30),
+      paddingBottom: theme.spacing(1.1),
+      paddingTop: theme.spacing(0.3),
       paddingLeft: theme.spacing(paddingHorizontal),
       paddingRight: theme.spacing(paddingHorizontal),
       display: 'flex',
@@ -287,7 +288,7 @@ export const FilterMenuItems = React.memo(({
   className,
   children
 }) => {
-  const { useResetFilters, useRefresh, resource, useApiData } = useSearchContext()
+  const { useResetFilters, useRefresh, useApiData } = useSearchContext()
   const styles = useFilterMenuItemsStyles()
   const { open, onOpenChange, collapsed, onCollapsedChange } = useContext(filterMenuContext)
   const [anchorEl, setAnchorEl] = React.useState(null)
@@ -313,17 +314,8 @@ export const FilterMenuItems = React.memo(({
     <div className={clsx(styles.menu, open && styles.menuBorder, collapsed && styles.hidden)}>
       <div className={styles.container}>
         <FilterMenuTopHeader
-          title={`${resource} search`}
-          actions={!collapsed && <Action
-            tooltip={'Hide filter menu'}
-            onClick={() => {
-              onCollapsedChange(old => !old)
-              onOpenChange(false)
-            }}
-            className={styles.button}
-          >
-            <ArrowBackIcon fontSize="small"/>
-          </Action>}
+          // title={`${resource} search`}
+          // actions={!collapsed && }
         />
         <FilterMenuHeader
           title="Filters"
@@ -367,6 +359,16 @@ export const FilterMenuItems = React.memo(({
               <SourceApiCall
                 {...apiData}
               />
+            </Action>
+            <Action
+              tooltip={'Hide filter menu'}
+              onClick={() => {
+                onCollapsedChange(old => !old)
+                onOpenChange(false)
+              }}
+              // className={styles.button}
+            >
+              <ArrowBackIcon fontSize="small"/>
             </Action>
             <Action
               tooltip="Options"

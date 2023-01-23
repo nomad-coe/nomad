@@ -185,11 +185,6 @@ def test_suggestions_all(client, example_data_suggestions):
     ("results.material.chemical_formula_descriptive", ["C2", "H5", "Br"], "C2H5Br"),
     ("results.material.chemical_formula_reduced", ["C2", "H5", "Br"], "C2H5Br"),
 
-    # "formula" tokenizer and "formula" variants. Note that the best matching
-    # variant is returned
-    ("results.material.chemical_formula_hill", ["Na", "NaC", "NaCl"], "NaCl"),
-    ("results.material.chemical_formula_hill", ["Cl", "ClN", "ClNa"], "ClNa"),
-
     # Tests that all matches are returned even if they share the same matched token
     ("results.material.chemical_formula_hill", "O2", ["Ni2O2", "Mg2O2"]),
 

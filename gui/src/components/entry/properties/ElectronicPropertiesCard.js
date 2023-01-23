@@ -28,6 +28,7 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   // Find out which properties are present
   const hasDos = properties.has('dos_electronic')
   const hasBs = properties.has('band_structure_electronic')
+  const hasBandGap = properties.has('electronic.band_structure_electronic.band_gap')
 
   // TODO remove refArchives after fixing archive.m_ref_archives not vanishing when switching to data tab
   useEffect(() => {
@@ -81,40 +82,58 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
     references = bsReferences
     if (!Array.isArray(references)) references = [references]
     let bs = []
-    let band_gap = []
     let brillouin_zone = false
     brillouin_zone = false
-    for (const reference of references) {
-      const d = {}
-      const match = reference.reciprocal_cell.match(pattern)
-      const path = match ? match[2] : reference.reciprocal_cell
-      const segmentPath = match ? reference.segment.map(ref => ref.match(pattern)[2]) : reference.segment
-      const sourceArchive = match ? (archive.m_ref_archives[match[1]] || archive.m_ref_archives[reference.reciprocal_cell.split('#')[0]]) : archive
-      d.segment = sourceArchive ? resolveInternalRef(segmentPath, sourceArchive) : null
-      d.name = reference.label
-      d.m_path = `${archive?.metadata?.entry_id}/data/results/properties/electronic/band_structure_electronic`
-      if (reference.band_gap) {
-        d.energy_highest_occupied = Math.max(...reference.band_gap.map(x => x.energy_highest_occupied))
-        d.band_gap = reference.band_gap
-        band_gap.push(...reference.band_gap)
-      }
-      if (d.segment) bs.push(d)
-      const reciprocal_cell = sourceArchive ? resolveInternalRef(path, sourceArchive) : null
-      if (reciprocal_cell) {
-        brillouin_zone = {
-          reciprocal_cell: reciprocal_cell,
-          segment: d.segment
+    try {
+      for (const reference of references) {
+        const d = {}
+        const match = reference.reciprocal_cell.match(pattern)
+        const path = match ? match[2] : reference.reciprocal_cell
+        const segmentPath = match ? reference.segment.map(ref => ref.match(pattern)[2]) : reference.segment
+        const sourceArchive = match ? (archive.m_ref_archives[match[1]] || archive.m_ref_archives[reference.reciprocal_cell.split('#')[0]]) : archive
+        d.segment = sourceArchive ? resolveInternalRef(segmentPath, sourceArchive) : null
+        d.name = reference.label
+        d.m_path = `${archive?.metadata?.entry_id}/data/results/properties/electronic/band_structure_electronic`
+        if (reference.band_gap) {
+          d.energy_highest_occupied = Math.max(...reference.band_gap.map(x => x.energy_highest_occupied))
+          d.band_gap = reference.band_gap
+        }
+        if (d.segment) bs.push(d)
+        const reciprocal_cell = sourceArchive ? resolveInternalRef(path, sourceArchive) : null
+        if (reciprocal_cell) {
+          brillouin_zone = {
+            reciprocal_cell: reciprocal_cell,
+            segment: d.segment
+          }
         }
       }
+    } catch (e) {
+    }
+
+    // Resolve band gap data. TODO: The API is not returning band gap
+    // information when using electronic: 'include-resolved' and there is
+    // nothing to resolve. This is why we alternatively also look for the band
+    // gap data in the index data.
+    let band_gap = []
+    function addBandGaps(sections) {
+      for (const section of sections || []) {
+        if (section.band_gap) {
+          band_gap.push(...section.band_gap)
+        }
+      }
+    }
+    addBandGaps(archive?.results?.properties?.electronic?.band_structure_electronic)
+    if (band_gap.length === 0) {
+      addBandGaps(index?.results?.properties?.electronic?.band_structure_electronic)
     }
 
     bs = bs.length === 0 ? false : bs
     band_gap = band_gap.length === 0 ? false : band_gap
     setData([dos, bs, brillouin_zone, band_gap])
-  }, [archive])
+  }, [archive, index])
 
   // Do not show the card if none of the properties are available
-  if (!hasDos && !hasBs) {
+  if (!hasDos && !hasBs && !hasBandGap) {
     return null
   }
 

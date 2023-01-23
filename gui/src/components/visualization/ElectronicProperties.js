@@ -18,6 +18,7 @@
 import React, { useCallback, useMemo } from 'react'
 import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
+import { isEmpty } from 'lodash'
 import { Quantity, useUnits } from '../../units'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
@@ -70,41 +71,79 @@ const ElectronicProperties = React.memo(({
     dosYSubject.next(update)
   }, [dosYSubject])
 
-  return <PropertyGrid>
-    <PropertyItem title="Band structure" xs={8}>
-      <BandStructure
-        data={bs}
-        layout={bsLayout}
-        units={units}
-        onRelayouting={handleBSRelayouting}
-        onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
-        layoutSubject={dosYSubject}
-        data-testid="bs-electronic"
-      />
-    </PropertyItem>
-    <PropertyItem title="Density of states" xs={4}>
-      <DOS
-        data={dos}
-        layout={dosLayout}
-        placeHolderStyle={styles.placeholder}
-        noDataStyle={styles.nodata}
-        onRelayouting={handleDOSRelayouting}
-        onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
-        units={units}
-        layoutSubject={bsYSubject}
-        data-testid="dos-electronic"
-      />
-    </PropertyItem>
-    <PropertyItem title="Brillouin zone" xs={8}>
-      <BrillouinZone
-        data={brillouin_zone}
-        data-testid="bz-electronic"
-      />
-    </PropertyItem>
-    <PropertyItem title="Band gaps" xs={4}>
-      <BandGap data={band_gap}/>
-    </PropertyItem>
-  </PropertyGrid>
+  // Custom layout if only band gaps are available
+  if (isEmpty(bs) && isEmpty(dos) && isEmpty(brillouin_zone)) {
+    return <PropertyGrid>
+      <PropertyItem title="Band gaps" xs={12} height="auto">
+        <BandGap data={band_gap}/>
+      </PropertyItem>
+    </PropertyGrid>
+  // Custom layout if only DOS is available
+  } else if (isEmpty(bs) && isEmpty(band_gap) && isEmpty(brillouin_zone)) {
+    return <PropertyGrid>
+      <PropertyItem title="Band structure" xs={8}>
+        <BandStructure
+          data={false}
+          layout={bsLayout}
+          units={units}
+          onRelayouting={handleBSRelayouting}
+          onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
+          layoutSubject={dosYSubject}
+          data-testid="bs-electronic"
+        />
+      </PropertyItem>
+      <PropertyItem title="Density of states" xs={4}>
+        <DOS
+          data={dos}
+          layout={dosLayout}
+          placeHolderStyle={styles.placeholder}
+          noDataStyle={styles.nodata}
+          onRelayouting={handleDOSRelayouting}
+          onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
+          units={units}
+          layoutSubject={bsYSubject}
+          data-testid="dos-electronic"
+        />
+      </PropertyItem>
+    </PropertyGrid>
+  // In all other cases we show all properties whether they are present or not
+  } else {
+    return <PropertyGrid>
+      <PropertyItem title="Band structure" xs={8}>
+        <BandStructure
+          data={bs}
+          layout={bsLayout}
+          units={units}
+          onRelayouting={handleBSRelayouting}
+          onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
+          layoutSubject={dosYSubject}
+          data-testid="bs-electronic"
+        />
+      </PropertyItem>
+      <PropertyItem title="Density of states" xs={4}>
+        <DOS
+          data={dos}
+          layout={dosLayout}
+          placeHolderStyle={styles.placeholder}
+          noDataStyle={styles.nodata}
+          onRelayouting={handleDOSRelayouting}
+          onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
+          units={units}
+          layoutSubject={bsYSubject}
+          data-testid="dos-electronic"
+        />
+      </PropertyItem>
+      <PropertyItem title="Brillouin zone" xs={8}>
+        <BrillouinZone
+          data={brillouin_zone}
+          data-testid="bz-electronic"
+        />
+      </PropertyItem>
+      <PropertyItem title="Band gaps" xs={4}>
+        <BandGap data={band_gap}/>
+      </PropertyItem>
+    </PropertyGrid>
+  }
 })
 
 ElectronicProperties.propTypes = {

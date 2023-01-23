@@ -138,7 +138,6 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
           </QuantityRow>
           <QuantityRow>
             <QuantityCell quantity="results.material.structural_type"/>
-            <QuantityCell quantity="results.material.material_name"/>
           </QuantityRow>
           <QuantityRow>
             <QuantityCell quantity="results.material.elements" colSpan={2}/>

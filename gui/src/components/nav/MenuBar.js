@@ -18,7 +18,16 @@
 
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import { Button, makeStyles, MenuItem, Menu, ListItemText } from '@material-ui/core'
+import {
+  Button,
+  Box,
+  makeStyles,
+  MenuList,
+  MenuItem,
+  Menu,
+  ListItemText,
+  Typography
+} from '@material-ui/core'
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown'
 import { matchPath, useHistory, useLocation } from 'react-router-dom'
 
@@ -48,6 +57,22 @@ MenuBar.propTypes = {
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ])
+}
+
+export const MenuBarList = React.memo(({header, children}) => {
+  return <MenuList
+      subheader={
+        <Box marginLeft={1.5}>
+          <Typography variant="button">{header}</Typography>
+        </Box>
+      }
+    >
+      {children}
+    </MenuList>
+})
+MenuBarList.propTypes = {
+  header: PropTypes.string,
+  children: PropTypes.node
 }
 
 const useMenuBarItemStyles = makeStyles(theme => ({
@@ -135,7 +160,7 @@ export function MenuBarMenu({label, children, route}) {
     <Menu
       data-testid={label}
       PopoverClasses={{root: classes.menuPopover, paper: classes.menuPaper}}
-      elevation={1}
+      elevation={2}
       anchorEl={anchorEl}
       getContentAnchorEl={null}
       anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}

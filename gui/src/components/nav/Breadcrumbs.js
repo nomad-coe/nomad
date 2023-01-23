@@ -23,9 +23,10 @@ import HelpDialog from '../Help'
 import HelpIcon from '@material-ui/icons/Help'
 import { allRoutes } from './Routes'
 
-const useBreadcrumbsStyles = makeStyles(theme => ({
+const useStyles = makeStyles(theme => ({
   root: {
-    marginLeft: 5
+    marginLeft: 5,
+    marginTop: theme.spacing(-0.25)
   },
   help: {
     marginLeft: theme.spacing(0.5)
@@ -36,26 +37,27 @@ const useBreadcrumbsStyles = makeStyles(theme => ({
 }))
 
 const Breadcrumbs = React.memo(function Breadcrumbs() {
-  const classes = useBreadcrumbsStyles()
+  const styles = useStyles()
   const {pathname} = useLocation()
   const routes = useMemo(() => allRoutes.slice().reverse(), [])
-  return <MUIBreadcrumbs style={{marginLeft: 5}}>
+  return <MUIBreadcrumbs className={styles.root}>
     {routes
       .filter(route => route.breadcrumb && route.path)
       .map(route => ({route: route, match: matchPath(pathname, {path: route.path})}))
       .filter(({match}) => match)
       .map(({route, match}, i) => {
+        const title = <Typography variant={i ? undefined : 'h6'} color="textPrimary">{route.breadcrumb}</Typography>
         if (match.url === pathname) {
           return <Box key={i} display="flex" flexDirection="row" alignItems="center">
-            <Typography color="textPrimary">{route.breadcrumb}</Typography>
+            {title}
             {route.help && (
-              <HelpDialog className={classes.help} size="small" {...route.help}>
-                <HelpIcon className={classes.helpIcon} />
+              <HelpDialog className={styles.help} size="small" {...route.help}>
+                <HelpIcon className={styles.helpIcon} />
               </HelpDialog>
             )}
           </Box>
         } else {
-          return <Link key={i} component={RouterLink} to={match.url}>{route.breadcrumb}</Link>
+          return <Link key={i} component={RouterLink} to={match.url}>{title}</Link>
         }
       })}
   </MUIBreadcrumbs>

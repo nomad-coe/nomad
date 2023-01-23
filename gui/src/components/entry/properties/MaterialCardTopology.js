@@ -396,7 +396,6 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
           <QuantityCell value={node?.functional_type} quantity="results.material.topology.functional_type" hideIfUnavailable/>
           <QuantityCell value={node?.compound_type} quantity="results.material.topology.compound_type" hideIfUnavailable/>
           <QuantityCell value={node?.material_id} quantity="results.material.topology.material_id" hideIfUnavailable/>
-          <QuantityCell value={node?.material_name} quantity="results.material.topology.material_name" hideIfUnavailable/>
         </QuantityRow>
       </QuantityTable>
       : <NoData className={styles.noData}/>}

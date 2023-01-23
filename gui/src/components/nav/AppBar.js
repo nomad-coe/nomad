@@ -52,7 +52,8 @@ const useStyles = makeStyles(theme => ({
     backgroundColor: 'white',
     display: 'flex',
     flexDirection: 'column',
-    padding: theme.spacing(1)
+    padding: theme.spacing(1),
+    height: theme.spacing(appBarHeight)
   },
   logo: {
     display: 'flex',
@@ -66,10 +67,11 @@ const useStyles = makeStyles(theme => ({
     paddingRight: theme.spacing(3)
   },
   logoImg: {
-    height: theme.spacing(appBarHeight - 3)
+    height: theme.spacing(appBarHeight - 2),
+    marginLeft: theme.spacing(-0.5),
+    marginRight: theme.spacing(-0.5)
   },
   actions: {
-    // minWidth: theme.spacing(25),
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -85,6 +87,7 @@ const useStyles = makeStyles(theme => ({
     flexGrow: 1,
     marginRight: theme.spacing(1),
     marginBottom: theme.spacing(1),
+    marginTop: theme.spacing(0.25),
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',

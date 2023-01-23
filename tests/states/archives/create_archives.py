@@ -47,9 +47,9 @@ def archive_dft_bulk():
             'structural_type': 'bulk',
             'elements': ['Si'],
             'n_elements': 1,
-            'chemical_formula_reduced': 'Si2',
+            'chemical_formula_reduced': 'Si',
             'chemical_formula_hill': 'Si2',
-            'chemical_formula_anonymous': 'A2',
+            'chemical_formula_anonymous': 'A',
             'chemical_formula_descriptive': 'Si2',
             'symmetry': {
                 'crystal_system': 'cubic',

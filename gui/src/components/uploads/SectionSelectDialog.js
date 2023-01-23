@@ -42,11 +42,11 @@ import {getItemLabelKey} from '../archive/ArchiveBrowser'
 const searchDialogContext = React.createContext()
 const context = cloneDeep(ui?.search_contexts?.options?.entries)
 
-const allFilters = new Set(filterGroups && context?.filter_menus?.include
-      .map(filter => {
-        const group = filterGroups?.[filter]
-        return group ? Array.from(group) : []
-      }).flat())
+const allFilters = new Set(filterGroups && (context?.filter_menus?.include || Object.keys(context?.filter_menus?.options))
+  .map(filter => {
+    const group = filterGroups?.[filter]
+    return group ? Array.from(group) : []
+  }).flat())
 
 const useStyles = makeStyles(theme => ({
   dialog: {

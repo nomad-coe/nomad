@@ -39,6 +39,12 @@ const FilterSubMenuAuthor = React.memo(({
         />
       </InputGridItem>
       <InputGridItem xs={12}>
+        <InputRange
+          quantity="upload_create_time"
+          visible={visible}
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputField
           quantity="external_db"
           visible={visible}
@@ -46,9 +52,17 @@ const FilterSubMenuAuthor = React.memo(({
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputRange
-          quantity="upload_create_time"
+        <InputField
+          quantity="datasets.dataset_name"
           visible={visible}
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputField
+          quantity="datasets.doi"
+          visible={visible}
+          disableStatistics
+          disableOptions
         />
       </InputGridItem>
     </InputGrid>

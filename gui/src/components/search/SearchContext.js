@@ -128,9 +128,12 @@ export const SearchContext = React.memo(({
   const columns = useMemo(() => {
     if (!initialColumns) return undefined
     const columns = cloneDeep(initialColumns)
-    let options = columns.include
-      .filter(key => !columns?.exclude?.includes(key))
-      .map(key => ({key, ...columns.options[key]}))
+    const include = columns.include || (columns.options && Object.keys(columns.options))
+    let options = include
+      ? include
+        .filter(key => !columns?.exclude?.includes(key))
+        .map(key => ({key, ...columns.options[key]}))
+      : []
 
     // Add unit information if one is defined. This unit is currently fixed and
     // not affected by global unit system.
@@ -229,16 +232,20 @@ export const SearchContext = React.memo(({
   // The final filtered set of menus
   const filterMenus = useMemo(() => {
     const filterMenus = cloneDeep(initialFilterMenus)
-    return filterMenus?.include
-      ? filterMenus.include
+    const include = filterMenus?.include || (filterMenus?.options && Object.keys(filterMenus.options))
+    return include
+      ? include
         .filter(key => !filterMenus?.exclude?.includes(key))
         .map(key => {
           const data = filterMenus.options[key]
-          if (data.actions) {
-            const actions = data.actions
-            data.actions = actions.include
-              .filter(action => !actions?.exclude?.includes(action))
-              .map(action => ({key, ...actions.options[action]}))
+          const actions = data?.actions
+          if (actions) {
+            const include = actions.include || (actions?.options && Object.keys(actions.options))
+            data.actions = include
+              ? include
+                .filter(action => !actions?.exclude?.includes(action))
+                .map(action => ({key, ...actions.options[action]}))
+              : undefined
           }
           return {key, ...data}
         })

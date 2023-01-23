@@ -43,6 +43,7 @@ const FilterSubMenuGeometryOptimization = React.memo(({
         <InputSection
           section="results.properties.geometry_optimization"
           visible={visible}
+          disableHeader
         >
           <InputRange
             quantity="results.properties.geometry_optimization.final_energy_difference"

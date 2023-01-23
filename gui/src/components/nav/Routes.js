@@ -181,8 +181,9 @@ const toolkitRoute = (!oasis && aitoolkitEnabled)
     tooltip: 'Visit the NOMAD Artificial Intelligence Analytics Toolkit'
   }
 
-const searchRoutes = ui?.search_contexts?.include
-  ? ui.search_contexts.include
+const include = ui.search_contexts.include || Object.keys(ui.search_contexts.options)
+const searchRoutes = include
+  ? include
     .filter(key => !ui?.search_contexts?.exclude?.includes(key))
     .map(key => {
       const context = ui.search_contexts.options[key]
@@ -196,6 +197,7 @@ const searchRoutes = ui?.search_contexts?.include
         menu: context.label,
         tooltip: context.description,
         breadcrumb: context.breadcrumb,
+        category: context.category,
         render: (props) => (
           <SearchContext
             {...props}
@@ -219,13 +221,6 @@ const searchRoutes = ui?.search_contexts?.include
       }
     })
   : []
-if (encyclopediaBase) {
-  searchRoutes.push({
-    menu: 'Material Encyclopedia',
-    href: `${encyclopediaBase}/search`,
-    tooltip: 'Search materials in the NOMAD Encyclopedia'
-  })
-}
 
 /**
  * The list with all routes. This is used to determine the routes for routing, the breadcrumbs,

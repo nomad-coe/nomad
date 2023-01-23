@@ -81,7 +81,6 @@ export const DomainMetadata = React.memo(({data}) => {
   return <>
     <Quantity flex>
       <Formula data={data} />
-      <Quantity quantity="results.material.material_name" data={data} label="material name" />
     </Quantity>
     <MethodMetadata data={data} />
   </>

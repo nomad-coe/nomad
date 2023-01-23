@@ -161,7 +161,7 @@ def _generate_search_quantities():
             nested = any([x.nested for x in es_annotations])
             metadict['nested'] = nested
         else:
-            keys = ['name', 'description', 'type', 'unit', 'shape']
+            keys = ['name', 'description', 'type', 'unit', 'shape', 'aliases']
             metadict = search_quantity.definition.m_to_dict(with_meta=True)
         result = {}
         for key in keys:

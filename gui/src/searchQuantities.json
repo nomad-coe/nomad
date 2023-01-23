@@ -895,7 +895,7 @@
   },
   "results.material.structural_type": {
     "name": "structural_type",
-    "description": "Classification based on structural features.",
+    "description": "Structural class determined from the atomic structure.",
     "type": {
       "type_kind": "Enum",
       "type_data": [
@@ -1094,7 +1094,7 @@
   },
   "results.material.chemical_formula_reduced": {
     "name": "chemical_formula_reduced",
-    "description": "The reduced chemical formula for a structure as a string with element symbols and\ninteger chemical proportion numbers. The proportion number MUST be omitted if it is 1.",
+    "description": "Alphabetically sorted chemical formula with reduced integer chemical\nproportion numbers. The proportion number is omitted if it is 1.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -1103,7 +1103,16 @@
   },
   "results.material.chemical_formula_hill": {
     "name": "chemical_formula_hill",
-    "description": "The chemical formula for a structure in Hill form with element symbols followed by\ninteger chemical proportion numbers. The proportion number MUST be omitted if it is 1.",
+    "description": "The chemical formula for a structure in Hill form with element\nsymbols followed by non-reduced integer chemical proportion numbers.\nThe proportion number is omitted if it is 1.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    },
+    "suggestion": true
+  },
+  "results.material.chemical_formula_iupac": {
+    "name": "chemical_formula_iupac",
+    "description": "Formula where the elements are ordered using a formal list loosely\nbased on electronegativity as defined in the IUPAC nomenclature of\ninorganic chemistry (2005). Contains reduced integer chemical\nproportion numbers where the proportion number is omitted if it is\n1.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -1112,7 +1121,7 @@
   },
   "results.material.chemical_formula_anonymous": {
     "name": "chemical_formula_anonymous",
-    "description": "The anonymous formula is the chemical_formula_reduced, but where the elements are\ninstead first ordered by their chemical proportion number, and then, in order left to\nright, replaced by anonymous symbols A, B, C, ..., Z, Aa, Ba, ..., Za, Ab, Bb, ... and\nso on.",
+    "description": "Formula with the elements ordered by their reduced integer chemical\nproportion number, and the chemical species replaced by\nalphabetically ordered letters. The proportion number is omitted if\nit is 1. E.g.  H2O becomes A2B and H2O2 becomes AB. The letters are\ndrawn from the english alphabet that may be extended by increasing\nthe number of letters, e.g. A, B, ..., Z, Aa, Ab and so on. This\ndefinition is in line with the similarly named OPTIMADE definition.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -1121,7 +1130,7 @@
   },
   "results.material.chemical_formula_reduced_fragments": {
     "name": "chemical_formula_reduced_fragments",
-    "description": "The reduced formula separated into individual terms containing both the atom\ntype and count. Used for searching parts of a formula.",
+    "description": "Alphabetically sorted chemical formula with reduced integer chemical\nproportion numbers. The proportion number is omitted if it is 1.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -1242,8 +1251,26 @@
     "name": "structure_name",
     "description": "A common name for this structure, e.g. fcc, bcc.",
     "type": {
-      "type_kind": "python",
-      "type_data": "str"
+      "type_kind": "Enum",
+      "type_data": [
+        "4-member ring",
+        "Heusler",
+        "bcc",
+        "bct",
+        "bct5",
+        "clathrate",
+        "cuprite",
+        "diamond",
+        "fcc",
+        "fct",
+        "half-Heusler",
+        "hcp",
+        "perovskite",
+        "rock salt",
+        "simple cubic",
+        "wurtzite",
+        "zincblende"
+      ]
     },
     "suggestion": true
   },
@@ -1311,7 +1338,7 @@
   },
   "results.material.topology.structural_type": {
     "name": "structural_type",
-    "description": "The structural classification for this system.",
+    "description": "Structural class determined from the atomic structure.",
     "type": {
       "type_kind": "Enum",
       "type_data": [
@@ -1504,7 +1531,16 @@
   },
   "results.material.topology.formula_hill": {
     "name": "formula_hill",
-    "description": "The chemical formula for a structure in Hill form with element symbols followed by\ninteger chemical proportion numbers. The proportion number MUST be omitted if it is 1.",
+    "description": "The chemical formula for a structure in Hill form with element\nsymbols followed by non-reduced integer chemical proportion numbers.\nThe proportion number is omitted if it is 1.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    },
+    "suggestion": true
+  },
+  "results.material.topology.formula_iupac": {
+    "name": "formula_iupac",
+    "description": "Formula where the elements are ordered using a formal list loosely\nbased on electronegativity as defined in the IUPAC nomenclature of\ninorganic chemistry (2005). Contains reduced integer chemical\nproportion numbers where the proportion number is omitted if it is\n1.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -1513,7 +1549,7 @@
   },
   "results.material.topology.formula_reduced": {
     "name": "formula_reduced",
-    "description": "The reduced chemical formula for a structure as a string with element symbols and\ninteger chemical proportion numbers. The proportion number MUST be omitted if it is 1.",
+    "description": "Alphabetically sorted chemical formula with reduced integer chemical\nproportion numbers. The proportion number is omitted if it is 1.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -1522,7 +1558,7 @@
   },
   "results.material.topology.formula_anonymous": {
     "name": "formula_anonymous",
-    "description": "The anonymous formula is the chemical_formula_reduced, but where the elements are\ninstead first ordered by their chemical proportion number, and then, in order left to\nright, replaced by anonymous symbols A, B, C, ..., Z, Aa, Ba, ..., Za, Ab, Bb, ... and\nso on.",
+    "description": "Formula with the elements ordered by their reduced integer chemical\nproportion number, and the chemical species replaced by\nalphabetically ordered letters. The proportion number is omitted if\nit is 1. E.g.  H2O becomes A2B and H2O2 becomes AB. The letters are\ndrawn from the english alphabet that may be extended by increasing\nthe number of letters, e.g. A, B, ..., Z, Aa, Ab and so on. This\ndefinition is in line with the similarly named OPTIMADE definition.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -2751,37 +2787,6 @@
     "shape": [],
     "suggestion": true
   },
-  "results.properties.optoelectronic.band_gap_optical.index": {
-    "name": "index",
-    "description": "Index of the data, e.g. spin channel index.",
-    "type": {
-      "type_kind": "numpy",
-      "type_data": "int32"
-    }
-  },
-  "results.properties.optoelectronic.band_gap_optical.value": {
-    "name": "value",
-    "description": "Band gap value. Value of zero corresponds to not having a band gap.",
-    "type": {
-      "type_kind": "numpy",
-      "type_data": "float64"
-    },
-    "unit": "joule",
-    "shape": []
-  },
-  "results.properties.optoelectronic.band_gap_optical.type": {
-    "name": "type",
-    "description": "Band gap type.",
-    "type": {
-      "type_kind": "Enum",
-      "type_data": [
-        "direct",
-        "indirect"
-      ]
-    },
-    "shape": [],
-    "suggestion": true
-  },
   "results.properties.optoelectronic.solar_cell.efficiency": {
     "name": "efficiency",
     "description": "Power conversion effciency of a solar cell in percentage %.",
@@ -3619,12 +3624,6 @@
     "description": "\n        Optoelectronic properties.\n        ",
     "nested": false,
     "repeats": false
-  },
-  "results.properties.optoelectronic.band_gap_optical": {
-    "name": "band_gap_optical",
-    "description": "\n        Optical band gap.\n        ",
-    "nested": true,
-    "repeats": true
   },
   "results.properties.optoelectronic.solar_cell": {
     "name": "solar_cell",
