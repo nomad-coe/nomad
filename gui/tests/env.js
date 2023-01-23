@@ -14,23 +14,9 @@ window.nomadEnv = {
   "ui": {
     "entry_context": {
       "overview": {
-        "include": [
-          "sections",
-          "definitions",
-          "nexus",
-          "material",
-          "electronic",
-          "optoelectronic",
-          "vibrational",
-          "mechanical",
-          "thermodynamic",
-          "structural",
-          "dynamical",
-          "geometry_optimization",
-          "spectroscopy",
-          "references"
+        "exclude": [
+          "relatedResources"
         ],
-        "exclude": [],
         "options": {
           "sections": {
             "error": "Could not render section card."
@@ -44,11 +30,11 @@ window.nomadEnv = {
           "material": {
             "error": "Could not render material card."
           },
+          "solarcell": {
+            "error": "Could not render solar cell properties."
+          },
           "electronic": {
             "error": "Could not render electronic properties."
-          },
-          "optoelectronic": {
-            "error": "Could not render optoelectronic properties."
           },
           "vibrational": {
             "error": "Could not render vibrational properties."
@@ -68,8 +54,8 @@ window.nomadEnv = {
           "geometry_optimization": {
             "error": "Could not render geometry optimization."
           },
-          "spectroscopy": {
-            "error": "Could not render spectroscopic properties."
+          "eels": {
+            "error": "Could not render EELS properties."
           },
           "references": {
             "error": "Could not render references card."
@@ -81,23 +67,17 @@ window.nomadEnv = {
       }
     },
     "search_contexts": {
-      "include": [
-        "entries",
-        "eln",
-        "materials",
-        "solar_cells"
-      ],
-      "exclude": [],
       "options": {
         "entries": {
           "label": "Entries",
           "path": "entries",
           "resource": "entries",
-          "breadcrumb": "Entries search",
-          "description": "Search individual entries",
+          "breadcrumb": "Entries",
+          "category": "All",
+          "description": "Search entries across all domains",
           "help": {
             "title": "Entries search",
-            "content": "This page allows you to **search entries** within NOMAD. Entries represent\nindividual calculations or experiments that have bee uploaded into NOMAD.\n\nThe search page consists of three main elements: the filter panel, the search\nbar, and the result list.\n\nThe filter panel on the left allows you to graphically explore and enter\ndifferent search filters. It also gives a visual indication of the currently\nactive search filters for each category. This is a good place to start exploring\nthe available search filters and their meaning.\n\nThe search bar allows you to specify filters by typing them in and pressing\nenter. You can also start by simply typing keywords of interest, which will\ntoggle a list of suggestions. For numerical data you can also use range queries,\ne.g. \\`0.0 < band_gap <= 0.1\\`.\n\nNotice that the units used in the filter panel and in the queries can be changed\nusing the **units** button on the top right corner. When using the search bar,\nyou can also specify a unit by typing the unit abbreviations, e.g. \\`band_gap >=\n0.1 Ha\\`\n\nThe result list on the right is automatically updated according to the filters\nyou have specified. You can browse through the results by scrolling through the\navailable items and loading more results as you go. Here you can also change the\nsorting of the results, modify the displayed columns, access individual entries\nor even download the raw data or the archive document by selecting individual\nentries and pressing the download button that appears. The ellipsis button shown\nfor each entry will navigate you to that entry's page. This entry page will show\nmore metadata, raw files, the entry's archive, and processing logs."
+            "content": "This page allows you to search **entries** within NOMAD.\nEntries represent any individual data items that have\nbeen uploaded to NOMAD, no matter whether they come from\ntheoretical calculations, experiments, lab notebooks or\nany other source of data. This allows you to perform\ncross-domain queries, but if you are interested in a\nspecific subfield, you should see if a specific\napplication exists for it in the explore menu to get\nmore details."
           },
           "pagination": {
             "order_by": "upload_create_time",
@@ -112,32 +92,6 @@ window.nomadEnv = {
               "upload_create_time",
               "authors"
             ],
-            "include": [
-              "entry_name",
-              "results.material.chemical_formula_hill",
-              "entry_type",
-              "results.method.method_name",
-              "results.method.simulation.program_name",
-              "results.method.simulation.dft.basis_set_name",
-              "results.method.simulation.dft.xc_functional_type",
-              "results.material.structural_type",
-              "results.material.symmetry.crystal_system",
-              "results.material.symmetry.space_group_symbol",
-              "results.material.symmetry.space_group_number",
-              "results.eln.lab_ids",
-              "results.eln.sections",
-              "results.eln.methods",
-              "results.eln.tags",
-              "results.eln.instruments",
-              "mainfile",
-              "upload_create_time",
-              "authors",
-              "comment",
-              "references",
-              "datasets",
-              "published"
-            ],
-            "exclude": [],
             "options": {
               "entry_name": {
                 "label": "Name",
@@ -151,6 +105,14 @@ window.nomadEnv = {
                 "label": "Entry type",
                 "align": "left"
               },
+              "upload_create_time": {
+                "label": "Upload time",
+                "align": "left"
+              },
+              "authors": {
+                "label": "Authors",
+                "align": "left"
+              },
               "results.method.method_name": {
                 "label": "Method name"
               },
@@ -161,10 +123,10 @@ window.nomadEnv = {
                 "label": "Basis set name"
               },
               "results.method.simulation.dft.xc_functional_type": {
-                "label": "XC functional type"
+                "label": "XC Functional Type"
               },
               "results.material.structural_type": {
-                "label": "Structural type"
+                "label": "Dimensionality"
               },
               "results.material.symmetry.crystal_system": {
                 "label": "Crystal system"
@@ -192,14 +154,6 @@ window.nomadEnv = {
               },
               "mainfile": {
                 "label": "Mainfile",
-                "align": "left"
-              },
-              "upload_create_time": {
-                "label": "Upload time",
-                "align": "left"
-              },
-              "authors": {
-                "label": "Authors",
                 "align": "left"
               },
               "comment": {
@@ -231,41 +185,10 @@ window.nomadEnv = {
             }
           },
           "filter_menus": {
-            "include": [
-              "material",
-              "elements",
-              "symmetry",
-              "method",
-              "simulation",
-              "dft",
-              "gw",
-              "projection",
-              "dmft",
-              "experiment",
-              "eels",
-              "properties",
-              "electronic",
-              "optoelectronic",
-              "vibrational",
-              "mechanical",
-              "spectroscopy",
-              "thermodynamic",
-              "geometry_optimization",
-              "eln",
-              "author",
-              "dataset",
-              "access",
-              "ids",
-              "processed_data_quantities",
-              "optimade"
-            ],
-            "exclude": [],
             "options": {
               "material": {
                 "label": "Material",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "level": 0
               },
               "elements": {
                 "label": "Elements / Formula",
@@ -273,72 +196,68 @@ window.nomadEnv = {
                 "size": "large",
                 "menu_items": {}
               },
-              "symmetry": {
-                "label": "Symmetry",
+              "structure": {
+                "label": "Structure",
                 "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
               "method": {
                 "label": "Method",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
-              "simulation": {
-                "label": "Simulation",
-                "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "level": 0
               },
               "dft": {
                 "label": "DFT",
-                "level": 2,
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
               "gw": {
                 "label": "GW",
-                "level": 2,
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
               "projection": {
                 "label": "Projection",
-                "level": 2,
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
               "dmft": {
                 "label": "DMFT",
-                "level": 2,
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
-              "experiment": {
-                "label": "Experiment",
-                "level": 1,
-                "size": "small"
-              },
               "eels": {
                 "label": "EELS",
-                "level": 2,
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "workflow": {
+                "label": "Workflow",
+                "level": 0
+              },
+              "molecular_dynamics": {
+                "label": "Molecular dynamics",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "geometry_optimization": {
+                "label": "Geometry Optimization",
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
               "properties": {
                 "label": "Properties",
-                "level": 0,
-                "size": "small"
+                "level": 0
               },
               "electronic": {
                 "label": "Electronic",
-                "level": 1,
-                "size": "small",
-                "menu_items": {}
-              },
-              "optoelectronic": {
-                "label": "Optoelectronic",
                 "level": 1,
                 "size": "small",
                 "menu_items": {}
@@ -355,58 +274,27 @@ window.nomadEnv = {
                 "size": "small",
                 "menu_items": {}
               },
-              "spectroscopy": {
-                "label": "Spectroscopy",
-                "level": 1,
-                "size": "small",
-                "menu_items": {}
-              },
-              "thermodynamic": {
-                "label": "Thermodynamic",
-                "level": 1,
-                "size": "small",
-                "menu_items": {}
-              },
-              "geometry_optimization": {
-                "label": "Geometry Optimization",
-                "level": 1,
-                "size": "small",
-                "menu_items": {}
-              },
-              "eln": {
-                "label": "Electronic Lab Notebook",
+              "usecases": {
+                "label": "Use Cases",
                 "level": 0,
+                "size": "small"
+              },
+              "solarcell": {
+                "label": "Solar Cells",
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
               "author": {
-                "label": "Author / Origin",
+                "label": "Author / Origin / Dataset",
                 "level": 0,
                 "size": "medium",
                 "menu_items": {}
               },
-              "dataset": {
-                "label": "Dataset",
+              "metadata": {
+                "label": "Visibility / IDs / Schema",
                 "level": 0,
                 "size": "small",
-                "menu_items": {}
-              },
-              "access": {
-                "label": "Access",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
-              "ids": {
-                "label": "IDs",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
-              "processed_data_quantities": {
-                "label": "Processed Data Quantities",
-                "level": 0,
-                "size": "medium",
                 "menu_items": {}
               },
               "optimade": {
@@ -425,15 +313,16 @@ window.nomadEnv = {
             ]
           }
         },
-        "eln": {
-          "label": "ELN",
-          "path": "eln",
+        "calculations": {
+          "label": "Calculations",
+          "path": "calculations",
           "resource": "entries",
-          "breadcrumb": "ELN entries search",
-          "description": "Search individual ELN entries",
+          "breadcrumb": "Calculations",
+          "category": "Theory",
+          "description": "Search calculations",
           "help": {
-            "title": "ELN entries search",
-            "content": "This page allows you to specifically **search ELN entries** within NOMAD.\nIt is very similar to the *Entries search*, but with a reduced\nfilter set and specialized arrangement of default columns."
+            "title": "Calculations",
+            "content": "This page allows you to search **calculations** within\nNOMAD.  Calculations typically come from a specific\nsimulation software that uses an approximate model to\ninvestigate and report different physical properties."
           },
           "pagination": {
             "order_by": "upload_create_time",
@@ -443,36 +332,11 @@ window.nomadEnv = {
           "columns": {
             "enable": [
               "entry_name",
+              "results.material.chemical_formula_hill",
               "entry_type",
               "upload_create_time",
               "authors"
             ],
-            "include": [
-              "entry_name",
-              "results.material.chemical_formula_hill",
-              "entry_type",
-              "results.method.method_name",
-              "results.method.simulation.program_name",
-              "results.method.simulation.dft.basis_set_name",
-              "results.method.simulation.dft.xc_functional_type",
-              "results.material.structural_type",
-              "results.material.symmetry.crystal_system",
-              "results.material.symmetry.space_group_symbol",
-              "results.material.symmetry.space_group_number",
-              "results.eln.lab_ids",
-              "results.eln.sections",
-              "results.eln.methods",
-              "results.eln.tags",
-              "results.eln.instruments",
-              "mainfile",
-              "upload_create_time",
-              "authors",
-              "comment",
-              "references",
-              "datasets",
-              "published"
-            ],
-            "exclude": [],
             "options": {
               "entry_name": {
                 "label": "Name",
@@ -486,6 +350,14 @@ window.nomadEnv = {
                 "label": "Entry type",
                 "align": "left"
               },
+              "upload_create_time": {
+                "label": "Upload time",
+                "align": "left"
+              },
+              "authors": {
+                "label": "Authors",
+                "align": "left"
+              },
               "results.method.method_name": {
                 "label": "Method name"
               },
@@ -496,10 +368,10 @@ window.nomadEnv = {
                 "label": "Basis set name"
               },
               "results.method.simulation.dft.xc_functional_type": {
-                "label": "XC functional type"
+                "label": "XC Functional Type"
               },
               "results.material.structural_type": {
-                "label": "Structural type"
+                "label": "Dimensionality"
               },
               "results.material.symmetry.crystal_system": {
                 "label": "Crystal system"
@@ -527,14 +399,6 @@ window.nomadEnv = {
               },
               "mainfile": {
                 "label": "Mainfile",
-                "align": "left"
-              },
-              "upload_create_time": {
-                "label": "Upload time",
-                "align": "left"
-              },
-              "authors": {
-                "label": "Authors",
                 "align": "left"
               },
               "comment": {
@@ -566,25 +430,10 @@ window.nomadEnv = {
             }
           },
           "filter_menus": {
-            "include": [
-              "material",
-              "elements",
-              "eln",
-              "custom_quantities",
-              "author",
-              "dataset",
-              "access",
-              "ids",
-              "processed_data_quantities",
-              "optimade"
-            ],
-            "exclude": [],
             "options": {
               "material": {
                 "label": "Material",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "level": 0
               },
               "elements": {
                 "label": "Elements / Formula",
@@ -592,46 +441,88 @@ window.nomadEnv = {
                 "size": "large",
                 "menu_items": {}
               },
-              "eln": {
-                "label": "Electronic Lab Notebook",
-                "level": 0,
+              "structure": {
+                "label": "Structure",
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
-              "custom_quantities": {
-                "label": "Custom quantities",
-                "level": 0,
-                "size": "large",
+              "method": {
+                "label": "Method",
+                "level": 0
+              },
+              "dft": {
+                "label": "DFT",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "gw": {
+                "label": "GW",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "projection": {
+                "label": "Projection",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "dmft": {
+                "label": "DMFT",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "workflow": {
+                "label": "Workflow",
+                "level": 0
+              },
+              "molecular_dynamics": {
+                "label": "Molecular dynamics",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "geometry_optimization": {
+                "label": "Geometry Optimization",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "properties": {
+                "label": "Properties",
+                "level": 0
+              },
+              "electronic": {
+                "label": "Electronic",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "vibrational": {
+                "label": "Vibrational",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "mechanical": {
+                "label": "Mechanical",
+                "level": 1,
+                "size": "small",
                 "menu_items": {}
               },
               "author": {
-                "label": "Author / Origin",
+                "label": "Author / Origin / Dataset",
                 "level": 0,
                 "size": "medium",
                 "menu_items": {}
               },
-              "dataset": {
-                "label": "Dataset",
+              "metadata": {
+                "label": "Visibility / IDs / Schema",
                 "level": 0,
                 "size": "small",
-                "menu_items": {}
-              },
-              "access": {
-                "label": "Access",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
-              "ids": {
-                "label": "IDs",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
-              "processed_data_quantities": {
-                "label": "Processed Data Quantities",
-                "level": 0,
-                "size": "medium",
                 "menu_items": {}
               },
               "optimade": {
@@ -648,17 +539,21 @@ window.nomadEnv = {
               "entry_name",
               "combine"
             ]
+          },
+          "filters_locked": {
+            "sections": "nomad.datamodel.results.Simulation"
           }
         },
         "materials": {
           "label": "Materials",
           "path": "materials",
           "resource": "materials",
-          "breadcrumb": "Materials search",
-          "description": "Search materials that are identified from the entries",
+          "breadcrumb": "Materials",
+          "category": "Theory",
+          "description": "Search materials that are identified from calculations",
           "help": {
-            "title": "Materials search",
-            "content": "This page allows you to **search materials** within NOMAD. NOMAD can\nautomatically detect the material from individual entries and can then group the\ndata by using these detected materials. This allows you to search individual\nmaterials which have properties that are aggregated from several entries.\n\nThe search page consists of three main elements: the filter panel, the search\nbar, and the result list.\n\nThe filter panel on the left allows you to graphically explore and enter\ndifferent search filters. It also gives a visual indication of the currently\nactive search filters for each category. This is a good place to start exploring\nthe available search filters and their meaning.\n\nThe search bar allows you to specify filters by typing them in and pressing\nenter. You can also start by simply typing keywords of interest, which will\ntoggle a list of suggestions. For numerical data you can also use range queries,\ne.g. \\`0.0 < band_gap <= 0.1\\`.\n\nThe units used in the filter panel and in the queries can be changed\nusing the **units** button on the top right corner. When using the search bar,\nyou can also specify a unit by typing the unit abbreviations, e.g. \\`band_gap >=\n0.1 Ha\\`.\n\nNotice that by default the properties that you search can be combined from\nseveral different entries. If instead you wish to search for a material with an\nindividual entry fullfilling your search criteria, uncheck the **combine results\nfrom several entries**-checkbox.\n\nThe result list on the right is automatically updated according to the filters\nyou have specified. You can scroll through the available items and load more\nresults as you go. Here you can also change the sorting of the results, modify\nthe displayed columns and access individual materials. The ellipsis button shown\nfor each material will navigate you into the material overview page within the\nNOMAD Encyclopedia. This page will show a more detailed overview for that\nspecific material."
+            "title": "Materials",
+            "content": "This page allows you to search **materials** within\nNOMAD. NOMAD can often automatically detect the material\nfrom individual calculations that contain the full\natomistic structure and can then group the data by using\nthese detected materials. This allows you to search\nindividual materials which have properties that are\naggregated from several entries. Following the link for\na specific material will take you to the corresponding\n[NOMAD Encyclopedia](https://nomad-lab.eu/prod/rae/encyclopedia/#/search)\npage for that material. NOMAD Encyclopedia is a service\nthat is specifically oriented towards materials property\nexploration.\n\nNotice that by default the properties that you search\ncan be combined from several different entries. If\ninstead you wish to search for a material with an\nindividual entry fullfilling your search criteria,\nuncheck the **combine results from several\nentries**-checkbox."
           },
           "pagination": {
             "order_by": "chemical_formula_hill",
@@ -672,35 +567,25 @@ window.nomadEnv = {
               "symmetry.space_group_number",
               "symmetry.crystal_system"
             ],
-            "include": [
-              "chemical_formula_hill",
-              "structural_type",
-              "symmetry.structure_name",
-              "symmetry.crystal_system",
-              "symmetry.space_group_symbol",
-              "symmetry.space_group_number",
-              "material_id"
-            ],
-            "exclude": [],
             "options": {
               "chemical_formula_hill": {
                 "label": "Formula",
                 "align": "left"
               },
               "structural_type": {
-                "label": "Structural type"
+                "label": "Dimensionality"
               },
               "symmetry.structure_name": {
                 "label": "Structure name"
+              },
+              "symmetry.space_group_number": {
+                "label": "Space group number"
               },
               "symmetry.crystal_system": {
                 "label": "Crystal system"
               },
               "symmetry.space_group_symbol": {
                 "label": "Space group symbol"
-              },
-              "symmetry.space_group_number": {
-                "label": "Space group number"
               },
               "material_id": {
                 "label": "Material ID"
@@ -719,42 +604,10 @@ window.nomadEnv = {
             }
           },
           "filter_menus": {
-            "include": [
-              "material",
-              "elements",
-              "symmetry",
-              "method",
-              "simulation",
-              "dft",
-              "gw",
-              "projection",
-              "dmft",
-              "experiment",
-              "eels",
-              "properties",
-              "electronic",
-              "optoelectronic",
-              "vibrational",
-              "mechanical",
-              "spectroscopy",
-              "thermodynamic",
-              "geometry_optimization",
-              "eln",
-              "author",
-              "dataset",
-              "access",
-              "ids",
-              "processed_data_quantities",
-              "optimade",
-              "combine"
-            ],
-            "exclude": [],
             "options": {
               "material": {
                 "label": "Material",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "level": 0
               },
               "elements": {
                 "label": "Elements / Formula",
@@ -762,56 +615,53 @@ window.nomadEnv = {
                 "size": "large",
                 "menu_items": {}
               },
-              "symmetry": {
-                "label": "Symmetry",
+              "structure": {
+                "label": "Structure",
                 "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
               "method": {
                 "label": "Method",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
-              "simulation": {
-                "label": "Simulation",
-                "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "level": 0
               },
               "dft": {
                 "label": "DFT",
-                "level": 2,
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
               "gw": {
                 "label": "GW",
-                "level": 2,
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
               "projection": {
                 "label": "Projection",
-                "level": 2,
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
               "dmft": {
                 "label": "DMFT",
-                "level": 2,
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
-              "experiment": {
-                "label": "Experiment",
-                "level": 1,
-                "size": "small"
+              "workflow": {
+                "label": "Workflow",
+                "level": 0
               },
-              "eels": {
-                "label": "EELS",
-                "level": 2,
+              "molecular_dynamics": {
+                "label": "Molecular dynamics",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "geometry_optimization": {
+                "label": "Geometry Optimization",
+                "level": 1,
                 "size": "small",
                 "menu_items": {}
               },
@@ -822,12 +672,6 @@ window.nomadEnv = {
               },
               "electronic": {
                 "label": "Electronic",
-                "level": 1,
-                "size": "small",
-                "menu_items": {}
-              },
-              "optoelectronic": {
-                "label": "Optoelectronic",
                 "level": 1,
                 "size": "small",
                 "menu_items": {}
@@ -844,58 +688,16 @@ window.nomadEnv = {
                 "size": "small",
                 "menu_items": {}
               },
-              "spectroscopy": {
-                "label": "Spectroscopy",
-                "level": 1,
-                "size": "small",
-                "menu_items": {}
-              },
-              "thermodynamic": {
-                "label": "Thermodynamic",
-                "level": 1,
-                "size": "small",
-                "menu_items": {}
-              },
-              "geometry_optimization": {
-                "label": "Geometry Optimization",
-                "level": 1,
-                "size": "small",
-                "menu_items": {}
-              },
-              "eln": {
-                "label": "Electronic Lab Notebook",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
               "author": {
-                "label": "Author / Origin",
+                "label": "Author / Origin / Dataset",
                 "level": 0,
                 "size": "medium",
                 "menu_items": {}
               },
-              "dataset": {
-                "label": "Dataset",
+              "metadata": {
+                "label": "Visibility / IDs / Schema",
                 "level": 0,
                 "size": "small",
-                "menu_items": {}
-              },
-              "access": {
-                "label": "Access",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
-              "ids": {
-                "label": "IDs",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
-              "processed_data_quantities": {
-                "label": "Processed Data Quantities",
-                "level": 0,
-                "size": "medium",
                 "menu_items": {}
               },
               "optimade": {
@@ -906,9 +708,6 @@ window.nomadEnv = {
               },
               "combine": {
                 "actions": {
-                  "include": [
-                    "combine"
-                  ],
                   "options": {
                     "combine": {
                       "type": "checkbox",
@@ -927,15 +726,352 @@ window.nomadEnv = {
             ]
           }
         },
-        "solar_cells": {
-          "label": "Solar Cells",
-          "path": "solar-cells",
+        "eln": {
+          "label": "ELN",
+          "path": "eln",
           "resource": "entries",
-          "breadcrumb": "Solar cells search",
-          "description": "Search solar cells in NOMAD",
+          "breadcrumb": "ELN",
+          "category": "Experiment",
+          "description": "Search electronic lab notebooks",
           "help": {
-            "title": "Solar cells search",
-            "content": "This page allows you to **search solar cells** within NOMAD.\nYou can search for solar cells by their properties, by the chemistry of the absorber layer,\npreparation method, or their origin.\n\nThe search page consists of three main elements: the filter panel, the search\nbar, and the result list.\n\nThe filter panel on the left allows you to graphically explore and enter\ndifferent search filters. It also gives a visual indication of the currently\nactive search filters for each category. This is a good place to start exploring\nthe available search filters and their meaning. But clikcing in the \"+\" button\nyou could add the filter widgets to the central part of the page and combine them.\nTry adding the periodic table widget to the main pannel and select some elements\ncontained in the absorber layer.\n\nThe search bar allows you to specify filters by typing them in and pressing\nenter. You can also start by simply typing keywords of interest, which will\ntoggle a list of suggestions. For numerical data you can also use range queries,\ne.g. \\`0.0 < efficiency <= 20.1\\`.\n\nThe units used in the filter panel and in the queries can be changed\nusing the **units** button on the top right corner. When using the search bar,\nyou can also specify a unit by typing the unit abbreviations, e.g. \\`band_gap >=\n0.1 Ha\\`.\n\nThe result list on the right is automatically updated according to the filters\nyou have specified. You can browse through the results by scrolling through the\navailable items and loading more results as you go. Here you can also change the\nsorting of the results, modify the displayed columns, download the raw data\nor the archive document by selecting individual entries and pressing the download\ncloud button that appears.\n\nThe ellipsis button (three dots) shown for each entry will navigate\nyou to that entry's page. This entry page will show more metadata,\nraw files, the entry's archive, and processing logs."
+            "title": "ELN search",
+            "content": "This page allows you to specifically seach **electronic\nlab notebooks (ELNs)** within NOMAD.  It is very similar\nto the entries search, but with a reduced filter set and\nspecialized arrangement of default columns."
+          },
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          },
+          "columns": {
+            "enable": [
+              "entry_name",
+              "entry_type",
+              "upload_create_time",
+              "authors"
+            ],
+            "options": {
+              "entry_name": {
+                "label": "Name",
+                "align": "left"
+              },
+              "entry_type": {
+                "label": "Entry type",
+                "align": "left"
+              },
+              "upload_create_time": {
+                "label": "Upload time",
+                "align": "left"
+              },
+              "authors": {
+                "label": "Authors",
+                "align": "left"
+              },
+              "results.material.chemical_formula_hill": {
+                "label": "Formula",
+                "align": "left"
+              },
+              "results.method.method_name": {
+                "label": "Method name"
+              },
+              "results.method.simulation.program_name": {
+                "label": "Program name"
+              },
+              "results.method.simulation.dft.basis_set_name": {
+                "label": "Basis set name"
+              },
+              "results.method.simulation.dft.xc_functional_type": {
+                "label": "XC Functional Type"
+              },
+              "results.material.structural_type": {
+                "label": "Dimensionality"
+              },
+              "results.material.symmetry.crystal_system": {
+                "label": "Crystal system"
+              },
+              "results.material.symmetry.space_group_symbol": {
+                "label": "Space group symbol"
+              },
+              "results.material.symmetry.space_group_number": {
+                "label": "Space group number"
+              },
+              "results.eln.lab_ids": {
+                "label": "Lab IDs"
+              },
+              "results.eln.sections": {
+                "label": "Sections"
+              },
+              "results.eln.methods": {
+                "label": "Methods"
+              },
+              "results.eln.tags": {
+                "label": "Tags"
+              },
+              "results.eln.instruments": {
+                "label": "Instruments"
+              },
+              "mainfile": {
+                "label": "Mainfile",
+                "align": "left"
+              },
+              "comment": {
+                "label": "Comment",
+                "align": "left"
+              },
+              "references": {
+                "label": "References",
+                "align": "left"
+              },
+              "datasets": {
+                "label": "Datasets",
+                "align": "left"
+              },
+              "published": {
+                "label": "Access"
+              }
+            }
+          },
+          "rows": {
+            "actions": {
+              "enable": true
+            },
+            "details": {
+              "enable": true
+            },
+            "selection": {
+              "enable": true
+            }
+          },
+          "filter_menus": {
+            "options": {
+              "material": {
+                "label": "Material",
+                "level": 0
+              },
+              "elements": {
+                "label": "Elements / Formula",
+                "level": 1,
+                "size": "large",
+                "menu_items": {}
+              },
+              "eln": {
+                "label": "Electronic Lab Notebook",
+                "level": 0,
+                "size": "small",
+                "menu_items": {}
+              },
+              "custom_quantities": {
+                "label": "User Defined Quantities",
+                "level": 0,
+                "size": "large",
+                "menu_items": {}
+              },
+              "author": {
+                "label": "Author / Origin / Dataset",
+                "level": 0,
+                "size": "medium",
+                "menu_items": {}
+              },
+              "metadata": {
+                "label": "Visibility / IDs / Schema",
+                "level": 0,
+                "size": "small",
+                "menu_items": {}
+              },
+              "optimade": {
+                "label": "Optimade",
+                "level": 0,
+                "size": "medium",
+                "menu_items": {}
+              }
+            }
+          },
+          "filters": {
+            "exclude": [
+              "mainfile",
+              "entry_name",
+              "combine"
+            ]
+          },
+          "filters_locked": {
+            "quantities": "data"
+          }
+        },
+        "eels": {
+          "label": "EELS",
+          "path": "eels",
+          "resource": "entries",
+          "breadcrumb": "EELS",
+          "category": "Experiment",
+          "description": "Search electron energy loss spectroscopy experiments",
+          "help": {
+            "title": "EELS",
+            "content": "This page allows you to spefically search **Electron\nEnergy Loss Spectroscopy (EELS) experiments** within\nNOMAD. It is similar to the entries search, but with a\nreduced filter set and specialized arrangement of\ndefault columns."
+          },
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          },
+          "columns": {
+            "enable": [
+              "results.material.chemical_formula_hill",
+              "results.properties.spectroscopy.eels.detector_type",
+              "results.properties.spectroscopy.eels.resolution",
+              "upload_create_time",
+              "authors"
+            ],
+            "options": {
+              "results.material.chemical_formula_hill": {
+                "label": "Formula",
+                "align": "left"
+              },
+              "results.properties.spectroscopy.eels.detector_type": {
+                "label": "Detector type"
+              },
+              "results.properties.spectroscopy.eels.resolution": {
+                "label": "Resolution"
+              },
+              "upload_create_time": {
+                "label": "Upload time",
+                "align": "left"
+              },
+              "authors": {
+                "label": "Authors",
+                "align": "left"
+              },
+              "results.properties.spectroscopy.eels.min_energy": {},
+              "results.properties.spectroscopy.eels.max_energy": {},
+              "entry_name": {
+                "label": "Name",
+                "align": "left"
+              },
+              "entry_type": {
+                "label": "Entry type",
+                "align": "left"
+              },
+              "results.material.structural_type": {
+                "label": "Dimensionality"
+              },
+              "results.material.symmetry.crystal_system": {
+                "label": "Crystal system"
+              },
+              "results.material.symmetry.space_group_symbol": {
+                "label": "Space group symbol"
+              },
+              "results.material.symmetry.space_group_number": {
+                "label": "Space group number"
+              },
+              "results.eln.lab_ids": {
+                "label": "Lab IDs"
+              },
+              "results.eln.sections": {
+                "label": "Sections"
+              },
+              "results.eln.methods": {
+                "label": "Methods"
+              },
+              "results.eln.tags": {
+                "label": "Tags"
+              },
+              "results.eln.instruments": {
+                "label": "Instruments"
+              },
+              "mainfile": {
+                "label": "Mainfile",
+                "align": "left"
+              },
+              "comment": {
+                "label": "Comment",
+                "align": "left"
+              },
+              "references": {
+                "label": "References",
+                "align": "left"
+              },
+              "datasets": {
+                "label": "Datasets",
+                "align": "left"
+              },
+              "published": {
+                "label": "Access"
+              }
+            }
+          },
+          "rows": {
+            "actions": {
+              "enable": true
+            },
+            "details": {
+              "enable": true
+            },
+            "selection": {
+              "enable": true
+            }
+          },
+          "filter_menus": {
+            "options": {
+              "material": {
+                "label": "Material",
+                "level": 0
+              },
+              "elements": {
+                "label": "Elements / Formula",
+                "level": 1,
+                "size": "large",
+                "menu_items": {}
+              },
+              "method": {
+                "label": "Method",
+                "level": 0,
+                "size": "small"
+              },
+              "eels": {
+                "label": "EELS",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "author": {
+                "label": "Author / Origin / Dataset",
+                "level": 0,
+                "size": "medium",
+                "menu_items": {}
+              },
+              "metadata": {
+                "label": "Visibility / IDs / Schema",
+                "level": 0,
+                "size": "small",
+                "menu_items": {}
+              },
+              "optimade": {
+                "label": "Optimade",
+                "level": 0,
+                "size": "medium",
+                "menu_items": {}
+              }
+            }
+          },
+          "filters": {
+            "exclude": [
+              "mainfile",
+              "entry_name",
+              "combine"
+            ]
+          },
+          "filters_locked": {
+            "results.method.method_name": "EELS"
+          }
+        },
+        "solarcells": {
+          "label": "Solar Cells",
+          "path": "solarcells",
+          "resource": "entries",
+          "breadcrumb": "Solar Cells",
+          "category": "Use Cases",
+          "description": "Search solar cells",
+          "help": {
+            "title": "Solar cells",
+            "content": "This page allows you to search **solar cell data**\nwithin NOMAD. The filter menu on the left and the shown\ndefault columns are specifically designed for solar cell\nexploration. The dashboard directly shows useful\ninteractive statistics about the data."
           },
           "pagination": {
             "order_by": "results.properties.optoelectronic.solar_cell.efficiency",
@@ -1242,7 +1378,7 @@ window.nomadEnv = {
                 "autorange": false,
                 "nbins": 30,
                 "scale": "1/4",
-                "quantity": "results.properties.optoelectronic.band_gap_optical.value",
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
                 "layout": {
                   "xxl": {
                     "minH": 3,
@@ -1384,9 +1520,6 @@ window.nomadEnv = {
               }
             ]
           },
-          "filters_locked": {
-            "results.material.functional_type": "solar cell"
-          },
           "columns": {
             "enable": [
               "results.material.chemical_formula_descriptive",
@@ -1396,53 +1529,10 @@ window.nomadEnv = {
               "results.properties.optoelectronic.solar_cell.fill_factor",
               "references"
             ],
-            "include": [
-              "entry_name",
-              "results.material.chemical_formula_hill",
-              "results.material.chemical_formula_descriptive",
-              "results.properties.optoelectronic.solar_cell.efficiency",
-              "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
-              "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
-              "results.properties.optoelectronic.solar_cell.fill_factor",
-              "results.properties.optoelectronic.solar_cell.device_stack",
-              "results.properties.optoelectronic.solar_cell.device_architecture",
-              "results.properties.optoelectronic.solar_cell.illumination_intensity",
-              "results.properties.optoelectronic.solar_cell.absorber_fabrication",
-              "entry_type",
-              "results.material.structural_type",
-              "results.eln.lab_ids",
-              "results.eln.sections",
-              "results.eln.methods",
-              "results.eln.tags",
-              "results.eln.instruments",
-              "mainfile",
-              "upload_create_time",
-              "authors",
-              "comment",
-              "references",
-              "datasets",
-              "published"
-            ],
-            "exclude": [],
             "options": {
-              "entry_name": {
-                "label": "Name",
-                "align": "left"
-              },
-              "results.material.chemical_formula_hill": {
-                "label": "Formula",
-                "align": "left"
-              },
               "results.material.chemical_formula_descriptive": {
                 "label": "Descriptive Formula",
                 "align": "left"
-              },
-              "entry_type": {
-                "label": "Entry type",
-                "align": "left"
-              },
-              "results.material.structural_type": {
-                "label": "Structural type"
               },
               "results.properties.optoelectronic.solar_cell.efficiency": {
                 "label": "Efficiency (%)",
@@ -1473,6 +1563,25 @@ window.nomadEnv = {
                   "decimals": 3,
                   "mode": "standard"
                 }
+              },
+              "references": {
+                "label": "References",
+                "align": "left"
+              },
+              "entry_name": {
+                "label": "Name",
+                "align": "left"
+              },
+              "results.material.chemical_formula_hill": {
+                "label": "Formula",
+                "align": "left"
+              },
+              "entry_type": {
+                "label": "Entry type",
+                "align": "left"
+              },
+              "results.material.structural_type": {
+                "label": "Dimensionality"
               },
               "results.properties.optoelectronic.solar_cell.illumination_intensity": {
                 "label": "Illum. intensity",
@@ -1513,10 +1622,6 @@ window.nomadEnv = {
                 "label": "Comment",
                 "align": "left"
               },
-              "references": {
-                "label": "References",
-                "align": "left"
-              },
               "datasets": {
                 "label": "Datasets",
                 "align": "left"
@@ -1538,39 +1643,30 @@ window.nomadEnv = {
             }
           },
           "filter_menus": {
-            "include": [
-              "material",
-              "elements",
-              "properties",
-              "optoelectronic",
-              "eln",
-              "author",
-              "dataset",
-              "access",
-              "ids",
-              "processed_data_quantities",
-              "optimade"
-            ],
-            "exclude": [],
             "options": {
               "material": {
-                "label": "Material",
+                "label": "Absorber Material",
+                "level": 0
+              },
+              "elements": {
+                "label": "Elements / Formula",
+                "level": 1,
+                "size": "large",
+                "menu_items": {}
+              },
+              "structure": {
+                "label": "Structure",
+                "level": 1,
+                "size": "small",
+                "menu_items": {}
+              },
+              "electronic": {
+                "label": "Electronic Properties",
                 "level": 0,
                 "size": "small",
                 "menu_items": {}
               },
-              "elements": {
-                "label": "Elements / Formula",
-                "level": 0,
-                "size": "large",
-                "menu_items": {}
-              },
-              "properties": {
-                "label": "Properties",
-                "level": 0,
-                "size": "small"
-              },
-              "optoelectronic": {
+              "solarcell": {
                 "label": "Solar Cell Properties",
                 "level": 0,
                 "size": "small",
@@ -1582,34 +1678,22 @@ window.nomadEnv = {
                 "size": "small",
                 "menu_items": {}
               },
+              "custom_quantities": {
+                "label": "User Defined Quantities",
+                "level": 0,
+                "size": "large",
+                "menu_items": {}
+              },
               "author": {
-                "label": "Author / Origin",
+                "label": "Author / Origin / Dataset",
                 "level": 0,
                 "size": "medium",
                 "menu_items": {}
               },
-              "dataset": {
-                "label": "Dataset",
+              "metadata": {
+                "label": "Visibility / IDs / Schema",
                 "level": 0,
                 "size": "small",
-                "menu_items": {}
-              },
-              "access": {
-                "label": "Access",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
-              "ids": {
-                "label": "IDs",
-                "level": 0,
-                "size": "small",
-                "menu_items": {}
-              },
-              "processed_data_quantities": {
-                "label": "Processed Data Quantities",
-                "level": 0,
-                "size": "medium",
                 "menu_items": {}
               },
               "optimade": {
@@ -1626,6 +1710,9 @@ window.nomadEnv = {
               "entry_name",
               "combine"
             ]
+          },
+          "filters_locked": {
+            "sections": "nomad.datamodel.results.SolarCell"
           }
         }
       }

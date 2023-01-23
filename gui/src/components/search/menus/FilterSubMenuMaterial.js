@@ -37,24 +37,6 @@ const FilterSubMenuMaterial = React.memo(({
           disableSearch
         />
       </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputField
-          quantity="results.material.functional_type"
-          visible={visible}
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputField
-          quantity="results.material.compound_type"
-          visible={visible}
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputField
-          quantity="results.material.material_name"
-          visible={visible}
-        />
-      </InputGridItem>
     </InputGrid>
   </FilterSubMenu>
 })

@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-
 /*
  * Copyright The NOMAD Authors.
  *
@@ -17,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
@@ -62,9 +60,10 @@ const FilterSummary = React.memo(({
   className,
   classes
 }) => {
-  const { filterData, useFiltersState, useFiltersLockedState } = useSearchContext()
+  const { filterData, useFiltersState } = useSearchContext()
   const [filters, setFilter] = useFiltersState(quantities)
-  const filtersLocked = useFiltersLockedState(quantities)
+  // TODO: locked filters are currently not shown to keep the layout tidier
+  const filtersLocked = {} // useFiltersLockedState(quantities)
   const theme = useTheme()
   const units = useUnits()
   const styles = useStyles({classes: classes, theme: theme})

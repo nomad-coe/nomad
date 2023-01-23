@@ -20,10 +20,9 @@ import numpy as np
 from elasticsearch_dsl import Text
 
 from ase.data import chemical_symbols
-from ase.formula import Formula
 
 from nomad import config
-from nomad import atomutils
+from nomad.atomutils import Formula
 from nomad.datamodel.metainfo.measurements import Spectrum
 from nomad.datamodel.metainfo.workflow import (
     EquationOfState,
@@ -142,13 +141,52 @@ core_electron_treatments = [
     unavailable,
 ]
 
+structure_name_map = {
+    'CaTiO<sub>3</sub> Pnma Perovskite Structure': 'perovskite',
+    'Hypothetical Tetrahedrally Bonded Carbon with 4&ndash;Member Rings': '4-member ring',
+    'In (A6) Structure': 'fct',
+    '$\\alpha$&ndash;Pa (A<sub>a</sub>) Structure': 'bct',
+    'Hypothetical BCT5 Si Structure': 'bct5',
+    'Wurtzite (ZnS, B4) Structure': 'wurtzite',
+    'Hexagonal Close Packed (Mg, A3) Structure': 'hcp',
+    'Half&ndash;Heusler (C1<sub>b</sub>) Structure': 'half-Heusler',
+    'Zincblende (ZnS, B3) Structure': 'zincblende',
+    'Cubic Perovskite (CaTiO<sub>3</sub>, E2<sub>1</sub>) Structure': 'perovskite',
+    '$\\alpha$&ndash;Po (A<sub>h</sub>) Structure': 'simple cubic',
+    'Si<sub>46</sub> Clathrate Structure': 'clathrate',
+    'Cuprite (Cu<sub>2</sub>O, C3) Structure': 'cuprite',
+    'Heusler (L2<sub>1</sub>) Structure': 'Heusler',
+    'Rock Salt (NaCl, B1) Structure': 'rock salt',
+    'Face&ndash;Centered Cubic (Cu, A1) Structure': 'fcc',
+    'Diamond (A4) Structure': 'diamond',
+    'Body&ndash;Centered Cubic (W, A2) Structure': 'bcc',
+}
 
-def variants_formula(value):
-    ''' Creates several common variants for the given formula.'''
-    formula = Formula(value)
-    formats = ['hill', 'metal', 'abc']
-    formulas = [value] + [formula.format(f) for f in formats]
-    return list(set(formulas))
+
+def get_formula_hill(formula: str) -> str:
+    '''
+    Converts the given chemical formula into the Hill format.
+
+    Args:
+        formula: Original formula.
+
+    Returns:
+        Chemical formula in the Hill format.
+    '''
+    return None if formula is None else Formula(formula).format('hill')
+
+
+def get_formula_iupac(formula: str) -> str:
+    '''
+    Converts the given chemical formula into the IUPAC format.
+
+    Args:
+        formula: Original formula.
+
+    Returns:
+        Chemical formula in the IUPAC format.
+    '''
+    return None if formula is None else Formula(formula).format('iupac')
 
 
 tokenizer_formula = get_tokenizer(r'[A-Z][a-z]?\d*')
@@ -217,14 +255,6 @@ class BandGapElectronic(BandGap):
         description='''
         The lowest unoccupied energy.
         ''',
-    )
-
-
-class BandGapOptical(BandGap):
-    m_def = Section(
-        description='''
-        Optical band gap.
-        '''
     )
 
 
@@ -565,7 +595,7 @@ class Symmetry(MSection):
         ],
     )
     structure_name = Quantity(
-        type=str,
+        type=MEnum(sorted(list(set(structure_name_map.values())))),
         description='''
         A common name for this structure, e.g. fcc, bcc.
         ''',
@@ -973,7 +1003,7 @@ class System(MSection):
     structural_type = Quantity(
         type=MEnum(structure_classes + ['group', 'molecule', 'monomer']),
         description='''
-        The structural classification for this system.
+        Structural class determined from the atomic structure.
         ''',
         a_elasticsearch=[
             Elasticsearch(material_type),
@@ -1037,19 +1067,34 @@ class System(MSection):
     formula_hill = Quantity(
         type=str,
         description='''
-            The chemical formula for a structure in Hill form with element symbols followed by
-            integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
+            The chemical formula for a structure in Hill form with element
+            symbols followed by non-reduced integer chemical proportion numbers.
+            The proportion number is omitted if it is 1.
         ''',
         a_elasticsearch=[
-            Elasticsearch(material_type, normalizer=atomutils.get_formula_hill),
-            Elasticsearch(suggestion=tokenizer_formula, variants=variants_formula)
+            Elasticsearch(material_type, normalizer=get_formula_hill),
+            Elasticsearch(suggestion=tokenizer_formula)
+        ],
+    )
+    formula_iupac = Quantity(
+        type=str,
+        description='''
+            Formula where the elements are ordered using a formal list loosely
+            based on electronegativity as defined in the IUPAC nomenclature of
+            inorganic chemistry (2005). Contains reduced integer chemical
+            proportion numbers where the proportion number is omitted if it is
+            1.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type, normalizer=get_formula_iupac),
+            Elasticsearch(suggestion=tokenizer_formula)
         ],
     )
     formula_reduced = Quantity(
         type=str,
         description='''
-            The reduced chemical formula for a structure as a string with element symbols and
-            integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
+            Alphabetically sorted chemical formula with reduced integer chemical
+            proportion numbers. The proportion number is omitted if it is 1.
         ''',
         a_elasticsearch=[
             Elasticsearch(material_type),
@@ -1059,10 +1104,13 @@ class System(MSection):
     formula_anonymous = Quantity(
         type=str,
         description='''
-            The anonymous formula is the chemical_formula_reduced, but where the elements are
-            instead first ordered by their chemical proportion number, and then, in order left to
-            right, replaced by anonymous symbols A, B, C, ..., Z, Aa, Ba, ..., Za, Ab, Bb, ... and
-            so on.
+            Formula with the elements ordered by their reduced integer chemical
+            proportion number, and the chemical species replaced by
+            alphabetically ordered letters. The proportion number is omitted if
+            it is 1. E.g.  H2O becomes A2B and H2O2 becomes AB. The letters are
+            drawn from the english alphabet that may be extended by increasing
+            the number of letters, e.g. A, B, ..., Z, Aa, Ab and so on. This
+            definition is in line with the similarly named OPTIMADE definition.
         ''',
         a_elasticsearch=[
             Elasticsearch(material_type),
@@ -1160,7 +1208,7 @@ class Material(MSection):
     structural_type = Quantity(
         type=MEnum(structure_classes), default='not processed',
         description='''
-        Classification based on structural features.
+        Structural class determined from the atomic structure.
         ''',
         a_elasticsearch=[
             Elasticsearch(material_type),
@@ -1235,8 +1283,8 @@ class Material(MSection):
     chemical_formula_reduced = Quantity(
         type=str,
         description='''
-            The reduced chemical formula for a structure as a string with element symbols and
-            integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
+            Alphabetically sorted chemical formula with reduced integer chemical
+            proportion numbers. The proportion number is omitted if it is 1.
         ''',
         a_elasticsearch=[
             Elasticsearch(material_type),
@@ -1246,21 +1294,39 @@ class Material(MSection):
     chemical_formula_hill = Quantity(
         type=str,
         description='''
-            The chemical formula for a structure in Hill form with element symbols followed by
-            integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
+            The chemical formula for a structure in Hill form with element
+            symbols followed by non-reduced integer chemical proportion numbers.
+            The proportion number is omitted if it is 1.
         ''',
         a_elasticsearch=[
-            Elasticsearch(material_type, normalizer=atomutils.get_formula_hill),
-            Elasticsearch(suggestion=tokenizer_formula, variants=variants_formula)
+            Elasticsearch(material_type, normalizer=get_formula_hill),
+            Elasticsearch(suggestion=tokenizer_formula)
+        ],
+    )
+    chemical_formula_iupac = Quantity(
+        type=str,
+        description='''
+            Formula where the elements are ordered using a formal list loosely
+            based on electronegativity as defined in the IUPAC nomenclature of
+            inorganic chemistry (2005). Contains reduced integer chemical
+            proportion numbers where the proportion number is omitted if it is
+            1.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type, normalizer=get_formula_iupac),
+            Elasticsearch(suggestion=tokenizer_formula)
         ],
     )
     chemical_formula_anonymous = Quantity(
         type=str,
         description='''
-            The anonymous formula is the chemical_formula_reduced, but where the elements are
-            instead first ordered by their chemical proportion number, and then, in order left to
-            right, replaced by anonymous symbols A, B, C, ..., Z, Aa, Ba, ..., Za, Ab, Bb, ... and
-            so on.
+            Formula with the elements ordered by their reduced integer chemical
+            proportion number, and the chemical species replaced by
+            alphabetically ordered letters. The proportion number is omitted if
+            it is 1. E.g.  H2O becomes A2B and H2O2 becomes AB. The letters are
+            drawn from the english alphabet that may be extended by increasing
+            the number of letters, e.g. A, B, ..., Z, Aa, Ab and so on. This
+            definition is in line with the similarly named OPTIMADE definition.
         ''',
         a_elasticsearch=[
             Elasticsearch(material_type),
@@ -1271,8 +1337,8 @@ class Material(MSection):
         type=str,
         shape=['*'],
         description='''
-        The reduced formula separated into individual terms containing both the atom
-        type and count. Used for searching parts of a formula.
+            Alphabetically sorted chemical formula with reduced integer chemical
+            proportion numbers. The proportion number is omitted if it is 1.
         ''',
         a_elasticsearch=Elasticsearch(material_type, mapping=Text(multi=True)),
     )
@@ -2414,14 +2480,6 @@ class OptoelectronicProperties(MSection):
         description='''
         Optoelectronic properties.
         '''
-    )
-    band_gap_optical = SubSection(
-        description='''
-        Optical band gap.
-        ''',
-        sub_section=BandGapOptical.m_def,
-        repeats=True,
-        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
     solar_cell = SubSection(
         sub_section=SolarCell.m_def,

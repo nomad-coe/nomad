@@ -31,7 +31,8 @@ from mongoengine import Document, StringField, DateTimeField, IntField, ListFiel
 from mongoengine.queryset.visitor import Q
 from asgiref.sync import async_to_sync
 
-from nomad import utils, config, atomutils
+from nomad import utils, config
+from nomad.atomutils import Formula
 from nomad.processing.base import app
 
 
@@ -551,7 +552,8 @@ async def get_resources(
 
     chemical_formula_hill, chemical_formula = None, None
     if chemical_formula_reduced is not None:
-        chemical_formula_hill = atomutils.get_formula_hill(chemical_formula_reduced)
+        formula = Formula(chemical_formula_reduced)
+        chemical_formula_hill = formula.format('hill')
         chemical_formula = _normalize_formula(chemical_formula_hill)
     else:
         chemical_formula_hill = None

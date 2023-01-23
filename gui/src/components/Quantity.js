@@ -42,7 +42,6 @@ import NoData from './visualization/NoData'
 import { formatNumber, formatTimestamp, authorList, serializeMetainfo } from '../utils'
 import { Quantity as Q, Unit, useUnits } from '../units'
 import { filterData } from './search/FilterRegistry'
-// eslint-disable-next-line no-unused-vars
 import { MaterialLink, RouteLink } from './nav/Routes'
 
 /**

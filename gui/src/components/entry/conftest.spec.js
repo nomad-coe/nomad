@@ -29,7 +29,6 @@ import { unitSystems } from '../../units'
 export function expectComposition(index) {
   expectQuantity(undefined, index.results.material.chemical_formula_hill, 'formula', 'The chemical formula that describes the simulated system or experimental sample.')
   expectQuantity('results.material.structural_type', index)
-  expectQuantity('results.material.material_name', index)
   expectQuantity('results.material.elements', index)
   expectQuantity('results.material.n_elements', '1 (unary)', 'number of elements')
 }

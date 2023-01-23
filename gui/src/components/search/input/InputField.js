@@ -123,6 +123,7 @@ const InputField = React.memo(({
   const nFixedOptions = fixedOptions && Object.keys(fixedOptions).length
 
   const minSize = disableOptions ? 0 : initialSize || nFixedOptions || filterData[quantity]?.aggs?.terms?.size
+  const placeholder = filterData[quantity]?.placeholder || "Type here"
   const [requestedAggSize, setRequestedAggSize] = useState(minSize)
   const nMaxOptions = fixedOptions && Object.keys(fixedOptions).length
   const incr = useState(increment || minSize)[0]
@@ -229,11 +230,12 @@ const InputField = React.memo(({
             quantity={quantity}
             disabled={disabled}
             disableSuggestions={disableSuggestions}
+            placeholder={placeholder}
             fullWidth
           />
         </div>
       </InputTooltip>
-  }, [disableSearch, unavailable, styles, quantity, disabled, disableSuggestions])
+  }, [disableSearch, unavailable, styles, quantity, disabled, disableSuggestions, placeholder])
 
   // Create the options component
   const optionsComponent = useMemo(() => {

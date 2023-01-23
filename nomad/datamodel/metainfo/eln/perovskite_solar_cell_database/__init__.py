@@ -22,13 +22,29 @@ from nomad.units import ureg
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, Datetime, Section)
 from nomad.datamodel.data import EntryData
-from nomad.datamodel.results import BandGapOptical, Material, OptoelectronicProperties, Properties, Results, SolarCell, Symmetry
+from nomad.datamodel.results import (BandGap, BandStructureElectronic, ElectronicProperties, Material, OptoelectronicProperties, Properties, Results, SolarCell, Symmetry)
 
 
 m_package = Package(name='perovskite_database')
 
 
-def addSolarCell(archive):
+def add_band_gap(archive, band_gap):
+    '''Adds a band gap value (in eV) with the additional section structure for solar
+    cell data.eV=
+    '''
+    if band_gap is not None:
+        band_gap = BandGap(value=np.float64(band_gap) * ureg('eV'))
+        band_structure = BandStructureElectronic(band_gap=[band_gap])
+        electronic = ElectronicProperties(band_structure_electronic=[band_structure])
+        archive.results.properties.electronic = electronic
+        props = archive.results.properties.available_properties
+        if not props:
+            props = []
+        props.append('electronic.band_structure_electronic.band_gap')
+        archive.results.properties.available_properties = props
+
+
+def add_solar_cell(archive):
     '''Adds metainfo structure for solar cell data.'''
     if not archive.results:
         archive.results = Results()
@@ -319,7 +335,7 @@ Example:
                     """)
 
     def normalize(self, archive, logger):
-        addSolarCell(archive)
+        add_solar_cell(archive)
         if self.stack_sequence:
             archive.results.properties.optoelectronic.solar_cell.device_stack = self.stack_sequence.split(' | ')
         if self.architecture:
@@ -532,7 +548,7 @@ Unknown
             component='EnumEditQuantity', props=dict(suggestions=sorted(['Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> heating >> UV-Ozone', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath', 'Oxygen plasma', 'Soap >> Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> IPA >> O2-plasma', 'Soap >> Ultrasonic bath >> UV-Ozone', 'Water >> Acetone >> Ethanol >> UV-Ozone', 'De-ionized Water >> Ultrasonic bath >> Soap >> Ultrasonic bath >> IPA >> Ultrasonic bath', 'Soap >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> UV-Ozone', 'Micro-90 detergent >> Ultrasonic bath >> DI Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath', 'Soap >> Water >> Ethanol', 'Helmanex >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Acetone >> UV-Ozone', 'UV-Ozone', 'Soap >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> DI Water', 'Soap >> Water >> Ultrasonic bath >> IPA >> O2-plasma', 'Extran 300 >> Ultrasonic bath >> IPA', 'DI Water >> Ethyl alcohol >> Acetone', 'Soap >> Water >> Acetone >> IPA >> UV-Ozone', 'Toluene >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Water >> Ultrasonic bath', 'Helmanex >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath', 'Soap >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> UV-Ozone', 'Helmanex >> Ultrasonic bath >> DI Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> UV-Ozone', 'Water >> Acetone >> IPA', 'detergent >> deionized water >> isopropanol >> acetone >> UV-Ozone', 'Hellmanex >> solution >> DI >> water >> acetone >> IPA', 'Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> Ethanol >> UV-Ozone', 'Acetone >> Water >> IPA >> Nitrogen flow', 'Detergent >> Ultrasonic bath >> DI-Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> UV-Ozone', 'Helmanex >> Ultrasonic bath >> DI Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> O2 plasma', 'Helmanex >> Ultrasonic bath >> Water >> IPA >> Ultrasonic bath >> Acetone >> microwave plasma', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> IPA >> UV-Ozone', 'Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> UV-Ozone', 'Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Acetone', 'Soap >> Water >> Ultrasonic bath >> Ethanol >> O2-plasma', 'Soap >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> DI Water >> Ultrasonic bath >> Plasma', 'Soap >> Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> IPA', 'Soap >> Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> IPA >> UV-Ozone', 'Detergent >> Ultrasonic bath >> alkali liquor >> Ultrasonic bath >> DI Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath', 'Soap >> Water >> Ultrasonic bath >> Ethanol >> UV-Ozone', 'Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Water >> Ultrasonic bath', 'Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath', 'Mucasol >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Water >> Ultrasonic bath', 'Soap >> Water >> Ultrasonic bath >> Ethanol', 'Acetone >> Ultrasonic bath >> Abs Ethanol >> Ultrasonic bath >> DI Water', 'Soap >> Ultrasonic bath >> Water', 'Soap >> Water >> Acetone >> Water', 'Soap >> Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Acetone >> UV-Ozone', 'Helmanex >> Ultrasonic bath >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> UV-Ozone', 'Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> Drying in oven >> UV-Ozone', 'Unknown >> O2 plasma', 'Water >> Ultrasonic bath >> IPA >> Ultrasonic bath >> O2-plasma', 'Detergent >> Ultrasonic bath >> DI Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> UV-Ozone', 'Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> UV-Ozone', 'H2O2/HCl/H2O = 1:1:5 >> acetone >> isopropyl alcohol', 'Soap >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> Water >> Ultrasonic bath >> O2-plasma', 'Soap >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> IPA >> UV-Ozone', 'DI Water >> Ultrasonic bath >> Ethanol', 'DI Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> UV-Ozone', 'Unknown >> UV-Ozone', 'Helmanex >> Ultrasonic bath >> DI Water >> Ultrasonic bath', 'Mucasol >> Ultrasonic bath >> Water >> Ultrasonic bath >> Acetone >> IPA >> UV-Ozone', 'Acetone >> Water >> IPA >> Nitrogen flow >> Corona Treatment 0.74 kW', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Plasma', 'DI Water >> Ultrasonic bath >> Helmanex >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Methanol >> Ultrasonic bath >> DI Water >> Ultrasonic bath >> UV-Ozone', 'Acetone >> Ultrasonic bath >> Methanol >> Ultrasonic bath', 'Soap >> Water >> Ultrasonic bath >> Acetone; IPA; Ethanol >> UV-Ozone', 'Soap >> Acetone >> Ultrasonic bath >> Water >> Ultrasonic bath >> Ethanol >> O2-plasma', 'Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> Ethanol >> Ultrasonic bath', 'Detergent >> Ultrasonic bath >> DI Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath', 'Acetone >> Ultrasonic bath >> Methanol >> Ultrasonic bath >> DI Water', 'Soap >> Ultrasonic bath >> Ethanol-HCl >> Ultrasonic bath >> Acetone >> Water >> Heating', 'Unknown', 'Water >> Ethanol >> IPA', 'Helmanex >> Ultrasonic bath >> IPA >> Ultrasonic bath >> Acetone >> UV-Ozone', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> UV-Ozone', 'DI Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath', 'Helmanex >> Ultrasonic bath >> Ethanol >> Acetone', 'Soap >> Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> lPA;Acetone; Water >> Ultrasonic bath >> UV Ozone', 'Water >> Acetone >> IPA >> O2-plasma', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> Plasma', 'Helmanex >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Acetone >> DI Water', 'NaOH >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> DI Water >> Acetone', 'Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> O2-plasma', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Ethano >> Ultrasonic bath >> UV-Ozone', 'Soap >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Acetone >> Plasma', 'Acetone >> Ultrasonic bath >> Isopropyl alcohol >> Ultrasonic bath >> de-ionized Water', 'Detergent >> Ultrasonic bath >> DI-Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> air plasma', 'Helmanex >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> DI Water >> Ultrasonic bath >> UV-Ozone', 'Soap >> peroxide/ammonia >> Ultrasonic bath >> Methanol >> Ultrasonic bath >> IPA >> UV-Ozone', 'Soap >> DIWater >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> N2 blowing >> UV-Ozone', 'Helmanex >> Ultrasonic bath >> Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Acetone >> UV-Ozone', 'alconox-detergent >> Ultrasonic bath >> deionized water >> Ultrasonic bath  >> acetone >> Ultrasonic bath >> isopropanol >> Ultrasonic bath', 'Detergent >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >>  >> DI-Water >> Ultrasonic bath >> UV-Ozone', 'Water >> Acetone >> Ethanol >> IPA', 'Soap >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol', 'Helmanex >> Acetone >> IPA >> O2-plasma', 'DIWater >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> UV-Ozone', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> O2-plasma', 'Soap >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> lPA >>  >> Ethanol >> O2-plasma', 'Soap >> Water >> Toluene >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> O2-plasma', 'detergent >> acetone >> isopropanol >> ethanol', 'Helmanex >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> O2 plasma', 'Acetone >> Ultrasonic bath >> Methanol >> Ultrasonic bath >> Water', 'Soap >> Water >> Acetone >> IPA >> Ethanol >> Water >> UV-Ozone', 'Soap >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Acetone >> UV-Ozone', 'Mucasol >> Ultrasonic bath >> Acetone >> Utrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> Ozone', 'Acetone >> IPA >> O2 plasma', 'Soap >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> O2-plasma', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> O2-plasma', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Water >> Ultrasonic bath >> Ethanol >> Utrasonic bath >> UV-Ozone', 'Acetone >> Ultrasonic bath >> Methanol >> Ultrasonic bath >> Water >> Ultrasonic bath', 'Acetone >> IPA >> Water', 'Helmanex >> Ultrasonic bath >> DI Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> IPA >> Ultrasonic bath', 'Water >> Acetone >> IPA >> UV-Ozone', 'Helmanex >> Ultrasonic bath >> Water >> Ultrasonic bath >> Ethanol', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath', 'Soap >> Acetone >> Ethanol >> Water >> UV-Ozone', 'NaOH Ethanolic solution >> Water >> detergent >> Water >> Dry air', 'Soap >> Ultrasonic bath >> Water >> Ultrasonic bath >> Ethanol >> UV-Ozone', 'Soap >> Ultrasonic bath >> de-ionized Water >> Ultrasonic bath >> Acetone >> UV-Ozone >> Ethanol >> UV-Ozone', 'Acetone >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Water >> Ultrasonic bath >> UV-Ozone', 'DI Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> Ultrasonic bath >> UV-Ozone', '2.5 M NaOH >> Ultrasonic bath >> Water >> Detergent >> Milli-Q Water >> Annealed 30 min at 500℃', 'DIWater >> Ultrasonic bath >> Ethanol >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> Oven drying >> UV-Ozone', 'Helmanex >> Ultrasonic bath >> Water >> Ultrasonic bath >> Ethanol >> Ultrasonic bath', 'Soap >> Water >> Ultrasonic bath >> Acetone >> Ethanol >> Ultrasonic bath >> IPA >> UV-Ozone', 'Helmanex >> Ultrasonic bath >> DI Water >> Ethanol >> 2-propanol >> Ultrasonic bath', 'Soap >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA >> O2-plasma', 'Soap >> Water >> Ultrasonic bath >> Acetone >> Ultrasonic bath >> IPA']))))
 
     def normalize(self, archive, logger):
-        addSolarCell(archive)
+        add_solar_cell(archive)
         if self.stack_sequence:
             archive.results.properties.optoelectronic.solar_cell.substrate = self.stack_sequence.split(' | ')
 
@@ -1115,7 +1131,7 @@ Ar plasma
             component='EnumEditQuantity', props=dict(suggestions=['', 'Water', 'Plasma', 'ZnAl-LDH and thermal annealing', 'Ozone', 'UV', 'UV-Ozone', 'CO2', 'H2', 'He plasma', 'Washed with methanol', 'Wash with IPA', 'O2 plasma', 'Reactive ion etching'])))
 
     def normalize(self, archive, logger):
-        addSolarCell(archive)
+        add_solar_cell(archive)
         if self.stack_sequence:
             archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = self.stack_sequence.split(' | ')
 
@@ -1560,24 +1576,13 @@ Ozone
 
     def normalize(self, archive, logger):
         from .formula_normalizer import PerovskiteFormulaNormalizer
-        from ase.formula import Formula
+        from nomad.atomutils import Formula
 
-        addSolarCell(archive)
+        add_solar_cell(archive)
+        add_band_gap(archive, self.band_gap)
 
         if self.composition_short_form:
             archive.results.properties.optoelectronic.solar_cell.absorber = self.composition_short_form.split(' | ')
-
-        if self.band_gap:
-            band_gap_optical = BandGapOptical()
-            band_gap_optical.value = float(self.band_gap) * ureg('eV')
-            if self.band_gap is not None:
-                band_gap_optical = BandGapOptical(value=np.float64(self.band_gap) * ureg('eV'))
-            archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
-            props = archive.results.properties.available_properties
-            if not props:
-                props = []
-            props.append('optoelectronic.band_gap_optical')
-            archive.results.properties.available_properties = props
 
         if self.composition_long_form:
             if not archive.results.material:
@@ -1603,17 +1608,18 @@ Ozone
             if archive.results.material.functional_type is None:
                 archive.results.material.functional_type = ['semiconductor', 'solar cell']
 
-            if archive.results.material.chemical_formula_reduced is None:
-                formula_cleaner = PerovskiteFormulaNormalizer(self.composition_long_form)
-                final_formula = formula_cleaner.clean_formula()
-                archive.results.material.chemical_formula_reduced = final_formula[0]
-                chemical_formula_reduced = archive.results.material.chemical_formula_reduced
-                archive.results.material.elements = final_formula[1]
-                try:
-                    archive.results.material.chemical_formula_hill = Formula(chemical_formula_reduced).format('hill')
-                    archive.results.material.chemical_formula_descriptive = self.composition_long_form
-                except Exception as e:
-                    logger.warn('could not analyse chemical formula', exc_info=e)
+            formula_cleaner = PerovskiteFormulaNormalizer(self.composition_long_form)
+            final_formula = formula_cleaner.clean_formula()
+            chemical_formula_reduced = final_formula[0]
+            archive.results.material.elements = final_formula[1]
+            try:
+                archive.results.material.chemical_formula_hill = Formula(chemical_formula_reduced).format('hill')
+                archive.results.material.chemical_formula_reduced = Formula(chemical_formula_reduced).format('reduced')
+                archive.results.material.chemical_formula_iupac = Formula(chemical_formula_reduced).format('iupac')
+                archive.results.material.chemical_formula_anonymous = Formula(chemical_formula_reduced).format('anonymous')
+                archive.results.material.chemical_formula_descriptive = self.composition_long_form
+            except Exception as e:
+                logger.warn('could not analyse chemical formula', exc_info=e)
 
 
 class PerovskiteDeposition(MSection):
@@ -2313,7 +2319,7 @@ Examples:
             component='EnumEditQuantity', props=dict(suggestions=['', '50 min', '50 W/cm2; 2.42 s', 'Colling rate < GHT-3', '40kHz; 5W; 2 min', '40kHz; 10W; 2 min', '10 pulses per sample', '2.5', '40kHz; 10W; 1 min', 'Colling rate < GHT-2', '1', '40kHz; 10W; 3 min', '2.47 s', '5', '105 deg. C', '70 C >> 254 nm', '30% RH; 8 h', '30 min', '100 deg. C', '40kHz; 5W; 1 min', '7s', '30% RH; 12 h', '50 W/cm2; 2.40 s', '50 W/cm2; 2.38 s', '50 W/cm2; 2.50 s', '40kHz; 10W; 4 min', '40kHz; 5W; 3 min', '30% RH; 4 h', '2 min', '85 deg. C in Air 50 % RH', '9s', 'Colling rate < GHT-4', '40kHz; 5W; 4 min', '20 min', '50 W/cm2; 2.45 s', '10s', '10 s', '13s', '45 deg. C', '105 C', '40 mW/cm2', 'Fast cooling in ice 150 >> 0', '80 deg. C; 15 s', '11s', '50 W/cm2; 2.53 s', '50 W/cm2; 2.55 s', '50 W/cm2; 2.47 s', '200 Mpa; 90 deg.C; 60 min', '0.5', '85 deg. C in O2', 'Several hours', 'Fast cooling in air 150 >> 0', '85 deg. C in N2', 'nan >> 100 deg C 5 min', '80W/cm 20.1mm/s', '500W, 30 sec', '200 Mpa;  60 min', 'Spin-coating>> 2 mg/ml>> 100 deg. C>> 10 min', '70 deg. C; 60 min'])))
 
     def normalize(self, archive, logger):
-        addSolarCell(archive)
+        add_solar_cell(archive)
         if self.procedure:
             archive.results.properties.optoelectronic.solar_cell.absorber_fabrication = self.procedure.split(' | ')
 
@@ -2887,7 +2893,7 @@ UV-ozone
             component='EnumEditQuantity', props=dict(suggestions=['', 'Plasma', 'Ar plasma', 'Ozone', 'UV-Ozone', 'He plasma', 'Washed with methanol', 'IPA dipping', 'DMF'])))
 
     def normalize(self, archive, logger):
-        addSolarCell(archive)
+        add_solar_cell(archive)
         if self.stack_sequence:
             archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = self.stack_sequence.split(' | ')
 
@@ -3470,7 +3476,7 @@ UV-ozone
             component='EnumEditQuantity', props=dict(suggestions=['', 'EDA gas', 'DEDA gas', 'MEA immersion >> 125C 20 min', 'TETA gas'])))
 
     def normalize(self, archive, logger):
-        addSolarCell(archive)
+        add_solar_cell(archive)
         if self.stack_sequence:
             archive.results.properties.optoelectronic.solar_cell.back_contact = self.stack_sequence.split(' | ')
 
@@ -5489,7 +5495,7 @@ Potential biasing
                         current_density=jv_dict['jv_curve'][curve]['current_density'])
                     self.jv_curve.append(jv_set)
 
-        addSolarCell(archive)
+        add_solar_cell(archive)
         if self.default_Voc is not None:
             archive.results.properties.optoelectronic.solar_cell.open_circuit_voltage = self.default_Voc
         if self.default_Jsc is not None:

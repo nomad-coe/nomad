@@ -28,9 +28,8 @@ export const filterFullnames = [] // Mapping of filter abbreviation -> full name
 export const filterData = {} // Stores data for each registered filter
 
 // Ids for the filter menus: used to tie filter chips to a specific menu.
-const idMaterial = 'material'
 const idElements = 'elements'
-const idSymmetry = 'symmetry'
+const idStructure = 'structure'
 const idMethod = 'method'
 const idSimulation = 'simulation'
 const idDFT = 'dft'
@@ -39,7 +38,7 @@ const idProjection = 'projection'
 const idDMFT = 'dmft'
 const idProperties = 'properties'
 const idElectronic = 'electronic'
-const idOptoelectronic = 'optoelectronic'
+const idSolarCell = 'solarcell'
 const idVibrational = 'vibrational'
 const idMechanical = 'mechanical'
 const idSpectroscopy = 'spectroscopy'
@@ -48,10 +47,7 @@ const idGeometryOptimization = 'geometry_optimization'
 const idELN = 'eln'
 const idCustomQuantities = 'custom_quantities'
 const idAuthor = 'author'
-const idDataset = 'dataset'
-const idAccess = 'access'
-const idIDs = 'ids'
-const idArchive = 'processed_data_quantities'
+const idMetadata = 'metadata'
 const idOptimade = 'optimade'
 
 /**
@@ -59,17 +55,14 @@ const idOptimade = 'optimade'
  * @param {string} quantity Metainfo name
  * @returns Dictionary containing the available options and their labels.
  */
-function getEnumOptions(quantity) {
+function getEnumOptions(quantity, exclude = ['not processed']) {
   const metainfoOptions = searchQuantities?.[quantity]?.type?.type_data
   if (isArray(metainfoOptions) && metainfoOptions.length > 0) {
     const opt = {}
     for (const name of metainfoOptions) {
       opt[name] = {label: name}
     }
-
-    // We do not display the option for 'not processed': it is more of a
-    // debug value
-    delete opt['not processed']
+    exclude.forEach(value => delete opt[value])
     return opt
   }
 }
@@ -154,6 +147,7 @@ function saveFilter(name, group, config, parent) {
   data.options = config.options || getEnumOptions(name)
   data.aggs = config.aggs
   data.value = config.value
+  data.placeholder = config.placeholder
   data.multiple = config.multiple === undefined ? true : config.multiple
   data.exclusive = config.exclusive === undefined ? true : config.exclusive
   data.unit = config.unit || searchQuantities[name]?.unit
@@ -307,21 +301,40 @@ const noQueryQuantity = {multiple: false, global: true}
 const numberHistogramQuantity = {multiple: false, exclusive: false}
 
 // Filters that directly correspond to a metainfo value
-registerFilter('results.material.structural_type', idMaterial, {...termQuantity, scale: '1/4'})
-registerFilter('results.material.functional_type', idMaterial, termQuantityNonExclusive)
-registerFilter('results.material.compound_type', idMaterial, termQuantityNonExclusive)
-registerFilter('results.material.material_name', idMaterial, termQuantity)
-registerFilter('results.material.chemical_formula_hill', idElements, termQuantity)
-registerFilter('results.material.chemical_formula_anonymous', idElements, termQuantity)
+registerFilter(
+  'results.material.structural_type',
+  idStructure,
+  {
+    ...termQuantity,
+    scale: '1/4',
+    label: "Dimensionality",
+    options: getEnumOptions('results.material.structural_type', ['not processed', 'unavailable'])
+  }
+)
+
+registerFilter('results.material.functional_type', idStructure, termQuantityNonExclusive)
+registerFilter('results.material.compound_type', idStructure, termQuantityNonExclusive)
+registerFilter('results.material.material_name', idStructure, termQuantity)
+registerFilter('results.material.chemical_formula_hill', idElements, {...termQuantity, placeholder: "E.g. H2O2, C2H5Br"})
+registerFilter('results.material.chemical_formula_iupac', idElements, {...termQuantity, placeholder: "E.g. GaAs, SiC", label: 'Chemical Formula IUPAC'})
+registerFilter('results.material.chemical_formula_reduced', idElements, {...termQuantity, placeholder: "E.g. H2NaO, ClNa"})
+registerFilter('results.material.chemical_formula_anonymous', idElements, {...termQuantity, placeholder: "E.g. A2B, A3B2C2"})
 registerFilter('results.material.n_elements', idElements, {...numberHistogramQuantity, label: 'Number of Elements'})
-registerFilter('results.material.symmetry.bravais_lattice', idSymmetry, termQuantity)
-registerFilter('results.material.symmetry.crystal_system', idSymmetry, termQuantity)
-registerFilter('results.material.symmetry.structure_name', idSymmetry, termQuantity)
-registerFilter('results.material.symmetry.strukturbericht_designation', idSymmetry, termQuantity)
-registerFilter('results.material.symmetry.space_group_symbol', idSymmetry, termQuantity)
-registerFilter('results.material.symmetry.point_group', idSymmetry, termQuantity)
-registerFilter('results.material.symmetry.hall_symbol', idSymmetry, termQuantity)
-registerFilter('results.material.symmetry.prototype_aflow_id', idSymmetry, termQuantity)
+registerFilter('results.material.symmetry.bravais_lattice', idStructure, termQuantity)
+registerFilter('results.material.symmetry.crystal_system', idStructure, termQuantity)
+registerFilter(
+  'results.material.symmetry.structure_name',
+  idStructure,
+  {
+    ...termQuantity,
+    options: getEnumOptions('results.material.symmetry.structure_name', ['not processed', 'cubic perovskite'])
+  }
+)
+registerFilter('results.material.symmetry.strukturbericht_designation', idStructure, termQuantity)
+registerFilter('results.material.symmetry.space_group_symbol', idStructure, {...termQuantity, placeholder: "E.g. Pnma, Fd-3m, P6_3mc"})
+registerFilter('results.material.symmetry.point_group', idStructure, {...termQuantity, placeholder: "E.g. 6mm, m-3m, 6/mmm"})
+registerFilter('results.material.symmetry.hall_symbol', idStructure, {...termQuantity, placeholder: "E.g. F 4d 2 3 -1d"})
+registerFilter('results.material.symmetry.prototype_aflow_id', idStructure, {...termQuantity, placeholder: "E.g. A_cF8_227_a"})
 registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.workflow_name', idMethod, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.program_name', idSimulation, {...termQuantity, scale: '1/4'})
@@ -354,18 +367,20 @@ registerFilter('results.eln.descriptions', idELN, termQuantity)
 registerFilter('external_db', idAuthor, {...termQuantity, label: 'External Database', scale: '1/4'})
 registerFilter('authors.name', idAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
 registerFilter('upload_create_time', idAuthor, {...numberHistogramQuantity, scale: '1/2'})
-registerFilter('datasets.dataset_name', idDataset, {...termQuantityLarge, label: 'Dataset Name'})
-registerFilter('datasets.doi', idDataset, {...termQuantity, label: 'Dataset DOI'})
-registerFilter('entry_id', idIDs, termQuantity)
-registerFilter('entry_name', idIDs, termQuantity)
-registerFilter('mainfile', idIDs, termQuantity)
-registerFilter('upload_id', idIDs, termQuantity)
-registerFilter('quantities', idArchive, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
-registerFilter('section_defs.definition_qualified_name', idArchive, {...noAggQuantity, label: 'Section defs qualified name', queryMode: 'all'})
-registerFilter('entry_type', idArchive, {...noAggQuantity, label: 'Entry type', queryMode: 'all'})
-registerFilter('entry_name.prefix', idArchive, {...noAggQuantity, label: 'Entry name', queryMode: 'all'})
-registerFilter('results.material.material_id', idIDs, termQuantity)
-registerFilter('datasets.dataset_id', idIDs, termQuantity)
+registerFilter('datasets.dataset_name', idAuthor, {...termQuantityLarge, label: 'Dataset Name'})
+registerFilter('datasets.doi', idAuthor, {...termQuantity, label: 'Dataset DOI'})
+registerFilter('datasets.dataset_id', idAuthor, termQuantity)
+registerFilter('domain', idMetadata, termQuantity)
+registerFilter('entry_id', idMetadata, termQuantity)
+registerFilter('entry_name', idMetadata, termQuantity)
+registerFilter('mainfile', idMetadata, termQuantity)
+registerFilter('upload_id', idMetadata, termQuantity)
+registerFilter('quantities', idMetadata, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
+registerFilter('sections', idMetadata, {...noAggQuantity, label: 'Metainfo sections', queryMode: 'all'})
+registerFilter('section_defs.definition_qualified_name', idMetadata, {...noAggQuantity, label: 'Section defs qualified name', queryMode: 'all'})
+registerFilter('entry_type', idMetadata, {...noAggQuantity, label: 'Entry type', queryMode: 'all'})
+registerFilter('entry_name.prefix', idMetadata, {...noAggQuantity, label: 'Entry name', queryMode: 'all'})
+registerFilter('results.material.material_id', idMetadata, termQuantity)
 registerFilter('optimade_filter', idOptimade, {multiple: true, queryMode: 'all'})
 registerFilter('custom_quantities', idCustomQuantities, {
   serializerExact: value => {
@@ -430,17 +445,8 @@ registerFilter(
   ]
 )
 registerFilter(
-  'results.properties.optoelectronic.band_gap_optical',
-  idOptoelectronic,
-  nestedQuantity,
-  [
-    {name: 'type', ...termQuantity},
-    {name: 'value', ...numberHistogramQuantity, scale: '1/4'}
-  ]
-)
-registerFilter(
   'results.properties.optoelectronic.solar_cell',
-  idOptoelectronic,
+  idSolarCell,
   nestedQuantity,
   [
     {name: 'efficiency', ...numberHistogramQuantity, scale: '1/4'},
@@ -515,7 +521,7 @@ registerFilter(
 // query itself.
 registerFilter(
   'visibility',
-  idAccess,
+  idMetadata,
   {
     ...noQueryQuantity,
     default: 'visible',
@@ -579,23 +585,11 @@ registerFilterOptions(
   'Electronic Properties',
   'The electronic properties that are present in an entry.',
   {
-    'electronic.band_structure_electronic.band_gap': {label: 'Band gap electronic'},
+    'electronic.band_structure_electronic.band_gap': {label: 'Band gap'},
     band_structure_electronic: {label: 'Band structure'},
     dos_electronic: {label: 'Density of states'},
-    greens_functions_electronic: {label: 'Green\u0027s functions'}
-  }
-)
-
-// Optoelectronic properties: subset of results.properties.available_properties
-registerFilterOptions(
-  'optoelectronic_properties',
-  idOptoelectronic,
-  'results.properties.available_properties',
-  'Optoelectronic properties',
-  'The optoelectronic properties that are present in an entry.',
-  {
-    'optoelectronic.band_gap_optical': {label: 'Band gap optical'},
-    'solar_cell': {label: 'Solar cell'}
+    greens_functions_electronic: {label: 'Green\u0027s functions'},
+    eels: {label: 'Electron energy loss spectrum'}
   }
 )
 

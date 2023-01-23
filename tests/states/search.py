@@ -74,11 +74,19 @@ method_dft_exciting = {
         }
     }
 }
-
+method_eels = {
+    'method_name': 'EELS'
+}
 properties_solar_cell = {
-    "available_properties": ["solar_cell", "optoelectronic.band_gap_optical"],
+    "available_properties": ["solar_cell", "electronic.band_structure_electronic.band_gap"],
+    'electronic': {
+        'band_structure_electronic': [{
+            'band_gap': [{
+                'value': 2.5634826144e-19
+            }]
+        }]
+    },
     "optoelectronic": {
-        "band_gap_optical": [{"value": 2.5634826144e-19}],
         "solar_cell": {
             "efficiency": 15.9,
             "fill_factor": 0.78,
@@ -119,7 +127,8 @@ def search():
             'material': material_h2o,
             'method': method_dft_vasp,
             'properties': {}
-        }
+        },
+        sections=['nomad.datamodel.results.Simulation']
     )
     data.create_entry(
         upload_id=upload_id,
@@ -129,7 +138,8 @@ def search():
             'material': material_graphene,
             'method': method_dft_exciting,
             'properties': {}
-        }
+        },
+        sections=['nomad.datamodel.results.Simulation']
     )
     data.create_entry(
         upload_id=upload_id,
@@ -139,7 +149,8 @@ def search():
             'material': material_high_entropy_alloy,
             'method': method_dft_vasp,
             'properties': {}
-        }
+        },
+        sections=['nomad.datamodel.results.Simulation']
     )
     data.create_entry(
         upload_id=upload_id,
@@ -149,7 +160,19 @@ def search():
             'material': material_perovskite,
             'method': {},
             'properties': properties_solar_cell
-        }
+        },
+        sections=['nomad.datamodel.results.SolarCell'],
+        quantities=['data']
+    )
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=create_uuid(),
+        mainfile='upload/archive.json',
+        results={
+            'material': material_perovskite,
+            'method': method_eels,
+            'properties': {}
+        },
     )
 
     data.save()

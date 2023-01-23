@@ -59,8 +59,23 @@ const FilterSubMenuElements = React.memo(({
       </InputGridItem>
       <InputGridItem xs={6}>
         <InputField
+          quantity="results.material.chemical_formula_iupac"
+          visible={visible}
+          disableOptions
+        />
+      </InputGridItem>
+      <InputGridItem xs={6}>
+        <InputField
+          quantity="results.material.chemical_formula_reduced"
+          visible={visible}
+          disableOptions
+        />
+      </InputGridItem>
+      <InputGridItem xs={6}>
+        <InputField
           quantity="results.material.chemical_formula_anonymous"
           visible={visible}
+          placeholder="E.g. A2B, A3B2"
           disableOptions
         />
       </InputGridItem>

@@ -26,6 +26,7 @@ import matid.geometry
 
 from nomad import config
 from nomad import atomutils
+from nomad.atomutils import Formula
 from nomad.normalizing.common import structure_from_ase_atoms, structure_from_nomad_atoms, structures_2d
 from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
@@ -160,23 +161,14 @@ class ResultsNormalizer(Normalizer):
             material.chemical_formula_descriptive = sample.chemical_formula
 
         try:
-            material.elements = material.elements if material.elements else []
-            atoms = None
             if material.chemical_formula_descriptive:
-                try:
-                    atoms = ase.Atoms(material.chemical_formula_descriptive)
-                except Exception as e:
-                    self.logger.warn('could not normalize formula, using elements next', exc_info=e)
-
-            if atoms is None:
-                atoms = ase.Atoms(''.join(material.elements))
-
-            if material.elements is None or len(material.elements) == 0:
-                material.elements = atoms.get_chemical_symbols()
-
-            results.material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
-            results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
-            results.material.chemical_formula_descriptive = results.material.chemical_formula_hill
+                formula = Formula(material.chemical_formula_descriptive)
+                material.chemical_formula_hill = formula.format('hill')
+                material.chemical_formula_reduced = formula.format('reduced')
+                material.chemical_formula_iupac = formula.format('iupac')
+                material.chemical_formula_descriptive = results.material.chemical_formula_hill
+                if not material.elements:
+                    material.elements = formula.elements()
         except Exception as e:
             self.logger.warn('could not normalize material', exc_info=e)
 

@@ -784,7 +784,7 @@ def molecular_dynamics() -> EntryArchive:
         rg_values = RadiusOfGyrationValues(
             value=step,
             label='MOL',
-            atomsgroup_ref=system  # JFR - not sure how to test this, need to ask Laurie
+            atomsgroup_ref=system
         )
         calc.radius_of_gyration = [RadiusOfGyration(
             kind='molecular',

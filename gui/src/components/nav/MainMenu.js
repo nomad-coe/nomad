@@ -16,24 +16,61 @@
  * limitations under the License.
  */
 
+import { isEmpty } from 'lodash'
 import React from 'react'
-import { MenuBar, MenuBarItem, MenuBarMenu } from './MenuBar'
+import { Divider } from '@material-ui/core'
+import { MenuBar, MenuBarItem, MenuBarList, MenuBarMenu } from './MenuBar'
 import { routes } from './Routes'
 
-const MainMenu = React.memo(function MainMenu() {
-  return <MenuBar>
-    {routes.filter(route => route.menu).map((menuRoute, i) => (
-      <MenuBarMenu key={i} label={menuRoute.menu} route={'/' + menuRoute.path}>
-        {menuRoute.routes.filter(route => route.menu).map((itemRoute, i) => (
-          <MenuBarItem
-            key={i} label={itemRoute.menu} tooltip={itemRoute.tooltip}
-            route={itemRoute.path && `/${menuRoute.path}/${itemRoute.path}`}
-            href={itemRoute.href}
-          />
-        ))}
+const MainMenu = React.memo(() => {
+  const menus = []
+  for (const menu of routes) {
+    if (!menu.menu) continue
+
+    // Gather all categories for the items in this menu
+    const categories = {}
+    menu.routes
+      .filter(item => item.category)
+      .forEach(item => {
+        if (!categories[item.category]) categories[item.category] = []
+        categories[item.category].push(item)
+      })
+
+    // Items without a category are laid out linearly
+    let content
+    if (isEmpty(categories)) {
+      content = menu.routes.filter(route => route.menu).map((itemRoute, i) => (
+        <MenuBarItem
+          key={i} label={itemRoute.menu} tooltip={itemRoute.tooltip}
+          route={itemRoute.path && `/${menu.path}/${itemRoute.path}`}
+          href={itemRoute.href}
+        />
+      ))
+    // Categorized items are laid out in columns
+    } else {
+      content = Object.entries(categories).map(([category, values], index) => {
+          return <div key={category}>
+            {index ? <Divider style={{marginBottom: 8}}/> : null}
+            <MenuBarList header={category}>
+              {values.map(item => (
+                <MenuBarItem
+                  key={item.path} label={item.menu} tooltip={item.tooltip}
+                  route={item.path && `/${menu.path}/${item.path}`}
+                  href={item.href}
+                />
+              ))}
+            </MenuBarList>
+          </div>
+        })
+    }
+    menus.push(
+      <MenuBarMenu key={menu.path} label={menu.menu} route={'/' + menu.path}>
+        {content}
       </MenuBarMenu>
-    ))}
-  </MenuBar>
+    )
+  }
+
+  return <MenuBar>{menus}</MenuBar>
 })
 
 export default MainMenu

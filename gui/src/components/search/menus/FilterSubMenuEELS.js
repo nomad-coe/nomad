@@ -22,7 +22,6 @@ import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
 import InputRange from '../input/InputRange'
 import InputSection from '../input/InputSection'
-import { InputCheckboxValue } from '../input/InputCheckbox'
 
 const FilterSubMenuEELS = React.memo(({
   id,
@@ -33,16 +32,12 @@ const FilterSubMenuEELS = React.memo(({
 
   return <FilterSubMenu
     id={id}
-    actions={<InputCheckboxValue
-      quantity="results.method.method_name"
-      value="EELS"
-      description="Search EELS entries"
-    />}
     {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <InputSection
           section="results.properties.spectroscopy.eels"
+          disableHeader
           visible={visible}
         >
           <InputRange

@@ -19,7 +19,6 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 import SolarCell from './SolarCell'
-import BandGap from './BandGap'
 
 // Displays the set of optoelectronic properties.
 const OptoelectronicProperties = React.memo(({
@@ -29,12 +28,6 @@ const OptoelectronicProperties = React.memo(({
   return <PropertyGrid>
     <PropertyItem title="Solar cell" xs={12} height="auto" minHeight="100px">
       <SolarCell data={solarCell} />
-    </PropertyItem>
-    <PropertyItem title="Band gap" xs={12} height="auto" minHeight="100px">
-      <BandGap
-        section="results.properties.optoelectronic.band_gap_optical"
-        data={bandGap}
-      />
     </PropertyItem>
   </PropertyGrid>
 })

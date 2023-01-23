@@ -38,7 +38,7 @@ export const useEntryPageContext = (requireArchive) => {
     const tmpOverview = overview || ui?.entry_context?.overview
     if (!tmpOverview) return {}
     const finalOverview = cloneDeep(tmpOverview)
-    const options = finalOverview.include
+    const options = (finalOverview.include || Object.keys(finalOverview.options))
       .filter(key => !finalOverview?.exclude?.includes(key))
       .map(key => ({key, ...finalOverview.options[key]}))
     return {options}

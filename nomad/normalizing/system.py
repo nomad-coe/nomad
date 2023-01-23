@@ -27,6 +27,7 @@ from matid import SymmetryAnalyzer, Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D
 
 from nomad import atomutils, archive
+from nomad.atomutils import Formula
 from nomad.units import ureg
 from nomad import utils, config
 from nomad.datamodel.metainfo.simulation.system import (
@@ -179,9 +180,10 @@ class SystemNormalizer(SystemBasedNormalizer):
             return False
 
         # formulas
+        formula = Formula(atoms.get_chemical_formula())
         system.chemical_composition = atoms.get_chemical_formula(mode='all')
-        system.chemical_composition_reduced = atoms.get_chemical_formula(mode='reduce')
-        system.chemical_composition_hill = atomutils.get_formula_hill(atoms.get_chemical_formula())
+        system.chemical_composition_reduced = formula.format('reduced')
+        system.chemical_composition_hill = formula.format("hill")
 
         # positions
         atom_positions = get_value(Atoms.positions, numpy=True, source=system.atoms)

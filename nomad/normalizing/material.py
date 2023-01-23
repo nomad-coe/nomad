@@ -20,6 +20,7 @@ from typing import Union, Dict, List, Tuple, Optional
 from nptyping import NDArray
 from collections import defaultdict
 import re
+
 import ase.data
 from ase import Atoms
 from ase.geometry.cell import complete_cell
@@ -29,8 +30,10 @@ from matid.classification.structureclusterer import StructureClusterer
 from matid import Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D, Class2D, Unknown
 from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer
-from nomad.datamodel.results import Symmetry, Material, System, Relation, Structure, Prototype
+
+from nomad.datamodel.results import Symmetry, Material, System, Relation, Structure, Prototype, structure_name_map
 from nomad import atomutils
+from nomad.atomutils import Formula
 from nomad.utils import hash
 from nomad.units import ureg
 from nomad.normalizing.common import cell_from_ase_atoms, cell_from_structure, structure_from_ase_atoms, structures_2d
@@ -66,18 +69,23 @@ class MaterialNormalizer():
         material = Material()
 
         if self.repr_system:
-            self.structural_type = self.repr_system.type
-            material.structural_type = self.repr_system.type
-            symbols, reduced_counts = atomutils.get_hill_decomposition(self.repr_system.atoms.labels, reduced=True)
-            material.chemical_formula_reduced_fragments = [
-                '{}{}'.format(n, int(c) if c != 1 else '') for n, c in zip(symbols, reduced_counts)
-            ]
-            material.chemical_formula_hill = self.repr_system.chemical_composition_hill
-            material.chemical_formula_descriptive = material.chemical_formula_hill
-        if self.optimade:
-            material.elements = self.optimade.elements
-            material.chemical_formula_reduced = self.optimade.chemical_formula_reduced
-            material.chemical_formula_anonymous = self.optimade.chemical_formula_anonymous
+            try:
+                formula = Formula(self.repr_system.chemical_composition_hill)
+                material.elements = formula.elements()
+                material.chemical_formula_hill = formula.format('hill')
+                material.chemical_formula_iupac = formula.format('iupac')
+                material.chemical_formula_reduced = formula.format('reduced')
+                material.chemical_formula_anonymous = formula.format('anonymous')
+                material.chemical_formula_descriptive = material.chemical_formula_hill
+                self.structural_type = self.repr_system.type
+                material.structural_type = self.repr_system.type
+                labels = self.repr_system.atoms.labels
+                symbols, reduced_counts = atomutils.get_hill_decomposition(labels, reduced=True)
+                material.chemical_formula_reduced_fragments = [
+                    '{}{}'.format(n, int(c) if c != 1 else '') for n, c in zip(symbols, reduced_counts)
+                ]
+            except Exception as e:
+                self.logger.error('issue in creating formula information', exc_info=e)
 
         material.symmetry = self.symmetry()
 
@@ -377,26 +385,6 @@ class MaterialNormalizer():
             # are commonly used (see wurzite)
             note = proto.m_cache.get('prototype_notes')
             if note:
-                structure_name_map = {
-                    'CaTiO<sub>3</sub> Pnma Perovskite Structure': 'perovskite',
-                    'Hypothetical Tetrahedrally Bonded Carbon with 4&ndash;Member Rings': '4-member ring',
-                    'In (A6) Structure': 'fct',
-                    '$\\alpha$&ndash;Pa (A<sub>a</sub>) Structure': 'bct',
-                    'Hypothetical BCT5 Si Structure': 'bct5',
-                    'Wurtzite (ZnS, B4) Structure': 'wurtzite',
-                    'Hexagonal Close Packed (Mg, A3) Structure': 'hcp',
-                    'Half&ndash;Heusler (C1<sub>b</sub>) Structure': 'half-Heusler',
-                    'Zincblende (ZnS, B3) Structure': 'zincblende',
-                    'Cubic Perovskite (CaTiO<sub>3</sub>, E2<sub>1</sub>) Structure': 'cubic perovskite',
-                    '$\\alpha$&ndash;Po (A<sub>h</sub>) Structure': 'simple cubic',
-                    'Si<sub>46</sub> Clathrate Structure': 'clathrate',
-                    'Cuprite (Cu<sub>2</sub>O, C3) Structure': 'cuprite',
-                    'Heusler (L2<sub>1</sub>) Structure': 'Heusler',
-                    'Rock Salt (NaCl, B1) Structure': 'rock salt',
-                    'Face&ndash;Centered Cubic (Cu, A1) Structure': 'fcc',
-                    'Diamond (A4) Structure': 'diamond',
-                    'Body&ndash;Centered Cubic (W, A2) Structure': 'bcc',
-                }
                 result.structure_name = structure_name_map.get(note, None)
 
             filled = True
@@ -450,7 +438,7 @@ class MaterialNormalizer():
                         label = group.label
                         if label not in label_to_instances:
                             try:
-                                formula = atomutils.Formula(group.composition_formula)
+                                formula = Formula(group.composition_formula)
                             except Exception:
                                 formula_hill = None
                                 formula_anonymous = None
@@ -459,7 +447,7 @@ class MaterialNormalizer():
                             else:
                                 formula_hill = formula.format('hill')
                                 formula_anonymous = formula.format('anonymous')
-                                formula_reduced = formula.format('reduce')
+                                formula_reduced = formula.format('reduced')
                                 elements = formula.elements()
                             description_map = {
                                 'molecule': 'Molecule extracted from the calculation topology.',
@@ -531,13 +519,13 @@ class MaterialNormalizer():
                 if structure_original and top.formula_hill is None:
                     symbols = ''.join(np.array(structure_original.species_at_sites)[indices.flatten()])
                     try:
-                        formula = atomutils.Formula(symbols)
+                        formula = Formula(symbols)
                     except Exception:
                         pass
                     else:
                         top.formula_hill = formula.format('hill')
                         top.formula_anonymous = formula.format('anonymous')
-                        top.formula_reduced = formula.format('reduce')
+                        top.formula_reduced = formula.format('reduced')
                         top.elements = formula.elements()
 
         return list(topology.values())
@@ -788,15 +776,11 @@ class MaterialNormalizer():
         return system_type
 
     def _add_subsystem_properties(self, subspecies: List[str], subsystem) -> System:
-        formula = atomutils.Formula("".join(subspecies))
-        formula_hill = formula.format('hill')
-        formula_anonymous = formula.format('anonymous')
-        formula_reduced = formula.format('reduce')
-        elements = formula.elements()
-        subsystem.formula_hill = formula_hill
-        subsystem.formula_anonymous = formula_anonymous
-        subsystem.formula_reduced = formula_reduced
-        subsystem.elements = elements
+        formula = Formula("".join(subspecies))
+        subsystem.formula_hill = formula.format('hill')
+        subsystem.formula_anonymous = formula.format('anonymous')
+        subsystem.formula_reduced = formula.format('reduced')
+        subsystem.elements = formula.elements()
         return subsystem
 
     def _create_symmsystem_surface(self, symm: SymmetryAnalyzer, subsystem: System) -> System:
@@ -882,7 +866,7 @@ class MaterialNormalizer():
             prototype = Prototype()
             prototype.label = prototype_label
 
-            prototype.formula = atomutils.Formula("".join(protoDict['atom_labels'])).format('hill')
+            prototype.formula = Formula("".join(protoDict['atom_labels'])).format('hill')
             prototype.aflow_id = protoDict["aflow_prototype_id"]
             prototype.aflow_url = protoDict["aflow_prototype_url"]
             prototype.assignment_method = "normalized-wyckoff"

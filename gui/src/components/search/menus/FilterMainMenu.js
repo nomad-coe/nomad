@@ -26,10 +26,8 @@ import {
   FilterSubMenus
 } from './FilterMenu'
 import { makeStyles } from '@material-ui/core/styles'
-import FilterSubMenuMaterial from './FilterSubMenuMaterial'
 import FilterSubMenuElements from './FilterSubMenuElements'
-import FilterSubMenuSymmetry from './FilterSubMenuSymmetry'
-import FilterSubMenuMethod from './FilterSubMenuMethod'
+import FilterSubMenuStructure from './FilterSubMenuStructure'
 import FilterSubMenuSimulation from './FilterSubMenuSimulation'
 import FilterSubMenuDFT from './FilterSubMenuDFT'
 import FilterSubMenuGW from './FilterSubMenuGW'
@@ -37,17 +35,13 @@ import FilterSubMenuProjection from './FilterSubMenuProjection'
 import FilterSubMenuDMFT from './FilterSubMenuDMFT'
 import FilterSubMenuEELS from './FilterSubMenuEELS'
 import FilterSubMenuElectronic from './FilterSubMenuElectronic'
-import FilterSubMenuOptoElectronic from './FilterSubMenuOptoelectronic'
+import FilterSubMenuSolarCell from './FilterSubMenuSolarCell'
 import FilterSubMenuVibrational from './FilterSubMenuVibrational'
 import FilterSubMenuMechanical from './FilterSubMenuMechanical'
-import FilterSubMenuThermodynamic from './FilterSubMenuThermodynamic'
-import FilterSubMenuSpectroscopy from './FilterSubMenuSpectroscopy'
+import FilterSubMenuMolecularDynamics from './FilterSubMenuMolecularDynamics'
 import FilterSubMenuELN from './FilterSubMenuELN'
 import FilterSubMenuAuthor from './FilterSubMenuAuthor'
-import FilterSubMenuAccess from './FilterSubMenuAccess'
-import FilterSubMenuDataset from './FilterSubMenuDataset'
-import FilterSubMenuIDs from './FilterSubMenuIDs'
-import FilterSubMenuArchive from './FilterSubMenuArchive'
+import FilterSubMenuMetadata from './FilterSubMenuMetadata'
 import FilterSubMenuOptimade from './FilterSubMenuOptimade'
 import { useSearchContext } from '../SearchContext'
 import { delay } from '../../../utils'
@@ -56,10 +50,8 @@ import InputCheckbox from '../input/InputCheckbox'
 import FilterSubMenuCustomQuantities from './FilterSubMenuCustomQuantities'
 
 const menuMap = {
-  material: FilterSubMenuMaterial,
   elements: FilterSubMenuElements,
-  symmetry: FilterSubMenuSymmetry,
-  method: FilterSubMenuMethod,
+  structure: FilterSubMenuStructure,
   simulation: FilterSubMenuSimulation,
   dft: FilterSubMenuDFT,
   gw: FilterSubMenuGW,
@@ -67,19 +59,15 @@ const menuMap = {
   dmft: FilterSubMenuDMFT,
   eels: FilterSubMenuEELS,
   electronic: FilterSubMenuElectronic,
-  optoelectronic: FilterSubMenuOptoElectronic,
+  solarcell: FilterSubMenuSolarCell,
   vibrational: FilterSubMenuVibrational,
   mechanical: FilterSubMenuMechanical,
-  spectroscopy: FilterSubMenuSpectroscopy,
-  thermodynamic: FilterSubMenuThermodynamic,
+  molecular_dynamics: FilterSubMenuMolecularDynamics,
   geometry_optimization: FilterSubMenuGeometryOptimization,
   eln: FilterSubMenuELN,
   custom_quantities: FilterSubMenuCustomQuantities,
   author: FilterSubMenuAuthor,
-  dataset: FilterSubMenuDataset,
-  access: FilterSubMenuAccess,
-  ids: FilterSubMenuIDs,
-  processed_data_quantities: FilterSubMenuArchive,
+  metadata: FilterSubMenuMetadata,
   optimade: FilterSubMenuOptimade
 }
 

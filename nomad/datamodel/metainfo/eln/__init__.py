@@ -21,9 +21,13 @@ from nomad import utils
 from nomad.units import ureg
 from nomad.datamodel.data import EntryData, ArchiveSection, author_reference
 from nomad.metainfo.metainfo import SectionProxy
-from nomad.datamodel.results import ELN, Results, Material, BandGapOptical
+from nomad.datamodel.results import (
+    ELN, Results, Material, ElectronicProperties, BandStructureElectronic, BandGap
+)
 from nomad.metainfo import Package, Quantity, Datetime, Reference, Section
-from nomad.datamodel.metainfo.eln.perovskite_solar_cell_database import addSolarCell
+from nomad.datamodel.metainfo.eln.perovskite_solar_cell_database import (
+    add_solar_cell, add_band_gap
+)
 
 from nomad.datamodel.metainfo.eln.nexus_data_converter import NexusDataConverter
 
@@ -149,8 +153,7 @@ class ElnWithFormulaBaseSection(ElnBaseSection):
 
         if logger is None:
             logger = utils.get_logger(__name__)
-        from ase import Atoms
-        from pymatgen.core import Composition
+        from nomad.atomutils import Formula
         if self.chemical_formula:
             if not archive.results:
                 archive.results = Results()
@@ -159,11 +162,11 @@ class ElnWithFormulaBaseSection(ElnBaseSection):
             material = archive.results.material
 
             try:
-                pycom = Composition(self.chemical_formula).get_integer_formula_and_factor()[0]
-                atoms = Atoms(pycom)
-                material.elements = list(set(atoms.get_chemical_symbols()))
-                material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
-                material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
+                material.elements = Formula(self.chemical_formula).elements()
+                material.chemical_formula_hill = Formula(self.chemical_formula).format('hill')
+                material.chemical_formula_reduced = Formula(self.chemical_formula).format('reduced')
+                material.chemical_formula_iupac = Formula(self.chemical_formula).format('iupac')
+                material.chemical_formula_anonymous = Formula(self.chemical_formula).format('anonymous')
                 material.chemical_formula_descriptive = self.chemical_formula
             except Exception as e:
                 logger.warn('could not analyse chemical formula', exc_info=e)
@@ -419,7 +422,7 @@ class SolarCellDefinition(ArchiveSection):
 
     def normalize(self, archive, logger):
         super(SolarCellDefinition, self).normalize(archive, logger)
-        addSolarCell(archive)
+        add_solar_cell(archive)
         if self.stack_sequence:
             if '/' in self.stack_sequence:
                 archive.results.properties.optoelectronic.solar_cell.device_stack = self.stack_sequence.split('/')
@@ -479,7 +482,7 @@ class SolarCellLayer(ArchiveSection):
 
     def normalize(self, archive, logger):
         super(SolarCellLayer, self).normalize(archive, logger)
-        addSolarCell(archive)
+        add_solar_cell(archive)
         if self.layer_name:
             if self.solar_cell_layer_type == 'Absorber':
                 archive.results.properties.optoelectronic.solar_cell.absorber = [self.layer_name]
@@ -507,15 +510,8 @@ class SolarCellBaseSectionWithOptoelectronicProperties(ArchiveSection):
 
     def normalize(self, archive, logger):
         super(SolarCellBaseSectionWithOptoelectronicProperties, self).normalize(archive, logger)
-        addSolarCell(archive)
-        if self.bandgap is not None:
-            band_gap_optical = BandGapOptical(value=np.float64(self.bandgap) * ureg('eV'))
-            archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
-            props = archive.results.properties.available_properties
-            if not props:
-                props = []
-            props.append('optoelectronic.band_gap_optical')
-            archive.results.properties.available_properties = props
+        add_solar_cell(archive)
+        add_band_gap(archive, self.bandgap)
 
 
 class SolarCellJV(ArchiveSection):
@@ -684,7 +680,7 @@ class SolarCellJV(ArchiveSection):
     def normalize(self, archive, logger):
         super(SolarCellJV, self).normalize(archive, logger)
 
-        addSolarCell(archive)
+        add_solar_cell(archive)
         self.update_results(archive)
 
 
@@ -924,15 +920,8 @@ class SolarCellEQE(ArchiveSection):
             self.wavelength_array = self.photon_energy_array.to('nm', 'sp')  # pylint: disable=E1101
             self.raw_wavelength_array = self.raw_photon_energy_array.to('nm', 'sp')  # pylint: disable=E1101
 
-        addSolarCell(archive)
-        if self.bandgap_eqe is not None:
-            band_gap_optical = BandGapOptical(value=np.float64(self.bandgap_eqe) * ureg('eV'))
-            archive.results.properties.optoelectronic.band_gap_optical = [band_gap_optical]
-            props = archive.results.properties.available_properties
-            if not props:
-                props = []
-            props.append('optoelectronic.band_gap_optical')
-            archive.results.properties.available_properties = props
+        add_solar_cell(archive)
+        add_band_gap(archive, self.bandgap_eqe)
 
 
 m_package.__init_metainfo__()

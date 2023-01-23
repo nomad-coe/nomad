@@ -252,13 +252,10 @@ export async function expectPeriodicTableItems(elements, root = screen) {
  * @param {object} root The root element to perform the search on.
  */
 export async function expectFilterMainMenu(context, root = screen) {
-    // Check that menu title is displayed
-    expect(screen.getByText(`${context.resource} search`)).toBeInTheDocument()
-
     // Check that menu item labels are displayed
     const menuConfig = context.filter_menus
-    const menuItems = menuConfig.include
-      .filter(key => !menuConfig.exclude.includes(key))
+    const menuItems = (menuConfig.include || Object.keys(menuConfig.options))
+      .filter(key => !menuConfig?.exclude?.includes(key))
       .map(key => ({key, ...menuConfig.options[key]}))
     for (const menuItem of menuItems) {
       const label = menuItem.label

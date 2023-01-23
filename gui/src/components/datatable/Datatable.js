@@ -561,7 +561,8 @@ const useDatatableToolbarStyles = makeStyles(theme => ({
     }
   },
   title: {
-    flex: '1 1 100%'
+    flex: '1 1 100%',
+    fontSize: '1.1rem'
   }
 }))
 

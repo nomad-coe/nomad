@@ -22,7 +22,7 @@ import { Alert } from '@material-ui/lab'
 import { resolveNomadUrlNoThrow } from '../../utils'
 import Quantity from '../Quantity'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
-import OptoelectronicPropertiesCard from '../entry/properties/OptoelectronicPropertiesCard'
+import SolarCellPropertiesCard from '../entry/properties/SolarCellPropertiesCard'
 import MaterialCard from '../entry/properties/MaterialCard'
 import MaterialCardTopology from '../entry/properties/MaterialCardTopology'
 import NexusCard from './properties/NexusCard'
@@ -174,7 +174,7 @@ const OverviewView = React.memo((props) => {
         ? MaterialCardTopology
         : MaterialCard,
       electronic: ElectronicPropertiesCard,
-      optoelectronic: OptoelectronicPropertiesCard,
+      solarcell: SolarCellPropertiesCard,
       vibrational: VibrationalPropertiesCard,
       mechanical: MechanicalPropertiesCard,
       thermodynamic: ThermodynamicPropertiesCard,

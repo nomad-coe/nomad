@@ -1,6 +1,5 @@
 from typing import List, Dict, Set, Any
 from elasticsearch_dsl import Q
-import ase.formula
 
 from optimade.filterparser import LarkParser
 from optimade.server.entry_collections import EntryCollection
@@ -10,36 +9,16 @@ from optimade.server.mappers.entries import classproperty
 from optimade.models import StructureResource
 
 from nomad.units import ureg
+from nomad.atomutils import Formula
 from nomad.search import search
 from nomad.app.v1.models import MetadataPagination, MetadataRequired
 from nomad import datamodel, files, utils, config
-from nomad.normalizing.optimade import (
-    optimade_chemical_formula_anonymous,
-    optimade_chemical_formula_hill)
 
 from .filterparser import _get_transformer as get_transformer
 from .common import provider_specific_fields
 
 
 logger = utils.get_logger(__name__)
-
-
-def optimade_chemical_formula_reduced(formula: str):
-    if formula is None:
-        return formula
-
-    try:
-        ase_formula = ase.formula.Formula(formula).reduce()[0].count()
-        result_formula = ''
-        for element in sorted(ase_formula.keys()):
-            result_formula += element
-            element_count = ase_formula[element]
-            if element_count > 1:
-                result_formula += str(element_count)
-
-        return result_formula
-    except Exception:
-        return formula
 
 
 class NomadStructureMapper(StructureMapper):
@@ -84,7 +63,7 @@ class StructureCollection(EntryCollection):
             pagination=MetadataPagination(page_size=0)).pagination.total
 
     def count(self, **kwargs) -> int:
-        # This seams solely mongodb specific
+        # This seems solely mongodb specific
         raise NotImplementedError()
 
     def find(self, params):
@@ -156,13 +135,13 @@ class StructureCollection(EntryCollection):
         attrs['last_modified'] = archive['metadata']['upload_create_time']
 
         # TODO this should be removed, once all data is reprocessed with the right normalization
-        attrs['chemical_formula_reduced'] = optimade_chemical_formula_reduced(
-            attrs['chemical_formula_reduced'])
-        attrs['chemical_formula_anonymous'] = optimade_chemical_formula_anonymous(
-            attrs['chemical_formula_reduced'])
-        attrs['chemical_formula_hill'] = optimade_chemical_formula_hill(
-            attrs['chemical_formula_hill'])
-        attrs['chemical_formula_descriptive'] = attrs['chemical_formula_hill']
+        original_formula = attrs['chemical_formula_hill']
+        if original_formula is not None:
+            formula = Formula(original_formula)
+            attrs['chemical_formula_reduced'] = formula.format('reduced')
+            attrs['chemical_formula_anonymous'] = formula.format('anonymous')
+            attrs['chemical_formula_hill'] = formula.format('hill')
+            attrs['chemical_formula_descriptive'] = attrs['chemical_formula_hill']
         dimension_types = attrs['dimension_types']
         if isinstance(dimension_types, int):
             attrs['dimension_types'] = [1] * dimension_types + [0] * (3 - dimension_types)
