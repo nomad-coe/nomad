@@ -1,9 +1,11 @@
 import re
 import yaml
 import os.path
+import numpy as np
 
 from nomad.datamodel.data import EntryData
 from nomad.metainfo import Package, Quantity, MEnum
+from nomad.units import ureg
 
 from nexusutils.dataconverter.convert import get_names_of_all_readers, convert
 from nexusutils.nexus.nexus import get_app_defs_names
@@ -45,7 +47,21 @@ class NexusDataConverter(EntryData):
 
         def transform(quantity_def, section, value, path):
             if quantity_def.unit:
-                return dict(value=value, unit=str(format(quantity_def.unit, '~')))
+                Q_ = ureg.Quantity
+                val_unit = Q_(value, quantity_def.unit)
+
+                default_display_unit = quantity_def.m_annotations.get(
+                    'eln', {'defaultDisplayUnit': None}
+                ).defaultDisplayUnit
+                if default_display_unit:
+                    val_unit = val_unit.to(default_display_unit)
+
+                return dict(
+                    value=val_unit.magnitude.tolist()
+                    if isinstance(val_unit.magnitude, np.ndarray)
+                    else val_unit.magnitude,
+                    unit=str(format(val_unit.units, '~'))
+                )
             return value
 
         def exclude(quantity_def, section):
