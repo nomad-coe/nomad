@@ -541,21 +541,19 @@ export class Metainfo {
     }
 
     const path = []
+    const visitedSubSections = new Set()
     while (def) {
-      const parentSection = def
       const parentSubSection = def._parentSubSections && def._parentSubSections.filter(
-        // Filter for direct recursions in the possible section containment.
-        // This only catches direct connections where a sub section uses its parent
-        // section as the sub section definition
-        subSection => parentSection !== subSection._section)[0]
+        subSection => !visitedSubSections.has(subSection))[0]
       if (parentSubSection) {
+        visitedSubSections.add(parentSubSection)
         def = parentSubSection
       }
       path.push(def.name)
       if (def.m_def === SubSectionMDef) {
         def = def._section
       } else {
-        def = def._parentSections && def._parentSections[0]
+        def = null
       }
 
       while (def && def.extends_base_section) {
