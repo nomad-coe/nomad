@@ -1,6 +1,6 @@
-[![pipeline status](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/master/pipeline.svg)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/master)
-[![backend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/master/coverage.svg?job=python+tests&key_text=backend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/master)
-[![frontend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/master/coverage.svg?job=gui+tests&key_text=frontend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/master)
+[![pipeline status](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/pipeline.svg)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/develop)
+[![backend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/coverage.svg?job=python+tests&key_text=backend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/develop)
+[![frontend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/coverage.svg?job=gui+tests&key_text=frontend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/develop)
 
 **NOMAD** is a web-based research data management software for materials science.
 The publically hosted main NOMAD installation ([https://nomad-lab.eu](https://nomad-lab.eu))
