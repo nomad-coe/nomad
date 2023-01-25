@@ -429,10 +429,9 @@ pypi package:
     - when: manual
       allow_failure: true
 
-push github:
+push to github:
   stage: release
   script:
-    - git checkout -b develop
-    - git push "https://${CI_GITHUB_ACCESS_TOKEN}@github.com/nomad-coe/nomad.git" develop
+    - git push "https://${CI_GITHUB_ACCESS_TOKEN}@github.com/nomad-coe/nomad.git" ${CI_COMMIT_REF_NAME}
   rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG
