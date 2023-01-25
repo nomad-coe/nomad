@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
+import { Helmet } from "react-helmet"
 import { Router, Route } from 'react-router-dom'
 import { QueryParamProvider } from 'use-query-params'
 import { RecoilRoot } from 'recoil'
@@ -23,7 +24,7 @@ import CssBaseline from '@material-ui/core/CssBaseline'
 import history from '../history'
 import DateFnsUtils from '@date-io/date-fns'
 import { MuiPickersUtilsProvider } from '@material-ui/pickers'
-import { nomadTheme, keycloakBase, keycloakRealm, keycloakClientId } from '../config'
+import { ui, nomadTheme, keycloakBase, keycloakRealm, keycloakClientId } from '../config'
 import Keycloak from 'keycloak-js'
 import { ReactKeycloakProvider } from '@react-keycloak/web'
 import { MuiThemeProvider } from '@material-ui/core/styles'
@@ -42,7 +43,10 @@ const keycloak = new Keycloak({
 })
 
 export default function App() {
-  return (
+  return <React.Fragment>
+    <Helmet>
+      <title>{ui?.theme?.title || 'NOMAD'}</title>
+    </Helmet>
     <ReactKeycloakProvider
       authClient={keycloak}
       onEvent={onKeycloakEvent(keycloak)}
@@ -77,5 +81,5 @@ export default function App() {
         </APIProvider>
       </RecoilRoot>
     </ReactKeycloakProvider>
-  )
+  </React.Fragment>
 }
