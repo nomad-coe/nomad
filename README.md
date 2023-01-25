@@ -2,18 +2,24 @@
 [![backend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/master/coverage.svg?job=python+tests&key_text=backend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/master)
 [![frontend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/master/coverage.svg?job=gui+tests&key_text=frontend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/master)
 
-This project implements the new *NOMAD* data infrastructure. It provides all necessary artifacts to develop,
-test, deploy, and operate the NOMAD data infrastructure (e.g. at [https://nomad-lab.eu](https://nomad-lab.eu)).
+**NOMAD** is a web-based research data management software for materials science.
+The publically hosted main NOMAD installation ([https://nomad-lab.eu](https://nomad-lab.eu))
+is a free and open service to publish, explore, and analyze materials science data.
+On-premise installations of NOMAD allow research groups to locally manage data with
+customized NOMAD version and with their own compute and storage resources.
 
-The NOMAD data infrastructure also integrates with 3rd party material science
-databases (i.e. [Aflow](http://www.aflow.org/), [OQMD](http://oqmd.org/),
-[Materials Project](https://materialsproject.org/)), and supports open APIs and
-standards like the [Optimade](http://www.optimade.org/) API.
+## Contributing on GitHUB vs MPCDF's GitLab
 
-Furthermore, this projects aims at establishing NOMAD as a distributed platform for
-material science data sharing and management. This includes the on-site deployment of
-NOMAD as a standalone service (*oasis*), the federated use of NOMAD through a
-series of full and partial *mirrors*.
+NOMAD's [GitHUB project](https://github.com/nomad-coe/nomad) always contains the current `develop` branch.
+It can be used to report issues, fork the project, and to create pull requests. After review, pull requests
+will be pushed to the GitLab project and merged there.
+
+NOMAD's [GitLab project](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR) at [MPCDF](https://www.mpcdf.mpg.de/)
+is used for the main development activities. It runs all CI/CD pipelines and official deployments.
+It is openly readable, but requires an MPCDF account for active contributions.
+
+Most sub-modules, e.g. NOMAD's parsers, are hosted in individual projects on GitHUB
+within the [nomad-coe organization](https://github.com/nomad-coe).
 
 ## Getting started
 
