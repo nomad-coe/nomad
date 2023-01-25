@@ -23,14 +23,16 @@ gui:
 
 app:
   replicas: 1
-  worker: 2
+  worker: 1
   nomadNodeType: "public"
 
 worker:
   replicas: 1
   routing: "worker"
-  processes: 12
-  nomadNodeType: "prod-worker"
+  processes: 2
+  memrequest: 256
+  memlimit: 488
+  nomadNodeType: "worker"
 
 elastic:
   host: elasticsearch.elasticsearch-7.svc.cluster.local
@@ -60,8 +62,8 @@ keycloak:
 volumes:
   prefixSize: 1
   public: /nomad/fairdi/prod/fs/public
-  staging: /scratch/fairdi/util/fs/staging
-  tmp: /scratch/fairdi/util/fs/tmp
+  staging: /nomad/fairdi/prod/fs/staging
+  tmp: /nomad/fairdi/prod/fs/tmp
   nomad: /nomad
   archiveVersionSuffix: v1
 
