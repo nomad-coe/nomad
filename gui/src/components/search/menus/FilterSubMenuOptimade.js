@@ -15,45 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useContext, useEffect, useMemo, useState} from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
-import {FilterSubMenu, filterMenuContext} from './FilterMenu'
-import {InputCheckboxValue} from '../input/InputCheckbox'
-import {Box, TextField} from "@material-ui/core"
-import {useSearchContext} from "../SearchContext"
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import { Box, TextField } from "@material-ui/core"
+import { useSearchContext } from "../SearchContext"
 import AutoComplete from "@material-ui/lab/Autocomplete"
-import {useApi} from '../../api'
-import {debounce, isArray} from 'lodash'
-import {useErrors} from '../../errors'
+import { useApi } from '../../api'
+import { debounce, isArray, isEmpty } from 'lodash'
+import searchQuantities from '../../../searchQuantities'
+
+// List of optimade identifiers. We get these from the metainfo.
+const prefix = 'optimade.'
+const identifiers = Object.keys(searchQuantities)
+  .filter(key => key.startsWith(prefix))
+  .map(key => key.slice(prefix.length))
+  .sort()
 
 const FilterSubMenuOptimade = React.memo(({
   id,
   ...rest
 }) => {
   const [suggestions, setSuggestions] = useState([['']])
-  const [identifiers, setIdentifiers] = useState([])
   const [values, setValues] = useState([{value: '', valid: true, msg: ''}])
   const {selected, open} = useContext(filterMenuContext)
   const {useFilterState} = useSearchContext()
   const {api} = useApi()
-  const {raiseError} = useErrors()
   const visible = open && id === selected
   const [optimadeFilters, setOptimadeFilters] = useFilterState("optimade_filter")
-
-  useEffect(() => {
-    const requestBody = {
-      exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'dft.quantities', 'dft.labels', 'dft.geometries'],
-      owner: 'visible'
-    }
-    api.post(`entries/query`, requestBody).then(response => {
-      const optimade = response?.data?.[0]?.optimade
-      const keys = optimade && Object.keys(optimade)
-      setIdentifiers(keys || [])
-    }).catch(error => {
-      raiseError(error)
-      setIdentifiers([])
-    })
-  }, [api, raiseError])
 
   const renderSuggestion = useCallback((command, options, suggestions) => {
     options.filter((item, pos) => options.indexOf(item) === pos).forEach(option => {
@@ -67,7 +56,7 @@ const FilterSubMenuOptimade = React.memo(({
         suggestions.push([command, option].join(' '))
       }
     })
-  }, [identifiers])
+  }, [])
 
   const getSuggestions = useCallback(async (filter, index) => {
     const requestBody = {
@@ -119,9 +108,10 @@ const FilterSubMenuOptimade = React.memo(({
       }
       return {valid: false, suggestions: []}
     }
-  }, [api, identifiers, renderSuggestion])
+  }, [api, renderSuggestion])
 
   useEffect(() => {
+    if (!visible || isEmpty(optimadeFilters)) return
     const newOptimadeFilters = optimadeFilters ? [...optimadeFilters, ''] : ['']
     const newValues = newOptimadeFilters.map(value => ({value: value, valid: !!value, msg: ''}))
     setValues(newValues)
@@ -134,7 +124,7 @@ const FilterSubMenuOptimade = React.memo(({
       setSuggestions(allSuggestions)
     }
     prepareOptions()
-  }, [optimadeFilters, getSuggestions])
+  }, [optimadeFilters, getSuggestions, visible])
 
   const validate = useCallback(async (value, index) => {
     const validation = await getSuggestions((value && value.trim()) || '.', index)
@@ -200,15 +190,7 @@ const FilterSubMenuOptimade = React.memo(({
     }
   }, [setFilter, setOptimadeFilter, validate, values])
 
-  return <FilterSubMenu
-    id={id}
-    actions={<InputCheckboxValue
-      quantity="quantities"
-      value="data"
-      description="Search by optimade filters"
-    />}
-    {...rest}
-  >
+  return <FilterSubMenu id={id} {...rest}>
     {visible && values && values.length === suggestions.length && values.map((value, index) => {
       return <Box key={index} paddingLeft={2} paddingRight={2}>
         <AutoComplete
