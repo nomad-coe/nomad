@@ -1717,6 +1717,9 @@ window.nomadEnv = {
         }
       }
     },
-    "default_unit_system": "Custom"
+    "default_unit_system": "Custom",
+    "theme": {
+      "title": "NOMAD"
+    }
   }
 }

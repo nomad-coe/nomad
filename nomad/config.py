@@ -697,6 +697,9 @@ archive = Archive()
 
 class UIConfig(NomadSettings):
     default_unit_system = 'Custom'
+    theme = {
+        'title': 'NOMAD'
+    }
     entry_context: dict = {
         'overview': {
             'exclude': ['relatedResources'],
