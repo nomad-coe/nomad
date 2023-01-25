@@ -6,6 +6,7 @@ include pyproject.toml setup.py AUTHORS LICENSE README.md README.parsers.md requ
 
 graft nomad/app/static
 exclude nomad/app/static/gui/env.js
+exclude nomad/app/static/gui/artifact.js
 
 include dependencies/matid/README.md
 recursive-include dependencies/matid/matid *.py

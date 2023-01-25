@@ -62,7 +62,7 @@ import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
 import { Published } from '../entry/EntryDetails'
 import { getWidgetsObject } from './widgets/Widget'
 import { inputSectionContext } from './input/InputSection'
-import searchQuantities from '../../searchQuantities'
+import { searchQuantities } from '../../config'
 import {
   filterData as filterDataGlobal,
   filterAbbreviations,

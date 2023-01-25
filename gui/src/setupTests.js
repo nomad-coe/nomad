@@ -21,6 +21,7 @@
 import { setupServer } from 'msw/node'
 import { configure } from '@testing-library/react'
 import "../tests/env"
+import "../tests/artifacts"
 import '@testing-library/jest-dom' // Adds convenient expect-methods
 
 /**

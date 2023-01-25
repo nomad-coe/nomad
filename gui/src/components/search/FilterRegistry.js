@@ -25,7 +25,7 @@ import {
   DType,
   getSuggestions
 } from '../../utils'
-import searchQuantities from '../../searchQuantities'
+import { searchQuantities } from '../../config'
 import { Unit } from '../../units'
 import elementData from '../../elementData'
 

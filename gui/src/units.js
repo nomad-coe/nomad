@@ -19,8 +19,7 @@ import { isNil, startCase, toLower, has, cloneDeep, isString, isNumber, isArray 
 import { mapDeep } from './utils'
 import { Unit as UnitMathJS, createUnit } from 'mathjs'
 import { atom, useRecoilValue } from 'recoil'
-import { unitList, prefixes } from './unitsData'
-import { ui } from './config'
+import { ui, unitList, unitPrefixes as prefixes } from './config'
 
 // Delete all units and prefixes that come by default with Math.js. This way
 // they cannot be intermixed with the NOMAD units. Notice that we have to clear

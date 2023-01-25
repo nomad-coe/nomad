@@ -25,7 +25,7 @@ import { IconButton, makeStyles, lighten, TableHead, TableRow, TableCell, TableS
 import TooltipButton from '../utils/TooltipButton'
 import EditColumnsIcon from '@material-ui/icons/ViewColumn'
 import InfiniteScroll from 'react-infinite-scroller'
-import searchQuantities from '../../searchQuantities'
+import { searchQuantities } from '../../config'
 
 const DatatableContext = React.createContext({})
 const StaticDatatableContext = React.createContext({})

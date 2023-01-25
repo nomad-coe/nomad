@@ -6,7 +6,7 @@ window.nomadEnv = {
   "keycloakClientId": "nomad_public",
   "debug": false,
   "encyclopediaBase": "https://nomad-lab.eu/prod/rae/encyclopedia/#",
-  "aitoolkitEnabled": false,
+  "aitoolkitEnabled": true,
   "oasis": false,
   "version": {},
   "globalLoginRequired": false,

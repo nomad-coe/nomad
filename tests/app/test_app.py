@@ -16,6 +16,8 @@
 # limitations under the License.
 #
 
+import pytest
+
 
 def test_alive(client):
     rv = client.get('/alive')
@@ -29,3 +31,9 @@ def test_docs(client):
     rv = client.get('/docs/oasis.html')
     assert rv.status_code == 200
     assert 'Cache-Control' not in rv.headers
+
+
+@pytest.mark.parametrize('path', ['env.js', 'artifacts.js'])
+def test_gui(client, path):
+    rv = client.get(f'/gui/{path}')
+    assert rv.status_code == 200

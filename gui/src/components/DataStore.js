@@ -19,10 +19,9 @@ import React, { useContext, useRef, useState, useCallback, useEffect } from 'rea
 import PropTypes from 'prop-types'
 import { useApi, DoesNotExist } from './api'
 import { useErrors } from './errors'
-import { apiBase } from '../config'
+import { apiBase, metainfo as currentSystemMetainfoData } from '../config'
 import { refType, parseNomadUrl, createEntryUrl, systemMetainfoUrl } from '../utils'
 import { getMetainfoFromDefinition, getUrlFromDefinition, Metainfo } from './archive/metainfo'
-import currentSystemMetainfoData from '../metainfo'
 import YAML from 'yaml'
 
 function addSubscription(storeObj, cb) {

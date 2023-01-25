@@ -18,6 +18,7 @@ gui/junit.xml
 # Ignore all user-specific configuration files
 nomad.yaml
 gui/public/env.js
+gui/public/artifacts.js
 !gui/tests/nomad.yaml
 !ops/docker-compose/nomad-oasis/configs/nomad.yaml
 !ops/docker-compose/nomad-oasis-with-keycloak/configs/nomad.yaml

@@ -100,6 +100,16 @@ export const globalLoginRequired = window.nomadEnv.globalLoginRequired || false
 export const email = 'support@nomad-lab.eu'
 export const maxLogsToShow = 50
 
+window.nomadArtifacts = window.nomadArtifacts || {}
+export const searchQuantities = window.nomadArtifacts.searchQuantities
+export const metainfo = window.nomadArtifacts.metainfo
+export const parserMetadata = window.nomadArtifacts.parserMetadata
+export const toolkitMetadata = window.nomadArtifacts.toolkitMetadata
+export const exampleUploads = window.nomadArtifacts.exampleUploads
+export const northTools = window.nomadArtifacts.northTools
+export const unitList = window.nomadArtifacts.unitList
+export const unitPrefixes = window.nomadArtifacts.unitPrefixes
+
 export const nomadPrimaryColor = {
   main: '#2A4CDF',
   light: '#7F94EC',

@@ -1,6 +1,6 @@
 keycloak:
-    server_url: "https://nomad-lab.eu/fairdi/keycloak/auth/"
-    realm_name: "fairdi_nomad_test"
+  server_url: "https://nomad-lab.eu/fairdi/keycloak/auth/"
+  realm_name: "fairdi_nomad_test"
 elastic:
   entries_index: "nomad_entries_v1_test"
   materials_index: "nomad_materials_v1_test"
@@ -10,3 +10,11 @@ fs:
   tmp: '.volumes/test_fs/tmp'
   staging: '.volumes/test_fs/staging'
   public: '.volumes/test_fs/public'
+parsing:
+  parsers:
+    include:
+      - parsers/archive
+      - parsers/tabular
+      - parsers/vasp
+services:
+  aitoolkit_enabled: true

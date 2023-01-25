@@ -136,12 +136,13 @@ pip install -e .[parsing,infrastructure,dev] --prefer-binary
 ```
 
 
-### Update GUI artifacts
+### Generate GUI artifacts
 
-The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
+The NOMAD GUI requires two static javascript files (*gui artifacts*) that need to be generated
+from the NOMAD Python code:
 ```sh
-python -m nomad.cli dev gui-artifacts --output-directory gui/src
-python -m nomad.cli dev gui-config >gui/public/env.js
+python -m nomad.cli dev gui-artifacts > gui/public/artifacts.js
+python -m nomad.cli dev gui-config > gui/public/env.js
 ```
 
 Or simply run
@@ -149,9 +150,16 @@ Or simply run
 ./scripts/generate_gui_artifacts.sh
 ```
 
-The generated files are stored in GIT. The GUI code might not match the expected data in
-outdated files. If there are changes to units, metainfo, new parsers, new toolkit notebooks it
-might be necessary to regenerate these gui artifacts.
+If there are changes to the configuration (e.g. `nomad.yaml`), units, metainfo, new parsers,
+new toolkit notebooks it might be necessary to regenerate these gui artifacts.
+
+These generated files are not stored in GIT (ignore). A deployed NOMAD GUI will get
+these artifacts from the NOMAD backend, but the development GUI requires you to generate
+those files manually.
+
+A specifically configured smaller test version of these files is stored in GIT at `gui/test`
+to perform the automated GUI tests. The `generate_gui_artifacts.sh` script is
+updating both the GIT ignored ones and the test ones.
 
 In addition, you have to do some more steps to prepare your working copy to run all
 the tests. See below.
@@ -249,14 +257,9 @@ To run the worker directly with celery, do (from the root)
 celery -A nomad.processing worker -l info
 ```
 
-Before you can run the gui, make sure that generated artifacts are up-to-date:
+Before you can run the gui, make sure that generated the GUI artifacts:
 ```sh
 ./scripts/generate_gui_artifacts.sh
-```
-
-Also, make sure that the config file (`gui/public/env.js`) have been properly created:
-```sh
-./scripts/generate_gui_config.sh
 ```
 
 If you run the gui on its own (e.g. with react dev server below), you also have to have

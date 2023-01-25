@@ -34,8 +34,7 @@ import ArrowIcon from '../../images/AIT_ico_bd_link_go_to.svg'
 import ReproduceIcon from '../../images/AIT_ico_bb_replicate.svg'
 import AccordionsList from './AccordionsList'
 import FigureAI from '../../images/AIT_illu_AIT.svg'
-import tutorials from '../../toolkitMetadata'
-import { aitoolkitEnabled } from '../../config'
+import { aitoolkitEnabled, toolkitMetadata as tutorials } from '../../config'
 
 export const useStyles = makeStyles(theme => ({
   root: {

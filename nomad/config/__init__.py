@@ -40,7 +40,9 @@ import warnings
 from typing import List, Any, Union
 
 from nomad.config.models import (
-    NomadSettings, Services, Meta, Oasis, NORTH, RabbitMQ, Celery, FS, Elastic, Keycloak, Mongo, Logstash, Tests, Mail, Normalize, Resources, Client, DataCite, GitLab, Process, Reprocess, RFC3161Timestamp, BundleExport, BundleImport, Archive, UI
+    NomadSettings, Services, Meta, Oasis, NORTH, RabbitMQ, Celery, FS, Elastic, Keycloak,
+    Mongo, Logstash, Tests, Mail, Parsing, Normalize, Resources, Client, DataCite, GitLab, Process,
+    Reprocess, RFC3161Timestamp, BundleExport, BundleImport, Archive, UI
 )
 
 
@@ -102,6 +104,7 @@ mongo = Mongo()
 logstash = Logstash()
 tests = Tests()
 mail = Mail()
+parsing = Parsing()
 normalize = Normalize()
 resources = Resources()
 client = Client()
@@ -253,10 +256,14 @@ def _apply(key, value, raise_error: bool = True) -> None:
         key = config_key
 
     try:
+        if current_value is not None and not isinstance(value, type(current_value)):
+            transformation = _transformations.get(full_key, type(current_value))
+            if issubclass(transformation, NomadSettings):  # type: ignore
+                value = transformation(**value)
+            else:
+                value = transformation(value)
         if isinstance(value, dict):
             value = _merge(current_value, value)
-        elif current_value is not None and not isinstance(value, type(current_value)):
-            value = _transformations.get(full_key, type(current_value))(value)
         setattr(current, key, value)
         logger.info(f'set config setting {full_key}={value}')
     except Exception as e:

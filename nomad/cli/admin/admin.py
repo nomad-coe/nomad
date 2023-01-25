@@ -21,7 +21,6 @@ import click
 
 from nomad import config
 from nomad.cli.cli import cli
-from nomad.cli.dev import get_gui_config
 
 
 @cli.group(help='''The nomad admin commands to do nasty stuff directly on the databases.
@@ -243,13 +242,6 @@ def gui_config():
     # copy
     shutil.rmtree(run_gui_folder, ignore_errors=True)
     shutil.copytree(gui_folder, run_gui_folder)
-
-    # setup the env
-    env_js_file = os.path.join(run_gui_folder, 'env.js')
-    if not os.path.exists(env_js_file):
-        with open(env_js_file, 'wt') as f:
-            conf = get_gui_config(proxy=True)
-            f.write(conf)
 
     # replace base path in all GUI files
     source_file_globs = [

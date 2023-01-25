@@ -190,7 +190,7 @@ def with_latin_1_file(raw_files):
 
 @pytest.mark.parametrize('parsers, num_output_files', [
     ([[MatchingParserInterface(
-        'workflowparsers.FHIVibesParser',
+        'workflowparsers.fhivibes.parser.FHIVibesParser',
         metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
         mainfile_name_re=(r'^.*\.(nc)$'),
         mainfile_mime_re=r'(application/x-hdf)',
@@ -198,21 +198,21 @@ def with_latin_1_file(raw_files):
         mainfile_contents_dict={'__has_all_keys': ['I', 'a', 'b']}
     )], 1]),
     ([[MatchingParserInterface(
-        'workflowparsers.FHIVibesParser',
+        'workflowparsers.fhivibes.parser.FHIVibesParser',
         metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
         mainfile_mime_re=r'(application/x-hdf)',
         mainfile_binary_header_re=br'^\x89HDF',
         mainfile_contents_dict={'__has_key': 'aims_uuid'}
     )], 1]),
     ([[MatchingParserInterface(
-        'workflowparsers.FHIVibesParser',
+        'workflowparsers.fhivibes.parser.FHIVibesParser',
         metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
         mainfile_mime_re=r'(application/x-hdf)',
         mainfile_binary_header_re=br'^\x89HDF',
         mainfile_contents_dict={'a': [0, 0, 0]}
     )], 1]),
     ([[MatchingParserInterface(
-        'workflowparsers.FHIVibesParser',
+        'workflowparsers.fhivibes.parser.FHIVibesParser',
         metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
         mainfile_mime_re=r'(application/x-hdf)',
         mainfile_binary_header_re=br'^\x89HDF',
