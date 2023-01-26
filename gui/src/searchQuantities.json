@@ -2281,6 +2281,7 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
+    "unit": "1 / joule",
     "shape": []
   },
   "results.method.simulation.dmft.magnetic_state": {

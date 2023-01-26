@@ -1849,7 +1849,7 @@ class GreensFunctionsElectronic(MSection):
     tau = GreensFunctionsCalculation.tau.m_copy()
     real_greens_function_tau = Quantity(
         type=np.float64,
-        shape=['n_correlated_orbitals', 2, 'n_tau'],
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', 'n_tau'],
         description='''
         Real part (extraction done in normalizer) of the Green's function in tau (imaginary time).
         '''
@@ -1857,20 +1857,13 @@ class GreensFunctionsElectronic(MSection):
     matsubara_freq = GreensFunctionsCalculation.matsubara_freq.m_copy()
     imag_self_energy_iw = Quantity(
         type=np.float64,
-        shape=['n_correlated_orbitals', 2, '2 * n_matsubara_freq'],
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', '2 * n_matsubara_freq'],
         description='''
         Imaginary part (extraction done in normalizer) of the Self energy in Matsubara (imaginary frequency).
         '''
     )
-    double_occupancies = Quantity(
-        type=np.float64,
-        shape=['2 * n_correlated_orbitals'],
-        description='''
-        Double occupancie of each orbital and spin degree of freedom. The total doping is
-        equal to the sum of these double occupancies divided by the number of orbitals and the
-        spin number (= 2).
-        '''
-    )
+    orbital_occupations = GreensFunctionsCalculation.orbital_occupations.m_copy()
+    quasiparticle_weights = GreensFunctionsCalculation.quasiparticle_weights.m_copy()
     chemical_potential = GreensFunctionsCalculation.chemical_potential.m_copy()
 
 

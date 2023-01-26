@@ -838,6 +838,9 @@ class LatticeModelHamiltonian(MSection):
 
     m_def = Section(validate=False)
 
+    # I defined t_parameters apart from HoppingMatrix to simplify the parsing (writing
+    # everything in the HoppingMatrix basis might be tedious).
+    # TODO generalize parsers to write HoppingMatrix as default even for simple models.
     lattice_name = Quantity(
         type=str,
         shape=[],
@@ -851,14 +854,20 @@ class LatticeModelHamiltonian(MSection):
         Number of direct neighbors considered for the hopping integrals.
         ''')
 
-    # I defined t_parameters apart from HoppingMatrix to simplify the parsing (writing
-    # everything in the HoppingMatrix basis might be tedious).
-    # TODO generalize parsers to write HoppingMatrix as default even for simple models.
     t_parameters = Quantity(
         type=np.complex128,
         shape=['n_neighbors'],
         description='''
         Hopping parameters for simple models, with [t, t`, t``, etc].
+        ''')
+
+    # TODO determine standard dimensions for projection_matrix:
+    #   KMesh.n_points x n_atoms_per_unit_cell x n_orbitals? x n_bands?
+    projection_matrix = Quantity(
+        type=np.complex128,
+        shape=['*', '*', '*', '*'],
+        description='''
+        Projection matrices from Bloch bands to virtual projected orbitals.
         ''')
 
     hopping_matrix = SubSection(sub_section=HoppingMatrix.m_def, repeats=False)
@@ -1012,13 +1021,14 @@ class DMFT(MSection):
 
     n_correlated_electrons = Quantity(
         type=np.float64,
-        shape=[],
+        shape=['n_atoms_per_unit_cell'],
         description='''
         Number of correlated electrons per atom in the unit cell.
         ''')
 
     inverse_temperature = Quantity(
         type=np.float64,
+        unit='1/joule',
         shape=[],
         description='''
         Inverse temperature = 1/(kB*T).

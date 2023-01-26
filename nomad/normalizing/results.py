@@ -358,7 +358,7 @@ class ResultsNormalizer(Normalizer):
             for gfs in self.traverse_reversed(path):
                 tau = gfs.tau
                 iw = gfs.matsubara_freq
-                values_gtau = np.array([gtau for gtau in gfs.greens_function_tau.real])
+                values_gtau = np.array([np.absolute(gtau) for gtau in gfs.greens_function_tau.real])
                 values_siw = np.array([siw for siw in gfs.self_energy_iw.imag])
                 if (valid_array(tau) and valid_array(values_gtau)) or (valid_array(iw) and valid_array(values_siw)):
                     gfs_new = GreensFunctionsElectronic()
@@ -369,11 +369,11 @@ class ResultsNormalizer(Normalizer):
                     if valid_array(iw) and valid_array(values_siw):
                         gfs_new.matsubara_freq = iw
                         gfs_new.imag_self_energy_iw = values_siw
-                    if valid_array(gfs.occupancies):
-                        norb = gfs.occupancies.shape[0]
-                        nspin = gfs.occupancies.shape[1]
-                        gfs_new.double_occupancies = np.array(
-                            [gfs.occupancies[i][j][i][j] for j in range(nspin) for i in range(norb)])
+                    if valid_array(gfs.orbital_occupations):
+                        gfs_new.orbital_occupations = gfs.orbital_occupations
+                    if valid_array(gfs.quasiparticle_weights):
+                        gfs_new.quasiparticle_weights = gfs.quasiparticle_weights
+
                     return gfs_new
             return None
 
