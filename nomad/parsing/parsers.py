@@ -621,6 +621,14 @@ parsers = [
         mainfile_binary_header_re=br'^\x89HDF[\s\S]*general.nat'
     ),
     MatchingParserInterface(
+        'electronicparsers.SolidDMFTParser',
+        metadata_path=f'{prefix_electronic}/soliddmft/metadata.yaml',
+        mainfile_name_re=(r'^.*\.(h5|hdf5)$'),
+        mainfile_mime_re=r'(application/x-hdf)',
+        mainfile_binary_header_re=br'^\x89HDF',
+        mainfile_contents_dict={'__has_all_keys': ['dft_input', 'DMFT_input', 'DMFT_results']}
+    ),
+    MatchingParserInterface(
         'nomad.parsing.nexus.NexusParser',
         metadata_path=os.path.join(os.path.dirname(__file__), 'metadata.yaml'),
         mainfile_mime_re=r'(application/.*)|(text/.*)',

@@ -1533,14 +1533,14 @@ class GreensFunctions(MSection):
 
     self_energy_iw = Quantity(
         type=np.complex128,
-        shape=['n_correlated_orbitals', 2, '2 * n_matsubara_freq'],
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', '2 * n_matsubara_freq'],
         description='''
         Self-energy matrix in Matsubara frequencies.
         ''')
 
     greens_function_iw = Quantity(
         type=np.complex128,
-        shape=['n_correlated_orbitals', 2, '2 * n_matsubara_freq'],
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', '2 * n_matsubara_freq'],
         description='''
         Green's function matrix in Matsubara frequencies.
         ''')
@@ -1553,16 +1553,25 @@ class GreensFunctions(MSection):
 
     greens_function_tau = Quantity(
         type=np.complex128,
-        shape=['n_correlated_orbitals', 2, 'n_tau'],
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', 'n_tau'],
         description='''
         Green's function matrix in tau (imaginary time).
         ''')
 
-    occupancies = Quantity(
+    orbital_occupations = Quantity(
         type=np.float64,
-        shape=['n_correlated_orbitals', 2, 'n_correlated_orbitals', 2],
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals'],
         description='''
-        Occupancies of each orbital.
+        Orbital occupation per correlated atom in the unit cell and per spin.
+        ''')
+
+    quasiparticle_weights = Quantity(
+        type=np.float64,
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals'],
+        description='''
+        Quasiparticle weights of each orbital per site and spin. Calculated from:
+            Z = inv(1.0 - d [Re Sigma] / dw at w=0)
+        it takes values ∈ [0.0, 1.0], being Z=1 non-correlated, and Z=0 in a Mott state.
         ''')
 
 

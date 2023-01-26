@@ -151,7 +151,7 @@ class MethodNormalizer():
             method.method_name = "DMFT"
             dmft = DMFT()
             dmft.impurity_solver_type = self.repr_method.dmft.impurity_solver
-            dmft.total_filling = 0.5 * self.repr_method.dmft.n_correlated_electrons / np.sum(repr_method.dmft.n_correlated_orbitals)
+            dmft.total_filling = 0.5 * np.sum(self.repr_method.dmft.n_correlated_electrons) / np.sum(repr_method.dmft.n_correlated_orbitals)
             dmft.inverse_temperature = self.repr_method.dmft.inverse_temperature
             dmft.magnetic_state = self.repr_method.dmft.magnetic_state
             # TODO update U to be U/W when linking between DFT>Projection>DMFT (@ should

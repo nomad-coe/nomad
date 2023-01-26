@@ -775,6 +775,21 @@
     "status": "production",
     "tableOfFiles": ""
   },
+  "soliddmft": {
+    "codeCategory": "Atomistic code",
+    "codeLabel": "soliddmft",
+    "codeLabelStyle": "All in lowercase",
+    "codeName": "solid_dmft",
+    "codeUrl": "https://github.com/TRIQS/solid_dmft",
+    "codeVersion": "",
+    "parserDirName": "dependencies/parsers/electronic/electronicparsers/soliddmft/",
+    "parserGitUrl": "https://github.com/nomad-coe/electronic-parsers.git",
+    "parserLastUpdate": "29.12.2022",
+    "parserSpecific": "",
+    "preamble": "",
+    "status": "production",
+    "tableOfFiles": "| Input Filename | Description |\n| --- | --- |\n| `*.h5` | **Mainfile:** h5 file containing all i/o parameters w/ arbitrary name |\n"
+  },
   "w2dynamics": {
     "codeCategory": "Atomistic code",
     "codeLabel": "w2dynamics",

@@ -129,7 +129,7 @@ def test_method_dmft(dmft):
     assert method.simulation.program_name == "w2dynamics"
     assert method.simulation.dmft.impurity_solver_type == "CT-HYB"
     assert method.simulation.dmft.total_filling == 0.5 / 3.0
-    assert method.simulation.dmft.inverse_temperature == 60.0
+    assert method.simulation.dmft.inverse_temperature.magnitude == 60.0
     assert method.simulation.dmft.magnetic_state == "paramagnetic"
     assert method.simulation.dmft.u.magnitude == 4.0e-19
     assert method.simulation.dmft.hunds_hubbard_ratio == 0.6e-19 / 4.0e-19
