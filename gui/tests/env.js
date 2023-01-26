@@ -541,7 +541,7 @@ window.nomadEnv = {
             ]
           },
           "filters_locked": {
-            "sections": "nomad.datamodel.results.Simulation"
+            "quantities": "results.method.simulation.program_name"
           }
         },
         "materials": {

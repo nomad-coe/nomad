@@ -24,7 +24,7 @@ import EELS from '../../visualization/EELS'
 import { resolveInternalRef } from '../../../utils'
 
 /**
- * Card displaying spectroscopic properties.
+ * Card displaying EELS properties.
 */
 const eelsProperties = {
   detector_type: {label: 'Detector type', align: 'left'},
@@ -32,7 +32,7 @@ const eelsProperties = {
   min_energy: {label: 'Min. energy', align: 'right'},
   max_energy: {label: 'Max. energy', align: 'right'}
 }
-const SpectroscopyCard = React.memo(({index, properties, archive}) => {
+const EELSPropertiesCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
 
   // Find out which properties are present
@@ -54,9 +54,9 @@ const SpectroscopyCard = React.memo(({index, properties, archive}) => {
     }
   }
 
-  return <PropertyCard title="Spectroscopy">
+  return <PropertyCard title="EELS Properties">
     <PropertyGrid>
-      <PropertyItem title="EELS" xs={12} height="25rem">
+      <PropertyItem xs={12} height="25rem">
         <EELS
           data={spectrumCurves}
           layout={{yaxis: {autorange: true}}}
@@ -78,10 +78,10 @@ const SpectroscopyCard = React.memo(({index, properties, archive}) => {
   </PropertyCard>
 })
 
-SpectroscopyCard.propTypes = {
+EELSPropertiesCard.propTypes = {
   index: PropTypes.object.isRequired,
   properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }
 
-export default SpectroscopyCard
+export default EELSPropertiesCard
