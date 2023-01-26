@@ -121,11 +121,9 @@ const InputField = React.memo(({
       : undefined
   }, [initialSize, filterData, quantity])
   const nFixedOptions = fixedOptions && Object.keys(fixedOptions).length
-
   const minSize = disableOptions ? 0 : initialSize || nFixedOptions || filterData[quantity]?.aggs?.terms?.size
   const placeholder = filterData[quantity]?.placeholder || "Type here"
   const [requestedAggSize, setRequestedAggSize] = useState(minSize)
-  const nMaxOptions = fixedOptions && Object.keys(fixedOptions).length
   const incr = useState(increment || minSize)[0]
   const [loading, setLoading] = useState(false)
   const aggConfig = useMemo(() => {
@@ -133,9 +131,10 @@ const InputField = React.memo(({
     // If a fixed list of options is used, we must restrict the aggregation
     // return values with 'include'. Otherwise the returned results may not
     // contain the correct values.
-    if (fixedOptions) config.include = Object.keys(fixedOptions)
+    const options = filterData[quantity]?.options
+    if (options) config.include = Object.keys(options)
     return config
-  }, [minSize, fixedOptions])
+  }, [minSize, filterData, quantity])
   const agg = useAgg(quantity, visible && !disableOptions && !(disableStatistics && fixedOptions), 'scroll', aggConfig)
   const aggCall = useAggCall(quantity, 'scroll')
   const receivedAggSize = agg?.data?.length
@@ -245,7 +244,7 @@ const InputField = React.memo(({
 
     const nItems = agg ? Object.keys(finalOptions).length : minSize
     const didNotReceiveMore = isNil(receivedAggSize) ? false : receivedAggSize < requestedAggSize
-    const noMoreAvailable = isNil(nMaxOptions) ? false : requestedAggSize >= nMaxOptions
+    const noMoreAvailable = isNil(nFixedOptions) ? false : requestedAggSize >= nFixedOptions
     const hide = didNotReceiveMore || noMoreAvailable
     const showMore = fixedOptions
       ? false
@@ -263,7 +262,7 @@ const InputField = React.memo(({
       reservedHeight = nItems > 0 ? (itemHeight + actionHeight) : undefined
     } else if (aggCollapse === 'off') {
       const itemHeight = Math.max(minSize * xs / 12, nRows) * inputItemHeight
-      const allLoaded = !isNil(nMaxOptions) && initialSize >= nMaxOptions
+      const allLoaded = !isNil(nFixedOptions) && initialSize >= nFixedOptions
       const actionHeight = (fixedOptions || allLoaded) ? 0 : actionsHeight
       reservedHeight = itemHeight + actionHeight
     }
@@ -348,7 +347,7 @@ const InputField = React.memo(({
     handleShowMore,
     handleShowLess,
     loading,
-    nMaxOptions,
+    nFixedOptions,
     testID
   ]
   )

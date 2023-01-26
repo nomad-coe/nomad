@@ -32,7 +32,7 @@ import ThermodynamicPropertiesCard from '../entry/properties/ThermodynamicProper
 import DynamicalPropertiesCard from '../entry/properties/DynamicalPropertiesCard'
 import StructuralPropertiesCard from '../entry/properties/StructuralPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
-import SpectroscopyCard from './properties/SpectroscopyCard'
+import EELSPropertiesCard from './properties/EELSPropertiesCardCard'
 import RelatedResourcesCard from '../entry/properties/RelatedResourcesCard'
 import { MethodMetadata } from './EntryDetails'
 import Page from '../Page'
@@ -181,7 +181,7 @@ const OverviewView = React.memo((props) => {
       structural: StructuralPropertiesCard,
       dynamical: DynamicalPropertiesCard,
       geometry_optimization: GeometryOptimizationCard,
-      spectroscopy: SpectroscopyCard,
+      eels: EELSPropertiesCard,
       references: ReferenceUsingCard,
       relatedResources: RelatedResourcesCard
     }
