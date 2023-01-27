@@ -49,15 +49,15 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
 
   // TODO remove useEffect once archive.m_ref_archives is fixed
   useEffect(() => {
-    const dosReferences = archive?.results?.properties?.electronic?.dos_electronic || []
-    const bsReferences = archive?.results?.properties?.electronic?.band_structure_electronic || []
+    let dosReferences = archive?.results?.properties?.electronic?.dos_electronic || []
+    let bsReferences = archive?.results?.properties?.electronic?.band_structure_electronic || []
     const pattern = '\\.\\./(?:entries|upload/archive|uploads.+?archive)/(.+?)(?:/archive#|#)(.+)'
+    if (!Array.isArray(bsReferences)) bsReferences = [bsReferences]
+    if (!Array.isArray(dosReferences)) dosReferences = [dosReferences]
 
     // Resolve DOS data
-    let references = dosReferences
-    if (!Array.isArray(references)) references = [references]
     let dos = []
-    for (const reference of references) {
+    for (const reference of dosReferences) {
       const d = {}
       const match = reference.energies.match(pattern)
       const path = match ? match[2] : reference.energies
@@ -79,13 +79,11 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
     dos = dos.length === 0 ? false : dos
 
     // Resolve band structure data
-    references = bsReferences
-    if (!Array.isArray(references)) references = [references]
     let bs = []
     let brillouin_zone = false
     brillouin_zone = false
     try {
-      for (const reference of references) {
+      for (const reference of bsReferences) {
         const d = {}
         const match = reference.reciprocal_cell.match(pattern)
         const path = match ? match[2] : reference.reciprocal_cell
@@ -117,14 +115,15 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
     let band_gap = []
     function addBandGaps(sections) {
       for (const section of sections || []) {
-        if (section.band_gap) {
-          band_gap.push(...section.band_gap)
-        }
+        if (!section.band_gap) continue
+        band_gap.push(...section.band_gap)
       }
     }
-    addBandGaps(archive?.results?.properties?.electronic?.band_structure_electronic)
+    addBandGaps(bsReferences)
     if (band_gap.length === 0) {
-      addBandGaps(index?.results?.properties?.electronic?.band_structure_electronic)
+      let bsReferencesIndex = index?.results?.properties?.electronic?.band_structure_electronic || []
+      if (!Array.isArray(bsReferencesIndex)) bsReferencesIndex = [bsReferencesIndex]
+      addBandGaps(bsReferencesIndex)
     }
 
     bs = bs.length === 0 ? false : bs
