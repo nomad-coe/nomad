@@ -16,6 +16,8 @@
 # limitations under the License.
 #
 
+from __future__ import annotations
+
 import warnings
 import functools
 import itertools
@@ -26,7 +28,7 @@ import math
 import re
 from string import ascii_uppercase
 from functools import reduce
-from typing import List, Dict, Tuple, Any, Union, Iterable, cast, Callable
+from typing import List, Dict, Tuple, Any, Union, Iterable, cast, Callable, TYPE_CHECKING
 import logging
 from nptyping import NDArray
 
@@ -50,6 +52,9 @@ import MDAnalysis.analysis.rdf as MDA_RDF
 from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
 from nomad.units import ureg
+
+if TYPE_CHECKING:
+    from nomad.datamodel.results import Material
 
 
 def get_summed_atomic_mass(atomic_numbers: NDArray[Any]) -> float:
@@ -728,6 +733,7 @@ class Formula():
         self._count = count
         if len(count) == 0:
             raise ValueError(f'Could not extract any species from the formula "{formula}"')
+        self._original_formula = formula
 
     def count(self) -> Dict[str, int]:
         '''Return dictionary that maps chemical symbol to number of atoms.
@@ -742,6 +748,7 @@ class Formula():
             - iupac: The IUPAC formula (see chemical_formula_iupac)
             - reduced: Reduced formula (see chemical_formula_reduced)
             - anonymous: Anonymized formula (see chemical_formula_anonymous)
+            - original: The originally supplied formula format
         '''
         if fmt == 'hill':
             return self._formula_hill()
@@ -751,6 +758,8 @@ class Formula():
             return self._formula_reduced()
         if fmt == 'anonymous':
             return self._formula_anonymous()
+        if fmt == 'original':
+            return self._original_formula
         else:
             raise ValueError(f'Invalid format option "{fmt}"')
 
@@ -758,6 +767,42 @@ class Formula():
         '''Returns the list of chemical elements present in the formula.
         '''
         return sorted(self.count().keys())
+
+    def atomic_fractions(self) -> Dict[str, float]:
+        '''Returns dictionary that maps chemical symbol to atomic fraction.
+
+        Returns:
+            Dict[str, float]: Dictionary with chemical symbol as key and the atomic
+            fraction as value.
+        '''
+        count = self.count()
+        total_count = sum(count.values())
+        atomic_fractions = {key: value / total_count for key, value in count.items()}
+        return atomic_fractions
+
+    def populate_material(self, material: Material,
+                          descriptive_format: Union[str, None] = 'original') -> None:
+        '''Populates the supplied material object with the list of elements as well as the
+        formulae in the formats: hill, reduced, iupac, anonymous and descriptive.
+        The descriptive formula defaults to the originally supplied formula but can be
+        changed to any other format by supplying the `descriptive_format` argument as:
+        'hill', 'reduced', 'iupac' or 'anonymous'. If descriptive_format is None, no
+        descriptive formula will be added to the material.
+
+        Args:
+            material (Material): The material object to be populated with elements and
+            formulae.
+            descriptive_format (Union[str, None], optional): The format used for the
+            descriptive formula (see `format` method for details). If None, the materials
+            descriptive formula is not set. Defaults to 'original'.
+        '''
+        material.elements = self.elements()
+        material.chemical_formula_hill = self.format('hill')
+        material.chemical_formula_reduced = self.format('reduced')
+        material.chemical_formula_iupac = self.format('iupac')
+        material.chemical_formula_anonymous = self.format('anonymous')
+        if descriptive_format:
+            material.chemical_formula_descriptive = self.format(descriptive_format)
 
     def _remove_parentheses(self, formula: str) -> str:
         '''Used to remove parentheses from a formula. E.g. C(2)O(1) becomes C2O1

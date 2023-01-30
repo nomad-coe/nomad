@@ -1,0 +1,17 @@
+definitions:
+  name: My custom schemas
+  sections:
+    my_ensemble:
+      base_sections: [nomad.datamodel.metainfo.eln.Ensemble, nomad.datamodel.data.EntryData]
+      sub_sections:
+        sample_id:
+          section: nomad.datamodel.metainfo.eln.SampleID
+    my_substance:
+      base_sections: [nomad.datamodel.metainfo.eln.Substance, nomad.datamodel.data.EntryData]
+
+data:
+  m_def: my_ensemble
+  name: My ensemble
+  datetime: 1993-01-01T08:00:00.000000+00:00
+  sample_id:
+    creation_datetime: 1993-01-01T08:00:00.000000+00:00

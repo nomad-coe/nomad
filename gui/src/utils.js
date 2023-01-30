@@ -390,6 +390,9 @@ export function formatInteger(value) {
  * @return {str} The timestamp with new formatting
  */
 export function formatTimestamp(value) {
+  if (isNil(value)) {
+    return value
+  }
   if (value.search(/([+-][0-9]{2}:[0-9]{2}|Z)\b/) === -1) { // search for timezone information
     try {
       // assume UTC timestamp from server and attempt to manually add UTC timezone,
