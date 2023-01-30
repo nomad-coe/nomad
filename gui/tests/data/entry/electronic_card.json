@@ -24,9 +24,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2022-12-19T09:28:50.957865+00:00",
+            "upload_create_time": "2023-01-18T11:17:04.878570+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2022-12-19T09:28:50.960865+00:00",
+            "publish_time": "2023-01-18T11:17:04.881570+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -85,7 +85,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2022-12-19T09:28:50.961865+00:00",
+            "entry_create_time": "2023-01-18T11:17:04.882570+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -131,9 +131,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2022-12-19T09:28:50.957865+00:00",
+            "upload_create_time": "2023-01-18T11:17:04.878570+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2022-12-19T09:28:50.960865+00:00",
+            "publish_time": "2023-01-18T11:17:04.881570+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -192,7 +192,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2022-12-19T09:28:50.961865+00:00",
+            "entry_create_time": "2023-01-18T11:17:04.882570+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -311,14 +311,14 @@
               ],
               "metadata": {
                 "upload_id": "dft_upload",
-                "upload_create_time": "2022-12-19T09:28:50.957865+00:00",
+                "upload_create_time": "2023-01-18T11:17:04.878570+00:00",
                 "entry_id": "dft_bulk",
                 "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2022-12-19T09:28:50.961865+00:00",
+                "entry_create_time": "2023-01-18T11:17:04.882570+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "vasp.xml",
                 "published": true,
-                "publish_time": "2022-12-19T09:28:50.960865+00:00",
+                "publish_time": "2023-01-18T11:17:04.881570+00:00",
                 "with_embargo": false,
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
@@ -479,14 +479,14 @@
               ],
               "metadata": {
                 "upload_id": "dft_upload",
-                "upload_create_time": "2022-12-19T09:28:50.957865+00:00",
+                "upload_create_time": "2023-01-18T11:17:04.878570+00:00",
                 "entry_id": "dft_bulk",
                 "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2022-12-19T09:28:50.961865+00:00",
+                "entry_create_time": "2023-01-18T11:17:04.882570+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "vasp.xml",
                 "published": true,
-                "publish_time": "2022-12-19T09:28:50.960865+00:00",
+                "publish_time": "2023-01-18T11:17:04.881570+00:00",
                 "with_embargo": false,
                 "embargo_length": 0,
                 "license": "CC BY 4.0",

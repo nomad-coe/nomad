@@ -17,6 +17,7 @@
 #
 import pytest
 from nomad.atomutils import Formula
+from nomad.datamodel.results import Material
 
 
 @pytest.mark.parametrize('format, formula, expected_formula', [
@@ -54,6 +55,35 @@ from nomad.atomutils import Formula
     pytest.param('anonymous', 'OH2', 'A2B', id='reversed order'),
     pytest.param('anonymous', 'Cu2ZnSn0.5Ge0.5Se4', 'A8B4C2DE', id='non-integer coefficients'),
     pytest.param('anonymous', 'C2HOZa', 'A2BCD', id='unknown species'),
+    pytest.param('original', 'CsPbBr0.9I2.1', 'CsPbBr0.9I2.1', id='original formula'),
 ])
 def test_formula(formula, format, expected_formula):
     assert Formula(formula).format(format) == expected_formula
+
+
+@pytest.mark.parametrize('formula, expected_fractions', [
+    pytest.param('C1H4', {'C': 1 / 5, 'H': 4 / 5}, id='integer coefficients'),
+    pytest.param('CsPbBr0.9I2.1', {'Cs': 0.2, 'Pb': 0.2, 'Br': 0.18, 'I': 0.42}, id='non-integer coefficients'),
+    pytest.param('HOH', {'H': 2 / 3, 'O': 1 / 3}, id='multiple element occurrences')
+])
+def test_formula_atomic_fraction(formula, expected_fractions):
+    assert Formula(formula).atomic_fractions() == expected_fractions
+
+
+@pytest.mark.parametrize('formula, descriptive_format, expected_formula, elements', [
+    pytest.param('OH2', 'reduced', 'H2O', ['H', 'O'], id='reduced descriptive formula'),
+    pytest.param('I2Pb', 'iupac', 'PbI2', ['Pb', 'I'], id='iupac descriptive formula'),
+    pytest.param('I2Pb', 'original', 'I2Pb', ['Pb', 'I'], id='original descriptive formula'),
+    pytest.param('I2Pb', None, None, ['Pb', 'I'], id='no descriptive formula'),
+])
+def test_formula_material_population(formula, descriptive_format, expected_formula, elements):
+    material = Material()
+    formula_object = Formula(formula)
+    formula_object.populate_material(material=material, descriptive_format=descriptive_format)
+
+    assert material.chemical_formula_descriptive == expected_formula
+    assert sorted(material.elements) == sorted(elements)
+    assert material.chemical_formula_hill is not None
+    assert material.chemical_formula_reduced is not None
+    assert material.chemical_formula_iupac is not None
+    assert material.chemical_formula_anonymous is not None

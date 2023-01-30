@@ -1,0 +1,9 @@
+definitions:
+  name: My custom schemas
+  sections:
+    my_substance:
+      base_sections: [nomad.datamodel.metainfo.eln.Substance, nomad.datamodel.data.EntryData]
+
+data:
+  m_def: my_substance
+  name: Lead Iodide
