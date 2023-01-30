@@ -1581,6 +1581,24 @@ class QuantumCMS(MSection):
     quantum_circuit = SubSection(sub_section=QuantumCircuit)
 
 
+class Precision(MSection):
+    m_def = Section(
+        description='''
+        Contains parameters for controlling or evaluating the convergence of the electronic structure.
+        '''
+    )
+    k_line_density = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='m',
+        description='''
+        Amount of sampled k-points per unit reciprocal length along each axis.
+        Contains the least precise density out of all axes.
+        Should only be compared between calulations of similar dimensionality.
+        '''
+    )
+
+
 class Simulation(MSection):
     m_def = Section(
         description='''
@@ -1610,6 +1628,7 @@ class Simulation(MSection):
     gw = SubSection(sub_section=GW.m_def, repeats=False)
     dmft = SubSection(sub_section=DMFT.m_def, repeats=False)
     quantum_cms = SubSection(sub_section=QuantumCMS.m_def, repeats=False)
+    precision = SubSection(sub_section=Precision.m_def, repeats=False)
 
 
 class Method(MSection):

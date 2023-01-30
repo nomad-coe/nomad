@@ -185,7 +185,7 @@ class Atoms(MSection):
         shape=[3, 3],
         unit='meter',
         description='''
-        Lattice vectors in cartesian coordinates of the simulation cell. The
+        Lattice vectors of the simulation cell in cartesian coordinates. The
         last (fastest) index runs over the $x,y,z$ Cartesian coordinates, and the first
         index runs over the 3 lattice vectors.
         ''')
@@ -195,8 +195,8 @@ class Atoms(MSection):
         shape=[3, 3],
         unit='1/meter',
         description='''
-        Reciprocal lattice vectors in cartesian coordinates of the simulation cell. The
-        first index runs over the $x,y,z$ Cartesian coordinates, and the second index runs
+        Reciprocal lattice vectors of the simulation cell, in cartesian coordinates and with the 2 $pi$ pre-factor.
+        The first index runs over the $x,y,z$ Cartesian coordinates, and the second index runs
         over the 3 lattice vectors.
         ''')
 

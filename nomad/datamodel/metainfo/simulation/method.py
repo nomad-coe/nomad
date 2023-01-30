@@ -32,7 +32,7 @@ m_package = Package()
 
 class KMesh(MSection):
     '''
-    Section containing the values for
+    Contains the settings for a uniformly spaced k-point grid (if employed).
     '''
 
     m_def = Section(validate=False)
@@ -56,14 +56,6 @@ class KMesh(MSection):
         shape=[],
         description='''
         Method used to generate the k points.
-        ''')
-
-    density = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='1 / meter ** 3',
-        description='''
-        Density of k points.
         ''')
 
     points = Quantity(

@@ -17,7 +17,8 @@
 #
 
 import pytest
-import ase.build
+import ase
+import numpy as np
 
 from nomad import datamodel, config
 from nomad.datamodel import EntryArchive
@@ -167,6 +168,16 @@ def assert_normalized(entry_archive: datamodel.EntryArchive):
 
 def test_normalizer(normalized_example: EntryArchive):
     assert_normalized(normalized_example)
+
+
+def test_normalization_atoms(bulk):
+    '''Tests correct value extraction of the system values.
+    '''
+    atoms = bulk.run[0].system[0].atoms
+    reference_lattice = 5.431
+    reference_lattice_reciprocal = 2 * np.pi / reference_lattice
+    assert (atoms.lattice_vectors.to('angstrom').magnitude == reference_lattice * np.identity(3)).all()
+    assert (atoms.lattice_vectors_reciprocal.to('1/angstrom').magnitude == reference_lattice_reciprocal * np.identity(3)).all()
 
 
 def test_normalizer_faulty_matid(caplog):
