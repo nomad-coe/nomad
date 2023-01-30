@@ -16,16 +16,18 @@
 # limitations under the License.
 #
 from abc import ABC, abstractmethod
+from ase.dft.kpoints import monkhorst_pack, get_monkhorst_pack_size_and_offset
 from collections import OrderedDict
 import re
 import numpy as np
-from typing import Tuple, List, Union
+from typing import List, Tuple, Union, Optional
 
 from nomad.units import ureg
 from nomad.metainfo import Section
 from nomad.metainfo.util import MTypes
 from nomad.utils import RestrictedDict
 from nomad import config
+from nomad.datamodel.metainfo.simulation.method import KMesh
 from nomad.datamodel.results import (
     Method,
     Electronic,
@@ -35,6 +37,7 @@ from nomad.datamodel.results import (
     Projection,
     GW,
     DMFT,
+    Precision,
     xc_treatments,
 )
 
@@ -190,11 +193,61 @@ class MethodNormalizer():
             hubbard_kanamori_models = self.hubbard_kanamori_model(methods)
             simulation.dft.hubbard_kanamori_model = hubbard_kanamori_models if len(hubbard_kanamori_models) else None
 
+        # Fill k_mesh section
+        k_mesh = self.run.m_xpath('method[-1].k_mesh')
+        points = self.run.m_xpath('calculation[-1].eigenvalues[-1].kpoints')
+        if k_mesh is None:
+            k_mesh = KMesh()
+            if points is not None:
+                k_mesh.points = points
+                k_mesh.n_points = len(k_mesh.points) if not k_mesh.n_points else k_mesh.n_points
+                k_mesh.grid = [len(set(k_mesh.points[:, i])) for i in range(3)]
+                if not k_mesh.generation_method:
+                    try:  # TODO doublecheck
+                        _, k_grid_offset = get_monkhorst_pack_size_and_offset(k_mesh.points)
+                        if not k_grid_offset.all():
+                            k_mesh.generation_method = "Monkhorst-Pack"
+                    except ValueError:
+                        k_mesh.generation_method = "Gamma-centered"
+            elif k_mesh.grid is not None:
+                k_mesh.n_points = np.prod(k_mesh.grid) if not k_mesh.n_points else k_mesh.n_points
+                if k_mesh.generation_method == "Gamma-centered":
+                    k_mesh.points = np.meshgrid(*[np.linspace(0, 1, n) for n in k_mesh.grid])  # this assumes a gamma-centered grid: we really need the `generation_method` to be sure
+                elif k_mesh.generation_method == "Monkhorst-Pack":
+                    k_mesh.points += monkhorst_pack(k_mesh.grid)
+                # TODO allow shift to be specified in k_mesh
+            if self.run.method and self.run.m_xpath('method[-1].k_mesh') is None:  # save the KMesh object only if it was not already present
+                self.run.method[-1].k_mesh = k_mesh
+
+        # Fill the presicion section
+        k_lattices = self.run.m_xpath('system[-1].atoms.lattice_vectors_reciprocal')
+        grid = self.run.m_xpath('method[-1].k_mesh.grid')
+        k_line_density = self.calc_k_line_density(k_lattices, grid)
+        if k_line_density:
+            if not simulation.precision:
+                simulation.precision = Precision()
+            if not simulation.precision.k_line_density:
+                simulation.precision.k_line_density = k_line_density
+
         method.equation_of_state_id = self.equation_of_state_id(method.method_id, self.material.chemical_formula_hill)
         simulation.program_name = self.run.program.name
         simulation.program_version = self.run.program.version
         method.simulation = simulation
         return method
+
+    def calc_k_line_density(self, k_lattices: List[List[float]], nks: List[int]) -> Optional[float]:
+        """
+        Compute the lowest k_line_density value:
+        k_line_density (for a uniformly spaced grid) is the number of k-points per reciprocal length unit
+        """
+        struc_type = self.material.structural_type
+        if k_lattices is None or nks is None:
+            return None
+        elif struc_type == 'bulk':
+            return min([nk / (np.linalg.norm(k_lattice))
+                        for k_lattice, nk in zip(k_lattices, nks)])
+        else:
+            return None
 
     def hubbard_kanamori_model(self, methods) -> List[HubbardKanamoriModel]:
         """Generate a list of normalized HubbardKanamoriModel for `results.method`"""
@@ -260,7 +313,6 @@ class MethodNormalizer():
         # k-point sampling settings if present. Add number of kpoints as
         # detected from eigenvalues. TODO: we would like to have info on the
         # _reducible_ k-point-mesh:
-        #    - grid dimensions (e.g. [ 4, 4, 8 ])
         #    - or list of reducible k-points
         try:
             smearing_kind = self.repr_method.electronic.smearing.kind

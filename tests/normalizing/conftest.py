@@ -215,6 +215,8 @@ def get_template_eels() -> EntryArchive:
 def get_template_for_structure(atoms: Atoms) -> EntryArchive:
     template = get_template_dft()
     template.run[0].calculation[0].system_ref = None
+    template.run[0].calculation[0].eigenvalues.append(BandEnergies())
+    template.run[0].calculation[0].eigenvalues[0].kpoints = [[0, 0, 0]]
     template.run[0].system = None
 
     # Fill structural information
@@ -1038,6 +1040,14 @@ def band_path_cF_nonstandard() -> EntryArchive:
     '''
     parser_name = 'parsers/exciting'
     filepath = 'tests/data/normalizers/band_structure/cF_nonstandard/INFO.OUT'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def fhiaims_surface_singlepoint() -> EntryArchive:
+    parser_name = 'parsers/fhi-aims'
+    filepath = 'tests/data/normalizers/fhiaims_surface_singlepoint/PBE-light+tight-rho2.out'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 

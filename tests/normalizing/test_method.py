@@ -16,9 +16,28 @@
 # limitations under the License.
 #
 
+import numpy as np
+from nomad.units import ureg
 import pytest
 
-from nomad.units import ureg
+
+def approx(value, abs=0, rel=1e-6):
+    return pytest.approx(value, abs=abs, rel=rel)
+
+
+def test_method_k_mesh(bulk):
+    """K-point mesh from a DFT calculation."""
+    k_mesh = bulk.run[-1].method[-1].k_mesh
+    assert k_mesh.n_points == 1
+    assert k_mesh.grid.tolist() == [1, 1, 1]
+    assert k_mesh.points.tolist() == [[0, 0, 0]]
+
+
+def test_precision(bulk):
+    """Precision from a bulk DFT calculation."""
+    precision = bulk.results.method.simulation.precision
+    lattice_length = bulk.run[0].system[0].atoms.lattice_vectors.magnitude[0, 0]
+    assert precision.k_line_density.magnitude == lattice_length / (2 * np.pi)
 
 
 def test_method_dft(dft):

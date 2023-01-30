@@ -3407,6 +3407,12 @@
     "name": "quantum_circuit",
     "nested": false
   },
+  "results.method.simulation.precision": {
+    "name": "precision",
+    "description": "\n        Contains parameters for controlling or evaluating the convergence of the electronic structure.\n        ",
+    "nested": false,
+    "repeats": false
+  },
   "results.properties": {
     "name": "properties",
     "description": "\n        Contains the physical properties that have been calculated or used in\n        this entry.\n        ",
