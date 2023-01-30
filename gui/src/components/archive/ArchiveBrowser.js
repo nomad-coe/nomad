@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import {
@@ -794,26 +794,38 @@ QuantityValue.propTypes = ({
 const InheritingSections = React.memo(function InheritingSections({def, section, lane}) {
   const dataStore = useDataStore()
   const browser = useContext(browserContext)
-  const handleInheritingSectionsChange = useCallback((e) => {
-    section.m_def = e.target.value
-    browser.invalidateLanesFromIndex(lane.index)
-  }, [section, browser, lane])
+  const originalInheritingSectionsRef = useRef([def, ...dataStore.getAllInheritingSections(def)])
 
-  const allInheritingSections = useMemo(() => {
-    return dataStore.getAllInheritingSections(def)
+  const currentInheritingSections = useMemo(() => {
+    return [def, ...dataStore.getAllInheritingSections(def)]
   }, [dataStore, def])
 
   const getSelectionValue = useCallback((def) => {
     return getUrlFromDefinition(def, {deploymentUrl: apiBase}, true)
   }, [])
 
-  const showSelection = useMemo(() => {
-    if (allInheritingSections.length === 0) {
-      return false
+  const validSections = useMemo(() => {
+    if (Object.keys(section).filter(key => key !== 'm_def').length === 0) {
+      return originalInheritingSectionsRef.current
+    } else {
+      return currentInheritingSections
     }
+  }, [originalInheritingSectionsRef, currentInheritingSections, section])
 
-    return true
-  }, [allInheritingSections])
+  const showSelection = useMemo(() => {
+    return validSections.length > 1
+  }, [validSections])
+
+  const handleInheritingSectionsChange = useCallback((e) => {
+    if (Object.keys(section).filter(key => key !== 'm_def').length !== 0) {
+      if (!currentInheritingSections.includes(e.target.value)) {
+        // TODO show alert dialog
+        return
+      }
+    }
+    section.m_def = e.target.value
+    browser.invalidateLanesFromIndex(lane.index)
+  }, [section, browser, lane, currentInheritingSections])
 
   if (!showSelection) {
     return null
@@ -832,13 +844,10 @@ const InheritingSections = React.memo(function InheritingSections({def, section,
           size="small"
           select
         >
-          <MenuItem key={0} value={getSelectionValue(def)}>
-            {def.name}
-          </MenuItem>
-          {allInheritingSections.map((inheritingSection, i) => {
+          {validSections.map((inheritingSection, i) => {
             const sectionValue = getSelectionValue(inheritingSection)
             return (
-              <MenuItem key={i + 1} value={sectionValue}>
+              <MenuItem key={i} value={sectionValue}>
                 {inheritingSection.name}
               </MenuItem>
             )
