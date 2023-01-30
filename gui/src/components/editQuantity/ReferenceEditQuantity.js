@@ -39,6 +39,7 @@ import EditIcon from '@material-ui/icons/Edit'
 import SectionSelectDialog from '../uploads/SectionSelectDialog'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import AutoComplete from '@material-ui/lab/Autocomplete'
+import {useDataStore} from '../DataStore'
 import SectionSelectAutocomplete from '../uploads/SectionSelectAutocomplete'
 import {Link} from "react-router-dom"
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
@@ -66,12 +67,12 @@ function addIconButtonToEndAdornment(endAdornment, actions) {
 
 function getReferencedSection(quantityDef) {
   const referencedDefinition = quantityDef.type._referencedDefinition
-  const referencedSection = referencedDefinition.m_def === QuantityMDef ? referencedDefinition._section : referencedDefinition
-  return referencedSection
+  return referencedDefinition.m_def === QuantityMDef ? referencedDefinition._section : referencedDefinition
 }
 
 const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFailed, onCanceled}) => {
   const classes = useStyles()
+  const dataStore = useDataStore()
   const {deploymentUrl, uploadId} = useEntryPageContext('*')
   const {user, api} = useApi()
   const {raiseError} = useErrors()
@@ -79,6 +80,7 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
   const [suggestions, setSuggestions] = useState([])
   const [selectedUpload, setSelectedUpload] = useState(null)
   const [askForOverwrite, setAskForOverwrite] = useState(false)
+  const [selectedSection, setSelectedSection] = useState(null)
 
   useEffect(() => {
     const prepareUploads = async () => {
@@ -114,10 +116,19 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
     }
   }, [api, raiseError, uploadId, user?.sub, open])
 
+  const referencedSection = useMemo(() => {
+    const sectionDef = getReferencedSection(quantityDef)
+    setSelectedSection(sectionDef)
+    return sectionDef
+  }, [quantityDef])
+
+  const inheritingSections = useMemo(() => dataStore.getAllInheritingSections(referencedSection), [dataStore, referencedSection])
+  const inheritingSectionsSuggestions = useMemo(() => [referencedSection].concat(inheritingSections), [inheritingSections, referencedSection])
+
   const createNewEntry = useCallback((fileName, overwrite = false) => {
     const archive = {
       data: {
-        m_def: getUrlFromDefinition(getReferencedSection(quantityDef), {deploymentUrl, uploadId: selectedUpload.upload_id}, true)
+        m_def: getUrlFromDefinition(selectedSection, {deploymentUrl, uploadId: selectedUpload.upload_id}, true)
       }
     }
     return new Promise((resolve, reject) => {
@@ -138,7 +149,7 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
           reject(error)
         })
     })
-  }, [quantityDef, deploymentUrl, api, selectedUpload])
+  }, [selectedSection, deploymentUrl, selectedUpload?.upload_id, api])
 
   const handleCreateClick = useCallback(() => {
     createNewEntry(value)
@@ -190,6 +201,15 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
           getOptionLabel={(option) => option.label}
           renderInput={(params) => <TextField {...params} label="Target upload" variant='filled' />}
         />
+        {inheritingSections.length > 0 ? <AutoComplete
+          options={inheritingSectionsSuggestions}
+          style={{width: '100%', paddingBottom: 10}}
+          onChange={(event, value) => setSelectedSection(value)}
+          value={selectedSection}
+          getOptionSelected={(option, value) => option._qualifiedName === value._qualifiedName}
+          getOptionLabel={(option) => option.name}
+          renderInput={(params) => <TextField {...params} label="Inheriting classes" variant='filled' />}
+        /> : ''}
         <TextField
           style={{width: '100%'}}
           label={'Name'}
