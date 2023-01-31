@@ -38,7 +38,7 @@ Depending on the configuration all logs will also be send to a central logstash.
 .. autofunc::nomad.utils.strip
 '''
 
-from typing import List, Iterable
+from typing import List, Iterable, Union, Any, Dict
 from collections import OrderedDict
 from functools import reduce
 import base64
@@ -527,6 +527,48 @@ def flat(obj, prefix=None):
 def deep_get(dictionary, *keys):
     '''
     Helper that can be used to access nested dictionary-like containers using a
-    series of paths given as arguments.
+    series of paths given as arguments. The path can contain dictionary string
+    keys or list indices as integer numbers.
     '''
-    return reduce(lambda d, key: d.get(key) if d else None, keys, dictionary)
+    return reduce(lambda d, key: d[key] if isinstance(key, int) else d.get(key) if d else None, keys, dictionary)
+
+
+def query_list_to_dict(path_list: List[Union[str, int]], value: Any) -> Dict[str, Any]:
+    '''Transforms a list of path fragments into a dictionary query. E.g. the list
+
+    ['run', 0, 'system', 2, 'atoms']
+
+    would be converted into
+
+    {
+        'run:0': {
+            'system:2': {
+                'atoms': <value>
+            }
+        }
+    }
+
+    Args:
+        path_list: List of path fragments
+        value: The value to place inside the final dictionary key
+
+    Returns:
+        A nested dictionary representing the query path.
+
+    '''
+    returned: Dict[str, Any] = {}
+    current = returned
+    n_items = len(path_list)
+    i = 0
+    while i < n_items:
+        name = path_list[i]
+        index = None if i == n_items - 1 else path_list[i + 1]
+        if isinstance(index, int):
+            i += 1
+        else:
+            index = None
+        key = f'{name}{f"[{index}]" if index is not None else ""}'
+        current[key] = value if i == n_items - 1 else {}
+        current = current[key]
+        i += 1
+    return returned

@@ -15,16 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import numpy as np
 from ase import Atoms
 from typing import List, Set, Any, Optional
 from nptyping import NDArray
+from matid import SymmetryAnalyzer
 from matid.symmetry.wyckoffset import WyckoffSet as WyckoffSetMatID
+import matid.geometry
+
 from nomad import atomutils
 from nomad import config
 from nomad.units import ureg
-from nomad.datamodel.metainfo.simulation.system import System
+from nomad.datamodel.metainfo.simulation.system import System, Atoms as NOMADAtoms
 from nomad.datamodel.optimade import Species
 from nomad.datamodel.results import (
     Cell,
@@ -32,8 +34,6 @@ from nomad.datamodel.results import (
     LatticeParameters,
     WyckoffSet,
 )
-from matid import SymmetryAnalyzer
-import matid.geometry
 
 
 def wyckoff_sets_from_matid(wyckoff_sets: List[WyckoffSetMatID]) -> List[WyckoffSet]:
@@ -179,53 +179,49 @@ def cell_from_structure(structure: Structure) -> Cell:
     )
 
 
-def structure_from_ase_atoms(atoms: Atoms, wyckoff_sets: List[WyckoffSetMatID] = None, logger=None) -> Structure:
-    '''Returns a populated instance of the given structure class from an
-    ase.Atoms-object.
+def structure_from_ase_atoms(system: Atoms, wyckoff_sets: List[WyckoffSetMatID] = None, logger=None) -> Structure:
+    '''Returns a populated NOMAD Structure instance from an ase.Atoms-object.
 
     Args:
-        atoms: The system to transform
-        wyckoff_sets: Optional dictionary of Wyckoff sets.
-        logger: Optional logger to use
+        atoms: The system to transform.
 
     Returns:
-        A new Structure created from the given data.
+        NOMAD Structure instance.
     '''
-    if atoms is None:
+    if system is None:
         return None
     struct = Structure()
-    labels = atoms.get_chemical_symbols()
-    atomic_numbers = atoms.get_atomic_numbers()
-    struct.species_at_sites = atoms.get_chemical_symbols()
-    struct.cartesian_site_positions = atoms.get_positions() * ureg.angstrom
+    labels = system.get_chemical_symbols()
+    atomic_numbers = system.get_atomic_numbers()
+    struct.species_at_sites = system.get_chemical_symbols()
+    struct.cartesian_site_positions = system.get_positions() * ureg.angstrom
     struct.species = species(labels, atomic_numbers, logger)
-    lattice_vectors = atoms.get_cell()
+    lattice_vectors = system.get_cell()
     if lattice_vectors is not None:
         lattice_vectors = (lattice_vectors * ureg.angstrom).to(ureg.meter).magnitude
-        struct.dimension_types = [1 if x else 0 for x in atoms.get_pbc()]
+        struct.dimension_types = [1 if x else 0 for x in system.get_pbc()]
         struct.lattice_vectors = lattice_vectors
         cell_volume = atomutils.get_volume(lattice_vectors)
         struct.cell_volume = cell_volume
-        if atoms.get_pbc().all() and cell_volume:
+        if system.get_pbc().all() and cell_volume:
             mass = atomutils.get_summed_atomic_mass(atomic_numbers)
             struct.mass_density = mass / cell_volume
-            struct.atomic_density = len(atoms) / cell_volume
+            struct.atomic_density = len(system) / cell_volume
         if wyckoff_sets:
             struct.wyckoff_sets = wyckoff_sets_from_matid(wyckoff_sets)
         struct.lattice_parameters = lattice_parameters_from_array(lattice_vectors)
     return struct
 
 
-def structure_from_nomad_atoms(system: System, logger=None) -> Structure:
-    '''Returns a populated instance of the given structure class from a
-    NOMAD System-section.
+def structure_from_nomad_system(system: System, logger=None) -> Structure:
+    '''Returns a populated NOMAD Structure instance from a NOMAD System.
 
     Args:
-        system: The system to transform
+        system: The system to transform.
         logger: Optional logger to use
 
     Returns:
-        A new Structure created from the given data.
+        NOMAD Structure instance.
     '''
     if system is None:
         return None
@@ -249,6 +245,69 @@ def structure_from_nomad_atoms(system: System, logger=None) -> Structure:
             struct.atomic_density = len(system.atoms.labels) / cell_volume
         struct.lattice_parameters = lattice_parameters_from_array(lattice_vectors)
     return struct
+
+
+def nomad_atoms_from_ase_atoms(system: Atoms) -> NOMADAtoms:
+    '''Returns a populated NOMAD Atoms instance from an ase.Atoms-object.
+
+    Args:
+        atoms: The system to transform.
+
+    Returns:
+        NOMAD Atoms instance.
+    '''
+    if system is None:
+        return None
+
+    atoms = NOMADAtoms()
+    atoms.positions = system.get_positions() * ureg.angstrom
+    atoms.labels = system.get_chemical_symbols()
+    atoms.atomic_numbers = system.get_atomic_numbers()
+    atoms.species = atoms.atomic_numbers
+    atoms.lattice_vectors = system.get_cell() * ureg.angstrom
+    atoms.periodic = system.get_pbc()
+
+    return atoms
+
+
+def ase_atoms_from_nomad_atoms(system: NOMADAtoms) -> Atoms:
+    '''Returns a populated ase.Atoms instance from a NOMAD Atoms instance.
+
+    Args:
+        system: The system to transform.
+
+    Returns:
+        ase.Atoms instance.
+    '''
+    return Atoms(
+        positions=system.positions.to(ureg.angstrom),
+        numbers=system.atomic_numbers,
+        cell=system.lattice_vectors.to(ureg.angstrom),
+        pbc=system.periodic
+    )
+
+
+def ase_atoms_from_structure(system: Structure) -> Atoms:
+    '''Returns an instance of ASE.Atoms from a NOMAD Structure-section.
+
+    Args:
+        system: The system to transform
+
+    Returns:
+        A new ASE.Atoms created from the given data.
+    '''
+    symbol_map = {}
+    for species in system.species:
+        assert len(species.chemical_symbols) == 1, "Unable to transform system with multi-species sites as ASE.Atoms."
+        symbol_map[species.name] = species.chemical_symbols[0]
+    symbols = [symbol_map[x] for x in system.species_at_sites]
+
+    return Atoms(
+        positions=system.cartesian_site_positions.to(ureg.angstrom),
+        symbols=symbols,
+        cell=system.lattice_vectors.to(ureg.angstrom),
+        pbc=np.array(system.dimension_types, dtype=bool)
+    )
 
 
 def structures_2d(original_atoms, logger=None):

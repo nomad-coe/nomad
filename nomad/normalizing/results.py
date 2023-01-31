@@ -27,12 +27,16 @@ import matid.geometry
 from nomad import config
 from nomad import atomutils
 from nomad.atomutils import Formula
-from nomad.normalizing.common import structure_from_ase_atoms, structure_from_nomad_atoms, structures_2d
 from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
 from nomad.datamodel.optimade import Species
 from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
+from nomad.normalizing.common import (
+    structure_from_ase_atoms,
+    structure_from_nomad_system,
+    structures_2d
+)
 from nomad.datamodel.results import (
     BandGapElectronic,
     RadialDistributionFunction,
@@ -483,7 +487,7 @@ class ResultsNormalizer(Normalizer):
                 geo_opt_wf = workflow.geometry_optimization
                 geo_opt.trajectory = workflow.calculations_ref
                 system_ref = workflow.calculation_result_ref.system_ref
-                structure_optimized = structure_from_nomad_atoms(system_ref)
+                structure_optimized = structure_from_nomad_system(system_ref)
                 if structure_optimized:
                     geo_opt.structure_optimized = structure_optimized
                 if geo_opt_wf is not None:

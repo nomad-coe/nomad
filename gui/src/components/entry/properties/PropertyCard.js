@@ -52,23 +52,41 @@ const gridSpacing = 2
  */
 const usePropertyCardStyles = makeStyles(theme => ({
   header: {
-    paddingBottom: theme.spacing(1)
+    paddingBottom: theme.spacing(1),
+    minHeight: 0,
+    flexGrow: '0'
+  },
+  content: {
+    height: '100%',
+    width: '100%',
+    boxSizing: 'border-box',
+    minHeight: 0
   },
   action: {
     marginRight: theme.spacing(0),
     marginTop: theme.spacing(0)
+  },
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    width: '100%'
   }
 }))
 export function PropertyCard({className, children, ...headerProps}) {
   const styles = usePropertyCardStyles()
 
   return <Card className={className} data-testid='property-card'>
-    <CardHeader
-      {...headerProps}
-      className={styles.header}
-      classes={{action: styles.action}}
-    />
-    {children}
+    <div className={styles.container}>
+      <CardHeader
+        {...headerProps}
+        className={styles.header}
+        classes={{action: styles.action}}
+      />
+      <CardContent className={styles.content}>
+        {children}
+      </CardContent>
+    </div>
   </Card>
 }
 PropertyCard.propTypes = {
@@ -82,9 +100,15 @@ PropertyCard.propTypes = {
 /**
  * For displaying actions at the bottom of a PropertyCard.
  */
+const usePropertyCardActionsStyles = makeStyles(theme => ({
+  root: {
+    marginLeft: 'auto'
+  }
+}))
 export function PropertyCardActions({children}) {
+  const styles = usePropertyCardActionsStyles()
   return <CardActions disableSpacing>
-    <div style={{marginLeft: 'auto'}}>
+    <div className={styles.root}>
       {children}
     </div>
   </CardActions>
@@ -124,11 +148,9 @@ PropertyTitle.propTypes = {
  * For displaying a row of properties, typically within a PropertyCard.
  */
 export function PropertyGrid({className, children}) {
-  return <CardContent>
-    <Grid container spacing={gridSpacing} className={className}>
-      {children}
-    </Grid>
-  </CardContent>
+  return <Grid container spacing={gridSpacing} className={className} style={{height: '100%'}}>
+    {children}
+  </Grid>
 }
 
 PropertyGrid.propTypes = {

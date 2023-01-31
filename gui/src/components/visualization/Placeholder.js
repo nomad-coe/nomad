@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 import React, { useMemo } from 'react'
+import { isArray } from 'lodash'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { Skeleton } from '@material-ui/lab'
 import PropTypes from 'prop-types'
@@ -35,13 +36,6 @@ const useStyles = makeStyles(theme => ({
     height: '100%',
     position: 'relative'
   },
-  placeholder: {
-    position: 'absolute',
-    top: theme.spacing(1),
-    left: theme.spacing(2),
-    right: theme.spacing(2),
-    bottom: theme.spacing(1)
-  },
   skeleton: {
     width: '100%',
     height: '100%'
@@ -52,24 +46,35 @@ const Placeholder = React.memo(({
   classes,
   'data-testid':
   testID,
-  margin,
-  ...other
+  margin
 }) => {
   const styles = useStyles({classes: classes})
   const theme = useTheme()
   const margins = useMemo(() => {
+    let marginTop, marginRight, marginBottom, marginLeft
+    if (isArray(margin)) {
+      marginTop = margin[0]
+      marginRight = margin[1]
+      marginBottom = margin[2]
+      marginLeft = margin[3]
+    } else {
+      marginTop = margin
+      marginRight = margin
+      marginBottom = margin
+      marginLeft = margin
+    }
     return {
       position: 'absolute',
-      top: theme.spacing(margin),
-      left: theme.spacing(margin),
-      right: theme.spacing(margin),
-      bottom: theme.spacing(margin)
+      top: theme.spacing(marginTop),
+      left: theme.spacing(marginLeft),
+      right: theme.spacing(marginRight),
+      bottom: theme.spacing(marginBottom)
     }
-  }, [margin, theme])
+  }, [theme, margin])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <div style={margins}>
-      <Skeleton variant='rect' className={styles.skeleton} {...other} />
+      <Skeleton variant='rect' className={styles.skeleton}/>
     </div>
   </div>
 })
@@ -78,14 +83,14 @@ Placeholder.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
   /**
-   * Placeholder margin with respect to the parent in theme spacing units.
+   * Margin with respect to the parent in theme spacing units.
    */
   margin: PropTypes.oneOfType([PropTypes.number, PropTypes.arrayOf(PropTypes.number)]),
   'data-testid': PropTypes.string
 }
 
 Placeholder.defaultProps = {
-  margin: 0
+  margin: [0, 1, 0, 1]
 }
 
 export default Placeholder

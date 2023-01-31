@@ -603,65 +603,65 @@ def test_topology_calculation(pbc):
     expected_pbc = np.zeros(3, bool)
     expected_pbc[:] = pbc
     assert original.atoms_ref.dimension_types == expected_pbc.tolist()
-    assert original.formula_hill == "H4O2"
-    assert original.formula_reduced == "H2O"
-    assert original.formula_anonymous == "A2B"
+    assert original.chemical_formula_hill == "H4O2"
+    assert original.chemical_formula_reduced == "H2O"
+    assert original.chemical_formula_anonymous == "A2B"
     assert original.elements == ["H", "O"]
     assert original.n_elements == 2
     assert original.n_atoms == 6
     assert original.parent_system is None
-    assert original.child_systems == ['/results/material/topology/1']
+    assert original.child_systems == ['results/material/topology/1']
 
     # Test molecule group
     mol_group = topology[1]
     assert mol_group.structural_type == "group"
     assert np.array_equal(mol_group.indices, [[0, 1, 2, 3, 4, 5]])
-    assert original.formula_hill == "H4O2"
-    assert original.formula_reduced == "H2O"
-    assert original.formula_anonymous == "A2B"
+    assert original.chemical_formula_hill == "H4O2"
+    assert original.chemical_formula_reduced == "H2O"
+    assert original.chemical_formula_anonymous == "A2B"
     assert mol_group.elements == ["H", "O"]
     assert mol_group.n_elements == 2
     assert mol_group.n_atoms == 6
-    assert mol_group.parent_system == '/results/material/topology/0'
-    assert mol_group.child_systems == ['/results/material/topology/2']
+    assert mol_group.parent_system == 'results/material/topology/0'
+    assert mol_group.child_systems == ['results/material/topology/2']
 
     # Test molecule
     mol = topology[2]
     assert mol.structural_type == "molecule"
     assert np.array_equal(mol.indices, [[0, 1, 2], [3, 4, 5]])
-    assert mol.formula_hill == "H2O"
-    assert mol.formula_reduced == "H2O"
-    assert mol.formula_anonymous == "A2B"
+    assert mol.chemical_formula_hill == "H2O"
+    assert mol.chemical_formula_reduced == "H2O"
+    assert mol.chemical_formula_anonymous == "A2B"
     assert mol.elements == ["H", "O"]
     assert mol.n_elements == 2
     assert mol.n_atoms == 3
-    assert mol.parent_system == '/results/material/topology/1'
-    assert mol.child_systems == ['/results/material/topology/3']
+    assert mol.parent_system == 'results/material/topology/1'
+    assert mol.child_systems == ['results/material/topology/3']
 
     # Test monomer group
     mon_group = topology[3]
     assert mon_group.structural_type == "group"
     assert np.array_equal(mon_group.indices, [[0, 1]])
-    assert mon_group.formula_hill == "H2"
-    assert mon_group.formula_reduced == "H"
-    assert mon_group.formula_anonymous == "A"
+    assert mon_group.chemical_formula_hill == "H2"
+    assert mon_group.chemical_formula_reduced == "H"
+    assert mon_group.chemical_formula_anonymous == "A"
     assert mon_group.elements == ["H"]
     assert mon_group.n_elements == 1
     assert mon_group.n_atoms == 2
-    assert mon_group.parent_system == '/results/material/topology/2'
-    assert mon_group.child_systems == ['/results/material/topology/4']
+    assert mon_group.parent_system == 'results/material/topology/2'
+    assert mon_group.child_systems == ['results/material/topology/4']
 
     # Test monomer
     mon = topology[4]
     assert mon.structural_type == "monomer"
     assert np.array_equal(mon.indices, [[0, 1]])
-    assert mon.formula_hill == "H2"
-    assert mon.formula_reduced == "H"
-    assert mon.formula_anonymous == "A"
+    assert mon.chemical_formula_hill == "H2"
+    assert mon.chemical_formula_reduced == "H"
+    assert mon.chemical_formula_anonymous == "A"
     assert mon.elements == ["H"]
     assert mon.n_elements == 1
     assert mon.n_atoms == 2
-    assert mon.parent_system == '/results/material/topology/3'
+    assert mon.parent_system == 'results/material/topology/3'
     assert mon.child_systems is None
 
 
@@ -706,10 +706,10 @@ def test_surface_2D_topology(surface, ref_topologies):
     # Compare topology with reference system topology. topology[0] is the original system
     assert len(subsystem_topologies) == len(ref_topologies)
     for subsystem_topology in subsystem_topologies:
-        formula_hill = subsystem_topology['formula_hill']
+        formula_hill = subsystem_topology['chemical_formula_hill']
         for ref_top_counter, ref_topology in enumerate(ref_topologies):
-            if ref_topology['formula_hill'] == formula_hill:
-                ref_formula_hill = ref_topology['formula_hill']
+            if ref_topology['chemical_formula_hill'] == formula_hill:
+                ref_formula_hill = ref_topology['chemical_formula_hill']
                 ref_index = ref_top_counter
                 break
         ref_elements = ref_topologies[ref_index]['elements']

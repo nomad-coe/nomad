@@ -101,8 +101,8 @@ const overviewArchiveFilter = Object.freeze({
     material: '*',
     method: '*',
     properties: {
-      structures: '*',
       structural: '*',
+      structures: '*',
       dynamical: '*',
       electronic: 'include-resolved',
       mechanical: 'include-resolved',
