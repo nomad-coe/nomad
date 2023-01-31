@@ -78,13 +78,11 @@ function SectionSelectAutocomplete(props) {
   const dataStore = useDataStore()
   const [suggestionInput, setSuggestionInput] = useState('')
   const {url} = useEntryPageContext() || {}
-  const [sections, setSections] = useState([])
   const [entries, setEntries] = useState([])
   const [selectedEntry, setSelectedEntry] = useState(undefined)
   const [suggestions] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput)
   const [inputValue, setInputValue] = useState('')
   const [options, setOptions] = useState([])
-  const [referencedValue, setReferencedValue] = useState(null)
   const [internalError, setInternalError] = useState('')
 
   useEffect(() => {
@@ -114,7 +112,13 @@ function SectionSelectAutocomplete(props) {
     }
     api.post(`entries/query`, requestBody).then(response => {
       const data = response?.data?.map(entry => {
-        return {upload_id: entry.upload_id, entry_id: entry.entry_id, mainfile: entry.mainfile, entry_name: entry.entry_name, menuType: 'entry'}
+        return {
+          upload_id: entry.upload_id,
+          entry_id: entry.entry_id,
+          mainfile: entry.mainfile,
+          entry_name: entry.entry_name,
+          shownValue: '',
+          menuType: 'entry'}
       })
       const notFoundEntries = new Set()
       entryNames.forEach(entryName => {
@@ -144,16 +148,18 @@ function SectionSelectAutocomplete(props) {
   }, [handleInputValueChange])
 
   const handleInputChange = useCallback((event, value) => {
-    setInputValue(value)
-    debouncedHandleInputChange(value)
+    if (event?.type === 'change') {
+      setInputValue(value)
+      debouncedHandleInputChange(value)
+    }
   }, [debouncedHandleInputChange])
 
   useEffect(() => {
     const newOptions = []
     entries.forEach(entry => {
       newOptions.push(entry)
-      if (selectedEntry && entry.entry_id === selectedEntry) {
-        sections.forEach(section => {
+      if (selectedEntry && entry.entry_id === selectedEntry.entryId) {
+        selectedEntry.sections.forEach(section => {
           newOptions.push(section)
         })
       }
@@ -161,40 +167,30 @@ function SectionSelectAutocomplete(props) {
     if (options.length !== newOptions.length || !options.every((option, index) => option === newOptions[index])) {
       setOptions(newOptions)
     }
-  }, [entries, options, sections, selectedEntry])
-
-  const setValue = useCallback((value) => {
-    const referencedValue = options && options.length > 0 && options.find(option => getOptionSelected(option, value))
-    if (referencedValue) {
-      setInputValue(referencedValue.shownValue)
-      setReferencedValue(referencedValue)
-    } else {
-      setInputValue('')
-      setReferencedValue(null)
-    }
-  }, [options])
+  }, [entries, options, selectedEntry])
 
   const handleChange = useCallback((_, value) => {
-    setValue(value)
+    setInputValue(value?.shownValue || '')
     onValueChanged(value)
-  }, [onValueChanged, setValue])
+  }, [onValueChanged])
 
   const setSection = useCallback((sections, value, updateInputValue) => {
-    setSections(sections)
-    setSelectedEntry(value.entry_id)
+    setSelectedEntry({entryId: value.entry_id, sections: sections})
     if (updateInputValue) {
       setInputValue(`${value.mainfile}#`)
     } else {
-      if (!sections.find(section => section.value === value?.value)) {
+      const section = sections.find(section => section.value === value?.value)
+      if (!section) {
         onError('The provided path does not exist')
-        setInputValue(value?.archive?.mainfile ? `${value.archive.mainfile}#${value?.value}` : '')
-        setReferencedValue(null)
+        setInputValue(value?.archive?.mainfile ? (value?.value && value.value !== '/data' && value.value !== 'data' ? `${value.archive.mainfile}#${value?.value}` : value.archive.mainfile) : '')
+      } else {
+        setInputValue(section.shownValue)
       }
     }
   }, [onError])
 
   const loadSections = useCallback((value, updateInputValue = false) => {
-    if (filtersLocked.entry_type?.has('Schema')) {
+    if (filtersLocked.entry_type?.includes('Schema')) {
       getSchemaInfo(globalMetainfo, value.entry_id)
         .then(sections => setSection(sections, value, updateInputValue))
     } else {
@@ -205,25 +201,15 @@ function SectionSelectAutocomplete(props) {
 
   useEffect(() => {
     if (!internalError) {
-      if (value?.entry_id && value?.value && inputValue === '') {
+      if (value?.entry_id && value?.value) {
         loadSections(value)
       }
     }
-  }, [inputValue, internalError, loadSections, onError, value])
-
-  useEffect(() => {
-    if (!internalError) {
-      if (value?.entry_id && value?.value && inputValue === '') {
-        if (options.find(option => option.value === value?.value)) {
-          setValue(value)
-        }
-      }
-    }
-  }, [inputValue, internalError, onError, options, setValue, value])
+  }, [internalError, loadSections, onError, value])
 
   const handleEntryClicked = useCallback((event, option) => {
     event.stopPropagation()
-    if (selectedEntry !== undefined && option.entry_id === selectedEntry) {
+    if (selectedEntry !== undefined && option.entry_id === selectedEntry.entryId) {
       setSelectedEntry(undefined)
     } else {
       loadSections(option, true)
@@ -231,7 +217,7 @@ function SectionSelectAutocomplete(props) {
   }, [loadSections, selectedEntry])
 
   if (options === undefined) {
-    return ''
+    return null
   }
 
   const renderOption = (option, props) => {
@@ -260,16 +246,17 @@ function SectionSelectAutocomplete(props) {
   }
 
   return <Autocomplete
-      value={referencedValue}
+      value={value || null}
       getOptionSelected={getOptionSelected}
       options={options}
       onInputChange={handleInputChange}
       onChange={handleChange}
-      getOptionLabel={(option) => option.menuType !== 'entry' ? option?.shownValue : ''}
+      getOptionLabel={(option) => option.shownValue || ''}
       filterOptions={filterOptions}
       renderInput={renderInput}
       renderOption={renderOption}
       inputValue={inputValue}
+      freeSolo
   />
 }
 SectionSelectAutocomplete.propTypes = {

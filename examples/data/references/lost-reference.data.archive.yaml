@@ -1,3 +1,0 @@
-data:
-  m_def: ../upload/raw/test.schema.archive.yaml#definitions/section_definitions/Powder_mixture
-  test_1: "../uploads/eln_upload_id/archive/wrong_entry_id#data/mySample/mySubstance"

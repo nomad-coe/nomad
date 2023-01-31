@@ -1,0 +1,8 @@
+data:
+  m_def: ../upload/raw/baseSections.schema.archive.yaml#/definitions/section_definitions/Sample
+  comment: my comment
+  mySubstance:
+    name: mySubstance1
+  myMethod:
+    name: myMethod1
+

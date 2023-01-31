@@ -1,0 +1,12 @@
+data:
+  m_def: ../upload/raw/baseSections.schema.archive.yaml#/definitions/section_definitions/Structure
+  comment: my comment
+  mySubstance:
+    name: mySubstance1
+  mySample:
+    name: mySample1
+    mySubstance:
+      name: mySubstance2
+    myTest:
+      name: myTest1
+

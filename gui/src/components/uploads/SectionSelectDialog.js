@@ -128,8 +128,11 @@ export async function getSchemaInfo(globalMetainfo, entry_id) {
   return sectionDefs.map(sectionDef => {
     return {
       label: sectionDef.name,
+      mainfile: schemaArchive?.metadata?.mainfile,
+      entry_name: schemaArchive?.metadata?.entry_name,
       entry_id: schemaArchive.metadata.entry_id,
       value: sectionDef.name,
+      shownValue: `${schemaArchive?.metadata?.mainfile}#${sectionDef.name}`,
       data: {sectionDef: sectionDef, archive: schemaArchive}
     }
   })

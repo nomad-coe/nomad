@@ -1,0 +1,17 @@
+definitions:
+  name: 'Set your name here'
+  sections:
+    SubstanceExtended:
+      base_section: ../upload/references_upload_id1/archive/-ld_4ohLePE2oOcfX_CYa9oiu_1l#SubstanceExtended
+      quantities:
+        nameExtended:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        commentExtended:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+
