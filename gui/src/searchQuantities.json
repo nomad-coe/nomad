@@ -1529,26 +1529,17 @@
       "type_data": "str"
     }
   },
-  "results.material.topology.formula_hill": {
-    "name": "formula_hill",
-    "description": "The chemical formula for a structure in Hill form with element\nsymbols followed by non-reduced integer chemical proportion numbers.\nThe proportion number is omitted if it is 1.",
+  "results.material.topology.chemical_formula_descriptive": {
+    "name": "chemical_formula_descriptive",
+    "description": "The chemical formula for a structure as a string in a form chosen by the API\nimplementation.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
     },
     "suggestion": true
   },
-  "results.material.topology.formula_iupac": {
-    "name": "formula_iupac",
-    "description": "Formula where the elements are ordered using a formal list loosely\nbased on electronegativity as defined in the IUPAC nomenclature of\ninorganic chemistry (2005). Contains reduced integer chemical\nproportion numbers where the proportion number is omitted if it is\n1.",
-    "type": {
-      "type_kind": "python",
-      "type_data": "str"
-    },
-    "suggestion": true
-  },
-  "results.material.topology.formula_reduced": {
-    "name": "formula_reduced",
+  "results.material.topology.chemical_formula_reduced": {
+    "name": "chemical_formula_reduced",
     "description": "Alphabetically sorted chemical formula with reduced integer chemical\nproportion numbers. The proportion number is omitted if it is 1.",
     "type": {
       "type_kind": "python",
@@ -1556,8 +1547,26 @@
     },
     "suggestion": true
   },
-  "results.material.topology.formula_anonymous": {
-    "name": "formula_anonymous",
+  "results.material.topology.chemical_formula_hill": {
+    "name": "chemical_formula_hill",
+    "description": "The chemical formula for a structure in Hill form with element\nsymbols followed by non-reduced integer chemical proportion numbers.\nThe proportion number is omitted if it is 1.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    },
+    "suggestion": true
+  },
+  "results.material.topology.chemical_formula_iupac": {
+    "name": "chemical_formula_iupac",
+    "description": "Formula where the elements are ordered using a formal list loosely\nbased on electronegativity as defined in the IUPAC nomenclature of\ninorganic chemistry (2005). Contains reduced integer chemical\nproportion numbers where the proportion number is omitted if it is\n1.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "str"
+    },
+    "suggestion": true
+  },
+  "results.material.topology.chemical_formula_anonymous": {
+    "name": "chemical_formula_anonymous",
     "description": "Formula with the elements ordered by their reduced integer chemical\nproportion number, and the chemical species replaced by\nalphabetically ordered letters. The proportion number is omitted if\nit is 1. E.g.  H2O becomes A2B and H2O2 becomes AB. The letters are\ndrawn from the english alphabet that may be extended by increasing\nthe number of letters, e.g. A, B, ..., Z, Aa, Ab and so on. This\ndefinition is in line with the similarly named OPTIMADE definition.",
     "type": {
       "type_kind": "python",
@@ -1565,9 +1574,9 @@
     },
     "suggestion": true
   },
-  "results.material.topology.formula_reduced_fragments": {
-    "name": "formula_reduced_fragments",
-    "description": "The reduced formula separated into individual terms containing both the atom\ntype and count. Used for searching parts of a formula.",
+  "results.material.topology.chemical_formula_reduced_fragments": {
+    "name": "chemical_formula_reduced_fragments",
+    "description": "Alphabetically sorted chemical formula with reduced integer chemical\nproportion numbers. The proportion number is omitted if it is 1.",
     "type": {
       "type_kind": "python",
       "type_data": "str"
@@ -1603,85 +1612,6 @@
       "type_data": "int"
     },
     "shape": []
-  },
-  "results.material.topology.atoms.nperiodic_dimensions": {
-    "name": "nperiodic_dimensions",
-    "description": "An integer specifying the number of periodic dimensions in the\nstructure, equivalent to the number of non-zero entries in\ndimension_types.",
-    "type": {
-      "type_kind": "python",
-      "type_data": "int"
-    }
-  },
-  "results.material.topology.atoms.n_sites": {
-    "name": "n_sites",
-    "description": "An integer specifying the length of the cartesian_site_positions property.",
-    "type": {
-      "type_kind": "python",
-      "type_data": "int"
-    }
-  },
-  "results.material.topology.atoms.cell_volume": {
-    "name": "cell_volume",
-    "description": "Volume of the cell.",
-    "type": {
-      "type_kind": "numpy",
-      "type_data": "float64"
-    },
-    "unit": "meter ** 3"
-  },
-  "results.material.topology.atoms.lattice_parameters.a": {
-    "name": "a",
-    "description": "Length of the first basis vector.",
-    "type": {
-      "type_kind": "numpy",
-      "type_data": "float64"
-    },
-    "unit": "meter"
-  },
-  "results.material.topology.atoms.lattice_parameters.b": {
-    "name": "b",
-    "description": "Length of the second basis vector.",
-    "type": {
-      "type_kind": "numpy",
-      "type_data": "float64"
-    },
-    "unit": "meter"
-  },
-  "results.material.topology.atoms.lattice_parameters.c": {
-    "name": "c",
-    "description": "Length of the third basis vector.",
-    "type": {
-      "type_kind": "numpy",
-      "type_data": "float64"
-    },
-    "unit": "meter"
-  },
-  "results.material.topology.atoms.lattice_parameters.alpha": {
-    "name": "alpha",
-    "description": "Angle between second and third basis vector.",
-    "type": {
-      "type_kind": "numpy",
-      "type_data": "float64"
-    },
-    "unit": "radian"
-  },
-  "results.material.topology.atoms.lattice_parameters.beta": {
-    "name": "beta",
-    "description": "Angle between first and third basis vector.",
-    "type": {
-      "type_kind": "numpy",
-      "type_data": "float64"
-    },
-    "unit": "radian"
-  },
-  "results.material.topology.atoms.lattice_parameters.gamma": {
-    "name": "gamma",
-    "description": "Angle between first and second basis vector.",
-    "type": {
-      "type_kind": "numpy",
-      "type_data": "float64"
-    },
-    "unit": "radian"
   },
   "results.material.topology.system_relation.type": {
     "name": "type",
@@ -3310,25 +3240,7 @@
   },
   "results.material.topology.atoms": {
     "name": "atoms",
-    "description": "\n        Describes an atomistic structure.\n        ",
-    "nested": false,
-    "repeats": true
-  },
-  "results.material.topology.atoms.species": {
-    "name": "species",
-    "description": "Used to describe the species of the sites of this structure. Species can be pure chemical elements, or virtual-crystal atoms representing a statistical occupation of a\ngiven site by multiple chemical elements.",
-    "nested": false,
-    "repeats": true
-  },
-  "results.material.topology.atoms.lattice_parameters": {
-    "name": "lattice_parameters",
-    "description": "\n        Lattice parameters of a cell.\n        ",
-    "nested": false,
-    "repeats": true
-  },
-  "results.material.topology.atoms.wyckoff_sets": {
-    "name": "wyckoff_sets",
-    "description": "\n        Section for storing Wyckoff set information. Only available for\n        conventional cells that have undergone symmetry analysis.\n        ",
+    "description": "Describes the atomic structure of the physical system. This includes the atom positions, lattice vectors, etc.",
     "nested": false,
     "repeats": true
   },

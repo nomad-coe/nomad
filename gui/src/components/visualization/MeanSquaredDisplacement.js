@@ -129,7 +129,6 @@ const MeanSquaredDisplacement = React.memo(({
 
   const plots = useMemo(() => {
     const plots = []
-    console.log(finalData)
     finalData && Object.entries(finalData).forEach(([type, values]) => {
       const title = `${capitalize(type)} mean squared displacements`
       plots.push(

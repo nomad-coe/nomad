@@ -15,8 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import { Typography, makeStyles } from '@material-ui/core'
+import React, { useMemo } from 'react'
+import { isArray } from 'lodash'
+import { Typography, makeStyles, useTheme } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 
@@ -31,24 +32,16 @@ import clsx from 'clsx'
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
-    height: '100%'
-  },
-  relative: {
-    width: '100%',
     height: '100%',
     position: 'relative'
   },
   placeholder: {
-    position: 'absolute',
-    top: theme.spacing(0),
-    left: theme.spacing(1),
-    right: theme.spacing(1),
-    bottom: theme.spacing(0),
+    width: '100%',
+    height: '100%',
     backgroundColor: theme.palette.grey[100],
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: theme.spacing(0.5)
+    justifyContent: 'center'
   },
   message: {
     color: theme.palette.primary.main,
@@ -57,11 +50,37 @@ const useStyles = makeStyles(theme => ({
     userSelect: 'none'
   }
 }))
-export default function NoData({className, classes, 'data-testid': testID}) {
-  const styles = useStyles({classes: classes})
+export default function NoData({
+  className,
+  margin,
+  'data-testid': testID
+}) {
+  const styles = useStyles()
+  const theme = useTheme()
+  const margins = useMemo(() => {
+    let marginTop, marginRight, marginBottom, marginLeft
+    if (isArray(margin)) {
+      marginTop = margin[0]
+      marginRight = margin[1]
+      marginBottom = margin[2]
+      marginLeft = margin[3]
+    } else {
+      marginTop = margin
+      marginRight = margin
+      marginBottom = margin
+      marginLeft = margin
+    }
+    return {
+      position: 'absolute',
+      top: theme.spacing(marginTop),
+      left: theme.spacing(marginLeft),
+      right: theme.spacing(marginRight),
+      bottom: theme.spacing(marginBottom)
+    }
+  }, [theme, margin])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <div className={styles.relative}>
+    <div style={margins}>
       <div className={styles.placeholder}>
         <Typography className={styles.message}>no data</Typography>
       </div>
@@ -71,6 +90,13 @@ export default function NoData({className, classes, 'data-testid': testID}) {
 
 NoData.propTypes = {
   className: PropTypes.string,
-  classes: PropTypes.object,
+  /**
+   * Margin with respect to the parent in theme spacing units.
+   */
+  margin: PropTypes.oneOfType([PropTypes.number, PropTypes.arrayOf(PropTypes.number)]),
   'data-testid': PropTypes.string
+}
+
+NoData.defaultProps = {
+  margin: [0, 1, 0, 1]
 }

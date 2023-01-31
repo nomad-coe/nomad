@@ -36,6 +36,7 @@ import {
   ViewList
 } from '@material-ui/icons'
 import { StructureViewer } from '@lauri-codes/materia'
+import { Species } from './StructureBase'
 import Floatable from './Floatable'
 import NoData from './NoData'
 import Placeholder from '../visualization/Placeholder'
@@ -253,7 +254,6 @@ const Structure = React.memo(({
           radius: info[1],
           atomicNumber: refViewer.current.elementNumbers[label]
         }))
-        .sort((a, b) => a.atomicNumber - b.atomicNumber)
       setSpecies(species)
     })
   }, [])
@@ -283,7 +283,6 @@ const Structure = React.memo(({
         readyRef.current = true
       })
   }, [data, nAtoms, accepted, sizeLimit, throwError, loadSystem])
-  // }, [])
 
   // Once the system is loaded, this effect will determine the final visual
   // layout. By monitoring the ready-state, the selections are updated correctly
@@ -587,77 +586,6 @@ Structure.defaultProps = {
 
 export default withWebGLErrorHandler(withErrorHandler('Could not load structure.')(Structure))
 
-function getRadius(radius) {
-  return `${Math.sqrt(radius) * 12}px`
-}
-
-/**
- * Shows a list of atomic species.
- */
-const useSpeciesStyles = makeStyles((theme) => {
-  return {
-    root: {
-      padding: theme.spacing(0.5),
-      overflowY: 'auto',
-      overflowX: 'hidden',
-      direction: 'rtl'
-    },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'min-content auto',
-      gridGap: `${theme.spacing(0.1)}px ${theme.spacing(0.5)}px`,
-      direction: 'ltr'
-    },
-    label: {
-      justifySelf: 'start',
-      alignSelf: 'center',
-      textShadow: '0px 0px 5px #ffffff'
-    },
-    circle: {
-      borderRadius: '100%',
-      border: '1px solid #555',
-      justifySelf: 'center',
-      alignSelf: 'center'
-    }
-  }
-})
-export const Species = React.memo(({species, className}) => {
-  const styles = useSpeciesStyles()
-  return <div className={clsx(styles.root, className)}>
-    <div className={styles.grid}>
-      {species && species.map(item => {
-        const radius = getRadius(item.radius)
-        return <React.Fragment key={item.label}>
-          <div
-            className={styles.circle}
-            style={{
-              backgroundColor: item.color,
-              height: radius,
-              width: radius
-            }}
-          />
-          <Typography className={styles.label}>{item.label}</Typography>
-        </React.Fragment>
-      })}
-    </div>
-  </div>
-})
-
-Species.propTypes = {
-  /**
-   * A RxJS Subject for efficient, non-persistent, position changes that bypass
-   * rendering of the component. Should send messages that contain the new
-   * atomic positions as a list.
-  */
-  species: PropTypes.arrayOf(PropTypes.shape({
-    label: PropTypes.string.isRequired, // The label to show
-    radius: PropTypes.number.isRequired, // Radius in Ångstrom
-    color: PropTypes.string.isRequired // CSS color
-  })),
-  className: PropTypes.string,
-  'data-testid': PropTypes.string
-}
-
 /**
  * Converts the given structure in the format used by 'results' into the format
  * used by the materia-library.
@@ -714,7 +642,7 @@ export function getTopology(index, archive) {
   // Create topology map
   let id = 0
   const topologyMap = Object.fromEntries(topology.map(top => {
-    const node_id = `/results/material/topology/${id++}`
+    const node_id = `results/material/topology/${id++}`
     return [node_id, top]
   }))
 

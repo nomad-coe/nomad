@@ -24,6 +24,7 @@ from ase.data import chemical_symbols
 from nomad import config
 from nomad.atomutils import Formula
 from nomad.datamodel.metainfo.measurements import Spectrum
+from nomad.datamodel.metainfo.simulation.system import Atoms
 from nomad.datamodel.metainfo.workflow import (
     EquationOfState,
     EOSFit,
@@ -898,37 +899,6 @@ class SymmetryNew(MSection):
     )
 
 
-class Species(MSection):
-    '''
-    Contains information about a particle species. Note that the particle can
-    also be something else than atoms, e.g. coarse-grained particle, isotopes,
-    etc.
-    '''
-    m_def = Section(validate=False)
-    name = Quantity(
-        type=str,
-        description='''
-        Name that uniquely identifies this species within a system.
-        ''',
-        a_elasticsearch=Elasticsearch(material_type)
-    )
-    mass = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='kilogram',
-        description='''
-        Mass of the species.
-        '''
-    )
-    atomic_number = Quantity(
-        type=np.dtype(np.int32),
-        shape=[],
-        description='''
-        The atomic number of the species if available.
-        '''
-    )
-
-
 class Relation(MSection):
     '''
     Contains information about the relation between two different systems.
@@ -1064,7 +1034,29 @@ class System(MSection):
         ''',
         a_elasticsearch=Elasticsearch(material_type)
     )
-    formula_hill = Quantity(
+    chemical_formula_descriptive = Quantity(
+        type=str,
+        description='''
+            The chemical formula for a structure as a string in a form chosen by the API
+            implementation.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion=tokenizer_formula)
+        ],
+    )
+    chemical_formula_reduced = Quantity(
+        type=str,
+        description='''
+            Alphabetically sorted chemical formula with reduced integer chemical
+            proportion numbers. The proportion number is omitted if it is 1.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion=tokenizer_formula)
+        ],
+    )
+    chemical_formula_hill = Quantity(
         type=str,
         description='''
             The chemical formula for a structure in Hill form with element
@@ -1076,7 +1068,7 @@ class System(MSection):
             Elasticsearch(suggestion=tokenizer_formula)
         ],
     )
-    formula_iupac = Quantity(
+    chemical_formula_iupac = Quantity(
         type=str,
         description='''
             Formula where the elements are ordered using a formal list loosely
@@ -1090,18 +1082,7 @@ class System(MSection):
             Elasticsearch(suggestion=tokenizer_formula)
         ],
     )
-    formula_reduced = Quantity(
-        type=str,
-        description='''
-            Alphabetically sorted chemical formula with reduced integer chemical
-            proportion numbers. The proportion number is omitted if it is 1.
-        ''',
-        a_elasticsearch=[
-            Elasticsearch(material_type),
-            Elasticsearch(suggestion=tokenizer_formula)
-        ],
-    )
-    formula_anonymous = Quantity(
+    chemical_formula_anonymous = Quantity(
         type=str,
         description='''
             Formula with the elements ordered by their reduced integer chemical
@@ -1117,12 +1098,12 @@ class System(MSection):
             Elasticsearch(suggestion=tokenizer_formula)
         ],
     )
-    formula_reduced_fragments = Quantity(
+    chemical_formula_reduced_fragments = Quantity(
         type=str,
         shape=['*'],
         description='''
-        The reduced formula separated into individual terms containing both the atom
-        type and count. Used for searching parts of a formula.
+            Alphabetically sorted chemical formula with reduced integer chemical
+            proportion numbers. The proportion number is omitted if it is 1.
         ''',
         a_elasticsearch=Elasticsearch(material_type, mapping=Text(multi=True)),
     )
@@ -1146,7 +1127,7 @@ class System(MSection):
         The atomistic structure that is associated with this
         system'.
         ''',
-        sub_section=Structure.m_def,
+        sub_section=Atoms.m_def,
         repeats=False
     )
     atoms_ref = Quantity(

@@ -15,20 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { isEmpty, isString, range, flattenDeep, isEqual, has } from 'lodash'
-import { PropertyCard, PropertyGrid, PropertySubGrid, PropertyItem } from './PropertyCard'
+import { isEmpty } from 'lodash'
+import { PropertyCard } from './PropertyCard'
 import { Tab, Tabs, Typography, Box } from '@material-ui/core'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import Structure, { getTopology, toMateriaStructure } from '../../visualization/Structure'
+import { getTopology } from '../../visualization/Structure'
+import StructureNGL from '../../visualization/StructureNGL'
+// import { DownloadSystemButton } from '../../visualization/StructureBase'
+import { FloatableNoReparent } from '../../visualization/Floatable'
 import NoData from '../../visualization/NoData'
 import TreeView from '@material-ui/lab/TreeView'
 import TreeItem from '@material-ui/lab/TreeItem'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { QuantityTable, QuantityRow, QuantityCell } from '../../Quantity'
-import { resolveInternalRef } from '../../../utils'
 
 /**
  * For displaying the most descriptive chemical formula that is present in an
@@ -50,93 +52,37 @@ const nElementMap = {
 /**
  * Displays information about the material and it's structure.
  */
+const useMaterialCardStyles = makeStyles((theme) => ({
+  root: {
+    height: '650px'
+  },
+  card: {
+    height: '100%',
+    width: '100%'
+  }
+}))
 const MaterialCardTopology = React.memo(({index, properties, archive}) => {
+  const styles = useMaterialCardStyles()
   const [topologyTree, topologyMap] = useMemo(() => getTopology(index, archive), [index, archive])
   const [selected, setSelected] = useState(topologyTree.system_id)
   const [tab, setTab] = useState(0)
   const [structure, setStructure] = useState()
-  const [structuralType, setStructuralType] = useState('unavailable')
-  const [cellType, setCellType] = useState('original')
-  const structureMap = useRef({})
-  const [selection, setSelection] = useState()
+  const [float, setFloat] = useState(false)
 
-  // Returns a reference to a structure in the given topology if one can be found
-  const resolveAtomRef = useCallback((top) => {
-    return isString(top.atoms) ? top.atoms : top.atoms_ref
+  // Used to resolve the path to the structure for the given topology item
+  const resolveStructure = useCallback((top, topologyMap) => {
+    return top.atoms_ref || (top.atoms
+      ? top.system_id
+      : resolveStructure(topologyMap[top.parent_system], topologyMap))
   }, [])
-
-  // Used to resolve a structure for the given topology item
-  const resolveStructure = useCallback((top, archive) => {
-    const atomsRef = resolveAtomRef(top)
-    const atoms = top.atoms
-    const id = top.system_id
-    if (!has(structureMap.current, id)) {
-      let structure
-      if (atomsRef) {
-        const atoms = resolveInternalRef(atomsRef, archive)
-        structure = toMateriaStructure(atoms)
-      } else if (atoms) {
-        structure = toMateriaStructure(atoms)
-      } else if (top.indices) {
-        const parent = topologyMap[top.parent_system]
-        structure = resolveStructure(parent, archive)
-      }
-      structureMap.current[id] = structure
-    }
-    return structureMap.current[id]
-  }, [resolveAtomRef, topologyMap])
 
   // When archive is loaded, this effect handles changes in visualizing the
   // selected system
   useEffect(() => {
     if (!archive) return
     const top = topologyMap[selected]
-    const indices = top.indices
-    let structure
-    let transparent
-    let selection
-    let focus
-    let isSubsystem
-
-    // If the topology has indices, visualize a subsection of the parent system
-    if (indices) {
-      const structuralType = top.structural_type
-      const isMonomer = structuralType === 'monomer'
-      const child_types = top.child_systems ? new Set(top.child_systems.map(x => x.structural_type)) : new Set()
-      const isMonomerGroup = structuralType === 'group' && isEqual(child_types, new Set(['monomer']))
-      const isMolecule = structuralType === 'molecule'
-      const parent = topologyMap[top.parent_system]
-      structure = resolveStructure(parent, archive)
-
-      // Set the opaque atoms
-      selection = ((isMolecule || isMonomer)
-        ? indices[0]
-        : indices).flat()
-
-      // Set the transparent atoms
-      transparent = (isMolecule || isMonomer)
-        ? []
-        : parent?.indices
-          ? parent.structural_type === 'molecule'
-            ? flattenDeep(parent?.indices[0])
-            : flattenDeep(parent?.indices)
-          : range(parent?.n_atoms)
-
-      // Set the focus: this is where the camera centers and zooms into
-      focus = ((isMolecule || isMonomer)
-        ? indices[0]
-        : indices).flat()
-      isSubsystem = isMolecule || isMonomer || isMonomerGroup
-    } else {
-      transparent = undefined
-      selection = undefined
-      focus = undefined
-      structure = resolveStructure(top, archive)
-    }
-    setStructuralType(top?.label === 'conventional cell' ? 'bulk' : 'unavailable')
-    setCellType(top?.label === 'conventional cell' ? 'conventional' : 'original')
+    const structure = resolveStructure(top, topologyMap)
     setStructure(structure)
-    setSelection({transparent, selection, focus, isSubsystem})
   }, [archive, selected, topologyMap, resolveStructure])
 
   // Handle tab change
@@ -144,32 +90,45 @@ const MaterialCardTopology = React.memo(({index, properties, archive}) => {
     setTab(value)
   }, [])
 
-  return <PropertyCard title="Material">
-    <PropertyGrid>
-      <PropertyItem xs={4} height='300px'>
-        <Topology topologyTree={topologyTree} topologyMap={topologyMap} selected={selected} onSelect={setSelected} />
-      </PropertyItem>
-      <PropertyItem xs={8} height='300px'>
-        {structure !== false
-          ? <Structure
-            data={structure}
-            selection={selection}
-            data-testid="viewer-material"
-            structuralType={structuralType}
-            cellType={cellType}
-          />
-          : <NoData/>
-        }
-      </PropertyItem>
-      <PropertyItem xs={12} height="auto">
-        <PropertySubGrid>
-          <PropertyItem xs={12} height="auto">
+  // Handle float change
+  const handleFloat = useCallback(() => {
+    setFloat(old => !old)
+  }, [])
+
+  return <div className={styles.root}>
+    <PropertyCard title="Material" className={styles.card}>
+      <FloatableNoReparent float={float} onFloat={handleFloat}>
+        <Box display="flex" flexDirection="column" height="100%" width="100%">
+          <Box display="flex" flex="1 1 auto" minHeight={0}>
+            <Box display="flex" flexDirection="row" width="100%">
+              <Box flex="1 1 33%">
+                <Topology
+                  topologyTree={topologyTree}
+                  topologyMap={topologyMap}
+                  selected={selected}
+                  onSelect={setSelected}
+                />
+              </Box>
+              <Box flex="0 0 8px"/>
+              <Box flex="1 1 67%">
+                <StructureNGL
+                  data={structure}
+                  topologyTree={topologyTree}
+                  topologyMap={topologyMap}
+                  entryId={index.entry_id}
+                  selection={selected}
+                  onFullscreen={handleFloat}
+                />
+              </Box>
+            </Box>
+          </Box>
+          <Box flex="0 0 auto" minHeight={0}>
             <MaterialTabs value={tab} onChange={handleTabChange} node={topologyMap[selected]} />
-          </PropertyItem>
-        </PropertySubGrid>
-      </PropertyItem>
-    </PropertyGrid>
-  </PropertyCard>
+          </Box>
+        </Box>
+      </FloatableNoReparent>
+    </PropertyCard>
+  </div>
 })
 
 MaterialCardTopology.propTypes = {
@@ -225,7 +184,7 @@ const Topology = React.memo(({topologyTree, topologyMap, selected, onSelect}) =>
       defaultCollapseIcon={<ExpandMoreIcon />}
       defaultExpandIcon={<ChevronRightIcon />}
     >
-      <TopologyItem node={topologyTree} level={0}/>
+      <TopologyItem node={topologyTree} level={0} selected={selected}/>
     </TreeView>
     <div className={styles.spacer} />
     {description && <Box padding={1} paddingBottom={0}>
@@ -271,12 +230,19 @@ const useTopologyItemStyles = makeStyles({
     fontWeight: 'inherit',
     color: 'inherit'
   }),
-  labelRoot: (props) => ({
+  row: (props) => ({
+    display: 'flex',
+    alignItems: 'center',
+    flexDirection: 'row',
+    paddingRight: props.theme.spacing(0.5)
+  }),
+  column: (props) => ({
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'center',
     flexDirection: 'column',
-    padding: props.theme.spacing(0.25, 0)
+    padding: props.theme.spacing(0.25, 0),
+    flexGrow: 1
   }),
   nodeLabelPrimary: (props) => ({
     textTransform: 'uppercase',
@@ -284,36 +250,47 @@ const useTopologyItemStyles = makeStyles({
     marginBottom: -props.theme.spacing(0.3)
   }),
   nodeLabelSecondary: (props) => ({
-    fontSize: 12,
-    color: props.theme.palette.text.secondary
+    fontSize: 12
   }),
   iconContainer: (props) => ({
     paddingLeft: props.theme.spacing(0.5)
   })
 })
 
-const TopologyItem = React.memo(({node, level}) => {
+const TopologyItem = React.memo(({node, level, selected}) => {
   // The best way to dynamically manipulate the classes created by makeStyles
   // was to make each style dependent on a set of properties. Creating the
   // styles within the function does not seem to work.
   const theme = useTheme()
   const styleProps = useMemo(() => ({theme, level: level}), [theme, level])
   const classes = useTopologyItemStyles(styleProps)
+  const isSelected = selected === node.system_id
 
   return <TreeItem
     onLabelClick={(event) => { node.onClick && node.onClick(); event.preventDefault() }}
     nodeId={node.system_id}
     label={
-      <div className={classes.labelRoot}>
-        <Typography variant="body1" className={classes.nodeLabelPrimary}>
-          {`${node.label}`}
-        </Typography>
-        <Typography variant="body2" className={classes.nodeLabelSecondary}>
-          {`${node.structural_type}` + (!isEmpty(node?.child_systems) && node.structural_type === 'group'
-            ? ` (${[...new Set(node.child_systems.map(x => x.structural_type))].join(', ')})`
-            : ''
-          )}
-        </Typography>
+      <div className={classes.row}>
+        <div className={classes.column}>
+          <Typography variant="body1" className={classes.nodeLabelPrimary}>
+            {`${node.label}`}
+          </Typography>
+          <Typography
+            variant="body2"
+            className={classes.nodeLabelSecondary}
+            style={{
+              color: isSelected ? 'white' : theme.palette.text.secondary
+            }}
+          >
+            {`${node.structural_type}` + (!isEmpty(node?.child_systems) && node.structural_type === 'group'
+              ? ` (${[...new Set(node.child_systems.map(x => x.structural_type))].join(', ')})`
+              : ''
+            )}
+          </Typography>
+        </div>
+        {/* {node.atoms_ref &&
+          <DownloadSystemButton path={node.atoms_ref} color={isSelected ? 'inherit' : 'default'}/>
+        } */}
       </div>
     }
     classes={{
@@ -327,13 +304,14 @@ const TopologyItem = React.memo(({node, level}) => {
     }}
   >
     {node.child_systems && node.child_systems.map(node => {
-      return <TopologyItem key={node.system_id} node={node} level={level + 1}/>
+      return <TopologyItem key={node.system_id} node={node} level={level + 1} selected={selected}/>
     })}
   </TreeItem>
 })
 TopologyItem.propTypes = {
   node: PropTypes.object,
-  level: PropTypes.number
+  level: PropTypes.number,
+  selected: PropTypes.string
 }
 
 /**
@@ -379,11 +357,14 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
     </Tabs>
     <MaterialTab value={value} index={0}>
       {!tabMap[0].disabled
-        ? <QuantityTable wrap>
+      ? <QuantityTable fixed>
         <QuantityRow>
-          <QuantityCell value={node?.formula_hill} quantity="results.material.topology.formula_hill"/>
-          <QuantityCell value={node?.formula_anonymous} quantity="results.material.topology.formula_anonymous"/>
+          <QuantityCell value={node?.chemical_formula_hill} quantity="results.material.topology.chemical_formula_hill"/>
+          <QuantityCell value={node?.chemical_formula_iupac} quantity="results.material.topology.chemical_formula_iupac"/>
           <QuantityCell value={node?.structural_type} quantity="results.material.topology.structural_type"/>
+          <QuantityCell value={node?.material_id} quantity="results.material.topology.material_id"/>
+        </QuantityRow>
+        <QuantityRow>
           <QuantityCell value={node?.label} quantity="results.material.topology.label"/>
           <QuantityCell value={node?.elements} quantity="results.material.topology.elements"/>
           <QuantityCell
@@ -392,10 +373,7 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
             value={n_elements}
             format={false}
           />
-          <QuantityCell value={node?.n_atoms} quantity="results.material.topology.n_atoms" hideIfUnavailable/>
-          <QuantityCell value={node?.functional_type} quantity="results.material.topology.functional_type" hideIfUnavailable/>
-          <QuantityCell value={node?.compound_type} quantity="results.material.topology.compound_type" hideIfUnavailable/>
-          <QuantityCell value={node?.material_id} quantity="results.material.topology.material_id" hideIfUnavailable/>
+          <QuantityCell value={node?.n_atoms} quantity="results.material.topology.n_atoms"/>
         </QuantityRow>
       </QuantityTable>
       : <NoData className={styles.noData}/>}

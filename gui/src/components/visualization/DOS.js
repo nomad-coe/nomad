@@ -35,7 +35,6 @@ const DOS = React.memo(({
   data,
   layout,
   className,
-  placeholderStyle,
   units,
   type,
   'data-testid': testID,
@@ -260,8 +259,6 @@ DOS.propTypes = {
   ]),
   layout: PropTypes.object,
   className: PropTypes.string,
-  placeholderStyle: PropTypes.string,
-  noDataStyle: PropTypes.string,
   units: PropTypes.object, // Contains the unit configuration
   type: PropTypes.string, // Type of band structure: electronic or vibrational
   'data-testid': PropTypes.string

@@ -31,6 +31,7 @@
     "material-ui-chip-input": "^1.1.0",
     "material-ui-flat-pagination": "^4.0.0",
     "mathjs": "^7.1.0",
+    "ngl": "2.0.0-dev.40",
     "object-hash": "^3.0.0",
     "pace": "^0.0.4",
     "pace-js": "^1.0.2",

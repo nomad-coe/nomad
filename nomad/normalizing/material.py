@@ -36,7 +36,22 @@ from nomad import atomutils
 from nomad.atomutils import Formula
 from nomad.utils import hash
 from nomad.units import ureg
-from nomad.normalizing.common import cell_from_ase_atoms, cell_from_structure, structure_from_ase_atoms, structures_2d
+from nomad.normalizing.common import (
+    cell_from_ase_atoms,
+    cell_from_structure,
+    nomad_atoms_from_ase_atoms, structures_2d
+)
+
+
+def get_topology_id(index: int) -> str:
+    '''Retuns a valid topology identifier with the given index.
+    Args:
+        index: The index of the topology. Must be unique.
+
+    Returns:
+        An identifier string that can be stored in topology.system_id.
+    '''
+    return f'results/material/topology/{index}'
 
 
 class MaterialNormalizer():
@@ -419,7 +434,7 @@ class MaterialNormalizer():
             return None
 
         topology = {}
-        top_id_original = f'/results/material/topology/0'
+        top_id_original = get_topology_id(0)
         original, structure_original = self._create_orig_topology(material, top_id_original)
 
         if structure_original is None:
@@ -440,14 +455,16 @@ class MaterialNormalizer():
                             try:
                                 formula = Formula(group.composition_formula)
                             except Exception:
-                                formula_hill = None
-                                formula_anonymous = None
-                                formula_reduced = None
+                                chemical_formula_hill = None
+                                chemical_formula_iupac = None
+                                chemical_formula_anonymous = None
+                                chemical_formula_reduced = None
                                 elements = None
                             else:
-                                formula_hill = formula.format('hill')
-                                formula_anonymous = formula.format('anonymous')
-                                formula_reduced = formula.format('reduced')
+                                chemical_formula_hill = formula.format('hill')
+                                chemical_formula_iupac = formula.format('iupac')
+                                chemical_formula_anonymous = formula.format('anonymous')
+                                chemical_formula_reduced = formula.format('reduced')
                                 elements = formula.elements()
                             description_map = {
                                 'molecule': 'Molecule extracted from the calculation topology.',
@@ -461,7 +478,7 @@ class MaterialNormalizer():
                                 'monomer': 'monomer',
                                 'monomer_group': 'group',
                             }
-                            top_id_str = f'/results/material/topology/{top_id}'
+                            top_id_str = get_topology_id(top_id)
                             description = description_map.get(group.type, None)
                             structural_type = structural_type_map.get(group.type, None)
 
@@ -470,9 +487,10 @@ class MaterialNormalizer():
                                 method='parser',
                                 description=description,
                                 label=group.label,
-                                formula_hill=formula_hill,
-                                formula_anonymous=formula_anonymous,
-                                formula_reduced=formula_reduced,
+                                chemical_formula_hill=chemical_formula_hill,
+                                chemical_formula_iupac=chemical_formula_iupac,
+                                chemical_formula_anonymous=chemical_formula_anonymous,
+                                chemical_formula_reduced=chemical_formula_reduced,
                                 elements=elements,
                                 structural_type=structural_type,
                                 n_atoms=group.n_atoms,
@@ -516,16 +534,17 @@ class MaterialNormalizer():
                 top = topology[top_id_str]
                 indices = np.array(value)
                 top.indices = indices
-                if structure_original and top.formula_hill is None:
+                if structure_original and top.chemical_formula_hill is None:
                     symbols = ''.join(np.array(structure_original.species_at_sites)[indices.flatten()])
                     try:
                         formula = Formula(symbols)
                     except Exception:
                         pass
                     else:
-                        top.formula_hill = formula.format('hill')
-                        top.formula_anonymous = formula.format('anonymous')
-                        top.formula_reduced = formula.format('reduced')
+                        top.chemical_formula_hill = formula.format('hill')
+                        top.chemical_formula_iupac = formula.format('iupac')
+                        top.chemical_formula_reduced = formula.format('reduced')
+                        top.chemical_formula_anonymous = formula.format('anonymous')
                         top.elements = formula.elements()
 
         return list(topology.values())
@@ -542,7 +561,7 @@ class MaterialNormalizer():
         if material.structural_type not in {'2D', 'surface', 'unavailable'}:
             return None
         topologies = []
-        id_original = f'/results/material/topology/0'
+        id_original = get_topology_id(0)
         original, structure_original = self._create_orig_topology(material, id_original)
         if structure_original is None:
             return None
@@ -561,7 +580,7 @@ class MaterialNormalizer():
         # Add all meaningful clusters to the topology
         topologies.append(original)
         for indices, symm in zip(cluster_indices_list, cluster_symmetries):
-            id_subsystem = f'/results/material/topology/{len(topologies)}'
+            id_subsystem = get_topology_id(len(topologies))
             subsystem = self._create_subsystem(
                 structure_original, indices, id_subsystem, id_original)
             if subsystem.structural_type not in {"2D", "surface"}:
@@ -569,7 +588,7 @@ class MaterialNormalizer():
             topologies.append(subsystem)
             original = self._add_child_system(original, id_subsystem)
             if subsystem.structural_type == 'surface' or subsystem.structural_type == '2D':
-                id_conv = f'/results/material/topology/{len(topologies)}'
+                id_conv = get_topology_id(len(topologies))
                 symmsystem = self._create_conv_cell_system(symm, id_conv, id_subsystem, subsystem.structural_type)
                 topologies.append(symmsystem)
                 subsystem = self._add_child_system(subsystem, id_conv)
@@ -593,9 +612,10 @@ class MaterialNormalizer():
             structural_type=material.structural_type,
             functional_type=material.functional_type,
             compound_type=material.compound_type,
-            formula_hill=material.chemical_formula_hill,
-            formula_anonymous=material.chemical_formula_anonymous,
-            formula_reduced=material.chemical_formula_reduced,
+            chemical_formula_hill=material.chemical_formula_hill,
+            chemical_formula_iupac=material.chemical_formula_iupac,
+            chemical_formula_anonymous=material.chemical_formula_anonymous,
+            chemical_formula_reduced=material.chemical_formula_reduced,
             elements=material.elements,
         )
 
@@ -645,17 +665,11 @@ class MaterialNormalizer():
         if structural_type == 'surface':
             symmsystem.description = 'The conventional cell of the bulk material from which the surface is constructed from.'
             symmsystem.structural_type = 'bulk'
-            wyckoff_sets = symm.get_wyckoff_sets_conventional()
-            symmsystem.atoms = structure_from_ase_atoms(conv_system, wyckoff_sets, logger=self.logger)
+            symmsystem.atoms = nomad_atoms_from_ase_atoms(conv_system)
         elif structural_type == '2D':
             symmsystem.description = 'The conventional cell of the 2D material.'
             symmsystem.structural_type = '2D'
-            wyckoff_sets = None
-            symmsystem.atoms = structure_from_ase_atoms(conv_system, wyckoff_sets, logger=self.logger)
-            symmsystem.atoms.lattice_parameters.c = None
-            symmsystem.atoms.lattice_parameters.alpha = None
-            symmsystem.atoms.lattice_parameters.beta = None
-            symmsystem.atoms.cell_volume = None
+            symmsystem.atoms = nomad_atoms_from_ase_atoms(conv_system)
 
         subspecies = conv_system.get_chemical_symbols()
         symmsystem = self._add_subsystem_properties(subspecies, symmsystem)
@@ -777,9 +791,10 @@ class MaterialNormalizer():
 
     def _add_subsystem_properties(self, subspecies: List[str], subsystem) -> System:
         formula = Formula("".join(subspecies))
-        subsystem.formula_hill = formula.format('hill')
-        subsystem.formula_anonymous = formula.format('anonymous')
-        subsystem.formula_reduced = formula.format('reduced')
+        subsystem.chemical_formula_hill = formula.format('hill')
+        subsystem.chemical_formula_iupac = formula.format('iupac')
+        subsystem.chemical_formula_anonymous = formula.format('anonymous')
+        subsystem.chemical_formula_reduced = formula.format('reduced')
         subsystem.elements = formula.elements()
         return subsystem
 
@@ -804,10 +819,10 @@ class MaterialNormalizer():
         Creates the subsystem with the symmetry information of the conventional cell
         """
         subsystem_atoms = Atoms(
-            symbols=subsystem.atoms.species_at_sites,
-            positions=subsystem.atoms.cartesian_site_positions.to(ureg.angstrom),
+            symbols=subsystem.atoms.labels,
+            positions=subsystem.atoms.positions.to(ureg.angstrom),
             cell=complete_cell(subsystem.atoms.lattice_vectors.to(ureg.angstrom)),
-            pbc=np.array(subsystem.atoms.dimension_types, dtype=bool)
+            pbc=np.array(subsystem.atoms.periodic, dtype=bool)
         )
         conv_atoms, __, wyckoff_sets, spg_number = structures_2d(subsystem_atoms)
         subsystem.cell = cell_from_ase_atoms(conv_atoms)
