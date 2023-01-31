@@ -1,0 +1,3 @@
+data:
+  m_def: ../upload/raw/baseSections.schema.archive.yaml#definitions/section_definitions/Powder_mixture
+  test_1:  "../uploads/references_upload_id1/archive/AkeMNBjzHdEWJmv2w8GVaw9drWRu#wrong/path"

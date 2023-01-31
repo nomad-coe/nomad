@@ -1,0 +1,83 @@
+definitions:
+  name: 'Set your name here'
+  sections:
+    Substance:
+      base_section: nomad.datamodel.data.EntryData
+      quantities:
+        name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        comment:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+    AContents:
+      base_section: "#/Substance"
+    BContents:
+      base_section: "#/Substance"
+    SubstanceList:
+      base_section: nomad.datamodel.data.EntryData
+      sub_sections:
+        contents:
+          repeats: true
+          section: "#/Substance"
+    Method:
+      base_section: nomad.datamodel.data.EntryData
+      quantities:
+        name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+    Sample:
+      base_section: nomad.datamodel.data.EntryData
+      sub_sections:
+        mySubstance:
+          section: "#/Substance"
+        myMethod:
+          section: "#/Method"
+      quantities:
+        name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+    Structure:
+      base_section: nomad.datamodel.data.EntryData
+      sub_sections:
+        mySubstance:
+          section: "#/Substance"
+        mySample:
+          section: "#/Sample"
+      quantities:
+        name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+    Powder_mixture:
+      quantities:
+        test_1:
+          type: Substance
+          m_annotations:
+            eln:
+              component: ReferenceEditQuantity
+    GeneralArchiveSection:
+      base_section: nomad.datamodel.data.ArchiveSection
+      m_annotations:
+        eln:
+      quantities:
+        name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        section:
+          type: nomad.datamodel.metainfo.simulation.calculation.BandStructure
+          m_annotations:
+            eln:
+              component: ReferenceEditQuantity
+

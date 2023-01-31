@@ -70,16 +70,28 @@ def references():
     main_author = infrastructure.user_management.get_user(username='test').user_id
     coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
     reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
-    upload = Upload(
-        upload_id='references_upload_id',
+
+    upload1 = Upload(
+        upload_id='references_upload_id1',
         main_author=main_author,
         coauthors=coauthors,
         reviewers=reviewers)
-    upload.save()
-    files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
-    upload.staging_upload_files.add_rawfiles('examples/data/references')
-    upload.process_upload()
-    upload.block_until_complete()
+    upload1.save()
+    files.StagingUploadFiles(upload_id=upload1.upload_id, create=True)
+    upload1.staging_upload_files.add_rawfiles('examples/data/references/upload1')
+    upload1.process_upload()
+    upload1.block_until_complete()
+
+    upload2 = Upload(
+        upload_id='references_upload_id2',
+        main_author=main_author,
+        coauthors=coauthors,
+        reviewers=reviewers)
+    upload2.save()
+    files.StagingUploadFiles(upload_id=upload2.upload_id, create=True)
+    upload2.staging_upload_files.add_rawfiles('examples/data/references/upload2')
+    upload2.process_upload()
+    upload2.block_until_complete()
 
 
 metadata_dict = {

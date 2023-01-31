@@ -1,0 +1,12 @@
+data:
+  m_def: ../upload/raw/baseSections.schema.archive.yaml#/definitions/section_definitions/SubstanceList
+  contents:
+    - m_def: ../upload/raw/baseSections.schema.archive.yaml#/definitions/section_definitions/Substance
+      name: Substance1
+    - m_def: ../upload/raw/baseSections.schema.archive.yaml#/definitions/section_definitions/AContents
+      name: AContents1
+    - m_def: ../upload/raw/baseSections.schema.archive.yaml#/definitions/section_definitions/BContents
+      name: BContents1
+    - m_def: ../upload/raw/sameUploadExtendedSections.schema.archive.yaml#/definitions/section_definitions/SubstanceExtended
+      name: SubstanceExtended1
+

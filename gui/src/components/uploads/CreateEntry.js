@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Box, Button, TextField, Dialog, DialogTitle, IconButton,
-  DialogContent, DialogContentText, DialogActions, Tooltip
+  Button, TextField, Dialog, DialogTitle, IconButton, DialogContent,
+  DialogContentText, DialogActions, Tooltip, makeStyles, Box, RadioGroup, FormControlLabel, Radio,
+  FormControl
 } from '@material-ui/core'
 import { Autocomplete } from '@material-ui/lab'
 import { useApi } from '../api'
@@ -12,10 +13,34 @@ import { getUrlFromDefinition, SectionMDef, useGlobalMetainfo } from '../archive
 import { useUploadPageContext } from './UploadPageContext'
 import SearchIcon from '@material-ui/icons/Search'
 import SectionSelectDialog from './SectionSelectDialog'
+import SectionSelectAutocomplete from './SectionSelectAutocomplete'
+
+const useStyles = makeStyles(theme => ({
+  dialog: {
+    width: '100%',
+    minWidth: 600
+  },
+  nameField: {
+    marginBottom: theme.spacing(3),
+    width: '100%'
+  },
+  schemaField: {
+    marginBottom: theme.spacing(1),
+    width: '100%'
+  },
+  button: {
+    marginBottom: theme.spacing(1),
+    width: '100%'
+  },
+  radioGroup: {
+    marginTop: 0,
+    display: 'flex'
+  }
+}))
 
 function addSearchIconToEndAdornment(endAdornment, onClick) {
   const children = React.Children.toArray(endAdornment.props.children)
-  children.push(<IconButton size={'small'} onClick={onClick}>
+  children.push(<IconButton key={'searchButton'} size={'small'} onClick={onClick}>
     <Tooltip title="Search custom schema">
       <SearchIcon/>
     </Tooltip>
@@ -24,19 +49,22 @@ function addSearchIconToEndAdornment(endAdornment, onClick) {
 }
 
 const CreateEntry = React.memo(() => {
+  const classes = useStyles()
   const {deploymentUrl, uploadId, isProcessing} = useUploadPageContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const globalMetainfo = useGlobalMetainfo()
-  const [templates, setTemplates] = useState([])
-  const [customTemplates, setCustomTemplates] = useState([])
-  const [template, setTemplate] = useState()
+  const [builtInTemplates, setBuiltInTemplates] = useState([])
+  const [builtInTemplate, setBuiltInTemplate] = useState(null)
+  const [customTemplate, setCustomTemplate] = useState(null)
   const [name, setName] = useState('')
   const [open, setOpen] = useState(false)
   const history = useHistory()
   const location = useLocation()
-  const selectedTemplate = template || templates?.[0] || null
   const [openEntryAlreadyExistsDialog, setOpenEntryAlreadyExistsDialog] = useState(false)
+  const [openCreateEntryDialog, setOpenCreateEntryDialog] = useState(false)
+  const [schemaType, setSchemaType] = useState('built-in')
+  const [error, setError] = useState()
 
   useEffect(() => {
     // TODO this whole thing is quite expensive to repeat on each upload page?
@@ -88,15 +116,20 @@ const CreateEntry = React.memo(() => {
       return globalTemplates.map(template => ({group: 'OASIS', ...template}))
     }
 
-    getTemplates().then(setTemplates).catch(raiseError)
-  }, [api, raiseError, setTemplates, globalMetainfo, isProcessing, deploymentUrl, uploadId])
+    getTemplates().then(templates => {
+      setBuiltInTemplates(templates)
+      setBuiltInTemplate(templates[0])
+    }).catch(raiseError)
+  }, [api, raiseError, setBuiltInTemplates, globalMetainfo, isProcessing, deploymentUrl, uploadId])
 
   const handleAdd = useCallback(() => {
+    const selectedTemplate = schemaType === 'built-in' ? builtInTemplate : customTemplate
     api.put(`uploads/${uploadId}/raw/?file_name=${name}.archive.json&overwrite_if_exists=false&wait_for_processing=true`, selectedTemplate.archive)
       .then(response => {
         // TODO handle processing errors
         const entryId = response.processing.entry_id
         history.push(getUrl(`entry/id/${entryId}/data/data`, location))
+        setOpenCreateEntryDialog(false)
       })
       .catch(error => {
         if (error.apiMessage?.startsWith('The provided path already exists')) {
@@ -105,10 +138,10 @@ const CreateEntry = React.memo(() => {
           raiseError(error)
         }
       })
-  }, [setOpenEntryAlreadyExistsDialog, api, raiseError, selectedTemplate, name, uploadId, history, location])
+  }, [setOpenEntryAlreadyExistsDialog, api, raiseError, schemaType, builtInTemplate, customTemplate, name, uploadId, history, location])
 
-  const handleChange = useCallback((event, value) => {
-    setTemplate(value)
+  const handleBuiltInChange = useCallback((event, value) => {
+    setBuiltInTemplate(value)
   }, [])
 
   const getTemplateFromDefinition = useCallback((dataSection, prefix, archive, getReference) => {
@@ -139,24 +172,162 @@ const CreateEntry = React.memo(() => {
     }
   }, [])
 
+  const handleCustomChange = useCallback((value) => {
+    const data = value?.data
+    if (!data) {
+      setCustomTemplate(null)
+      return
+    }
+    const customTemplate = getTemplateFromDefinition(data.sectionDef, data.archive.metadata.entry_id, data.archive,
+      section => {
+        return getUrlFromDefinition(section, {deploymentUrl, uploadId}, true)
+      })
+    setCustomTemplate(customTemplate)
+  }, [deploymentUrl, getTemplateFromDefinition, uploadId])
+
   const handleSelect = useCallback((value) => {
-    const data = value.data
-    let customTemplate = getTemplateFromDefinition(data.sectionDef, data.archive.metadata.entry_id, data.archive,
+    const data = value?.data
+    if (!data) {
+      setCustomTemplate(null)
+      return
+    }
+    const customTemplate = getTemplateFromDefinition(data.sectionDef, data.archive.metadata.entry_id, data.archive,
         section => {
           return getUrlFromDefinition(section, {deploymentUrl, uploadId}, true)
         })
-    customTemplate = {group: 'Recent searches', ...customTemplate}
-    setTemplate(customTemplate)
-    if (!customTemplates.find(template => customTemplate?.id === template.id)) {
-      setCustomTemplates([customTemplate, ...customTemplates])
-    }
+    setCustomTemplate(customTemplate)
     setOpen(false)
-  }, [customTemplates, getTemplateFromDefinition, deploymentUrl, uploadId])
+  }, [getTemplateFromDefinition, deploymentUrl, uploadId])
 
-  const allTemplates = useMemo(() => [...customTemplates, ...templates], [customTemplates, templates])
   const filtersLocked = useMemo(() => ({entry_type: ['Schema']}), [])
 
+  const handleChangeTab = (event) => {
+    setSchemaType(event.target.value)
+  }
+
+  const handleError = useCallback((error) => {
+    setError(error)
+  }, [])
+
   return <React.Fragment>
+    <Button
+      className={classes.button}
+      onClick={() => setOpenCreateEntryDialog(true)}
+      variant='contained'
+      color='primary'
+      disabled={isProcessing}>
+      Create new entry
+    </Button>
+    <Dialog
+      classes={{paper: classes.dialog}}
+      open={openCreateEntryDialog}
+      onClose={() => setOpenCreateEntryDialog(false)}
+      data-testid='create-entry-dialog'
+    >
+      <DialogTitle>Create new entry</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          Select a name to create an entry of the type of the selected schema
+        </DialogContentText>
+        <TextField
+          className={classes.nameField}
+          variant="filled"
+          label="name"
+          value={name}
+          onChange={event => setName(event.target.value.replace(/ /g, '_'))}/>
+        <DialogContentText>
+          Select a schema
+        </DialogContentText>
+        <FormControl component="fieldset" className={classes.radioGroup}>
+          <RadioGroup
+            row
+            aria-label="position"
+            name="position"
+            value={schemaType}
+            onChange={handleChangeTab}
+            className={classes.radioGroup}
+          >
+            <FormControlLabel
+              value="built-in"
+              control={<Radio color="primary" />}
+              label="Built-in schema"
+              labelPlacement="end"
+            />
+            <FormControlLabel
+              value="custom"
+              control={<Radio color="primary" data-testid='custom-schema-radio'/>}
+              label="Custom schema"
+              labelPlacement="end"
+            />
+          </RadioGroup>
+        </FormControl>
+        {schemaType === 'built-in' && <Autocomplete
+          className={classes.schemaField}
+          disabled={!builtInTemplates}
+          value={builtInTemplates && builtInTemplates?.find(template => template.id === builtInTemplate?.id) ? builtInTemplate : null}
+          onChange={handleBuiltInChange}
+          options={builtInTemplates || []}
+          getOptionLabel={(option) => option.label}
+          renderInput={(params) => {
+            return (
+                <TextField
+                  {...params}
+                  label='built-in schema'
+                  variant='filled'
+                  data-testid='builtin-select-schema'
+                />
+              )
+          }}
+        />}
+        {schemaType === 'custom' && <Box>
+          <SectionSelectAutocomplete
+              onValueChanged={handleCustomChange}
+              value={customTemplate}
+              filtersLocked={filtersLocked}
+              onError={handleError}
+              renderInput={(params) => {
+                return (
+                    <TextField
+                        {...params}
+                        variant='filled'
+                        error={!!error}
+                        helperText={error}
+                        label='custom schema'
+                        placeholder={'search by entry name or file name'}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: addSearchIconToEndAdornment(
+                              params.InputProps.endAdornment,
+                              () => setOpen(true)
+                          )
+                        }}
+                        data-testid='custom-select-schema'
+                    />
+                )
+              }}
+          />
+        </Box>}
+        <DialogContentText>
+          {name ? `File name: ${name}.archive.json` : ''}
+        </DialogContentText>
+        <SectionSelectDialog
+          open={open}
+          onCancel={() => setOpen(false)}
+          onSelectedChanged={handleSelect}
+          selected={customTemplate && {entry_id: customTemplate?.entry_id, value: customTemplate?.value}}
+          filtersLocked={filtersLocked}
+        />
+      </DialogContent>
+      <DialogActions>
+        <span style={{flexGrow: 1}} />
+        <Button onClick={() => setOpenCreateEntryDialog(false)} color="secondary">
+          Cancel
+        </Button>
+        <Button disabled={!name || name === '' || !(schemaType === 'built-in' ? builtInTemplate : customTemplate)} onClick={handleAdd} color="secondary">
+          Create
+        </Button>
+      </DialogActions>
+    </Dialog>
     <Dialog
       open={openEntryAlreadyExistsDialog}
       onClose={() => setOpenEntryAlreadyExistsDialog(false)}
@@ -171,54 +342,6 @@ const CreateEntry = React.memo(() => {
         <Button onClick={() => setOpenEntryAlreadyExistsDialog(false)} autoFocus>OK</Button>
       </DialogActions>
     </Dialog>
-    <Box display="flex" flexDirection="row" alignItems="center" >
-      <Box flexGrow={1} marginRight={2}>
-        <TextField
-          fullWidth variant="filled" label="name" value={name}
-          onChange={event => setName(event.target.value.replace(/ /g, '_'))}/>
-      </Box>
-      <Autocomplete
-        disabled={!allTemplates}
-        value={allTemplates && allTemplates?.find(template => template.id === selectedTemplate?.id) ? selectedTemplate : null}
-        onChange={handleChange}
-        options={allTemplates || []}
-        getOptionLabel={(option) => option.label}
-        groupBy={(option) => option.group}
-        style={{ width: 400 }}
-        renderInput={(params) => {
-          return (
-            <TextField
-              {...params}
-              label="schema"
-              variant="filled"
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: addSearchIconToEndAdornment(
-                  params.InputProps.endAdornment,
-                  () => setOpen(true)
-                )
-              }}
-            />
-          )
-        }}
-      />
-      <SectionSelectDialog
-          open={open}
-          onCancel={() => setOpen(false)}
-          onSelectedChanged={handleSelect}
-          selected={customTemplates.find(customTemplate => customTemplate === template) && {entry_id: template?.entry_id, value: template?.value}}
-          filtersLocked={filtersLocked}
-      />
-    </Box>
-    <Box display="flex" justifyContent="end" marginY={1}>
-      <Button
-        variant="contained" color="primary"
-        disabled={!name || name === '' || !selectedTemplate}
-        onClick={handleAdd}
-      >
-        Add
-      </Button>
-    </Box>
   </React.Fragment>
 })
 

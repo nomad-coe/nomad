@@ -1,0 +1,17 @@
+definitions:
+  name: 'Set your name here'
+  sections:
+    SubstanceExtended:
+      base_section: "../upload/raw/baseSections.schema.archive.yaml#Substance"
+      quantities:
+        nameExtended:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        commentExtended:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+

@@ -39,20 +39,24 @@ const testSectionSelectDialog = async () => {
   await waitFor(() => expect(within(rows[1]).queryByText('ref4.archive.yaml')).toBeInTheDocument())
   await waitFor(() => expect(within(rows[1]).queryByText('Structure')).toBeInTheDocument())
 
-  await waitFor(() => expect(within(rows[2]).queryByText('mySubstance2 (./data/mySample/mySubstance)')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[2]).queryByText('ref3.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[2]).queryByText('Sample')).toBeInTheDocument())
 
-  const sections = within(rows[2]).queryAllByRole('menuitem')
-  expect(sections.length).toBe(2)
-  await waitFor(() => expect(within(sections[0]).queryByText('mySubstance1 (./data/mySubstance)')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[3]).queryByText('ref5.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(rows[3]).queryByText('SubstanceList')).toBeInTheDocument())
+
+  await waitFor(() => expect(within(rows[4]).queryByText('SubstanceExtended1 (./data/contents/3)')).toBeInTheDocument())
+
+  const sections = within(rows[4]).queryAllByRole('menuitem')
+  expect(sections.length).toBe(4)
+  await waitFor(() => expect(within(sections[0]).queryByText('Substance1 (./data/contents/0)')).toBeInTheDocument())
   await waitFor(() => expect(within(sections[0]).queryByTestId('check-icon')).not.toBeInTheDocument())
-  await waitFor(() => expect(within(sections[1]).queryByText('mySubstance2 (./data/mySample/mySubstance)')).toBeInTheDocument())
-  await waitFor(() => expect(within(sections[1]).queryByTestId('check-icon')).toBeInTheDocument())
-
-  await waitFor(() => expect(within(rows[3]).queryByText('ref3.archive.yaml')).toBeInTheDocument())
-  await waitFor(() => expect(within(rows[3]).queryByText('Sample')).toBeInTheDocument())
-
-  await waitFor(() => expect(within(rows[4]).queryByText('ref5.archive.yaml')).toBeInTheDocument())
-  await waitFor(() => expect(within(rows[4]).queryByText('SubstanceList')).toBeInTheDocument())
+  await waitFor(() => expect(within(sections[1]).queryByText('AContents1 (./data/contents/1)')).toBeInTheDocument())
+  await waitFor(() => expect(within(sections[1]).queryByTestId('check-icon')).not.toBeInTheDocument())
+  await waitFor(() => expect(within(sections[2]).queryByText('BContents1 (./data/contents/2)')).toBeInTheDocument())
+  await waitFor(() => expect(within(sections[2]).queryByTestId('check-icon')).not.toBeInTheDocument())
+  await waitFor(() => expect(within(sections[3]).queryByText('SubstanceExtended1 (./data/contents/3)')).toBeInTheDocument())
+  await waitFor(() => expect(within(sections[3]).queryByTestId('check-icon')).toBeInTheDocument())
 
   // close the dialog
   await userEvent.click(within(dialog).getByRole('button', {name: /cancel/i}))
@@ -66,13 +70,13 @@ const testSectionSelectAutocomplete = async () => {
   expect(sectionSelectEntries.length).toBe(4)
 
   await waitFor(() => expect(within(sectionSelectEntries[0]).queryByText('ref5.archive.yaml')).toBeInTheDocument())
-  await waitFor(() => expect(within(sectionSelectEntries[0]).queryByText('upload id: references_upload_id')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[0]).queryByText('upload id: references_upload_id1')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[1]).queryByText('ref3.archive.yaml')).toBeInTheDocument())
-  await waitFor(() => expect(within(sectionSelectEntries[1]).queryByText('upload id: references_upload_id')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[1]).queryByText('upload id: references_upload_id1')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[2]).queryByText('ref4.archive.yaml')).toBeInTheDocument())
-  await waitFor(() => expect(within(sectionSelectEntries[2]).queryByText('upload id: references_upload_id')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[2]).queryByText('upload id: references_upload_id1')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[3]).queryByText('ref2.archive.yaml')).toBeInTheDocument())
-  await waitFor(() => expect(within(sectionSelectEntries[3]).queryByText('upload id: references_upload_id')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[3]).queryByText('upload id: references_upload_id1')).toBeInTheDocument())
 
   const sectionSelectDeactivateEntries = screen.getAllByTestId('section-select-entry-deactivate')
 
@@ -82,12 +86,14 @@ const testSectionSelectAutocomplete = async () => {
   await waitFor(() => expect(within(sectionSelectDeactivateEntries[3]).queryByText('lost-reference.data.archive.yaml')).toBeInTheDocument())
 
   const sectionSelectPaths = screen.getAllByTestId('section-select-path')
-  expect(sectionSelectPaths.length).toBe(2)
+  expect(sectionSelectPaths.length).toBe(4)
 
-  await waitFor(() => expect(within(sectionSelectPaths[0]).queryByText('mySubstance1 (./data/mySubstance)')).toBeInTheDocument())
-  await waitFor(() => expect(within(sectionSelectPaths[1]).queryByText('mySubstance2 (./data/mySample/mySubstance)')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectPaths[0]).queryByText('Substance1 (./data/contents/0)')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectPaths[1]).queryByText('AContents1 (./data/contents/1)')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectPaths[2]).queryByText('BContents1 (./data/contents/2)')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectPaths[3]).queryByText('SubstanceExtended1 (./data/contents/3)')).toBeInTheDocument())
 
-  await act(async () => { userEvent.click(sectionSelectPaths[0]) })
+  await act(async () => { userEvent.click(sectionSelectPaths[1]) })
 }
 
 const testCreateReferenceDialog = async () => {
@@ -112,7 +118,7 @@ test.each([
     'referenceEditQuantity',
     'tests.states.entry.references',
     'tests/data/editquantity/referenceEditQuantity',
-    'AAa34yQsLMIVGUWiQJUxEMK_Fstf',
+    '4WgzB6xcTzWB_Xk9UNUH4HB3IRKJ',
     'test',
     'password'
   ]
@@ -134,7 +140,7 @@ test.each([
   const referenceEditQuantities = within(powderMixture).getAllByTestId('reference-edit-quantity')
   const referenceEditQuantity = referenceEditQuantities[0]
   const inputTextField = within(referenceEditQuantity).getByRole('textbox')
-  await waitFor(() => expect(inputTextField.value).toEqual('ref4.archive.yaml#data/mySample/mySubstance'))
+  await waitFor(() => expect(inputTextField.value).toEqual('ref5.archive.yaml#data/contents/3'))
 
   // test section select dialog
   const editReferenceButton = within(referenceEditQuantity).getByTitle('Search for the references').closest('button')
@@ -149,19 +155,18 @@ test.each([
 
   await testSectionSelectDialog()
 
-  // test section select combo
+  // test section select autocomplete
   fireEvent.change(inputTextField, { target: { value: 'ref' } })
   await waitForGUI(2000) // the input changes have been debounced
 
   await testSectionSelectAutocomplete()
 
-  await waitFor(() => expect(inputTextField.value).toEqual('ref4.archive.yaml#data/mySubstance'))
+  await waitFor(() => expect(inputTextField.value).toEqual('ref5.archive.yaml#data/contents/1'))
 
   // test delete reference
   const deleteReferenceButton = within(referenceEditQuantity).getByTitle('Clear').closest('button')
   expect(deleteReferenceButton).toBeEnabled()
   await act(async () => { await userEvent.click(deleteReferenceButton) })
-  await waitFor(() => expect(inputTextField.value).toEqual(''))
 
   // when the reference is undefined the create reference button should appear
   const createReferenceButton = within(referenceEditQuantity).getByTitle('Create and assign a new reference').closest('button')
@@ -173,6 +178,9 @@ test.each([
   await waitForGUI(1000, true)
   await waitFor(() => expect(inputTextField.value).toEqual('newReference.archive.json'))
 
+  await waitFor(() => expect(within(powderMixture).queryByText('The referenced value does not exist anymore')).not.toBeInTheDocument())
+  await waitFor(() => expect(within(powderMixture).queryByText('The provided path does not exist')).not.toBeInTheDocument())
+
   closeAPI()
 })
 
@@ -181,7 +189,17 @@ test.each([
     'referenceEditQuantity lost entry',
     'tests.states.entry.references',
     'tests/data/editquantity/referenceEditQuantity-lost-entry',
-    '6kU3WY1DH5XCpywRJ1lMzNcNL7uX',
+    'ScmGivaG2TTQTSYjlJGjIaSF_xTn',
+    'test',
+    'password',
+    '',
+    'The referenced value does not exist anymore'
+  ],
+  [
+    'referenceEditQuantity wrong upload id',
+    'tests.states.entry.references',
+    'tests/data/editquantity/referenceEditQuantity-wrong-upload-id',
+    'qZrvjM8MQcd1NX0CYF-2sJqjrgKR',
     'test',
     'password',
     '',
@@ -191,10 +209,10 @@ test.each([
     'referenceEditQuantity lost path',
     'tests.states.entry.references',
     'tests/data/editquantity/referenceEditQuantity-lost-path',
-    'GfxzIA3M8X-I719ZuD7wKX_DQJ8S',
+    '12GPrF13SLmhgKkvjdCbmNKeMfUv',
     'test',
     'password',
-    'ref4.archive.yaml#wrong/path',
+    'ref5.archive.yaml#wrong/path',
     'The provided path does not exist'
   ]
 ])('test %s', async (name, state, snapshot, entryId, username, password, inputValue, error) => {
@@ -217,8 +235,7 @@ test.each([
   const referenceEditQuantity = referenceEditQuantities[0]
   const inputTextField = within(referenceEditQuantity).getByRole('textbox')
   await waitFor(() => expect(inputTextField.value).toEqual(inputValue))
-
-  within(powderMixture).getByText(error)
+  await waitFor(() => expect(within(powderMixture).getByText(error)).toBeInTheDocument())
 
   closeAPI()
 })

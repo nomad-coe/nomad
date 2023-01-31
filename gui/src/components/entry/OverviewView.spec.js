@@ -20,7 +20,7 @@ import React from 'react'
 import 'regenerator-runtime/runtime'
 import { fireEvent, cleanup } from '@testing-library/react'
 import { waitFor, within } from '@testing-library/dom'
-import { render, screen, expectQuantity, readArchive, startAPI, closeAPI } from '../conftest.spec'
+import { render, screen, expectQuantity, readArchive, startAPI, closeAPI, waitForGUI } from '../conftest.spec'
 import { expectPlotButtons } from '../visualization/conftest.spec'
 import {
   expectComposition,
@@ -309,6 +309,10 @@ test.each([
   numberFieldUnit = within(cardHotplateAnnealing).queryAllByTestId('number-edit-quantity-unit')
   expectNumberEditQuantity(numberFieldValue[0], numberFieldUnit[0], '373.15', 'K')
 
+  // Wait for some api calls when we record them before closing the api
+  // This does not affect the actual test
+  await waitForGUI(2000)
+
   closeAPI()
 })
 
@@ -366,6 +370,10 @@ test.each([
   expect(saveButton2).toBeEnabled()
   await userEvent.click(saveButton2)
   await screen2.findByText('The changes cannot be saved. The content has been modified by someone else.')
+
+  // Wait for some api calls when we record them before closing the api
+  // This does not affect the actual test
+  await waitForGUI(2000)
 
   closeAPI()
 })

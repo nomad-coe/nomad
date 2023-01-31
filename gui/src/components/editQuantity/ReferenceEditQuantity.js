@@ -261,10 +261,11 @@ CreateNewReferenceDialog.propTypes = {
 
 export const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, ref) {
   const reference = useReferenceEditQuantityContext()
+  const path = reference?.value?.replace(/\/(\d)/g, ":$1")
   return <Link
     {...props}
     data-testid={`item:${itemKey}`}
-    to={`/user/uploads/upload/id/${reference?.archive?.upload_id}/entry/id/${reference?.archive?.entry_id}/data/data`}
+    to={`/user/uploads/upload/id/${reference?.archive?.upload_id}/entry/id/${reference?.archive?.entry_id}/data/${path}`}
   />
 })
 ItemLink.propTypes = {
@@ -292,7 +293,15 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     const resolveValue = async () => {
       const resolvedUrl = resolveNomadUrl(value, url)
       if (resolvedUrl.type !== refType.archive) throw new Error(`Archive reference expected, got ${value}`)
-      const response = await api.post(`entries/${resolvedUrl.entryId}/archive/query`, {
+      let query = {
+        entry_id: resolvedUrl.entryId
+      }
+      if (resolvedUrl?.uploadId) {
+        query = {upload_id: resolvedUrl.uploadId, ...query}
+      }
+      const response = await api.post(`entries/archive/query`, {
+        owner: 'visible',
+        query: query,
         'required': {
           'metadata': {
             'upload_id': '*',
@@ -304,40 +313,47 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       }, {
         noLoading: true
       })
-      const entry = response.data.archive.metadata
-      if (entry.processing_errors.length === 0) {
-        setEntry(entry)
-        setError(null)
+      const data = response.data
+      if (data.length > 0) {
+        const archive = data[0].archive.metadata
+        if (archive.processing_errors.length === 0) {
+          setEntry({value: value, archive: archive})
+          setError(null)
+        } else {
+          setEntry(null)
+          setError('There are some processing errors in the referenced value')
+        }
       } else {
         setEntry(null)
+        setError('The referenced value does not exist anymore')
       }
     }
     resolveValue()
-      .catch(() => {
-        setEntry(null)
-        setError('The referenced value does not exist anymore')
-      })
   }, [api, url, value])
 
-  const changeValue = useCallback((value) => {
+  const getReferencePath = useCallback((value) => {
     if (value?.entry_id && value?.upload_id && value?.path) {
-      value = `../uploads/${value.upload_id}/archive/${value.entry_id}#${value.path}`
+      return `../uploads/${value.upload_id}/archive/${value.entry_id}#${value.path}`
     } else if (value?.entry_id && value?.upload_id) {
-      value = `../uploads/${value.upload_id}/archive/${value.entry_id}#data`
+      return `../uploads/${value.upload_id}/archive/${value.entry_id}#data`
     } else if (value?.entry_id) {
-      value = `../upload/archive/${value.entry_id}#data`
+      return `../upload/archive/${value.entry_id}#data`
     } else {
-      value = undefined
+      return undefined
     }
+  }, [])
+
+  const changeValue = useCallback((value) => {
     if (onChange) {
       onChange(value)
     }
   }, [onChange])
 
   const handleValueChange = useCallback((value) => {
-    changeValue(value?.data)
+    const referencePath = getReferencePath(value?.data)
+    changeValue(referencePath)
     setOpen(false)
-  }, [changeValue])
+  }, [changeValue, getReferencePath])
 
   const itemKey = useMemo(() => {
     if (!isNaN(index)) {
@@ -351,13 +367,14 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
 
   const handleSuccess = useCallback((value) => {
     setCreateEntryDialogOpen(false)
-    setEntry(value.entry)
-    changeValue({
+    const referencePath = getReferencePath({
       entry_name: value.entry.mainfile,
       upload_id: value.upload_id,
       entry_id: value.entry_id
     })
-  }, [changeValue])
+    changeValue(referencePath)
+    setEntry({value: referencePath.split('#')[1], archive: value.entry})
+  }, [changeValue, getReferencePath])
 
   const handleFailed = useCallback((error) => {
     setCreateEntryDialogOpen(false)
@@ -385,23 +402,23 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
         <EditIcon/>
       </Tooltip>
     </IconButton>)
-    if (value) {
-      actions.push(<ItemButton key={'navigateAction'} size="small" itemKey={itemKey} itemLink={ItemLink} icon={<DetailsIcon/>}/>)
+    if (value && !error) {
+      actions.push(<ItemButton key={'navigateToReference'} size="small" itemKey={itemKey} itemLink={ItemLink} icon={<DetailsIcon/>}/>)
       actions.push(<ItemButton key={'navigateAction'} size="small" itemKey={itemKey}/>)
     }
     return actions
-  }, [value, itemKey, user, referencedSectionDef])
+  }, [value, itemKey, user, error, referencedSectionDef])
 
   const referencedValue = useMemo(() => {
-    return value && entry ? {entry_id: entry?.entry_id, value: value.split('#')[1], archive: entry} : null
-  }, [entry, value])
+    return entry ? {entry_id: entry?.archive?.entry_id, value: entry?.value?.split('#')[1], archive: entry?.archive} : null
+  }, [entry])
 
   const handleError = useCallback((error) => {
     setError(error)
   }, [])
 
   if (value && referencedValue === undefined) {
-    return ''
+    return null
   }
 
   return <referenceEditQuantityContext.Provider value={referencedValue}>
@@ -424,6 +441,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
                   endAdornment: addIconButtonToEndAdornment(params.InputProps.endAdornment, actions)
                 }}
                 {...otherProps}
+                placeholder={'search by entry name or file name'}
                 data-testid='reference-edit-quantity'
               />
             )
@@ -435,7 +453,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
         open={open}
         onCancel={() => setOpen(false)}
         onSelectedChanged={handleValueChange}
-        selected={value && entry && {entry_id: entry?.entry_id, value: value.split('#')[1]}}
+        selected={entry && {entry_id: entry?.archive?.entry_id, value: entry?.value?.split('#')[1]}}
         filtersLocked={filtersLocked}
       />
     </Box>
