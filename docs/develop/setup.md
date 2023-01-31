@@ -98,12 +98,6 @@ Make sure you have the most recent version of pip:
 pip install --upgrade pip
 ```
 
-The following command can be used to install all dependencies and the submodules of the NOMAD-coe project.
-```
-./scripts/setup_dev_env.sh
-```
-
-
 ### Install missing system libraries (e.g. on MacOS)
 
 Even though the NOMAD infrastructure is written in python, there is a C library
@@ -115,7 +109,24 @@ unix/linux systems. It can be installed on MacOS with homebrew:
 brew install libmagic
 ```
 
+If you are using an Mac with Apple Silicon, we recommend to use rosetta, homebrew
+for Intel, and install and use an Intel based Python. The second answer in this
+[Stackoverflow post](https://stackoverflow.com/questions/64882584/how-to-run-the-homebrew-installer-under-rosetta-2-on-m1-macbook)
+describes how to use both the Apple and Intel homebrew simultaneously.
+
 ### Install nomad
+The following command can be used to install all dependencies of all submodules and nomad
+itself. If successful you can skip the rest of this *Install nomad* section.
+```
+./scripts/setup_dev_env.sh
+```
+
+Install all the requirements needed for development (including submodul requirements):
+
+```sh
+pip install --prefer-binary -r requirements-dev.txt
+```
+
 Finally, you can add nomad to the environment itself (including all extras).
 The `-e` option will install the NOMAD with symbolic links allowing you
 to change the code without having to reinstall after each change.
