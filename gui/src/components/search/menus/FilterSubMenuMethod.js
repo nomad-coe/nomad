@@ -29,21 +29,18 @@ const FilterSubMenuMethod = React.memo(({
   const visible = open && id === selected
 
   return <FilterSubMenu id={id} {...rest}>
-    <InputGrid>
+    <InputGrid spacing={2}>
       <InputGridItem xs={12}>
         <InputField
-          quantity="results.method.method_name"
+          quantity="results.method.simulation.program_name"
           visible={visible}
-          xs={12}
-          disableSearch
         />
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputField
-          quantity="results.method.workflow_name"
+          quantity="results.method.simulation.program_version"
           visible={visible}
-          xs={12}
-          disableSearch
+          disableOptions
         />
       </InputGridItem>
     </InputGrid>

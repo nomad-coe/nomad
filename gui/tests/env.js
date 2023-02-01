@@ -204,7 +204,8 @@ window.nomadEnv = {
               },
               "method": {
                 "label": "Method",
-                "level": 0
+                "level": 0,
+                "menu_items": {}
               },
               "dft": {
                 "label": "DFT",
@@ -449,7 +450,8 @@ window.nomadEnv = {
               },
               "method": {
                 "label": "Method",
-                "level": 0
+                "level": 0,
+                "menu_items": {}
               },
               "dft": {
                 "label": "DFT",
@@ -623,7 +625,8 @@ window.nomadEnv = {
               },
               "method": {
                 "label": "Method",
-                "level": 0
+                "level": 0,
+                "menu_items": {}
               },
               "dft": {
                 "label": "DFT",
