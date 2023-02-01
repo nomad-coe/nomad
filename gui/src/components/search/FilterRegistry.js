@@ -31,7 +31,6 @@ export const filterData = {} // Stores data for each registered filter
 const idElements = 'elements'
 const idStructure = 'structure'
 const idMethod = 'method'
-const idSimulation = 'simulation'
 const idDFT = 'dft'
 const idGW = 'gw'
 const idProjection = 'projection'
@@ -338,17 +337,37 @@ registerFilter('results.material.symmetry.hall_symbol', idStructure, {...termQua
 registerFilter('results.material.symmetry.prototype_aflow_id', idStructure, {...termQuantity, placeholder: "E.g. A_cF8_227_a"})
 registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.workflow_name', idMethod, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.simulation.program_name', idSimulation, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.simulation.program_version', idSimulation, termQuantity)
+registerFilter('results.method.simulation.program_name', idMethod, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.simulation.program_version', idMethod, termQuantity)
 registerFilter('results.method.simulation.dft.basis_set_type', idDFT, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.dft.core_electron_treatment', idDFT, termQuantity)
-registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {...termQuantity, scale: '1/2', label: 'XC Functional Type'})
+registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {
+  ...termQuantity,
+  scale: '1/2',
+  label: 'Jacob\'s ladder',
+  options: {
+    'LDA': {label: 'LDA'},
+    GGA: {label: 'GGA'},
+    'meta-GGA': {label: 'Meta-GGA'},
+    hybrid: {label: 'Hybrids'}
+  }
+})
 registerFilter('results.method.simulation.dft.xc_functional_names', idDFT, {...termQuantityNonExclusive, scale: '1/2', label: 'XC Functional Names'})
 registerFilter('results.method.simulation.dft.exact_exchange_mixing_factor', idDFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dft.hubbard_kanamori_model.u_effective', idDFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dft.relativity_method', idDFT, termQuantity)
 registerFilter('results.method.simulation.gw.type', idGW, {...termQuantity, label: 'GW Type'})
-registerFilter('results.method.simulation.gw.starting_point_type', idGW, {...termQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.gw.starting_point_type', idGW, {
+  ...termQuantity,
+  scale: '1/2',
+  options: {
+    'LDA': {label: 'LDA'},
+    GGA: {label: 'GGA'},
+    'meta-GGA': {label: 'Meta-GGA'},
+    hybrid: {label: 'Hybrids'},
+    'HF': {label: 'HF'}
+  }
+})
 registerFilter('results.method.simulation.gw.basis_set_type', idGW, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.projection.type', idProjection, {...termQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.projection.localization_type', idProjection, {...termQuantity, scale: '1/2'})

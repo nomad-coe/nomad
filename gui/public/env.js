@@ -204,7 +204,8 @@ window.nomadEnv = {
               },
               "method": {
                 "label": "Method",
-                "level": 0
+                "level": 0,
+                "menu_items": {}
               },
               "dft": {
                 "label": "DFT",
@@ -449,7 +450,8 @@ window.nomadEnv = {
               },
               "method": {
                 "label": "Method",
-                "level": 0
+                "level": 0,
+                "menu_items": {}
               },
               "dft": {
                 "label": "DFT",
@@ -541,7 +543,7 @@ window.nomadEnv = {
             ]
           },
           "filters_locked": {
-            "sections": "nomad.datamodel.results.Simulation"
+            "quantities": "results.method.simulation.program_name"
           }
         },
         "materials": {
@@ -623,7 +625,8 @@ window.nomadEnv = {
               },
               "method": {
                 "label": "Method",
-                "level": 0
+                "level": 0,
+                "menu_items": {}
               },
               "dft": {
                 "label": "DFT",
@@ -1717,6 +1720,9 @@ window.nomadEnv = {
         }
       }
     },
-    "default_unit_system": "Custom"
+    "default_unit_system": "Custom",
+    "theme": {
+      "title": "NOMAD"
+    }
   }
 }
