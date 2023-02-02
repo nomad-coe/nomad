@@ -447,6 +447,7 @@ class ArchiveParser(MatchingParser):
         metadata_data = archive_data.get(EntryArchive.metadata.name, None)
 
         if metadata_data is not None:
+            self.domain = metadata_data.get('domain')
             # Setting metadata in this way is not supported (any more)
             del(archive_data[EntryArchive.metadata.name])
 
