@@ -31,7 +31,10 @@ from nomad.datamodel.metainfo.eln.perovskite_solar_cell_database import (
     add_solar_cell, add_band_gap
 )
 
-from nomad.datamodel.metainfo.eln.nexus_data_converter import NexusDataConverter
+from nomad.datamodel.metainfo.eln.nexus_data_converter import (
+    NexusDataConverter,
+    ElnYamlConverter
+)
 
 
 m_package = Package(name='eln')

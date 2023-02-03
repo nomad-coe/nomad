@@ -14,6 +14,57 @@ from nexusutils.nexus.nexus import get_app_defs_names
 m_package = Package(name='nexus_data_converter')
 
 
+def create_eln_dict(archive):
+    def transform(quantity_def, section, value, path):
+        if quantity_def.unit:
+            Q_ = ureg.Quantity
+            val_unit = Q_(value, quantity_def.unit)
+
+            default_display_unit = quantity_def.m_annotations.get(
+                'eln', {'defaultDisplayUnit': None}
+            ).defaultDisplayUnit
+            if default_display_unit:
+                val_unit = val_unit.to(default_display_unit)
+
+            return dict(
+                value=val_unit.magnitude.tolist()
+                if isinstance(val_unit.magnitude, np.ndarray)
+                else val_unit.magnitude,
+                unit=str(format(val_unit.units, '~'))
+            )
+        return value
+
+    def exclude(quantity_def, section):
+        return quantity_def.name in ('reader', 'input_files', 'output', 'nxdl')
+
+    eln_dict = archive.m_to_dict(transform=transform, exclude=exclude)
+    del eln_dict['data']['m_def']
+
+    return eln_dict
+
+
+def write_yaml(archive, filename, eln_dict):
+    with archive.m_context.raw_file(filename, 'w') as eln_file:
+        yaml.dump(eln_dict['data'], eln_file, allow_unicode=True)
+
+
+class ElnYamlConverter(EntryData):
+
+    output = Quantity(
+        type=str,
+        description='Output yaml file to save all the data. Default: eln_data.yaml',
+        a_eln=dict(component='StringEditQuantity'),
+        a_browser=dict(adaptor='RawFileAdaptor'),
+        default='eln_data.yaml'
+    )
+
+    def normalize(self, archive, logger):
+        super(ElnYamlConverter, self).normalize(archive, logger)
+
+        eln_dict = create_eln_dict(archive)
+        write_yaml(archive, archive.data.output, eln_dict)
+
+
 class NexusDataConverter(EntryData):
 
     reader = Quantity(
@@ -44,38 +95,13 @@ class NexusDataConverter(EntryData):
         super(NexusDataConverter, self).normalize(archive, logger)
 
         raw_path = archive.m_context.raw_path()
-
-        def transform(quantity_def, section, value, path):
-            if quantity_def.unit:
-                Q_ = ureg.Quantity
-                val_unit = Q_(value, quantity_def.unit)
-
-                default_display_unit = quantity_def.m_annotations.get(
-                    'eln', {'defaultDisplayUnit': None}
-                ).defaultDisplayUnit
-                if default_display_unit:
-                    val_unit = val_unit.to(default_display_unit)
-
-                return dict(
-                    value=val_unit.magnitude.tolist()
-                    if isinstance(val_unit.magnitude, np.ndarray)
-                    else val_unit.magnitude,
-                    unit=str(format(val_unit.units, '~'))
-                )
-            return value
-
-        def exclude(quantity_def, section):
-            return quantity_def.name in ('reader', 'input_files', 'output', 'nxdl')
-
-        eln_dict = archive.m_to_dict(transform=transform, exclude=exclude)
-        del eln_dict['data']['m_def']
+        eln_dict = create_eln_dict(archive)
 
         if archive.data.input_files is None:
             archive.data.input_files = []
 
         if len(eln_dict['data']) > 0:
-            with archive.m_context.raw_file('eln_data.yaml', 'w') as eln_file:
-                yaml.dump(eln_dict['data'], eln_file, allow_unicode=True)
+            write_yaml(archive, 'eln_data.yaml', eln_dict)
 
             if "eln_data.yaml" not in archive.data.input_files:
                 archive.data.input_files.append("eln_data.yaml")
