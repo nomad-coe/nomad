@@ -40,7 +40,7 @@ const DeleteEntriesButton = React.memo(({tooltip, disabled, buttonProps, dark, s
     api.post(`uploads/${uploadId}/action/delete-entry-files`, requestBody)
       .then(results => {
         updateUpload({upload: results.data})
-        setSelected([])
+        setSelected(new Set())
       })
       .catch(err =>
         raiseError(err)

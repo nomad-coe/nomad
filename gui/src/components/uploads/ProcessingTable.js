@@ -105,7 +105,7 @@ const defaultSelectedColumns = [
 ]
 
 export default function ProcessingTable(props) {
-  const [selected, setSelected] = useState([])
+  const [selected, setSelected] = useState(new Set())
   const {pagination, customTitle} = props
   const {upload, isEditable} = useUploadPageContext()
 
@@ -114,13 +114,13 @@ export default function ProcessingTable(props) {
       return {'upload_id': upload.upload_id}
     }
 
-    return {entry_id: selected.map(data => data.entry_id)}
+    return {entry_id: [...selected]}
   }, [selected, upload])
 
   return <Paper>
     <Datatable
       columns={columns} shownColumns={defaultSelectedColumns} {...props}
-      selected={selected} onSelectedChanged={setSelected}
+      selected={selected} getId={option => option.entry_id} onSelectedChanged={setSelected}
     >
       <DatatableToolbar title={pluralize((customTitle || 'search result'), pagination.total, true)}>
         <DatatableToolbarActions selection>
@@ -134,7 +134,7 @@ export default function ProcessingTable(props) {
             <DeleteEntriesButton
               isIcon
               selectedEntries={selectedQuery}
-              selectedCount={selected === 'all' ? pagination.total : selected.length}
+              selectedCount={selected === 'all' ? pagination.total : selected?.size}
               setSelected={setSelected}
             />}
         </DatatableToolbarActions>

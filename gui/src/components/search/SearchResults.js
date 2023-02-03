@@ -40,7 +40,7 @@ const SearchResults = React.memo(function SearchResults(props) {
   const {columns, resource, rows, useResults, useQuery} = useSearchContext()
   const {data, pagination, setPagination} = useResults()
   const searchQuery = useQuery()
-  const [selected, setSelected] = useState([])
+  const [selected, setSelected] = useState(new Set())
 
   useEffect(() => {
     if (onSelectedChanged) {
@@ -52,7 +52,7 @@ const SearchResults = React.memo(function SearchResults(props) {
     if (selected === 'all') {
       return searchQuery
     }
-    return {entry_id: selected.map(data => data.entry_id)}
+    return {entry_id: [...selected]}
   }, [selected, searchQuery])
 
   if (!columns) {
@@ -89,6 +89,7 @@ const SearchResults = React.memo(function SearchResults(props) {
       columns={columns?.options}
       shownColumns={columns?.enable}
       selected={rows?.selection?.enable ? selected : undefined}
+      getId={option => option.entry_id}
       onSelectedChanged={rows?.selection?.enable ? setSelected : undefined}
       {...otherProps}
     >

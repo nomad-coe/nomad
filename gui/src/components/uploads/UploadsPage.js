@@ -257,7 +257,7 @@ export function UploadsPage() {
   const data = useMemo(() => apiData?.response, [apiData])
   const [unpublished, setUnpublished] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
-  const [selected, setSelected] = useState([])
+  const [selected, setSelected] = useState(new Set())
   const fetchTimer = useRef(-1)
   const [pagination, setPagination] = useState({
     page_size: 10,
@@ -316,8 +316,8 @@ export function UploadsPage() {
       .catch(errors.raiseError)
   }, [api, errors, setUploadCommands])
 
-  const selectedUploads = useMemo(() => selected === 'all' ? unpublished.data.map(upload => upload.upload_id) : selected.map(upload => upload.upload_id), [selected, unpublished])
-  const selectedCount = useMemo(() => selected === 'all' ? unpublished.pagination.total : selected.length, [selected, unpublished])
+  const selectedUploads = useMemo(() => selected === 'all' ? unpublished.data.map(upload => upload.upload_id) : [...selected], [selected, unpublished])
+  const selectedCount = useMemo(() => selected === 'all' ? unpublished.pagination.total : selected?.size, [selected, unpublished])
   const deleteUploads = useCallback(() => {
     const promises = selectedUploads.map(upload_id => api.delete(`uploads/${upload_id}`))
     return Promise.allSettled(promises)
@@ -334,7 +334,7 @@ export function UploadsPage() {
           errors.raiseError(new Error('Unexpected error!'))
         }
       })
-      setSelected([])
+      setSelected(new Set([]))
       fetchData()
     })
   }, [deleteUploads, errors, fetchData])
@@ -375,7 +375,9 @@ export function UploadsPage() {
             data={data.data || []}
             pagination={combinePagination(pagination, data.pagination)}
             onPaginationChanged={setPagination}
-            selected={selected} onSelectedChanged={setSelected}
+            selected={selected}
+            getId={option => option.upload_id}
+            onSelectedChanged={setSelected}
           >
             <DatatableToolbar title="Your existing uploads">
               <DatatableToolbarActions>
