@@ -69,7 +69,7 @@ function ScrollDatatableExample() {
     total: 1024, page_size: 100
   })
   const [data, setData] = useState([])
-  const [selected, setSelected] = useState([])
+  const [selected, setSelected] = useState(new Set())
 
   useEffect(() => {
     sleep(100).then(() => {
@@ -87,6 +87,7 @@ function ScrollDatatableExample() {
       columns={columns} data={data}
       pagination={pagination} onPaginationChanged={setPagination}
       selected={selected}
+      getId={option => option.id}
       onSelectedChanged={setSelected}
     >
       <DatatableToolbar title="Example table." />
@@ -106,7 +107,7 @@ function LoadMoreDatatableExample() {
     total: 1024, page_size: 10
   })
   const [data, setData] = useState([])
-  const [selected, setSelected] = useState([])
+  const [selected, setSelected] = useState(new Set())
 
   useEffect(() => {
     sleep(100).then(() => {
@@ -124,6 +125,7 @@ function LoadMoreDatatableExample() {
       columns={columns} data={data}
       pagination={pagination} onPaginationChanged={setPagination}
       selected={selected}
+      getId={option => option.id}
       onSelectedChanged={setSelected}
     >
       <DatatableToolbar title="Example table." />
@@ -146,7 +148,7 @@ export function DatatableExamples() {
   const [pagination, setPagination] = useState({
     page_size: 10, page: 1, order_by: 'id', order: 'asc', total: exampleData.length
   })
-  const [selected, setSelected] = useState([])
+  const [selected, setSelected] = useState(new Set())
 
   useEffect(() => {
     const {page_size, page, total, order, order_by} = pagination
@@ -181,6 +183,7 @@ export function DatatableExamples() {
             pagination={pagination}
             onPaginationChanged={setPagination}
             selected={selected}
+            getId={option => option.id}
             onSelectedChanged={setSelected}
           >
             <DatatableToolbar title="Example table.">
@@ -210,6 +213,7 @@ export function DatatableExamples() {
             pagination={pagination}
             onPaginationChanged={setPagination}
             selected={selected}
+            getId={option => option.id}
             onSelectedChanged={setSelected}
           >
             <DatatableToolbar title="Example table.">

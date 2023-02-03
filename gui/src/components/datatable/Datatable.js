@@ -231,9 +231,8 @@ const useDatatableHeaderStyles = makeStyles(theme => ({
 
 const DatatableHeader = React.memo(function DatatableHeader({actions}) {
   const classes = useDatatableHeaderStyles()
+  const {withSelectionFeature, multiSelect} = useStaticDatatableContext()
   const {
-    withSelectionFeature,
-    multiSelect,
     selected,
     onSelectedChanged,
     shownColumns,
@@ -247,7 +246,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
 
   const handleSelectAllChanged = () => {
     if (selected === 'all') {
-      onSelectedChanged([])
+      onSelectedChanged(new Set())
     } else {
       onSelectedChanged('all')
     }
@@ -349,7 +348,7 @@ const useDatatableRowStyles = makeStyles(theme => ({
 
 const DatatableRow = React.memo(function DatatableRow({data, selected, uncollapsed, onRowUncollapsed, actions, details, progressIcon}) {
   const classes = useDatatableRowStyles()
-  const {withSelectionFeature, multiSelect, shownColumns, onSelectedChanged} = useStaticDatatableContext()
+  const {withSelectionFeature, multiSelect, getId, shownColumns, onSelectedChanged} = useStaticDatatableContext()
   const columns = shownColumns
   const row = data
   const numberOfColumns = columns.length + (withSelectionFeature && multiSelect ? 1 : 0) + (actions ? 1 : 0)
@@ -363,16 +362,18 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
     onSelectedChanged(selected => {
       if (multiSelect) {
         if (selected === 'all') {
-          return [row]
+          return new Set([getId(row)])
         }
-        const index = selected.indexOf(row)
-        if (index > -1) {
-          return [...selected.slice(0, index), ...selected.slice(index + 1)]
+        const isSelected = selected.has(getId(row))
+        if (isSelected) {
+          selected.delete(getId(row))
+          return new Set(selected)
         } else {
-          return [...selected, row]
+          selected.add(getId(row))
+          return new Set(selected)
         }
       } else {
-        return [row]
+        return new Set([getId(row)])
       }
     })
   } : null
@@ -435,7 +436,8 @@ const useDatatableTableStyles = makeStyles(theme => ({
 /** The actional table, including pagination. Must be child of a Datatable component. */
 export const DatatableTable = React.memo(function DatatableTable({children, actions, details, noHeader, defaultUncollapsedRow}) {
   const classes = useDatatableTableStyles()
-  const {shownColumns, data, pagination, onPaginationChanged, selected, withSelectionFeature, multiSelect} = useDatatableContext()
+  const {withSelectionFeature, multiSelect, getId} = useStaticDatatableContext()
+  const {shownColumns, data, pagination, onPaginationChanged, selected} = useDatatableContext()
   const {page_size} = pagination
   const emptyRows = Math.max(0, page_size - data.length)
   const columns = shownColumns
@@ -478,7 +480,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
           actions={actions}
           details={details}
           key={index}
-          selected={selected === 'all' || selected?.includes(row)}
+          selected={selected === 'all' || selected?.has(getId(row))}
           uncollapsed={row === uncollapsedRow}
           data={row}
           onRowUncollapsed={setUncollapsedRow}
@@ -530,7 +532,7 @@ DatatableTable.propTypes = {
 export const DatatableToolbarActions = React.memo(function DatatableToolbarActions({children, selection}) {
   const {selected} = useDatatableContext()
 
-  const hasSelection = selected?.length > 0
+  const hasSelection = selected?.size > 0
   if ((hasSelection && selection) || (!hasSelection && !selection)) {
     return <React.Fragment>
       {children}
@@ -570,7 +572,8 @@ const useDatatableToolbarStyles = makeStyles(theme => ({
  * on selected rows. Must be child of a Datatable */
 export const DatatableToolbar = React.memo(function DatatableToolbar({children, title, hideColumns}) {
   const classes = useDatatableToolbarStyles()
-  const {selected, multiSelect} = useDatatableContext()
+  const {multiSelect} = useStaticDatatableContext()
+  const {selected} = useDatatableContext()
   return (
     <Toolbar
       className={clsx(classes.root, {
@@ -662,7 +665,7 @@ DatatableColumnSelector.propTypes = {
  * Table is based on array data with row objects and matching speficiation of columns.
  */
 export const Datatable = React.memo(function Datatable(props) {
-  const {children, multiSelect, ...contextProps} = props
+  const {children, multiSelect, getId, ...contextProps} = props
   const {data, columns} = contextProps
 
   const [shownColumns, setShownColumns] = useState(
@@ -674,8 +677,6 @@ export const Datatable = React.memo(function Datatable(props) {
   ), [columns, shownColumns])
 
   const context = {
-    withSelectionFeature: withSelectionFeature,
-    multiSelect: multiSelect,
     pagination: {
       page: 1,
       page_size: data.length,
@@ -689,11 +690,13 @@ export const Datatable = React.memo(function Datatable(props) {
   const staticContext = useMemo(() => ({
     withSelectionFeature: withSelectionFeature,
     multiSelect: multiSelect,
+    getId: getId,
     shownColumns: shownColumnsObjects,
     onSelectedChanged: props.onSelectedChanged
   }), [
     shownColumnsObjects,
     withSelectionFeature,
+    getId,
     multiSelect,
     props.onSelectedChanged])
 
@@ -711,6 +714,17 @@ const paginationBaseProps = {
   order: PropTypes.oneOf(['asc', 'desc']),
   order_by: PropTypes.string
 }
+
+const selected = function(props, propName, componentName) {
+  if ((typeof props[propName] === 'string' && (props[propName] === 'all' || props[propName] === 'All')) || props[propName] instanceof Set) {
+    if (props[propName] && !props['getId']) {
+      throw new Error(`${componentName} requires 'getId' property when using '${propName}' property.`)
+    }
+  } else {
+    throw new Error(`Invalid props passed to the ${componentName}. '${propName}' accepts 'all' or a Set() of string IDs.`)
+  }
+}
+
 Datatable.propTypes = {
   /** Specification for all possible column. */
   columns: PropTypes.arrayOf(PropTypes.shape({
@@ -755,10 +769,9 @@ Datatable.propTypes = {
   /** Optional value for selected rows to show. It is either the string "all" or
    * an array of selected row objects. If same object, row is shown as
    * selected. If no value is given, the table will not show any selection boxes. */
-  selected: PropTypes.oneOfType([
-    PropTypes.oneOf(['all']),
-    PropTypes.arrayOf(PropTypes.object)
-  ]),
+  selected: selected,
+  /** A function to get a unique id or key from the provided rows. Required if selected is provided. */
+  getId: PropTypes.func,
   multiSelect: PropTypes.bool,
   /** Optional callback for selection changes. Takes either "all" or new array of
    * selected row objects as parameter. */
