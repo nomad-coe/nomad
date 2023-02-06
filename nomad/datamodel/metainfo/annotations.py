@@ -57,6 +57,7 @@ valid_eln_types = {
 valid_eln_components = {
     'str': [
         ELNComponentEnum.StringEditQuantity,
+        ELNComponentEnum.URLEditQuantity,
         ELNComponentEnum.FileEditQuantity,
         ELNComponentEnum.RichTextEditQuantity,
         ELNComponentEnum.EnumEditQuantity],
