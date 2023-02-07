@@ -410,7 +410,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   }, [value, itemKey, user, error, referencedSectionDef])
 
   const referencedValue = useMemo(() => {
-    return entry ? {entry_id: entry?.archive?.entry_id, value: entry?.value?.split('#')[1], archive: entry?.archive} : null
+    const value = entry?.value?.split('#')[1] || ''
+    return entry ? {entry_id: entry?.archive?.entry_id, value: value.replace(/^(\/*)(.*)/gi, '$2'), archive: entry?.archive} : null
   }, [entry])
 
   const handleError = useCallback((error) => {
