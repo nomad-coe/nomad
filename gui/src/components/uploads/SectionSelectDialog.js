@@ -203,21 +203,23 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
     filters: filterList
   } = useSearchContext()
   const filtersLocked = useFiltersLocked()
-  const [filters, setFilters] = useFiltersState([...allFilters].filter(filter => filter !== 'visibility' && filter !== 'upload_id' && !filtersLocked[filter]))
+  const [filters, setFilters] = useFiltersState([...allFilters].filter(filter => filter !== 'visibility' && filter !== 'processed' && filter !== 'upload_id' && !filtersLocked[filter]))
   const uploadContext = useUploadPageContext()
   const entryContext = useEntryStore()
   const {uploadId} = uploadContext || entryContext
   const setVisibilityFilter = useSetFilter('visibility')
   const setUploadIdFilter = useSetFilter('upload_id')
+  const setProcessedFilter = useSetFilter('processed')
 
   const handleCancel = useCallback(() => {
     onCancel()
   }, [onCancel])
 
   useEffect(() => {
+    setProcessedFilter(true)
     setVisibilityFilter(onlyMine ? 'user' : undefined)
     setUploadIdFilter(onlyThisUpload ? uploadId : undefined)
-  }, [onlyMine, onlyThisUpload, setUploadIdFilter, setVisibilityFilter, uploadId, user])
+  }, [onlyMine, onlyThisUpload, setUploadIdFilter, setVisibilityFilter, setProcessedFilter, uploadId, user])
 
   const contextValue = useMemo(() => ({
     selected: selected,
