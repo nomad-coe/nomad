@@ -1,47 +1,51 @@
 {
-  "theory": {
-    "path": "examples/data/uploads/theory.zip",
-    "title": "Electronic structure code input and output files",
-    "description": "This upload demonstrate the basic use of NOMAD's *parsers*. For many *electronic\nstructure codes* (VASP, etc.), NOMAD provides parsers. You simply upload\nthe *input and output files* of your simulations and NOMAD parsers are extracting\nall necessary metadata to produce a **FAIR** dataset.\n"
+  "Basic examples": {
+    "theory": {
+      "path": "examples/data/uploads/theory.zip",
+      "title": "Electronic structure code input and output files",
+      "description": "This upload demonstrate the basic use of NOMAD's *parsers*. For many *electronic\nstructure codes* (VASP, etc.), NOMAD provides parsers. You simply upload\nthe *input and output files* of your simulations and NOMAD parsers are extracting\nall necessary metadata to produce a **FAIR** dataset.\n"
+    },
+    "eln": {
+      "path": "examples/data/uploads/eln.zip",
+      "title": "Electronic Lab Notebook",
+      "description": "This example contains a custom NOMAD *schema* to create an **Electronic\nLab Notebook (ELN)** and a few example *data* entries that use this schema.\nThe schema demonstrates the basic concepts behind a NOMAD ELN and can be a good\n**starting point** to create you own schemas that model **FAIR data** acquired in your lab.\n"
+    },
+    "tables": {
+      "path": "examples/data/uploads/tabular.zip",
+      "title": "Tabular Data",
+      "description": "This upload demonstrates the used of tabular data. In this example we use an *xlsx*\nfile in combination with a custom schema. The schema describes what the columns\nin the excel file mean and NOMAD can parse everything accordingly to\nproduce a **FAIR** dataset.\n"
+    }
   },
-  "eln": {
-    "path": "examples/data/uploads/eln.zip",
-    "title": "Electronic Lab Notebook",
-    "description": "This example contains a custom NOMAD *schema* to create an **Electronic\nLab Notebook (ELN)** and a few example *data* entries that use this schema.\nThe schema demonstrates the basic concepts behind a NOMAD ELN and can be a good\n**starting point** to create you own schemas that model **FAIR data** acquired in your lab.\n"
-  },
-  "tables": {
-    "path": "examples/data/uploads/tabular.zip",
-    "title": "Tabular Data",
-    "description": "This upload demonstrates the used of tabular data. In this example we use an *xlsx*\nfile in combination with a custom schema. The schema describes what the columns\nin the excel file mean and NOMAD can parse everything accordingly to\nproduce a **FAIR** dataset.\n"
-  },
-  "ellips": {
-    "path": "examples/data/uploads/ellips.zip",
-    "title": "Ellipsometry",
-    "description": "This example presents the capabilities of the NOMAD platform to store and standardize ellipsometry data.\nIt shows the generation of a NeXus file according to the [NXellipsometry](https://manual.nexusformat.org/classes/contributed_definitions/NXellipsometry.html#nxellipsometry)\napplication definition and a successive analysis of a SiO2 on Si Psi/Delta measurement.\n"
-  },
-  "mpes": {
-    "path": "examples/data/uploads/mpes.zip",
-    "title": "Mpes",
-    "description": "This example presents the capabilities of the NOMAD platform to store and standardize multi photoemission spectroscopy (MPES) experimental data. It contains three major examples:\n\n  - Taking a pre-binned file, here stored in a h5 file, and converting it into the standardized MPES NeXus format.\n    There exists a [NeXus application definition for MPES](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes) which details the internal structure of such a file.\n  - Binning of raw data (see [here](https://www.nature.com/articles/s41597-020-00769-8) for additional resources) into a h5 file and consecutively generating a NeXus file from it.\n  - An analysis example using data in the NeXus format and employing the [pyARPES](https://github.com/chstan/arpes) analysis tool to reproduce the main findings of [this paper](https://arxiv.org/pdf/2107.07158.pdf).\n"
-  },
-  "xps": {
-    "path": "examples/data/uploads/xps.zip",
-    "title": "XPS",
-    "description": "This example presents the capabilities of the NOMAD platform to store and standardize XPS data.\nIt shows the generation of a NeXus file according to the\n[NXmpes](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes)\napplication definition and a successive analysis of an example data set.\n"
-  },
-  "apm": {
-    "path": "examples/data/uploads/apm.zip",
-    "title": "Electronic Lab Notebook for Atom Probe Microscopy (APM)",
-    "description": "This is an example for atom probe microscopy.\nThe example contains a custom NOMAD *schema* to create an **Electronic\nLab Notebook (ELN)** with which users can enter metadata that are usually\nnot stored in vendor or community file formats. The example serves two\npurposes. On the one hand it shows how custom NOMAD *schema* can be\ncreated for a research community, here atom probe. On the other hand it\nshows how all required data in a NeXus NXapm file can be added to supplement\ncontent from vendor and community files.\n"
-  },
-  "em_spctrscpy": {
-    "path": "examples/data/uploads/em_spctrscpy.zip",
-    "title": "Electronic Lab Notebook for Electron Microscopy (EM)",
-    "description": "This is an example for electron microscopy.\nSpecifically for spectroscopy methods in the SEM and TEM, exemplified\nfor energy-dispersive X-ray (EDXS/EDS) spectroscopy and\nelectron energy loss spectroscopy (EELS).\nThe example contains a custom NOMAD *schema* to create an **Electronic\nLab Notebook (ELN)** with which users can enter metadata that are usually\nnot stored in vendor or community file formats. The example serves two\npurposes. On the one hand it shows how custom NOMAD *schema* can be\ncreated for a research community, here electron microscopy. On the other hand\nit shows how required data in a NeXus NXem file can be added to supplement\ncontent from vendor and community files.\n"
-  },
-  "iv_temp": {
-    "path": "examples/data/uploads/iv_temp.zip",
-    "title": "Sensor Scan - IV Temperature Curve",
-    "description": "This example shows users how to take data from a Python framework and map it out to a Nexus application definition for IV Temperature measurements, [NXiv_temp](https://fairmat-experimental.github.io/nexus-fairmat-proposal/1c3806dba40111f36a16d0205cc39a5b7d52ca2e/classes/contributed_definitions/NXiv_temp.html#nxiv-temp).\nWe use the Nexus ELN features of Nomad to generate a Nexus file.\n"
+  "FAIRmat examples": {
+    "ellips": {
+      "path": "examples/data/uploads/ellips.zip",
+      "title": "Ellipsometry",
+      "description": "This example presents the capabilities of the NOMAD platform to store and standardize ellipsometry data.\nIt shows the generation of a NeXus file according to the [NXellipsometry](https://manual.nexusformat.org/classes/contributed_definitions/NXellipsometry.html#nxellipsometry)\napplication definition and a successive analysis of a SiO2 on Si Psi/Delta measurement.\n"
+    },
+    "mpes": {
+      "path": "examples/data/uploads/mpes.zip",
+      "title": "Mpes",
+      "description": "This example presents the capabilities of the NOMAD platform to store and standardize multi photoemission spectroscopy (MPES) experimental data. It contains three major examples:\n\n  - Taking a pre-binned file, here stored in a h5 file, and converting it into the standardized MPES NeXus format.\n    There exists a [NeXus application definition for MPES](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes) which details the internal structure of such a file.\n  - Binning of raw data (see [here](https://www.nature.com/articles/s41597-020-00769-8) for additional resources) into a h5 file and consecutively generating a NeXus file from it.\n  - An analysis example using data in the NeXus format and employing the [pyARPES](https://github.com/chstan/arpes) analysis tool to reproduce the main findings of [this paper](https://arxiv.org/pdf/2107.07158.pdf).\n"
+    },
+    "xps": {
+      "path": "examples/data/uploads/xps.zip",
+      "title": "XPS",
+      "description": "This example presents the capabilities of the NOMAD platform to store and standardize XPS data.\nIt shows the generation of a NeXus file according to the\n[NXmpes](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes)\napplication definition and a successive analysis of an example data set.\n"
+    },
+    "apm": {
+      "path": "examples/data/uploads/apm.zip",
+      "title": "Electronic Lab Notebook for Atom Probe Microscopy (APM)",
+      "description": "This is an example for atom probe microscopy.\nThe example contains a custom NOMAD *schema* to create an **Electronic\nLab Notebook (ELN)** with which users can enter metadata that are usually\nnot stored in vendor or community file formats. The example serves two\npurposes. On the one hand it shows how custom NOMAD *schema* can be\ncreated for a research community, here atom probe. On the other hand it\nshows how all required data in a NeXus NXapm file can be added to supplement\ncontent from vendor and community files.\n"
+    },
+    "em_spctrscpy": {
+      "path": "examples/data/uploads/em_spctrscpy.zip",
+      "title": "Electronic Lab Notebook for Electron Microscopy (EM)",
+      "description": "This is an example for electron microscopy.\nSpecifically for spectroscopy methods in the SEM and TEM, exemplified\nfor energy-dispersive X-ray (EDXS/EDS) spectroscopy and\nelectron energy loss spectroscopy (EELS).\nThe example contains a custom NOMAD *schema* to create an **Electronic\nLab Notebook (ELN)** with which users can enter metadata that are usually\nnot stored in vendor or community file formats. The example serves two\npurposes. On the one hand it shows how custom NOMAD *schema* can be\ncreated for a research community, here electron microscopy. On the other hand\nit shows how required data in a NeXus NXem file can be added to supplement\ncontent from vendor and community files.\n"
+    },
+    "iv_temp": {
+      "path": "examples/data/uploads/iv_temp.zip",
+      "title": "Sensor Scan - IV Temperature Curve",
+      "description": "This example shows users how to take data from a Python framework and map it out to a Nexus application definition for IV Temperature measurements, [NXiv_temp](https://fairmat-experimental.github.io/nexus-fairmat-proposal/1c3806dba40111f36a16d0205cc39a5b7d52ca2e/classes/contributed_definitions/NXiv_temp.html#nxiv-temp).\nWe use the Nexus ELN features of Nomad to generate a Nexus file.\n"
+    }
   }
 }

@@ -1399,6 +1399,10 @@ class UIConfig(NomadSettings):
             },
         }
     }
+    example_uploads: dict = {
+        'include': None,
+        'exclude': None
+    }
 
 
 ui = UIConfig()

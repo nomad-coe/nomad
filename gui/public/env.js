@@ -1720,6 +1720,10 @@ window.nomadEnv = {
         }
       }
     },
+    "example_uploads": {
+      "include": null,
+      "exclude": null
+    },
     "default_unit_system": "Custom",
     "theme": {
       "title": "NOMAD"

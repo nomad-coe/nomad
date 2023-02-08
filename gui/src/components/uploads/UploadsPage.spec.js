@@ -87,15 +87,16 @@ test('Render uploads page: sort by upload create time', async () => {
   expect(dialogTitle).toBeInTheDocument()
 
   // Testing the example list to contain the exampleUploads json file
-  const exampleUploadsKeys = Object.keys(exampleUploadsJSON)
-  exampleUploadsKeys.forEach((category) => {
-    expect(screen
-      .getByRole('heading', { name: exampleUploadsJSON[category].title }))
-      .toBeInTheDocument()
+  const exampleUploads = Object.keys(exampleUploadsJSON).reduce((uploads, category) => {
+    const categoryJSON = exampleUploadsJSON[category]
+    return [...uploads, ...Object.keys(categoryJSON).map(upload => categoryJSON[upload])]
+  }, [])
+  exampleUploads.forEach(upload => {
+    expect(screen.queryByText(upload.title)).toBeInTheDocument()
   })
 
   // Testing for all add-buttons to be present for each example
-  expect(screen.queryAllByRole('button', { name: /add/i }).length).toBe(exampleUploadsKeys.length)
+  expect(screen.queryAllByRole('button', { name: /add/i }).length).toBe(exampleUploads.length)
 
   // Testing for the cancel button in the dialog to close it
   fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
