@@ -332,24 +332,22 @@ window.nomadEnv = {
           },
           "columns": {
             "enable": [
-              "entry_name",
               "results.material.chemical_formula_hill",
-              "entry_type",
+              "results.method.simulation.program_name",
+              "results.method.method_name",
               "upload_create_time",
               "authors"
             ],
             "options": {
-              "entry_name": {
-                "label": "Name",
-                "align": "left"
-              },
               "results.material.chemical_formula_hill": {
                 "label": "Formula",
                 "align": "left"
               },
-              "entry_type": {
-                "label": "Entry type",
-                "align": "left"
+              "results.method.simulation.program_name": {
+                "label": "Program name"
+              },
+              "results.method.method_name": {
+                "label": "Method name"
               },
               "upload_create_time": {
                 "label": "Upload time",
@@ -358,12 +356,6 @@ window.nomadEnv = {
               "authors": {
                 "label": "Authors",
                 "align": "left"
-              },
-              "results.method.method_name": {
-                "label": "Method name"
-              },
-              "results.method.simulation.program_name": {
-                "label": "Program name"
               },
               "results.method.simulation.dft.basis_set_name": {
                 "label": "Basis set name"
@@ -397,6 +389,14 @@ window.nomadEnv = {
               },
               "results.eln.instruments": {
                 "label": "Instruments"
+              },
+              "entry_name": {
+                "label": "Name",
+                "align": "left"
+              },
+              "entry_type": {
+                "label": "Entry type",
+                "align": "left"
               },
               "mainfile": {
                 "label": "Mainfile",
@@ -776,27 +776,6 @@ window.nomadEnv = {
               "results.method.method_name": {
                 "label": "Method name"
               },
-              "results.method.simulation.program_name": {
-                "label": "Program name"
-              },
-              "results.method.simulation.dft.basis_set_name": {
-                "label": "Basis set name"
-              },
-              "results.method.simulation.dft.xc_functional_type": {
-                "label": "XC Functional Type"
-              },
-              "results.material.structural_type": {
-                "label": "Dimensionality"
-              },
-              "results.material.symmetry.crystal_system": {
-                "label": "Crystal system"
-              },
-              "results.material.symmetry.space_group_symbol": {
-                "label": "Space group symbol"
-              },
-              "results.material.symmetry.space_group_number": {
-                "label": "Space group number"
-              },
               "results.eln.lab_ids": {
                 "label": "Lab IDs"
               },
@@ -951,33 +930,6 @@ window.nomadEnv = {
               "entry_type": {
                 "label": "Entry type",
                 "align": "left"
-              },
-              "results.material.structural_type": {
-                "label": "Dimensionality"
-              },
-              "results.material.symmetry.crystal_system": {
-                "label": "Crystal system"
-              },
-              "results.material.symmetry.space_group_symbol": {
-                "label": "Space group symbol"
-              },
-              "results.material.symmetry.space_group_number": {
-                "label": "Space group number"
-              },
-              "results.eln.lab_ids": {
-                "label": "Lab IDs"
-              },
-              "results.eln.sections": {
-                "label": "Sections"
-              },
-              "results.eln.methods": {
-                "label": "Methods"
-              },
-              "results.eln.tags": {
-                "label": "Tags"
-              },
-              "results.eln.instruments": {
-                "label": "Instruments"
               },
               "mainfile": {
                 "label": "Mainfile",
@@ -1571,16 +1523,8 @@ window.nomadEnv = {
                 "label": "References",
                 "align": "left"
               },
-              "entry_name": {
-                "label": "Name",
-                "align": "left"
-              },
               "results.material.chemical_formula_hill": {
                 "label": "Formula",
-                "align": "left"
-              },
-              "entry_type": {
-                "label": "Entry type",
                 "align": "left"
               },
               "results.material.structural_type": {
@@ -1608,6 +1552,14 @@ window.nomadEnv = {
               },
               "results.eln.instruments": {
                 "label": "Instruments"
+              },
+              "entry_name": {
+                "label": "Name",
+                "align": "left"
+              },
+              "entry_type": {
+                "label": "Entry type",
+                "align": "left"
               },
               "mainfile": {
                 "label": "Mainfile",

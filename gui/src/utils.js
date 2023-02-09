@@ -20,7 +20,15 @@ import { Quantity } from './units'
 import { format } from 'date-fns'
 import { dateFormat, guiBase, apiBase } from './config'
 import searchQuantities from './searchQuantities.json'
+import parserMetadata from './parserMetadata.json'
 const crypto = require('crypto')
+
+const parserLabels = Object.keys(parserMetadata).reduce((result, key) => {
+  const parser = parserMetadata[key]
+  result[`parsers/${parser.codeName}`] = parser.codeLabel
+  result[parser.codeName] = parser.codeLabel
+  return result
+}, {})
 
 export const isEquivalent = (a, b) => {
   // Create arrays of property names
@@ -247,6 +255,70 @@ export function authorList(entry, expanded) {
   } else {
     return nameList(entry.authors || [], expanded)
   }
+}
+
+/**
+ * @param {*} entry metadata retrived from NOMAD api
+ * @returns The name from the metadata, a fallback entry name for simulations, or null
+ */
+export function entryName(entry) {
+  const results = entry?.results
+  const name = entry?.entry_name
+  if (name) {
+    return name
+  }
+  const type = entryType(entry)
+  if (!type) {
+    return null
+  }
+  const formula = results?.material?.chemical_formula_hill
+  if (formula) {
+    return `${formula} ${type}`
+  }
+  return type
+}
+
+/**
+ * @param {*} entry metadata retrived from NOMAD api
+ * @returns The type from the metadata, a fallback entry type for simulations, or null
+ */
+export function entryType(entry) {
+  const results = entry?.results
+  let type = entry?.entry_type
+  if (type) {
+    return type
+  }
+  if (!(results?.method?.simulation && results?.material)) {
+    const parser = entry?.parser_name
+    if (!parser) {
+      return null
+    }
+    if (parser === 'parsers/eels') {
+      return 'EELS DB entry'
+    }
+    const program = parserLabels[parser]
+    if (!program) {
+      return null
+    }
+    return `${program} simulation`
+  }
+  type = ''
+  let workflow = results.method.workflow_name?.[0]
+  if (workflow === 'single_point') {
+    workflow = null
+  }
+  if (workflow) {
+    type += workflow + ' '
+  }
+  const program = results.method.simulation.program_name
+  if (program) {
+    type += program + ' '
+  }
+  if (type === '') {
+    return null
+  }
+  type += 'simulation'
+  return type
 }
 
 /**
