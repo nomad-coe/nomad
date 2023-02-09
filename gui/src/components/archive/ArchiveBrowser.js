@@ -39,20 +39,21 @@ import { Overview } from './Overview'
 import { Quantity as Q, useUnits } from '../../units'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
+import DownloadIcon from '@material-ui/icons/CloudDownload'
+import SaveIcon from '@material-ui/icons/Save'
+import AddIcon from '@material-ui/icons/AddCircle'
+import CodeIcon from '@material-ui/icons/Code'
+import DeleteIcon from '@material-ui/icons/Delete'
 import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '../buttons/SourceDialogButton'
-import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
+import Pagination from '../visualization/Pagination'
 import SectionEditor from './SectionEditor'
 import { useEntryStore } from '../entry/EntryContext'
-import SaveIcon from '@material-ui/icons/Save'
-import AddIcon from '@material-ui/icons/AddCircle'
-import CodeIcon from '@material-ui/icons/Code'
-import DeleteIcon from '@material-ui/icons/Delete'
 import XYPlot from './XYPlot'
 import {
   appendDataUrl, createEntryUrl, createUploadUrl, formatTimestamp, parseNomadUrl, refType, resolveInternalRef,
@@ -66,6 +67,7 @@ import { apiBase } from '../../config'
 import { Alert } from '@material-ui/lab'
 import { complex, format } from 'mathjs'
 import ReactJson from 'react-json-view'
+import { range } from 'lodash'
 
 export const configState = atom({
   key: 'config',
@@ -1199,12 +1201,37 @@ const usePropertyValuesListStyles = makeStyles(theme => ({
   actions: {}
 }))
 
-function PropertyValuesList({label, values, actions}) {
+/**
+ * Displays a list of values that can be collapsed. Long lists are paginated in
+ * order to prevent issues with rendering.
+ */
+export function PropertyValuesList({label, values, actions, nTop, nBottom, pageSize}) {
   const classes = usePropertyValuesListStyles()
   const [open, setOpen] = useState(false)
+  const [nShownTop, setNShownTop] = useState(0)
+  const [nShownBottom, setNShownBottom] = useState(0)
   const lane = useContext(laneContext)
   const selected = lane.next && lane.next.key
   const showSelected = !open && selected && selected.startsWith(label + ':')
+
+  const item = (index, item) => {
+    return <Item key={index} itemKey={`${label}:${index}`}>
+      <Box display="flex" flexDirection="row" flexGrow={1}>
+        <Box component="span" marginLeft={2}>
+          {item && typeof item === 'object'
+            ? item // item should be a react component
+            : <Typography component="span">{item || index}</Typography>
+          }
+        </Box>
+      </Box>
+    </Item>
+  }
+
+  const topStart = 0
+  const topEnd = Math.min(values.length, nTop + nShownTop)
+  const bottomStart = Math.max(topEnd, values.length - nBottom - nShownBottom)
+  const bottomEnd = values.length
+
   return <React.Fragment>
     <div className={classNames(
       classes.root, showSelected ? classes.selected : classes.unSelected)}
@@ -1219,18 +1246,26 @@ function PropertyValuesList({label, values, actions}) {
     </div>
     {open &&
       <div data-testid={`item-list:${label}`}>
-        {values.map((item, index) => (
-          <Item key={index} itemKey={`${label}:${index}`}>
-            <Box display="flex" flexDirection="row" flexGrow={1}>
-              <Box component="span" marginLeft={2}>
-                {item && typeof item === 'object'
-                  ? item // item should be a react component
-                  : <Typography component="span">{item || index}</Typography>
-                }
-              </Box>
-            </Box>
-          </Item>
-        ))}
+        {range(topStart, topEnd).map((index) => item(index, values[index]))}
+        {topEnd < bottomStart && <Box marginLeft={0.8}>
+          <Pagination
+            showMore
+            showLess={nShownTop > 0}
+            onMore={() => setNShownTop(x => Math.min(bottomStart, x + pageSize))}
+            onLess={() => setNShownTop(x => Math.max(0, x - pageSize))}
+            variant="down"
+            data-testid="propertyvalueslist-pagination-down"
+          />
+          <Pagination
+            showMore
+            showLess={nShownBottom > 0}
+            onMore={() => setNShownBottom(x => Math.min(values.length - nShownTop - nBottom, x + pageSize))}
+            onLess={() => setNShownBottom(x => Math.max(0, x - pageSize))}
+            variant="up"
+            data-testid="propertyvalueslist-pagination-up"
+          />
+        </Box>}
+        {range(bottomStart, bottomEnd).map((index) => item(index, values[index]))}
       </div>
     }
   </React.Fragment>
@@ -1239,12 +1274,16 @@ function PropertyValuesList({label, values, actions}) {
 PropertyValuesList.propTypes = ({
   label: PropTypes.string.isRequired,
   values: PropTypes.arrayOf(PropTypes.object).isRequired,
-  onAdd: PropTypes.func,
-  onRemove: PropTypes.func,
-  actions: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.node),
-    PropTypes.node
-  ])
+  actions: PropTypes.node,
+  nTop: PropTypes.number,
+  nBottom: PropTypes.number,
+  pageSize: PropTypes.number
+})
+
+PropertyValuesList.defaultProps = ({
+  nTop: 50,
+  nBottom: 5,
+  pageSize: 25
 })
 
 export const SectionPlots = React.memo(function SectionPlots({section, sectionDef}) {

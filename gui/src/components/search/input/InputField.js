@@ -17,7 +17,6 @@
  */
 import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import { Button, Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { useRecoilValue } from 'recoil'
@@ -29,7 +28,7 @@ import Placeholder from '../../visualization/Placeholder'
 import { formatLabel } from '../../../utils'
 import { useSearchContext } from '../SearchContext'
 import { isNil } from 'lodash'
-import LoadingButton from '../../buttons/LoadingButton'
+import Pagination from '../../visualization/Pagination'
 import { guiState } from '../../GUIMenu'
 import { InputTextQuantity } from './InputText'
 
@@ -58,10 +57,6 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
     display: 'grid',
     gridAutoFlow: 'column'
-  },
-  actions: {
-    display: 'flex',
-    marginTop: theme.spacing(0.5)
   },
   progress: {
     marginLeft: theme.spacing(0.5)
@@ -298,23 +293,15 @@ const InputField = React.memo(({
     } else {
       aggComp = <>
         {items}
-        <div className={styles.actions}>
-          {showMore && <Tooltip title={loading ? 'Loading...' : noMore ? 'No more values available' : ''}>
-            <span>
-              <LoadingButton
-                size="small"
-                onClick={handleShowMore}
-                loading={loading}
-                disabled={noMore}
-              >Show more
-              </LoadingButton>
-            </span>
-          </Tooltip>}
-          {showLess && <Button size="small"
-            onClick={handleShowLess}
-          >Show less
-          </Button>}
-        </div>
+        <Pagination
+          showMore={showMore}
+          showLess={showLess}
+          disableMore={noMore}
+          loadingMore={loading}
+          marginTop={0.5}
+          onLess={handleShowLess}
+          onMore={handleShowMore}
+        />
       </>
     }
     return <div className={styles.container} style={{height: reservedHeight}}>
