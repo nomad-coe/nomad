@@ -24,9 +24,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-01-18T11:19:02.555556+00:00",
+            "upload_create_time": "2023-02-06T13:43:13.822380+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-01-18T11:19:02.558556+00:00",
+            "publish_time": "2023-02-06T13:43:13.825380+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -41,10 +41,10 @@
                   "Si"
                 ],
                 "elements_exclusive": "Si",
-                "chemical_formula_anonymous": "A2",
+                "chemical_formula_anonymous": "A",
                 "material_id": "bulk_material",
                 "structural_type": "bulk",
-                "chemical_formula_reduced": "Si2",
+                "chemical_formula_reduced": "Si",
                 "n_elements": 1,
                 "chemical_formula_descriptive": "Si2",
                 "material_name": "Silicon",
@@ -200,7 +200,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-01-18T11:19:02.559556+00:00",
+            "entry_create_time": "2023-02-06T13:43:13.826380+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -216,7 +216,229 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "5442",
+          "content-length": "5440",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "entry_id": "dft_bulk",
+          "required": {},
+          "data": {
+            "upload_id": "dft_upload",
+            "references": [
+              "doi"
+            ],
+            "origin": "Markus Scheidgen",
+            "datasets": [],
+            "n_quantities": 0,
+            "nomad_version": "0.10.0",
+            "upload_create_time": "2023-02-06T13:43:13.822380+00:00",
+            "nomad_commit": "bf3c06fa",
+            "publish_time": "2023-02-06T13:43:13.825380+00:00",
+            "results": {
+              "material": {
+                "symmetry": {
+                  "bravais_lattice": "cP",
+                  "space_group_symbol": "Fd-3m",
+                  "structure_name": "rock salt",
+                  "space_group_number": 227,
+                  "point_group": "6mm",
+                  "crystal_system": "cubic"
+                },
+                "elements": [
+                  "Si"
+                ],
+                "elements_exclusive": "Si",
+                "chemical_formula_anonymous": "A",
+                "material_id": "bulk_material",
+                "structural_type": "bulk",
+                "chemical_formula_reduced": "Si",
+                "n_elements": 1,
+                "chemical_formula_descriptive": "Si2",
+                "material_name": "Silicon",
+                "chemical_formula_hill": "Si2"
+              },
+              "method": {
+                "method_name": "DFT",
+                "simulation": {
+                  "program_version": "1",
+                  "dft": {
+                    "basis_set_type": "plane waves",
+                    "core_electron_treatment": "unavailable",
+                    "xc_functional_type": "GGA",
+                    "xc_functional_names": [
+                      "GGA_C_PBE",
+                      "GGA_X_PBE"
+                    ],
+                    "van_der_Waals_method": "G06",
+                    "relativity_method": "scalar_relativistic_atomic_ZORA",
+                    "basis_set_name": "STO-3G"
+                  },
+                  "program_name": "VASP"
+                }
+              },
+              "properties": {
+                "available_properties": [
+                  "dos_electronic",
+                  "band_structure_electronic",
+                  "dos_phonon",
+                  "band_structure_phonon",
+                  "heat_capacity_constant_volume",
+                  "energy_free_helmholtz",
+                  "bulk_modulus",
+                  "shear_modulus",
+                  "energy_volume_curve",
+                  "trajectory"
+                ],
+                "structures": {
+                  "structure_primitive": {
+                    "nperiodic_dimensions": 0,
+                    "n_sites": 0,
+                    "cell_volume": 1.25e-28,
+                    "lattice_parameters": {
+                      "a": 5e-10,
+                      "b": 5e-10,
+                      "c": 5e-10,
+                      "alpha": 1.5707963267948966,
+                      "beta": 1.5707963267948966,
+                      "gamma": 1.5707963267948966
+                    }
+                  },
+                  "structure_conventional": {
+                    "nperiodic_dimensions": 0,
+                    "n_sites": 0,
+                    "cell_volume": 1.25e-35,
+                    "lattice_parameters": {
+                      "a": 5e-10,
+                      "b": 5e-10,
+                      "c": 5e-10,
+                      "alpha": 1.5707963267948966,
+                      "beta": 1.5707963267948966,
+                      "gamma": 1.5707963267948966
+                    }
+                  },
+                  "structure_original": {
+                    "nperiodic_dimensions": 0,
+                    "n_sites": 0,
+                    "cell_volume": 1.25e-28,
+                    "lattice_parameters": {
+                      "a": 5e-10,
+                      "b": 5e-10,
+                      "c": 5e-10,
+                      "alpha": 1.5707963267948966,
+                      "beta": 1.5707963267948966,
+                      "gamma": 1.5707963267948966
+                    }
+                  }
+                },
+                "electronic": {
+                  "dos_electronic": [
+                    {
+                      "band_gap": []
+                    }
+                  ],
+                  "band_structure_electronic": [
+                    {
+                      "band_gap": [
+                        {
+                          "type": "indirect",
+                          "value": 1e-19
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "thermodynamic": {
+                  "trajectory": [
+                    {
+                      "available_properties": [
+                        "pressure",
+                        "temperature",
+                        "volume"
+                      ],
+                      "methodology": {
+                        "molecular_dynamics": {
+                          "time_step": 1e-15,
+                          "ensemble_type": "NVT"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "mechanical": {
+                  "energy_volume_curve": [
+                    {
+                      "type": "murhaghan"
+                    }
+                  ],
+                  "shear_modulus": [
+                    {
+                      "type": "voigt_reuss_hill_average",
+                      "value": 1
+                    }
+                  ],
+                  "bulk_modulus": [
+                    {
+                      "type": "murnaghan",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            },
+            "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
+            "parser_name": "parsers/vasp",
+            "calc_id": "dft_bulk",
+            "published": true,
+            "writers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "processed": true,
+            "mainfile": "vasp.xml",
+            "main_author": {
+              "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "name": "Markus Scheidgen"
+            },
+            "viewers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "entry_create_time": "2023-02-06T13:43:13.826380+00:00",
+            "with_embargo": false,
+            "domain": "dft",
+            "comment": "Mocked",
+            "entry_id": "dft_bulk",
+            "authors": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "license": "CC BY 4.0"
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "5440",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -237,8 +459,8 @@
               "material": "*",
               "method": "*",
               "properties": {
-                "structures": "*",
                 "structural": "*",
+                "structures": "*",
                 "dynamical": "*",
                 "electronic": "include-resolved",
                 "mechanical": "include-resolved",
@@ -249,8 +471,7 @@
                   "energies": "include-resolved"
                 }
               }
-            },
-            "resolve-inplace": false
+            }
           }
         },
         "headers": {
@@ -270,8 +491,8 @@
               "material": "*",
               "method": "*",
               "properties": {
-                "structures": "*",
                 "structural": "*",
+                "structures": "*",
                 "dynamical": "*",
                 "electronic": "include-resolved",
                 "mechanical": "include-resolved",
@@ -282,8 +503,7 @@
                   "energies": "include-resolved"
                 }
               }
-            },
-            "resolve-inplace": false
+            }
           },
           "entry_id": "dft_bulk",
           "data": {
@@ -455,14 +675,14 @@
               ],
               "metadata": {
                 "upload_id": "dft_upload",
-                "upload_create_time": "2023-01-18T11:19:02.555556+00:00",
+                "upload_create_time": "2023-02-06T13:43:13.822380+00:00",
                 "entry_id": "dft_bulk",
                 "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2023-01-18T11:19:02.559556+00:00",
+                "entry_create_time": "2023-02-06T13:43:13.826380+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "vasp.xml",
                 "published": true,
-                "publish_time": "2023-01-18T11:19:02.558556+00:00",
+                "publish_time": "2023-02-06T13:43:13.825380+00:00",
                 "with_embargo": false,
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
@@ -486,9 +706,9 @@
                     "Si"
                   ],
                   "chemical_formula_descriptive": "Si2",
-                  "chemical_formula_reduced": "Si2",
+                  "chemical_formula_reduced": "Si",
                   "chemical_formula_hill": "Si2",
-                  "chemical_formula_anonymous": "A2",
+                  "chemical_formula_anonymous": "A",
                   "symmetry": {
                     "bravais_lattice": "cP",
                     "crystal_system": "cubic",
@@ -673,7 +893,100 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "11662",
+          "content-length": "11630",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk/archive/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "resolve-inplace": false
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": {
+            "resolve-inplace": false
+          },
+          "entry_id": "dft_bulk",
+          "data": {
+            "entry_id": "dft_bulk",
+            "upload_id": "dft_upload",
+            "parser_name": "parsers/vasp",
+            "archive": {
+              "m_ref_archives": {}
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "239",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "afa783d98e040c74b68e5cfd3d82f3f0": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "metadata": "*"
+          },
+          "owner": "visible",
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          },
+          "query": {
+            "entry_references.target_entry_id": "dft_bulk"
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "prefix": "entry_references",
+            "query": {
+              "name": "target_entry_id",
+              "value": "dft_bulk"
+            }
+          },
+          "pagination": {
+            "page_size": 20,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "total": 0
+          },
+          "required": {},
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "306",
           "content-type": "application/json",
           "server": "uvicorn"
         }

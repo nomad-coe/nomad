@@ -21,7 +21,7 @@ import 'regenerator-runtime/runtime'
 import { waitFor, within } from '@testing-library/dom'
 import {render, screen, startAPI, closeAPI, waitForGUI} from '../conftest.spec'
 import OverviewView from '../entry/OverviewView'
-import EntryPageContext from '../entry/EntryPageContext'
+import { EntryContext } from '../entry/EntryContext'
 import userEvent from '@testing-library/user-event'
 import {fireEvent} from '@testing-library/react'
 import {act} from 'react-dom/test-utils'
@@ -125,9 +125,9 @@ test.each([
 ])('test %s', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
   await render(
-    <EntryPageContext entryId={entryId}>
+    <EntryContext entryId={entryId}>
       <OverviewView />
-    </EntryPageContext>
+    </EntryContext>
   )
 
   await waitForGUI(2000)
@@ -218,9 +218,9 @@ test.each([
 ])('test %s', async (name, state, snapshot, entryId, username, password, inputValue, error) => {
   await startAPI(state, snapshot, username, password)
   await render(
-    <EntryPageContext entryId={entryId}>
+    <EntryContext entryId={entryId}>
       <OverviewView />
-    </EntryPageContext>
+    </EntryContext>
   )
 
   await waitForGUI(2000)

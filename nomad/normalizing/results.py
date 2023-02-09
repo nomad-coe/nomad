@@ -221,6 +221,13 @@ class ResultsNormalizer(Normalizer):
             optimade,
             logger
         ).material()
+
+        # If a topology exists, we no longer store the structures into results.structures.
+        # This will help with loading times as topology items are retrieved with a
+        # separate API call
+        if results.material.topology:
+            results.properties.structures = None
+
         results.method = MethodNormalizer(self.entry_archive, repr_system, results.material, logger).method()
 
     def species(self, labels: List[str], atomic_numbers: List[int], struct: Structure) -> None:
@@ -784,10 +791,6 @@ class ResultsNormalizer(Normalizer):
             structural.radial_distribution_function = rdf
             structural.radius_of_gyration = rg
             properties.structural = structural
-        # if rdf:
-        #     structural = StructuralProperties()
-        #     structural.radial_distribution_function = rdf
-        #     properties.structural = structural
 
         # Dynamical
         msd = self.msd()

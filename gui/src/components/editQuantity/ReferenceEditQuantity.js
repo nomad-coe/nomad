@@ -29,7 +29,7 @@ import {
   TextField,
   Tooltip
 } from '@material-ui/core'
-import { useEntryPageContext } from '../entry/EntryPageContext'
+import { useEntryStore } from '../entry/EntryContext'
 import {ItemButton} from '../archive/Browser'
 import { getFieldProps } from './StringEditQuantity'
 import { refType, resolveNomadUrl } from '../../utils'
@@ -73,7 +73,7 @@ function getReferencedSection(quantityDef) {
 const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFailed, onCanceled}) => {
   const classes = useStyles()
   const dataStore = useDataStore()
-  const {deploymentUrl, uploadId} = useEntryPageContext('*')
+  const {deploymentUrl, uploadId} = useEntryStore('*')
   const {user, api} = useApi()
   const {raiseError} = useErrors()
   const [value, setValue] = useState('')
@@ -273,7 +273,7 @@ ItemLink.propTypes = {
 }
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
-  const {url} = useEntryPageContext('*')
+  const {url} = useEntryStore('*')
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const [open, setOpen] = useState(false)

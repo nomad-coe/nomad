@@ -15,48 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import PropTypes from 'prop-types'
 import { resolveInternalRef } from '../../../utils'
 import { PropertyCard } from './PropertyCard'
 import ElectronicProperties from '../../visualization/ElectronicProperties'
 
 const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
-  const [data, setData] = useState([false, false, false, false])
-  const [refArchives, setRefArchives] = useState()
-
   // Find out which properties are present
   const hasDos = properties.has('dos_electronic')
   const hasBs = properties.has('band_structure_electronic')
   const hasBandGap = properties.has('electronic.band_structure_electronic.band_gap')
 
-  // TODO remove refArchives after fixing archive.m_ref_archives not vanishing when switching to data tab
-  useEffect(() => {
-    if (Object.keys(archive.m_ref_archives).length > 0) {
-      const archives = {}
-      // TODO remove this when the path format for the entry is fixed
-      // it changes from ../uploads/upload_id/archive/entry_id to ../uploa/archive/entry_id
-      const pattern = '\\.\\./(?:entries|upload/archive|uploads.+?archive)/(.+)'
-      Object.keys(archive.m_ref_archives).forEach(path => {
-        const match = path.match(pattern)
-        if (match) archives[match[1]] = archive.m_ref_archives[path]
-      })
-      setRefArchives(archives)
-    }
-  }, [archive])
+  // Do not show the card if none of the properties are available
+  if (!hasDos && !hasBs && !hasBandGap) return null
 
-  archive.m_ref_archives = refArchives || archive.m_ref_archives
+  let dosReferences = archive?.results?.properties?.electronic?.dos_electronic || []
+  let bsReferences = archive?.results?.properties?.electronic?.band_structure_electronic || []
+  const pattern = '\\.\\./(?:entries|upload/archive|uploads.+?archive)/(.+?)(?:/archive#|#)(.+)'
+  if (!Array.isArray(bsReferences)) bsReferences = [bsReferences]
+  if (!Array.isArray(dosReferences)) dosReferences = [dosReferences]
 
-  // TODO remove useEffect once archive.m_ref_archives is fixed
-  useEffect(() => {
-    let dosReferences = archive?.results?.properties?.electronic?.dos_electronic || []
-    let bsReferences = archive?.results?.properties?.electronic?.band_structure_electronic || []
-    const pattern = '\\.\\./(?:entries|upload/archive|uploads.+?archive)/(.+?)(?:/archive#|#)(.+)'
-    if (!Array.isArray(bsReferences)) bsReferences = [bsReferences]
-    if (!Array.isArray(dosReferences)) dosReferences = [dosReferences]
-
-    // Resolve DOS data
-    let dos = []
+  // Resolve DOS data
+  let dos = hasDos ? undefined : false
+  if (archive) {
+    dos = []
     for (const reference of dosReferences) {
       const d = {}
       const match = reference.energies.match(pattern)
@@ -77,11 +60,13 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
       if (d.energies && d.densities) dos.push(d)
     }
     dos = dos.length === 0 ? false : dos
+  }
 
-    // Resolve band structure data
-    let bs = []
-    let brillouin_zone = false
-    brillouin_zone = false
+  // Resolve band structure data
+  let bs = hasBs ? undefined : false
+  let bz = hasBs ? undefined : false
+  if (archive) {
+    bs = []
     try {
       for (const reference of bsReferences) {
         const d = {}
@@ -99,7 +84,7 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
         if (d.segment) bs.push(d)
         const reciprocal_cell = sourceArchive ? resolveInternalRef(path, sourceArchive) : null
         if (reciprocal_cell) {
-          brillouin_zone = {
+          bz = {
             reciprocal_cell: reciprocal_cell,
             segment: d.segment
           }
@@ -107,41 +92,40 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
       }
     } catch (e) {
     }
+    bs = bs.length === 0 ? false : bs
+    bz = bz || false
+  }
 
-    // Resolve band gap data. TODO: The API is not returning band gap
-    // information when using electronic: 'include-resolved' and there is
-    // nothing to resolve. This is why we alternatively also look for the band
-    // gap data in the index data.
-    let band_gap = []
+  // Resolve band gap data. TODO: The API is not returning band gap
+  // information when using electronic: 'include-resolved' and there is
+  // nothing to resolve. This is why we alternatively also look for the band
+  // gap data in the index data.
+  let bg
+  if (hasBandGap) {
+    bg = []
     function addBandGaps(sections) {
       for (const section of sections || []) {
         if (!section.band_gap) continue
-        band_gap.push(...section.band_gap)
+        bg.push(...section.band_gap)
       }
     }
     addBandGaps(bsReferences)
-    if (band_gap.length === 0) {
+    if (bg.length === 0) {
       let bsReferencesIndex = index?.results?.properties?.electronic?.band_structure_electronic || []
       if (!Array.isArray(bsReferencesIndex)) bsReferencesIndex = [bsReferencesIndex]
       addBandGaps(bsReferencesIndex)
     }
-
-    bs = bs.length === 0 ? false : bs
-    band_gap = band_gap.length === 0 ? false : band_gap
-    setData([dos, bs, brillouin_zone, band_gap])
-  }, [archive, index])
-
-  // Do not show the card if none of the properties are available
-  if (!hasDos && !hasBs && !hasBandGap) {
-    return null
+    bg = bg.length === 0 ? false : bg
+  } else {
+    bg = false
   }
 
   return <PropertyCard title="Electronic properties">
     <ElectronicProperties
-      bs={data[1]}
-      dos={data[0]}
-      brillouin_zone={data[2]}
-      band_gap={data[3]}
+      bs={bs}
+      dos={dos}
+      brillouin_zone={bz}
+      band_gap={bg}
     />
   </PropertyCard>
 })

@@ -18,13 +18,13 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {PropertyCard} from './PropertyCard'
-import { useEntryPageContext } from '../EntryPageContext'
+import { useEntryStore } from '../EntryContext'
 import { Box, IconButton, Typography, Link } from '@material-ui/core'
 import MoreIcon from '@material-ui/icons/MoreVert'
 import { ArchiveButton } from '../../nav/Routes'
 
 const DefinitionsCard = React.memo(function DefinitionsCard({index, archive}) {
-  const {entryId, uploadId} = useEntryPageContext()
+  const {entryId, uploadId} = useEntryStore()
 
   if (!index?.quantities?.includes('definitions')) {
     return null

@@ -18,7 +18,7 @@
 import React, {useState, useEffect, useMemo, useCallback} from 'react'
 import PropTypes from 'prop-types'
 import assert from 'assert'
-import { set, get, isNil, isEqual, isArray, has, capitalize, isPlainObject} from 'lodash'
+import { set, get, isNil, isArray, has, capitalize, isPlainObject} from 'lodash'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../plotting/Plot'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
@@ -40,7 +40,6 @@ export const msdError = 'Could not load mean squared displacement data.'
  */
 const MeanSquaredDisplacement = React.memo(({
   msd,
-  methodology,
   className,
   'data-testid': testID
 }) => {
@@ -165,7 +164,6 @@ const msdShape = PropTypes.objectOf(msdLabelShape)
 
 MeanSquaredDisplacement.propTypes = {
   msd: msdShape,
-  methodology: PropTypes.object,
   className: PropTypes.string,
   'data-testid': PropTypes.string
 }
@@ -185,55 +183,39 @@ const MeanSquaredDisplacementsRaw = React.memo(({
   archive
 }) => {
   const fromEntry = useCallback((index, archive) => {
-    const data = {
-      msd: false,
-      methodology: false
-    }
+    let msdAll = {}
     const urlPrefix = `${getLocation()}/data`
     const msdIndex = get(index, msdPath)
 
     // No data
-    if (!msdIndex) {
-      return data
-    }
+    if (!msdIndex) return msdAll
 
-    // Load the basic information from the index. If clashing methodologies are
-    // found, an error is raised for now. In the future several methodologies
-    // could be supported by plotting them separately.
-    msdIndex.forEach((msd, i) => {
-      if (msd.methodology) {
-        if (data.methodology && !isEqual(data.methodology, msd.methodology)) {
-          throw Error('Multiple methodologies for MSD not yet supported.')
-        }
-        data.methodology = msd.methodology
-      }
-      set(data.msd, [msd.type], undefined)
+    // Load the basic information from the index in order to show the plot
+    // layout with placeholders
+    msdIndex.forEach((msd) => {
+      set(msdAll, [msd.type], undefined)
     })
 
-    // Still loading archive but the amount of plots is already known
-    if (!archive) {
-      return data
-    }
+    // Loading archive
+    if (!archive) return msdAll
 
     // Full data ready
-    data.msd = {}
+    msdAll = {}
     msdIndex.forEach((msd, i) => {
       const type = msd.type
-      if (!has(data.msd, type)) {
-        data.msd[type] = []
-      }
+      if (!has(msdAll, type)) msdAll[type] = []
       const msdArchive = get(archive, msdPath)?.[i]
-      data.msd[type].push({
+      msdAll[type].push({
         ...msd,
         ...msdArchive,
         archiveUrl: `${urlPrefix}/${msdPath.join('/')}:${i}`
       })
     })
-    return data
+    return msdAll
   }, [])
-  const data = fromEntry(index, archive)
+  const msd = fromEntry(index, archive)
 
-  return <MeanSquaredDisplacement {...data} />
+  return <MeanSquaredDisplacement msd={msd} />
 })
 
 MeanSquaredDisplacementsRaw.propTypes = {

@@ -32,12 +32,11 @@ import ThermodynamicPropertiesCard from '../entry/properties/ThermodynamicProper
 import DynamicalPropertiesCard from '../entry/properties/DynamicalPropertiesCard'
 import StructuralPropertiesCard from '../entry/properties/StructuralPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
-import EELSPropertiesCard from './properties/EELSPropertiesCardCard'
+import EELSPropertiesCard from './properties/EELSPropertiesCard'
 import RelatedResourcesCard from '../entry/properties/RelatedResourcesCard'
 import { MethodMetadata } from './EntryDetails'
 import Page from '../Page'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
-import { useEntryPageContext } from './EntryPageContext'
 import SectionCard from './properties/SectionCard'
 import { useMetainfoDef, traverse } from '../archive/metainfo'
 import {
@@ -48,6 +47,12 @@ import DefinitionsCard from './properties/DefinitionsCard'
 import { ErrorHandler } from '../ErrorHandler'
 import ReferenceUsingCard from "./properties/ReferenceCard"
 import { isEmpty } from 'lodash'
+import {
+  useEntryStore,
+  useArchive,
+  useEntryContext,
+  useIndex
+} from './EntryContext'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -92,8 +97,8 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-const overviewArchiveFilter = Object.freeze({
-  // Optimization: for the overview page, we only need to fetch some of the archive data
+// Optimization: for the overview page, we only need to fetch some of the archive data
+const required = {
   metadata: '*',
   data: '*',
   definitions: '*',
@@ -109,35 +114,25 @@ const overviewArchiveFilter = Object.freeze({
       spectroscopy: 'include-resolved',
       vibrational: 'include-resolved',
       thermodynamic: 'include-resolved',
-      // For geometry optimizations we require only the energies.
-      // Trajectory, optimized structure, etc. are unnecessary.
       geometry_optimization: {
         energies: 'include-resolved'
       }
     }
   }
-})
+}
 
-/**
- * Shows an informative overview about the selected entry.
- */
-const OverviewView = React.memo((props) => {
-  const {
-    url,
-    metadata,
-    metadataApiData,
-    exists,
-    editable,
-    archive,
-    archiveApiData,
-    overview
-  } = useEntryPageContext(overviewArchiveFilter)
+const OverviewView = React.memo(() => {
+  const { overview } = useEntryContext()
+  const { url, exists, editable } = useEntryStore({})
+  const { data: metadata, response: metadataApiData } = useIndex()
+  const { data: archive, response: archiveApiData } = useArchive(required)
+
   const classes = useStyles()
   const index = metadata
   const [sections, setSections] = useState([])
   const {raiseError} = useErrors()
   const m_def = archive?.data?.m_def_id ? `${archive.data.m_def}@${archive.data.m_def_id}` : archive?.data?.m_def
-  const dataMetainfoDefUrl = resolveNomadUrlNoThrow(m_def, url)
+  const dataMetainfoDefUrl = url && resolveNomadUrlNoThrow(m_def, url)
   const dataMetainfoDef = useMetainfoDef(dataMetainfoDefUrl)
 
   const properties = useMemo(() => {
@@ -219,7 +214,7 @@ const OverviewView = React.memo((props) => {
       }
       return comp
     })
-  }, [exists, index, overview.options, sections, editable, archive, properties])
+  }, [exists, index, overview, sections, editable, archive, properties])
 
   if (!exists) {
     return <Page>
@@ -229,9 +224,7 @@ const OverviewView = React.memo((props) => {
     </Page>
   }
 
-  if (!index) {
-    return null
-  }
+  if (!index) return null
 
   return <Page limitedWidth>
     <Grid container spacing={0} className={classes.root}>
@@ -291,6 +284,9 @@ const OverviewView = React.memo((props) => {
 })
 
 OverviewView.propTypes = {
+  url: PropTypes.string,
+  editable: PropTypes.bool,
+  exists: PropTypes.bool
 }
 
 OverviewView.whyDidYouRender = true

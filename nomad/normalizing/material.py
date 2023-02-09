@@ -419,7 +419,7 @@ class MaterialNormalizer():
         if topology_matid:
             return topology_matid
 
-        return []
+        return None
 
     def topology_calculation(self, material: Material) -> List[System]:
         '''Extracts the system topology as defined in the original calculation.
@@ -621,7 +621,7 @@ class MaterialNormalizer():
 
         if structure_original:
             original.cell = cell_from_structure(structure_original)
-            original.atoms_ref = structure_original
+            original.atoms_ref = self.repr_system.atoms
             original.n_atoms = structure_original.n_sites
         return original, structure_original
 

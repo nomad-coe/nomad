@@ -50,7 +50,7 @@ export const InputTextField = React.memo((props) => {
   const styles = useInputTextFieldStyles({classes: props.classes})
 
   return props.loading
-    ? <Placeholder className={clsx(props.className, styles.root)}></Placeholder>
+    ? <Placeholder className={clsx(props.className, styles.root)} />
     : <TextField {...props} size={inputSize} variant={inputVariant} hiddenLabel={!initialLabel}/>
 })
 

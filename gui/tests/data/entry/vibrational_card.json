@@ -1,4 +1,361 @@
 {
+  "39fd0212960bd36797e4676fcbaa554f": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk/archive/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "metadata": "*",
+            "data": "*",
+            "definitions": "*",
+            "results": {
+              "material": "*",
+              "method": "*",
+              "properties": {
+                "structural": "*",
+                "structures": "*",
+                "dynamical": "*",
+                "electronic": "include-resolved",
+                "mechanical": "include-resolved",
+                "spectroscopy": "include-resolved",
+                "vibrational": "include-resolved",
+                "thermodynamic": "include-resolved",
+                "geometry_optimization": {
+                  "energies": "include-resolved"
+                }
+              }
+            }
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": {
+            "metadata": "*",
+            "data": "*",
+            "definitions": "*",
+            "results": {
+              "material": "*",
+              "method": "*",
+              "properties": {
+                "structural": "*",
+                "structures": "*",
+                "dynamical": "*",
+                "electronic": "include-resolved",
+                "mechanical": "include-resolved",
+                "spectroscopy": "include-resolved",
+                "vibrational": "include-resolved",
+                "thermodynamic": "include-resolved",
+                "geometry_optimization": {
+                  "energies": "include-resolved"
+                }
+              }
+            }
+          },
+          "entry_id": "dft_bulk",
+          "data": {
+            "entry_id": "dft_bulk",
+            "upload_id": "dft_upload",
+            "parser_name": "parsers/vasp",
+            "archive": {
+              "run": [
+                {
+                  "calculation": [
+                    {
+                      "dos_phonon": [
+                        {
+                          "energies": [
+                            0,
+                            1e-19
+                          ],
+                          "total": [
+                            {
+                              "normalization_factor": 1e-19,
+                              "value": [
+                                0,
+                                1000000000000000000
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "metadata": {
+                "upload_id": "dft_upload",
+                "upload_create_time": "2023-02-06T13:34:52.189465+00:00",
+                "entry_id": "dft_bulk",
+                "entry_hash": "dummy_hash_dft_bulk",
+                "entry_create_time": "2023-02-06T13:34:52.193465+00:00",
+                "parser_name": "parsers/vasp",
+                "mainfile": "vasp.xml",
+                "published": true,
+                "publish_time": "2023-02-06T13:34:52.192465+00:00",
+                "with_embargo": false,
+                "embargo_length": 0,
+                "license": "CC BY 4.0",
+                "processed": true,
+                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
+                "nomad_version": "0.10.0",
+                "nomad_commit": "bf3c06fa",
+                "comment": "Mocked",
+                "references": [
+                  "doi"
+                ],
+                "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "domain": "dft"
+              },
+              "results": {
+                "material": {
+                  "material_id": "bulk_material",
+                  "material_name": "Silicon",
+                  "structural_type": "bulk",
+                  "elements": [
+                    "Si"
+                  ],
+                  "chemical_formula_descriptive": "Si2",
+                  "chemical_formula_reduced": "Si2",
+                  "chemical_formula_hill": "Si2",
+                  "chemical_formula_anonymous": "A2",
+                  "symmetry": {
+                    "bravais_lattice": "cP",
+                    "crystal_system": "cubic",
+                    "point_group": "6mm",
+                    "space_group_number": 227,
+                    "space_group_symbol": "Fd-3m",
+                    "structure_name": "rock salt"
+                  }
+                },
+                "properties": {
+                  "vibrational": {
+                    "dos_phonon": {
+                      "energies": "/run/0/calculation/0/dos_phonon/0/energies",
+                      "total": [
+                        "/run/0/calculation/0/dos_phonon/0/total/0"
+                      ]
+                    }
+                  }
+                }
+              },
+              "m_ref_archives": {}
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "3136",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk/archive/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "metadata": "*",
+            "data": "*",
+            "definitions": "*",
+            "results": {
+              "material": "*",
+              "method": "*",
+              "properties": {
+                "structural": "*",
+                "structures": "*",
+                "dynamical": "*",
+                "electronic": "include-resolved",
+                "mechanical": "include-resolved",
+                "spectroscopy": "include-resolved",
+                "vibrational": "include-resolved",
+                "thermodynamic": "include-resolved",
+                "geometry_optimization": {
+                  "energies": "include-resolved"
+                }
+              }
+            }
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": {
+            "metadata": "*",
+            "data": "*",
+            "definitions": "*",
+            "results": {
+              "material": "*",
+              "method": "*",
+              "properties": {
+                "structural": "*",
+                "structures": "*",
+                "dynamical": "*",
+                "electronic": "include-resolved",
+                "mechanical": "include-resolved",
+                "spectroscopy": "include-resolved",
+                "vibrational": "include-resolved",
+                "thermodynamic": "include-resolved",
+                "geometry_optimization": {
+                  "energies": "include-resolved"
+                }
+              }
+            }
+          },
+          "entry_id": "dft_bulk",
+          "data": {
+            "entry_id": "dft_bulk",
+            "upload_id": "dft_upload",
+            "parser_name": "parsers/vasp",
+            "archive": {
+              "run": [
+                {
+                  "calculation": [
+                    {
+                      "dos_phonon": [
+                        {
+                          "energies": [
+                            0,
+                            1e-19
+                          ],
+                          "total": [
+                            {
+                              "normalization_factor": 1e-19,
+                              "value": [
+                                0,
+                                1000000000000000000
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "metadata": {
+                "upload_id": "dft_upload",
+                "upload_create_time": "2023-02-06T13:34:52.189465+00:00",
+                "entry_id": "dft_bulk",
+                "entry_hash": "dummy_hash_dft_bulk",
+                "entry_create_time": "2023-02-06T13:34:52.193465+00:00",
+                "parser_name": "parsers/vasp",
+                "mainfile": "vasp.xml",
+                "published": true,
+                "publish_time": "2023-02-06T13:34:52.192465+00:00",
+                "with_embargo": false,
+                "embargo_length": 0,
+                "license": "CC BY 4.0",
+                "processed": true,
+                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
+                "nomad_version": "0.10.0",
+                "nomad_commit": "bf3c06fa",
+                "comment": "Mocked",
+                "references": [
+                  "doi"
+                ],
+                "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "domain": "dft"
+              },
+              "results": {
+                "material": {
+                  "material_id": "bulk_material",
+                  "material_name": "Silicon",
+                  "structural_type": "bulk",
+                  "elements": [
+                    "Si"
+                  ],
+                  "chemical_formula_descriptive": "Si2",
+                  "chemical_formula_reduced": "Si2",
+                  "chemical_formula_hill": "Si2",
+                  "chemical_formula_anonymous": "A2",
+                  "symmetry": {
+                    "bravais_lattice": "cP",
+                    "crystal_system": "cubic",
+                    "point_group": "6mm",
+                    "space_group_number": 227,
+                    "space_group_symbol": "Fd-3m",
+                    "structure_name": "rock salt"
+                  }
+                },
+                "properties": {
+                  "vibrational": {
+                    "dos_phonon": {
+                      "energies": "/run/0/calculation/0/dos_phonon/0/energies",
+                      "total": [
+                        "/run/0/calculation/0/dos_phonon/0/total/0"
+                      ]
+                    }
+                  }
+                }
+              },
+              "m_ref_archives": {}
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "3136",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk/archive/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "resolve-inplace": false
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": {
+            "resolve-inplace": false
+          },
+          "entry_id": "dft_bulk",
+          "data": {
+            "entry_id": "dft_bulk",
+            "upload_id": "dft_upload",
+            "parser_name": "parsers/vasp",
+            "archive": {
+              "m_ref_archives": {}
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "239",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
   "50015d45d65d9c4bcf80ab46c155920c": [
     {
       "request": {
@@ -24,9 +381,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-01-18T11:18:15.244684+00:00",
+            "upload_create_time": "2023-02-06T13:34:52.189465+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-01-18T11:18:15.247684+00:00",
+            "publish_time": "2023-02-06T13:34:52.192465+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -78,7 +435,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-01-18T11:18:15.248684+00:00",
+            "entry_create_time": "2023-02-06T13:34:52.193465+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -124,9 +481,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-01-18T11:18:15.244684+00:00",
+            "upload_create_time": "2023-02-06T13:34:52.189465+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-01-18T11:18:15.247684+00:00",
+            "publish_time": "2023-02-06T13:34:52.192465+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -178,7 +535,207 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-01-18T11:18:15.248684+00:00",
+            "entry_create_time": "2023-02-06T13:34:52.193465+00:00",
+            "with_embargo": false,
+            "domain": "dft",
+            "comment": "Mocked",
+            "entry_id": "dft_bulk",
+            "authors": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "license": "CC BY 4.0"
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "2098",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "entry_id": "dft_bulk",
+          "required": {},
+          "data": {
+            "upload_id": "dft_upload",
+            "references": [
+              "doi"
+            ],
+            "origin": "Markus Scheidgen",
+            "datasets": [],
+            "n_quantities": 0,
+            "nomad_version": "0.10.0",
+            "upload_create_time": "2023-02-06T13:34:52.189465+00:00",
+            "nomad_commit": "bf3c06fa",
+            "publish_time": "2023-02-06T13:34:52.192465+00:00",
+            "results": {
+              "material": {
+                "symmetry": {
+                  "bravais_lattice": "cP",
+                  "space_group_symbol": "Fd-3m",
+                  "structure_name": "rock salt",
+                  "space_group_number": 227,
+                  "point_group": "6mm",
+                  "crystal_system": "cubic"
+                },
+                "elements": [
+                  "Si"
+                ],
+                "elements_exclusive": "Si",
+                "chemical_formula_anonymous": "A2",
+                "material_id": "bulk_material",
+                "structural_type": "bulk",
+                "chemical_formula_reduced": "Si2",
+                "n_elements": 1,
+                "chemical_formula_descriptive": "Si2",
+                "material_name": "Silicon",
+                "chemical_formula_hill": "Si2"
+              },
+              "properties": {
+                "available_properties": [
+                  "dos_phonon"
+                ]
+              }
+            },
+            "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
+            "parser_name": "parsers/vasp",
+            "calc_id": "dft_bulk",
+            "published": true,
+            "writers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "processed": true,
+            "mainfile": "vasp.xml",
+            "main_author": {
+              "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "name": "Markus Scheidgen"
+            },
+            "viewers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "entry_create_time": "2023-02-06T13:34:52.193465+00:00",
+            "with_embargo": false,
+            "domain": "dft",
+            "comment": "Mocked",
+            "entry_id": "dft_bulk",
+            "authors": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "license": "CC BY 4.0"
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "2098",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "entry_id": "dft_bulk",
+          "required": {},
+          "data": {
+            "upload_id": "dft_upload",
+            "references": [
+              "doi"
+            ],
+            "origin": "Markus Scheidgen",
+            "datasets": [],
+            "n_quantities": 0,
+            "nomad_version": "0.10.0",
+            "upload_create_time": "2023-02-06T13:34:52.189465+00:00",
+            "nomad_commit": "bf3c06fa",
+            "publish_time": "2023-02-06T13:34:52.192465+00:00",
+            "results": {
+              "material": {
+                "symmetry": {
+                  "bravais_lattice": "cP",
+                  "space_group_symbol": "Fd-3m",
+                  "structure_name": "rock salt",
+                  "space_group_number": 227,
+                  "point_group": "6mm",
+                  "crystal_system": "cubic"
+                },
+                "elements": [
+                  "Si"
+                ],
+                "elements_exclusive": "Si",
+                "chemical_formula_anonymous": "A2",
+                "material_id": "bulk_material",
+                "structural_type": "bulk",
+                "chemical_formula_reduced": "Si2",
+                "n_elements": 1,
+                "chemical_formula_descriptive": "Si2",
+                "material_name": "Silicon",
+                "chemical_formula_hill": "Si2"
+              },
+              "properties": {
+                "available_properties": [
+                  "dos_phonon"
+                ]
+              }
+            },
+            "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
+            "parser_name": "parsers/vasp",
+            "calc_id": "dft_bulk",
+            "published": true,
+            "writers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "processed": true,
+            "mainfile": "vasp.xml",
+            "main_author": {
+              "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "name": "Markus Scheidgen"
+            },
+            "viewers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "entry_create_time": "2023-02-06T13:34:52.193465+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -201,322 +758,55 @@
       }
     }
   ],
-  "39fd0212960bd36797e4676fcbaa554f": [
+  "bcc308d60347c7137a7b49670b05adce": [
     {
       "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk/archive/query",
-        "method": "POST",
-        "body": {
-          "required": {
-            "metadata": "*",
-            "data": "*",
-            "definitions": "*",
-            "results": {
-              "material": "*",
-              "method": "*",
-              "properties": {
-                "structures": "*",
-                "structural": "*",
-                "dynamical": "*",
-                "electronic": "include-resolved",
-                "mechanical": "include-resolved",
-                "spectroscopy": "include-resolved",
-                "vibrational": "include-resolved",
-                "thermodynamic": "include-resolved",
-                "geometry_optimization": {
-                  "energies": "include-resolved"
-                }
-              }
-            },
-            "resolve-inplace": false
-          }
-        },
+        "url": "http://localhost:8000/fairdi/nomad/latest/resources/?space_group_number=227&chemical_formula_reduced=Si2",
+        "method": "GET",
+        "body": "",
         "headers": {
           "accept": "application/json",
-          "content-type": "application/json",
           "cookie": null
         }
       },
       "response": {
-        "status": 200,
+        "status": 404,
         "body": {
-          "required": {
-            "metadata": "*",
-            "data": "*",
-            "definitions": "*",
-            "results": {
-              "material": "*",
-              "method": "*",
-              "properties": {
-                "structures": "*",
-                "structural": "*",
-                "dynamical": "*",
-                "electronic": "include-resolved",
-                "mechanical": "include-resolved",
-                "spectroscopy": "include-resolved",
-                "vibrational": "include-resolved",
-                "thermodynamic": "include-resolved",
-                "geometry_optimization": {
-                  "energies": "include-resolved"
-                }
-              }
+          "detail": "Not found",
+          "info": {
+            "app": {
+              "label": null,
+              "beta": null,
+              "version": "1.1.2.dev717+g548f58be7.d20221222",
+              "commit": "",
+              "deployment": "devel",
+              "deployment_url": "http://localhost:8000/fairdi/nomad/latest/api",
+              "service": "app",
+              "name": "NOMAD",
+              "homepage": "https://nomad-lab.eu",
+              "source_url": "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR",
+              "maintainer_email": "markus.scheidgen@physik.hu-berlin.de"
             },
-            "resolve-inplace": false
-          },
-          "entry_id": "dft_bulk",
-          "data": {
-            "entry_id": "dft_bulk",
-            "upload_id": "dft_upload",
-            "parser_name": "parsers/vasp",
-            "archive": {
-              "run": [
-                {
-                  "calculation": [
-                    {
-                      "dos_phonon": [
-                        {
-                          "energies": [
-                            0,
-                            1e-19
-                          ],
-                          "total": [
-                            {
-                              "normalization_factor": 1e-19,
-                              "value": [
-                                0,
-                                1000000000000000000
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "metadata": {
-                "upload_id": "dft_upload",
-                "upload_create_time": "2023-01-18T11:18:15.244684+00:00",
-                "entry_id": "dft_bulk",
-                "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2023-01-18T11:18:15.248684+00:00",
-                "parser_name": "parsers/vasp",
-                "mainfile": "vasp.xml",
-                "published": true,
-                "publish_time": "2023-01-18T11:18:15.247684+00:00",
-                "with_embargo": false,
-                "embargo_length": 0,
-                "license": "CC BY 4.0",
-                "processed": true,
-                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
-                "nomad_version": "0.10.0",
-                "nomad_commit": "bf3c06fa",
-                "comment": "Mocked",
-                "references": [
-                  "doi"
-                ],
-                "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "domain": "dft"
+            "apis": {
+              "v1": {
+                "root": "/fairdi/nomad/latest/api/v1",
+                "dashboard": "/fairdi/nomad/latest/api/v1/extensions/docs",
+                "documentation": "/fairdi/nomad/latest/api/v1/extensions/redoc"
               },
-              "results": {
-                "material": {
-                  "material_id": "bulk_material",
-                  "material_name": "Silicon",
-                  "structural_type": "bulk",
-                  "elements": [
-                    "Si"
-                  ],
-                  "chemical_formula_descriptive": "Si2",
-                  "chemical_formula_reduced": "Si2",
-                  "chemical_formula_hill": "Si2",
-                  "chemical_formula_anonymous": "A2",
-                  "symmetry": {
-                    "bravais_lattice": "cP",
-                    "crystal_system": "cubic",
-                    "point_group": "6mm",
-                    "space_group_number": 227,
-                    "space_group_symbol": "Fd-3m",
-                    "structure_name": "rock salt"
-                  }
-                },
-                "properties": {
-                  "vibrational": {
-                    "dos_phonon": {
-                      "energies": "/run/0/calculation/0/dos_phonon/0/energies",
-                      "total": [
-                        "/run/0/calculation/0/dos_phonon/0/total/0"
-                      ]
-                    }
-                  }
-                }
+              "optimade": {
+                "root": "/fairdi/nomad/latest/optimade/v1",
+                "dashboard": "/fairdi/nomad/latest/optimade/v1/extensions/docs"
               },
-              "m_ref_archives": {}
+              "dcat": {
+                "root": "/fairdi/nomad/latest/dcat",
+                "dashboard": "/fairdi/nomad/latest/dcat/extensions/docs"
+              }
             }
           }
         },
         "headers": {
           "connection": "close",
-          "content-length": "3166",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    },
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk/archive/query",
-        "method": "POST",
-        "body": {
-          "required": {
-            "metadata": "*",
-            "data": "*",
-            "definitions": "*",
-            "results": {
-              "material": "*",
-              "method": "*",
-              "properties": {
-                "structures": "*",
-                "structural": "*",
-                "dynamical": "*",
-                "electronic": "include-resolved",
-                "mechanical": "include-resolved",
-                "spectroscopy": "include-resolved",
-                "vibrational": "include-resolved",
-                "thermodynamic": "include-resolved",
-                "geometry_optimization": {
-                  "energies": "include-resolved"
-                }
-              }
-            },
-            "resolve-inplace": false
-          }
-        },
-        "headers": {
-          "accept": "application/json",
-          "content-type": "application/json",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 200,
-        "body": {
-          "required": {
-            "metadata": "*",
-            "data": "*",
-            "definitions": "*",
-            "results": {
-              "material": "*",
-              "method": "*",
-              "properties": {
-                "structures": "*",
-                "structural": "*",
-                "dynamical": "*",
-                "electronic": "include-resolved",
-                "mechanical": "include-resolved",
-                "spectroscopy": "include-resolved",
-                "vibrational": "include-resolved",
-                "thermodynamic": "include-resolved",
-                "geometry_optimization": {
-                  "energies": "include-resolved"
-                }
-              }
-            },
-            "resolve-inplace": false
-          },
-          "entry_id": "dft_bulk",
-          "data": {
-            "entry_id": "dft_bulk",
-            "upload_id": "dft_upload",
-            "parser_name": "parsers/vasp",
-            "archive": {
-              "run": [
-                {
-                  "calculation": [
-                    {
-                      "dos_phonon": [
-                        {
-                          "energies": [
-                            0,
-                            1e-19
-                          ],
-                          "total": [
-                            {
-                              "normalization_factor": 1e-19,
-                              "value": [
-                                0,
-                                1000000000000000000
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "metadata": {
-                "upload_id": "dft_upload",
-                "upload_create_time": "2023-01-18T11:18:15.244684+00:00",
-                "entry_id": "dft_bulk",
-                "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2023-01-18T11:18:15.248684+00:00",
-                "parser_name": "parsers/vasp",
-                "mainfile": "vasp.xml",
-                "published": true,
-                "publish_time": "2023-01-18T11:18:15.247684+00:00",
-                "with_embargo": false,
-                "embargo_length": 0,
-                "license": "CC BY 4.0",
-                "processed": true,
-                "last_processing_time": "2021-03-17T15:47:32.899000+00:00",
-                "nomad_version": "0.10.0",
-                "nomad_commit": "bf3c06fa",
-                "comment": "Mocked",
-                "references": [
-                  "doi"
-                ],
-                "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
-                "domain": "dft"
-              },
-              "results": {
-                "material": {
-                  "material_id": "bulk_material",
-                  "material_name": "Silicon",
-                  "structural_type": "bulk",
-                  "elements": [
-                    "Si"
-                  ],
-                  "chemical_formula_descriptive": "Si2",
-                  "chemical_formula_reduced": "Si2",
-                  "chemical_formula_hill": "Si2",
-                  "chemical_formula_anonymous": "A2",
-                  "symmetry": {
-                    "bravais_lattice": "cP",
-                    "crystal_system": "cubic",
-                    "point_group": "6mm",
-                    "space_group_number": 227,
-                    "space_group_symbol": "Fd-3m",
-                    "structure_name": "rock salt"
-                  }
-                },
-                "properties": {
-                  "vibrational": {
-                    "dos_phonon": {
-                      "energies": "/run/0/calculation/0/dos_phonon/0/energies",
-                      "total": [
-                        "/run/0/calculation/0/dos_phonon/0/total/0"
-                      ]
-                    }
-                  }
-                }
-              },
-              "m_ref_archives": {}
-            }
-          }
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "3166",
+          "content-length": "787",
           "content-type": "application/json",
           "server": "uvicorn"
         }

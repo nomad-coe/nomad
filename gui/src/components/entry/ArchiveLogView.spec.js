@@ -2,15 +2,15 @@ import React from 'react'
 import 'regenerator-runtime/runtime'
 import { render, screen, startAPI, closeAPI, within } from '../conftest.spec'
 import ArchiveLogView from './ArchiveLogView'
-import EntryPageContext from './EntryPageContext'
+import { EntryContext } from './EntryContext'
 import userEvent from '@testing-library/user-event'
 import { waitFor } from '@testing-library/react'
 
 test('Correctly renders the page', async () => {
   await startAPI('tests.states.uploads.archive_browser_test', 'tests/data/uploads/archive_logs_test', 'test', 'password')
-  render(<EntryPageContext entryId={'1WGSYo1RrGFEIcM17Re4kjHC7k6p'}>
+  render(<EntryContext entryId={'1WGSYo1RrGFEIcM17Re4kjHC7k6p'}>
     <ArchiveLogView />
-  </EntryPageContext>)
+  </EntryContext>)
 
   // Checking for the page to be successfully loaded and the See more button appears at the bottom
   const loadMoreButton = await screen.findByText(/load more/i)

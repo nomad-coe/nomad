@@ -90,12 +90,6 @@ const useStyles = makeStyles(theme => ({
     justifyContent: 'flex-end',
     alignItems: 'center',
     color: theme.palette.text.disabled
-  },
-  placeholder: {
-    top: theme.spacing(0),
-    left: theme.spacing(0),
-    right: theme.spacing(0),
-    bottom: theme.spacing(0)
   }
 }))
 export const WidgetTerms = React.memo((
@@ -145,8 +139,8 @@ export const WidgetTerms = React.memo((
     if (!agg) {
       aggComp = <Placeholder
         variant="rect"
-        classes={{placeholder: styles.placeholder}}
         data-testid={`${testID}-placeholder`}
+        margin={0}
       />
       nShown = 0
     } else {
@@ -175,7 +169,7 @@ export const WidgetTerms = React.memo((
       }
     }
     return [aggComp, nShown]
-  }, [agg, aggConfig, filter, handleChange, max, scale, styles, testID])
+  }, [agg, aggConfig, filter, handleChange, max, scale, testID])
 
   const count = pluralize('item', nShown, true)
 

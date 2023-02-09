@@ -35,13 +35,13 @@ const MechanicalProperties = React.memo(({
   units
 }) => {
   return <PropertyGrid>
-    <PropertyItem title="Energy-volume curve" xs={12} height="500px">
+    {evCurves !== false && <PropertyItem title="Energy-volume curve" xs={12} height="500px">
       <EnergyVolumeCurve
         data={evCurves}
         units={units}
         data-testid="energy-volume-curve"
       />
-    </PropertyItem>
+    </PropertyItem>}
     <PropertyItem title="Bulk modulus" xs={6} height="auto">
       <SectionTable
         horizontal

@@ -1,0 +1,118 @@
+/*
+ * Copyright The NOMAD Authors.
+ *
+ * This file is part of NOMAD. See https://nomad-lab.eu for further info.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import React, { useState, useMemo, useEffect, useContext } from 'react'
+import PropTypes from 'prop-types'
+import { cloneDeep } from 'lodash'
+import { useApi } from '../api'
+import { useDataStore, useEntryStoreObj } from '../DataStore'
+import { ui, apiBase} from '../../config'
+
+/**
+ * Hook for retrieving archive information for the entry present in the active
+ * EntryContext.
+ */
+export const useArchive = (required) => {
+  const { entryId } = useEntryContext()
+  const { api } = useApi()
+  const [response, setResponse] = useState({})
+
+  useEffect(() => {
+    if (!entryId) return
+    api
+      .post(`entries/${entryId}/archive/query`, {required}, {returnRequest: true})
+      .then(response => setResponse({data: response?.response?.data?.archive, response: response}))
+  }, [api, required, entryId])
+
+  return response
+}
+
+/**
+ * Hook for retrieving index information for the entry present in the active
+ * EntryContext.
+ */
+export const useIndex = () => {
+  const { entryId } = useEntryContext()
+  const { api } = useApi()
+  const [response, setResponse] = useState({})
+
+  useEffect(() => {
+    if (!entryId) return
+    api
+      .get(`entries/${entryId}`, null, {returnRequest: true})
+      .then(response => setResponse({data: response?.response?.data, response: response}))
+  }, [api, entryId])
+
+  return response
+}
+
+/**
+ * Hook for fetching the "full" entry data that also contains operations for
+ * interacting and mutating with if this can be done.
+ *
+ * @param {*} requireArchive Optional query filter
+ */
+export const useEntryStore = (requireArchive) => {
+  const {entryId} = useContext(entryContext) || {}
+  const entryStoreObj = useEntryStoreObj(apiBase, entryId, true, requireArchive)
+  return entryStoreObj
+}
+
+/**
+ * Hook for fetching the current entry context.
+ */
+export const useEntryContext = () => {
+  return useContext(entryContext)
+}
+
+/**
+ * Context that manages information about a specific entry that will be targeted
+ * by different components.
+ */
+const entryContext = React.createContext()
+export const EntryContext = React.memo(({entryId, overview, children}) => {
+  const dataStore = useDataStore()
+  dataStore.resetIfNeeded(entryId)
+
+  // Inform the Store of the selected entry
+  useEffect(() => {
+    dataStore.selectedEntry.current = `${apiBase}:${entryId}`
+    return () => { dataStore.selectedEntry.current = undefined }
+  }, [dataStore, entryId])
+
+  // Get the overview config
+  const finalOverview = useMemo(() => {
+    const tmpOverview = overview || ui?.entry_context?.overview
+    if (!tmpOverview) return {}
+    const finalOverview = cloneDeep(tmpOverview)
+    const options = (finalOverview.include || Object.keys(finalOverview.options))
+      .filter(key => !finalOverview?.exclude?.includes(key))
+      .map(key => ({key, ...finalOverview.options[key]}))
+    return {options}
+  }, [overview])
+
+  const value = useMemo(() => ({entryId, overview: finalOverview}), [entryId, finalOverview])
+  return <entryContext.Provider value={value}>
+    {children}
+  </entryContext.Provider>
+})
+EntryContext.propTypes = {
+  entryId: PropTypes.string,
+  overview: PropTypes.object,
+  children: PropTypes.node
+}

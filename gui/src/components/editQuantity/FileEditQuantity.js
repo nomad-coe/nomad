@@ -22,7 +22,7 @@ import UploadIcon from '@material-ui/icons/CloudUpload'
 import { useDropzone } from 'react-dropzone'
 import { useApi } from '../api'
 import { ItemButton } from '../archive/Browser'
-import { useEntryPageContext } from '../entry/EntryPageContext'
+import { useEntryStore } from '../entry/EntryContext'
 import { useErrors } from '../errors'
 
 const useFileEditQuantityStyles = makeStyles(theme => ({
@@ -41,7 +41,7 @@ const useFileEditQuantityStyles = makeStyles(theme => ({
 const FileEditQuantity = React.memo(props => {
   const classes = useFileEditQuantityStyles()
   const {onChange, quantityDef, value, ...otherProps} = props
-  const {uploadId, metadata} = useEntryPageContext()
+  const {uploadId, metadata} = useEntryStore()
   const {api} = useApi()
   const {raiseError} = useErrors()
 

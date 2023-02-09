@@ -66,12 +66,6 @@ const useStyles = makeStyles(theme => ({
   progress: {
     marginLeft: theme.spacing(0.5)
   },
-  placeholder: {
-    top: theme.spacing(0),
-    left: theme.spacing(0),
-    right: theme.spacing(0),
-    bottom: theme.spacing(0)
-  },
   textField: {
     marginBottom: theme.spacing(1)
   }
@@ -298,8 +292,8 @@ const InputField = React.memo(({
     } else if (!agg && aggIndicator === 'on') {
       aggComp = <Placeholder
         variant="rect"
-        classes={{placeholder: styles.placeholder}}
         data-testid={`${testID}-placeholder`}
+        margin={0}
       />
     } else {
       aggComp = <>

@@ -61,7 +61,7 @@ const useMaterialCardStyles = makeStyles((theme) => ({
     width: '100%'
   }
 }))
-const MaterialCardTopology = React.memo(({index, properties, archive}) => {
+const MaterialCardTopology = React.memo(({index, archive}) => {
   const styles = useMaterialCardStyles()
   const [topologyTree, topologyMap] = useMemo(() => getTopology(index, archive), [index, archive])
   const [selected, setSelected] = useState(topologyTree.system_id)
@@ -71,7 +71,7 @@ const MaterialCardTopology = React.memo(({index, properties, archive}) => {
 
   // Used to resolve the path to the structure for the given topology item
   const resolveStructure = useCallback((top, topologyMap) => {
-    return top.atoms_ref || (top.atoms
+    return top.atoms_ref ? top.atoms_ref.slice(0, -6) : (top.atoms
       ? top.system_id
       : resolveStructure(topologyMap[top.parent_system], topologyMap))
   }, [])
@@ -133,7 +133,6 @@ const MaterialCardTopology = React.memo(({index, properties, archive}) => {
 
 MaterialCardTopology.propTypes = {
   index: PropTypes.object.isRequired,
-  properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }
 const useTopologyStyles = makeStyles((theme) => ({

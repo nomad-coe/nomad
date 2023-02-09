@@ -92,12 +92,6 @@ const useStyles = makeStyles(theme => ({
     '&:focusVisible': {
       boxShadow: '0px 0px 0px 6px rgb(0, 141, 195, 16%)'
     }
-  },
-  placeholder: {
-    top: theme.spacing(0),
-    left: theme.spacing(0),
-    right: theme.spacing(0),
-    bottom: theme.spacing(0)
   }
 }))
 const PlotHistogram = React.memo(({
@@ -316,8 +310,8 @@ const PlotHistogram = React.memo(({
   } else if (isNil(bins) && aggIndicator === 'on') {
     histComp = <Placeholder
       variant="rect"
-      classes={{placeholder: styles.placeholder}}
       data-testid={`${testID}-placeholder`}
+      margin={0}
     />
   } else {
     histComp = <div className={styles.overflow}>

@@ -1131,7 +1131,7 @@ class System(MSection):
         repeats=False
     )
     atoms_ref = Quantity(
-        type=Structure,
+        type=Atoms,
         description='''
         Reference to an atomistic structure that is associated with this
         system'.

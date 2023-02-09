@@ -554,7 +554,7 @@ const Plot = React.memo(forwardRef(({
       return <Placeholder
         margin={0}
         className={styles.placeholderRoot}
-        classes={{placeholder: placeHolderStyle}}
+        classes={{skeleton: placeHolderStyle}}
         variant="rect"
         data-testid={`${testID}-placeholder`}
       />

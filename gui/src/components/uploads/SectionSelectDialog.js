@@ -29,7 +29,7 @@ import {ui} from "../../config"
 import SearchBar from '../search/SearchBar'
 import {useApi} from '../api'
 import {useUploadPageContext} from './UploadPageContext'
-import {useEntryPageContext} from '../entry/EntryPageContext'
+import {useEntryStore} from '../entry/EntryContext'
 import {traverse, useGlobalMetainfo} from '../archive/metainfo'
 import { filterGroups, quantityNameSearch } from '../search/FilterRegistry'
 import SearchResults from '../search/SearchResults'
@@ -146,7 +146,7 @@ const Details = React.memo(({data}) => {
   const {useFiltersLockedState} = useSearchContext()
   const filtersLocked = useFiltersLockedState(['section_defs.definition_qualified_name', 'entry_type'])
   const [sections, setSections] = useState()
-  const {url} = useEntryPageContext() || {}
+  const {url} = useEntryStore() || {}
 
   const {selected, onSelectedChanged} = useContext(searchDialogContext)
 
@@ -205,7 +205,7 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
   const filtersLocked = useFiltersLocked()
   const [filters, setFilters] = useFiltersState([...allFilters].filter(filter => filter !== 'visibility' && filter !== 'upload_id' && !filtersLocked[filter]))
   const uploadContext = useUploadPageContext()
-  const entryContext = useEntryPageContext()
+  const entryContext = useEntryStore()
   const {uploadId} = uploadContext || entryContext
   const setVisibilityFilter = useSetFilter('visibility')
   const setUploadIdFilter = useSetFilter('upload_id')
