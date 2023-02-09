@@ -587,11 +587,7 @@ def gw() -> EntryArchive:
     template.run[0].method = None
     run = template.run[0]
     method_gw = run.m_create(Method)
-    method_gw.basis_set.append(BasisSet(type='plane waves'))
-    xc_functional = XCFunctional(
-        exchange=[Functional(name='GGA_X_PBE')],
-        correlation=[Functional(name='GGA_C_PBE')])
-    method_gw.gw = GW(type='G0W0', starting_point=xc_functional)
+    method_gw.gw = GW(type='G0W0')
     return run_normalize(template)
 
 

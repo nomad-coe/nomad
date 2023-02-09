@@ -897,8 +897,6 @@ class GW(MSection):
         | `"qp-scGW"`  | quasiparticle self-consistent GW | PRL 96, 226402 (2006) |
         ''')
 
-    starting_point = SubSection(sub_section=XCFunctional.m_def)
-
     q_grid = SubSection(sub_section=KMesh.m_def, repeats=False)
 
     n_frequencies = Quantity(
