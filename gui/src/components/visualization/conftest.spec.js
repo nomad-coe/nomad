@@ -17,7 +17,7 @@
  */
 
 import assert from 'assert'
-import { within } from '@testing-library/dom'
+import { within } from '../conftest.spec'
 import { webGlError } from '../ErrorHandler'
 
 /*****************************************************************************/
@@ -104,4 +104,29 @@ export const VisualizationState = {
   Success: 'Success',
   Error: 'Error',
   NoWebGL: 'NoWebGL'
+}
+
+/**
+ * Tests that the Pagination component is shown properly.
+ *
+ * @param {bool} showMore Is show more button visible
+ * @param {bool} showLess Is show less button visible
+ * @param {bool} loadingMore Is loading more indicator and tooltip present
+ */
+export async function expectPagination(
+  showMore,
+  showLess,
+  loadingMore,
+  container = document.body
+) {
+  const root = within(container)
+  const moreButton = root.queryByButtonText('Show more')
+  const lessButton = root.queryByButtonText('Show less')
+  showMore
+    ? expect(moreButton).toBeInTheDocument()
+    : expect(moreButton).toBe(null)
+  showLess
+    ? expect(lessButton).toBeInTheDocument()
+    : expect(lessButton).toBe(null)
+  loadingMore && expect(moreButton).toHaveAttribute('disabled')
 }
