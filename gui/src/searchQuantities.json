@@ -1880,9 +1880,7 @@
         "thermodynamics"
       ]
     },
-    "shape": [
-      "*"
-    ],
+    "shape": [],
     "suggestion": true
   },
   "results.method.simulation.program_name": {

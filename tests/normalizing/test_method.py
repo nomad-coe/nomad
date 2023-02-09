@@ -136,9 +136,6 @@ def test_method_gw(gw):
     assert method.simulation.program_name == "VASP"
     assert method.simulation.program_version == "4.6.35"
     assert method.simulation.gw.type == "G0W0"
-    assert method.simulation.gw.starting_point_names == ["GGA_C_PBE", "GGA_X_PBE"]
-    assert method.simulation.gw.starting_point_type == "GGA"
-    assert method.simulation.gw.basis_set_type == "plane waves"
 
 
 def test_method_dmft(dmft):

@@ -53,43 +53,109 @@ class MethodNormalizer():
         self.logger = logger
 
     def method(self) -> Method:
-        """Returns a filled Method section.
-
-        Returns:
-            Filled method section.
-        """
+        '''Returns the populated results.method section.'''
         method = Method()
         simulation = Simulation()
         repr_method = None
         method_name = config.services.unavailable_value
+        workflow_name = None
         methods = self.run.method
         n_methods = len(methods)
-        method.workflow_name = self.workflow_name()
 
         def get_method_name(section_method):
             method_name = config.services.unavailable_value
             if section_method.electronic and section_method.electronic.method:
                 method_name = section_method.electronic.method
-            else:
-                if section_method.gw is not None:
-                    method_name = "GW"
-                elif section_method.projection is not None:
-                    method_name = "Projection"
-                elif section_method.dmft is not None:
-                    method_name = "DMFT"
+            elif section_method.gw is not None:
+                method_name = 'GW'
+            elif section_method.projection is not None:
+                method_name = 'Projection'
+            elif section_method.dmft is not None:
+                method_name = 'DMFT'
             return method_name
 
-        # If workflow_name is 'GW', set repr_method as the corresponding method_ref
-        if method.workflow_name is not None and method.workflow_name[0] == 'GW':
-            if self.entry_archive.workflow[0].workflows_ref[-1].calculations_ref[-1].method_ref.gw is not None:
-                repr_method = self.entry_archive.workflow[0].workflows_ref[-1].calculations_ref[-1].method_ref
-                method_name = get_method_name(repr_method)
-        # If only one method is specified, use it directly
+        def functional_long_name_from_method(methods):
+            '''
+            Long form of exchange-correlation functional, list of components and parameters
+            as a string: see https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
+            '''
+            if not self.repr_method or not methods:
+                return None
+
+            linked_methods = [self.repr_method]
+            xc_functional = config.services.unavailable_value
+            for method in linked_methods:
+                sec_xc_functionals = None
+                if method.dft:
+                    sec_xc_functionals = method.dft.xc_functional
+
+                if sec_xc_functionals:
+                    components = {}
+                    for functional in ['exchange', 'correlation', 'hybrid', 'contributions']:
+                        for component in sec_xc_functionals[functional]:
+                            try:
+                                cname = component.name
+                            except KeyError:
+                                pass
+                            else:
+                                this_component = ''
+                                if component.weight is not None:
+                                    this_component = str(component.weight) + '*'
+                                this_component += cname
+                                components[cname] = this_component
+                        result_array = []
+                        for name in sorted(components):
+                            result_array.append(components[name])
+                        if len(result_array) >= 1:
+                            xc_functional = '+'.join(result_array)
+                    if method.dft and method.dft.xc_functional.name is None:
+                        method.dft.xc_functional.name = xc_functional
+            return xc_functional
+
+        def get_basis_set() -> RestrictedDict:
+            '''
+            Decide which type of basis set settings are applicable to the entry and
+            return a corresponding settings as a RestrictedDict.
+
+            Returns:
+                RestrictedDict or None: Returns the extracted settings as a
+                RestrictedDict. If no suitable basis set settings could be identified,
+                returns None.
+            '''
+            settings: BasisSet = None
+            program_name = None
+            if len(self.entry_archive.run) > 0 and self.run.program:
+                program_name = self.run.program.name
+            if program_name == 'exciting':
+                settings = BasisSetExciting(self.entry_archive, self.repr_method, self.repr_system, self.logger)
+            elif program_name == 'FHI-aims':
+                settings = BasisSetFHIAims(self.entry_archive, self.repr_method, self.repr_system, self.logger)
+            else:
+                return None
+
+            return settings.to_dict()
+
+        # workflow_name
+        if self.entry_archive.workflow:
+            workflow_name = list(filter(lambda x: x, map(lambda x: x.type, self.entry_archive.workflow)))[0]
+        method.workflow_name = workflow_name
+
+        # repr_method and method_name
+        #   If workflow_name is 'GW', set repr_method as the corresponding method_ref
+        if method.workflow_name and method.workflow_name == 'GW':
+            try:
+                dft_method = self.entry_archive.workflow[0].workflows_ref[0].calculations_ref[-1].method_ref
+                gw_method = self.entry_archive.workflow[0].workflows_ref[1].calculations_ref[-1].method_ref
+                repr_method = dft_method
+                method_name = f'{get_method_name(repr_method)}+GW'
+            except Exception:
+                self.logger.warning('Error finding the DFT and GW method sections from workflow refs.')
+                return method
+        #   If only one method is specified, use it directly
         elif n_methods == 1:
             repr_method = methods[0]
             method_name = get_method_name(repr_method)
-        # If several methods have been declared, we need to find the "topmost"
-        # method and report it.
+        #   If several methods have been declared, we need to find the "topmost" method and report it.
         elif n_methods > 1:
             # Method referencing another as "core_method". If core method was
             # given, create new merged method containing all the information.
@@ -121,52 +187,13 @@ class MethodNormalizer():
 
         self.repr_method = repr_method
         self.method_name = method_name
-        functional_long_name = self.functional_long_name()
-        settings_basis_set = get_basis_set(self.entry_archive, self.repr_method, self.repr_system, self.logger)
+        if 'DFT' in self.method_name:
+            functional_long_name = functional_long_name_from_method(self.run.method)
+            settings_basis_set = get_basis_set()
 
-        if method_name == "GW":
-            method.method_name = "GW"
-            gw = GW()
-            gw.type = self.repr_method.gw.type
-            try:
-                gw.starting_point_names = self.xc_functional_names(self.repr_method.gw.starting_point)
-                gw.starting_point_type = self.xc_functional_type(gw.starting_point_names)
-            except Exception:
-                self.logger.warn("Error extracting the GW starting point names.")
-            gw.basis_set_type = self.basis_set_type()
-            gw.basis_set_name = self.basis_set_name()
-            simulation.gw = gw
-        elif method_name == "Projection":
-            method.method_name = "Projection"
-            projection = Projection()
-            if hasattr(self.repr_method.projection, 'wannier'):
-                projection.type = 'wannier'
-                if self.repr_method.projection.wannier.is_maximally_localized:
-                    projection.localization_type = 'maximally_localized'
-                else:
-                    projection.localization_type = 'single_shot'
-            elif hasattr(self.repr_method.projection, 'slater_koster'):
-                projection.type = 'slater_koster'
-            else:
-                projection.type = 'custom'
-            simulation.projection = projection
-        elif method_name == "DMFT":
-            method.method_name = "DMFT"
-            dmft = DMFT()
-            dmft.impurity_solver_type = self.repr_method.dmft.impurity_solver
-            dmft.total_filling = 0.5 * np.sum(self.repr_method.dmft.n_correlated_electrons) / np.sum(repr_method.dmft.n_correlated_orbitals)
-            dmft.inverse_temperature = self.repr_method.dmft.inverse_temperature
-            dmft.magnetic_state = self.repr_method.dmft.magnetic_state
-            # TODO update U to be U/W when linking between DFT>Projection>DMFT (@ should
-            # be extracted from the bands obtained by Projection).
-            model_hamiltonian = self.repr_method.starting_method_ref.lattice_model_hamiltonian
-            if model_hamiltonian is not None:
-                dmft.u = model_hamiltonian[0].hubbard_kanamori_model[0].u  # taking U,JH values from the first atom
-                if dmft.u.magnitude != 0.0:
-                    dmft.hunds_hubbard_ratio = model_hamiltonian[0].hubbard_kanamori_model[0].jh.magnitude / dmft.u.magnitude
-            simulation.dmft = dmft
-        elif method_name in {"DFT", "DFT+U"}:
-            method.method_name = "DFT"
+        # Populating method metainfo
+        if self.method_name in ['DFT', 'DFT+U']:
+            method.method_name = 'DFT'
             dft = DFT()
             dft.basis_set_type = self.basis_set_type()
             dft.basis_set_name = self.basis_set_name()
@@ -186,12 +213,58 @@ class MethodNormalizer():
                 dft.xc_functional_type = self.xc_functional_type(dft.xc_functional_names)
                 dft.exact_exchange_mixing_factor = self.exact_exchange_mixing_factor(dft.xc_functional_names)
             except Exception:
-                self.logger.warn("Error extracting the DFT XC functional names.")
+                self.logger.warning('Error extracting the DFT XC functional names.')
             if repr_method.scf is not None:
                 dft.scf_threshold_energy_change = repr_method.scf.threshold_energy_change
             simulation.dft = dft
             hubbard_kanamori_models = self.hubbard_kanamori_model(methods)
             simulation.dft.hubbard_kanamori_model = hubbard_kanamori_models if len(hubbard_kanamori_models) else None
+        elif method_name == 'GW':
+            method.method_name = 'GW'
+            gw = GW()
+            gw.type = self.repr_method.gw.type
+            simulation.gw = gw
+        elif method_name == 'DFT+GW':
+            method.method_name = 'GW'
+            gw = GW()
+            gw.type = gw_method.gw.type
+            try:
+                gw.starting_point_names = self.xc_functional_names(dft_method.dft.xc_functional)
+                gw.starting_point_type = self.xc_functional_type(gw.starting_point_names)
+            except Exception:
+                self.logger.warning('Error extracting the GW starting point names.')
+            gw.basis_set_type = self.basis_set_type()
+            gw.basis_set_name = self.basis_set_name()
+            simulation.gw = gw
+        elif method_name == 'Projection':
+            method.method_name = 'Projection'
+            projection = Projection()
+            if hasattr(self.repr_method.projection, 'wannier'):
+                projection.type = 'wannier'
+                if self.repr_method.projection.wannier.is_maximally_localized:
+                    projection.localization_type = 'maximally_localized'
+                else:
+                    projection.localization_type = 'single_shot'
+            elif hasattr(self.repr_method.projection, 'slater_koster'):
+                projection.type = 'slater_koster'
+            else:
+                projection.type = 'custom'
+            simulation.projection = projection
+        elif method_name == 'DMFT':
+            method.method_name = 'DMFT'
+            dmft = DMFT()
+            dmft.impurity_solver_type = self.repr_method.dmft.impurity_solver
+            dmft.total_filling = 0.5 * np.sum(self.repr_method.dmft.n_correlated_electrons) / np.sum(repr_method.dmft.n_correlated_orbitals)
+            dmft.inverse_temperature = self.repr_method.dmft.inverse_temperature
+            dmft.magnetic_state = self.repr_method.dmft.magnetic_state
+            # TODO update U to be U/W when linking between DFT>Projection>DMFT (@ should
+            # be extracted from the bands obtained by Projection).
+            model_hamiltonian = self.repr_method.starting_method_ref.lattice_model_hamiltonian
+            if model_hamiltonian is not None:
+                dmft.u = model_hamiltonian[0].hubbard_kanamori_model[0].u  # taking U,JH values from the first atom
+                if dmft.u.magnitude != 0.0:
+                    dmft.hunds_hubbard_ratio = model_hamiltonian[0].hubbard_kanamori_model[0].jh.magnitude / dmft.u.magnitude
+            simulation.dmft = dmft
 
         # Fill k_mesh section
         k_mesh = self.run.m_xpath('method[-1].k_mesh')
@@ -206,14 +279,14 @@ class MethodNormalizer():
                     try:  # TODO doublecheck
                         _, k_grid_offset = get_monkhorst_pack_size_and_offset(k_mesh.points)
                         if not k_grid_offset.all():
-                            k_mesh.generation_method = "Monkhorst-Pack"
+                            k_mesh.generation_method = 'Monkhorst-Pack'
                     except ValueError:
-                        k_mesh.generation_method = "Gamma-centered"
+                        k_mesh.generation_method = 'Gamma-centered'
             elif k_mesh.grid is not None:
                 k_mesh.n_points = np.prod(k_mesh.grid) if not k_mesh.n_points else k_mesh.n_points
-                if k_mesh.generation_method == "Gamma-centered":
+                if k_mesh.generation_method == 'Gamma-centered':
                     k_mesh.points = np.meshgrid(*[np.linspace(0, 1, n) for n in k_mesh.grid])  # this assumes a gamma-centered grid: we really need the `generation_method` to be sure
-                elif k_mesh.generation_method == "Monkhorst-Pack":
+                elif k_mesh.generation_method == 'Monkhorst-Pack':
                     k_mesh.points += monkhorst_pack(k_mesh.grid)
                 # TODO allow shift to be specified in k_mesh
             if self.run.method and self.run.m_xpath('method[-1].k_mesh') is None:  # save the KMesh object only if it was not already present
@@ -236,10 +309,10 @@ class MethodNormalizer():
         return method
 
     def calc_k_line_density(self, k_lattices: List[List[float]], nks: List[int]) -> Optional[float]:
-        """
+        '''
         Compute the lowest k_line_density value:
         k_line_density (for a uniformly spaced grid) is the number of k-points per reciprocal length unit
-        """
+        '''
         struc_type = self.material.structural_type
         if k_lattices is None or nks is None:
             return None
@@ -250,7 +323,7 @@ class MethodNormalizer():
             return None
 
     def hubbard_kanamori_model(self, methods) -> List[HubbardKanamoriModel]:
-        """Generate a list of normalized HubbardKanamoriModel for `results.method`"""
+        '''Generate a list of normalized HubbardKanamoriModel for `results.method`'''
         hubbard_kanamori_models = []
         for sec_method in methods:
             for param in sec_method.atom_parameters:
@@ -278,27 +351,21 @@ class MethodNormalizer():
                         hubbard_kanamori_models.append(hubb_results)
         return hubbard_kanamori_models
 
-    def workflow_name(self):
-        workflow_name = None
-        if self.entry_archive.workflow:
-            workflow_name = set(filter(lambda x: x, map(lambda x: x.type, self.entry_archive.workflow)))
-        return workflow_name
-
     def method_id_dft(self, settings_basis_set, functional_long_name: str):
-        """Creates a method id for DFT calculations if all required data is
+        '''Creates a method id for DFT calculations if all required data is
         present.
-        """
+        '''
         method_dict = RestrictedDict(
             mandatory_keys=[
-                "program_name",
-                "functional_long_name",
-                "settings_basis_set",
-                "scf_threshold_energy_change",
+                'program_name',
+                'functional_long_name',
+                'settings_basis_set',
+                'scf_threshold_energy_change',
             ],
             optional_keys=(
-                "smearing_kind",
-                "smearing_width",
-                "number_of_eigenvalues_kpoints",
+                'smearing_kind',
+                'smearing_width',
+                'number_of_eigenvalues_kpoints',
             ),
             forbidden_values=[None]
         )
@@ -353,14 +420,14 @@ class MethodNormalizer():
             return method_dict.hash()
 
     def equation_of_state_id(self, method_id: str, formula: str):
-        """Creates an ID that can be used to group an equation of state
+        '''Creates an ID that can be used to group an equation of state
         calculation found within the same upload.
-        """
+        '''
         eos_dict = RestrictedDict(
             mandatory_keys=[
-                "upload_id",
-                "method_id",
-                "formula",
+                'upload_id',
+                'method_id',
+                'formula',
             ],
             forbidden_values=[None]
         )
@@ -369,11 +436,11 @@ class MethodNormalizer():
         eos_dict['upload_id'] = self.entry_archive.metadata.upload_id
 
         # Method
-        eos_dict["method_id"] = method_id
+        eos_dict['method_id'] = method_id
 
         # The formula should be same for EoS (maybe even symmetries)
         if self.material:
-            eos_dict["formula"] = self.material.chemical_formula_hill
+            eos_dict['formula'] = self.material.chemical_formula_hill
 
         # Form a hash from the dictionary
         try:
@@ -384,21 +451,21 @@ class MethodNormalizer():
             return eos_dict.hash()
 
     def parameter_variation_id_dft(self, settings_basis_set, functional_long_name: str):
-        """Creates an ID that can be used to group calculations that differ
+        '''Creates an ID that can be used to group calculations that differ
         only by the used DFT parameters within the same upload.
-        """
+        '''
         # Create ordered dictionary with the values. Order is important for
         param_dict = RestrictedDict(
             mandatory_keys=[
-                "upload_id",
-                "program_name",
-                "program_version",
-                "settings_geometry",
-                "functional_long_name",
-                "scf_threshold_energy_change",
+                'upload_id',
+                'program_name',
+                'program_version',
+                'settings_geometry',
+                'functional_long_name',
+                'scf_threshold_energy_change',
             ],
             optional_keys=(
-                "atoms_pseudopotentials",
+                'atoms_pseudopotentials',
             ),
             forbidden_values=[None]
         )
@@ -514,8 +581,8 @@ class MethodNormalizer():
             return config.services.unavailable_value
 
     def exact_exchange_mixing_factor(self, xc_functional_names):
-        """Assign the exact exachange mixing factor to `results` section when explicitly stated.
-        Else, fall back on XC functional default."""
+        '''Assign the exact exachange mixing factor to `results` section when explicitly stated.
+        Else, fall back on XC functional default.'''
         def scan_patterns(patterns, xc_name) -> bool:
             return any([x for x in patterns if re.search('_' + x + '$', xc_name)])
 
@@ -536,104 +603,13 @@ class MethodNormalizer():
             elif re.search('_M06_2X$', xc_name): return .54
             elif scan_patterns(['M05_2X', 'PBE_2X'], xc_name): return .56
 
-    def functional_long_name(self) -> str:
-        """'Long' form of exchange-correlation functional, list of components
-        and parameters as a string: see
-        https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
-        """
-        xc_functional = MethodNormalizer.functional_long_name_from_method(self.repr_method, self.run.method)
-        if xc_functional is config.services.unavailable_value:
-            self.logger.warning(
-                "Metainfo for 'XC_functional' not found, and could not "
-                "compose name from 'section_XC_functionals'."
-            )
-        return xc_functional
-
-    @staticmethod
-    def functional_long_name_from_method(repr_method: Section, methods: List[Section]):
-        """'Long' form of exchange-correlation functional, list of components
-        and parameters as a string: see
-        https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
-        """
-        if not repr_method or not methods:
-            return None
-
-        linked_methods = [repr_method]
-        if repr_method.dft:
-            if repr_method.core_method_ref is not None:
-                linked_methods.append(repr_method.core_method_ref)
-
-        xc_functional = config.services.unavailable_value
-        # XC functional name
-        for method in linked_methods:
-            sec_xc_functionals = None
-            if method.gw:
-                sec_xc_functionals = method.gw.starting_point
-            elif method.dft:
-                sec_xc_functionals = method.dft.xc_functional
-
-            if sec_xc_functionals:
-                components = {}
-                for functional in ['exchange', 'correlation', 'hybrid', 'contributions']:
-                    for component in sec_xc_functionals[functional]:
-                        try:
-                            cname = component.name
-                        except KeyError:
-                            pass
-                        else:
-                            this_component = ''
-                            if component.weight is not None:
-                                this_component = str(component.weight) + '*'
-                            this_component += cname
-                            components[cname] = this_component
-                    result_array = []
-                    for name in sorted(components):
-                        result_array.append(components[name])
-                    if len(result_array) >= 1:
-                        xc_functional = '+'.join(result_array)
-                if method.gw and method.gw.starting_point.name is None:
-                    method.gw.starting_point.name = xc_functional
-                elif method.dft and method.dft.xc_functional.name is None:
-                    method.dft.xc_functional.name = xc_functional
-
-        return xc_functional
-
-
-def get_basis_set(entry_archive, repr_method, repr_system, logger) -> RestrictedDict:
-    """Decide which type of basis set settings are applicable to the entry and
-    return a corresponding settings as a RestrictedDict.
-
-    Args:
-        entry_archive: EntryArchive from which values are extracted.
-        logger: Shared logger.
-
-    Returns:
-        RestrictedDict or None: Returns the extracted settings as a
-        RestrictedDict. If no suitable basis set settings could be identified,
-        returns None.
-    """
-    settings: BasisSet = None
-    program_name = None
-    if len(entry_archive.run) > 0 and entry_archive.run[0].program:
-        program_name = entry_archive.run[0].program.name
-    if program_name == "exciting":
-        settings = BasisSetExciting(entry_archive, repr_method, repr_system, logger)
-    elif program_name == "FHI-aims":
-        settings = BasisSetFHIAims(entry_archive, repr_method, repr_system, logger)
-    else:
-        return None
-
-    return settings.to_dict()
-
 
 class BasisSet(ABC):
-    """Abstract base class for basis set settings. The idea is to create
+    '''Abstract base class for basis set settings. The idea is to create
     subclasses that inherit this class and hierarchically add new mandatory and
     optional settings with the setup()-function.
-    """
+    '''
     def __init__(self, entry_archive, repr_method, repr_system, logger):
-        """
-        """
         self._entry_archive = entry_archive
         self._repr_method = repr_method
         self._repr_system = repr_system
@@ -643,34 +619,34 @@ class BasisSet(ABC):
 
     @abstractmethod
     def to_dict(self) -> RestrictedDict:
-        """Used to extract basis set settings from the archive and returning
+        '''Used to extract basis set settings from the archive and returning
         them as a RestrictedDict.
-        """
+        '''
         pass
 
     @abstractmethod
     def setup(self) -> Tuple:
-        """Used to define a list of mandatory and optional settings for a
+        '''Used to define a list of mandatory and optional settings for a
         subclass.
 
         Returns:
             Should return a tuple of two lists: the first one defining
             mandatory keys and the second one defining optional keys.
-        """
+        '''
         mandatory: List = []
         optional: List = []
         return mandatory, optional
 
 
 class BasisSetFHIAims(BasisSet):
-    """Basis set settings for 'FHI-Aims' (code-dependent).
-    """
+    '''Basis set settings for FHI-Aims (code-dependent).
+    '''
     def setup(self) -> Tuple:
         # Get previously defined values from superclass
         mandatory, optional = super().setup()
 
         # Add new values
-        mandatory += ["fhiaims_basis"]
+        mandatory += ['fhiaims_basis']
 
         return mandatory, optional
 
@@ -694,7 +670,7 @@ class BasisSetFHIAims(BasisSet):
                 basis = OrderedDict()
                 for k in sorted(bs_by_species.keys()):
                     basis[k] = bs_by_species[k]
-                self.settings["fhiaims_basis"] = basis
+                self.settings['fhiaims_basis'] = basis
 
         return self.settings
 
@@ -733,27 +709,27 @@ class BasisSetFHIAims(BasisSet):
 
 
 class BasisSetExciting(BasisSet):
-    """Basis set settings for 'Exciting' (code-dependent).
-    """
+    '''Basis set settings for Exciting (code-dependent).
+    '''
     def setup(self) -> Tuple:
         # Get previously defined values from superclass
         mandatory, optional = super().setup()
 
         # Add new values
         mandatory += [
-            "muffin_tin_settings",
-            "rgkmax",
-            "gkmax",
-            "lo",
-            "lmaxapw",
+            'muffin_tin_settings',
+            'rgkmax',
+            'gkmax',
+            'lo',
+            'lmaxapw',
         ]
 
         return mandatory, optional
 
     def to_dict(self):
-        """Special case of basis set settings for Exciting code. See list at:
+        '''Special case of basis set settings for Exciting code. See list at:
         https://gitlab.mpcdf.mpg.de/nomad-lab/encyclopedia-general/wikis/FHI-visit-preparation
-        """
+        '''
         # Add the muffin-tin settings for each species ordered alphabetically by atom label
         try:
             groups = self._repr_system.x_exciting_section_atoms_group
@@ -762,14 +738,14 @@ class BasisSetExciting(BasisSet):
             for group in groups:
                 label = group.x_exciting_geometry_atom_labels
                 try:
-                    muffin_tin_settings["{}_muffin_tin_radius".format(label)] = "%.6f" % (group.x_exciting_muffin_tin_radius.to(ureg.angstrom).magnitude)
+                    muffin_tin_settings['{}_muffin_tin_radius'.format(label)] = "%.6f" % (group.x_exciting_muffin_tin_radius.to(ureg.angstrom).magnitude)
                 except Exception:
-                    muffin_tin_settings["{}_muffin_tin_radius".format(label)] = None
+                    muffin_tin_settings['{}_muffin_tin_radius'.format(label)] = None
                 try:
-                    muffin_tin_settings["{}_muffin_tin_points".format(label)] = "%d" % group.x_exciting_muffin_tin_points
+                    muffin_tin_settings['{}_muffin_tin_points'.format(label)] = "%d" % group.x_exciting_muffin_tin_points
                 except Exception:
-                    muffin_tin_settings["{}_muffin_tin_points".format(label)] = None
-            self.settings["muffin_tin_settings"] = muffin_tin_settings
+                    muffin_tin_settings['{}_muffin_tin_points'.format(label)] = None
+            self.settings['muffin_tin_settings'] = muffin_tin_settings
         except Exception:
             pass
 
