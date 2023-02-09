@@ -16,37 +16,58 @@
  * limitations under the License.
  */
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@material-ui/core'
-import React, { useState } from 'react'
+import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import exampleUploads from '../../exampleUploads.json'
 import Markdown from '../Markdown'
 import { useHistory } from 'react-router-dom'
+import { ui } from '../../config'
 
 const ExampleUploadDialog = React.memo(function ExampleUploadDialog(props) {
   const { onSelect, ...dialogProps } = props
+
+  const exampleUploadsConfig = useMemo(() => ui?.exampleUploads || {}, [])
+  const filterExamples = useCallback(key => (
+    (key => !exampleUploadsConfig.include || exampleUploadsConfig.include.includes(key)) &&
+    (key => !exampleUploadsConfig.exclude || !exampleUploadsConfig.exclude.includes(key))
+  ), [exampleUploadsConfig])
+
+  const renderCategory = useCallback(category => {
+    return Object.keys(category)
+      .filter(filterExamples)
+      .map(key => {
+        const exampleUpload = category[key]
+        return (
+          <Box key={key} display="flex" flexDirection="row" marginBottom={2} alignItems="baseline">
+            <Box marginRight={2} flexGrow={1}>
+              <Typography variant="h6">{exampleUpload.title}</Typography>
+              <Markdown>{`${exampleUpload.description}`}</Markdown>
+            </Box>
+            <Button
+              variant="contained" color="primary" size="small"
+              onClick={() => onSelect(key)}
+            >
+              add
+            </Button>
+          </Box>
+        )
+      })
+  }, [filterExamples, onSelect])
+
   return (
     <Dialog {...dialogProps}>
       <DialogTitle id="Uploads-dialogBox">Select a sample Upload</DialogTitle>
       <DialogContent>
-        {Object.keys(exampleUploads).map(key => {
-          const exampleUpload = exampleUploads[key]
-          return (
-            <Box key={key} display="flex" flexDirection="row" marginBottom={2} alignItems="baseline">
-              <Box marginRight={2} flexGrow={1}>
-                <Typography variant="h6">{exampleUpload.title}</Typography>
-                <Markdown>{`${exampleUpload.description}`}</Markdown>
-              </Box>
-              <Button
-                variant="contained" color="primary" size="small"
-                onClick={() => onSelect(key)}
-              >
-                add
-              </Button>
+        <Box maxHeight={800}>
+          {Object.keys(exampleUploads).map(categoryKey => (
+            <Box key={categoryKey} marginBottom={6}>
+              <Typography variant='h5'>{categoryKey}</Typography>
+              <Box marginTop={2}>{renderCategory(exampleUploads[categoryKey])}</Box>
             </Box>
-          )
-        })}
+          ))}
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={dialogProps.onClose}>cancel</Button>
