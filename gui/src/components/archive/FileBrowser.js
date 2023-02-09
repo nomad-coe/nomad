@@ -38,7 +38,7 @@ import { fromEvent } from 'file-selector'
 import Download from '../entry/Download'
 import Quantity from '../Quantity'
 import FilePreview from './FilePreview'
-import { useEntryPageContext } from '../entry/EntryPageContext'
+import { useEntryStore } from '../entry/EntryContext'
 import { archiveAdaptorFactory } from './ArchiveBrowser'
 import NorthLaunchButton from '../north/NorthLaunchButton'
 import { useTools } from '../north/NorthPage'
@@ -236,7 +236,7 @@ const useRawDirectoryContentStyles = makeStyles(theme => ({
 function RawDirectoryContent({deploymentUrl, uploadId, path, title, highlightedItem, editable}) {
   const classes = useRawDirectoryContentStyles()
   const dataStore = useDataStore()
-  const entryPageMainFile = useEntryPageContext()?.metadata?.mainfile // Will be set if we're on an entry page
+  const entryPageMainFile = useEntryStore()?.metadata?.mainfile // Will be set if we're on an entry page
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
   const history = useHistory()
@@ -543,7 +543,7 @@ class FilePreviewAdaptor extends Adaptor {
 }
 
 function RawFileContent({deploymentUrl, uploadId, path, data, editable}) {
-  const entryPageMainFile = useEntryPageContext()?.metadata?.mainfile // Will be set if we're on an entry page
+  const entryPageMainFile = useEntryStore()?.metadata?.mainfile // Will be set if we're on an entry page
   const browser = useContext(browserContext)
   const lane = useContext(laneContext)
   const history = useHistory()

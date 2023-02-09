@@ -29,9 +29,10 @@ import {
 } from './conftest.spec'
 import OverviewView from './OverviewView'
 import { ui } from '../../config'
-import EntryPageContext from './EntryPageContext'
+import { EntryContext } from './EntryContext'
 import userEvent from '@testing-library/user-event'
 import { act } from 'react-dom/test-utils'
+import { cloneDeep } from 'lodash'
 
 test.each([
   ['material', 'material', 'Material'],
@@ -42,13 +43,13 @@ test.each([
   ['structural', 'rdf', 'Structural properties']
 ])('correctly renders %s card when card is enabled/disabled in config', async (card, state, label) => {
   await startAPI(`tests.states.entry.${state}`, `tests/data/entry/${card}_card`)
-  const overview = ui.entry_context.overview
+  const overview = cloneDeep(ui.entry_context.overview)
   for (const enabled of [true, false]) {
-    if (!enabled) overview.exclude = [card]
+    overview.exclude = enabled ? [] : [card]
     render(
-      <EntryPageContext entryId={'dft_bulk'} overview={overview}>
-        <OverviewView />
-      </EntryPageContext>
+      <EntryContext entryId={'dft_bulk'} overview={overview}>
+        <OverviewView/>
+      </EntryContext>
     )
 
     // Wait until initial render is done.
@@ -69,9 +70,9 @@ test.each([
 test('correctly renders metadata and all properties', async () => {
   await startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
   await act(async () => render(
-    <EntryPageContext entryId={'dft_bulk'}>
+    <EntryContext entryId={'dft_bulk'}>
       <OverviewView />
-    </EntryPageContext>
+    </EntryContext>
   ))
 
   // Wait to load the entry metadata, i.e. wait for some of the text to appear
@@ -190,9 +191,9 @@ function expectQuantityToBe(name, label, value, root = screen) {
 test('eln overview as a reviewer', async () => {
   await startAPI('tests.states.entry.eln', 'tests/data/entry/eln-reviewer', 'ttester', 'password')
   await act(async () => render(
-    <EntryPageContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
+    <EntryContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
       <OverviewView />
-    </EntryPageContext>
+    </EntryContext>
   ))
 
   // Wait until the initial load is done by checking one of the card titles
@@ -268,9 +269,9 @@ test.each([
 ])('eln overview as %s', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
   await act(async () => render(
-    <EntryPageContext entryId={entryId}>
+    <EntryContext entryId={entryId}>
       <OverviewView />
-    </EntryPageContext>
+    </EntryContext>
   ))
 
   // Wait until the initial load is done by checking one of the card titles
@@ -328,9 +329,9 @@ test.each([
 ])('eln concurrent editing', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
   const screen1 = render(
-    <EntryPageContext entryId={entryId}>
+    <EntryContext entryId={entryId}>
       <OverviewView />
-    </EntryPageContext>
+    </EntryContext>
   )
 
   // Wait until the initial load is done by checking one of the card titles
@@ -346,9 +347,9 @@ test.each([
   const deleteMainfileButton = await screen1.findByRole('button', {name: 'Delete mainfile'})
 
   const screen2 = render(
-    <EntryPageContext entryId={entryId}>
+    <EntryContext entryId={entryId}>
       <OverviewView />
-    </EntryPageContext>
+    </EntryContext>
   )
 
   // Wait until the initial load is done by checking one of the card titles

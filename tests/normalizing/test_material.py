@@ -597,12 +597,12 @@ def test_topology_calculation(pbc):
     # Test the original structure
     original = topology[0]
     assert original.structural_type == "unavailable"
-    assert original.atoms_ref.cartesian_site_positions.shape == (6, 3)
-    assert len(original.atoms_ref.species_at_sites) == 6
+    assert original.atoms_ref.positions.shape == (6, 3)
+    assert len(original.atoms_ref.labels) == 6
     assert original.atoms_ref.lattice_vectors.shape == (3, 3)
     expected_pbc = np.zeros(3, bool)
     expected_pbc[:] = pbc
-    assert original.atoms_ref.dimension_types == expected_pbc.tolist()
+    assert original.atoms_ref.periodic == expected_pbc.tolist()
     assert original.chemical_formula_hill == "H4O2"
     assert original.chemical_formula_reduced == "H2O"
     assert original.chemical_formula_anonymous == "A2B"

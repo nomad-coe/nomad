@@ -281,7 +281,7 @@ def ase_atoms_from_nomad_atoms(system: NOMADAtoms) -> Atoms:
     '''
     return Atoms(
         positions=system.positions.to(ureg.angstrom),
-        numbers=system.atomic_numbers,
+        numbers=system.species,
         cell=system.lattice_vectors.to(ureg.angstrom),
         pbc=system.periodic
     )

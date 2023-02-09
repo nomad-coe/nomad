@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Union, Type, Dict, List
+from typing import Union, Dict, List
 from io import StringIO
 from collections import OrderedDict
 from enum import Enum
@@ -26,8 +26,7 @@ import ase.io
 import ase.build
 
 from nomad.utils import strip, deep_get, query_list_to_dict
-from nomad.normalizing.common import ase_atoms_from_nomad_atoms, ase_atoms_from_structure
-from nomad.datamodel.results import Structure
+from nomad.normalizing.common import ase_atoms_from_nomad_atoms
 from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
 from .entries import answer_entry_archive_request, _bad_id_response
 
@@ -113,12 +112,7 @@ async def get_entry_raw_file(
     if path.startswith(prefix):
         path = path[len(prefix):]
     query_list: List[Union[str, int]] = [int(x) if x.isdigit() else x for x in path.split('/')]
-    cls: Union[Type[NOMADAtoms], Type[Structure]] = None
-    if "system" in query_list or "topology" in query_list:
-        cls = NOMADAtoms
-        query_list.append('atoms')
-    elif "structures" in query_list:
-        cls = Structure
+    query_list.append('atoms')
 
     required = query_list_to_dict(query_list, '*')
     required['resolve-inplace'] = False
@@ -136,10 +130,7 @@ async def get_entry_raw_file(
     stringio = StringIO()
     try:
         if format_info['reader'] == 'ase':
-            if cls == NOMADAtoms:
-                atoms = ase_atoms_from_nomad_atoms(NOMADAtoms.m_from_dict(result_dict))
-            elif cls == Structure:
-                atoms = ase_atoms_from_structure(Structure.m_from_dict(result_dict))
+            atoms = ase_atoms_from_nomad_atoms(NOMADAtoms.m_from_dict(result_dict))
             ase_format = ase_format_map[format]
             ase.io.write(stringio, atoms, ase_format)
         elif format_info['reader'] == 'mdanalysis':

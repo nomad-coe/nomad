@@ -18,7 +18,7 @@
 import React, {useState, useEffect, useMemo, useCallback} from 'react'
 import PropTypes from 'prop-types'
 import assert from 'assert'
-import { set, get, isNil, isEqual, isArray, has, capitalize, isPlainObject} from 'lodash'
+import { set, get, isNil, isArray, has, capitalize, isPlainObject} from 'lodash'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../plotting/Plot'
 import { PropertyItem, PropertySubGrid } from '../entry/properties/PropertyCard'
@@ -38,7 +38,6 @@ export const rdfError = 'Could not load radial distribution function data.'
  */
 const RadialDistributionFunction = React.memo(({
   rdf,
-  methodology,
   className,
   'data-testid': testID
 }) => {
@@ -158,7 +157,6 @@ const rdfShape = PropTypes.objectOf(rdfLabelShape)
 
 RadialDistributionFunction.propTypes = {
   rdf: rdfShape,
-  methodology: PropTypes.object,
   className: PropTypes.string,
   'data-testid': PropTypes.string
 }
@@ -178,59 +176,41 @@ const RadialDistributionFunctionsRaw = React.memo(({
   archive
 }) => {
   const fromEntry = useCallback((index, archive) => {
-    const data = {
-      rdf: false,
-      methodology: false
-    }
+    let rdfAll = {}
     const urlPrefix = `${getLocation()}/data`
     const rdfIndex = get(index, rdfPath)
 
     // No data
-    if (!rdfIndex) {
-      return data
-    }
+    if (!rdfIndex) return rdfAll
 
-    // Load the basic information from the index. If clashing methodologies are
-    // found, an error is raised for now. In the future several methodologies
-    // could be supported by plotting then separately.
+    // Load the basic information from the index in order to show the plot
+    // layout with placeholders
     rdfIndex.forEach((rdf, i) => {
-      if (rdf.methodology) {
-        if (data.methodology && !isEqual(data.methodology, rdf.methodology)) {
-          throw Error('Multiple methodologies for RDF not yet supported.')
-        }
-        data.methodology = rdf.methodology
-      }
-      set(data.rdf, [rdf.type, rdf.label], undefined)
+      set(rdfAll, [rdf.type, rdf.label], undefined)
     })
 
-    // Still loading archive but the amount of plots is already known
-    if (!archive) {
-      return data
-    }
+    // Loading archive
+    if (!archive) return rdfAll
 
     // Full data ready
-    data.rdf = {}
+    rdfAll = {}
     rdfIndex.forEach((rdf, i) => {
       const type = rdf.type
       const label = rdf.label
-      if (!has(data.rdf, type)) {
-        data.rdf[type] = {}
-      }
-      if (!has(data.rdf[type], label)) {
-        data.rdf[type][label] = []
-      }
+      if (!has(rdfAll, type)) rdfAll[type] = {}
+      if (!has(rdfAll[type], label)) rdfAll[type][label] = []
       const rdfArchive = get(archive, rdfPath)?.[i]
-      data.rdf[type][label].push({
+      rdfAll[type][label].push({
         ...rdf,
         ...rdfArchive,
         archiveUrl: `${urlPrefix}/${rdfPath.join('/')}:${i}`
       })
     })
-    return data
+    return rdfAll
   }, [])
-  const data = fromEntry(index, archive)
+  const rdf = fromEntry(index, archive)
 
-  return <RadialDistributionFunction {...data} />
+  return <RadialDistributionFunction rdf={rdf} />
 })
 
 RadialDistributionFunctionsRaw.propTypes = {

@@ -48,7 +48,7 @@ import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '..
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
 import SectionEditor from './SectionEditor'
-import { useEntryPageContext } from '../entry/EntryPageContext'
+import { useEntryStore } from '../entry/EntryContext'
 import SaveIcon from '@material-ui/icons/Save'
 import AddIcon from '@material-ui/icons/AddCircle'
 import CodeIcon from '@material-ui/icons/Code'
@@ -114,7 +114,7 @@ ArchiveBrowser.propTypes = ({
 export default ArchiveBrowser
 
 export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
-  const {editable, archiveHasChanges, saveArchive, reload} = useEntryPageContext()
+  const {editable, archiveHasChanges, saveArchive, reload} = useEntryStore()
   const [openErrorDialog, setOpenErrorDialog] = useState(false)
   const [disabled, setDisabled] = useState(false)
 
@@ -161,7 +161,7 @@ export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
 })
 
 export const ArchiveReloadButton = React.memo(function ArchiveReloadButton(props) {
-  const {reload} = useEntryPageContext()
+  const {reload} = useEntryStore()
 
   return <React.Fragment>
     <IconButton
@@ -177,7 +177,7 @@ export const ArchiveReloadButton = React.memo(function ArchiveReloadButton(props
 
 export const ArchiveDeleteButton = React.memo(function ArchiveDeleteButton(props) {
   const history = useHistory()
-  const {editable, uploadId, entryId} = useEntryPageContext()
+  const {editable, uploadId, entryId} = useEntryStore()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
@@ -321,7 +321,7 @@ ArchiveConfigForm.propTypes = ({
 })
 
 export const ArchiveReUploadButton = React.memo((props) => {
-  const {uploadId, metadata, reload} = useEntryPageContext()
+  const {uploadId, metadata, reload} = useEntryStore()
   const {api} = useApi()
   const {raiseError} = useErrors()
 
@@ -864,7 +864,7 @@ InheritingSections.propTypes = ({
 })
 
 function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEln}) {
-  const {handleArchiveChanged} = useEntryPageContext() || {}
+  const {handleArchiveChanged} = useEntryStore() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
   const lane = useContext(laneContext)
@@ -1070,7 +1070,7 @@ export function getItemLabelKey(sectionDef) {
 }
 
 function SubSection({subSectionDef, section, editable}) {
-  const {handleArchiveChanged} = useEntryPageContext() || {}
+  const {handleArchiveChanged} = useEntryStore() || {}
   const lane = useLane()
   const history = useHistory()
   const {label, getItemLabel} = useMemo(() => {

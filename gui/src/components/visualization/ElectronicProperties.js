@@ -18,7 +18,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
-import { isEmpty } from 'lodash'
 import { Quantity, useUnits } from '../../units'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
@@ -72,14 +71,14 @@ const ElectronicProperties = React.memo(({
   }, [dosYSubject])
 
   // Custom layout if only band gaps are available
-  if (isEmpty(bs) && isEmpty(dos) && isEmpty(brillouin_zone)) {
+  if (bs === false && dos === false && brillouin_zone === false) {
     return <PropertyGrid>
       <PropertyItem title="Band gaps" xs={12} height="auto">
         <BandGap data={band_gap}/>
       </PropertyItem>
     </PropertyGrid>
   // Custom layout if only DOS is available
-  } else if (isEmpty(bs) && isEmpty(band_gap) && isEmpty(brillouin_zone)) {
+  } else if (bs === false && band_gap === false && brillouin_zone === false) {
     return <PropertyGrid>
       <PropertyItem title="Band structure" xs={8}>
         <BandStructure

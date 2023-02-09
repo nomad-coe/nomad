@@ -640,11 +640,7 @@ export function getTopology(index, archive) {
   }
 
   // Create topology map
-  let id = 0
-  const topologyMap = Object.fromEntries(topology.map(top => {
-    const node_id = `results/material/topology/${id++}`
-    return [node_id, top]
-  }))
+  const topologyMap = Object.fromEntries(topology.map(top => ([top.system_id, top])))
 
   // Create topology tree by finding the root node and then recursively
   // replacing its children with the actual child instances.

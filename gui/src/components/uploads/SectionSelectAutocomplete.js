@@ -18,7 +18,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import {useApi} from '../api'
-import {useEntryPageContext} from '../entry/EntryPageContext'
+import {useEntryStore} from '../entry/EntryContext'
 import {Autocomplete} from '@material-ui/lab'
 import {useGlobalMetainfo} from '../archive/metainfo'
 import {useDataStore} from '../DataStore'
@@ -77,7 +77,7 @@ function SectionSelectAutocomplete(props) {
   const globalMetainfo = useGlobalMetainfo()
   const dataStore = useDataStore()
   const [suggestionInput, setSuggestionInput] = useState('')
-  const {url} = useEntryPageContext() || {}
+  const {url} = useEntryStore() || {}
   const [entries, setEntries] = useState([])
   const [selectedEntry, setSelectedEntry] = useState(undefined)
   const [suggestions] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput)

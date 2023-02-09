@@ -19,7 +19,7 @@ import React from 'react'
 import { Card, CardContent, Typography, makeStyles } from '@material-ui/core'
 import ArchiveBrowser from '../archive/ArchiveBrowser'
 import Page from '../Page'
-import { useEntryPageContext } from './EntryPageContext'
+import { useEntryStore } from './EntryContext'
 import { ApiDataContext } from '../buttons/SourceDialogButton'
 
 export const help = `
@@ -49,7 +49,7 @@ const useStyles = makeStyles(theme => ({
 
 export default function ArchiveEntryView(props) {
   const classes = useStyles()
-  const {url, archive, archiveApiData, exists} = useEntryPageContext('*')
+  const {url, archive, archiveApiData, exists} = useEntryStore('*')
 
   if (!exists) {
     return (

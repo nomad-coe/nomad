@@ -49,6 +49,7 @@ const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
     dos.energies = resolveInternalRef(dosData.energies, archive)
     dos.densities = resolveInternalRef(dosData.total, archive).map(dos => dos.value)
     dos.m_path = `${urlPrefix}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
+    dos = [dos]
   }
 
   // Resolve phonon band structure
@@ -58,6 +59,7 @@ const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
     bs = {}
     bs.segment = resolveInternalRef(bsData.segment, archive)
     bs.m_path = `${urlPrefix}/${refPath(bsData.segment[0].split('/').slice(0, -2).join('/'))}`
+    bs = [bs]
   }
 
   // Resolve free energy
@@ -83,8 +85,8 @@ const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
   // TODO implement plotting of multiple dos and bs data
   return <PropertyCard title="Vibrational properties">
     <VibrationalProperties
-      bs={[bs]}
-      dos={[dos]}
+      bs={bs}
+      dos={dos}
       heatCapacity={heatCapacity}
       freeEnergy={energyFree}
       units={units}

@@ -299,7 +299,7 @@ class Api {
       if (config.returnRequest) {
         return {
           method: config.methodName || method.name,
-          url: `${this.baseURL}${path}`,
+          url: `${this.baseURL}/${path}`,
           body: body,
           response: results.data
         }

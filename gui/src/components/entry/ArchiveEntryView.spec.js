@@ -21,7 +21,7 @@ import { waitFor } from '@testing-library/dom'
 import userEvent from '@testing-library/user-event'
 import { render, screen, within, startAPI, closeAPI, blockConsoleOutput, unblockConsoleOutput } from '../conftest.spec'
 import { getLane, navigateTo, browseRecursively, pseudoRandomNumberGenerator } from '../archive/conftest.spec'
-import EntryPageContext from './EntryPageContext'
+import { EntryContext } from './EntryContext'
 import ArchiveEntryView from './ArchiveEntryView'
 import { minutes } from '../../setupTests'
 import { act } from 'react-dom/test-utils'
@@ -95,7 +95,7 @@ test.each([
     'tests/data/uploads/archive_browser_test_' + name.replace(/ /g, '_'),
     'test', 'password')
 
-  render(<EntryPageContext entryId={entryId}><ArchiveEntryView /></EntryPageContext>)
+  render(<EntryContext entryId={entryId}><ArchiveEntryView /></EntryContext>)
   expect(await screen.findByText('Entry')).toBeVisible()
 
   if (withDefinition) {
@@ -116,7 +116,7 @@ test.each([
 
 test('inheriting sections', async () => {
   await startAPI('tests.states.uploads.archive_browser_test', 'tests/data/uploads/archive_browser_test_inheriting_sectins', 'test', 'password')
-  await act(async () => render(<EntryPageContext entryId={'Z0mBq-MtZ0B2IFveOhFCFJMPCZgO'}><ArchiveEntryView /></EntryPageContext>))
+  await act(async () => render(<EntryContext entryId={'Z0mBq-MtZ0B2IFveOhFCFJMPCZgO'}><ArchiveEntryView /></EntryContext>))
   expect(await screen.findByText('Entry')).toBeVisible()
 
   const path = 'data'
@@ -147,7 +147,7 @@ test.each([
     'tests.states.uploads.archive_browser_test',
     'tests/data/uploads/archive_browser_test_paths_' + name.replace(/ /g, '_'),
     'test', 'password')
-  render(<EntryPageContext entryId={entryId}><ArchiveEntryView /></EntryPageContext>)
+  render(<EntryContext entryId={entryId}><ArchiveEntryView /></EntryContext>)
   expect(await screen.findByText('Entry')).toBeVisible()
   for (const path of paths) {
     await navigateTo(path)

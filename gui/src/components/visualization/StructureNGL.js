@@ -289,7 +289,7 @@ const StructureNGL = React.memo(({
       // Find the root topology item for this data.
       let root
       for (const [key, top] of Object.entries(topologyMap)) {
-        if (key === data || top.atoms_ref === data) {
+        if (key === data || top.atoms_ref?.slice(0, -6) === data) {
           root = key
           break
         }
