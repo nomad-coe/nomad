@@ -25,7 +25,7 @@ import DialogActions from '@material-ui/core/DialogActions'
 import PropTypes from 'prop-types'
 import {SearchContext, useSearchContext} from "../search/SearchContext"
 import searchQuantities from '../../searchQuantities'
-import {ui} from "../../config"
+import {apiBase, ui} from "../../config"
 import SearchBar from '../search/SearchBar'
 import {useApi} from '../api'
 import {useUploadPageContext} from './UploadPageContext'
@@ -78,7 +78,7 @@ const shownColumns = [
   'upload_create_time'
 ]
 
-export async function getSectionsInfo(api, dataStore, reference, url, entry_id) {
+export async function getSectionsInfo(api, dataStore, reference, entry_id) {
   let response
   try {
     response = await api.post(`entries/archive/query`, {
@@ -97,6 +97,7 @@ export async function getSectionsInfo(api, dataStore, reference, url, entry_id) 
   if (sections.length > 0) {
     for (const section of sections) {
       const m_def = dataArchive[section].m_def
+      const url = dataArchive.metadata.upload_id ? `${apiBase}/uploads/${dataArchive.metadata.upload_id}/archive/${entry_id}` : undefined
       const dataMetainfoDefUrl = resolveNomadUrlNoThrow(m_def, url)
       const sectionDef = await dataStore.getMetainfoDefAsync(dataMetainfoDefUrl)
       traverse(dataArchive[section], sectionDef, section, (section, sectionDef, path) => {
@@ -147,7 +148,6 @@ const Details = React.memo(({data}) => {
   const {useFiltersLockedState} = useSearchContext()
   const filtersLocked = useFiltersLockedState(['section_defs.definition_qualified_name', 'entry_type'])
   const [sections, setSections] = useState()
-  const {url} = useEntryStore() || {}
 
   const {selected, onSelectedChanged} = useContext(searchDialogContext)
 
@@ -160,11 +160,11 @@ const Details = React.memo(({data}) => {
         const schemas = await getSchemaInfo(globalMetainfo, entry_id)
         setSections(schemas)
       } else {
-        const references = await getSectionsInfo(api, dataStore, filtersLocked['section_defs.definition_qualified_name'], url, entry_id)
+        const references = await getSectionsInfo(api, dataStore, filtersLocked['section_defs.definition_qualified_name'], entry_id)
         setSections(references)
       }
     }
-  }, [api, dataStore, entry_id, filtersLocked, globalMetainfo, url])
+  }, [api, dataStore, entry_id, filtersLocked, globalMetainfo])
 
   if (!sections) {
     return ''
