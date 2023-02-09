@@ -46,7 +46,7 @@ import { v4 as uuidv4 } from 'uuid'
 import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
 import { useApi } from '../api'
-import { setToArray, authorList, formatTimestamp, getDeep, formatNumber, getDatatype } from '../../utils'
+import { setToArray, authorList, entryName, entryType, formatTimestamp, getDeep, formatNumber, getDatatype } from '../../utils'
 import { Quantity, Unit } from '../../units'
 import { useErrors } from '../errors'
 import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
@@ -173,6 +173,12 @@ export const SearchContext = React.memo(({
 
     // Custom render is used for a subset of columns.
     const overrides = {
+      entry_name: {
+        render: entryName
+      },
+      entry_type: {
+        render: entryType
+      },
       upload_create_time: {
         render: row => row?.upload_create_time
           ? formatTimestamp(row.upload_create_time)
@@ -217,6 +223,14 @@ export const SearchContext = React.memo(({
     options = options.map(
       option => ({...option, ...(overrides[option.key] || {})})
     )
+
+    if (columns.enable) {
+      // sort the options following the enabled array
+      options = [
+        ...columns.enable.map(key => options.find(opt => opt.key === key)).filter(opt => !!opt),
+        ...options.filter(opt => !columns.enable.find(key => key === opt.key))
+      ]
+    }
 
     return {
       options,
