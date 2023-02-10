@@ -46,6 +46,7 @@ import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogBut
 import { useHistory } from 'react-router-dom'
 import DeleteUploadsButton from './DeleteUploadsButton'
 import { formatTimestamp } from '../../utils'
+import { UploadDocumentation } from './UploadOverview'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -76,9 +77,12 @@ your hard drive. Alternatively, you can upload files via the given shell command
 Replace \`<local_file>\` with your archive file. After executing the command,
 return here and press the reload button below).
 
+### Limits
+
 There is a limit of 10 unpublished uploads per user. Please accumulate all data into as
 few uploads as possible. But, there is a also an upper limit of 32 GB per upload.
 Please upload multiple archives, if you have more than 32 GB of data to upload.
+Only uploads with at least one recognized entry can be published.
 
 #### The uploads page
 
@@ -343,7 +347,7 @@ export function UploadsPage() {
     <Page loading={!(data && uploadCommands)}>
       <Box marginBottom={2}>
         <Typography>
-          You can create an upload and upload files through this browser-based interface:
+          You can either create an upload and upload files through the browser:
         </Typography>
       </Box>
       <Box alignItems='center' style={{display: 'flex'}}>
@@ -361,8 +365,13 @@ export function UploadsPage() {
           Or, you can create an upload by sending a file-archive via shell command:
         </Typography>
       </Box>
-      <Box marginBottom={-2}>
+      <Box>
         {uploadCommands && <UploadCommands uploadCommands={uploadCommands}/>}
+      </Box>
+      <Box>
+        <Typography>
+          <UploadDocumentation/>
+        </Typography>
       </Box>
       {(data?.pagination?.total || 0) > 0 && <React.Fragment>
         <Box marginTop={2} marginBottom={2}>

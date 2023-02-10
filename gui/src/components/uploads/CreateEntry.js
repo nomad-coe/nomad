@@ -28,10 +28,6 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1),
     width: '100%'
   },
-  button: {
-    marginBottom: theme.spacing(1),
-    width: '100%'
-  },
   radioGroup: {
     marginTop: 0,
     display: 'flex'
@@ -48,7 +44,7 @@ function addSearchIconToEndAdornment(endAdornment, onClick) {
   return React.cloneElement(endAdornment, {}, children)
 }
 
-const CreateEntry = React.memo(() => {
+const CreateEntry = React.memo((props) => {
   const classes = useStyles()
   const {deploymentUrl, uploadId, isProcessing} = useUploadPageContext()
   const {api} = useApi()
@@ -211,13 +207,10 @@ const CreateEntry = React.memo(() => {
 
   return <React.Fragment>
     <Button
-      className={classes.button}
       onClick={() => setOpenCreateEntryDialog(true)}
-      variant='contained'
-      color='primary'
-      disabled={isProcessing}>
-      Create new entry
-    </Button>
+      disabled={isProcessing}
+      {...props}
+    />
     <Dialog
       classes={{paper: classes.dialog}}
       open={openCreateEntryDialog}

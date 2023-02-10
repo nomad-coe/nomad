@@ -49,6 +49,7 @@ import { useUploadPageContext } from './UploadPageContext'
 import { useApi } from '../api'
 import ReloadIcon from '@material-ui/icons/Replay'
 import { formatTimestamp } from '../../utils'
+import DialogLink from '../utils/DialogLink'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -301,6 +302,19 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
+export function UploadDocumentation() {
+  return <React.Fragment>
+    Visit our documentation on <Link href={`${appBase}/docs/web.html#uploading-and-publishing-data`}>
+      uploading files
+    </Link> or show <DialogLink title="Supported file formats" text="supported file formats">
+      <Typography>
+        The following codes are supported: <CodeList withUploadInstructions />. Click
+        the code to get more specific information about how to prepare your files.
+      </Typography>
+    </DialogLink>.
+  </React.Fragment>
+}
+
 function UploadOverview(props) {
   const classes = useStyles()
   const {api} = useApi()
@@ -484,32 +498,39 @@ function UploadOverview(props) {
             {isPublished && <Typography className={classes.stepContent}>
               This upload is published and it&apos;s files can&apos;t be modified anymore.
             </Typography>}
-            {!isPublished && (
+            {!isPublished && isAuthenticated && isWriter && (
               <React.Fragment>
                 <Typography className={classes.stepContent}>
-                  To prepare your data, simply use <b>zip</b> or <b>tar</b> to create a single file that contains
-                  all your files as they are. These .zip/.tar files can contain subdirectories and additional files.
-                  NOMAD will search through all files and identify the relevant files automatically.
-                  Each uploaded file can be <b>up to 32GB</b> in size, you can have <b>up to 10 unpublished
-                  uploads</b> simultaneously. Your uploaded data is not published right away.
-                  Find more details about uploading data in our <Link href={`${appBase}/docs/upload.html`}>documentation</Link> or visit
-                  our <Link href="https://nomad-lab.eu/repository-archive-faqs">FAQs</Link>.
-                  The following codes are supported: <CodeList withUploadInstructions />. Click
-                  the code to get more specific information about how to prepare your files.
+                  Upload files or create entries. You can upload individual files or
+                  .zip/.tar files. <UploadDocumentation/> Entries can be created from build-in
+                  or uploaded schemas. Visit our documentation
+                  on <Link href={`${appBase}/docs/schema/basics.html`}>creating schemas</Link>.
                 </Typography>
-                <DropButton
-                  className={classes.stepContent}
-                  size="large"
-                  fullWidth onDrop={handleDropFiles}
-                  disabled={isProcessing} />
+                <Box display="flex" flexDirection="row">
+                  <Box flexGrow={1}>
+                    <DropButton
+                      className={classes.stepContent}
+                      size="large"
+                      fullWidth onDrop={handleDropFiles}
+                      disabled={isProcessing}
+                    />
+                  </Box>
+                  <Box marginLeft={2}>
+                    <CreateEntry
+                      size="large"
+                      disabled={isProcessing}
+                      variant="contained"
+                      color="primary"
+                    >
+                      Create entry
+                    </CreateEntry>
+                  </Box>
+                </Box>
               </React.Fragment>
             )}
             <div className={classes.stepContent}>
               <FilesBrower uploadId={uploadId} disabled={isProcessing || deleteRequested} />
             </div>
-            {(isAuthenticated && isWriter) && <React.Fragment>
-              <CreateEntry />
-            </React.Fragment>}
           </StepContent>
         </Step>
         <Step expanded={!isEmpty} active={false}>
