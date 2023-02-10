@@ -22,8 +22,8 @@ import re
 from typing import Any, Dict, List
 from nomad import utils
 from nomad.units import ureg
-from nomad.datamodel.data import EntryData, ArchiveSection, author_reference
-from nomad.metainfo.metainfo import MSection, MProxy, MEnum
+from nomad.datamodel.data import EntryData, ArchiveSection, author_reference, BasicElnCategory
+from nomad.metainfo.metainfo import MSection, MProxy, MEnum, Category, MCategory
 from nomad.datamodel.results import ELN, Results, Material
 from nomad.metainfo import Package, Quantity, Datetime, Reference, Section, SubSection
 from ase.data import chemical_symbols, atomic_numbers, atomic_masses
@@ -137,6 +137,17 @@ class ElnBaseSection(ArchiveSection):
         if not archive.results.eln.sections:
             archive.results.eln.sections = []
         archive.results.eln.sections.append(self.m_def.name)
+
+
+class BasicEln(ElnBaseSection, EntryData):
+    ''' The most basic ELN to instantiate. '''
+    m_def = Section(categories=[BasicElnCategory], a_eln=dict(lane_width='600px'), label='Basic ELN')
+
+    tags = Quantity(
+        type=str,
+        shape=['*'],
+        description='Add a tag that can be used for search.',
+        a_eln=dict(component='StringEditQuantity'))
 
 
 class Entity(ElnBaseSection):

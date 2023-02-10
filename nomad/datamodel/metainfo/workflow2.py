@@ -19,7 +19,7 @@
 from nomad.metainfo import Quantity, SubSection, Section
 
 from ..datamodel import ArchiveSection
-from ..data import EntryData
+from ..data import EntryData, WorkflowsElnCategory
 
 
 class Link(ArchiveSection):
@@ -80,6 +80,7 @@ class Workflow(Task, EntryData):
     Workflows themselves can be tasks. This allows to build nested workflows where some
     of the workflow tasks are workflows themselves.
     '''
+    m_def = Section(categories=[WorkflowsElnCategory])
 
     tasks = SubSection(sub_section=TaskReference, repeats=True, description=(
         'The tasks of this workflow as a repeating sub section. Use TaskReference if '

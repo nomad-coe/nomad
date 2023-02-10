@@ -74,40 +74,52 @@ const CreateEntry = React.memo((props) => {
       return
     }
 
-    const getTemplatesFromDefinitions = (definitions, prefix, archive, getReference) => {
-      return definitions.filter(definition => {
+    const getTemplatesFromGlobalDefinitions = (definitions, prefix, archive, getReference) => {
+      const templates = definitions.filter(definition => {
         if (definition.m_def !== SectionMDef) {
           return false
         }
         return definition._allBaseSections?.find(baseSection => baseSection.name === 'EntryData')
-      }).map(dataSection => {
-        let label = dataSection.name
-        const entry_name = archive?.metadata?.entry_name
-        const mainfile = archive?.metadata?.mainfile
-
-        if (entry_name) {
-          label = `${label} (${entry_name})`
-        } else if (mainfile) {
-          const file_name = mainfile.substring(mainfile.lastIndexOf('/') + 1)
-          label = `${label} (${file_name})`
+      }).map(definition => {
+        const label = definition.label || definition.name
+        const template = definition.m_annotations?.template?.[0] || {}
+        const findCategory = definition => (
+          definition.categories.find(category => (
+            category.categories.find(category => category._qualifiedName === 'nomad.datamodel.data.EntryDataCategory')
+          ))
+        )
+        let category
+        for (definition of [definition, ...definition._allBaseSections]) {
+          category = findCategory(definition)
+          if (category) {
+            break
+          }
         }
-        const template = dataSection.m_annotations?.template?.[0] || {}
         return {
-          id: `${prefix}:${dataSection._qualifiedName}`,
-          label: label,
+          id: `${prefix}:${definition._qualifiedName}`,
+          categoryLabel: category?.label || category?.name || 'Other',
+          categoryName: category?.name || 'Other',
+          definition,
+          label,
           archive: {
             data: {
-              m_def: getReference(dataSection),
+              m_def: getReference(definition),
               ...template
             }
           }
         }
       })
+      const categoryNames = templates.map(template => template.categoryName)
+      const categoryOrder = ['BasicElnCategory', 'ElnExampleCategory', 'ElnIntegrationCategory', 'UseCaseElnCategory', 'WorkflowsElnCategory', 'Other']
+      categoryNames.sort((a, b) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b))
+      templates.sort((a, b) => a.label.localeCompare(b.label))
+      templates.sort((a, b) => categoryNames.indexOf(a.categoryName) - categoryNames.indexOf(b.categoryName))
+      return templates
     }
 
     const getTemplates = async () => {
       const globalDefinitions = await globalMetainfo.getDefs()
-      const globalTemplates = getTemplatesFromDefinitions(
+      const globalTemplates = getTemplatesFromGlobalDefinitions(
         globalDefinitions, '__global__', null, section => section._qualifiedName)
       return globalTemplates.map(template => ({group: 'OASIS', ...template}))
     }
@@ -260,7 +272,8 @@ const CreateEntry = React.memo((props) => {
           value={builtInTemplates && builtInTemplates?.find(template => template.id === builtInTemplate?.id) ? builtInTemplate : null}
           onChange={handleBuiltInChange}
           options={builtInTemplates || []}
-          getOptionLabel={(option) => option.label}
+          groupBy={option => option.categoryLabel}
+          getOptionLabel={option => option.label}
           renderInput={(params) => {
             return (
                 <TextField

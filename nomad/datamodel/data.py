@@ -20,13 +20,15 @@ import os.path
 
 from typing import Any
 from cachetools import cached, TTLCache
-from ..metainfo.metainfo import predefined_datatypes
-from nomad import metainfo, config
+from nomad.metainfo.metainfo import (
+    predefined_datatypes, Category, MCategory, MSection, Quantity, Reference, MetainfoReferenceError,
+    MProxy, Capitalized, Section, Datetime)
+from nomad import config
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 
 
-class ArchiveSection(metainfo.MSection):
+class ArchiveSection(MSection):
     '''
     Base class for sections in a NOMAD archive. Provides a framework for custom
     section normalization via the `normalize` function.
@@ -44,6 +46,30 @@ class ArchiveSection(metainfo.MSection):
             logger: The structlog logger used during normalization.
         '''
         pass
+
+
+class EntryDataCategory(MCategory):
+    pass
+
+
+class ElnIntegrationCategory(EntryDataCategory):
+    m_def = Category(label='Third-party ELN Integration', categories=[EntryDataCategory])
+
+
+class BasicElnCategory(EntryDataCategory):
+    m_def = Category(label='Basic ELN', categories=[EntryDataCategory])
+
+
+class ElnExampleCategory(EntryDataCategory):
+    m_def = Category(label='Example ELNs', categories=[EntryDataCategory])
+
+
+class UseCaseElnCategory(EntryDataCategory):
+    m_def = Category(label='Use-cases', categories=[EntryDataCategory])
+
+
+class WorkflowsElnCategory(EntryDataCategory):
+    m_def = Category(label='Workflows', categories=[EntryDataCategory])
 
 
 class EntryData(ArchiveSection):
@@ -65,9 +91,9 @@ class EntryData(ArchiveSection):
             archive.results = Results()
 
 
-class Author(metainfo.MSection):
+class Author(MSection):
     ''' A person that is author of data in NOMAD or references by NOMAD. '''
-    name = metainfo.Quantity(
+    name = Quantity(
         type=str,
         derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
         a_elasticsearch=[
@@ -76,12 +102,12 @@ class Author(metainfo.MSection):
             Elasticsearch(suggestion="default")
         ])
 
-    first_name = metainfo.Quantity(type=metainfo.Capitalized)
-    last_name = metainfo.Quantity(type=metainfo.Capitalized)
-    email = metainfo.Quantity(type=str)
+    first_name = Quantity(type=Capitalized)
+    last_name = Quantity(type=Capitalized)
+    email = Quantity(type=str)
 
-    affiliation = metainfo.Quantity(type=str)
-    affiliation_address = metainfo.Quantity(type=str)
+    affiliation = Quantity(type=str)
+    affiliation_address = Quantity(type=str)
 
 
 class User(Author):
@@ -103,24 +129,24 @@ class User(Author):
         is_admin: Bool that indicated, iff the user the use admin user
     '''
 
-    m_def = metainfo.Section(a_pydantic=PydanticModel())
+    m_def = Section(a_pydantic=PydanticModel())
 
-    user_id = metainfo.Quantity(
+    user_id = Quantity(
         type=str,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    username = metainfo.Quantity(type=str)
+    username = Quantity(type=str)
 
-    created = metainfo.Quantity(type=metainfo.Datetime)
+    created = Quantity(type=Datetime)
 
-    repo_user_id = metainfo.Quantity(
+    repo_user_id = Quantity(
         type=str,
         description='Optional, legacy user id from the old NOMAD CoE repository.')
 
-    is_admin = metainfo.Quantity(
+    is_admin = Quantity(
         type=bool, derived=lambda user: user.user_id == config.services.admin_user_id)
 
-    is_oasis_admin = metainfo.Quantity(type=bool, default=False)
+    is_oasis_admin = Quantity(type=bool, default=False)
 
     @staticmethod
     @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
@@ -135,7 +161,7 @@ class User(Author):
         return infrastructure.user_management.get_user(user_id=self.user_id)  # type: ignore
 
 
-class UserReference(metainfo.Reference):
+class UserReference(Reference):
     '''
     Special metainfo reference type that allows to use user_ids as values. It automatically
     resolves user_ids to User objects. This is done lazily on getting the value.
@@ -144,7 +170,7 @@ class UserReference(metainfo.Reference):
     def __init__(self):
         super().__init__(User.m_def)
 
-    def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
+    def resolve(self, proxy: MProxy) -> MSection:
         return User.get(user_id=proxy.m_proxy_value)
 
     def serialize_type(self, type_data):
@@ -156,7 +182,7 @@ class UserReference(metainfo.Reference):
             return user_reference
         return None
 
-    def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
+    def serialize(self, section: MSection, quantity_def: Quantity, value: Any) -> Any:
         return value.user_id
 
 
@@ -164,7 +190,7 @@ user_reference = UserReference()
 predefined_datatypes["User"] = user_reference
 
 
-class AuthorReference(metainfo.Reference):
+class AuthorReference(Reference):
     '''
     Special metainfo reference type that allows to use either user_ids or direct author
     information as values. It automatically resolves user_ids to User objects and author
@@ -174,14 +200,14 @@ class AuthorReference(metainfo.Reference):
     def __init__(self):
         super().__init__(Author.m_def)
 
-    def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
+    def resolve(self, proxy: MProxy) -> MSection:
         proxy_value = proxy.m_proxy_value
         if isinstance(proxy_value, str):
             return User.get(user_id=proxy.m_proxy_value)
         elif isinstance(proxy_value, dict):
             return Author.m_from_dict(proxy_value)
         else:
-            raise metainfo.MetainfoReferenceError()
+            raise MetainfoReferenceError()
 
     def serialize_type(self, type_data):
         return dict(type_kind='Author', type_data=self.target_section_def.name)
@@ -192,13 +218,13 @@ class AuthorReference(metainfo.Reference):
             return author_reference
         return None
 
-    def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
+    def serialize(self, section: MSection, quantity_def: Quantity, value: Any) -> Any:
         if isinstance(value, User):
             return value.user_id
         elif isinstance(value, Author):
             return value.m_to_dict()
         else:
-            raise metainfo.MetainfoReferenceError()
+            raise MetainfoReferenceError()
 
 
 author_reference = AuthorReference()

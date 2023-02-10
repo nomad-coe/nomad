@@ -191,13 +191,13 @@ const SectionCard = React.memo(({archivePath, sectionDef, section, readOnly, ...
     return null
   }
 
-  return <PropertyCard title={sectionDef.name} action={actions}>
+  return <PropertyCard title={sectionDef.label || sectionDef.name} action={actions}>
     {sectionDef._qualifiedName === 'nomad.parsing.tabular.Table' && (
       <Box margin={2}>
         <Typography>Data from a table with {section.row_refs?.length || '...'} rows.</Typography>
       </Box>
     )}
-    <Box margin={2}>
+    <Box>
       {(readOnly || !isEditable(sectionDef))
         ? (
           <SectionPreview

@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Link } from '@material-ui/core'
 
 /** A link that opens a simple help/explanation dialog */
-const DialogLink = React.forwardRef(function DialogLink(props) {
+const DialogLink = React.memo(function DialogLink(props) {
   const {title, text, linkProps, children, ...dialogProps} = props
   const [open, setOpen] = useState(false)
 

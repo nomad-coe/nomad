@@ -2778,6 +2778,9 @@ class Definition(MSection):
             Generally, you do not have to set this attribute manually, it will be derived
             from Python identifiers automatically.
 
+        label: Each `definition` can have an optional label. Label are like names, but
+            do not have to adhere to the Python identfier syntax.
+
         description: The description can be an arbitrary human-readable text that explains
             what a definition is about. For section definitions you do not have to set
             this manually as it will be derived from the classes doc string. Quantity and
@@ -2826,6 +2829,7 @@ class Definition(MSection):
     '''
 
     name: Quantity = _placeholder_quantity
+    label: Quantity = _placeholder_quantity
     description: Quantity = _placeholder_quantity
     links: Quantity = _placeholder_quantity
     categories: Quantity = _placeholder_quantity
@@ -4069,6 +4073,7 @@ Attribute.type = DirectQuantity(type=QuantityType, name='type')
 Attribute.shape = DirectQuantity(type=Dimension, shape=['0..*'], name='shape', default=[])
 
 Definition.name = DirectQuantity(type=str, name='name')
+Definition.label = DirectQuantity(type=str, name='name')
 Definition.description = Quantity(type=str, name='description')
 Definition.links = Quantity(type=str, shape=['0..*'], name='links')
 Definition.categories = Quantity(
