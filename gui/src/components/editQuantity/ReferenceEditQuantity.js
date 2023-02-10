@@ -292,7 +292,9 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     }
     const resolveValue = async () => {
       const resolvedUrl = resolveNomadUrl(value, url)
-      if (resolvedUrl.type !== refType.archive) throw new Error(`Archive reference expected, got ${value}`)
+      if (resolvedUrl.type !== refType.archive && resolvedUrl.type !== refType.metainfo) {
+        throw new Error(`Expected archive or metainfo reference, got ${resolvedUrl.type} type for ${value}`)
+      }
       let query = {
         entry_id: resolvedUrl.entryId
       }

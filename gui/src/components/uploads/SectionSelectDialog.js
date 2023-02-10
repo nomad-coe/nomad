@@ -92,22 +92,23 @@ export async function getSectionsInfo(api, dataStore, reference, url, entry_id) 
     return []
   }
   const dataArchive = response?.data?.[0].archive
-  const m_def = dataArchive?.data?.m_def
+  const sections = Object.keys(dataArchive).filter((key) => 'm_def' in dataArchive[key])
   const referencedSubSections = []
-  if (m_def) {
-    const dataMetainfoDefUrl = resolveNomadUrlNoThrow(m_def, url)
-    const sectionDef = await dataStore.getMetainfoDefAsync(dataMetainfoDefUrl)
-    traverse(dataArchive?.data, sectionDef, 'data', (section, sectionDef, path) => {
-      const ref = reference && [...reference][0]
-      if (ref &&
+  if (sections.length > 0) {
+    for (const section of sections) {
+      const m_def = dataArchive[section].m_def
+      const dataMetainfoDefUrl = resolveNomadUrlNoThrow(m_def, url)
+      const sectionDef = await dataStore.getMetainfoDefAsync(dataMetainfoDefUrl)
+      traverse(dataArchive[section], sectionDef, section, (section, sectionDef, path) => {
+        const ref = reference && [...reference][0]
+        if (ref &&
           (sectionDef._qualifiedName === ref || sectionDef._allBaseSections?.map(section => section._qualifiedName).includes(ref))) {
-        const itemLabelKey = getItemLabelKey(sectionDef)
-        const name = itemLabelKey && section[itemLabelKey] ? `${section[itemLabelKey]} (./${path})` : `./${path}`
-        referencedSubSections.push({name: name, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: path})
-      }
-    })
-  } else {
-    referencedSubSections.push({name: `./data`, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: '/data'})
+          const itemLabelKey = getItemLabelKey(sectionDef)
+          const name = itemLabelKey && section[itemLabelKey] ? `${section[itemLabelKey]} (./${path})` : `./${path}`
+          referencedSubSections.push({name: name, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: path})
+        }
+      })
+    }
   }
   const references = referencedSubSections || []
   return references.map(reference => ({
