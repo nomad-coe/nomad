@@ -22,14 +22,14 @@ gui:
   aitoolkitEnabled: false
 
 app:
-  replicas: 2
+  replicas: 4
   worker: 4
   threads: 4
   workerClass: "gthread"
   nomadNodeType: "public"
 
 worker:
-  replicas: 1
+  replicas: 2
   routing: "queue"
   processes: 12
   nomadNodeType: "prod-worker"
