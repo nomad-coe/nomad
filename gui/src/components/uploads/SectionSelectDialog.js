@@ -25,7 +25,7 @@ import DialogActions from '@material-ui/core/DialogActions'
 import PropTypes from 'prop-types'
 import {SearchContext, useSearchContext} from "../search/SearchContext"
 import searchQuantities from '../../searchQuantities'
-import {ui} from "../../config"
+import {apiBase, ui} from "../../config"
 import SearchBar from '../search/SearchBar'
 import {useApi} from '../api'
 import {useUploadPageContext} from './UploadPageContext'
@@ -78,7 +78,7 @@ const shownColumns = [
   'upload_create_time'
 ]
 
-export async function getSectionsInfo(api, dataStore, reference, url, entry_id) {
+export async function getSectionsInfo(api, dataStore, reference, entry_id) {
   let response
   try {
     response = await api.post(`entries/archive/query`, {
@@ -92,22 +92,24 @@ export async function getSectionsInfo(api, dataStore, reference, url, entry_id) 
     return []
   }
   const dataArchive = response?.data?.[0].archive
-  const m_def = dataArchive?.data?.m_def
+  const sections = Object.keys(dataArchive).filter((key) => 'm_def' in dataArchive[key])
   const referencedSubSections = []
-  if (m_def) {
-    const dataMetainfoDefUrl = resolveNomadUrlNoThrow(m_def, url)
-    const sectionDef = await dataStore.getMetainfoDefAsync(dataMetainfoDefUrl)
-    traverse(dataArchive?.data, sectionDef, 'data', (section, sectionDef, path) => {
-      const ref = reference && [...reference][0]
-      if (ref &&
+  if (sections.length > 0) {
+    for (const section of sections) {
+      const m_def = dataArchive[section].m_def
+      const url = dataArchive.metadata.upload_id ? `${apiBase}/uploads/${dataArchive.metadata.upload_id}/archive/${entry_id}` : undefined
+      const dataMetainfoDefUrl = resolveNomadUrlNoThrow(m_def, url)
+      const sectionDef = await dataStore.getMetainfoDefAsync(dataMetainfoDefUrl)
+      traverse(dataArchive[section], sectionDef, section, (section, sectionDef, path) => {
+        const ref = reference && [...reference][0]
+        if (ref &&
           (sectionDef._qualifiedName === ref || sectionDef._allBaseSections?.map(section => section._qualifiedName).includes(ref))) {
-        const itemLabelKey = getItemLabelKey(sectionDef)
-        const name = itemLabelKey && section[itemLabelKey] ? `${section[itemLabelKey]} (./${path})` : `./${path}`
-        referencedSubSections.push({name: name, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: path})
-      }
-    })
-  } else {
-    referencedSubSections.push({name: `./data`, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: '/data'})
+          const itemLabelKey = getItemLabelKey(sectionDef)
+          const name = itemLabelKey && section[itemLabelKey] ? `${section[itemLabelKey]} (./${path})` : `./${path}`
+          referencedSubSections.push({name: name, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: path})
+        }
+      })
+    }
   }
   const references = referencedSubSections || []
   return references.map(reference => ({
@@ -146,7 +148,6 @@ const Details = React.memo(({data}) => {
   const {useFiltersLockedState} = useSearchContext()
   const filtersLocked = useFiltersLockedState(['section_defs.definition_qualified_name', 'entry_type'])
   const [sections, setSections] = useState()
-  const {url} = useEntryStore() || {}
 
   const {selected, onSelectedChanged} = useContext(searchDialogContext)
 
@@ -159,11 +160,11 @@ const Details = React.memo(({data}) => {
         const schemas = await getSchemaInfo(globalMetainfo, entry_id)
         setSections(schemas)
       } else {
-        const references = await getSectionsInfo(api, dataStore, filtersLocked['section_defs.definition_qualified_name'], url, entry_id)
+        const references = await getSectionsInfo(api, dataStore, filtersLocked['section_defs.definition_qualified_name'], entry_id)
         setSections(references)
       }
     }
-  }, [api, dataStore, entry_id, filtersLocked, globalMetainfo, url])
+  }, [api, dataStore, entry_id, filtersLocked, globalMetainfo])
 
   if (!sections) {
     return ''
@@ -203,21 +204,23 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
     filters: filterList
   } = useSearchContext()
   const filtersLocked = useFiltersLocked()
-  const [filters, setFilters] = useFiltersState([...allFilters].filter(filter => filter !== 'visibility' && filter !== 'upload_id' && !filtersLocked[filter]))
+  const [filters, setFilters] = useFiltersState([...allFilters].filter(filter => filter !== 'visibility' && filter !== 'processed' && filter !== 'upload_id' && !filtersLocked[filter]))
   const uploadContext = useUploadPageContext()
   const entryContext = useEntryStore()
   const {uploadId} = uploadContext || entryContext
   const setVisibilityFilter = useSetFilter('visibility')
   const setUploadIdFilter = useSetFilter('upload_id')
+  const setProcessedFilter = useSetFilter('processed')
 
   const handleCancel = useCallback(() => {
     onCancel()
   }, [onCancel])
 
   useEffect(() => {
+    setProcessedFilter(true)
     setVisibilityFilter(onlyMine ? 'user' : undefined)
     setUploadIdFilter(onlyThisUpload ? uploadId : undefined)
-  }, [onlyMine, onlyThisUpload, setUploadIdFilter, setVisibilityFilter, uploadId, user])
+  }, [onlyMine, onlyThisUpload, setUploadIdFilter, setVisibilityFilter, setProcessedFilter, uploadId, user])
 
   const contextValue = useMemo(() => ({
     selected: selected,

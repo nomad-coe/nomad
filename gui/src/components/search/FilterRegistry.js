@@ -403,6 +403,7 @@ registerFilter('entry_type', idMetadata, {...noAggQuantity, label: 'Entry type',
 registerFilter('entry_name.prefix', idMetadata, {...noAggQuantity, label: 'Entry name', queryMode: 'all'})
 registerFilter('results.material.material_id', idMetadata, termQuantity)
 registerFilter('optimade_filter', idOptimade, {multiple: true, queryMode: 'all'})
+registerFilter('processed', idMetadata, {label: 'Processed', queryMode: 'all'})
 registerFilter('custom_quantities', idCustomQuantities, {
   serializerExact: value => {
     const jsonStr = JSON.stringify(value)

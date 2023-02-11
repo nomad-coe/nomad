@@ -18,7 +18,6 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import {useApi} from '../api'
-import {useEntryStore} from '../entry/EntryContext'
 import {Autocomplete} from '@material-ui/lab'
 import {useGlobalMetainfo} from '../archive/metainfo'
 import {useDataStore} from '../DataStore'
@@ -77,7 +76,6 @@ function SectionSelectAutocomplete(props) {
   const globalMetainfo = useGlobalMetainfo()
   const dataStore = useDataStore()
   const [suggestionInput, setSuggestionInput] = useState('')
-  const {url} = useEntryStore() || {}
   const [entries, setEntries] = useState([])
   const [selectedEntry, setSelectedEntry] = useState(undefined)
   const [suggestions] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput)
@@ -194,10 +192,10 @@ function SectionSelectAutocomplete(props) {
       getSchemaInfo(globalMetainfo, value.entry_id)
         .then(sections => setSection(sections, value, updateInputValue))
     } else {
-      getSectionsInfo(api, dataStore, filtersLocked['section_defs.definition_qualified_name'], url, value?.entry_id)
+      getSectionsInfo(api, dataStore, filtersLocked['section_defs.definition_qualified_name'], value?.entry_id)
         .then(sections => setSection(sections, value, updateInputValue))
     }
-  }, [api, dataStore, filtersLocked, globalMetainfo, setSection, url])
+  }, [api, dataStore, filtersLocked, globalMetainfo, setSection])
 
   useEffect(() => {
     if (!internalError) {
