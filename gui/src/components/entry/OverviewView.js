@@ -34,6 +34,7 @@ import StructuralPropertiesCard from '../entry/properties/StructuralPropertiesCa
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 import EELSPropertiesCard from './properties/EELSPropertiesCard'
 import RelatedResourcesCard from '../entry/properties/RelatedResourcesCard'
+import WorkflowCard from './properties/WorkflowCard'
 import { MethodMetadata } from './EntryDetails'
 import Page from '../Page'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
@@ -102,6 +103,7 @@ const required = {
   metadata: '*',
   data: '*',
   definitions: '*',
+  workflow2: '*',
   results: {
     material: '*',
     method: '*',
@@ -177,6 +179,7 @@ const OverviewView = React.memo(() => {
       dynamical: DynamicalPropertiesCard,
       geometry_optimization: GeometryOptimizationCard,
       eels: EELSPropertiesCard,
+      workflow: WorkflowCard,
       references: ReferenceUsingCard,
       relatedResources: RelatedResourcesCard
     }

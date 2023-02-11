@@ -1321,7 +1321,12 @@ function resolveInternalRefSingle(url, data) {
     if (isNaN(segment)) {
       current = current[segment] || current._properties?.[segment] || current.sub_section?._properties?.[segment]
     } else {
-      current = current.repeats && current.m_def ? current : current[parseInt(segment)]
+      if (current.repeats && current.m_def) {
+      } else {
+        let index = parseInt(segment)
+        if (index < 0) index = current.length - index
+          current = current[index]
+      }
     }
   }
   return current
