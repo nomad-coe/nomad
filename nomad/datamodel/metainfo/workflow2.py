@@ -81,6 +81,6 @@ class Workflow(Task, EntryData):
     of the workflow tasks are workflows themselves.
     '''
 
-    tasks = SubSection(sub_section=Task, repeats=True, description=(
+    tasks = SubSection(sub_section=TaskReference, repeats=True, description=(
         'The tasks of this workflow as a repeating sub section. Use TaskReference if '
         'tasks cannot be contained.'))

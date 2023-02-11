@@ -57,6 +57,9 @@ window.nomadEnv = {
           "eels": {
             "error": "Could not render EELS properties."
           },
+          "workflow": {
+            "error": "Could not render workflow card."
+          },
           "references": {
             "error": "Could not render references card."
           },

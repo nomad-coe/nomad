@@ -584,9 +584,15 @@ class ParallelSimulation(SimulationWorkflow):
         if not self.tasks:
             for n, calculation in enumerate(self._calculations):
                 inputs, outputs = [], [Link(name=_output_calculation_name, section=calculation)]
-                if len(self._calculations) == len(self._systems):
+                if self._calculations[n].system_ref:
+                    inputs.append(Link(name=_input_structure_name, section=self._calculations[n].system_ref))
+                elif len(self._calculations) == len(self._systems):
                     inputs.append(Link(name=_input_structure_name, section=self._systems[n]))
-                if len(self._calculations) == len(self._methods):
+                else:
+                    continue
+                if self._calculations[n].method_ref:
+                    inputs.append(Link(name=_input_method_name, section=self._calculations[n].method_ref))
+                elif len(self._calculations) == len(self._methods):
                     inputs.append(Link(name=_input_method_name, section=self._methods[n]))
                 elif len(self._methods) == 1:
                     inputs.append(Link(name=_input_method_name, section=self._methods[0]))
@@ -598,12 +604,25 @@ class SerialSimulation(SimulationWorkflow):
         super().normalize(archive, logger)
 
         if not self.tasks:
+            previous_structure = None
             for n, calculation in enumerate(self._calculations):
                 inputs, outputs = [], [Link(name=_output_calculation_name, section=calculation)]
-                if len(self._calculations) == len(self._systems):
+                if calculation.system_ref:
+                    input_structure = self.input_structure if n == 0 else self._calculations[n - 1].system_ref
+                    if not input_structure:
+                        input_structure = previous_structure
+                    if input_structure:
+                        inputs.append(Link(name=_input_structure_name, section=input_structure))
+                    previous_structure = calculation.system_ref
+                    outputs.append(Link(name=_output_structure_name, section=calculation.system_ref))
+                elif len(self._calculations) == len(self._systems):
                     inputs.append(Link(name=_input_structure_name, section=self.input_structure if n == 0 else self._systems[n - 1]))
                     outputs.append(Link(name=_output_structure_name, section=self._systems[n]))
-                if len(self._calculations) == len(self._methods):
+                else:
+                    continue
+                if calculation.method_ref:
+                    inputs.append(Link(name=_input_method_name, section=calculation.method_ref))
+                elif len(self._calculations) == len(self._methods):
                     inputs.append(Link(name=_input_method_name, section=self._methods[n]))
                 elif len(self._methods) == 1:
                     inputs.append(Link(name=_input_method_name, section=self._methods[0]))
@@ -2324,10 +2343,16 @@ class GW(SerialSimulation):
         if not self.method:
             self.method = GWMethod()
             self.inputs.append(Link(name=_workflow_method_name, section=self.method))
+            # link method also to first task
+            if self.tasks:
+                self.tasks[0].inputs.append(Link(name=_workflow_method_name, section=self.method))
 
         if not self.results:
             self.results = GWResults()
             self.outputs.append(Link(name=_workflow_results_name, section=self.results))
+            # link results also to last task
+            if self.tasks:
+                self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
 
 
 class EquationOfStateMethod(SimulationWorkflowMethod):

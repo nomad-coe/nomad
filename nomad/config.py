@@ -717,6 +717,7 @@ class UIConfig(NomadSettings):
                 'dynamical': {'error': 'Could not render dynamical properties.'},
                 'geometry_optimization': {'error': 'Could not render geometry optimization.'},
                 'eels': {'error': 'Could not render EELS properties.'},
+                'workflow': {'error': 'Could not render workflow card.'},
                 'references': {'error': 'Could not render references card.'},
                 'relatedResources': {'error': 'Could not render related resources card.'},
             }
