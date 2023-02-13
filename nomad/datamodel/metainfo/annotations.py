@@ -367,12 +367,12 @@ class PlotAnnotation(AnnotationModel):
     ```python
     class Evaporation(MSection):
         m_def = Section(a_plot={
-            label: 'Temperature and Pressure',
-            x: 'process_time',
-            y: ['./substrate_temperature', './chamber_pressure'],
-            config: {
-                editable: true,
-                scrollZoom: false
+            'label': 'Temperature and Pressure',
+            'x': 'process_time',
+            'y': ['./substrate_temperature', './chamber_pressure'],
+            'config': {
+                'editable': True,
+                'scrollZoom': False
             }
         })
         time = Quantity(type=float, shape=['*'], unit='s')
@@ -384,6 +384,10 @@ class PlotAnnotation(AnnotationModel):
     You either have multiple sets of `y`-values over a single set of `x`-values. Or
     you have pairs of `x` and `y` values. For this purpose the annotation properties
     `x` and `y` can reference a single quantity or a list of quantities.
+    For repeating sub sections, the section instance can be selected with an index, e.g.
+    "sub_section_name/2/parameter_name" or with a slice notation `start:stop` where
+    negative values index from the end of the array, e.g.
+    "sub_section_name/1:-5/parameter_name".
     '''
 
     def __init__(self, *args, **kwargs):
@@ -399,15 +403,26 @@ class PlotAnnotation(AnnotationModel):
     x: Union[List[str], str] = Field(..., description='''
         A path or list of paths to the x-axes values. Each path is a `/` separated
         list of sub-section and quantity names that leads from the annotation section
-        to the quantity.
+        to the quantity. Repeating sub sections are indexed between two `/`s with an
+        integer or a slice `start:stop`.
     ''')
     y: Union[List[str], str] = Field(..., description='''
         A path or list of paths to the y-axes values. list of sub-section and quantity
-        names that leads from the annotation section to the quantity.
+        names that leads from the annotation section to the quantity. Repeating sub
+        sections are indexed between two `/`s with an integer or a slice `start:stop`.
     ''')
-    lines: List[dict] = Field(None, description='Is passed to plotly to configure the lines of the plot.')
-    layout: dict = Field(None, description='Is passed to plotly as `layout`.')
-    config: dict = Field(None, description='Is passed to plotly as `config`.')
+    lines: List[dict] = Field(None, description='''
+        A list of dicts passed as `traces` to plotly to configure the lines of the plot.
+        See [https://plotly.com/javascript/reference/scatter/](https://plotly.com/javascript/reference/scatter/) for details.
+    ''')
+    layout: dict = Field(None, description='''
+        A dict passed as `layout` to plotly to configure the plot layout.
+        See [https://plotly.com/javascript/reference/layout/](https://plotly.com/javascript/reference/layout/) for details.
+    ''')
+    config: dict = Field(None, description='''
+        A dict passed as `config` to plotly to configure the plot functionallity.
+        See [https://plotly.com/javascript/configuration-options/](https://plotly.com/javascript/configuration-options/) for details.
+    ''')
 
     @validator('y')
     def validate_y(cls, y, values):  # pylint: disable=no-self-argument
@@ -427,7 +442,7 @@ class PlotAnnotation(AnnotationModel):
     def validate_quantity_references(cls, value):  # pylint: disable=no-self-argument
         values = value if isinstance(value, list) else [value]
         for item in values:
-            assert re.match(r'^(\./)?(\w+/)*\w+$', item), f'{item} is not a valid quantity reference.'
+            assert re.match(r'^(\.\/)?(\w+\/)*((\w+\/\-?\d*:\-?\d*)\/(\w+\/)*)*\w+$', item), f'{item} is not a valid quantity reference.'
 
         return value
 

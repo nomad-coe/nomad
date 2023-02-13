@@ -25,16 +25,22 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     if (!sectionDef?._properties) {
       return [undefined, undefined]
     }
-    const X = Array.isArray(xAxis) ? xAxis : [xAxis]
-    const Y = Array.isArray(yAxis) ? yAxis : [yAxis]
-    const nLines = Y.length
+    const XPrime = Array.isArray(xAxis) ? xAxis : [xAxis]
+    const YPrime = Array.isArray(yAxis) ? yAxis : [yAxis]
     const toUnit = path => {
       const relativePath = '/' + path.replace('./', '')
       const resolvedQuantityDef = resolveInternalRef(relativePath, sectionDef)
       if (resolvedQuantityDef === undefined || resolvedQuantityDef === null) {
         throw new XYPlotError(`Could not resolve the path ${path}`)
       }
-      const value = resolveInternalRef(relativePath, section)
+      let value
+      try {
+        value = resolveInternalRef(relativePath, section)
+      } catch (err) {
+        if (!err.message.startsWith('Path does not exist:')) {
+          throw new XYPlotError(err.message)
+        }
+      }
       if (value === undefined || value === null) {
         // there is not data yet
         return [undefined, undefined]
@@ -47,6 +53,60 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
         return [value, unit]
       }
     }
+
+    /**
+     * Recursively splits a path containing slice notation (`start:stop`)
+     * @param {String} path The path which should be split at repeating sections
+     * @returns {Array} The paths and names of the new paths
+     */
+    function resolveSlice(path) {
+      const pathArr = path.split('/')
+      for (let i = 0; i < pathArr.length; i++) {
+        const pathSection = pathArr[i]
+        if (pathSection.includes(':')) {
+          const repeatPath = pathArr.slice(0, i).join('/')
+          const repeat = resolveInternalRef('/' + repeatPath.replace('./', ''), section)
+          if (repeat === undefined) { return [[], []] }
+          // Get start and stop from python slice notation
+          let [start, stop, rest] = pathSection.split(':').map((x) => x === '' ? undefined : parseInt(x))
+          if (Number.isNaN(start) || Number.isNaN(stop) || rest !== undefined) {
+            throw new XYPlotError(`Invalid slice notation: "${pathSection}"`)
+          }
+          start = start === undefined || start < -repeat.length ? 0 : (start < 0 ? start + repeat.length : start)
+          stop = stop === undefined || stop > repeat.length ? repeat.length : (stop < 0 ? stop + repeat.length : stop)
+          // If there are initialized sections in this range
+          if (stop > start) {
+            const remainPath = pathArr.slice(i + 1).join('/')
+            const allPaths = []
+            const allNames = []
+            for (let j = start; j < stop; j++) {
+              const repeatDef = resolveInternalRef('/' + repeatPath.replace('./', '') + `/${j}/sub_section`, sectionDef)
+              const label = repeat[j][repeatDef?.more?.label_quantity] ?? repeat[j].name
+              const [paths, names] = resolveSlice(`${repeatPath}/${j}/${remainPath}`)
+              const subSectionName = label ?? `${titleCase(pathArr[i - 1])} ${j}`
+              names.forEach((name) => { allNames.push(`${subSectionName}, ${name}`) })
+              allPaths.push(...paths)
+            }
+            return [allPaths, allNames]
+          }
+          return [[], []]
+        }
+      }
+      return [[path], [titleCase(pathArr[pathArr.length - 1])]]
+    }
+
+    const Y = []
+    const Names = []
+    YPrime.forEach((y) => {
+      const [paths, names] = resolveSlice(y)
+      Y.push(...paths)
+      Names.push(...names)
+    })
+    const X = []
+    XPrime.forEach((x) => {
+      X.push(...resolveSlice(x)[0])
+    })
+    const nLines = Y.length
 
     const xUnits = []
     const xLabels = []
@@ -90,7 +150,7 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
       const yPath = y.split('/')
       const yLabel = titleCase(yPath[yPath.length - 1])
       const line = {
-        name: yLabel,
+        name: Names[index],
         x: isMultiX ? xValuesArray[index] : xValuesArray[0],
         y: yValues,
         ...lines[index]
@@ -116,7 +176,8 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
 
     const layout = {
       xaxis: {
-        title: xUnits[0] ? `${xLabels[0]} (${xUnits[0]})` : xLabels[0]
+        title: xUnits[0] ? `${xLabels[0]} (${xUnits[0]})` : xLabels[0],
+        fixedrange: false
       },
       yaxis: {
         title: sameUnit ? (yUnits[0] ? `${titleCase(title)} (${yUnits[0]})` : titleCase(title)) : (yUnits[0] ? `${yLabels[0]} (${yUnits[0]})` : yLabels[0]),
