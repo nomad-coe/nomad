@@ -20,6 +20,6 @@ yarn --network-timeout 1200000
 yarn run build
 cd ..
 mkdir -p nomad/app/static/gui
-cp -r build/* nomad/app/static/gui
+cp -r gui/build/* nomad/app/static/gui
 
 python -m build --sdist
