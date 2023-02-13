@@ -27,13 +27,12 @@ import asyncore
 import time
 from datetime import datetime
 import shutil
-import os.path
+import os
 import elasticsearch.exceptions
 from typing import List
 import json
 import logging
 import warnings
-import os.path
 from fastapi.testclient import TestClient
 
 from nomad import config, infrastructure, processing, utils, datamodel, bundles
@@ -49,6 +48,18 @@ from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import empty_file, example_file_vasp_with_binary
 from tests.utils import create_template_upload_file, set_upload_entry_metadata, build_url
+
+
+# Set up pytest to pass control to the debugger on an exception.
+if os.getenv('_PYTEST_RAISE', "0") != "0":
+
+    @pytest.hookimpl(tryfirst=True)
+    def pytest_exception_interact(call):
+        raise call.excinfo.value
+
+    @pytest.hookimpl(tryfirst=True)
+    def pytest_internalerror(excinfo):
+        raise excinfo.value
 
 test_log_level = logging.CRITICAL
 
