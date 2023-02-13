@@ -243,7 +243,7 @@ class Api {
       const request = {
         method: 'POST',
         path: `${searchTarget}/query`,
-        url: `${apiBase}/${searchTarget}/query`,
+        url: `${this.baseURL}/${searchTarget}/query`,
         body: search
       }
       const result = await this.axios.post(request.path, request.body, auth)
