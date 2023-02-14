@@ -60,7 +60,7 @@ test.each([
   await waitFor(() => expect(screen.getByText('Processing completed, 2/3 entries processed, 1 failed')).toBeInTheDocument())
   // await waitFor(() => expect(screen.getByText('Processing completed, 3/3 entries processed')).toBeInTheDocument()) // The correct one
 
-  const createEntryButton = screen.getByButtonText('Create new entry')
+  const createEntryButton = screen.getByButtonText('Create entry')
   await act(async () => { await userEvent.click(createEntryButton) })
 
   await waitFor(() => expect(screen.queryByText('Select a schema')).toBeInTheDocument())
@@ -70,7 +70,7 @@ test.each([
   const builtinField = within(dialog).getByTestId('builtin-select-schema')
   const builtinFieldInput = within(builtinField).getByRole('textbox')
 
-  await waitFor(() => expect(builtinFieldInput.value).toEqual('PerovskiteSolarCell'))
+  await waitFor(() => expect(builtinFieldInput.value).toEqual('Basic ELN'))
 
   const customSchemaRadio = within(dialog).getByTestId('custom-schema-radio')
   await act(async () => { await userEvent.click(customSchemaRadio) })
@@ -81,7 +81,7 @@ test.each([
 
   await waitFor(() => expect(customFieldInput.value).toEqual(''))
 
-  await act(() => { fireEvent.change(customFieldInput, { target: { value: 'set' } }) })
+  act(() => { fireEvent.change(customFieldInput, { target: { value: 'set' } }) })
   await waitForGUI(2000) // the input changes have been debounced
 
   await testSectionSelectAutocomplete()

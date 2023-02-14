@@ -47,7 +47,7 @@ const ExampleUploadDialog = React.memo(function ExampleUploadDialog(props) {
             </Box>
             <Button
               variant="contained" color="primary" size="small"
-              onClick={() => onSelect(key)}
+              onClick={() => onSelect(exampleUpload)}
             >
               add
             </Button>
@@ -94,8 +94,7 @@ export default function ExampleUploadButton(props) {
 
   const handleClose = () => setOpen(false)
 
-  const handleSelect = (value) => {
-    const exampleUpload = exampleUploads[value]
+  const handleSelect = (exampleUpload) => {
     api.post(`/uploads?local_path=${exampleUpload.path}&upload_name=${exampleUpload.title}`)
       .then((data) => {
         history.push(`/user/uploads/upload/id/${data.upload_id}`)

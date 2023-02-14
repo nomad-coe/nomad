@@ -21,7 +21,7 @@ import numpy as np
 from nomad.units import ureg
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, MEnum, Reference, Datetime, Section)
-from nomad.datamodel.data import EntryData, ArchiveSection
+from nomad.datamodel.data import EntryData, ArchiveSection, ElnExampleCategory
 
 
 m_package = Package(name='material_library')
@@ -29,7 +29,7 @@ m_package = Package(name='material_library')
 
 class Chemical(EntryData):
     '''A chemical available in the lab.'''
-    m_def = Section(label_quantity='formula')
+    m_def = Section(label_quantity='formula', categories=[ElnExampleCategory])
 
     chemical_name = Quantity(type=str, a_eln=dict(component='StringEditQuantity'))
 
@@ -124,6 +124,7 @@ class Maintenance(MSection):
 
 class Instrument(EntryData):
     '''An instrument available in the lab.'''
+    m_def = Section(categories=[ElnExampleCategory])
 
     name = Quantity(
         type=str,
@@ -749,6 +750,7 @@ class Sample(EntryData):
     An example would be a subtrate with a deposited film on top in which
     the chemical compostion of the film varies in the x and y directions.
     '''
+    m_def = Section(categories=[ElnExampleCategory])
 
     sample_owner = Quantity(
         type=MEnum([

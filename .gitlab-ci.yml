@@ -185,11 +185,10 @@ gui tests:
     - cd /app/gui
   script:
     - yarn test --ci --collectCoverage --reporters=default --reporters=jest-junit --silent
-      --testPathIgnorePatterns=MetainfoBrowser.spec.js
       --testPathIgnorePatterns=src/components/entry/ArchiveEntryView.spec.js
       --testPathIgnorePatterns=src/components/archive/FileBrowser.spec.js
       --testPathIgnorePatterns=src/components/archive/MetainfoBrowser.spec.js
-      --testPathIgnorePatterns=src/components/uploads/UploadPage.spec.js
+
   after_script:
     - cd /app/gui
     - cp junit.xml $CI_PROJECT_DIR

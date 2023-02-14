@@ -808,7 +808,7 @@ export function ArchiveTitle({def, isDefinition, data, kindLabel, useName, actio
     label += ' extension'
   }
   return <Title
-    title={(!useName && def.more?.label) || def.name}
+    title={(!useName && def.more?.label) || def.label || def.name}
     tooltip={def._qualifiedName || def.name}
     label={`${label}${isDefinition ? ' definition' : ''}`}
     color={color}

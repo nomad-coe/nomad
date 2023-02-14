@@ -21,7 +21,7 @@ import numpy as np
 from nomad.units import ureg
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, Datetime, Section)
-from nomad.datamodel.data import EntryData
+from nomad.datamodel.data import EntryData, UseCaseElnCategory
 from nomad.datamodel.results import (BandGap, BandStructureElectronic, ElectronicProperties, Material, OptoelectronicProperties, Properties, Results, SolarCell, Symmetry)
 
 
@@ -6903,7 +6903,10 @@ class PerovskiteSolarCell(EntryData):
     represent the instructions given to the user who manually curated the data.
     """
 
-    m_def = Section(a_eln=dict(lane_width='400px'))
+    m_def = Section(
+        label='Perovskite Solar Cell',
+        a_eln=dict(lane_width='400px'),
+        categories=[UseCaseElnCategory])
 
     ref = SubSection(section_def=Ref)
     cell = SubSection(section_def=Cell)

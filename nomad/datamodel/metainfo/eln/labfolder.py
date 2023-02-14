@@ -22,7 +22,7 @@ import re
 from urllib.parse import urlparse, parse_qs
 
 from nomad.metainfo import MSection, Section, Quantity, SubSection, Package, Datetime, MEnum, JSON, Reference
-from nomad.datamodel.data import EntryData
+from nomad.datamodel.data import EntryData, ElnIntegrationCategory
 from nomad.metainfo.metainfo import SectionProxy
 
 m_package = Package(name='labfolder')
@@ -219,6 +219,7 @@ _element_type_section_mapping = {
 
 
 class LabfolderProject(EntryData):
+    m_def = Section(label='Labfolder Project Import', categories=[ElnIntegrationCategory])
 
     def __init__(self, *args, **kwargs):
         super(LabfolderProject, self).__init__(*args, **kwargs)

@@ -10,6 +10,6 @@ data:
     - Sn2Se/2/vasprun.xml.relax1.gz
     - Sn2Se/1/INFO_GS.OUT
   downloads:
-    - url: https://www.dropbox.com/s/8zd7aqe91lza2r4/theory-example-upload.zip?dl=1
+    - url: https://nomad-lab.eu/prod/v1/api/v1/uploads/NHp0k9nwRi-RuOKPQmxG9A/raw/?compress=true
       output: theory-example-upload.zip
       extract: true
