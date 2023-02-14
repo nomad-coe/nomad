@@ -24,15 +24,18 @@ import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { ui, apiBase} from '../../config'
 
 /**
- * Hook for retrieving archive information for the entry present in the active
- * EntryContext.
+ * Hook for retrieving read-only archive information for the entry present in
+ * the active EntryContext.
  */
 export const useArchive = (required) => {
   const { entryId } = useEntryContext()
   const { api } = useApi()
   const [response, setResponse] = useState({})
 
+  // When entryId changes, resets the currently held response and updates it
+  // once new data arrives
   useEffect(() => {
+    setResponse({})
     if (!entryId) return
     api
       .post(`entries/${entryId}/archive/query`, {required}, {returnRequest: true})
@@ -43,16 +46,18 @@ export const useArchive = (required) => {
 }
 
 /**
- * Hook for retrieving index information for the entry present in the active
- * EntryContext.
+ * Hook for retrieving read-only index information for the entry present in the
+ * active EntryContext.
  */
 export const useIndex = () => {
   const { entryId } = useEntryContext()
   const { api } = useApi()
   const [response, setResponse] = useState({})
 
+  // When entryId changes, resets the currently held response and updates it
+  // once new data arrives
   useEffect(() => {
-    if (!entryId) return
+    setResponse({})
     api
       .get(`entries/${entryId}`, null, {returnRequest: true})
       .then(response => setResponse({data: response?.response?.data, response: response}))
@@ -62,8 +67,8 @@ export const useIndex = () => {
 }
 
 /**
- * Hook for fetching the "full" entry data that also contains operations for
- * interacting and mutating with if this can be done.
+ * Hook for fetching the "full" entry data. If the entry is editable, the user
+ * can also mutate the archive through this hook.
  *
  * @param {*} requireArchive Optional query filter
  */
