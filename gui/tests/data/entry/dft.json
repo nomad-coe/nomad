@@ -24,9 +24,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-02-06T13:43:13.822380+00:00",
+            "upload_create_time": "2023-02-14T07:42:48.127631+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-02-06T13:43:13.825380+00:00",
+            "publish_time": "2023-02-14T07:42:48.130631+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -200,7 +200,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-02-06T13:43:13.826380+00:00",
+            "entry_create_time": "2023-02-14T07:42:48.131631+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -246,9 +246,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-02-06T13:43:13.822380+00:00",
+            "upload_create_time": "2023-02-14T07:42:48.127631+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-02-06T13:43:13.825380+00:00",
+            "publish_time": "2023-02-14T07:42:48.130631+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -422,7 +422,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-02-06T13:43:13.826380+00:00",
+            "entry_create_time": "2023-02-14T07:42:48.131631+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -455,6 +455,7 @@
             "metadata": "*",
             "data": "*",
             "definitions": "*",
+            "workflow2": "*",
             "results": {
               "material": "*",
               "method": "*",
@@ -471,7 +472,8 @@
                   "energies": "include-resolved"
                 }
               }
-            }
+            },
+            "resolve-inplace": false
           }
         },
         "headers": {
@@ -487,6 +489,7 @@
             "metadata": "*",
             "data": "*",
             "definitions": "*",
+            "workflow2": "*",
             "results": {
               "material": "*",
               "method": "*",
@@ -503,7 +506,8 @@
                   "energies": "include-resolved"
                 }
               }
-            }
+            },
+            "resolve-inplace": false
           },
           "entry_id": "dft_bulk",
           "data": {
@@ -675,14 +679,14 @@
               ],
               "metadata": {
                 "upload_id": "dft_upload",
-                "upload_create_time": "2023-02-06T13:43:13.822380+00:00",
+                "upload_create_time": "2023-02-14T07:42:48.127631+00:00",
                 "entry_id": "dft_bulk",
                 "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2023-02-06T13:43:13.826380+00:00",
+                "entry_create_time": "2023-02-14T07:42:48.131631+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "vasp.xml",
                 "published": true,
-                "publish_time": "2023-02-06T13:43:13.825380+00:00",
+                "publish_time": "2023-02-14T07:42:48.130631+00:00",
                 "with_embargo": false,
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
@@ -893,46 +897,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "11630",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    },
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk/archive/query",
-        "method": "POST",
-        "body": {
-          "required": {
-            "resolve-inplace": false
-          }
-        },
-        "headers": {
-          "accept": "application/json",
-          "content-type": "application/json",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 200,
-        "body": {
-          "required": {
-            "resolve-inplace": false
-          },
-          "entry_id": "dft_bulk",
-          "data": {
-            "entry_id": "dft_bulk",
-            "upload_id": "dft_upload",
-            "parser_name": "parsers/vasp",
-            "archive": {
-              "m_ref_archives": {}
-            }
-          }
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "239",
+          "content-length": "11682",
           "content-type": "application/json",
           "server": "uvicorn"
         }
