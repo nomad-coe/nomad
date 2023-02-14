@@ -716,11 +716,12 @@ const paginationBaseProps = {
 }
 
 const selected = function(props, propName, componentName) {
-  if ((typeof props[propName] === 'string' && (props[propName] === 'all' || props[propName] === 'All')) || props[propName] instanceof Set) {
-    if (props[propName] && !props['getId']) {
+  const value = props[propName]
+  if ((typeof value === 'string' && (value === 'all' || value === 'All')) || value instanceof Set) {
+    if (value && !props['getId']) {
       throw new Error(`${componentName} requires 'getId' property when using '${propName}' property.`)
     }
-  } else {
+  } else if (!isNil(value)) {
     throw new Error(`Invalid props passed to the ${componentName}. '${propName}' accepts 'all' or a Set() of string IDs.`)
   }
 }

@@ -17,6 +17,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
+import { isEmpty } from 'lodash'
 import { Typography, makeStyles, Box, Grid, Divider } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
 import { resolveNomadUrlNoThrow } from '../../utils'
@@ -47,13 +48,7 @@ import { useErrors } from '../errors'
 import DefinitionsCard from './properties/DefinitionsCard'
 import { ErrorHandler } from '../ErrorHandler'
 import ReferenceUsingCard from "./properties/ReferenceCard"
-import { isEmpty } from 'lodash'
-import {
-  useEntryStore,
-  useArchive,
-  useEntryContext,
-  useIndex
-} from './EntryContext'
+import { useEntryStore, useEntryContext, useIndex } from './EntryContext'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -125,9 +120,8 @@ const required = {
 
 const OverviewView = React.memo(() => {
   const { overview } = useEntryContext()
-  const { url, exists, editable } = useEntryStore({})
   const { data: metadata, response: metadataApiData } = useIndex()
-  const { data: archive, response: archiveApiData } = useArchive(required)
+  const { url, exists, editable, archive, archiveApiData } = useEntryStore(required)
 
   const classes = useStyles()
   const index = metadata

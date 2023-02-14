@@ -239,6 +239,9 @@ test('eln overview as a reviewer', async () => {
   expectQuantityToBe('set_temperature', 'set temperature', '373.15', within(cardHotplateAnnealing))
   expectQuantityToBe('duration', 'duration', '60', within(cardHotplateAnnealing))
 
+  // Wait for the last API calls (e.g. reference card) to finish being recorded.
+  await waitForGUI(5000)
+
   closeAPI()
 })
 
@@ -310,9 +313,8 @@ test.each([
   numberFieldUnit = within(cardHotplateAnnealing).queryAllByTestId('number-edit-quantity-unit')
   expectNumberEditQuantity(numberFieldValue[0], numberFieldUnit[0], '373.15', 'K')
 
-  // Wait for some api calls when we record them before closing the api
-  // This does not affect the actual test
-  await waitForGUI(2000)
+  // Wait for the last API calls (e.g. reference card) to finish being recorded.
+  await waitForGUI(10000)
 
   closeAPI()
 })
@@ -328,11 +330,7 @@ test.each([
   ]
 ])('eln concurrent editing', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
-  const screen1 = render(
-    <EntryContext entryId={entryId}>
-      <OverviewView />
-    </EntryContext>
-  )
+  const screen1 = render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
 
   // Wait until the initial load is done by checking one of the card titles
   await screen1.findByText('HotplateAnnealing')
@@ -346,11 +344,7 @@ test.each([
   await userEvent.click(deleteButton1)
   const deleteMainfileButton = await screen1.findByRole('button', {name: 'Delete mainfile'})
 
-  const screen2 = render(
-    <EntryContext entryId={entryId}>
-      <OverviewView />
-    </EntryContext>
-  )
+  const screen2 = render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
 
   // Wait until the initial load is done by checking one of the card titles
   await screen2.findByText('HotplateAnnealing')
@@ -372,8 +366,46 @@ test.each([
   await userEvent.click(saveButton2)
   await screen2.findByText('The changes cannot be saved. The content has been modified by someone else.')
 
-  // Wait for some api calls when we record them before closing the api
-  // This does not affect the actual test
+  // Wait for the last API calls (e.g. reference card) to finish being recorded.
+  await waitForGUI(5000)
+
+  closeAPI()
+})
+
+test.each([
+  [
+    'an author',
+    'tests.states.entry.eln',
+    'tests/data/entry/eln-author-edit',
+    'bC7byHvWJp62Sn9uiuJUB38MT5j-',
+    'test',
+    'password'
+  ]
+])('saving archive changes made in the overview page as %s', async (name, state, snapshot, entryId, username, password) => {
+  await startAPI(state, snapshot, username, password)
+
+  // Let's first render the initial state and see that the value is correct
+  render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
+  const input = await screen.findByDisplayValue('ELN example sample')
+
+  // Clear old value and insert new one. For some reason clearing the input with
+  // userEvent.clear or userEvent.type('{selectall}{backspace}') does not work
+  // here.
+  const newValue = 'new value'
+  await fireEvent.change(input, {target: {value: newValue}})
+
+  // Save entry, wait for the API processing
+  const saveButton = screen.getByTitle('Save entry').closest('button')
+  expect(saveButton).toBeEnabled()
+  await userEvent.click(saveButton)
+  await waitForGUI(2000)
+
+  // Clear screen, re-render and see if value has changed
+  cleanup()
+  render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
+  await screen.findByDisplayValue(newValue)
+
+  // Wait for the last API calls (e.g. reference card) to finish being recorded.
   await waitForGUI(2000)
 
   closeAPI()

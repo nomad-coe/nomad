@@ -38,7 +38,7 @@ jest.setTimeout(2 * minutes)
 // Changes the default timeout of waitFor, find*-queries etc. We set this very generously,
 // because when tests are run in parallel, something which normally renders quickly may take
 // long to render if it competes with other tests over limited CPU resources.
-configure({ asyncUtilTimeout: 10 * seconds })
+configure({ asyncUtilTimeout: 15 * seconds })
 
 // Mocks required by Plotly.js:
 // https://github.com/plotly/react-plotly.js/issues/115
