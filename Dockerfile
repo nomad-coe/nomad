@@ -187,16 +187,16 @@ RUN find /usr/local/lib/python3.7/ -type d -name 'tests' ! -path '*/networkx/*' 
 
 FROM base_python AS final
 
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
- && apt-get update \
+RUN apt-get update \
  && apt-get install --yes --quiet --no-install-recommends \
-      nodejs \
-      npm \
-      libgomp1 \
-      libmagic1 \
-      curl \
-      zip \
-      unzip \
+       libgomp1 \
+       libmagic1 \
+       curl \
+       zip \
+       unzip \
+ && curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
+ && apt-get install --yes --quiet --no-install-recommends \
+       nodejs \
  && rm -rf /var/lib/apt/lists/* \
  && npm install -g configurable-http-proxy \
  && npm uninstall -g npm

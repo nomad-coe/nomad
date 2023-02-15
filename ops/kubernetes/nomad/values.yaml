@@ -163,6 +163,7 @@ volumes:
   prefixSize: 1
   public: /nomad/fairdi/latest/fs/public
   staging: /nomad/fairdi/latest/fs/staging
+  north_home: /nomad/fairdi/latest/fs/north/users
   tmp: /nomad/fairdi/latest/fs/tmp
   nomad: /nomad
 
@@ -191,13 +192,24 @@ services:
     ## enable aitoolkit references
     enabled: false
 
+north:
+  hubServiceApiToken: "secret-token"
+
 jupyterhub:
+  debug:
+    enabled: false
   # fullnameOverride: null
   # nameOverride: "north"
   proxy:
     service:
       type: ClusterIP
   hub:
+    extraEnv:
+      NOMAD_NORTH_HUB_SERVICE_API_TOKEN:
+        valueFrom:
+          secretKeyRef:
+            name: nomad-hub-service-api-token
+            key: token
     allowNamedServers: true
     shutdownOnLogout: true
     config:
@@ -216,6 +228,80 @@ jupyterhub:
         username_key: preferred_username
         userdata_params:
           state: state
+    extraConfig:
+      01-prespawn-hook.py: |
+        import os
+        import requests
+        import asyncio
+
+        hub_service_api_token = os.getenv('NOMAD_NORTH_HUB_SERVICE_API_TOKEN')
+
+        # configure nomad service
+        c.JupyterHub.services = [
+            {
+                "name": "nomad-service",
+                "admin": True,
+                "api_token": hub_service_api_token,
+            }
+        ]
+
+        async def pre_spawn_hook(spawner):
+            await spawner.load_user_options()
+            username = spawner.user.name
+
+            spawner.log.info(f"username: {username}")
+            spawner.log.debug(f'Configuring spawner for named server {spawner.name}')
+
+            if spawner.handler.current_user.name != 'nomad-service':
+                # Do nothing, will only launch the default image with no volumes.
+                # Only the nomad-service can launch specialized tools with mounted volumes
+                if spawner.name:
+                    spawner.log.error(f'The {spawner.name} server is not allowed to start this way, raise an error')
+                    raise NotImplementedError('Only the nomad-service can launch specialized tools.')
+                return
+
+            user_home = spawner.user_options.get('user_home')
+            spawner.log.info(f"user_home: {user_home}")
+            if user_home:
+                spawner.volumes.append({
+                    'name': 'user-home',
+                    'hostPath': {'path': user_home['host_path']}
+                })
+                spawner.volume_mounts.append({
+                    'name': 'user-home',
+                    'mountPath': user_home['mount_path'],
+                    'readOnly': False
+                })
+
+            uploads = spawner.user_options.get('uploads', [])
+            spawner.log.info(f"uploads: {uploads}")
+            for (i, upload) in enumerate(uploads):
+                spawner.volumes.append({
+                    'name': f"uploads-{i}",
+                    'hostPath': {'path': upload['host_path']}
+                })
+                spawner.volume_mounts.append({
+                    'name': f"uploads-{i}",
+                    'mountPath': upload['mount_path'],
+                    'readOnly': False
+                })
+
+            environment = spawner.user_options.get('environment', {})
+            spawner.environment.update(environment)
+
+            tool = spawner.user_options.get('tool')
+            if tool:
+                spawner.image = tool.get('image')
+                spawner.cmd = tool.get('cmd')
+
+                # Workaround for webtop based images (no connection to jupyterhub itself)
+                if tool.get('privileged'):
+                    spawner.privileged = True
+                    spawner.uid = 0
+
+        c.Spawner.pre_spawn_hook = pre_spawn_hook
+
+
   cull:
     enabled: true
     timeout: 3600

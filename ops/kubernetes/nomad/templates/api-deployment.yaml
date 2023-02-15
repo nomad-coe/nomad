@@ -102,6 +102,8 @@ spec:
           name: public-volume
         - mountPath: /app/.volumes/fs/staging
           name: staging-volume
+        - mountPath: /app/.volumes/fs/north/users
+          name: north-home-volume
         - mountPath: /nomad
           name: nomad-volume
         env:
@@ -115,7 +117,7 @@ spec:
         - name: NOMAD_SERVICES_API_SECRET
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.api.apiSecret}}
+              name: {{ .Values.api.apiSecret }}
               key: password
         {{ end }}
         {{ if .Values.keycloak.clientSecret }}
@@ -150,6 +152,13 @@ spec:
             secretKeyRef:
               name: {{ .Values.datacite.secret }}
               key: user
+        {{ end }}
+        {{ if .Values.north.hubServiceApiTokenSecret }}
+        - name: NOMAD_NORTH_HUB_SERVICE_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.north.hubServiceApiTokenSecret }}
+              key: token
         {{ end }}
         command: ["/bin/sh", "run.sh"]
         livenessProbe:
@@ -193,6 +202,10 @@ spec:
           path: {{ .Values.volumes.staging}}
           type: Directory
         {{ end }}
+      - name: north-home-volume
+        hostPath:
+          path: {{ .Values.volumes.north_home}}
+          type: Directory
       - name: nomad-volume
         hostPath:
           path: {{ .Values.volumes.nomad }}

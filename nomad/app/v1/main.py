@@ -28,7 +28,7 @@ from nomad import config, utils
 from .common import root_path
 from .routers import (
     users, entries, materials, auth, info, datasets, uploads, suggestions, metainfo,
-    systems
+    north, systems
 )
 
 logger = utils.get_logger(__name__)
@@ -96,4 +96,5 @@ app.include_router(uploads.router, prefix='/uploads')
 app.include_router(metainfo.router, prefix='/metainfo')
 app.include_router(users.router, prefix='/users')
 app.include_router(suggestions.router, prefix='/suggestions')
+app.include_router(north.router, prefix='/north')
 app.include_router(systems.router, prefix='/systems')

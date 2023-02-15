@@ -36,8 +36,8 @@ export function useNorthTool() {
 }
 
 const launchButtonLabels = {
-  'idle': 'Launch',
-  'launching': 'Launching...',
+  'stopped': 'Launch',
+  'starting': 'Launching...',
   'running': 'Open',
   'stopping': 'Launch'
 }
@@ -55,7 +55,7 @@ export const NorthToolButtons = React.memo(function NorthToolButton() {
   const {name, launch, stop, state} = useNorthTool()
   return (
     <Box display="flex" flexDirection="row">
-      <LaunchButton fullWidth name={name} onClick={launch} disabled={state === 'stopping' || state === 'launching' || !state}>
+      <LaunchButton fullWidth name={name} onClick={launch} disabled={state === 'stopping' || state === 'starting' || !state}>
         {launchButtonLabels[state] || 'not available'}
       </LaunchButton>
       {(state === 'running' || state === 'stopping') && (
@@ -90,55 +90,19 @@ const useStyles = makeStyles(theme => ({
 }))
 
 const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}) {
-  const {name, title, version, description, short_description, path_prefix, icon} = tool
+  const {name, title, version, description, short_description, icon} = tool
   const styles = useStyles()
-  const {northApi, user} = useApi()
+  const {api} = useApi()
   const {raiseError} = useErrors()
 
-  const [state, setState] = useState()
-
-  const toolUrl = useMemo(() => {
-    if (!user) {
-      return null
-    }
-    let toolPath = ''
-    if (path_prefix) {
-      toolPath += `/${path_prefix}`
-    }
-    if (uploadId) {
-      toolPath += `/uploads/${uploadId}`
-    }
-    if (path) {
-      toolPath += `/${path}`
-    }
-    const toolUrl = `${northBase}/user/${user.preferred_username}/${name}${toolPath}`
-    return toolUrl
-  }, [user, name, path_prefix, uploadId, path])
+  const [state, setState] = useState('stopped')
 
   const getToolStatus = useCallback(() => {
-    if (northApi === null) {
-      return
-    }
-    return northApi.get(`servers/${name}/progress`)
-      .then((response) => {
-        const data = JSON.parse(response.data.substr(6))
-        if (data.ready) {
-          return 'running'
-        } else {
-          return 'launching'
-        }
-      })
-      .catch(error => {
-        if (error?.response?.status === 404 || error?.response?.status === 400) {
-          return 'idle'
-        } else if (error.code === 'ERR_NETWORK') {
-          // north is unavailable
-          return undefined
-        } else {
-          raiseError(error)
-        }
-      })
-  }, [northApi, raiseError, name])
+    return api.get(`north/${name}`)
+      .then(response => {
+        return response.data.state
+      }).catch(raiseError)
+  }, [api, raiseError, name])
 
   useEffect(() => {
     const toolStatus = getToolStatus()
@@ -151,34 +115,32 @@ const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}
 
   const launch = useCallback(() => {
     // We get the current actual tools status and do not use the one used to display the status!
-    getToolStatus().then((toolStatus) => {
-      if (toolStatus === 'running') {
+    setState('starting')
+    api.post(`north/${name}`)
+      .then((response) => {
+        // const toolUrl = `${northBase}/${response.data.upload_urls[uploadId]}/${path}`
+        // name == response.tool == response.data.name
+        console.log(response)
+        const toolUrl = `${northBase}/user/${response.username}/${response.tool}`
+        console.log(toolUrl)
         window.open(toolUrl, name)
-        setState(toolStatus)
-      } else {
-        setState('launching')
-        northApi.post(`servers/${name}`)
-          .then((response) => {
-            window.open(toolUrl, name)
-            setState('running')
-          })
-          .catch(errors => {
-            raiseError(errors)
-            setState('idle')
-          })
-      }
-    })
-  }, [setState, northApi, raiseError, name, toolUrl, getToolStatus])
+        setState(response.data.state)
+      })
+      .catch(errors => {
+        raiseError(errors)
+        setState('stopped')
+      })
+  }, [setState, api, raiseError, name])
 
   const stop = useCallback(() => {
     setState('stopping')
-    northApi.delete(`servers/${name}`)
+    api.delete(`north/${name}`)
       .then((response) => {
         console.log(response)
-        setState('idle')
+        setState('stopped')
       })
       .catch(raiseError)
-  }, [northApi, raiseError, setState, name])
+  }, [api, raiseError, setState, name])
 
   const value = useMemo(() => ({
     state: state,
