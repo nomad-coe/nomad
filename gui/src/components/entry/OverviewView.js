@@ -120,11 +120,15 @@ const required = {
 
 const OverviewView = React.memo(() => {
   const { overview } = useEntryContext()
-  const { data: metadata, response: metadataApiData } = useIndex()
-  const { url, exists, editable, archive, archiveApiData } = useEntryStore(required)
+  const { data: index, response: indexApiData } = useIndex()
+  const { url, exists, editable, archive: archiveTmp, archiveApiData } = useEntryStore(required)
+
+  // The archive is accepted only once it is synced with the index
+  const archive = index?.entry_id === archiveTmp?.metadata?.entry_id
+    ? archiveTmp
+    : undefined
 
   const classes = useStyles()
-  const index = metadata
   const [sections, setSections] = useState([])
   const {raiseError} = useErrors()
   const m_def = archive?.data?.m_def_id ? `${archive.data.m_def}@${archive.data.m_def_id}` : archive?.data?.m_def
@@ -253,8 +257,8 @@ const OverviewView = React.memo(() => {
           </Quantity>
         </MetadataSection>
         <SourceApiDialogButton label="API" maxWidth="lg" fullWidth ButtonProps={{variant: 'contained', size: 'small'}}>
-          {metadataApiData && <SourceApiCall
-            {...metadataApiData}
+          {indexApiData && <SourceApiCall
+            {...indexApiData}
             description="The basic metadata shown on this page is retrieved from the *entry metadata* API."
           />}
           <SourceDialogDivider />
