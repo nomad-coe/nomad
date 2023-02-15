@@ -345,7 +345,7 @@ export const ArchiveReUploadButton = React.memo((props) => {
     }
 
     input.click()
-  }, [api, metadata.entry_name, raiseError, reload, uploadId])
+  }, [api, metadata?.entry_name, raiseError, reload, uploadId])
 
   return <IconButton onClick={handleClick}>
     <Tooltip title="Replace this entry's mainfile">
