@@ -89,8 +89,8 @@ const CreateEntry = React.memo((props) => {
           ))
         )
         let category
-        for (definition of [definition, ...definition._allBaseSections]) {
-          category = findCategory(definition)
+        for (const baseDefinition of [definition, ...definition._allBaseSections]) {
+          category = findCategory(baseDefinition)
           if (category) {
             break
           }

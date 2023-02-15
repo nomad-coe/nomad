@@ -57,17 +57,11 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-function addIconButtonToEndAdornment(endAdornment, actions) {
-  const children = React.Children.toArray(endAdornment.props.children)
-  actions.forEach(iconButton => {
-    children.push(iconButton)
-  })
-  return React.cloneElement(endAdornment, {}, children)
-}
-
-function getReferencedSection(quantityDef) {
-  const referencedDefinition = quantityDef.type._referencedDefinition
-  return referencedDefinition.m_def === QuantityMDef ? referencedDefinition._section : referencedDefinition
+function useReferecedSectionDef(quantityDef) {
+  return useMemo(() => {
+    const referencedDefinition = quantityDef.type._referencedDefinition
+    return referencedDefinition.m_def === QuantityMDef ? referencedDefinition._section : referencedDefinition
+  }, [quantityDef])
 }
 
 const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFailed, onCanceled}) => {
@@ -80,7 +74,8 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
   const [suggestions, setSuggestions] = useState([])
   const [selectedUpload, setSelectedUpload] = useState(null)
   const [askForOverwrite, setAskForOverwrite] = useState(false)
-  const [selectedSection, setSelectedSection] = useState(null)
+  const referencedSectionDef = useReferecedSectionDef(quantityDef)
+  const [selectedSection, setSelectedSection] = useState(referencedSectionDef)
 
   useEffect(() => {
     const prepareUploads = async () => {
@@ -116,14 +111,8 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
     }
   }, [api, raiseError, uploadId, user?.sub, open])
 
-  const referencedSection = useMemo(() => {
-    const sectionDef = getReferencedSection(quantityDef)
-    setSelectedSection(sectionDef)
-    return sectionDef
-  }, [quantityDef])
-
-  const inheritingSections = useMemo(() => dataStore.getAllInheritingSections(referencedSection), [dataStore, referencedSection])
-  const inheritingSectionsSuggestions = useMemo(() => [referencedSection].concat(inheritingSections), [inheritingSections, referencedSection])
+  const inheritingSections = useMemo(() => dataStore.getAllInheritingSections(referencedSectionDef), [dataStore, referencedSectionDef])
+  const inheritingSectionsSuggestions = useMemo(() => [referencedSectionDef].concat(inheritingSections), [inheritingSections, referencedSectionDef])
 
   const createNewEntry = useCallback((fileName, overwrite = false) => {
     const archive = {
@@ -282,7 +271,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const {raiseError} = useErrors()
   const [error, setError] = useState()
 
-  const referencedSectionDef = useMemo(() => getReferencedSection(quantityDef), [quantityDef])
+  const referencedSectionDef = useReferecedSectionDef(quantityDef)
   const referencedSectionQualifiedName = useMemo(() => referencedSectionDef?._qualifiedName, [referencedSectionDef])
 
   useEffect(() => {
@@ -291,6 +280,9 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       return
     }
     const resolveValue = async () => {
+      if (!url) {
+        return
+      }
       const resolvedUrl = resolveNomadUrl(value, url)
       if (resolvedUrl.type !== refType.archive && resolvedUrl.type !== refType.metainfo) {
         throw new Error(`Expected archive or metainfo reference, got ${resolvedUrl.type} type for ${value}`)
@@ -389,6 +381,14 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
 
   const filtersLocked = useMemo(() => ({'section_defs.definition_qualified_name': [referencedSectionQualifiedName]}), [referencedSectionQualifiedName])
 
+  const addIconButtonToEndAdornment = useCallback((endAdornment, actions) => {
+    const children = React.Children.toArray(endAdornment.props.children)
+    actions.forEach(iconButton => {
+      children.push(iconButton)
+    })
+    return React.cloneElement(endAdornment, {}, children)
+  }, [])
+
   const actions = useMemo(() => {
     const isEntryData = referencedSectionDef?._allBaseSections.find(section => section._qualifiedName === 'nomad.datamodel.data.EntryData')
     const actions = []
@@ -405,7 +405,18 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       </Tooltip>
     </IconButton>)
     if (value && !error) {
-      actions.push(<ItemButton key={'navigateToReference'} size="small" itemKey={itemKey} itemLink={ItemLink} icon={<DetailsIcon/>}/>)
+      actions.push(
+        // TODO Disabled this button, because the browser does not correctly update after
+        // the navigation. This needs to be fixed first.
+        <Box display="none">
+          <ItemButton
+            key={'navigateToReference'}
+            size="small" itemKey={itemKey}
+            itemLink={ItemLink}
+            icon={<DetailsIcon/>}
+          />
+        </Box>
+      )
       actions.push(<ItemButton key={'navigateAction'} size="small" itemKey={itemKey}/>)
     }
     return actions

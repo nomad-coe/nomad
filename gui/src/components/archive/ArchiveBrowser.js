@@ -48,12 +48,10 @@ import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '../buttons/SourceDialogButton'
 import { Download } from '../entry/Download'
 import Pagination from '../visualization/Pagination'
 import SectionEditor from './SectionEditor'
-import { useEntryStore } from '../entry/EntryContext'
 import XYPlot from './XYPlot'
 import {
   appendDataUrl, createEntryUrl, createUploadUrl, formatTimestamp, parseNomadUrl, refType, resolveInternalRef,
@@ -68,6 +66,8 @@ import { Alert } from '@material-ui/lab'
 import { complex, format } from 'mathjs'
 import ReactJson from 'react-json-view'
 import { range } from 'lodash'
+import { useDataStore, useEntryStoreObj } from '../DataStore'
+import { useEntryStore } from '../entry/EntryContext'
 
 export const configState = atom({
   key: 'config',
@@ -78,7 +78,7 @@ export const configState = atom({
   }
 })
 
-const ArchiveBrowser = React.memo(({url}) => {
+const ArchiveBrowser = React.memo(function ArchiveBrowser({url}) {
   const parsedUrl = useMemo(() => parseNomadUrl(url), [url])
   const {archive} = useEntryStoreObj(parsedUrl.deploymentUrl, parsedUrl.entryId, false, '*')
   const metainfo = useMetainfo(systemMetainfoUrl)
@@ -345,7 +345,7 @@ export const ArchiveReUploadButton = React.memo((props) => {
     }
 
     input.click()
-  }, [api, metadata.entry_name, raiseError, reload, uploadId])
+  }, [api, metadata?.entry_name, raiseError, reload, uploadId])
 
   return <IconButton onClick={handleClick}>
     <Tooltip title="Replace this entry's mainfile">

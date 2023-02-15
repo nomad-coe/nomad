@@ -429,7 +429,7 @@ const useItemStyles = makeStyles(theme => ({
   }
 }))
 
-export const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, ref) {
+const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, ref) {
   const lane = useContext(laneContext)
   if (lane) {
     return <Link
