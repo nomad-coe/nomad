@@ -43,6 +43,7 @@ volumes:
   prefixSize: 1
   public: /nomad/fairdi/dev/v1/fs/public
   staging: /nomad/fairdi/dev/v1/fs/staging
+  north_home: /nomad/fairdi/dev/v1/fs/north/users
   tmp: /nomad/fairdi/dev/v1/fs/tmp
   nomad: /nomad
 
@@ -50,8 +51,10 @@ services:
   jupyterhub:
     enabled: true
 
+north:
+  hubServiceApiTokenSecret: "nomad-hub-service-api-token"
+
 jupyterhub:
-  # enabled: true
   fullnameOverride: null
   nameOverride: "north"
   hub:

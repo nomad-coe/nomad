@@ -54,6 +54,8 @@ import logging
 import inspect
 import orjson
 import os
+import unicodedata
+import re
 
 from nomad import config
 
@@ -531,6 +533,21 @@ def deep_get(dictionary, *keys):
     keys or list indices as integer numbers.
     '''
     return reduce(lambda d, key: d[key] if isinstance(key, int) else d.get(key) if d else None, keys, dictionary)
+
+
+def slugify(value):
+    '''
+    Taken from https://github.com/django/django/blob/master/django/utils/text.py
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
+    dashes to single dashes. Remove characters that aren't alphanumerics,
+    underscores, or hyphens. Convert to lowercase. Also strip leading and
+    trailing whitespace, dashes, and underscores.
+    '''
+
+    value = str(value)
+    value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value.lower())
+    return re.sub(r'[-\s]+', '-', value).strip('-_')
 
 
 def query_list_to_dict(path_list: List[Union[str, int]], value: Any) -> Dict[str, Any]:

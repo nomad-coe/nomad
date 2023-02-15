@@ -60,6 +60,7 @@ volumes:
   prefixSize: 1
   public: /nomad/fairdi/prod/fs/public
   staging: /nomad/fairdi/prod/fs/staging
+  north_home: /nomad/fairdi/prod/fs/north/users
   tmp: /nomad/fairdi/prod/fs/tmp
   nomad: /nomad
   archiveVersionSuffix: v1
@@ -78,6 +79,9 @@ services:
   jupyterhub:
     enabled: false
 
+north:
+  hubServiceApiTokenSecret: "nomad-hub-service-api-token"
+
 jupyterhub:
   fullnameOverride: "nomad-prod-v1-north"
   hub:
@@ -95,20 +99,4 @@ jupyterhub:
         userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
   singleuser:
     podNameTemplate: "nomad-prod-v1-north-{username}--{servername}"
-    initContainers:
-      - name: fix-permissions
-        image: busybox
-        imagePullPolicy: IfNotPresent
-        securityContext:
-          runAsUser: 0
-        command: ["/bin/sh", "-c", "chown 1000:1000 /home/jovyan"]
-        volumeMounts:
-          - mountPath: /home/jovyan
-            name: home
-            subPath: "{username}"
-    storage:
-      type: static
-      homeMountPath: /home/jovyan/work
-      static:
-        pvcName: nomad-prod-v1-north-home
-        subPath: "{username}"
+

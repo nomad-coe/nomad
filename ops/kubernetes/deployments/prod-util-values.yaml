@@ -63,6 +63,7 @@ volumes:
   prefixSize: 1
   public: /nomad/fairdi/prod/fs/public
   staging: /nomad/fairdi/prod/fs/staging
+  north_home: /nomad/fairdi/prod/fs/north/users
   tmp: /nomad/fairdi/prod/fs/tmp
   nomad: /nomad
   archiveVersionSuffix: v1

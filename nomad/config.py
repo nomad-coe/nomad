@@ -38,9 +38,10 @@ import inspect
 import os.path
 import yaml
 import warnings
+import json
 from typing import TypeVar, List, Dict, Any, Union, cast
 from pkg_resources import get_distribution, DistributionNotFound
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 try:
     __version__ = get_distribution("nomad-lab").version
@@ -260,6 +261,24 @@ _jupyterhub_config_description = '''
 '''
 
 
+class NorthToolMaintainer(BaseModel):
+    name: str
+    email: str
+
+
+class NorthTool(BaseModel):
+    image: str
+    description: str = None
+    short_description: str = None
+    cmd: str = None
+    privileged: bool = None
+    path_prefix: str = None
+    mount_path: str = None
+    icon: str = None
+    file_extensions: List[str] = []
+    maintainer: List[NorthToolMaintainer] = []
+
+
 class North(NomadSettings):
     '''
     Settings related to the operation of the NOMAD remote tools hub service *north*.
@@ -282,18 +301,30 @@ class North(NomadSettings):
     ''')
     jupyterhub_crypt_key: str = Field(None, description=_jupyterhub_config_description)
 
-    shared_fs = Field('.volumes/fs/north/shared', description='''
-        Path to the shared folder on the host machine. This is mounted into spawned
-        containers to be shared by all users.
-    ''')
-    users_fs = Field('.volumes/fs/north/users', description='''
-        Path to a folder on the host machine. Sub-directories with the username are mounted
-        into spawned containers to persist files per user.
-    ''')
     nomad_host: str = Field(
         None, description='The NOMAD app host name that spawned containers use.')
     windows = Field(
         True, description='Enable windows OS hacks.')
+
+    tools: Union[str, Dict[str, NorthTool]] = Field(
+        'dependencies/nomad-remote-tools-hub/tools.json',
+        description='The available north tools. Either the tools definitions as dict or a path to a .json file.')
+
+    hub_service_api_token: str = Field('secret-token', description='''
+        A secret token shared between NOMAD and the NORTH jupyterhub.
+        This needs to be the token of an admin service.''')
+
+    def hub_url(self):
+        return f'http://{self.hub_host}:{self.hub_port}{services.api_base_path}/north/hub'
+
+    @validator('tools', pre=True, always=True)
+    def load_tools(cls, v):  # pylint: disable=no-self-argument
+        if isinstance(v, str):
+            # interpret as file
+            with open(v, 'rt') as f:
+                v = json.load(f)
+
+        return v
 
 
 north = North()
@@ -340,6 +371,8 @@ class FS(NomadSettings):
     staging_external: str = None
     public = '.volumes/fs/public'
     public_external: str = None
+    north_home = '.volumes/fs/north/users'
+    north_home_external: str = None
     local_tmp = '/tmp'
     prefix_size = 2
     archive_version_suffix = 'v1'
@@ -1426,6 +1459,8 @@ def _check_config():
         AssertionError: if there is a contradiction or invalid values in the
             config file settings.
     """
+    # TODO more if this should be translated into pydantic validations.
+
     # The AFLOW symmetry information is checked once on import
     proto_symmetry_tolerance = normalize.prototype_symmetry_tolerance
     symmetry_tolerance = normalize.symmetry_tolerance
@@ -1443,27 +1478,19 @@ def _check_config():
     if keycloak.public_server_url is None:
         keycloak.public_server_url = keycloak.server_url
 
-    def set_external_path(source_obj, source_key, target_obj, target_key, overwrite=False):
-        source_value = getattr(source_obj, source_key)
-        target_value = getattr(target_obj, target_key)
+    def get_external_path(path):
+        if fs.external_working_directory and not os.path.isabs(path):
+            return os.path.join(fs.external_working_directory, path)
+        return path
 
-        if target_value and not overwrite:
-            return
+    if fs.staging_external is None:
+        fs.staging_external = get_external_path(fs.staging)
 
-        if not source_value:
-            return
+    if fs.public_external is None:
+        fs.public_external = get_external_path(fs.public)
 
-        if fs.external_working_directory and not os.path.isabs(source_value):
-            target_value = os.path.join(fs.external_working_directory, source_value)
-        else:
-            target_value = source_value
-
-        setattr(target_obj, target_key, target_value)
-
-    set_external_path(fs, 'staging', fs, 'staging_external')
-    set_external_path(fs, 'public', fs, 'public_external')
-    set_external_path(north, 'users_fs', north, 'users_fs', overwrite=True)
-    set_external_path(north, 'shared_fs', north, 'shared_fs', overwrite=True)
+    if fs.north_home_external is None:
+        fs.north_home_external = get_external_path(fs.north_home)
 
 
 def _merge(a: dict, b: dict, path: List[str] = None) -> dict:
