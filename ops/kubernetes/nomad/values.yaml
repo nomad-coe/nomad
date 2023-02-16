@@ -203,6 +203,9 @@ jupyterhub:
   proxy:
     service:
       type: ClusterIP
+  singleuser:
+    storage:
+      type: none
   hub:
     extraEnv:
       NOMAD_NORTH_HUB_SERVICE_API_TOKEN:

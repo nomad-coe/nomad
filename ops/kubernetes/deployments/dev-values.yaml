@@ -70,8 +70,6 @@ jupyterhub:
         userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
   singleuser:
     podNameTemplate:
-    storage:
-      type: none
 
   prePuller:
     hook:
