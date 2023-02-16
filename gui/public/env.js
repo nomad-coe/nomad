@@ -1680,6 +1680,7 @@ window.nomadEnv = {
       "exclude": null
     },
     "default_unit_system": "Custom",
+    "north_enabled": false,
     "theme": {
       "title": "NOMAD"
     }

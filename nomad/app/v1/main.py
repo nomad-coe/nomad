@@ -96,5 +96,6 @@ app.include_router(uploads.router, prefix='/uploads')
 app.include_router(metainfo.router, prefix='/metainfo')
 app.include_router(users.router, prefix='/users')
 app.include_router(suggestions.router, prefix='/suggestions')
-app.include_router(north.router, prefix='/north')
+if config.north.enabled:
+    app.include_router(north.router, prefix='/north')
 app.include_router(systems.router, prefix='/systems')

@@ -315,17 +315,19 @@ export const routes = [
         title: 'Artificial Intelligence Toolkit',
         component: ReproducePage
       },
-      {
-        path: 'north',
-        menu: 'NOMAD Remote Tools Hub',
-        tooltip: 'Browse the list of available remote tools.',
-        breadcrumb: 'NOMAD Remote Tools Hub',
-        help: {
-          title: 'NOMAD Remote Tools help page',
-          content: NORTHHelp
-        },
-        component: NorthPage
-      },
+      ...(ui.north_enabled ? [
+        {
+          path: 'north',
+          menu: 'NOMAD Remote Tools Hub',
+          tooltip: 'Browse the list of available remote tools.',
+          breadcrumb: 'NOMAD Remote Tools Hub',
+          help: {
+            title: 'NOMAD Remote Tools help page',
+            content: NORTHHelp
+          },
+          component: NorthPage
+        }
+      ] : []),
       {
         path: 'course',
         title: 'Artificial Intelligence Toolkit',

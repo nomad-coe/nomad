@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
   nginx.conf: |
-    {{ if .Values.services.jupyterhub.enabled }}
+    {{ if .Values.north.enabled }}
     # top-level http config for websocket headers
     # If Upgrade is defined, Connection = upgrade
     # If Upgrade is empty, Connection = close
@@ -103,7 +103,7 @@ data:
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      {{ if .Values.services.jupyterhub.enabled }}
+      {{ if .Values.north.enabled }}
       location {{ .Values.proxy.external.path }}/north/ {
           proxy_pass http://{{ include "jupyterhub.fullname" . }}-proxy-public;
 

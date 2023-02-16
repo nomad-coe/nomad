@@ -47,11 +47,8 @@ volumes:
   tmp: /nomad/fairdi/dev/v1/fs/tmp
   nomad: /nomad
 
-services:
-  jupyterhub:
-    enabled: true
-
 north:
+  enabled: true
   hubServiceApiTokenSecret: "nomad-hub-service-api-token"
 
 jupyterhub:

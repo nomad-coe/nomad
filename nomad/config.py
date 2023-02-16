@@ -283,6 +283,10 @@ class North(NomadSettings):
     '''
     Settings related to the operation of the NOMAD remote tools hub service *north*.
     '''
+    enabled: str = Field(True, description='''
+        Enables or disables the NORTH API and UI views. This is independent of
+        whether you run a jupyter hub or not.
+    ''')
     hub_connect_ip: str = Field(None, description='''
         Overwrites the default hostname that can be used from within a north container
         to reach the host system.
@@ -730,6 +734,7 @@ archive = Archive()
 
 class UIConfig(NomadSettings):
     default_unit_system = 'Custom'
+    north_enabled = Field(True, description='This is a derived value filled with north.enabled.')
     theme = {
         'title': 'NOMAD'
     }
@@ -1491,6 +1496,8 @@ def _check_config():
 
     if fs.north_home_external is None:
         fs.north_home_external = get_external_path(fs.north_home)
+
+    ui.north_enabled = north.enabled
 
 
 def _merge(a: dict, b: dict, path: List[str] = None) -> dict:

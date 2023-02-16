@@ -77,3 +77,6 @@ mail:
 datacite:
   secret: "nomad-datacite"
   enabled: false
+
+north:
+  enabled: false

@@ -66,11 +66,8 @@ mail:
   port: 25
   from: "webmaster@nomad-coe.eu"
 
-services:
-  jupyterhub:
-    enabled: false
-
 north:
+  enabled: false
   hubServiceApiTokenSecret: "nomad-hub-service-api-token"
 
 jupyterhub:
