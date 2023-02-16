@@ -75,11 +75,8 @@ datacite:
   secret: "nomad-datacite"
   enabled: true
 
-services:
-  jupyterhub:
-    enabled: false
-
 north:
+  enabled: false
   hubServiceApiTokenSecret: "nomad-hub-service-api-token"
 
 jupyterhub:

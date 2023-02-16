@@ -102,6 +102,7 @@ data:
     ui: {{ .Values.gui.config | toYaml | nindent 6 }}
     {{ end }}
     north:
+      enabled: "{{ .Values.north.enabled }}"
       hub_host: "{{ .Values.proxy.external.host }}"
       hub_port: {{ .Values.proxy.external.port }}
       hub_service_api_token: "{{ .Values.north.hubServiceApiToken }}"
