@@ -405,7 +405,8 @@ export class Metainfo {
       }
     }
     sectionDef = await this._initSection(sectionDef)
-    sectionDef._allBaseSections.forEach(createAddProperties(true))
+    const reversedBaseSections = [...sectionDef._allBaseSections].reverse()
+    reversedBaseSections.forEach(createAddProperties(true))
     createAddProperties(false)(sectionDef)
     return Object.keys(results).map(key => results[key])
   }
