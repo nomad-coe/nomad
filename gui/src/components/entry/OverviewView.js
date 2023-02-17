@@ -123,8 +123,10 @@ const OverviewView = React.memo(() => {
   const { data: index, response: indexApiData } = useIndex()
   const { url, exists, editable, archive: archiveTmp, archiveApiData } = useEntryStore(required)
 
-  // The archive is accepted only once it is synced with the index
-  const archive = index?.entry_id === archiveTmp?.metadata?.entry_id
+  // The archive is accepted only once it is synced with the index. Notice that
+  // we need to get the entry_id from data.entry_id, as some older entries will
+  // not have entry_id stored under data.archive.metadata.entry_id
+  const archive = index?.entry_id === archiveApiData?.response?.data?.entry_id
     ? archiveTmp
     : undefined
 
