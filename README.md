@@ -40,7 +40,7 @@ nomad parse --show-archive <your-file-to-parse>
 
 ### For NOMAD developer
 
-Read the [docs](https://nomad-lab.eu/prod/rae/docs/index.html). The documentation is also part
+Read the latest [docs](https://nomad-lab.eu/prod/v1/staging/docs/index.html). The documentation is also part
 of the source code. It covers aspects like introduction, architecture, development setup/deployment,
 contributing, and API reference.
 
@@ -50,6 +50,12 @@ contributing, and API reference.
 Omitted versions are plain bugfix releases with only minor changes and fixes. The
 file `CHANGELOG.md` might contain more detailed change information for the latest
 versions.
+
+### v1.1.7
+- refactored NORTH configuration and k8s deployment
+- categorized build-in ELN schemas
+- categorized explore menu
+- categorized example uploads
 
 ### v1.1.6
 - application dashboards with solar cell as an example
