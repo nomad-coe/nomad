@@ -1,22 +1,24 @@
 version:
-  isBeta: true
+  isBeta: false
   usesBetaData: false
   officialUrl: "https://nomad-lab.eu/prod/v1/gui"
 
 image:
-  tag: "latest"
+  # Replace with the right version tag
+  # tag: "stable"
   pullPolicy: "Always"
 
 proxy:
-  nodePort: 30015
+  # Replace with the right node port for deployment 1 (30011) and 2 (30012)
+  # nodePort: 3001x
   nodeIP: "130.183.207.81"
   external:
     host: "nomad-lab.eu"
     path: "/prod/v1"
 
 gui:
-  debug: true
-  matomoEnabled: true
+  debug: false
+  matomoEnabled: false
   matomoSiteId: 2
   encyclopediaBase: "https://nomad-lab.eu/prod/rae/encyclopedia/#"
   aitoolkitEnabled: false
@@ -66,7 +68,7 @@ volumes:
   archiveVersionSuffix: v1
 
 mail:
-  enabled: false
+  enabled: true
   host: "mailrelay.mpcdf.mpg.de"
   port: 25
   from: "support@nomad-lab.eu"
@@ -77,23 +79,3 @@ datacite:
 
 north:
   enabled: false
-  hubServiceApiTokenSecret: "nomad-hub-service-api-token"
-
-jupyterhub:
-  fullnameOverride: "nomad-prod-v1-north"
-  hub:
-    baseUrl: "/prod/v1/"
-    db:
-      type: sqlite-pvc
-      pvc:
-        storageClassName: nomad-prod-v1-north-hub-db
-    config:
-      GenericOAuthenticator:
-        client_id: nomad_public
-        oauth_callback_url: https://nomad-lab.eu/prod/v1/north/hub/oauth_callback
-        authorize_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
-        token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
-        userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
-  singleuser:
-    podNameTemplate: "nomad-prod-v1-north-{username}--{servername}"
-
