@@ -50,8 +50,12 @@ examples/workdir/
 **/jupyterhub.sqlite
 **/jupyterhub-proxy.pid
 
-# Ignore storage folders of docker-compose
-**/.volumes
+# Ignore folder content but keeping folders of docker-compose
+**/.volumes/fs/north/users/**/*
+**/.volumes/fs/public/**/*
+**/.volumes/fs/staging/**/*
+**/.volumes/fs/tmp/**/*
+**/.volumes/mongo/**/*
 
 # local folder
 local
