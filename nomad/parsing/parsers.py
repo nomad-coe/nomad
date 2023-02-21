@@ -469,7 +469,8 @@ parsers = [
     MatchingParserInterface(
         'atomisticparsers.AsapParser',
         metadata_path=f'{prefix_atomistic}/asap/metadata.yaml',
-        mainfile_name_re=r'.*.traj$', mainfile_mime_re=r'application/octet-stream'
+        mainfile_name_re=r'.*.traj$', mainfile_mime_re=r'application/octet-stream',
+        mainfile_binary_header_re=br'AFFormatASE\-Trajectory'
     ),
     MatchingParserInterface(
         'atomisticparsers.DFTBPlusParser',
