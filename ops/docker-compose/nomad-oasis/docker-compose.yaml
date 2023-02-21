@@ -4,7 +4,7 @@ services:
   # broker for celery
   rabbitmq:
     restart: unless-stopped
-    image: rabbitmq:3.11.5
+    image: rabbitmq:3.11.9
     container_name: nomad_oasis_rabbitmq
     environment:
       - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
@@ -23,7 +23,7 @@ services:
   # the search engine
   elastic:
     restart: unless-stopped
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.9
     container_name: nomad_oasis_elastic
     environment:
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
@@ -45,7 +45,7 @@ services:
   # the user data db
   mongo:
     restart: unless-stopped
-    image: mongo:5.0.6
+    image: mongo:5.0.14
     container_name: nomad_oasis_mongo
     environment:
       - MONGO_DATA_DIR=/data/db
