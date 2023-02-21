@@ -298,7 +298,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
   }
 }
 
-const Metainfo = React.memo(function Metainfo(props) {
+const Metainfo = function Metainfo(props) {
   const globalMetainfo = useGlobalMetainfo()
   return <Content>
     <Compartment title="archive root section">
@@ -321,7 +321,7 @@ const Metainfo = React.memo(function Metainfo(props) {
       ))}
     </Compartment>
   </Content>
-})
+}
 
 export class SectionDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {
