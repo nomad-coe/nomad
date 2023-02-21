@@ -105,6 +105,7 @@ data:
 
       {{ if .Values.north.enabled }}
       location {{ .Values.proxy.external.path }}/north/ {
+          client_max_body_size 500m;
           proxy_pass http://{{ include "jupyterhub.fullname" . }}-proxy-public;
 
           proxy_set_header X-Real-IP $remote_addr;

@@ -203,6 +203,8 @@ jupyterhub:
     service:
       type: ClusterIP
   singleuser:
+    image:
+      pullPolicy: "Always"
     storage:
       type: none
   hub:
@@ -312,6 +314,8 @@ jupyterhub:
   prePuller:
     hook:
       enabled: true
+      image:
+        pullPolicy: "Always"
     continuous:
       enabled: false
   scheduling:
