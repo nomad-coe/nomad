@@ -55,7 +55,7 @@ def test_single_point_workflow(workflow_archive):
     assert not sec_workflow.single_point.with_bandstructure
     assert sec_workflow.single_point.with_eigenvalues
     assert not sec_workflow.single_point.with_volumetric_data
-    assert not sec_workflow.single_point.with_excited_states
+    assert not sec_workflow.single_point.with_spectra
     assert sec_workflow.single_point.is_converged
     sec_workflow2 = vasp_archive.workflow2
     assert sec_workflow2.method.method == 'DFT'
@@ -65,7 +65,7 @@ def test_single_point_workflow(workflow_archive):
     assert sec_workflow2.results.band_structure is None
     assert sec_workflow2.results.eigenvalues is not None
     assert sec_workflow2.results.density_charge is None
-    assert sec_workflow2.results.excited_states is None
+    assert sec_workflow2.results.spectra is None
     assert sec_workflow2.results.is_converged
 
 

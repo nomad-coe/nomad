@@ -2007,11 +2007,11 @@ class SinglePoint(MSection):
         Indicates if the calculation contains volumetric data
         ''')
 
-    with_excited_states = Quantity(
+    with_spectra = Quantity(
         type=bool,
         shape=[],
         description='''
-        Indicates if the calculation contains excited states data
+        Indicates if the calculation contains spectral data
         ''')
 
 

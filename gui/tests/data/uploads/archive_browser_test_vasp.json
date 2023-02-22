@@ -304,7 +304,7 @@
               "workflow.single_point.with_bandstructure",
               "workflow.single_point.with_density_of_states",
               "workflow.single_point.with_eigenvalues",
-              "workflow.single_point.with_excited_states",
+              "workflow.single_point.with_spectra",
               "workflow.single_point.with_volumetric_data",
               "workflow.task",
               "workflow.task.input_calculation",
@@ -6209,7 +6209,7 @@
                     "with_bandstructure": false,
                     "with_eigenvalues": true,
                     "with_volumetric_data": false,
-                    "with_excited_states": false
+                    "with_spectra": false
                   }
                 }
               ],
@@ -6532,7 +6532,7 @@
                   "workflow.single_point.with_bandstructure",
                   "workflow.single_point.with_density_of_states",
                   "workflow.single_point.with_eigenvalues",
-                  "workflow.single_point.with_excited_states",
+                  "workflow.single_point.with_spectra",
                   "workflow.single_point.with_volumetric_data",
                   "workflow.task",
                   "workflow.task.input_calculation",
@@ -13132,7 +13132,7 @@
           },
           "query": {
             "entry_references.target_entry_id": "1WGSYo1RrGFEIcM17Re4kjHC7k6p",
-            "entry_references.target_path": "/workflow/0/single_point/with_excited_states"
+            "entry_references.target_path": "/workflow/0/single_point/with_spectra"
           }
         },
         "headers": {
@@ -13159,7 +13159,7 @@
                 "prefix": "entry_references",
                 "query": {
                   "name": "target_path",
-                  "value": "/workflow/0/single_point/with_excited_states"
+                  "value": "/workflow/0/single_point/with_spectra"
                 }
               }
             ]

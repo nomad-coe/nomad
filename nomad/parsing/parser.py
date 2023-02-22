@@ -28,6 +28,7 @@ from pydantic import BaseModel, Extra  # pylint: disable=unused-import
 import yaml
 import h5py
 import numpy as np
+import json
 
 from nomad import config, utils
 from nomad.datamodel import EntryArchive, EntryMetadata
@@ -319,34 +320,39 @@ class MatchingParser(Parser):
                 if sibling_is_mainfile:
                     return False
 
+        def match(value, reference):
+            if not isinstance(value, dict):
+                equal = value == reference[()]
+                return equal.all() if isinstance(equal, np.ndarray) else equal
+
+            if not hasattr(reference, 'keys'):
+                return False
+
+            matches = []
+            reference_keys = list(reference.keys())
+            for key, val in value.items():
+                if key == '__has_key':
+                    matches.append(val in reference_keys)
+                elif key == '__has_all_keys':
+                    assert isinstance(val, list)
+                    matches.append(False not in [v in reference_keys for v in val])
+                else:
+                    if key not in reference_keys:
+                        matches.append(False)
+                        continue
+
+                    matches.append(match(val, reference[key]))
+            return False not in matches
+
         if self._mainfile_contents_dict is not None:
             is_match = False
-            if mime.startswith('application/x-hdf'):
+            if mime.startswith('application/json') or mime.startswith('text/plain'):
                 try:
-                    def match(value, reference):
-                        if not isinstance(value, dict):
-                            equal = value == reference[()]
-                            return equal.all() if isinstance(equal, np.ndarray) else equal
-
-                        if not hasattr(reference, 'keys'):
-                            return False
-
-                        matches = []
-                        reference_keys = list(reference.keys())
-                        for key, val in value.items():
-                            if key == '__has_key':
-                                matches.append(val in reference_keys)
-                            elif key == '__has_all_keys':
-                                assert isinstance(val, list)
-                                matches.append(False not in [v in reference_keys for v in val])
-                            else:
-                                if key not in reference_keys:
-                                    matches.append(False)
-                                    continue
-
-                                matches.append(match(val, reference[key]))
-                        return False not in matches
-
+                    is_match = match(self._mainfile_contents_dict, json.load(open(filename)))
+                except Exception:
+                    pass
+            elif mime.startswith('application/x-hdf'):
+                try:
                     with h5py.File(filename) as f:
                         is_match = match(self._mainfile_contents_dict, f)
                 except Exception:

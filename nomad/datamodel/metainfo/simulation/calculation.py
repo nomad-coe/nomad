@@ -1464,14 +1464,20 @@ class Density(Volumetric):
         ''')
 
 
-class ExcitedStates(MSection):
+class Spectra(MSection):
     '''
     Excited states properties.
     '''
 
     m_def = Section(validate=False)
 
-    n_excited_states = Quantity(
+    type = Quantity(
+        type=str,
+        description='''
+        A string identifier for the type of spectrum: XAS, RIXS, XES, ARPES, etc.
+        ''')
+
+    n_energies = Quantity(
         type=int,
         shape=[],
         description='''
@@ -1479,24 +1485,31 @@ class ExcitedStates(MSection):
         ''')
 
     excitation_energies = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_excited_states'],
+        type=np.float64,
+        shape=['n_energies'],
         unit='joule',
         description='''
         Excitation energies.
         ''',
         categories=[EnergyValue])
 
+    intensities = Quantity(
+        type=np.float64,
+        shape=['n_energies'],
+        description='''
+        Excitation intensities in arbitrary units.
+        ''')
+
     oscillator_strengths = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_excited_states'],
+        type=np.float64,
+        shape=['n_energies'],
         description='''
         Excited states oscillator strengths.
         ''')
 
     transition_dipole_moments = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_excited_states', 3],
+        type=np.float64,
+        shape=['n_energies', 3],
         unit='coulomb * meter',
         description='''
         Transition dipole moments.
@@ -1803,7 +1816,7 @@ class BaseCalculation(ArchiveSection):
 
     hopping_matrix = SubSection(sub_section=HoppingMatrix.m_def, repeats=True)
 
-    excited_states = SubSection(sub_section=ExcitedStates.m_def, repeats=True)
+    spectra = SubSection(sub_section=Spectra.m_def, repeats=True)
 
     greens_functions = SubSection(sub_section=GreensFunctions.m_def, repeats=True)
 
