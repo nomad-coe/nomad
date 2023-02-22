@@ -20,13 +20,10 @@ import numpy as np
 import pytest
 
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
-    phonon,
-    get_template_band_structure,
-    band_path_cF,
-    band_path_tP,
-    band_path_hP,
-    band_path_mP_nonstandard,
-    band_path_cF_nonstandard,
+    phonon, get_template_band_structure, band_path_cP, band_path_cF, band_path_tP,
+    band_path_oP, band_path_oF, band_path_oI, band_path_hP, band_path_mP, band_path_aP,
+    band_path_cF_nonstandard, band_path_cI_nonstandard, band_path_tI_nonstandard, band_path_oS_nonstandard,
+    band_path_hR_nonstandard, band_path_mP_nonstandard, band_path_mS_nonstandard
 )
 
 from nomad.units import ureg
@@ -64,9 +61,23 @@ def test_band_gaps(gaps, has_reciprocal_cell):
         assert eho_ev == pytest.approx(1 if gap else 0, 0.001)
 
 
-def test_paths(band_path_cF, band_path_tP, band_path_hP):
+def test_paths(band_path_cP, band_path_cF, band_path_tP, band_path_oP, band_path_oF, band_path_oI,
+               band_path_hP, band_path_mP, band_path_aP):
     """Tests that the paths are labeled correctly.
     """
+    # Cubic (CUB, cP)
+    assumed_labels = np.array([
+        ["M", "R"],
+        ["R", "Γ"],
+        ["Γ", "X"],
+        ["X", "M"],
+        ["M", "Γ"],
+    ])
+    bs = band_path_cP.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+
     # Face-centered cubic (FCC, cF)
     assumed_labels = np.array([
         ["Γ", "X"],
@@ -102,6 +113,64 @@ def test_paths(band_path_cF, band_path_tP, band_path_hP):
         labels = segment.endpoints_labels
         assert np.array_equal(labels, assumed_labels[i, :])
 
+    # Orthorrombic (ORC, oP)
+    assumed_labels = np.array([
+        ["Γ", "X"],
+        ["X", "S"],
+        ["S", "Y"],
+        ["Y", "Γ"],
+        ["Γ", "Z"],
+        ["Z", "U"],
+        ["U", "R"],
+        ["R", "T"],
+        ["T", "Z"],
+        ["Y", "T"],
+    ])
+    bs = band_path_oP.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+
+    # Face-centered Orthorrombic (ORCF, oF)
+    assumed_labels = np.array([
+        ["Γ", "Y"],
+        ["Y", "T"],
+        ["T", "Z"],
+        ["Z", "Γ"],
+        ["Γ", "X"],
+        ["X", "A1"],
+        ["A1", "Y"],
+        ["T", "X1"],
+        ["X", "A"],
+        ["A", "Z"],
+        ["L", "Γ"],
+    ])
+    bs = band_path_oF.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+
+    # Body-centered Orthorrombic (ORCF, oI)
+    assumed_labels = np.array([
+        ["Γ", "X"],
+        ["X", "L"],
+        ["L", "T"],
+        ["T", "W"],
+        ["W", "R"],
+        ["R", "X1"],
+        ["X1", "Z"],
+        ["Z", "Γ"],
+        ["Γ", "Y"],
+        ["Y", "S"],
+        ["S", "W"],
+        ["L1", "Y"],
+        ["Y1", "Z"],
+    ])
+    bs = band_path_oI.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+
     # Hexagonal (HEX, hP)
     assumed_labels = np.array([
         ["Γ", "M"],
@@ -119,8 +188,47 @@ def test_paths(band_path_cF, band_path_tP, band_path_hP):
         labels = segment.endpoints_labels
         assert np.array_equal(labels, assumed_labels[i, :])
 
+    # Monoclinic (MCL, mP)
+    assumed_labels = np.array([
+        ["Γ", "Z"],
+        ["Z", "A"],
+        ["A", "X"],
+        ["X", "Γ"],
+        ["Γ", "Y"],
+        ["Y", "D"],
+        ["D", "E"],
+        ["E", "C"],
+        ["C", "Y"],
+        ["Y", "Γ"],
+    ])
+    bs = band_path_mP.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
 
-def test_non_standard(band_path_mP_nonstandard, band_path_cF_nonstandard):
+    # Triclinic (TRI, aP)
+    assumed_labels = np.array([
+        ["Γ", "X"],
+        ["X", "Y"],
+        ["Y", "S"],
+        ["S", "Γ"],
+        ["Γ", "Z"],
+        ["Z", "S1"],
+        ["S1", "N"],
+        ["N", "P"],
+        ["P", "Y1"],
+        ["Y1", "Z"],
+        ["X", "P"],
+    ])
+    bs = band_path_aP.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+
+
+def test_non_standard(band_path_cF_nonstandard, band_path_cI_nonstandard, band_path_tI_nonstandard,
+                      band_path_oS_nonstandard, band_path_hR_nonstandard, band_path_mP_nonstandard,
+                      band_path_mS_nonstandard):
     """Tests for lattice that do not follow the Setyawan/Curtarolo standard.
     """
     # The ordering of the lattice does not follow the standard: a, b <= c. No labels defined.
@@ -138,6 +246,74 @@ def test_non_standard(band_path_mP_nonstandard, band_path_cF_nonstandard):
         ["W", "K"],
     ])
     bs = band_path_cF_nonstandard.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+
+    # Labels not recognized as standard
+    # cI
+    assumed_labels = np.array([
+        ["Γ", ""],
+        ["", ""],
+        ["", "Γ"],
+        ["Γ", ""],
+        ["", ""],
+        ["", ""],
+    ])
+    bs = band_path_cI_nonstandard.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+    # tI
+    assumed_labels = np.array([
+        ["Γ", "Z"],
+        ["Z", ""],
+        ["", ""],
+        ["", "Γ"],
+        ["Γ", ""],
+        ["", ""],
+        ["", "X"],
+        ["X", ""],
+        ["", ""],
+        ["", ""],
+        ["Z", ""],
+    ])
+    bs = band_path_tI_nonstandard.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+    # oS
+    assumed_labels = np.array([
+        ["", "S"],
+        ["S", "Γ"],
+        ["Γ", "Z"],
+        ["Z", "R"],
+        ["R", ""],
+    ])
+    bs = band_path_oS_nonstandard.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+    # hR
+    assumed_labels = np.array([
+        ["Γ", ""],
+        ["Γ", ""],
+        ["Γ", ""],
+    ])
+    bs = band_path_hR_nonstandard.run[0].calculation[0].band_structure_electronic[0]
+    for i, segment in enumerate(bs.segment):
+        labels = segment.endpoints_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+    # mS
+    assumed_labels = np.array([
+        ["Γ", "A"],
+        ["A", "M1"],
+        ["M1", "E"],
+        ["E", ""],
+        ["", "Y"],
+        ["Y", "M"],
+    ])
+    bs = band_path_mS_nonstandard.run[0].calculation[0].band_structure_electronic[0]
     for i, segment in enumerate(bs.segment):
         labels = segment.endpoints_labels
         assert np.array_equal(labels, assumed_labels[i, :])
