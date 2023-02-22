@@ -207,6 +207,8 @@ const ForceDirected = React.memo(({data, layout, setTooltipContent}) => {
         })
       }
 
+      const allTasks = [...workflows, ...tasks]
+
       // add link from inputs to workflow
       inputs.forEach(input => addLink([data.key, 'Input'], input))
       // add link from workflow to outputs
@@ -215,13 +217,13 @@ const ForceDirected = React.memo(({data, layout, setTooltipContent}) => {
       if (tasks.length > 0) {
         // add link from input to first task
         inputs.forEach(input => {
-          addLink([tasks[0].key, 'Input'], input)
+          if (!input.crossLinks) addLink([tasks[0].key, 'Input'], input)
         })
         // add link from last task to output
         outputs.forEach(output => {
           // add link only if no task is connected to output
           let linked = false
-          for (const node of tasks) {
+          for (const node of allTasks) {
             const links = node.crossLinks.map(l => l[0])
             if (links.includes(output.key)) {
               linked = true
@@ -233,7 +235,6 @@ const ForceDirected = React.memo(({data, layout, setTooltipContent}) => {
       }
 
       // add links between tasks if inputs/outputs are connected
-      const allTasks = [...workflows, ...tasks]
       allTasks.forEach(task1 => {
         allTasks.forEach(task2 => {
           if (task1.key !== task2.key) {
@@ -272,6 +273,8 @@ const ForceDirected = React.memo(({data, layout, setTooltipContent}) => {
     //   .duration(250)
 
     function addSubGraph(node) {
+      if (!node._children || !node._children.length) return
+
       const d = {...node.data}
       d.children = (node._children || []).map(child => {
         return {...child.data, crossLinks: []}
@@ -458,7 +461,8 @@ const ForceDirected = React.memo(({data, layout, setTooltipContent}) => {
               target: nodeTarget.id,
               label: link[1],
               id: `${node.id}-${nodeTarget.id}`,
-              dash: link[2]
+              dash: link[2],
+              marker: link[3] === undefined
             })
           }
         })
@@ -687,7 +691,7 @@ const ForceDirected = React.memo(({data, layout, setTooltipContent}) => {
       const crossLinkEnter = crossLink.enter().append('line')
         .attr('class', 'crosslink')
         .style('stroke-dasharray', d => d.dash)
-        .attr('marker-end', d => `url(#${d.id})`)
+        .attr('marker-end', d => d.marker ? `url(#${d.id})` : null)
         .attr('id', d => `crosslink-${d.id}`)
         .on('mouseover', handleMouseOverCrossLink)
         .on('mouseout', handleMouseOutCrossLink)
@@ -732,7 +736,7 @@ const WorkflowCard = React.memo(({archive}) => {
       if (key in crossLinks) {
         crossLinks[key].push(link)
       } else {
-        crossLinks[key] = [[link]]
+        crossLinks[key] = [link]
       }
     }
 
@@ -783,6 +787,8 @@ const WorkflowCard = React.memo(({archive}) => {
       const sectionData = await (async (section, archive, path, baseUrl) => {
         const sectionKey = [baseUrl, path].join('#')
         const children = []
+        const maxTasks = 6
+        const start = Math.floor(maxTasks / 2)
         if (typeof section === 'string' || !section) {
           return {
             name: name,
@@ -850,20 +856,27 @@ const WorkflowCard = React.memo(({archive}) => {
           }
           if (section.tasks) {
             type = 'workflow'
-            const maxTasks = 8
-            const start = Math.floor(maxTasks / 2)
-            const end = section.tasks.length - start
             // resolve only several first and last tasks
+            const end = section.tasks.length - start
             const sectionChildren = []
             for (const [index, ref] of section.tasks.entries()) {
-              if (index < start || index >= end) {
+              if (index < start || index >= end || start + 1 === end) {
                 const task = await createHierarchy(ref, archive, ref.name || 'task', 'tasks', index, `${path}/tasks/${index}`)
                 if (task) sectionChildren.push(task)
               }
             }
-            if (section.tasks.length > maxTasks) {
-              const label = `Intermediate tasks not shown total of ${section.tasks.length}`
-              addCrossLink(sectionChildren[start - 1].key, [sectionChildren[start].key, label])
+            if (section.tasks.length > sectionChildren.length) {
+              const otherTasks = {
+                name: `Tasks ${start + 1} - ${end} not shown`,
+                type: sectionChildren[start - 1].type,
+                path: sectionChildren[start - 1].path,
+                entryId: sectionChildren[start - 1].entryId,
+                key: `${sectionChildren[start - 1].key}.invisible`,
+                size: 20
+              }
+              sectionChildren.splice(start, 0, otherTasks)
+              addCrossLink(sectionChildren[start - 1].key, [otherTasks.key, '', null, false])
+              addCrossLink(sectionChildren[start + 1].key, [otherTasks.key, '', null, false])
             }
             children.push(...sectionChildren)
           }
