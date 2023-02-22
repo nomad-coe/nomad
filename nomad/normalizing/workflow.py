@@ -150,8 +150,8 @@ class SinglePointNormalizer(TaskNormalizer):
             self.section.with_volumetric_data = (
                 len(scc[-1].potential) > 0 or len(scc[-1].density_charge) > 0)
 
-        if not self.section.with_excited_states:
-            self.section.with_excited_states = len(scc[-1].excited_states) > 0
+        if not self.section.with_spectra:
+            self.section.with_spectra = len(scc[-1].spectra) > 0
 
 
 class GeometryOptimizationNormalizer(TaskNormalizer):

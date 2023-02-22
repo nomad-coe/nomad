@@ -308,7 +308,8 @@ parsers = [
     MatchingParserInterface(
         'electronicparsers.ExcitingParser',
         metadata_path=f'{prefix_electronic}/exciting/metadata.yaml',
-        mainfile_name_re=r'^.*.OUT(\.[^/]*)?$', mainfile_contents_re=(r'EXCITING.*started')
+        mainfile_name_re=r'^.*.OUT(\.[^/]*)?$',
+        mainfile_contents_re=(r'EXCITING.*started[\s\S]+?All units are atomic ')
     ),
     MatchingParserInterface(
         'electronicparsers.FHIAimsParser',
@@ -607,6 +608,12 @@ parsers = [
             r'This program is part of the open-source Quantum ESPRESSO suite')
     ),
     MatchingParserInterface(
+        'workflowparsers.QuantumEspressoXSpectraParser',
+        metadata_path=f'{prefix_workflow}/quantum_espresso_xspectra/metadata.yaml',
+        mainfile_mime_re=r'(application/.*)|(text/.*)',
+        mainfile_contents_re=r'\s*Program XSpectra\s*'
+    ),
+    MatchingParserInterface(
         'databaseparsers.OpenKIMParser',
         metadata_path=f'{prefix_database}/openkim/metadata.yaml',
         mainfile_mime_re=r'(application/json)|(text/.*)',
@@ -631,6 +638,12 @@ parsers = [
         mainfile_mime_re=r'(application/x-hdf)',
         mainfile_binary_header_re=br'^\x89HDF',
         mainfile_contents_dict={'__has_all_keys': ['dft_input', 'DMFT_input', 'DMFT_results']}
+    ),
+    MatchingParserInterface(
+        'electronicparsers.OceanParser',
+        metadata_path=f'{prefix_electronic}/ocean/metadata.yaml',
+        mainfile_mime_re=r'(application/.*)|(text/.*)',
+        mainfile_contents_dict={'__has_all_keys': ['bse', 'structure', 'screen', 'calc']}
     ),
     MatchingParserInterface(
         'nomad.parsing.nexus.NexusParser',

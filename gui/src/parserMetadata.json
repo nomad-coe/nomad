@@ -488,6 +488,19 @@
     "status": "production",
     "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`nexus.out` | **Mainfile** in NEXUS specific plain-text |\n"
   },
+  "OCEAN": {
+    "codeCategory": "Atomistic code",
+    "codeLabel": "OCEAN",
+    "codeLabelStyle": "All in capitals",
+    "codeName": "ocean",
+    "codeUrl": "https://feff.phys.washington.edu/OCEAN/index.html",
+    "parserDirName": "dependencies/electronic/electronicparsers/ocean/",
+    "parserGitUrl": "https://github.com/nomad-coe/electronic-parsers.git",
+    "parserSpecific": "",
+    "preamble": "",
+    "status": "production",
+    "tableOfFiles": "| Input Filename | Description |\n| --- | --- |\n| `*` | **Mainfile:** text output file (in JSON format) |\n| `*.in` | input file with all parameters |\n| `absspct*` | output data file with the Absorption Spectra |\n| `abslanc*` | output data file with (Lanzcos algorithm) Absorption spectra |\n| `xesspct*` | output data file with the Emission Spectra |\n| `rxsspct*` | output data file with the RIXS |\n| `photon*` | electron-photon operator |\n"
+  },
   "ONETEP": {
     "codeCategory": "Atomistic code",
     "codeLabel": "ONETEP",
@@ -617,6 +630,19 @@
     "preamble": "",
     "status": "production",
     "tableOfFiles": "|Filename| Description|\n|---|---|\n|`<text_file>`|**Mainfile:** a plain text file w/arbitrary name. \\\nOne of the top lines must contain '`Program PWSCF.*starts`', \\\nwhere '`.*`' means an arbitrary number '`*`' of arbitrary \\\ncharacters '`.`'|\"\n"
+  },
+  "QuantumESPRESSOXSpectra": {
+    "codeCategory": "Workflow manager",
+    "codeLabel": "QuantumESPRESSOXSpectra",
+    "codeLabelStyle": "Capitals: Q, ESPRESSO, X, S",
+    "codeName": "quantumespressoxspectra",
+    "codeUrl": "https://www.quantum-espresso.org/Doc/INPUT_XSpectra.txt",
+    "parserDirName": "dependencies/workflow/workflowparsers/quantumespressoxspectra",
+    "parserGitUrl": "https://github.com/nomad-coe/workflow-parsers.git",
+    "parserSpecific": "",
+    "preamble": "",
+    "status": "production",
+    "tableOfFiles": "| Input Filename | Description |\n| --- | --- |\n| `*.out` | **Mainfile:** text output file |\n| `*.dat` | output data file with the Absorption Spectra |\n"
   },
   "QuantumEspressPhonon": {
     "codeCategory": "Workflow manager",

@@ -64,14 +64,18 @@ class MethodNormalizer():
 
         def get_method_name(section_method):
             method_name = config.services.unavailable_value
-            if section_method.electronic and section_method.electronic.method:
+            if section_method.m_xpath('electronic') and section_method.electronic.m_xpath('method'):
                 method_name = section_method.electronic.method
-            elif section_method.gw is not None:
+            elif section_method.m_xpath('gw') is not None:
                 method_name = 'GW'
-            elif section_method.projection is not None:
+            elif section_method.m_xpath('projection') is not None:
                 method_name = 'Projection'
-            elif section_method.dmft is not None:
+            elif section_method.m_xpath('dmft') is not None:
                 method_name = 'DMFT'
+            elif section_method.m_xpath('core_hole') is not None:
+                method_name = 'CoreHole'
+            elif section_method.m_xpath('bse') is not None:
+                method_name = 'BSE'
             return method_name
 
         def functional_long_name_from_method(methods):
@@ -265,6 +269,10 @@ class MethodNormalizer():
                 if dmft.u.magnitude != 0.0:
                     dmft.hunds_hubbard_ratio = model_hamiltonian[0].hubbard_kanamori_model[0].jh.magnitude / dmft.u.magnitude
             simulation.dmft = dmft
+        elif method_name == 'CoreHole':
+            method.method_name = 'CoreHole'
+        elif method_name == 'BSE':
+            method.method_name = 'BSE'
 
         # Fill k_mesh section
         k_mesh = self.run.m_xpath('method[-1].k_mesh')

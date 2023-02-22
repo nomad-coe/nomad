@@ -334,6 +334,41 @@ class MoleculeParameters(MSection):
     atom_parameters = SubSection(sub_section=AtomParameters.m_def, repeats=True)
 
 
+class Photon(MSection):
+    '''
+    Section containing the details of the photon field used for spectrum calculations.
+    '''
+
+    m_def = Section(validate=False)
+
+    multipole_type = Quantity(
+        type=str,
+        description='''
+        Type used for the multipolar expansion: dipole, quadrupole, NRIXS, Raman, etc.
+        ''')
+
+    polarization = Quantity(
+        type=np.float64,
+        shape=[3],
+        description='''
+        Direction of the photon polarization in cartesian coordinates.
+        ''')
+
+    energy = Quantity(
+        type=np.float64,
+        unit='joule',
+        description='''
+        Photon energy.
+        ''')
+
+    momentum_transfer = Quantity(
+        type=np.float64,
+        shape=[3],
+        description='''
+        Momentum transfer which would be important for quadrupole or NRIXS or Raman.
+        ''')
+
+
 class GaussianBasisGroup(MSection):
     '''
     Section that describes a group of Gaussian contractions. Groups allow one to calculate
@@ -988,6 +1023,81 @@ class GW(MSection):
         ''')
 
 
+class CoreHole(MSection):
+    '''
+    Section containing the various parameters that define a core-hole calculation. It can
+    be within BSE as a "core" subsection.
+    '''
+
+    m_def = Section(validate=False)
+
+    solver = Quantity(
+        type=str,
+        description='''
+        Solver algorithm used for the core-hole spectra.
+        ''')
+
+    edge = Quantity(
+        type=MEnum([
+            "K", "L1", "L2", "L3", "L23", "M1", "M2", "M3", "M23", "M4", "M5", "M45",
+            "N1", "N2", "N3", "N23", "N4", "N5", "N45"]),
+        description='''
+        Edge to be calculated for the core-hole spectra.
+        ''')
+
+    mode = Quantity(
+        type=MEnum(["absorption", "emission"]),
+        description='''
+        Type of spectra to be calculated: absorption or emission.
+        ''')
+
+    broadening = Quantity(
+        type=np.float64,
+        unit='electron_volt',
+        description='''
+        Core-hole lifetime broadening applied to the edge spectra in full-width at half maximum.
+        ''')
+
+
+class BSE(MSection):
+    '''
+    Section containing the various parameters that define a BSE calculation.
+    '''
+
+    m_def = Section(validate=False)
+
+    n_empty_states = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Number of empty states to calculate the BSE response function.
+        ''')
+
+    screening_type = Quantity(
+        type=str,
+        description='''
+        Type of treatment for the screening.
+        ''')
+
+    dielectric_infinity = Quantity(
+        type=np.int32,
+        description='''
+        Value of the static dielectric constant at infinite q. For metals, this is infinite,
+        while for insulators is finite.
+        ''')
+
+    n_empty_states_screening = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Number of empty states to calculate the screening matrix.
+        ''')
+
+    k_mesh_screening = SubSection(sub_section=KMesh.m_def)
+
+    core = SubSection(sub_section=CoreHole.m_def)
+
+
 class DMFT(MSection):
     '''
     Section containing the various parameters that define a DMFT calculation
@@ -1435,6 +1545,8 @@ class Method(ArchiveSection):
 
     gw = SubSection(sub_section=GW.m_def)
 
+    bse = SubSection(sub_section=BSE.m_def)
+
     dmft = SubSection(sub_section=DMFT.m_def)
 
     tb = SubSection(sub_section=TB.m_def)
@@ -1452,6 +1564,10 @@ class Method(ArchiveSection):
     molecule_parameters = SubSection(sub_section=MoleculeParameters.m_def, repeats=True, label_quantity='label')
 
     basis_set = SubSection(sub_section=BasisSet.m_def, repeats=True, label_quantity='type')
+
+    photon = SubSection(sub_section=Photon.m_def, repeats=True)
+
+    core_hole = SubSection(sub_section=CoreHole.m_def, repeats=True)
 
 
 m_package.__init_metainfo__()

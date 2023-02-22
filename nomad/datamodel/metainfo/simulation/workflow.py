@@ -27,7 +27,7 @@ from nomad.datamodel.metainfo.workflow2 import Workflow, Link, Task
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import Method
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Dos, BandStructure, BandEnergies, Density, Potential, ExcitedStates,
+    Calculation, Dos, BandStructure, BandEnergies, Density, Potential, Spectra,
     RadiusOfGyration as RadiusOfGyrationCalculation,
     RadiusOfGyrationValues as RadiusOfGyrationValuesCalculation)
 from nomad.atomutils import archive_to_universe
@@ -484,11 +484,11 @@ class SinglePointResults(SimulationWorkflowResults):
         Reference to the charge density data.
         ''')
 
-    excited_states = Quantity(
-        type=Reference(ExcitedStates),
+    spectra = Quantity(
+        type=Reference(Spectra),
         shape=['n_data'],
         description='''
-        Reference to the excited states data.
+        Reference to the spectral data.
         ''')
 
 
@@ -570,8 +570,8 @@ class SinglePoint(SimulationWorkflow):
         if not self.results.potential and last_calc.potential:
             self.results.potential = last_calc.potential
 
-        if not self.results.excited_states and last_calc.excited_states:
-            self.results.excited_states = last_calc.excited_states
+        if not self.results.spectra and last_calc.spectra:
+            self.results.spectra = last_calc.spectra
 
         if not self.results.calculation_result_ref:
             self.results.calculation_result_ref = last_calc
@@ -2349,6 +2349,109 @@ class GW(SerialSimulation):
 
         if not self.results:
             self.results = GWResults()
+            self.outputs.append(Link(name=_workflow_results_name, section=self.results))
+            # link results also to last task
+            if self.tasks:
+                self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
+
+
+class PhotonPolarizationResults(SimulationWorkflowResults):
+
+    n_polarizations = Quantity(
+        type=np.int32,
+        description='''
+        Number of polarizations for the phonons used for the calculations.
+        ''')
+
+    spectrum_polarization = Quantity(
+        type=Reference(Spectra),
+        shape=['n_polarizations'],
+        description='''
+        Spectrum for a given polarization of the photon.
+        ''')
+
+
+class PhotonPolarizationMethod(SimulationWorkflowMethod):
+
+    pass
+
+
+class PhotonPolarization(ParallelSimulation):
+
+    method = SubSection(sub_section=PhotonPolarizationMethod)
+
+    results = SubSection(sub_section=PhotonPolarizationResults)
+
+    def normalize(self, archive: EntryArchive, logger):
+        super().normalize(archive, logger)
+
+        if not self.method:
+            self.method = PhotonPolarizationMethod()
+            self.inputs.append(Link(name=_workflow_method_name, section=self.method))
+            # link method also to first task
+            if self.tasks:
+                self.tasks[0].inputs.append(Link(name=_workflow_method_name, section=self.method))
+
+        if not self.results:
+            self.results = PhotonPolarizationResults()
+            self.outputs.append(Link(name=_workflow_results_name, section=self.results))
+            # link results also to last task
+            if self.tasks:
+                self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
+
+
+class ParticleHoleExcitationsResults(SimulationWorkflowResults):
+
+    dos_dft = Quantity(
+        type=Reference(Dos),
+        description='''
+        DFT density of states
+        ''')
+
+    dos_gw = Quantity(
+        type=Reference(Dos),
+        description='''
+        GW density of states
+        ''')
+
+    band_structure_dft = Quantity(
+        type=Reference(BandStructure),
+        description='''
+        DFT density of states
+        ''')
+
+    band_structure_gw = Quantity(
+        type=Reference(BandStructure),
+        description='''
+        DFT density of states
+        ''')
+
+    spectra = SubSection(sub_section=PhotonPolarizationResults, repeats=True)
+
+
+class ParticleHoleExcitationsMethod(SimulationWorkflowMethod):
+
+    pass
+
+
+class ParticleHoleExcitations(SerialSimulation):
+
+    method = SubSection(sub_section=ParticleHoleExcitationsMethod)
+
+    results = SubSection(sub_section=ParticleHoleExcitationsResults)
+
+    def normalize(self, archive: EntryArchive, logger):
+        super().normalize(archive, logger)
+
+        if not self.method:
+            self.method = ParticleHoleExcitationsMethod()
+            self.inputs.append(Link(name=_workflow_method_name, section=self.method))
+            # link method also to first task
+            if self.tasks:
+                self.tasks[0].inputs.append(Link(name=_workflow_method_name, section=self.method))
+
+        if not self.results:
+            self.results = ParticleHoleExcitationsResults()
             self.outputs.append(Link(name=_workflow_results_name, section=self.results))
             # link results also to last task
             if self.tasks:
