@@ -989,8 +989,18 @@ def hash_vasp() -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
-def band_path_cF() -> EntryArchive:
+def band_path_cP() -> EntryArchive:
     '''Band structure calculation for a cP Bravais lattice.
+    '''
+    parser_name = 'parsers/fhi-aims'
+    filepath = 'tests/data/normalizers/band_structure/cP/aims.out'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def band_path_cF() -> EntryArchive:
+    '''Band structure calculation for a cF Bravais lattice.
     '''
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/cF/vasprun.xml.bands.xz'
@@ -1009,11 +1019,111 @@ def band_path_tP() -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
+def band_path_oP() -> EntryArchive:
+    '''Band structure calculation for a oP Bravais lattice.
+    '''
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/oP/vasprun.xml'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def band_path_oF() -> EntryArchive:
+    '''Band structure calculation for a oF Bravais lattice.
+    '''
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/oF/vasprun.xml.bands.xz'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def band_path_oI() -> EntryArchive:
+    '''Band structure calculation for a oI Bravais lattice.
+    '''
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/oI/vasprun.xml.bands.xz'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
 def band_path_hP() -> EntryArchive:
     '''Band structure calculation for a hP Bravais lattice.
     '''
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/hP/vasprun.xml.bands.xz'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def band_path_mP() -> EntryArchive:
+    '''Band structure calculation for a mP Bravais lattice.
+    '''
+    parser_name = 'parsers/fhi-aims'
+    filepath = 'tests/data/normalizers/band_structure/mP/aims.out'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def band_path_aP() -> EntryArchive:
+    '''Band structure calculation for a aP Bravais lattice.
+    '''
+    parser_name = 'parsers/fhi-aims'
+    filepath = 'tests/data/normalizers/band_structure/aP/aims.out'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def band_path_cF_nonstandard() -> EntryArchive:
+    '''Band structure calculation for a cF Bravais lattice with non-standard k points.
+    '''
+    parser_name = 'parsers/exciting'
+    filepath = 'tests/data/normalizers/band_structure/cF_nonstandard/INFO.OUT'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def band_path_cI_nonstandard() -> EntryArchive:
+    '''Band structure calculation for a cI Bravais lattice with non-standard k points.
+    '''
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/cI_nonstandard/vasprun.xml'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def band_path_tI_nonstandard() -> EntryArchive:
+    '''Band structure calculation for a tI Bravais lattice with non-standard k points.
+    '''
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/tI_nonstandard/vasprun.xml'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def band_path_oS_nonstandard() -> EntryArchive:
+    '''Band structure calculation for a oS Bravais lattice with non-standard k points.
+    '''
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/oS_nonstandard/vasprun.xml'
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def band_path_hR_nonstandard() -> EntryArchive:
+    '''Band structure calculation for a hR Bravais lattice with non-standard k points.
+    '''
+    parser_name = 'parsers/fhi-aims'
+    filepath = 'tests/data/normalizers/band_structure/hR_nonstandard/aims.out'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
@@ -1030,12 +1140,12 @@ def band_path_mP_nonstandard() -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
-def band_path_cF_nonstandard() -> EntryArchive:
-    '''Band structure calculation for a mP Bravais lattice with a non-standard
+def band_path_mS_nonstandard() -> EntryArchive:
+    '''Band structure calculation for a mS Bravais lattice with non-standard k points.
     lattice ordering.
     '''
-    parser_name = 'parsers/exciting'
-    filepath = 'tests/data/normalizers/band_structure/cF_nonstandard/INFO.OUT'
+    parser_name = 'parsers/vasp'
+    filepath = 'tests/data/normalizers/band_structure/mS_nonstandard/vasprun.xml'
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 

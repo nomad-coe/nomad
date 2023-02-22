@@ -262,7 +262,7 @@ class BandStructureNormalizer(Normalizer):
 
         # Try to get the required data. Fail if not found.
         try:
-            cell = system.atoms.lattice_vectors.to("angstrom").magnitude
+            lattice_vectors = system.atoms.lattice_vectors.to("angstrom").magnitude
             reciprocal_cell_trans = band.reciprocal_cell.magnitude.T
             bravais_lattice = system.symmetry[0].bravais_lattice
         except Exception:
@@ -271,10 +271,9 @@ class BandStructureNormalizer(Normalizer):
 
         # Find special points for this lattice. If an error occurs, the labels
         # are simply not written.
-        try:
-            special_points = self.get_special_points(bravais_lattice, cell)
-        except Exception as e:
-            self.logger.warning("Could not resolve high-symmetry points for the given simulation cell.", exception=e)
+        special_points = self.get_special_points(bravais_lattice, lattice_vectors)
+        if not special_points:
+            self.logger.warning("Could not resolve high-symmetry points for the given simulation cell.")
             return
 
         # Form a contiguous array of k points for faster operations
@@ -309,7 +308,7 @@ class BandStructureNormalizer(Normalizer):
                 end_label = special_point_labels[end_index]
             segment.endpoints_labels = [start_label, end_label]
 
-    def get_special_points(self, bravais_lattice, cell, eps=1e-4):
+    def get_special_points(self, bravais_lattice, lattice_vectors, eps=3e-3):
         """Return dict of special points.
 
         The definitions are from a paper by Wahyu Setyawana and Stefano
@@ -318,112 +317,38 @@ class BandStructureNormalizer(Normalizer):
             http://dx.doi.org/10.1016/j.commatsci.2010.05.010
 
         bravais_lattice: str
-            bravais lattice in Pearson notation.
-        cell: 3x3 ndarray
-            Unit cell.
+            Bravais lattice in Pearson notation.
+        lattice_vectors: 3x3 ndarray
+            Lattice vectors of the primitive cell.
         eps: float
-            Tolerance for cell-check.
+            tolerance factor to define the Bravais lattice parameters
         """
-        # Special points that do not depend on lattice parameters. TODO: A lot
-        # of the bravais lattice are missing from this implementation that is
-        # copied from the VASP parser.
-        special_points = {
-            'cP': {
-                'Γ': [0, 0, 0],
-                'M': [1 / 2, 1 / 2, 0],
-                'R': [1 / 2, 1 / 2, 1 / 2],
-                'X': [0, 1 / 2, 0]
-            },
-            'cF': {
-                'Γ': [0, 0, 0],
-                'K': [3 / 8, 3 / 8, 3 / 4],
-                'L': [1 / 2, 1 / 2, 1 / 2],
-                'U': [5 / 8, 1 / 4, 5 / 8],
-                'W': [1 / 2, 1 / 4, 3 / 4],
-                'X': [1 / 2, 0, 1 / 2]
-            },
-            'cI': {
-                'Γ': [0, 0, 0],
-                'H': [1 / 2, -1 / 2, 1 / 2],
-                'P': [1 / 4, 1 / 4, 1 / 4],
-                'N': [0, 0, 1 / 2]
-            },
-            'tP': {
-                'Γ': [0, 0, 0],
-                'A': [1 / 2, 1 / 2, 1 / 2],
-                'M': [1 / 2, 1 / 2, 0],
-                'R': [0, 1 / 2, 1 / 2],
-                'X': [0, 1 / 2, 0],
-                'Z': [0, 0, 1 / 2]
-            },
-            'oP': {
-                'Γ': [0, 0, 0],
-                'R': [1 / 2, 1 / 2, 1 / 2],
-                'S': [1 / 2, 1 / 2, 0],
-                'T': [0, 1 / 2, 1 / 2],
-                'U': [1 / 2, 0, 1 / 2],
-                'X': [1 / 2, 0, 0],
-                'Y': [0, 1 / 2, 0],
-                'Z': [0, 0, 1 / 2]
-            },
-            'hP': {
-                'Γ': [0, 0, 0],
-                'A': [0, 0, 1 / 2],
-                'H': [1 / 3, 1 / 3, 1 / 2],
-                'K': [1 / 3, 1 / 3, 0],
-                'L': [1 / 2, 0, 1 / 2],
-                'M': [1 / 2, 0, 0]
-            }
-        }
+        cell = ase.cell.Cell(lattice_vectors)
+        lattice = cell.get_bravais_lattice(eps)
+        special_points = {}
+        try:
+            # Non-conventional ordering for certain lattices:
+            if bravais_lattice in ['oP', 'oF', 'oI', 'oS']:
+                a, b, c = lattice.a, lattice.b, lattice.c
+                assert a < b
+                if bravais_lattice != 'oS':
+                    assert b < c
+            elif bravais_lattice in ['mP', 'mS']:
+                a, b, c = lattice.a, lattice.b, lattice.c
+                alpha = lattice.alpha * pi / 180
+                assert a <= c and b <= c  # ordering of the conventional lattice
+                assert alpha < pi / 2
 
-        cellpar = ase.geometry.cell_to_cellpar(cell=cell)
-        abc = cellpar[:3]
-        angles = cellpar[3:] / 180 * pi
-        a, b, c = abc
-        alpha, _, gamma = angles
+            for (keys, values) in lattice.get_special_points().items():
+                if keys == 'G':
+                    keys = 'Γ'
+                if bravais_lattice == 'tI':
+                    if keys == 'S':
+                        keys = 'Σ'
+                    elif keys == 'S1':
+                        keys = 'Σ1'
+                special_points[keys] = list(values)
+        except Exception:
+            pass
 
-        # Check that the unit cells are as in the Setyawana-Curtarolo paper:
-        if bravais_lattice == 'cP':
-            assert abc.ptp() < eps and abs(angles - pi / 2).max() < eps
-        elif bravais_lattice == 'cF':
-            assert abc.ptp() < eps and abs(angles - pi / 3).max() < eps
-        elif bravais_lattice == 'cI':
-            angle = np.arccos(-1 / 3)
-            assert abc.ptp() < eps and abs(angles - angle).max() < eps
-        elif bravais_lattice == 'tP':
-            assert abs(a - b) < eps and abs(angles - pi / 2).max() < eps
-        elif bravais_lattice == 'oP':
-            assert abs(angles - pi / 2).max() < eps
-        elif bravais_lattice == 'hP':
-            assert abs(a - b) < eps
-            assert abs(gamma - pi / 3 * 2) < eps
-            assert abs(angles[:2] - pi / 2).max() < eps
-        elif bravais_lattice == 'mP':
-            sin_alpha = np.sin(alpha)
-            cos_alpha = np.cos(alpha)
-            assert c >= a and c >= b
-            assert alpha < pi / 2
-            assert alpha < pi / 2
-            assert (np.abs(angles[1:] - pi / 2) < eps).all()
-            eta = (1 - b * cos_alpha / c) / (2 * sin_alpha**2)
-            nu = 1 / 2 - eta * c * cos_alpha / b
-
-            return {
-                'Γ': [0, 0, 0],
-                'A': [1 / 2, 1 / 2, 0],
-                'C': [0, 1 / 2, 1 / 2],
-                'D': [1 / 2, 0, 1 / 2],
-                'D1': [1 / 2, 0, -1 / 2],
-                'E': [1 / 2, 1 / 2, 1 / 2],
-                'H': [0, eta, 1 - nu],
-                'H1': [0, 1 - eta, nu],
-                'H2': [0, eta, -nu],
-                'M': [1 / 2, eta, 1 - nu],
-                'M1': [1 / 2, 1 - eta, nu],
-                'M2': [1 / 2, eta, -nu],
-                'X': [0, 1 / 2, 0],
-                'Y': [0, 0, 1 / 2],
-                'Y1': [0, 0, -1 / 2],
-                'Z': [1 / 2, 0, 0]
-            }
-        return special_points[bravais_lattice]
+        return special_points
