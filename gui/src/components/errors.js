@@ -17,10 +17,9 @@
  */
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { SnackbarContent, IconButton, Snackbar, withStyles, Typography, Box } from '@material-ui/core'
+import { SnackbarContent, IconButton, Snackbar, withStyles } from '@material-ui/core'
 import CloseIcon from '@material-ui/icons/Close'
 import { pwaRegistrationRef } from './PWA'
-import Markdown from './Markdown'
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -76,7 +75,7 @@ class ErrorSnacksUnstyled extends React.Component {
         console.log(error)
       }
     } else if (typeof error === 'string' || error instanceof String) {
-      errorStr = `${error} Please try to reload and let us know, if this error keeps happening.`
+      errorStr = `${error} Please close all NOMAD tabs and try again. Let us know, if this error keeps happening.`
     }
 
     if (this.state.errors.indexOf(errorStr) === -1) {
@@ -160,20 +159,13 @@ export class ErrorBoundary extends React.Component {
   }
 
   render() {
+    // If an error is caught, show the 'root' error message. This message will
+    // be shown on top of everything does not contain any React or MUI specific
+    // code to keep it functional no matter where the error originates from.
     if (this.state.hasError) {
-      return <Box margin={2}>
-        <Typography color="error">
-          Something went wrong in this part of the app (Javascript error). Please try to
-          reload and let us know, if this error keeps happening.
-        </Typography>
-
-        <Markdown>
-          {`
-          Please, write to [support@nomad-lab.eu](mailto:support@nomad-lab.eu), or
-          open an issue on our [github project](https://github.com/nomad-coe/nomad/issues).
-          `}
-        </Markdown>
-      </Box>
+      const error = document.getElementById("rootError")
+      error.style.display = 'block'
+      return null
     }
 
     return this.props.children
