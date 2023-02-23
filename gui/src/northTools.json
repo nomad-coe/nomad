@@ -150,6 +150,7 @@
         "short_description": "ImageJ and Fiji for image processing",
         "description": "ImageJ and Fiji with amongst others several electron-microscopy specific plug-ins",
         "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/fiji-webtop",
+        "privileged": true,
         "icon": "jupyter_logo.svg",
         "mount_path": "/config",
         "maintainer": [
