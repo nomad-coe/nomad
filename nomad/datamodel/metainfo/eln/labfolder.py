@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 import json
+
 import yaml
 import requests
 import re
@@ -156,14 +157,16 @@ class LabfolderTableElement(LabfolderElement):
 class LabfolderDataElement(LabfolderElement):
 
     data_elements = SubSection(section=LabfolderDataElementGrid, repeats=True)
-    data_overview = Quantity(
+    labfolder_data = Quantity(
         type=JSON, description='The JSON content of the table element',
         a_browser=dict(value_component='JsonValue'))
 
-    referenced_data = Quantity(
-        type=Reference(SectionProxy('LabfolderDataElement')),
-        descriptions='Referenced quantity',
-        a_eln=dict(component='ReferenceEditQuantity'))
+    nomad_data = SubSection(sub_section=LabfolderElement)
+
+    nomad_data_schema = Quantity(
+        type=Reference(Section),
+        a_eln=dict(component='ReferenceEditQuantity')
+    )
 
     def parse_data(self, data_from_response, data_converted):
         for item in data_from_response:
@@ -183,10 +186,12 @@ class LabfolderDataElement(LabfolderElement):
 
     def post_process(self, labfolder_api_method, archive, logger, res_data={}):
         data_from_response = res_data.get('data_elements', None)
-        if len(data_from_response) > 0:
+        if data_from_response is not None:
             data_converted = {}
             self.parse_data(data_from_response, data_converted)
-            self.data_overview = data_converted
+            self.labfolder_data = data_converted
+        else:
+            logger.warning('the labfolder api returned no data')
 
 
 class LabfolderWellPlateElement(LabfolderElement):
@@ -235,7 +240,7 @@ class LabfolderProject(EntryData):
         a_eln=dict(component='StringEditQuantity'))
     password = Quantity(
         type=str,
-        a_eln=dict(component='StringEditQuantity', type='password'))
+        a_eln=dict(component='StringEditQuantity', props=dict(type='password')))
     resync_labfolder_repository = Quantity(
         type=bool,
         a_eln=dict(component='BoolEditQuantity'))
@@ -309,54 +314,66 @@ class LabfolderProject(EntryData):
         super(LabfolderProject, self).normalize(archive, logger)
         self.logger = logger
 
-        if not self.project_url or not self.labfolder_email or not self.password:
-            logger.error('missing information, cannot import project')
-            raise LabfolderImportError()
+        if not self.elements:
+            self.resync_labfolder_repository = True
 
-        try:
-            project_ids = parse_qs(urlparse(self.project_url).fragment[1:])['projectIds']
-        except KeyError as e:
-            logger.error('cannot parse project ids from url', exc_info=e)
-            raise LabfolderImportError()
+        if self.resync_labfolder_repository:
+            if not self.project_url or not self.labfolder_email or not self.password:
+                logger.error('missing information, cannot import project')
+                raise LabfolderImportError()
 
-        data = self._labfolder_api_method(
-            requests.get, f'/entries?project_ids={",".join(project_ids)}'
-        ).json()
-
-        elements = data[0]['elements']
-        del data[0]['elements']
-
-        try:
-            self.m_update_from_dict(data[0])
-        except Exception as e:
-            logger.error('cannot update archive with labfolder data', exc_info=e)
-            raise LabfolderImportError()
-
-        # remove potential old content
-        self.elements.clear()
-
-        for element in elements:
-            element_type = element['type']
-
-            if element_type not in _element_type_path_mapping:
-                logger.warn('unknown element type', data=dict(element_type=element_type))
-                continue
+            try:
+                project_ids = parse_qs(urlparse(self.project_url).fragment[1:])['projectIds']
+            except KeyError as e:
+                logger.error('cannot parse project ids from url', exc_info=e)
+                raise LabfolderImportError()
 
             data = self._labfolder_api_method(
-                requests.get,
-                f'/elements/{_element_type_path_mapping[element_type]}/{element["id"]}/version/{element["version_id"]}'
+                requests.get, f'/entries?project_ids={",".join(project_ids)}'
             ).json()
-            nomad_element = _element_type_section_mapping[element_type]()
 
-            nomad_element.m_update_from_dict(data)
-            nomad_element.post_process(self._labfolder_api_method, archive, logger, res_data=data)
-            self.elements.append(nomad_element)
+            elements = data[0]['elements']
+            del data[0]['elements']
 
-        # Resetting Token and Logging out: Invalidating all access tokens
-        self.resync_labfolder_repository = False
-        self._clear_user_data()
-        self._labfolder_api_method(requests.post, '/auth/logout')
-        logger.info('reached the end')
+            try:
+                self.m_update_from_dict(data[0])
+            except Exception as e:
+                logger.error('cannot update archive with labfolder data', exc_info=e)
+                raise LabfolderImportError()
+
+            # remove potential old content
+            self.elements.clear()
+
+            for element in elements:
+                element_type = element['type']
+
+                if element_type not in _element_type_path_mapping:
+                    logger.warn('unknown element type', data=dict(element_type=element_type))
+                    continue
+
+                data = self._labfolder_api_method(
+                    requests.get,
+                    f'/elements/{_element_type_path_mapping[element_type]}/{element["id"]}/version/{element["version_id"]}'
+                ).json()
+                nomad_element = _element_type_section_mapping[element_type]()
+
+                nomad_element.m_update_from_dict(data)
+                nomad_element.post_process(self._labfolder_api_method, archive, logger, res_data=data)
+                self.elements.append(nomad_element)
+
+            # Resetting Token and Logging out: Invalidating all access tokens
+            self.resync_labfolder_repository = False
+            self._clear_user_data()
+            self._labfolder_api_method(requests.post, '/auth/logout')
+            logger.info('reached the end')
+
+        elif not self.resync_labfolder_repository and len(self.elements) > 0:
+            for element in self.elements:
+                if isinstance(element, LabfolderDataElement) and element.labfolder_data and element.nomad_data_schema:
+                    try:
+                        element.nomad_data = element.nomad_data_schema.m_from_dict(element.labfolder_data)
+                    except Exception as e:
+                        logger.error('could not apply schema to labfolder data element', exc_info=e)
 
 
 m_package.init_metainfo()
