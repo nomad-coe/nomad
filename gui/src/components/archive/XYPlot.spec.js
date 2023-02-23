@@ -29,26 +29,26 @@ const subSectionDef = {
     name: {
       type: {
         type_data: 'str',
-        type_king: 'python'
+        type_kind: 'python'
       }
     },
     some_label_quantity: {
       type: {
         type_data: 'str',
-        type_king: 'python'
+        type_kind: 'python'
       }
     },
     x: {
       type: {
         type_data: 'float64',
-        type_king: 'numpy'
+        type_kind: 'numpy'
       },
       shape: ['*']
     },
     y: {
       type: {
         type_data: 'float64',
-        type_king: 'numpy'
+        type_kind: 'numpy'
       },
       shape: ['*']
     }
@@ -61,13 +61,34 @@ const middleSectionDef = {
     name: {
       type: {
         type_data: 'str',
-        type_king: 'python'
+        type_kind: 'python'
       }
     },
     my_sub_sections: {
       m_def: 'nomad.metainfo.metainfo.SubSection',
       repeats: true,
       sub_section: subSectionDef
+    },
+    x: {
+      type: {
+        type_data: 'float64',
+        type_kind: 'numpy'
+      },
+      shape: []
+    },
+    y: {
+      type: {
+        type_data: 'float64',
+        type_kind: 'numpy'
+      },
+      shape: []
+    },
+    y2: {
+      type: {
+        type_data: 'float64',
+        type_kind: 'numpy'
+      },
+      shape: []
     }
   }
 }
@@ -177,6 +198,21 @@ const topSectionLabeled = {
   ]
 }
 
+const topSectionScalar = {
+  my_middle_sections: [
+    {
+      x: 0,
+      y: 2,
+      y2: 3
+    },
+    {
+      x: 1,
+      y: 3,
+      y2: 4
+    }
+  ]
+}
+
 test.each([
   [
     'Plotting first two sub sections',
@@ -227,6 +263,19 @@ test.each([
     topSectionLabeled,
     topSectionDef,
     ['Middle 1, Sub 1, Y', 'Middle 1, Sub 2, Y', 'Middle 1, My Sub Sections 2, Y']
+  ],
+  [
+    'Plotting scalars from repeating sub sections',
+    {
+      x: 'my_middle_sections/:/x',
+      y: [
+        'my_middle_sections/:/y',
+        'my_middle_sections/:/y2'
+      ]
+    },
+    topSectionScalar,
+    topSectionDef,
+    ['My Middle Sections, Y', 'My Middle Sections, Y2']
   ]
 ])('Render XYPlot: %s', async (title, plot, section, sectionDef, expected_texts) => {
   renderNoAPI(<XYPlot

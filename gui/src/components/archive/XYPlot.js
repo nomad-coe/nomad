@@ -57,9 +57,10 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     /**
      * Recursively splits a path containing slice notation (`start:stop`)
      * @param {String} path The path which should be split at repeating sections
+     * @param {Boolean} isScalar Whether the quantity at the end of the path is scalar
      * @returns {Array} The paths and names of the new paths
      */
-    function resolveSlice(path) {
+    function resolveSlice(path, isScalar) {
       const pathArr = path.split('/')
       for (let i = 0; i < pathArr.length; i++) {
         const pathSection = pathArr[i]
@@ -81,9 +82,9 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
             const allNames = []
             for (let j = start; j < stop; j++) {
               const repeatDef = resolveInternalRef('/' + repeatPath.replace('./', '') + `/${j}/sub_section`, sectionDef)
-              const label = repeat[j][repeatDef?.more?.label_quantity] ?? repeat[j].name
-              const [paths, names] = resolveSlice(`${repeatPath}/${j}/${remainPath}`)
-              const subSectionName = label ?? `${titleCase(pathArr[i - 1])} ${j}`
+              const label = isScalar ? undefined : (repeat[j][repeatDef?.more?.label_quantity] ?? repeat[j].name)
+              const [paths, names] = resolveSlice(`${repeatPath}/${j}/${remainPath}`, isScalar)
+              const subSectionName = label ?? `${titleCase(pathArr[i - 1])}${isScalar ? '' : ` ${j}`}`
               names.forEach((name) => { allNames.push(`${subSectionName}, ${name}`) })
               allPaths.push(...paths)
             }
@@ -95,25 +96,67 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
       return [[path], [titleCase(pathArr[pathArr.length - 1])]]
     }
 
-    const Y = []
-    const Names = []
-    YPrime.forEach((y) => {
-      const [paths, names] = resolveSlice(y)
-      Y.push(...paths)
-      Names.push(...names)
-    })
-    const X = []
-    XPrime.forEach((x) => {
-      X.push(...resolveSlice(x)[0])
-    })
+    /**
+     * Function for getting all the paths for an array of paths that may contain slice
+     * notation. The function also returns names to be used as labels if withNames is true.
+     * @param {Array} slicedPaths The array of paths that may contatin slice notation
+     * @param {Boolean} withNames Whether or not the functiion should return names
+     * @returns Array of paths or Array of Array of paths and names
+     */
+    function getSlicedPaths(slicedPaths, withNames) {
+      const allPaths = []
+      const Names = []
+      slicedPaths.forEach((slicedPath) => {
+        const pathRelative = '/' + slicedPath.replace('./', '')
+        // Removes the index in the path and resolve the shape of the quantity
+        const isScalar = resolveInternalRef(pathRelative.replace(/\/-?\d*:-?\d*/gm, '/0') + '/shape', sectionDef)?.length === 0
+        const [paths, names] = resolveSlice(pathRelative, isScalar)
+        // If the quanitity is a scalar an Array of paths is added otherwise the paths are added one by one
+        allPaths.push(...(isScalar ? [paths] : paths))
+        if (withNames) {
+          // For scalar quantities the name is taken as the first one
+          Names.push(...(isScalar ? [names[0]] : names))
+        }
+      })
+      return withNames ? [allPaths, Names] : allPaths
+    }
+
+    const [Y, Names] = getSlicedPaths(YPrime, true)
+    const X = getSlicedPaths(XPrime, false)
     const nLines = Y.length
+
+    /**
+     * Gets the value array, unit and split path for:
+     * 1. A path to an array quanitity
+     * or
+     * 2. An array of paths to a scalar quantity
+     * @param {*} path String path or Array of string paths
+     * @returns Array of [value, unit, split path]
+     */
+    function getValues(path) {
+      let Values = []
+      let Unit = ''
+      let pathArray = ''
+      if (Array.isArray(path)) {
+        // If path is an Array of paths the quantity is scalar and Values is build from all of them
+        path.forEach((Point) => {
+          const [Value, PointUnit] = toUnit(Point)
+          Values.push(Value)
+          Unit = PointUnit
+          pathArray = Point.split('/')
+        })
+      } else {
+        [Values, Unit] = toUnit(path)
+        pathArray = path.split('/')
+      }
+      return [Values, Unit, pathArray]
+    }
 
     const xUnits = []
     const xLabels = []
     const xValuesArray = []
     X.forEach((x) => {
-      const [xValues, xUnit] = toUnit(x)
-      const xPath = x.split('/')
+      const [xValues, xUnit, xPath] = getValues(x)
       const xLabel = titleCase(xPath[xPath.length - 1])
       xUnits.push(xUnit)
       xLabels.push(xLabel)
@@ -124,7 +167,6 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
 
     const lines = getLineStyles(nLines, theme).map(line => {
       return {type: 'scatter',
-        mode: 'lines',
         line: line}
     })
     if (plot.lines) {
@@ -146,8 +188,9 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     const yUnits = []
     const yLabels = []
     Y.forEach((y, index) => {
-      const [yValues, yUnit] = toUnit(y)
-      const yPath = y.split('/')
+      const [yValues, yUnit, yPath] = getValues(y)
+      // For scalar quantities the default mode is set to 'markers'
+      lines[index].mode = lines[index].mode ?? (Array.isArray(y) ? 'markers' : 'lines')
       const yLabel = titleCase(yPath[yPath.length - 1])
       const line = {
         name: Names[index],
@@ -213,7 +256,6 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     if (plot.layout) {
       merge(layout, plot.layout)
     }
-
     return [data, layout]
   }, [plot.layout, plot.lines, xAxis, yAxis, section, sectionDef, theme, title, units])
 
