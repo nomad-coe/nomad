@@ -193,6 +193,7 @@ def test_labfolder_detailed(mongo, monkeypatch, test_user, status_code, project_
     labfolder_instance.project_url = project_url
     labfolder_instance.labfolder_email = labfolder_email
     labfolder_instance.password = password
+    labfolder_instance.resync_labfolder_repository = True
     test_archive.data = labfolder_instance
 
     if status_code is 200:
@@ -211,7 +212,7 @@ def test_labfolder_detailed(mongo, monkeypatch, test_user, status_code, project_
         if parsed_data['element_type'] is not 'DATA':
             assert json.dumps(parsed_data, sort_keys=True) == json.dumps(response_data, sort_keys=True)
         else:
-            del parsed_data['data_overview']
+            del parsed_data['labfolder_data']
             assert json.dumps(parsed_data, sort_keys=True) == json.dumps(response_data, sort_keys=True)
     else:
         with pytest.raises(LabfolderImportError):
