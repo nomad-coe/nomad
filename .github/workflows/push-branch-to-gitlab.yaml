@@ -1,0 +1,13 @@
+name: Push the branch to the home Project at MPCDF's gitlab
+on: workflow_dispatch
+jobs:
+  push-to-gitlab:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
+      - name: Git push
+        run: |
+          git push "https://username:${{ secrets.GITLAB_ACCESS_TOKEN }}@gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git" ${{ github.head_ref }}
