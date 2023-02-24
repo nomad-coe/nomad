@@ -1,0 +1,14 @@
+data:  
+  m_def: ../upload/raw/test.schema.archive.yaml#Hall_measurement
+  crucible_model: test model
+  net_mass_before: 100
+  dose: 1.5
+  instrument1:
+    name: "my_instrument1"
+  instrument2:
+    name: "my_instrument2"
+    internal1:
+      name: "my_internal1"
+  instrument3:
+    name: "my_instrument3"
+    

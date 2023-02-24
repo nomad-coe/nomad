@@ -153,3 +153,78 @@ test.each([
     await navigateTo(path)
   }
 }, 5 * minutes)
+
+test.each([
+  [
+    'author',
+    'tests.states.entry.eln_properties',
+    'tests/data/entry/eln_properties_writer',
+    'test',
+    'password'
+  ], [
+    'reviewer',
+    'tests.states.entry.eln_properties',
+    'tests/data/entry/eln_properties_reviewer',
+    'ttester',
+    'password'
+  ]
+])('ELN properties annotation as %s', async (name, state, snapshot, username, password) => {
+  await startAPI(state, snapshot, username, password)
+  await act(async () => render(<EntryContext entryId={'nwW7UiYFBvR9VQsKdehH9wd3Efws'}><ArchiveEntryView /></EntryContext>))
+  expect(await screen.findByText('Entry')).toBeVisible()
+
+  await navigateTo('data')
+
+  await screen.getByText('Hall_measurement')
+  const data = await screen.getByTestId('lane1:data')
+
+  let compartments = await within(data).queryAllByTestId('compartment')
+  const allVisibleQuantities = await within(data).queryAllByTestId("visible-quantity")
+  const allVisibleSubsections = await within(data).queryAllByTestId("subsection")
+  let allEditableQuantities = await within(data).queryAllByTestId("editable-quantity-editor")
+
+  // test the visibility
+  expect(compartments.length).toBe(4)
+  expect(allVisibleQuantities.length).toBe(6)
+  expect(allVisibleSubsections.length).toBe(3)
+
+  // test the order
+  await within(compartments[1]).findByText(/^quantities/i)
+  await within(compartments[2]).findByText(/^sub section/i)
+  await within(compartments[3]).findByText(/^referenced by/i)
+  await within(allVisibleQuantities[0]).findByText(/^Crucible[ _]mass/i)
+  await within(allVisibleQuantities[1]).findByText(/^Atmosphere/i)
+  await within(allVisibleQuantities[2]).findByText(/^Crucible[ _]model/i)
+  await within(allVisibleQuantities[3]).findByText(/^Brutto[ _]mass[ _]before/i)
+  await within(allVisibleQuantities[4]).findByText(/^dose/i)
+  await within(allVisibleQuantities[5]).findByText(/^net[ _]mass[ _]before/i)
+  await within(allVisibleSubsections[0]).findByText(/^instrument2/i)
+  await within(allVisibleSubsections[1]).findByText(/^instrument3/i)
+  await within(allVisibleSubsections[2]).findByText(/^instrument1/i)
+
+  // test the quantity permissions
+  if (name === 'author') {
+    expect(allEditableQuantities.length).toBe(3)
+    await within(allEditableQuantities[0]).findByText(/^Crucible[ _]mass/i)
+    await within(allEditableQuantities[1]).findByText(/^Atmosphere/i)
+    await within(allEditableQuantities[2]).findByText(/^Brutto[ _]mass[ _]before/i)
+  } else {
+    expect(allEditableQuantities.length).toBe(0)
+  }
+
+  // test the subsection permissions
+  await navigateTo('data/instrument2')
+  const instrument2 = await screen.getByTestId('lane2:instrument2')
+  compartments = await within(instrument2).queryAllByTestId('compartment')
+  allEditableQuantities = await within(instrument2).queryAllByTestId("editable-quantity-editor")
+  expect(compartments.length).toBe(4)
+  expect(allEditableQuantities.length).toBe(0)
+
+  // test the recursive subsection permissions
+  await navigateTo('data/instrument2/internal1')
+  const internal1 = await screen.getByTestId('lane3:internal1')
+  compartments = await within(internal1).queryAllByTestId('compartment')
+  allEditableQuantities = await within(internal1).queryAllByTestId("editable-quantity-editor")
+  expect(compartments.length).toBe(3)
+  expect(allEditableQuantities.length).toBe(0)
+})

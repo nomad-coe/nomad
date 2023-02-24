@@ -865,12 +865,44 @@ InheritingSections.propTypes = ({
   lane: PropTypes.object
 })
 
+export function getAllVisibleProperties(sectionDef) {
+  const properties = sectionDef?.m_annotations?.eln?.[0]?.properties
+  const visible = properties?.visible
+  const hide = sectionDef?.m_annotations?.eln?.[0]?.hide || []
+  let filteredProperties = sectionDef._allProperties
+  if (visible) {
+    const visiblePropertyNames = visible?.include || []
+    filteredProperties = sectionDef._allProperties.filter(property => visiblePropertyNames.includes(property.name))
+  }
+  filteredProperties = filteredProperties.filter(property => !hide.includes(property.name))
+  const editable = properties?.editable?.exclude || []
+  const order = properties?.order || []
+  const visibleProperties = filteredProperties.map(property => ({...property, _isEditable: !editable.includes(property.name)}))
+  const reversedOrder = [...order].reverse()
+  visibleProperties.sort((a, b) => reversedOrder.indexOf(b.name) - reversedOrder.indexOf(a.name) || a.m_parent_index - b.m_parent_index)
+  const quantities = visibleProperties.filter(property => property.m_parent_sub_section === "quantities")
+  const sub_sections = visibleProperties.filter(property => property.m_parent_sub_section === "sub_sections")
+  return [...quantities, ...sub_sections]
+}
+
 function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEln}) {
   const {handleArchiveChanged} = useEntryStore() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
   const lane = useContext(laneContext)
   const history = useHistory()
+
+  const isEditable = useMemo(() => {
+    let editableExcluded = false
+    let parent = def?._parent
+    let name = def?.name
+    while (!editableExcluded && parent) {
+      editableExcluded = parent?.m_annotations?.eln?.[0]?.properties?.editable?.exclude.some(item => item.toLowerCase() === name.toLowerCase())
+      name = parent?.name
+      parent = parent?._parent
+    }
+    return sectionIsEditable && !editableExcluded
+  }, [def, sectionIsEditable])
 
   const navEntryId = useMemo(() => {
     return lane?.adaptor?.parsedObjUrl?.entryId
@@ -885,7 +917,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
       </Grid>
     )
 
-    const jsonButton = !sectionIsEditable ? (
+    const jsonButton = !isEditable ? (
       <Grid item>
         <SourceJsonDialogButton
           buttonProps={{size: 'small'}}
@@ -911,7 +943,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
       history.push(lane.prev.path)
     }
 
-    const deleteButton = sectionIsEditable && (
+    const deleteButton = isEditable && (
       <Grid item>
         <IconButton onClick={handleDelete} size="small">
           <DeleteIcon/>
@@ -922,29 +954,31 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
     return <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
       {navButton}{jsonButton}{deleteButton}
     </Grid>
-  }, [navEntryId, setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged, section])
+  }, [navEntryId, setShowJson, isEditable, parentRelation, lane, history, handleArchiveChanged, section])
 
   const renderQuantityItem = useCallback((key, quantityName, quantityDef, value, disabled) => {
     const itemKey = quantityName ? `${key}:${quantityName}` : key
     const isDefault = value !== undefined && value !== null && (section[key] === undefined || section[key] === null)
     return (
-      <Item key={itemKey} itemKey={itemKey} disabled={disabled}>
-        <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
-          <Typography component="span">
-            <Box fontWeight="bold" component="span">
-              {quantityName || quantityDef.name}
-            </Box>
-          </Typography>{!disabled &&
-          <span>&nbsp;=&nbsp;
-            <QuantityItemPreview
-              value={value}
-              def={quantityDef}
-            />
+      <Box key={itemKey} data-testid={"visible-quantity"}>
+        <Item itemKey={itemKey} disabled={disabled}>
+          <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
+            <Typography component="span">
+              <Box fontWeight="bold" component="span">
+                {quantityName || quantityDef.name}
+              </Box>
+            </Typography>{!disabled &&
+            <span>&nbsp;=&nbsp;
+              <QuantityItemPreview
+                value={value}
+                def={quantityDef}
+              />
             </span>
-        }
-        </Box>
-        {isDefault && <ItemChip label="default value"/>}
-      </Item>
+          }
+          </Box>
+          {isDefault && <ItemChip label="default value"/>}
+        </Item>
+      </Box>
     )
   }, [section])
 
@@ -967,22 +1001,24 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
     }
   }, [section, renderQuantityItem])
 
+  const allVisibleProperties = useMemo(() => getAllVisibleProperties(def), [def])
+
   if (!section) {
     console.error('section is not available')
     return null
   }
 
   const filter = config.showCodeSpecific ? def => !def.virtual : def => !def.virtual && !def.name.startsWith('x_')
-  let sub_sections = def._allProperties.filter(prop => prop.m_def === SubSectionMDef)
+  let sub_sections = allVisibleProperties.filter(prop => prop.m_def === SubSectionMDef)
   if (def.name === 'EntryArchive') {
     // put the most abstract data (last added data) first, e.g. results, metadata, workflow, run
     sub_sections = [...def.sub_sections]
     sub_sections.reverse()
   }
-  const quantities = def._allProperties.filter(prop => prop.m_def === QuantityMDef)
+  const quantities = allVisibleProperties.filter(prop => prop.m_def === QuantityMDef)
 
   const subSectionsToRender = sub_sections
-    .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined || sectionIsEditable)
+    .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined || isEditable)
     .filter(filter)
   const subSectionCompartment = (
     <Compartment title="sub sections">
@@ -992,7 +1028,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
             key={subSectionDef.name}
             subSectionDef={subSectionDef}
             section={section}
-            editable={sectionIsEditable}
+            editable={isEditable}
           />
         })
       }
@@ -1000,7 +1036,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
   )
 
   let contents
-  if (sectionIsEditable) {
+  if (isEditable) {
     contents = <React.Fragment>
       {quantities.length > 0 && (
         <Compartment title="quantities">
@@ -1020,7 +1056,6 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
   } else {
     const attributes = section?.m_attributes || {}
     contents = <React.Fragment>
-      {subSectionCompartment}
       <Compartment title="quantities">
         {quantities
           .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined || sectionIsInEln)
@@ -1028,6 +1063,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
           .map(renderQuantity)
         }
       </Compartment>
+      {subSectionCompartment}
       {Object.keys(attributes).length > 0 && <Compartment title="attributes">
         {Object.keys(attributes).map(key => (
           <Item key={key} itemKey={`m_attributes:${key}`}>{key}</Item>
@@ -1041,7 +1077,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
   const otherProps = (laneWidth ? {minWidth: laneWidth, maxWidth: laneWidth} : undefined)
   return (
     <Content {...otherProps}>
-      {sectionIsEditable && sectionIsInEln && (
+      {isEditable && sectionIsInEln && (
         <InheritingSections def={def} section={section} lane={lane}/>
       )}
       <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions}/>
@@ -1137,16 +1173,18 @@ function SubSection({subSectionDef, section, editable}) {
     />
   } else {
     return (
-      <Item
-        itemKey={subSectionDef.name} disabled={!values}
-        actions={actions}
-      >
-        <Typography component="span">
-          <Box fontWeight="bold" component="span">
-            {label}
-          </Box>
-        </Typography>
-      </Item>
+      <Box data-testid={'subsection'}>
+        <Item
+          itemKey={subSectionDef.name} disabled={!values}
+          actions={actions}
+        >
+          <Typography component="span">
+            <Box fontWeight="bold" component="span">
+              {label}
+            </Box>
+          </Typography>
+        </Item>
+      </Box>
     )
   }
 }

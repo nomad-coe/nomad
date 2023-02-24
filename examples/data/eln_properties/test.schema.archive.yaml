@@ -1,0 +1,101 @@
+definitions:
+  name: 'test schema'
+  sections:
+    Hall_measurement:
+      base_sections:
+        - "nomad.datamodel.data.EntryData"
+      m_annotations:
+        eln:
+          lane_width: 1200px
+          properties:
+            visible:
+              include: ["dose", "net_mass_before", "crucible_model", "crucible_mass", "instrument3", "brutto_mass_before", "atmosphere", "instrument1", "instrument2"]
+            editable:
+              exclude: ["dose", "net_mass_before", "crucible_model", "instrument2"]
+            order: ["crucible_mass", "atmosphere", "instrument2", "crucible_model", "instrument3", "brutto_mass_before", "instrument1"]
+      quantities:
+        dose:
+          type: np.float64
+          m_annotations:
+            eln:
+              component: NumberEditQuantity
+        net_mass_before:
+          type: np.float64
+          unit: gram
+          m_annotations:
+            eln:
+              component: NumberEditQuantity
+              defaultDisplayUnit: gram
+        crucible_model:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        crucible_mass:
+          type: np.float64
+          unit: gram
+          m_annotations:
+            eln:
+              component: NumberEditQuantity
+              defaultDisplayUnit: gram
+        brutto_mass_before:
+          type: np.float64
+          unit: gram
+          description: brutto mass before the process step
+          m_annotations:
+            eln:
+              component: NumberEditQuantity
+              defaultDisplayUnit: gram
+        atmosphere:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        oven:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+      sub_sections:
+        instrument1: 
+          section:
+            quantities:
+              name: 
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+        instrument2: 
+          section:
+            quantities:
+              name: 
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+            sub_sections:
+              internal1: 
+                section:
+                  quantities:
+                    name: 
+                      type: str
+                      m_annotations:
+                        eln:
+                          component: StringEditQuantity
+        instrument3: 
+          section:
+            quantities:
+              name: 
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+        instrument4: 
+          section:
+            quantities:
+              name: 
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+
