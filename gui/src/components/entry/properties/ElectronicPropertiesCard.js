@@ -70,7 +70,7 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
     try {
       for (const reference of bsReferences) {
         const d = {}
-        const match = reference.reciprocal_cell.match(pattern)
+        const match = reference.reciprocal_cell?.match(pattern)
         const path = match ? match[2] : reference.reciprocal_cell
         const segmentPath = match ? reference.segment.map(ref => ref.match(pattern)[2]) : reference.segment
         const sourceArchive = match ? (archive.m_ref_archives[match[1]] || archive.m_ref_archives[reference.reciprocal_cell.split('#')[0]]) : archive

@@ -154,43 +154,47 @@ export const OverviewBandstructureElectronic = React.memo(({def, section, units}
     }
   }), [units])
 
-  return <>
-    {mode === 'bs'
-      ? <BandStructure
-        className={style.root}
-        data={data}
-        layout={layout}
-        units={units}
-      />
-      : <BrillouinZone
-        className={style.root}
-        data={section}
-      />
-    }
-    <FormControl component="fieldset" className={style.radio}>
-      <RadioGroup
-        row
-        aria-label="position"
-        name="position"
-        defaultValue="bs"
-        onChange={toggleMode}
-        className={style.radio}
-      >
-        <FormControlLabel
-          value="bs"
-          control={<Radio color="primary" />}
-          label="Band structure"
-          labelPlacement="end"
+  const bs = <BandStructure
+    className={style.root}
+    data={data}
+    layout={layout}
+    units={units}
+  />
+
+  return data[0].reciprocal_cell
+    ? <>
+      {mode === 'bs'
+        ? bs
+        : <BrillouinZone
+          className={style.root}
+          data={section}
         />
-        <FormControlLabel
-          value="bz"
-          control={<Radio color="primary" />}
-          label="Brillouin zone"
-          labelPlacement="end"
-        />
-      </RadioGroup>
-    </FormControl>
-  </>
+      }
+      <FormControl component="fieldset" className={style.radio}>
+        <RadioGroup
+          row
+          aria-label="position"
+          name="position"
+          defaultValue="bs"
+          onChange={toggleMode}
+          className={style.radio}
+        >
+          <FormControlLabel
+            value="bs"
+            control={<Radio color="primary" />}
+            label="Band structure"
+            labelPlacement="end"
+          />
+          <FormControlLabel
+            value="bz"
+            control={<Radio color="primary" />}
+            label="Brillouin zone"
+            labelPlacement="end"
+          />
+        </RadioGroup>
+      </FormControl>
+    </>
+    : bs
 })
 OverviewBandstructureElectronic.propTypes = ({
   def: PropTypes.object,
