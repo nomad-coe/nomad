@@ -1,0 +1,1221 @@
+{
+  "dd6849bb140872b0b43e674330018f78": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/nwW7UiYFBvR9VQsKdehH9wd3Efws",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIzZDcwZGYwZS0zZGZkLTQ3NGYtYjM5ZS1lZDZmNTM1MjcxMjciLCJleHAiOjE2NzcxOTQ0NzMsIm5iZiI6MCwiaWF0IjoxNjc3MTU4NDgyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjJmN2E3M2U0LWU0OTctNDAzMC1iMTA1LTg1NzI1NTY3ZjA2OSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.KUZDWYARj84P-mwMaGeWrnFFjOe1EkLMt7DluBEVmy_rqAAuXDbed5RX66DP3UM_8GA9utAXmPyUMpba0rGw3-vtEW0thnI3cSxOhYuHl7gSc9zHUJjUvlHSTYI-noob6BB3gAm3wrBtmoyPnI1oVw34mGCyxXcpbzuVI1pGFpvyTkFgKBTUYAQzpZEyAxOwk0nXDtnIKE99n8srTgCmNU4_MD1COc2Lr14HQamFK1U_S9-E69DX_wAX-VUHI-BNaOxcDrwMr_nYQ4dzii6dvqiO4b3uDOVdHZawZPrtubpfjV08Vl_GywsvrmLpcNXqsyE4MweMh4oEK7VTwKDNSA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "entry_id": "nwW7UiYFBvR9VQsKdehH9wd3Efws",
+          "required": {},
+          "data": {
+            "upload_id": "eln_upload_id",
+            "references": [],
+            "origin": "Markus Scheidgen",
+            "quantities": [
+              "",
+              "data",
+              "data.crucible_model",
+              "data.dose",
+              "data.instrument1",
+              "data.instrument1.name",
+              "data.instrument2",
+              "data.instrument2.internal1",
+              "data.instrument2.internal1.name",
+              "data.instrument2.name",
+              "data.instrument3",
+              "data.instrument3.name",
+              "data.net_mass_before",
+              "metadata",
+              "metadata.coauthors",
+              "metadata.datasets",
+              "metadata.embargo_length",
+              "metadata.entry_coauthors",
+              "metadata.entry_create_time",
+              "metadata.entry_hash",
+              "metadata.entry_id",
+              "metadata.entry_name",
+              "metadata.entry_timestamp",
+              "metadata.entry_timestamp.timestamp",
+              "metadata.entry_timestamp.token",
+              "metadata.entry_timestamp.token_seed",
+              "metadata.entry_timestamp.tsa_server",
+              "metadata.entry_type",
+              "metadata.files",
+              "metadata.last_processing_time",
+              "metadata.license",
+              "metadata.main_author",
+              "metadata.mainfile",
+              "metadata.nomad_commit",
+              "metadata.nomad_version",
+              "metadata.parser_name",
+              "metadata.processed",
+              "metadata.processing_errors",
+              "metadata.published",
+              "metadata.quantities",
+              "metadata.references",
+              "metadata.reviewers",
+              "metadata.section_defs",
+              "metadata.section_defs.definition_id",
+              "metadata.section_defs.definition_qualified_name",
+              "metadata.section_defs.used_directly",
+              "metadata.sections",
+              "metadata.upload_create_time",
+              "metadata.upload_id",
+              "metadata.with_embargo",
+              "results",
+              "results.properties",
+              "results.properties.available_properties"
+            ],
+            "datasets": [],
+            "n_quantities": 46,
+            "nomad_version": "1.1.7.dev173+gfcec2b7b8.d20230215",
+            "upload_create_time": "2023-02-23T13:21:18.328000+00:00",
+            "nomad_commit": "",
+            "section_defs": [
+              {
+                "used_directly": true,
+                "definition_id": "cb66e00b6a73cda3a6c9370fcb29910e67240206",
+                "definition_qualified_name": "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "f4e56e671806740889a77731b8ca9ba7b225aab0",
+                "definition_qualified_name": "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument1"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "1b1adb857c69fddd22b548c6fdf324492284f2c7",
+                "definition_qualified_name": "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument2"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "8c8eb547f6f94f1699abf6c31b8d45fbb6c48cc8",
+                "definition_qualified_name": "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument2.Internal1"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "be0b51032684ba3a22ea14372269494ceebab406",
+                "definition_qualified_name": "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument3"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                "definition_qualified_name": "nomad.datamodel.data.ArchiveSection"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "538f52fd8d52b29372066f878319c6aeb03b74d2",
+                "definition_qualified_name": "nomad.datamodel.data.EntryData"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "bd5840a04138d241921ec5f9fb6d4de0fcc9fa4e",
+                "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "c1433047212d95b5607397e0b759bb1508abb19b",
+                "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "bd968238cc0b1918b9dcf488effbd69cb2a35fcc",
+                "definition_qualified_name": "nomad.datamodel.results.Properties"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "a960c7cb0ce615cc2cde3c093113cc0cadf3646b",
+                "definition_qualified_name": "nomad.datamodel.results.Results"
+              }
+            ],
+            "processing_errors": [],
+            "results": {
+              "properties": {
+                "available_properties": []
+              }
+            },
+            "entry_name": "test.data.archive.yaml",
+            "last_processing_time": "2023-02-23T13:21:18.605000+00:00",
+            "parser_name": "parsers/archive",
+            "searchable_quantities": [
+              {
+                "path": "data.dose",
+                "quantity_name": "dose",
+                "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0",
+                "double_value": 1.5
+              },
+              {
+                "path": "data.net_mass_before",
+                "quantity_name": "net_mass_before",
+                "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0",
+                "double_value": 100
+              },
+              {
+                "text_value": "test model",
+                "path": "data.crucible_model",
+                "quantity_name": "crucible_model",
+                "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0"
+              },
+              {
+                "text_value": "my_instrument1",
+                "path": "data.instrument1.name",
+                "quantity_name": "name",
+                "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0/inner_section_definitions/0"
+              },
+              {
+                "text_value": "my_instrument2",
+                "path": "data.instrument2.name",
+                "quantity_name": "name",
+                "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0/inner_section_definitions/1"
+              },
+              {
+                "text_value": "my_internal1",
+                "path": "data.instrument2.internal1.name",
+                "quantity_name": "name",
+                "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0/inner_section_definitions/1/inner_section_definitions/0"
+              },
+              {
+                "text_value": "my_instrument3",
+                "path": "data.instrument3.name",
+                "quantity_name": "name",
+                "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0/inner_section_definitions/2"
+              }
+            ],
+            "calc_id": "nwW7UiYFBvR9VQsKdehH9wd3Efws",
+            "published": false,
+            "writers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "sections": [
+              "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement",
+              "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument1",
+              "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument2",
+              "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument2.Internal1",
+              "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument3",
+              "nomad.datamodel.datamodel.EntryArchive",
+              "nomad.datamodel.datamodel.EntryMetadata",
+              "nomad.datamodel.datamodel.RFC3161Timestamp",
+              "nomad.datamodel.results.Properties",
+              "nomad.datamodel.results.Results"
+            ],
+            "processed": true,
+            "mainfile": "test.data.archive.yaml",
+            "main_author": {
+              "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "name": "Markus Scheidgen"
+            },
+            "viewers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              {
+                "user_id": "54cb1f64-f84e-4815-9ade-440ce0b5430f",
+                "name": "Test Tester"
+              }
+            ],
+            "entry_create_time": "2023-02-23T13:21:18.413000+00:00",
+            "with_embargo": false,
+            "files": [
+              "test.data.archive.yaml",
+              "test.schema.archive.yaml"
+            ],
+            "entry_type": "Hall_measurement",
+            "entry_id": "nwW7UiYFBvR9VQsKdehH9wd3Efws",
+            "authors": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "license": "CC BY 4.0"
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "8473",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "c63c980f359635617d1bbe5e28187225": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/nwW7UiYFBvR9VQsKdehH9wd3Efws/archive/query",
+        "method": "POST",
+        "body": {
+          "required": "*"
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5ODkzYmMwNS0xOWEwLTQxYzgtYmEzMC1jMDlhMWIyOTIzNjIiLCJleHAiOjE2NzcxOTQ0NzMsIm5iZiI6MCwiaWF0IjoxNjc3MTU4NDgyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjJmN2E3M2U0LWU0OTctNDAzMC1iMTA1LTg1NzI1NTY3ZjA2OSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.fanamGTCGVwt5L2Eyzjr3yd3vLxZkysz1hyxTb6WqHrUCNniejPePt4c5n-Cl6RJp3gNxFJ97cuK2s6xjLx77zSAg07t1ADnmah7NEGL3akYPAypbVqEsO0a6PpVU05OdVeOaYwBnN1RMtBl5mfGchJq9F-ni19K_6FQ6NrQLbaqCpKKtJOvl_qoAcl53u1JTRCaZmbeUTeNkZJ5bh2QfsPoQV_3n40bXrURo1sM0Ev6yyENmItNZpF8-zenaOVz7xiP7mkKliPZpSslaMH_9uivq2YJUG-5Pj8mT4mAD9RyR7OQEItiRtjfIpXRWb_Ix2Gn7xvUGcMFhqE8_JmCyQ",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": "*",
+          "entry_id": "nwW7UiYFBvR9VQsKdehH9wd3Efws",
+          "data": {
+            "entry_id": "nwW7UiYFBvR9VQsKdehH9wd3Efws",
+            "upload_id": "eln_upload_id",
+            "parser_name": "parsers/archive",
+            "archive": {
+              "processing_logs": [
+                {
+                  "event": "Executing celery task",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "njRKFD9DS9ilcRg1cSrpjQ",
+                  "parser": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2023-02-23 14:21.18",
+                  "level": "DEBUG"
+                },
+                {
+                  "exec_time": "0.014126300811767578",
+                  "input_size": "310",
+                  "event": "parser executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "njRKFD9DS9ilcRg1cSrpjQ",
+                  "parser": "parsers/archive",
+                  "step": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2023-02-23 14:21.18",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "ResultsNormalizer",
+                  "step": "ResultsNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "njRKFD9DS9ilcRg1cSrpjQ",
+                  "parser": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2023-02-23 14:21.18",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0005726814270019531",
+                  "input_size": "310",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "njRKFD9DS9ilcRg1cSrpjQ",
+                  "parser": "parsers/archive",
+                  "normalizer": "ResultsNormalizer",
+                  "step": "ResultsNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2023-02-23 14:21.18",
+                  "level": "INFO"
+                },
+                {
+                  "normalizer": "MetainfoNormalizer",
+                  "step": "MetainfoNormalizer",
+                  "event": "normalizer completed successfully",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "njRKFD9DS9ilcRg1cSrpjQ",
+                  "parser": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2023-02-23 14:21.18",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0002675056457519531",
+                  "input_size": "310",
+                  "event": "normalizer executed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "njRKFD9DS9ilcRg1cSrpjQ",
+                  "parser": "parsers/archive",
+                  "normalizer": "MetainfoNormalizer",
+                  "step": "MetainfoNormalizer",
+                  "logger": "nomad.processing",
+                  "timestamp": "2023-02-23 14:21.18",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.0016372203826904297",
+                  "event": "entry metadata saved",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "njRKFD9DS9ilcRg1cSrpjQ",
+                  "parser": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2023-02-23 14:21.18",
+                  "level": "INFO"
+                },
+                {
+                  "exec_time": "0.02655935287475586",
+                  "event": "entry metadata indexed",
+                  "proc": "Entry",
+                  "process": "process_entry",
+                  "process_worker_id": "njRKFD9DS9ilcRg1cSrpjQ",
+                  "parser": "parsers/archive",
+                  "logger": "nomad.processing",
+                  "timestamp": "2023-02-23 14:21.18",
+                  "level": "INFO"
+                }
+              ],
+              "data": {
+                "m_def": "../upload/raw/test.schema.archive.yaml#/definitions/section_definitions/0",
+                "dose": 1.5,
+                "net_mass_before": 100,
+                "crucible_model": "test model",
+                "instrument1": {
+                  "name": "my_instrument1"
+                },
+                "instrument2": {
+                  "name": "my_instrument2",
+                  "internal1": {
+                    "name": "my_internal1"
+                  }
+                },
+                "instrument3": {
+                  "name": "my_instrument3"
+                }
+              },
+              "metadata": {
+                "upload_id": "eln_upload_id",
+                "upload_create_time": "2023-02-23T13:21:18.328000+00:00",
+                "entry_id": "nwW7UiYFBvR9VQsKdehH9wd3Efws",
+                "entry_name": "test.data.archive.yaml",
+                "entry_type": "Hall_measurement",
+                "entry_hash": "cpqT2qfqL3yIhfLVCzzDRMwKZjGn",
+                "entry_create_time": "2023-02-23T13:21:18.413000+00:00",
+                "parser_name": "parsers/archive",
+                "mainfile": "test.data.archive.yaml",
+                "files": [
+                  "test.data.archive.yaml",
+                  "test.schema.archive.yaml"
+                ],
+                "published": false,
+                "with_embargo": false,
+                "embargo_length": 0,
+                "license": "CC BY 4.0",
+                "processed": true,
+                "last_processing_time": "2023-02-23T13:21:18.605990+00:00",
+                "processing_errors": [],
+                "nomad_version": "1.1.7.dev173+gfcec2b7b8.d20230215",
+                "nomad_commit": "",
+                "references": [],
+                "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "coauthors": [],
+                "entry_coauthors": [],
+                "reviewers": [
+                  "54cb1f64-f84e-4815-9ade-440ce0b5430f"
+                ],
+                "datasets": [],
+                "n_quantities": 46,
+                "quantities": [
+                  "",
+                  "data",
+                  "data.crucible_model",
+                  "data.dose",
+                  "data.instrument1",
+                  "data.instrument1.name",
+                  "data.instrument2",
+                  "data.instrument2.internal1",
+                  "data.instrument2.internal1.name",
+                  "data.instrument2.name",
+                  "data.instrument3",
+                  "data.instrument3.name",
+                  "data.net_mass_before",
+                  "metadata",
+                  "metadata.coauthors",
+                  "metadata.datasets",
+                  "metadata.embargo_length",
+                  "metadata.entry_coauthors",
+                  "metadata.entry_create_time",
+                  "metadata.entry_hash",
+                  "metadata.entry_id",
+                  "metadata.entry_name",
+                  "metadata.entry_timestamp",
+                  "metadata.entry_timestamp.timestamp",
+                  "metadata.entry_timestamp.token",
+                  "metadata.entry_timestamp.token_seed",
+                  "metadata.entry_timestamp.tsa_server",
+                  "metadata.entry_type",
+                  "metadata.files",
+                  "metadata.last_processing_time",
+                  "metadata.license",
+                  "metadata.main_author",
+                  "metadata.mainfile",
+                  "metadata.nomad_commit",
+                  "metadata.nomad_version",
+                  "metadata.parser_name",
+                  "metadata.processed",
+                  "metadata.processing_errors",
+                  "metadata.published",
+                  "metadata.quantities",
+                  "metadata.references",
+                  "metadata.reviewers",
+                  "metadata.section_defs",
+                  "metadata.section_defs.definition_id",
+                  "metadata.section_defs.definition_qualified_name",
+                  "metadata.section_defs.used_directly",
+                  "metadata.sections",
+                  "metadata.upload_create_time",
+                  "metadata.upload_id",
+                  "metadata.with_embargo",
+                  "results",
+                  "results.properties",
+                  "results.properties.available_properties"
+                ],
+                "sections": [
+                  "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement",
+                  "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument1",
+                  "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument2",
+                  "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument2.Internal1",
+                  "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument3",
+                  "nomad.datamodel.datamodel.EntryArchive",
+                  "nomad.datamodel.datamodel.EntryMetadata",
+                  "nomad.datamodel.datamodel.RFC3161Timestamp",
+                  "nomad.datamodel.results.Properties",
+                  "nomad.datamodel.results.Results"
+                ],
+                "entry_timestamp": {
+                  "m_def": "nomad.datamodel.datamodel.RFC3161Timestamp",
+                  "token_seed": "cpqT2qfqL3yIhfLVCzzDRMwKZjGn",
+                  "token": "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",
+                  "tsa_server": "http://time.certum.pl/",
+                  "timestamp": "2023-02-23T13:21:18+00:00"
+                },
+                "section_defs": [
+                  {
+                    "definition_qualified_name": "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement",
+                    "definition_id": "cb66e00b6a73cda3a6c9370fcb29910e67240206",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument1",
+                    "definition_id": "f4e56e671806740889a77731b8ca9ba7b225aab0",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument2",
+                    "definition_id": "1b1adb857c69fddd22b548c6fdf324492284f2c7",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument2.Internal1",
+                    "definition_id": "8c8eb547f6f94f1699abf6c31b8d45fbb6c48cc8",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "entry_id:xZCSz0HkAolfXjD0IxMrYFYqCf_z.Hall_measurement.Instrument3",
+                    "definition_id": "be0b51032684ba3a22ea14372269494ceebab406",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.data.ArchiveSection",
+                    "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.data.EntryData",
+                    "definition_id": "538f52fd8d52b29372066f878319c6aeb03b74d2",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive",
+                    "definition_id": "bd5840a04138d241921ec5f9fb6d4de0fcc9fa4e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata",
+                    "definition_id": "c1433047212d95b5607397e0b759bb1508abb19b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp",
+                    "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Properties",
+                    "definition_id": "bd968238cc0b1918b9dcf488effbd69cb2a35fcc",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Results",
+                    "definition_id": "a960c7cb0ce615cc2cde3c093113cc0cadf3646b",
+                    "used_directly": true
+                  }
+                ],
+                "searchable_quantities": [
+                  {
+                    "quantity_name": "dose",
+                    "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0",
+                    "path": "data.dose",
+                    "double_value": 1.5
+                  },
+                  {
+                    "quantity_name": "net_mass_before",
+                    "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0",
+                    "path": "data.net_mass_before",
+                    "double_value": 100
+                  },
+                  {
+                    "quantity_name": "crucible_model",
+                    "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0",
+                    "path": "data.crucible_model",
+                    "text_value": "test model"
+                  },
+                  {
+                    "quantity_name": "name",
+                    "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0/inner_section_definitions/0",
+                    "path": "data.instrument1.name",
+                    "text_value": "my_instrument1"
+                  },
+                  {
+                    "quantity_name": "name",
+                    "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0/inner_section_definitions/1",
+                    "path": "data.instrument2.name",
+                    "text_value": "my_instrument2"
+                  },
+                  {
+                    "quantity_name": "name",
+                    "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0/inner_section_definitions/1/inner_section_definitions/0",
+                    "path": "data.instrument2.internal1.name",
+                    "text_value": "my_internal1"
+                  },
+                  {
+                    "quantity_name": "name",
+                    "section_definition": "../uploads/eln_upload_id/archive/xZCSz0HkAolfXjD0IxMrYFYqCf_z#/definitions/section_definitions/0/inner_section_definitions/2",
+                    "path": "data.instrument3.name",
+                    "text_value": "my_instrument3"
+                  }
+                ]
+              },
+              "results": {
+                "properties": {
+                  "available_properties": []
+                }
+              },
+              "m_ref_archives": {}
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "21506",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "e17ffcc27913591109fafc4c3f8b2d7a": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/xZCSz0HkAolfXjD0IxMrYFYqCf_z/archive/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "definitions": "*",
+            "metadata": "*",
+            "resolve-inplace": false
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0NGQwYmNhNS1kNGZkLTRlZDUtOGE5ZS05YTI4N2QwNGRlNDQiLCJleHAiOjE2NzcxOTQ0NzMsIm5iZiI6MCwiaWF0IjoxNjc3MTU4NDgyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjJmN2E3M2U0LWU0OTctNDAzMC1iMTA1LTg1NzI1NTY3ZjA2OSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.P-9YUr3UWCPQ0BPnjwRBN9k4lxGZ9JQox-1uNR-DQWasUipRydOvtW3rNzhOggCCMRHb6YKRbh0wnsLWmS7rFNRYdq1IIjwDbNLdjv8f0Z551l6PfGU-gsUEI3QRE4JvlvDslLspvCFIIFUSVD6_swaWBW2nlS8igvrG6shrbeXoul4J9XBT5Wx7m5FpGkdBDJyvHWPi3YpfkIBVEcpiYwe22iecAbSwjOKmE75KB_eZjFuaylCQboF0pppUQC9LAR0NroCwbv5rFj4KuViBRMTeKPUJhTQHau7QHWl6FvcWhkqJLoA6NsO9nXL6wtm5CRfMu5Jr-9Aql1GcTwde6Q",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": {
+            "definitions": "*",
+            "metadata": "*",
+            "resolve-inplace": false
+          },
+          "entry_id": "xZCSz0HkAolfXjD0IxMrYFYqCf_z",
+          "data": {
+            "entry_id": "xZCSz0HkAolfXjD0IxMrYFYqCf_z",
+            "upload_id": "eln_upload_id",
+            "parser_name": "parsers/archive",
+            "archive": {
+              "definitions": {
+                "m_def": "nomad.metainfo.metainfo.Package",
+                "m_parent_sub_section": "definitions",
+                "name": "test schema",
+                "section_definitions": [
+                  {
+                    "m_def": "nomad.metainfo.metainfo.Section",
+                    "m_parent_index": 0,
+                    "m_parent_sub_section": "section_definitions",
+                    "m_annotations": {
+                      "eln": [
+                        {
+                          "lane_width": "1200px",
+                          "properties": {
+                            "visible": {
+                              "include": [
+                                "dose",
+                                "net_mass_before",
+                                "crucible_model",
+                                "crucible_mass",
+                                "instrument3",
+                                "brutto_mass_before",
+                                "atmosphere",
+                                "instrument1",
+                                "instrument2"
+                              ]
+                            },
+                            "editable": {
+                              "exclude": [
+                                "dose",
+                                "net_mass_before",
+                                "crucible_model",
+                                "instrument2"
+                              ]
+                            },
+                            "order": [
+                              "crucible_mass",
+                              "atmosphere",
+                              "instrument2",
+                              "crucible_model",
+                              "instrument3",
+                              "brutto_mass_before",
+                              "instrument1"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "name": "Hall_measurement",
+                    "base_sections": [
+                      "nomad.datamodel.data.EntryData"
+                    ],
+                    "quantities": [
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Quantity",
+                        "m_parent_index": 0,
+                        "m_parent_sub_section": "quantities",
+                        "m_annotations": {
+                          "eln": [
+                            {
+                              "component": "NumberEditQuantity"
+                            }
+                          ]
+                        },
+                        "name": "dose",
+                        "type": {
+                          "type_kind": "numpy",
+                          "type_data": "float64"
+                        }
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Quantity",
+                        "m_parent_index": 1,
+                        "m_parent_sub_section": "quantities",
+                        "m_annotations": {
+                          "eln": [
+                            {
+                              "component": "NumberEditQuantity",
+                              "defaultDisplayUnit": "gram"
+                            }
+                          ]
+                        },
+                        "name": "net_mass_before",
+                        "type": {
+                          "type_kind": "numpy",
+                          "type_data": "float64"
+                        },
+                        "unit": "gram"
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Quantity",
+                        "m_parent_index": 2,
+                        "m_parent_sub_section": "quantities",
+                        "m_annotations": {
+                          "eln": [
+                            {
+                              "component": "StringEditQuantity"
+                            }
+                          ]
+                        },
+                        "name": "crucible_model",
+                        "type": {
+                          "type_kind": "python",
+                          "type_data": "str"
+                        }
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Quantity",
+                        "m_parent_index": 3,
+                        "m_parent_sub_section": "quantities",
+                        "m_annotations": {
+                          "eln": [
+                            {
+                              "component": "NumberEditQuantity",
+                              "defaultDisplayUnit": "gram"
+                            }
+                          ]
+                        },
+                        "name": "crucible_mass",
+                        "type": {
+                          "type_kind": "numpy",
+                          "type_data": "float64"
+                        },
+                        "unit": "gram"
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Quantity",
+                        "m_parent_index": 4,
+                        "m_parent_sub_section": "quantities",
+                        "m_annotations": {
+                          "eln": [
+                            {
+                              "component": "NumberEditQuantity",
+                              "defaultDisplayUnit": "gram"
+                            }
+                          ]
+                        },
+                        "name": "brutto_mass_before",
+                        "description": "brutto mass before the process step",
+                        "type": {
+                          "type_kind": "numpy",
+                          "type_data": "float64"
+                        },
+                        "unit": "gram"
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Quantity",
+                        "m_parent_index": 5,
+                        "m_parent_sub_section": "quantities",
+                        "m_annotations": {
+                          "eln": [
+                            {
+                              "component": "StringEditQuantity"
+                            }
+                          ]
+                        },
+                        "name": "atmosphere",
+                        "type": {
+                          "type_kind": "python",
+                          "type_data": "str"
+                        }
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Quantity",
+                        "m_parent_index": 6,
+                        "m_parent_sub_section": "quantities",
+                        "m_annotations": {
+                          "eln": [
+                            {
+                              "component": "StringEditQuantity"
+                            }
+                          ]
+                        },
+                        "name": "oven",
+                        "type": {
+                          "type_kind": "python",
+                          "type_data": "str"
+                        }
+                      }
+                    ],
+                    "sub_sections": [
+                      {
+                        "m_def": "nomad.metainfo.metainfo.SubSection",
+                        "m_parent_index": 0,
+                        "m_parent_sub_section": "sub_sections",
+                        "name": "instrument1",
+                        "sub_section": "#/definitions/section_definitions/0/inner_section_definitions/0"
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.SubSection",
+                        "m_parent_index": 1,
+                        "m_parent_sub_section": "sub_sections",
+                        "name": "instrument2",
+                        "sub_section": "#/definitions/section_definitions/0/inner_section_definitions/1"
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.SubSection",
+                        "m_parent_index": 2,
+                        "m_parent_sub_section": "sub_sections",
+                        "name": "instrument3",
+                        "sub_section": "#/definitions/section_definitions/0/inner_section_definitions/2"
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.SubSection",
+                        "m_parent_index": 3,
+                        "m_parent_sub_section": "sub_sections",
+                        "name": "instrument4",
+                        "sub_section": "#/definitions/section_definitions/0/inner_section_definitions/3"
+                      }
+                    ],
+                    "inner_section_definitions": [
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Section",
+                        "m_parent_index": 0,
+                        "m_parent_sub_section": "inner_section_definitions",
+                        "name": "Instrument1",
+                        "quantities": [
+                          {
+                            "m_def": "nomad.metainfo.metainfo.Quantity",
+                            "m_parent_index": 0,
+                            "m_parent_sub_section": "quantities",
+                            "m_annotations": {
+                              "eln": [
+                                {
+                                  "component": "StringEditQuantity"
+                                }
+                              ]
+                            },
+                            "name": "name",
+                            "type": {
+                              "type_kind": "python",
+                              "type_data": "str"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Section",
+                        "m_parent_index": 1,
+                        "m_parent_sub_section": "inner_section_definitions",
+                        "name": "Instrument2",
+                        "quantities": [
+                          {
+                            "m_def": "nomad.metainfo.metainfo.Quantity",
+                            "m_parent_index": 0,
+                            "m_parent_sub_section": "quantities",
+                            "m_annotations": {
+                              "eln": [
+                                {
+                                  "component": "StringEditQuantity"
+                                }
+                              ]
+                            },
+                            "name": "name",
+                            "type": {
+                              "type_kind": "python",
+                              "type_data": "str"
+                            }
+                          }
+                        ],
+                        "sub_sections": [
+                          {
+                            "m_def": "nomad.metainfo.metainfo.SubSection",
+                            "m_parent_index": 0,
+                            "m_parent_sub_section": "sub_sections",
+                            "name": "internal1",
+                            "sub_section": "#/definitions/section_definitions/0/inner_section_definitions/1/inner_section_definitions/0"
+                          }
+                        ],
+                        "inner_section_definitions": [
+                          {
+                            "m_def": "nomad.metainfo.metainfo.Section",
+                            "m_parent_index": 0,
+                            "m_parent_sub_section": "inner_section_definitions",
+                            "name": "Internal1",
+                            "quantities": [
+                              {
+                                "m_def": "nomad.metainfo.metainfo.Quantity",
+                                "m_parent_index": 0,
+                                "m_parent_sub_section": "quantities",
+                                "m_annotations": {
+                                  "eln": [
+                                    {
+                                      "component": "StringEditQuantity"
+                                    }
+                                  ]
+                                },
+                                "name": "name",
+                                "type": {
+                                  "type_kind": "python",
+                                  "type_data": "str"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Section",
+                        "m_parent_index": 2,
+                        "m_parent_sub_section": "inner_section_definitions",
+                        "name": "Instrument3",
+                        "quantities": [
+                          {
+                            "m_def": "nomad.metainfo.metainfo.Quantity",
+                            "m_parent_index": 0,
+                            "m_parent_sub_section": "quantities",
+                            "m_annotations": {
+                              "eln": [
+                                {
+                                  "component": "StringEditQuantity"
+                                }
+                              ]
+                            },
+                            "name": "name",
+                            "type": {
+                              "type_kind": "python",
+                              "type_data": "str"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "m_def": "nomad.metainfo.metainfo.Section",
+                        "m_parent_index": 3,
+                        "m_parent_sub_section": "inner_section_definitions",
+                        "name": "Instrument4",
+                        "quantities": [
+                          {
+                            "m_def": "nomad.metainfo.metainfo.Quantity",
+                            "m_parent_index": 0,
+                            "m_parent_sub_section": "quantities",
+                            "m_annotations": {
+                              "eln": [
+                                {
+                                  "component": "StringEditQuantity"
+                                }
+                              ]
+                            },
+                            "name": "name",
+                            "type": {
+                              "type_kind": "python",
+                              "type_data": "str"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "metadata": {
+                "upload_id": "eln_upload_id",
+                "upload_create_time": "2023-02-23T13:21:18.328000+00:00",
+                "entry_id": "xZCSz0HkAolfXjD0IxMrYFYqCf_z",
+                "entry_name": "test schema",
+                "entry_type": "Schema",
+                "entry_hash": "M4semWT5HP0JlvZxh_ey-iY3W3RH",
+                "entry_create_time": "2023-02-23T13:21:18.454000+00:00",
+                "parser_name": "parsers/archive",
+                "mainfile": "test.schema.archive.yaml",
+                "files": [
+                  "test.schema.archive.yaml",
+                  "test.data.archive.yaml"
+                ],
+                "published": false,
+                "with_embargo": false,
+                "embargo_length": 0,
+                "license": "CC BY 4.0",
+                "processed": true,
+                "last_processing_time": "2023-02-23T13:21:18.612985+00:00",
+                "processing_errors": [],
+                "nomad_version": "1.1.7.dev173+gfcec2b7b8.d20230215",
+                "nomad_commit": "",
+                "references": [],
+                "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "coauthors": [],
+                "entry_coauthors": [],
+                "reviewers": [
+                  "54cb1f64-f84e-4815-9ade-440ce0b5430f"
+                ],
+                "datasets": [],
+                "n_quantities": 128,
+                "quantities": [
+                  "",
+                  "definitions",
+                  "definitions.more",
+                  "definitions.name",
+                  "definitions.section_definitions",
+                  "definitions.section_definitions.base_sections",
+                  "definitions.section_definitions.inner_section_definitions",
+                  "definitions.section_definitions.inner_section_definitions.inner_section_definitions",
+                  "definitions.section_definitions.inner_section_definitions.inner_section_definitions.more",
+                  "definitions.section_definitions.inner_section_definitions.inner_section_definitions.name",
+                  "definitions.section_definitions.inner_section_definitions.inner_section_definitions.quantities",
+                  "definitions.section_definitions.inner_section_definitions.inner_section_definitions.quantities.more",
+                  "definitions.section_definitions.inner_section_definitions.inner_section_definitions.quantities.name",
+                  "definitions.section_definitions.inner_section_definitions.inner_section_definitions.quantities.type",
+                  "definitions.section_definitions.inner_section_definitions.more",
+                  "definitions.section_definitions.inner_section_definitions.name",
+                  "definitions.section_definitions.inner_section_definitions.quantities",
+                  "definitions.section_definitions.inner_section_definitions.quantities.more",
+                  "definitions.section_definitions.inner_section_definitions.quantities.name",
+                  "definitions.section_definitions.inner_section_definitions.quantities.type",
+                  "definitions.section_definitions.inner_section_definitions.sub_sections",
+                  "definitions.section_definitions.inner_section_definitions.sub_sections.more",
+                  "definitions.section_definitions.inner_section_definitions.sub_sections.name",
+                  "definitions.section_definitions.inner_section_definitions.sub_sections.sub_section",
+                  "definitions.section_definitions.more",
+                  "definitions.section_definitions.name",
+                  "definitions.section_definitions.quantities",
+                  "definitions.section_definitions.quantities.description",
+                  "definitions.section_definitions.quantities.more",
+                  "definitions.section_definitions.quantities.name",
+                  "definitions.section_definitions.quantities.type",
+                  "definitions.section_definitions.quantities.unit",
+                  "definitions.section_definitions.sub_sections",
+                  "definitions.section_definitions.sub_sections.more",
+                  "definitions.section_definitions.sub_sections.name",
+                  "definitions.section_definitions.sub_sections.sub_section",
+                  "metadata",
+                  "metadata.coauthors",
+                  "metadata.datasets",
+                  "metadata.embargo_length",
+                  "metadata.entry_coauthors",
+                  "metadata.entry_create_time",
+                  "metadata.entry_hash",
+                  "metadata.entry_id",
+                  "metadata.entry_name",
+                  "metadata.entry_timestamp",
+                  "metadata.entry_timestamp.timestamp",
+                  "metadata.entry_timestamp.token",
+                  "metadata.entry_timestamp.token_seed",
+                  "metadata.entry_timestamp.tsa_server",
+                  "metadata.entry_type",
+                  "metadata.files",
+                  "metadata.last_processing_time",
+                  "metadata.license",
+                  "metadata.main_author",
+                  "metadata.mainfile",
+                  "metadata.nomad_commit",
+                  "metadata.nomad_version",
+                  "metadata.parser_name",
+                  "metadata.processed",
+                  "metadata.processing_errors",
+                  "metadata.published",
+                  "metadata.quantities",
+                  "metadata.references",
+                  "metadata.reviewers",
+                  "metadata.section_defs",
+                  "metadata.section_defs.definition_id",
+                  "metadata.section_defs.definition_qualified_name",
+                  "metadata.section_defs.used_directly",
+                  "metadata.sections",
+                  "metadata.upload_create_time",
+                  "metadata.upload_id",
+                  "metadata.with_embargo",
+                  "results",
+                  "results.properties",
+                  "results.properties.available_properties"
+                ],
+                "sections": [
+                  "nomad.datamodel.datamodel.EntryArchive",
+                  "nomad.datamodel.datamodel.EntryMetadata",
+                  "nomad.datamodel.datamodel.RFC3161Timestamp",
+                  "nomad.datamodel.results.Properties",
+                  "nomad.datamodel.results.Results",
+                  "nomad.metainfo.metainfo.Package",
+                  "nomad.metainfo.metainfo.Quantity",
+                  "nomad.metainfo.metainfo.Section",
+                  "nomad.metainfo.metainfo.SubSection"
+                ],
+                "entry_timestamp": {
+                  "m_def": "nomad.datamodel.datamodel.RFC3161Timestamp",
+                  "token_seed": "M4semWT5HP0JlvZxh_ey-iY3W3RH",
+                  "token": "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",
+                  "tsa_server": "http://time.certum.pl/",
+                  "timestamp": "2023-02-23T13:21:18+00:00"
+                },
+                "section_defs": [
+                  {
+                    "definition_qualified_name": "nomad.datamodel.data.ArchiveSection",
+                    "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive",
+                    "definition_id": "bd5840a04138d241921ec5f9fb6d4de0fcc9fa4e",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata",
+                    "definition_id": "c1433047212d95b5607397e0b759bb1508abb19b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp",
+                    "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Properties",
+                    "definition_id": "bd968238cc0b1918b9dcf488effbd69cb2a35fcc",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.results.Results",
+                    "definition_id": "a960c7cb0ce615cc2cde3c093113cc0cadf3646b",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.Definition",
+                    "definition_id": "f6617f133366ffb8cd1bde4bf643ca5bae1db7f8",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.Package",
+                    "definition_id": "4b3a70a5e3f97b976da7ec3ed8c7c73f2078a518",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.Property",
+                    "definition_id": "28f841a88474d266eded1141318ea4c42d3aff3f",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.Quantity",
+                    "definition_id": "d12b9e6f4aed521dc6feeb67239a929542f78b8d",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.Section",
+                    "definition_id": "af7788dea6a320c2bec44814d49fb334cae97efa",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.metainfo.metainfo.SubSection",
+                    "definition_id": "51616d2baf8f6a35b9bd54fb580e7d3b6ed1325b",
+                    "used_directly": true
+                  }
+                ]
+              },
+              "m_ref_archives": {}
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "29627",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

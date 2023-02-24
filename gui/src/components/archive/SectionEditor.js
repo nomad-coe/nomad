@@ -24,6 +24,9 @@ import { extend, isNil } from 'lodash'
 import ListEditQuantity from '../editQuantity/ListEditQuantity'
 import { editQuantityComponents } from '../editQuantity/EditQuantity'
 import { QuantityMDef } from './metainfo'
+import {getAllVisibleProperties} from './ArchiveBrowser'
+import {QuantityRow, QuantityTable} from '../Quantity'
+import {PropertyPreview} from '../entry/properties/SectionCard'
 
 export const JsonEditor = React.memo(function JsonEditor({data, onChange, error, onError}) {
   const controlledError = useRef(error !== undefined)
@@ -96,12 +99,16 @@ const PropertyEditor = React.memo(function PropertyEditor({quantityDef, value, o
 
   const shape = quantityDef.shape || []
   if (shape.length === 0) {
-    return React.createElement(editComponent, editComponentProps)
+    return <Box data-testid={"editable-quantity-editor"}>
+      {React.createElement(editComponent, editComponentProps)}
+    </Box>
   } else if (shape.length === 1) {
-    return <ListEditQuantity
-      component={editComponent}
-      {...editComponentProps}
-    />
+    return <Box data-testid={"editable-quantity-editor"}>
+      <ListEditQuantity
+        component={editComponent}
+        {...editComponentProps}
+      />
+    </Box>
   } else {
     console.log('Unsupported quantity shape ', shape)
     return null
@@ -116,6 +123,9 @@ PropertyEditor.propTypes = {
 const useSectionEditorStyles = makeStyles(theme => ({
   root: {
     minWidth: 600
+  },
+  quantityTable: {
+    marginBottom: 5
   }
 }))
 const SectionEditor = React.memo(function SectionEditor({sectionDef, section, onChange, showJson}) {
@@ -142,18 +152,15 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
     handleArchiveChanged()
   }, [handleArchiveChanged, onChange, section])
 
-  const filterHiddenProperties = useCallback((property) => {
-    const hiddenPropertyNames = sectionDef?.m_annotations?.eln?.[0]?.hide || []
-    return !hiddenPropertyNames.includes(property.name)
-  }, [sectionDef])
+  const allVisibleProperties = useMemo(() => getAllVisibleProperties(sectionDef), [sectionDef])
+  const allVisibleQuantities = useMemo(() => allVisibleProperties.filter(property => property.m_def === QuantityMDef && property.m_annotations?.eln), [allVisibleProperties])
 
   const jsonData = useMemo(() => {
     if (!showJson) {
       return null
     }
     const jsonData = {}
-    sectionDef._allProperties
-      .filter(property => property.m_def === QuantityMDef && property.m_annotations?.eln)
+    allVisibleQuantities
       .filter(property => {
         // TODO this is just a hack to avoid large values, e.g. rich text with images
         const value = section[property.name]
@@ -163,7 +170,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
         jsonData[property.name] = section[property.name]
       })
     return jsonData
-  }, [showJson, section, sectionDef])
+  }, [showJson, allVisibleQuantities, section])
 
   return (
     <div className={classes.root} ref={rootRef}>
@@ -173,13 +180,21 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
             <JsonEditor data={jsonData} onChange={handleJsonChange} />
           </Box>
         ) : (
-          sectionDef._allProperties.filter(filterHiddenProperties).map(property => (
-            <Box marginBottom={1} key={property.name}>
-              <PropertyEditor
-                quantityDef={property}
-                value={section?.[property.name]} onChange={value => handleChange(property, value)}
-              />
-            </Box>
+          allVisibleQuantities.map(quantity => (
+            quantity._isEditable
+              ? <Box marginBottom={1} key={quantity.name} data-testid={"visible-quantity"}>
+                <PropertyEditor
+                  quantityDef={quantity}
+                  value={section?.[quantity.name]} onChange={value => handleChange(quantity, value)}
+                />
+              </Box>
+              : <Box key={quantity.name} data-testid={"visible-quantity"}>
+                <QuantityTable className={classes.quantityTable} data={section}>
+                  <QuantityRow>
+                    <PropertyPreview quantityDef={quantity} section={section}/>
+                  </QuantityRow>
+                </QuantityTable>
+              </Box>
           ))
         )
       }

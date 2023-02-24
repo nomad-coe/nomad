@@ -550,7 +550,7 @@ export function Compartment({title, children, color, startCollapsed, onUnfold}) 
   }
 
   return <React.Fragment>
-    <Box paddingTop={1} whiteSpace="nowrap" onClick={(handleClick)} style={{cursor: 'pointer'}}>
+    <Box paddingTop={1} whiteSpace="nowrap" onClick={(handleClick)} style={{cursor: 'pointer'}} data-testid={'compartment'}>
       {title && <Typography color={color} variant="overline">{title}</Typography>}
       {collapsed && <ItemChip label="closed" color="primary" data-testid={`collapsed:${title}`}/>}
     </Box>
