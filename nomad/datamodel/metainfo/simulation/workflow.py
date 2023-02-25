@@ -524,10 +524,14 @@ class SinglePoint(SimulationWorkflow):
 
         if not self.method:
             self.method = SinglePointMethod()
+
+        if not self.inputs:
             self.inputs.append(Link(name=_workflow_method_name, section=self.method))
 
         if not self.results:
             self.results = SinglePointResults()
+
+        if not self.outputs:
             self.outputs.append(Link(name=_workflow_results_name, section=self.results))
 
         if not self.method.method:
@@ -2387,17 +2391,19 @@ class PhotonPolarization(ParallelSimulation):
 
         if not self.method:
             self.method = PhotonPolarizationMethod()
-            self.inputs.append(Link(name=_workflow_method_name, section=self.method))
-            # link method also to first task
-            if self.tasks:
-                self.tasks[0].inputs.append(Link(name=_workflow_method_name, section=self.method))
+            if not self.inputs:
+                self.inputs.append(Link(name=_workflow_method_name, section=self.method))
+                # link method also to first task
+                if self.tasks:
+                    self.tasks[0].inputs.append(Link(name=_workflow_method_name, section=self.method))
 
         if not self.results:
             self.results = PhotonPolarizationResults()
-            self.outputs.append(Link(name=_workflow_results_name, section=self.results))
-            # link results also to last task
-            if self.tasks:
-                self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
+            if not self.outputs:
+                self.outputs.append(Link(name=_workflow_results_name, section=self.results))
+                # link results also to last task
+                if self.tasks:
+                    self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
 
 
 class ParticleHoleExcitationsResults(SimulationWorkflowResults):
