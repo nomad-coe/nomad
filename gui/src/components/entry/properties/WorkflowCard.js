@@ -137,32 +137,25 @@ const ForceDirected = React.memo(({data, layout, setTooltipContent}) => {
       .attr('pointer-events', 'all')
 
     // fix inputs and outputs to edge of frame
-    let fixY = width / 2
+    const mid = width / 2
     const dy = circleRadius * 10
 
     if (!data.children) data.children = []
 
     const inputChildren = data.children.filter(d => d.intent && d.intent.startsWith('input'))
-    let offset = inputChildren.length % 2 === 0 ? 1 : 0
-    for (let [index, child] of inputChildren.entries()) {
-      index = index + offset
-      fixY = fixY + index * dy * (index % 2 === 0 ? 1 : -1)
-      // child.fixY = fixY
-      // child.fixX = margin.left
-      // vertical configuration
-      child.fixX = fixY
+    let offset = inputChildren.length * dy / 2
+    let fixPoints = inputChildren.map((child, index) => mid + index * dy - offset)
+    for (const [index, child] of inputChildren.entries()) {
+      // vertical configuration, switch fixX and fixY for vertical
+      child.fixX = fixPoints[index]
       child.fixY = margin.top
     }
-    fixY = width / 2
     const outputChildren = data.children.filter(d => d.intent && d.intent.startsWith('output'))
-    offset = outputChildren.length % 2 === 0 ? 1 : 0
-    for (let [index, child] of outputChildren.entries()) {
-      index = index + offset
-      fixY = fixY + index * dy * (index % 2 === 0 ? 1 : -1)
-      // child.fixY = fixY
-      // child.fixX = width
-      // vertical configuration
-      child.fixX = fixY
+    offset = outputChildren.length * dy / 2
+    fixPoints = outputChildren.map((child, index) => mid + index * dy - offset)
+    for (const [index, child] of outputChildren.entries()) {
+      // vertical configuration, switch fixX and fixY for vertical
+      child.fixX = fixPoints[index]
       child.fixY = width - margin.bottom
     }
 
@@ -217,7 +210,7 @@ const ForceDirected = React.memo(({data, layout, setTooltipContent}) => {
       if (tasks.length > 0) {
         // add link from input to first task
         inputs.forEach(input => {
-          if (!input.crossLinks) addLink([tasks[0].key, 'Input'], input)
+          addLink([tasks[0].key, 'Input'], input)
         })
         // add link from last task to output
         outputs.forEach(output => {
@@ -356,7 +349,7 @@ const ForceDirected = React.memo(({data, layout, setTooltipContent}) => {
     svg.call(zoomBehaviors)
 
     const simulation = d3.forceSimulation()
-      .force('crosslink', d3.forceLink().id(d => d.id).distance(linkDistance).strength(1.5))
+      .force('crosslink', d3.forceLink().id(d => d.id).distance(linkDistance).strength(1.0))
       .force('link', d3.forceLink().id(d => d.id).distance(linkDistance).strength(0.5))
       .force('charge', d3.forceManyBody().strength(-50.0))
       .velocityDecay(0.2)
@@ -760,7 +753,7 @@ const WorkflowCard = React.memo(({archive}) => {
           return [section, archive, path, baseUrl]
         }
         if (path.startsWith('#')) path = path.slice(1)
-        if (path.startsWith('/')) {
+        if (!path.includes('#/')) {
           try {
             return [resolveInternalRef(path, archive), archive, path, baseUrl]
           } catch (error) {
@@ -815,30 +808,64 @@ const WorkflowCard = React.memo(({archive}) => {
           }
           if (section.inputs) {
             let parent
+            const end = section.inputs.length - start
             for (const [index, ref] of section.inputs.entries()) {
-              parent = await createHierarchy(ref, archive, ref.name || 'input', 'inputs', index, `${path}/inputs/${index}`)
-              if (!parent) continue
-              const child = parent.children ? parent.children[0] : null
-              if (child) {
-                addCrossLink(child.key, [sectionKey, ref.name || ''])
-                child.intent = 'input'
-                children.push(child)
-                taskInputs.push(child)
+              if (index < start || index >= end || start + 1 === end) {
+                parent = await createHierarchy(ref, archive, ref.name || 'input', 'inputs', index, `${path}/inputs/${index}`)
+                if (!parent) continue
+                const child = parent.children ? parent.children[0] : null
+                if (child) {
+                  addCrossLink(child.key, [sectionKey, ref.name || ''])
+                  child.intent = 'input'
+                  taskInputs.push(child)
+                }
               }
             }
+            if (section.inputs.length > taskInputs.length) {
+              const otherInputs = {
+                name: `Inputs ${start + 1} - ${end} not shown`,
+                type: taskInputs[start - 1].type,
+                path: taskInputs[start - 1].path,
+                entryId: taskInputs[start - 1].entryId,
+                key: `${taskInputs[start - 1].key}.invisible.input`,
+                intent: 'input',
+                size: 20
+              }
+              taskInputs.splice(start, 0, otherInputs)
+              addCrossLink(taskInputs[start - 1].key, [otherInputs.key, '', null, false])
+              addCrossLink(taskInputs[start + 1].key, [otherInputs.key, '', null, false])
+            }
+            children.push(...taskInputs)
           }
           if (section.outputs) {
+            const end = section.outputs.length - start
             for (const [index, ref] of section.outputs.entries()) {
-              const parent = await createHierarchy(ref, archive, ref.name || 'output', 'outputs', index, `${path}/outputs/${index}`)
-              if (!parent) continue
-              const child = parent.children ? parent.children[0] : null
-              if (child) {
-                addCrossLink(sectionKey, [child.key, ref.name || ''])
-                child.intent = 'output'
-                children.push(child)
-                taskOutputs.push(child)
+              if (index < start || index >= end || start + 1 === end) {
+                const parent = await createHierarchy(ref, archive, ref.name || 'output', 'outputs', index, `${path}/outputs/${index}`)
+                if (!parent) continue
+                const child = parent.children ? parent.children[0] : null
+                if (child) {
+                  addCrossLink(sectionKey, [child.key, ref.name || ''])
+                  child.intent = 'output'
+                  taskOutputs.push(child)
+                }
               }
             }
+            if (section.outputs.length > taskOutputs.length) {
+              const otherOutputs = {
+                name: `Outputs ${start + 1} - ${end} not shown`,
+                type: taskOutputs[start - 1].type,
+                path: taskOutputs[start - 1].path,
+                entryId: taskOutputs[start - 1].entryId,
+                key: `${taskOutputs[start - 1].key}.invisible.output`,
+                intent: 'output',
+                size: 20
+              }
+              taskOutputs.splice(start, 0, otherOutputs)
+              addCrossLink(taskOutputs[start - 1].key, [otherOutputs.key, '', null, false])
+              addCrossLink(taskOutputs[start + 1].key, [otherOutputs.key, '', null, false])
+            }
+            children.push(...taskOutputs)
           }
           if (section.task) {
             const task = await createHierarchy(section.task, archive)
@@ -871,7 +898,7 @@ const WorkflowCard = React.memo(({archive}) => {
                 type: sectionChildren[start - 1].type,
                 path: sectionChildren[start - 1].path,
                 entryId: sectionChildren[start - 1].entryId,
-                key: `${sectionChildren[start - 1].key}.invisible`,
+                key: `${sectionChildren[start - 1].key}.invisible.task`,
                 size: 20
               }
               sectionChildren.splice(start, 0, otherTasks)
