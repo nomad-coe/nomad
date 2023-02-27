@@ -37,6 +37,56 @@ Here is an example `nomad.yaml` file:
 --8<-- "ops/docker-compose/nomad-oasis/configs/nomad.yaml"
 ```
 
+When overwriting an *object* in the configuration, the new value will be merged with the default value. The new merged object will have all of the attributes of the new object in addition to any old attributes that were not overwritten. This allows you to simply change an individual setting without having to provide the entire structure again, which simplifies customization that happens deep in the configuration hierarchy. When overwriting anything else (numbers, strings, lists etc.) the new value completely replaces the old one.
+
+#### User interface customization
+
+Many of the UI options use a data model that contains the following three fields: `include`, `exclude` and `options`. This structure allows you to easily disable, enable, reorder and modify the UI layout with minimal config rewrite. Here are examples of common customization tasks using the search columns as an example:
+
+Disable item:
+```yaml
+ui:
+  apps:
+    options:
+      entries:
+        columns:
+          exclude: ['upload_create_time']
+```
+
+Explicitly select the shown items and their order
+```yaml
+ui:
+  apps:
+    options:
+      entries:
+        columns:
+          include: ['entry_id', 'upload_create_time']
+```
+
+Modify existing option
+```yaml
+ui:
+  apps:
+    options:
+      entries:
+        columns:
+          options:
+            upload_create_time:
+              label: "Uploaded"
+```
+
+Add a new item that does not yet exist in options. Note that by default all options are shown in the order they have been declared unless the order is explicitly given in `include`.
+```yaml
+ui:
+  apps:
+    options:
+      entries:
+        columns:
+          options:
+            upload_id:
+              label: "Upload ID"
+```
+
 The following is a reference of all configuration sections and attributes.
 
 ## Services

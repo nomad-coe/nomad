@@ -339,7 +339,7 @@ def migrate_mongo(
 
     from pymongo.database import Database
     from nomad import infrastructure
-    import nomad.cli.admin.migrate as migrate
+    from nomad.cli.admin import migrate
 
     config.mongo.host = host
     config.mongo.port = port

@@ -7,8 +7,8 @@ from nomad.datamodel.data import EntryData
 from nomad.metainfo import Package, Quantity, MEnum
 from nomad.units import ureg
 
-from nexusutils.dataconverter.convert import get_names_of_all_readers, convert
-from nexusutils.nexus.nexus import get_app_defs_names
+from nexusutils.dataconverter.convert import get_names_of_all_readers, convert  # pylint: disable=import-error
+from nexusutils.nexus.nexus import get_app_defs_names  # pylint: disable=import-error
 
 
 m_package = Package(name='nexus_data_converter')

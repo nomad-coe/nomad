@@ -37,7 +37,7 @@ import json
 import numpy as np
 import ase
 import bs4
-import matid
+import matid  # pylint: disable=import-error
 
 from nomad import atomutils, config, client, processing as proc
 from nomad.client import api, upload_file

@@ -112,7 +112,7 @@ export const Range = React.memo(({
   nBins,
   disableHistogram,
   autorange,
-  inputfields,
+  showinput,
   aggId,
   className,
   classes,
@@ -637,7 +637,7 @@ export const Range = React.memo(({
             data-testid={`${testID}-histogram`}
           />
         }
-        {inputfields && <div className={styles.row}>
+        {showinput && <div className={styles.row}>
           {inputMinField}
           {disableHistogram && !isTime
             ? <div className={styles.spacer}>
@@ -679,7 +679,7 @@ Range.propTypes = {
   /* Set the range automatically according to data. */
   autorange: PropTypes.bool,
   /* Show the input fields for min and max value */
-  inputfields: PropTypes.bool,
+  showinput: PropTypes.bool,
   aggId: PropTypes.string,
   className: PropTypes.string,
   classes: PropTypes.object,
@@ -757,7 +757,7 @@ const InputRange = React.memo(({
       nBins={nBins}
       disableHistogram={disableHistogram}
       autorange={autorange}
-      inputfields
+      showinput
       aggId={aggId}
       classes={{histogram: styles.histogram}}
       data-testid={testID}

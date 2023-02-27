@@ -46,7 +46,16 @@ import { v4 as uuidv4 } from 'uuid'
 import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
 import { useApi } from '../api'
-import { setToArray, authorList, entryName, entryType, formatTimestamp, getDeep, formatNumber, getDatatype } from '../../utils'
+import {
+  setToArray,
+  authorList,
+  entryName,
+  entryType,
+  formatTimestamp,
+  getDeep,
+  formatNumber,
+  getDatatype
+} from '../../utils'
 import { Quantity, Unit } from '../../units'
 import { useErrors } from '../errors'
 import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
@@ -124,19 +133,14 @@ export const SearchContext = React.memo(({
   const indexFilters = useRef(0)
   const indexLocked = useRef(0)
 
-  // The final filtered set of columns
+  // The final set of columns
   const columns = useMemo(() => {
     if (!initialColumns) return undefined
-    const columns = cloneDeep(initialColumns)
-    const include = columns.include || (columns.options && Object.keys(columns.options))
-    let options = include
-      ? include
-        .filter(key => !columns?.exclude?.includes(key))
-        .map(key => ({key, ...columns.options[key]}))
-      : []
 
     // Add unit information if one is defined. This unit is currently fixed and
     // not affected by global unit system.
+    const config = cloneDeep(initialColumns)
+    let options = config?.options ? Object.values(config.options) : []
     options.forEach(option => {
       const unit = option.unit
       if (unit) {
@@ -145,7 +149,7 @@ export const SearchContext = React.memo(({
       }
     })
 
-    // Determine the final render function
+    // Automatically determine the render function based on metainfo.
     options.forEach(option => {
       option.render = (data) => {
         const value = getDeep(data, option.key)
@@ -171,7 +175,8 @@ export const SearchContext = React.memo(({
       }
     })
 
-    // Custom render is used for a subset of columns.
+    // Custom render and other setting overrides ared used for a subset of
+    // columns.
     const overrides = {
       entry_name: {
         render: entryName
@@ -219,56 +224,38 @@ export const SearchContext = React.memo(({
       }
     }
 
-    addColumnDefaults(options)
-    options = options.map(
-      option => ({...option, ...(overrides[option.key] || {})})
-    )
-
-    if (columns.enable) {
-      // sort the options following the enabled array
+    // Sort options by putting initially selected ones on top
+    if (config.selected) {
       options = [
-        ...columns.enable.map(key => options.find(opt => opt.key === key)).filter(opt => !!opt),
-        ...options.filter(opt => !columns.enable.find(key => key === opt.key))
+        ...config.selected.map(key => options.find(opt => opt.key === key)).filter(opt => !!opt),
+        ...options.filter(opt => !config.selected.find(key => key === opt.key))
       ]
     }
 
-    return {
-      options,
-      enable: columns.enable
-    }
+    // Add defaults and custom overrides to the options
+    addColumnDefaults(options)
+    config.options = Object.fromEntries(options.map(option => {
+      return [option.key, {...option, ...(overrides[option.key] || {})}]
+    }))
+
+    return config
   }, [initialColumns])
 
-  // The final row setup
+  // The final row configuration
   const rows = useMemo(() => {
     return initialRows || undefined
   }, [initialRows])
 
-  // The final filtered set of menus
+  // The final menu configuration
   const filterMenus = useMemo(() => {
-    const filterMenus = cloneDeep(initialFilterMenus)
-    const include = filterMenus?.include || (filterMenus?.options && Object.keys(filterMenus.options))
-    return include
-      ? include
-        .filter(key => !filterMenus?.exclude?.includes(key))
-        .map(key => {
-          const data = filterMenus.options[key]
-          const actions = data?.actions
-          if (actions) {
-            const include = actions.include || (actions?.options && Object.keys(actions.options))
-            data.actions = include
-              ? include
-                .filter(action => !actions?.exclude?.includes(action))
-                .map(action => ({key, ...actions.options[action]}))
-              : undefined
-          }
-          return {key, ...data}
-        })
-      : undefined
+    return initialFilterMenus || undefined
   }, [initialFilterMenus])
 
-  // The initial dashboard configuration
+  // The final dashboard configuration
   const dashboard = useMemo(() => {
-    return {initialDashboard, widgets: getWidgetsObject(initialDashboard?.widgets || [])}
+    return initialDashboard
+      ? {...initialDashboard, widgets: getWidgetsObject(initialDashboard?.widgets || [])}
+      : undefined
   }, [initialDashboard])
 
   // Initialize the set of available filters. This may depend on the resource.
@@ -456,7 +443,7 @@ export const SearchContext = React.memo(({
 
     const widgetIds = atom({
       key: `widgetIds_${contextID}`,
-      default: [...Object.keys(dashboard?.widgets)]
+      default: [...Object.keys(dashboard?.widgets || {})]
     })
 
     // Used to get/set the widgets configuration

@@ -19,9 +19,9 @@ import numpy as np
 from ase import Atoms
 from typing import List, Set, Any, Optional
 from nptyping import NDArray
-from matid import SymmetryAnalyzer
-from matid.symmetry.wyckoffset import WyckoffSet as WyckoffSetMatID
-import matid.geometry
+from matid import SymmetryAnalyzer  # pylint: disable=import-error
+from matid.symmetry.wyckoffset import WyckoffSet as WyckoffSetMatID  # pylint: disable=import-error
+import matid.geometry  # pylint: disable=import-error
 
 from nomad import atomutils
 from nomad import config

@@ -71,7 +71,7 @@ DOI, they will be redirected to a NOMAD view that shows the dataset and allows i
 Once you assigned a DOI to a dataset, no entries can be removed or added to the dataset.
 `
 
-const context = ui?.search_contexts?.options?.entries
+const context = ui?.apps?.options?.entries
 const initialFiltersLocked = {
   'visibility': 'user'
 }

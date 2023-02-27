@@ -25,11 +25,11 @@ import ase.data
 from ase import Atoms
 from ase.geometry.cell import complete_cell
 import numpy as np
-import matid.geometry
-from matid.classification.structureclusterer import StructureClusterer
-from matid import Classifier
-from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D, Class2D, Unknown
-from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer
+import matid.geometry  # pylint: disable=import-error
+from matid.classification.structureclusterer import StructureClusterer  # pylint: disable=import-error
+from matid import Classifier  # pylint: disable=import-error
+from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D, Class2D, Unknown  # pylint: disable=import-error
+from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer  # pylint: disable=import-error
 
 from nomad.datamodel.results import Symmetry, Material, System, Relation, Structure, Prototype, structure_name_map
 from nomad import atomutils

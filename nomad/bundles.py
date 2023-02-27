@@ -14,6 +14,7 @@ import json
 from datetime import datetime, timedelta
 
 from nomad import config, utils, datamodel, search
+from nomad.config.models import BundleImportSettings, BundleExportSettings
 from nomad.files import (
     zipfile, PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles,
     FileSource, BrowsableFileSource, CombinedFileSource, StreamedFileSource, DiskFileSource, ZipFileSource,
@@ -26,7 +27,7 @@ from fastapi import HTTPException, status
 class BundleExporter:
     def __init__(
             self, upload: Upload, export_as_stream: bool, export_path: str, zipped: bool, overwrite: bool,
-            export_settings: config.BundleExportSettings):
+            export_settings: BundleExportSettings):
         '''
         Class for exporting an upload as a *bundle*. Bundles are used to export and import
         uploads between different NOMAD installations. After instantiating a BundleExporter,
@@ -61,7 +62,7 @@ class BundleExporter:
         self.export_settings = export_settings
 
     @classmethod
-    def check_export_settings(cls, export_settings: config.BundleExportSettings):
+    def check_export_settings(cls, export_settings: BundleExportSettings):
         assert export_settings.include_archive_files or export_settings.include_raw_files, (
             'Export must include the archive files or the raw files, or both')
 
@@ -128,7 +129,7 @@ class BundleExporter:
 
 
 class BundleImporter:
-    def __init__(self, user: datamodel.User, import_settings: config.BundleImportSettings, embargo_length: int = None):
+    def __init__(self, user: datamodel.User, import_settings: BundleImportSettings, embargo_length: int = None):
         '''
         Class for importing an upload from a *bundle*.
 
@@ -138,7 +139,7 @@ class BundleImporter:
                 permission checks are done.
             import_settings:
                 Settings for controlling the bundle content. See the
-                `config.BundleImportSettings` for applicable options.
+                `BundleImportSettings` for applicable options.
                 NOTE: the dictionary must specify a complete set of options.
             embargo_length:
                 Used to set the embargo length. If set to None, the value will be imported

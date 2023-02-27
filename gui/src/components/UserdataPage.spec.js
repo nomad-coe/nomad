@@ -24,7 +24,7 @@ import UserDatapage from './UserdataPage'
 import { minutes } from '../setupTests'
 
 test('renders user data search page correctly', async () => {
-  const context = ui.search_contexts.options.entries
+  const context = ui.apps.options.entries
   await startAPI('tests.states.search.search', 'tests/data/search/userdatapage', 'test', 'password')
   render(<UserDatapage />)
 

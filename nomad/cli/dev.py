@@ -44,7 +44,7 @@ def qa(skip_tests: bool, exitfirst: bool):
     click.echo('Run code style checks ...')
     ret_code += os.system('python -m pycodestyle --config=pycodestyle.ini nomad tests')
     click.echo('Run linter ...')
-    ret_code += os.system('python -m pylint --load-plugins=pylint_mongoengine,nomad.metainfo.pylint_plugin nomad tests')
+    ret_code += os.system('python -m pylint --rcfile=.pylintrc nomad tests')
     click.echo('Run static type checks ...')
     ret_code += os.system('python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests')
 
@@ -158,7 +158,7 @@ def _generate_search_quantities():
             metadict['name'] = instanceMeta['name']
             metadict['repeats'] = repeats or instanceMeta.get('repeats')
             es_annotations = search_quantity.m_get_annotations(Elasticsearch, as_list=True)
-            nested = any([x.nested for x in es_annotations])
+            nested = any(x.nested for x in es_annotations)
             metadict['nested'] = nested
         else:
             keys = ['name', 'description', 'type', 'unit', 'shape', 'aliases']
@@ -240,7 +240,7 @@ def get_gui_config(proxy: bool = False) -> str:
         'version': config.meta.beta if config.meta.beta else {},
         'globalLoginRequired': config.oasis.allowed_users is not None,
         'servicesUploadLimit': config.services.upload_limit,
-        'ui': config.ui.dict() if config.ui else {}
+        'ui': config.ui.dict(exclude_none=True) if config.ui else {}
     }
 
     return f'window.nomadEnv = {json.dumps(data, indent=2)}'

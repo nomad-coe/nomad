@@ -1220,7 +1220,7 @@ def search(
         if required.exclude:
             excludes += required.exclude
         includes = required.include
-    search = search.source(includes=includes, excludes=excludes)
+    search = search.source(includes=includes, excludes=excludes)  # pylint: disable=no-member
 
     # aggregations
     aggs = [(name, _specific_agg(agg)) for name, agg in aggregations.items()]

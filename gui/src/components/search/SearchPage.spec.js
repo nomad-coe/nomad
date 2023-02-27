@@ -31,7 +31,7 @@ describe('', () => {
   afterAll(() => closeAPI())
 
   test.each(
-    Object.entries(ui.search_contexts.options)
+    Object.entries(ui.apps.options)
   )('renders search page correctly, context: %s', async (key, context) => {
     render(
       <SearchContext

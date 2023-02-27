@@ -1411,7 +1411,7 @@ async def post_entries_edit(
     try:
         verified_json = proc.MetadataEditRequestHandler.edit_metadata(edit_request_json, None, user)
         return verified_json
-    except RequestValidationError as e:
+    except RequestValidationError:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.
     except Exception as e:
         # The upload is processing or some kind of unexpected error has occured

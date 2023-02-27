@@ -119,7 +119,7 @@ const required = {
 }
 
 const OverviewView = React.memo(() => {
-  const { overview } = useEntryContext()
+  const { cards } = useEntryContext()
   const { data: index, response: indexApiData } = useIndex()
   const { url, exists, editable, archive: archiveTmp, archiveApiData } = useEntryStore(required)
 
@@ -162,7 +162,7 @@ const OverviewView = React.memo(() => {
   }, [archive, dataMetainfoDef, setSections, raiseError])
 
   // Determine the cards to show
-  const cards = useMemo(() => {
+  const cardComps = useMemo(() => {
     if (!exists || !index) return []
     const cardMap = {
       definitions: DefinitionsCard,
@@ -184,13 +184,13 @@ const OverviewView = React.memo(() => {
       relatedResources: RelatedResourcesCard
     }
 
-    if (isEmpty(overview?.options)) {
+    if (isEmpty(cards?.options)) {
       return <Alert severity="warning">
         No overview cards defined in the entry context. Ensure that all GUI artifacts are created.
       </Alert>
     }
 
-    return overview.options.map((option) => {
+    return Object.values(cards.options).map((option) => {
       let comp = null
       const msg = option.error || "Could not render card."
       const key = option.key
@@ -217,7 +217,7 @@ const OverviewView = React.memo(() => {
       }
       return comp
     })
-  }, [exists, index, overview, sections, editable, archive, properties])
+  }, [exists, index, cards, sections, editable, archive, properties])
 
   if (!exists) {
     return <Page>
@@ -280,17 +280,11 @@ const OverviewView = React.memo(() => {
             <ArchiveDeleteButton />
           </Box>
         )}
-        {cards}
+        {cardComps}
       </Grid>
     </Grid>
   </Page>
 })
-
-OverviewView.propTypes = {
-  url: PropTypes.string,
-  editable: PropTypes.bool,
-  exists: PropTypes.bool
-}
 
 OverviewView.whyDidYouRender = true
 

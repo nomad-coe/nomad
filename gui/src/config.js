@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 import { createTheme } from '@material-ui/core'
+import { isPlainObject, isNil } from 'lodash'
 
 /**
  * Used to normalized the given URL into an absolute form which starts with
@@ -40,13 +41,53 @@ import { createTheme } from '@material-ui/core'
   return absUrl
 }
 
+/**
+ * Returns a normalized version of an UI config model. The following changes are applied
+ * in the normalized version:
+ *
+ *  - The 'include' and 'exclude' attributes have been used to filter and order the
+ *    options object and the key is automatically included as an option property.
+ *
+ * @param {object} config The original UI config.
+ * @return Normalized version of the UI config model.
+ */
+export function normalizeConfig(config) {
+    if (isNil(config)) return config
+
+    function normalize(obj) {
+      for (const [key, value] of Object.entries(obj)) {
+        if (isPlainObject(value)) {
+          normalize(value)
+
+          // Normalize the options
+          if (!value.options) continue
+          const include = value.include || (value.options && Object.keys(value.options))
+          const options = include
+            ? include
+              .filter(key => !value?.exclude?.includes(key))
+              .map(key => ({key, ...value.options[key]}))
+            : []
+
+          const config = {options: Object.fromEntries(options.map(option => [option.key, option]))}
+          if (value.selected) config.selected = value.selected
+          obj[key] = config
+        }
+      }
+    }
+
+    // Recursively normalize the config
+    normalize(config)
+
+    return config
+}
+
 window.nomadEnv = window.nomadEnv || {}
 export const version = window.nomadEnv.version
 export const appBase = urlAbs(window.nomadEnv.appBase.replace(/\/$/, ''))
 export const apiBase = `${appBase}/api`
 export const northBase = urlAbs(window.nomadEnv.northBase)
 export const guiBase = process.env.PUBLIC_URL
-export const ui = window.nomadEnv.ui
+export const ui = normalizeConfig(window.nomadEnv.ui)
 export const servicesUploadLimit = window.nomadEnv.servicesUploadLimit
 export const keycloakBase = window.nomadEnv.keycloakBase
 export const keycloakRealm = window.nomadEnv.keycloakRealm

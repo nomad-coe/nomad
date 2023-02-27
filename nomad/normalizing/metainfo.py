@@ -27,7 +27,7 @@ class MetainfoNormalizer(Normalizer):
         normalize = None
         try:
             normalize = getattr(section, 'normalize')
-        except Exception as e:
+        except Exception:
             pass
 
         if normalize:

@@ -46,6 +46,7 @@ from pydantic.error_wrappers import ErrorWrapper
 import validators
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
+from nomad.config.models import CELERY_WORKER_ROUTING
 from nomad.datamodel.datamodel import RFC3161Timestamp
 from nomad.files import (
     RawPathInfo, PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles,
@@ -1251,7 +1252,7 @@ class Entry(Proc):
         try:
             return self.upload_files.write_archive(
                 self.entry_id, archive.m_to_dict(with_def_id=config.process.write_definition_id_to_archive))
-        except Exception as e:
+        except Exception:
             # most likely failed due to domain data, try to write metadata and processing logs
             archive = datamodel.EntryArchive(m_context=self.upload.archive_context)
             archive.m_add_sub_section(datamodel.EntryArchive.metadata, self._entry_metadata)
@@ -1388,7 +1389,10 @@ class Upload(Proc):
         if 'upload_id' not in kwargs:
             kwargs.update(upload_id=utils.create_uuid())
         kwargs.update(main_author=main_author.user_id)
-        self = super().create(**kwargs)
+        # Pylint has trouble recognizing the correct type returned by this overridden
+        # class method, so instead of using super().create(**kwargs), we use this
+        # alternative as discussed in https://github.com/PyCQA/pylint/issues/981
+        self = Proc.__dict__["create"].__func__(cls, **kwargs)
 
         return self
 
@@ -1578,7 +1582,7 @@ class Upload(Proc):
                 'Settings do no allow reprocessing of a published upload')
 
         # TODO remove after worker_hostnames are handled correctly
-        if config.celery.routing == config.CELERY_WORKER_ROUTING:
+        if config.celery.routing == CELERY_WORKER_ROUTING:
             if self.worker_hostname is None:
                 self.worker_hostname = worker_hostname
                 Entry._get_collection().update_many(
@@ -2133,7 +2137,7 @@ class Upload(Proc):
             except Exception as e:
                 # probably due to email configuration problems
                 # don't fail or present this error to clients
-                self.logger.error('could not send after processing email', exc_info=e)
+                logger.error('could not send after processing email', exc_info=e)
 
     def _cleanup_staging_files(self):
         if self.published and PublicUploadFiles.exists_for(self.upload_id):

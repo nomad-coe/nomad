@@ -43,7 +43,7 @@ from .hall_instrument import (
     TemperatureDomain
 )
 
-import nexusutils.dataconverter.readers.hall.helpers as hall_helpers
+import nexusutils.dataconverter.readers.hall.helpers as hall_helpers  # pylint: disable=import-error
 from nomad.units import ureg
 
 

@@ -5,6 +5,10 @@
 # run arbitrary code.
 extension-pkg-whitelist=pydantic
 
+# List of plugins (as comma separated values of python module names) to load,
+# usually to register additional checkers.
+load-plugins=pylint_mongoengine,nomad.metainfo.pylint_plugin
+
 
 [MESSAGES CONTROL]
 
@@ -18,6 +22,7 @@ extension-pkg-whitelist=pydantic
 # no Warning level messages displayed, use "--disable=all --enable=classes
 # --disable=W".
 disable=blacklisted-name,
+        unspecified-encoding,
         invalid-name,
         missing-docstring,
         empty-docstring,
@@ -27,6 +32,7 @@ disable=blacklisted-name,
         unidiomatic-typecheck,
         consider-using-enumerate,
         consider-iterating-dictionary,
+        consider-using-f-string,
         bad-classmethod-argument,
         bad-mcs-method-argument,
         bad-mcs-classmethod-argument,
@@ -50,6 +56,7 @@ disable=blacklisted-name,
         ungrouped-imports,
         wrong-import-position,
         useless-import-alias,
+        import-outside-toplevel,
         old-style-class,
         len-as-condition,
         raw-checker-failed,
@@ -234,7 +241,22 @@ disable=blacklisted-name,
         deprecated-sys-function,
         exception-escape,
         comprehension-escape,
-        mongoengine-placeholder
+        mongoengine-placeholder,
+        # TODO: These were temporarily added when upgrading to newer pylint version that
+        # catches these new linting issues. Should be addressed and removed.
+        self-assigning-variable,
+        use-dict-literal,
+        unnecessary-comprehension,
+        use-sequence-for-iteration,
+        f-string-without-interpolation,
+        super-with-arguments,
+        used-before-assignment,
+        consider-using-dict-items,
+        no-else-continue,
+        arguments-renamed,
+        consider-using-with,
+        raise-missing-from,
+        no-else-break
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

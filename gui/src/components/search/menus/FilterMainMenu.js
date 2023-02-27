@@ -49,7 +49,7 @@ import FilterSubMenuGeometryOptimization from './FilterSubMenuGeometryOptimizati
 import InputCheckbox from '../input/InputCheckbox'
 import FilterSubMenuCustomQuantities from './FilterSubMenuCustomQuantities'
 
-const menuMap = {
+export const menuMap = {
   elements: FilterSubMenuElements,
   structure: FilterSubMenuStructure,
   method: FilterSubMenuMethod,
@@ -99,15 +99,15 @@ const FilterMainMenu = React.memo(({
 
   // The shown menu items
   const menuItems = useMemo(() => {
-    return filterMenus
-     ? filterMenus.map(option => {
+    return filterMenus?.options
+     ? Object.values(filterMenus.options).map(option => {
         return <FilterMenuItem
           key={option.key}
           id={option.key}
           label={option.label}
           level={option.level}
           disableButton={!has(menuMap, option.key)}
-          actions={option?.actions && option.actions
+          actions={option?.actions?.options && Object.values(option.actions.options)
             .map((action) => {
               const content = action.type === 'checkbox'
                 ? <InputCheckbox
@@ -129,9 +129,9 @@ const FilterMainMenu = React.memo(({
 
   // The shown submenus
   const subMenus = useMemo(() => {
-    return filterMenus
-      ? filterMenus
-        .filter(option => option.menu_items)
+    return filterMenus?.options
+      ? Object.values(filterMenus.options)
+        .filter(option => menuMap[option.key])
         .map(option => {
           const Comp = menuMap[option.key]
           return <Comp

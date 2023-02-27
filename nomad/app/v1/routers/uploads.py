@@ -19,7 +19,7 @@ import os
 import io
 import shutil
 from datetime import datetime
-from typing import Tuple, List, Set, Dict, Any, Optional
+from typing import Tuple, List, Set, Dict, Any, Optional, Union
 from pydantic import BaseModel, Field, validator
 from mongoengine.queryset.visitor import Q
 from urllib.parse import unquote
@@ -553,7 +553,7 @@ async def get_upload_entries(
     # load entries's metadata from search
     metadata_entries_query = WithQuery(
         query={
-            'entry_id:any': list([entry.entry_id for entry in entries])
+            'entry_id:any': list(entry.entry_id for entry in entries)
         }).query
     metadata_entries = search(
         pagination=MetadataPagination(page_size=len(entries)),
@@ -1320,7 +1320,7 @@ async def post_upload(
         elif len(upload_paths) == 1:
             upload_name = os.path.basename(upload_paths[0])
 
-    upload = Upload.create(
+    upload: Upload = Upload.create(
         upload_id=upload_id,
         main_author=user,
         upload_name=upload_name,
@@ -1385,7 +1385,7 @@ async def post_upload_edit(
     try:
         MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
         return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(Upload.get(upload_id)))
-    except RequestValidationError as e:
+    except RequestValidationError:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.
     except Exception as e:
         # The upload is processing or some kind of unexpected error has occured
@@ -1762,6 +1762,7 @@ async def post_upload_bundle(
 
     bundle_importer: BundleImporter = None
     bundle_path: str = None
+    method = None
 
     try:
         bundle_importer = BundleImporter(user, import_settings)
@@ -1803,7 +1804,7 @@ async def post_upload_bundle(
 
 async def _get_files_if_provided(
         tmp_dir_prefix: str, request: Request, file: List[UploadFile], local_path: str, file_name: str,
-        user: User) -> Tuple[List[str], int]:
+        user: User) -> Tuple[List[str], Union[None, int]]:
     '''
     If the user provides one or more files with the api call, load and save them to a temporary
     folder (or, if method 0 is used, just "forward" the file path). The method thus needs to identify
