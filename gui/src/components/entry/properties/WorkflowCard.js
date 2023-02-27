@@ -761,7 +761,7 @@ const WorkflowCard = React.memo(({archive}) => {
           }
         }
         const url = resolveNomadUrl(path, baseUrl)
-        const query = {'workflow2': '*', 'metadata': '*', 'data': '*'}
+        const query = {'workflow2': '*', 'metadata': '*'}
         try {
           const response = await api.post(`/entries/${url.entryId}/archive/query`, {required: query})
           let sectionPath = path.split('#').pop()
@@ -780,8 +780,8 @@ const WorkflowCard = React.memo(({archive}) => {
       const sectionData = await (async (section, archive, path, baseUrl) => {
         const sectionKey = [baseUrl, path].join('#')
         const children = []
-        const maxTasks = 6
-        const start = Math.floor(maxTasks / 2)
+        const maxNodes = 6
+        const start = Math.floor(maxNodes / 2)
         if (typeof section === 'string' || !section) {
           return {
             name: name,
@@ -821,7 +821,7 @@ const WorkflowCard = React.memo(({archive}) => {
                 }
               }
             }
-            if (section.inputs.length > taskInputs.length) {
+            if (section.inputs.length > maxNodes + 1) {
               const otherInputs = {
                 name: `Inputs ${start + 1} - ${end} not shown`,
                 type: taskInputs[start - 1].type,
@@ -851,7 +851,7 @@ const WorkflowCard = React.memo(({archive}) => {
                 }
               }
             }
-            if (section.outputs.length > taskOutputs.length) {
+            if (section.outputs.length > maxNodes + 1) {
               const otherOutputs = {
                 name: `Outputs ${start + 1} - ${end} not shown`,
                 type: taskOutputs[start - 1].type,
@@ -892,7 +892,7 @@ const WorkflowCard = React.memo(({archive}) => {
                 if (task) sectionChildren.push(task)
               }
             }
-            if (section.tasks.length > sectionChildren.length) {
+            if (section.tasks.length > maxNodes + 1) {
               const otherTasks = {
                 name: `Tasks ${start + 1} - ${end} not shown`,
                 type: sectionChildren[start - 1].type,
