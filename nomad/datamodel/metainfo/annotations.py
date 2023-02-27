@@ -139,7 +139,7 @@ class ELNAnnotation(AnnotationModel):
     with different parameters; see below.
 
     The UI gives an overview about all ELN edit annotations and components
-    [here]({{ nomad_url() }}/../gui/dev/editquantity).
+    [here](https://nomad-lab.eu/prod/v1/staging/gui/dev/editQuantity).
     '''
 
     component: ELNComponentEnum = Field(None, description='''
