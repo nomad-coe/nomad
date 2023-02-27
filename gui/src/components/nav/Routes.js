@@ -181,46 +181,41 @@ const toolkitRoute = (!oasis && aitoolkitEnabled)
     tooltip: 'Visit the NOMAD Artificial Intelligence Analytics Toolkit'
   }
 
-const include = ui.search_contexts.include || Object.keys(ui.search_contexts.options)
-const searchRoutes = include
-  ? include
-    .filter(key => !ui?.search_contexts?.exclude?.includes(key))
-    .map(key => {
-      const context = ui.search_contexts.options[key]
-      const routeMap = {
-        entries: entryRoutes
-      }
-      return {
-        path: context.path,
-        exact: true,
-        cache: 'always',
-        menu: context.label,
-        tooltip: context.description,
-        breadcrumb: context.breadcrumb,
-        category: context.category,
-        render: (props) => (
-          <SearchContext
-            {...props}
-            resource={context.resource}
-            initialPagination={context.pagination}
-            initialColumns={context.columns}
-            initialRows={context.rows}
-            initialFilterMenus={context.filter_menus}
-            initialFilters={context?.filters}
-            initialFiltersLocked={context.filters_locked}
-            initialDashboard={context?.dashboard}
-          >
-            <SearchPage/>
-          </SearchContext>
-        ),
-        help: {
-          title: context.help?.title,
-          content: context.help?.content
-        },
-        routes: routeMap[context.resource]
-      }
-    })
-  : []
+const searchRoutes = Object.values(ui?.apps?.options || {})
+  .map((context) => {
+    const routeMap = {
+      entries: entryRoutes
+    }
+    return {
+      path: context.path,
+      exact: true,
+      cache: 'always',
+      menu: context.label,
+      tooltip: context.description,
+      breadcrumb: context.breadcrumb,
+      category: context.category,
+      render: (props) => (
+        <SearchContext
+          {...props}
+          resource={context.resource}
+          initialPagination={context.pagination}
+          initialColumns={context.columns}
+          initialRows={context.rows}
+          initialFilterMenus={context.filter_menus}
+          initialFilters={context?.filters}
+          initialFiltersLocked={context.filters_locked}
+          initialDashboard={context?.dashboard}
+        >
+          <SearchPage/>
+        </SearchContext>
+      ),
+      help: {
+        title: context.help?.title,
+        content: context.help?.content
+      },
+      routes: routeMap[context.resource]
+    }
+  })
 
 /**
  * The list with all routes. This is used to determine the routes for routing, the breadcrumbs,
@@ -315,7 +310,7 @@ export const routes = [
         title: 'Artificial Intelligence Toolkit',
         component: ReproducePage
       },
-      ...(ui.north_enabled ? [
+      ...(ui?.north?.enabled ? [
         {
           path: 'north',
           menu: 'NOMAD Remote Tools Hub',

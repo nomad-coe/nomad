@@ -35,6 +35,7 @@ from tests.processing.test_edit_metadata import (
     assert_metadata_edited, all_coauthor_metadata, all_admin_metadata)
 from tests.app.v1.routers.common import assert_response, assert_browser_download_headers
 from nomad import config, files, infrastructure
+from nomad.config.models import BundleImportSettings
 from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.bundles import BundleExporter
@@ -1621,11 +1622,11 @@ def test_post_upload_action_publish(
 
 @pytest.mark.parametrize('import_settings, query_args', [
     pytest.param(
-        config.BundleImportSettings(include_archive_files=False, trigger_processing=True),
+        BundleImportSettings(include_archive_files=False, trigger_processing=True),
         dict(embargo_length=0),
         id='trigger-processing'),
     pytest.param(
-        config.BundleImportSettings(include_archive_files=True, trigger_processing=False),
+        BundleImportSettings(include_archive_files=True, trigger_processing=False),
         dict(embargo_length=28),
         id='no-processing')
 ])

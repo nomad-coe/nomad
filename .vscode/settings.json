@@ -11,7 +11,7 @@
     },
     "files.trimTrailingWhitespace": true,
     "python.linting.pylintArgs": [
-        "--load-plugins=pylint_mongoengine",
+        "--rcfile=${workspaceFolder}/.pylintrc"
     ],
     "python.linting.pycodestylePath": "pycodestyle",
     "python.linting.pycodestyleEnabled": true,

@@ -29,6 +29,7 @@ import { filterData } from './FilterRegistry'
 import { format } from 'date-fns'
 import { DType } from '../../utils'
 import { Unit, unitSystems } from '../../units'
+import { menuMap } from './menus/FilterMainMenu'
 
 /*****************************************************************************/
 // Renders
@@ -284,7 +285,7 @@ export async function expectFilterMainMenu(context, root = screen) {
 
     // Check that clicking the menu items with a submenu opens up the menu
     for (const menuItem of menuItems) {
-      if (menuItem.menu_items) {
+      if (menuMap[menuItem.key]) {
         const labelMenu = screen.getByTestId(`menu-item-label-${menuItem.key}`)
         const labelSubMenu = await screen.findByTestId(`filter-menu-header-${menuItem.key}`)
         expect(labelSubMenu).not.toBeVisible()
@@ -310,7 +311,7 @@ export async function expectSearchResults(context, root = screen) {
 
     // Check that correct columns are displayed
     const columnConfig = context.columns
-    const columnLabels = columnConfig.enable.map(key => {
+    const columnLabels = columnConfig.selected.map(key => {
       const config = columnConfig.options[key]
       const unit = config.unit
       const label = config.label

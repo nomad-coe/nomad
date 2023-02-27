@@ -460,18 +460,13 @@ class TextParser(FileParser):
             if res is None:
                 continue
             if quantity._sub_parser is not None:
-                span = np.array(res.span()) + self.file_offset
                 sub_parser = quantity._sub_parser.copy()
                 sub_parser.mainfile = self.mainfile
                 sub_parser.logger = self.logger
-                if (span[1] - span[0]) < mmap.PAGESIZE or True:
-                    # self.logger.warn(
-                    #     'Cannot use sub parser on quantity %s with blocks with size <'
-                    #     '%d. Will try to parse string' % (quantity.name, mmap.PAGESIZE))
-                    sub_parser._file_handler = b' '.join([g for g in res.groups() if g])
-                else:
-                    sub_parser.file_offset = span[0]
-                    sub_parser.file_length = span[1] - sub_parser.file_offset
+                # self.logger.warn(
+                #     'Cannot use sub parser on quantity %s with blocks with size <'
+                #     '%d. Will try to parse string' % (quantity.name, mmap.PAGESIZE))
+                sub_parser._file_handler = b' '.join([g for g in res.groups() if g])
                 value.append(sub_parser.parse())
 
             else:

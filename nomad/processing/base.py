@@ -35,6 +35,7 @@ from datetime import datetime
 import functools
 
 from nomad import config, utils, infrastructure
+from nomad.config.models import CELERY_WORKER_ROUTING
 import nomad.patch  # pylint: disable=unused-import
 
 
@@ -82,7 +83,7 @@ def on_worker_process_shutdown(*args, **kwargs):
 app = Celery('nomad.processing', broker=config.rabbitmq_url())
 app.conf.update(worker_hijack_root_logger=False)
 app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
-if config.celery.routing == config.CELERY_WORKER_ROUTING:
+if config.celery.routing == CELERY_WORKER_ROUTING:
     app.conf.update(worker_direct=True)
 
 app.conf.task_queue_max_priority = 10
@@ -211,6 +212,7 @@ class Proc(Document):
             NOTE: This value is managed by the framework, do not tamper with this value.
     '''
 
+    id_field: str = None
     meta: Any = {
         'abstract': True,
     }
@@ -332,7 +334,7 @@ class Proc(Document):
     def get_by_id(cls, id: str, id_field: str):
         try:
             obj = cls.objects(**{id_field: id}).first()
-        except ValidationError as e:
+        except ValidationError:
             raise InvalidId('%s is not a valid id' % id)
         except ConnectionFailure as e:
             raise e
@@ -465,7 +467,7 @@ class Proc(Document):
         cls_name = self.__class__.__name__
 
         queue = None
-        if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
+        if config.celery.routing == CELERY_WORKER_ROUTING and self.worker_hostname is not None:
             queue = worker_direct(self.worker_hostname).name
 
         priority = config.celery.priorities.get('%s.%s' % (cls_name, func_name), 1)

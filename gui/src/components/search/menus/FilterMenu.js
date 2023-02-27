@@ -313,10 +313,7 @@ export const FilterMenuItems = React.memo(({
   return <div className={clsx(className, styles.root)}>
     <div className={clsx(styles.menu, open && styles.menuBorder, collapsed && styles.hidden)}>
       <div className={styles.container}>
-        <FilterMenuTopHeader
-          // title={`${resource} search`}
-          // actions={!collapsed && }
-        />
+        <FilterMenuTopHeader/>
         <FilterMenuHeader
           title="Filters"
           actions={<>

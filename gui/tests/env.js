@@ -12,8 +12,14 @@ window.nomadEnv = {
   "globalLoginRequired": false,
   "servicesUploadLimit": 10,
   "ui": {
-    "entry_context": {
-      "overview": {
+    "theme": {
+      "title": "NOMAD"
+    },
+    "unit_systems": {
+      "selected": "Custom"
+    },
+    "entry": {
+      "cards": {
         "exclude": [
           "relatedResources"
         ],
@@ -69,7 +75,7 @@ window.nomadEnv = {
         }
       }
     },
-    "search_contexts": {
+    "apps": {
       "options": {
         "entries": {
           "label": "Entries",
@@ -88,13 +94,6 @@ window.nomadEnv = {
             "page_size": 20
           },
           "columns": {
-            "enable": [
-              "entry_name",
-              "results.material.chemical_formula_hill",
-              "entry_type",
-              "upload_create_time",
-              "authors"
-            ],
             "options": {
               "entry_name": {
                 "label": "Name",
@@ -117,43 +116,56 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.method.method_name": {
-                "label": "Method name"
+                "label": "Method name",
+                "align": "left"
               },
               "results.method.simulation.program_name": {
-                "label": "Program name"
+                "label": "Program name",
+                "align": "left"
               },
               "results.method.simulation.dft.basis_set_name": {
-                "label": "Basis set name"
+                "label": "Basis set name",
+                "align": "left"
               },
               "results.method.simulation.dft.xc_functional_type": {
-                "label": "XC Functional Type"
+                "label": "XC Functional Type",
+                "align": "left"
               },
               "results.material.structural_type": {
-                "label": "Dimensionality"
+                "label": "Dimensionality",
+                "align": "left"
               },
               "results.material.symmetry.crystal_system": {
-                "label": "Crystal system"
+                "label": "Crystal system",
+                "align": "left"
               },
               "results.material.symmetry.space_group_symbol": {
-                "label": "Space group symbol"
+                "label": "Space group symbol",
+                "align": "left"
               },
               "results.material.symmetry.space_group_number": {
-                "label": "Space group number"
+                "label": "Space group number",
+                "align": "left"
               },
               "results.eln.lab_ids": {
-                "label": "Lab IDs"
+                "label": "Lab IDs",
+                "align": "left"
               },
               "results.eln.sections": {
-                "label": "Sections"
+                "label": "Sections",
+                "align": "left"
               },
               "results.eln.methods": {
-                "label": "Methods"
+                "label": "Methods",
+                "align": "left"
               },
               "results.eln.tags": {
-                "label": "Tags"
+                "label": "Tags",
+                "align": "left"
               },
               "results.eln.instruments": {
-                "label": "Instruments"
+                "label": "Instruments",
+                "align": "left"
               },
               "mainfile": {
                 "label": "Mainfile",
@@ -172,111 +184,110 @@ window.nomadEnv = {
                 "align": "left"
               },
               "published": {
-                "label": "Access"
+                "label": "Access",
+                "align": "left"
               }
-            }
+            },
+            "selected": [
+              "entry_name",
+              "results.material.chemical_formula_hill",
+              "entry_type",
+              "upload_create_time",
+              "authors"
+            ]
           },
           "rows": {
             "actions": {
-              "enable": true
+              "enabled": true
             },
             "details": {
-              "enable": true
+              "enabled": true
             },
             "selection": {
-              "enable": true
+              "enabled": true
             }
           },
           "filter_menus": {
             "options": {
               "material": {
                 "label": "Material",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large",
-                "menu_items": {}
+                "size": "large"
               },
               "structure": {
                 "label": "Structure",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "method": {
                 "label": "Method",
                 "level": 0,
-                "menu_items": {}
+                "size": "small"
               },
               "dft": {
                 "label": "DFT",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "gw": {
                 "label": "GW",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "projection": {
                 "label": "Projection",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "dmft": {
                 "label": "DMFT",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "eels": {
                 "label": "EELS",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "workflow": {
                 "label": "Workflow",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "molecular_dynamics": {
                 "label": "Molecular dynamics",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "geometry_optimization": {
                 "label": "Geometry Optimization",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "properties": {
                 "label": "Properties",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "electronic": {
                 "label": "Electronic",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "vibrational": {
                 "label": "Vibrational",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "mechanical": {
                 "label": "Mechanical",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "usecases": {
                 "label": "Use Cases",
@@ -286,26 +297,22 @@ window.nomadEnv = {
               "solarcell": {
                 "label": "Solar Cells",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               }
             }
           },
@@ -334,23 +341,18 @@ window.nomadEnv = {
             "page_size": 20
           },
           "columns": {
-            "enable": [
-              "results.material.chemical_formula_hill",
-              "results.method.simulation.program_name",
-              "results.method.method_name",
-              "upload_create_time",
-              "authors"
-            ],
             "options": {
               "results.material.chemical_formula_hill": {
                 "label": "Formula",
                 "align": "left"
               },
               "results.method.simulation.program_name": {
-                "label": "Program name"
+                "label": "Program name",
+                "align": "left"
               },
               "results.method.method_name": {
-                "label": "Method name"
+                "label": "Method name",
+                "align": "left"
               },
               "upload_create_time": {
                 "label": "Upload time",
@@ -361,37 +363,48 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.method.simulation.dft.basis_set_name": {
-                "label": "Basis set name"
+                "label": "Basis set name",
+                "align": "left"
               },
               "results.method.simulation.dft.xc_functional_type": {
-                "label": "XC Functional Type"
+                "label": "XC Functional Type",
+                "align": "left"
               },
               "results.material.structural_type": {
-                "label": "Dimensionality"
+                "label": "Dimensionality",
+                "align": "left"
               },
               "results.material.symmetry.crystal_system": {
-                "label": "Crystal system"
+                "label": "Crystal system",
+                "align": "left"
               },
               "results.material.symmetry.space_group_symbol": {
-                "label": "Space group symbol"
+                "label": "Space group symbol",
+                "align": "left"
               },
               "results.material.symmetry.space_group_number": {
-                "label": "Space group number"
+                "label": "Space group number",
+                "align": "left"
               },
               "results.eln.lab_ids": {
-                "label": "Lab IDs"
+                "label": "Lab IDs",
+                "align": "left"
               },
               "results.eln.sections": {
-                "label": "Sections"
+                "label": "Sections",
+                "align": "left"
               },
               "results.eln.methods": {
-                "label": "Methods"
+                "label": "Methods",
+                "align": "left"
               },
               "results.eln.tags": {
-                "label": "Tags"
+                "label": "Tags",
+                "align": "left"
               },
               "results.eln.instruments": {
-                "label": "Instruments"
+                "label": "Instruments",
+                "align": "left"
               },
               "entry_name": {
                 "label": "Name",
@@ -418,123 +431,120 @@ window.nomadEnv = {
                 "align": "left"
               },
               "published": {
-                "label": "Access"
+                "label": "Access",
+                "align": "left"
               }
-            }
+            },
+            "selected": [
+              "results.material.chemical_formula_hill",
+              "results.method.simulation.program_name",
+              "results.method.method_name",
+              "upload_create_time",
+              "authors"
+            ]
           },
           "rows": {
             "actions": {
-              "enable": true
+              "enabled": true
             },
             "details": {
-              "enable": true
+              "enabled": true
             },
             "selection": {
-              "enable": true
+              "enabled": true
             }
           },
           "filter_menus": {
             "options": {
               "material": {
                 "label": "Material",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large",
-                "menu_items": {}
+                "size": "large"
               },
               "structure": {
                 "label": "Structure",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "method": {
                 "label": "Method",
                 "level": 0,
-                "menu_items": {}
+                "size": "small"
               },
               "dft": {
                 "label": "DFT",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "gw": {
                 "label": "GW",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "projection": {
                 "label": "Projection",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "dmft": {
                 "label": "DMFT",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "workflow": {
                 "label": "Workflow",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "molecular_dynamics": {
                 "label": "Molecular dynamics",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "geometry_optimization": {
                 "label": "Geometry Optimization",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "properties": {
                 "label": "Properties",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "electronic": {
                 "label": "Electronic",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "vibrational": {
                 "label": "Vibrational",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "mechanical": {
                 "label": "Mechanical",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               }
             }
           },
@@ -562,114 +572,115 @@ window.nomadEnv = {
           },
           "pagination": {
             "order_by": "chemical_formula_hill",
-            "order": "asc"
+            "order": "asc",
+            "page_size": 20
           },
           "columns": {
-            "enable": [
-              "chemical_formula_hill",
-              "structural_type",
-              "symmetry.structure_name",
-              "symmetry.space_group_number",
-              "symmetry.crystal_system"
-            ],
             "options": {
               "chemical_formula_hill": {
                 "label": "Formula",
                 "align": "left"
               },
               "structural_type": {
-                "label": "Dimensionality"
+                "label": "Dimensionality",
+                "align": "left"
               },
               "symmetry.structure_name": {
-                "label": "Structure name"
+                "label": "Structure name",
+                "align": "left"
               },
               "symmetry.space_group_number": {
-                "label": "Space group number"
+                "label": "Space group number",
+                "align": "left"
               },
               "symmetry.crystal_system": {
-                "label": "Crystal system"
+                "label": "Crystal system",
+                "align": "left"
               },
               "symmetry.space_group_symbol": {
-                "label": "Space group symbol"
+                "label": "Space group symbol",
+                "align": "left"
               },
               "material_id": {
-                "label": "Material ID"
+                "label": "Material ID",
+                "align": "left"
               }
-            }
+            },
+            "selected": [
+              "chemical_formula_hill",
+              "structural_type",
+              "symmetry.structure_name",
+              "symmetry.space_group_number",
+              "symmetry.crystal_system"
+            ]
           },
           "rows": {
             "actions": {
-              "enable": true
+              "enabled": true
             },
             "details": {
-              "enable": false
+              "enabled": false
             },
             "selection": {
-              "enable": false
+              "enabled": false
             }
           },
           "filter_menus": {
             "options": {
               "material": {
                 "label": "Material",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large",
-                "menu_items": {}
+                "size": "large"
               },
               "structure": {
                 "label": "Structure",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "method": {
                 "label": "Method",
                 "level": 0,
-                "menu_items": {}
+                "size": "small"
               },
               "dft": {
                 "label": "DFT",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "gw": {
                 "label": "GW",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "projection": {
                 "label": "Projection",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "dmft": {
                 "label": "DMFT",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "workflow": {
                 "label": "Workflow",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "molecular_dynamics": {
                 "label": "Molecular dynamics",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "geometry_optimization": {
                 "label": "Geometry Optimization",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "properties": {
                 "label": "Properties",
@@ -679,40 +690,36 @@ window.nomadEnv = {
               "electronic": {
                 "label": "Electronic",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "vibrational": {
                 "label": "Vibrational",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "mechanical": {
                 "label": "Mechanical",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               },
               "combine": {
+                "level": 0,
+                "size": "small",
                 "actions": {
                   "options": {
                     "combine": {
@@ -749,12 +756,6 @@ window.nomadEnv = {
             "page_size": 20
           },
           "columns": {
-            "enable": [
-              "entry_name",
-              "entry_type",
-              "upload_create_time",
-              "authors"
-            ],
             "options": {
               "entry_name": {
                 "label": "Name",
@@ -777,22 +778,28 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.method.method_name": {
-                "label": "Method name"
+                "label": "Method name",
+                "align": "left"
               },
               "results.eln.lab_ids": {
-                "label": "Lab IDs"
+                "label": "Lab IDs",
+                "align": "left"
               },
               "results.eln.sections": {
-                "label": "Sections"
+                "label": "Sections",
+                "align": "left"
               },
               "results.eln.methods": {
-                "label": "Methods"
+                "label": "Methods",
+                "align": "left"
               },
               "results.eln.tags": {
-                "label": "Tags"
+                "label": "Tags",
+                "align": "left"
               },
               "results.eln.instruments": {
-                "label": "Instruments"
+                "label": "Instruments",
+                "align": "left"
               },
               "mainfile": {
                 "label": "Mainfile",
@@ -811,62 +818,64 @@ window.nomadEnv = {
                 "align": "left"
               },
               "published": {
-                "label": "Access"
+                "label": "Access",
+                "align": "left"
               }
-            }
+            },
+            "selected": [
+              "entry_name",
+              "entry_type",
+              "upload_create_time",
+              "authors"
+            ]
           },
           "rows": {
             "actions": {
-              "enable": true
+              "enabled": true
             },
             "details": {
-              "enable": true
+              "enabled": true
             },
             "selection": {
-              "enable": true
+              "enabled": true
             }
           },
           "filter_menus": {
             "options": {
               "material": {
                 "label": "Material",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large",
-                "menu_items": {}
+                "size": "large"
               },
               "eln": {
                 "label": "Electronic Lab Notebook",
                 "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "custom_quantities": {
                 "label": "User Defined Quantities",
                 "level": 0,
-                "size": "large",
-                "menu_items": {}
+                "size": "large"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               }
             }
           },
@@ -898,23 +907,18 @@ window.nomadEnv = {
             "page_size": 20
           },
           "columns": {
-            "enable": [
-              "results.material.chemical_formula_hill",
-              "results.properties.spectroscopy.eels.detector_type",
-              "results.properties.spectroscopy.eels.resolution",
-              "upload_create_time",
-              "authors"
-            ],
             "options": {
               "results.material.chemical_formula_hill": {
                 "label": "Formula",
                 "align": "left"
               },
               "results.properties.spectroscopy.eels.detector_type": {
-                "label": "Detector type"
+                "label": "Detector type",
+                "align": "left"
               },
               "results.properties.spectroscopy.eels.resolution": {
-                "label": "Resolution"
+                "label": "Resolution",
+                "align": "left"
               },
               "upload_create_time": {
                 "label": "Upload time",
@@ -924,8 +928,12 @@ window.nomadEnv = {
                 "label": "Authors",
                 "align": "left"
               },
-              "results.properties.spectroscopy.eels.min_energy": {},
-              "results.properties.spectroscopy.eels.max_energy": {},
+              "results.properties.spectroscopy.eels.min_energy": {
+                "align": "left"
+              },
+              "results.properties.spectroscopy.eels.max_energy": {
+                "align": "left"
+              },
               "entry_name": {
                 "label": "Name",
                 "align": "left"
@@ -951,32 +959,40 @@ window.nomadEnv = {
                 "align": "left"
               },
               "published": {
-                "label": "Access"
+                "label": "Access",
+                "align": "left"
               }
-            }
+            },
+            "selected": [
+              "results.material.chemical_formula_hill",
+              "results.properties.spectroscopy.eels.detector_type",
+              "results.properties.spectroscopy.eels.resolution",
+              "upload_create_time",
+              "authors"
+            ]
           },
           "rows": {
             "actions": {
-              "enable": true
+              "enabled": true
             },
             "details": {
-              "enable": true
+              "enabled": true
             },
             "selection": {
-              "enable": true
+              "enabled": true
             }
           },
           "filter_menus": {
             "options": {
               "material": {
                 "label": "Material",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large",
-                "menu_items": {}
+                "size": "large"
               },
               "method": {
                 "label": "Method",
@@ -986,26 +1002,22 @@ window.nomadEnv = {
               "eels": {
                 "label": "EELS",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               }
             }
           },
@@ -1036,457 +1048,7 @@ window.nomadEnv = {
             "order": "desc",
             "page_size": 20
           },
-          "dashboard": {
-            "widgets": [
-              {
-                "type": "periodictable",
-                "scale": "linear",
-                "quantity": "results.material.elements",
-                "layout": {
-                  "xxl": {
-                    "minH": 8,
-                    "minW": 12,
-                    "h": 8,
-                    "w": 13,
-                    "y": 0,
-                    "x": 0
-                  },
-                  "xl": {
-                    "minH": 8,
-                    "minW": 12,
-                    "h": 8,
-                    "w": 12,
-                    "y": 0,
-                    "x": 0
-                  },
-                  "lg": {
-                    "minH": 8,
-                    "minW": 12,
-                    "h": 8,
-                    "w": 12,
-                    "y": 0,
-                    "x": 0
-                  },
-                  "md": {
-                    "minH": 8,
-                    "minW": 12,
-                    "h": 8,
-                    "w": 12,
-                    "y": 0,
-                    "x": 0
-                  },
-                  "sm": {
-                    "minH": 8,
-                    "minW": 12,
-                    "h": 8,
-                    "w": 12,
-                    "y": 16,
-                    "x": 0
-                  }
-                }
-              },
-              {
-                "type": "scatterplot",
-                "autorange": true,
-                "size": 1000,
-                "color": "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
-                "y": "results.properties.optoelectronic.solar_cell.efficiency",
-                "x": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
-                "layout": {
-                  "xxl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 8,
-                    "w": 12,
-                    "y": 0,
-                    "x": 24
-                  },
-                  "xl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 8,
-                    "w": 9,
-                    "y": 0,
-                    "x": 12
-                  },
-                  "lg": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 12,
-                    "y": 8,
-                    "x": 0
-                  },
-                  "md": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 9,
-                    "y": 8,
-                    "x": 0
-                  },
-                  "sm": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 5,
-                    "w": 6,
-                    "y": 0,
-                    "x": 0
-                  }
-                }
-              },
-              {
-                "type": "scatterplot",
-                "autorange": true,
-                "size": 1000,
-                "color": "results.properties.optoelectronic.solar_cell.device_architecture",
-                "y": "results.properties.optoelectronic.solar_cell.efficiency",
-                "x": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
-                "layout": {
-                  "xxl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 8,
-                    "w": 11,
-                    "y": 0,
-                    "x": 13
-                  },
-                  "xl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 8,
-                    "w": 9,
-                    "y": 0,
-                    "x": 21
-                  },
-                  "lg": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 12,
-                    "y": 14,
-                    "x": 0
-                  },
-                  "md": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 9,
-                    "y": 8,
-                    "x": 9
-                  },
-                  "sm": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 5,
-                    "w": 6,
-                    "y": 0,
-                    "x": 6
-                  }
-                }
-              },
-              {
-                "type": "terms",
-                "inputfields": true,
-                "scale": "linear",
-                "quantity": "results.properties.optoelectronic.solar_cell.device_stack",
-                "layout": {
-                  "xxl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 6,
-                    "y": 8,
-                    "x": 14
-                  },
-                  "xl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 6,
-                    "y": 8,
-                    "x": 14
-                  },
-                  "lg": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 6,
-                    "y": 0,
-                    "x": 12
-                  },
-                  "md": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 4,
-                    "w": 6,
-                    "y": 4,
-                    "x": 12
-                  },
-                  "sm": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 4,
-                    "y": 10,
-                    "x": 0
-                  }
-                }
-              },
-              {
-                "type": "histogram",
-                "autorange": true,
-                "nbins": 30,
-                "scale": "1/4",
-                "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity",
-                "layout": {
-                  "xxl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 3,
-                    "w": 8,
-                    "y": 8,
-                    "x": 0
-                  },
-                  "xl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 3,
-                    "w": 8,
-                    "y": 11,
-                    "x": 0
-                  },
-                  "lg": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 4,
-                    "w": 12,
-                    "y": 12,
-                    "x": 12
-                  },
-                  "md": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 3,
-                    "w": 8,
-                    "y": 17,
-                    "x": 10
-                  },
-                  "sm": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 3,
-                    "w": 8,
-                    "y": 13,
-                    "x": 4
-                  }
-                }
-              },
-              {
-                "type": "terms",
-                "inputfields": true,
-                "scale": "linear",
-                "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication",
-                "layout": {
-                  "xxl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 6,
-                    "y": 8,
-                    "x": 8
-                  },
-                  "xl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 6,
-                    "y": 8,
-                    "x": 8
-                  },
-                  "lg": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 6,
-                    "y": 0,
-                    "x": 18
-                  },
-                  "md": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 4,
-                    "w": 6,
-                    "y": 0,
-                    "x": 12
-                  },
-                  "sm": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 5,
-                    "w": 4,
-                    "y": 5,
-                    "x": 0
-                  }
-                }
-              },
-              {
-                "type": "histogram",
-                "inputfields": false,
-                "autorange": false,
-                "nbins": 30,
-                "scale": "1/4",
-                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
-                "layout": {
-                  "xxl": {
-                    "minH": 3,
-                    "minW": 8,
-                    "h": 3,
-                    "w": 8,
-                    "y": 11,
-                    "x": 0
-                  },
-                  "xl": {
-                    "minH": 3,
-                    "minW": 8,
-                    "h": 3,
-                    "w": 8,
-                    "y": 8,
-                    "x": 0
-                  },
-                  "lg": {
-                    "minH": 3,
-                    "minW": 8,
-                    "h": 4,
-                    "w": 12,
-                    "y": 16,
-                    "x": 12
-                  },
-                  "md": {
-                    "minH": 3,
-                    "minW": 8,
-                    "h": 3,
-                    "w": 8,
-                    "y": 14,
-                    "x": 10
-                  },
-                  "sm": {
-                    "minH": 3,
-                    "minW": 8,
-                    "h": 3,
-                    "w": 8,
-                    "y": 10,
-                    "x": 4
-                  }
-                }
-              },
-              {
-                "type": "terms",
-                "inputfields": true,
-                "scale": "linear",
-                "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer",
-                "layout": {
-                  "xxl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 6,
-                    "y": 8,
-                    "x": 20
-                  },
-                  "xl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 5,
-                    "y": 8,
-                    "x": 25
-                  },
-                  "lg": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 6,
-                    "y": 6,
-                    "x": 18
-                  },
-                  "md": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 5,
-                    "y": 14,
-                    "x": 0
-                  },
-                  "sm": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 5,
-                    "w": 4,
-                    "y": 5,
-                    "x": 4
-                  }
-                }
-              },
-              {
-                "type": "terms",
-                "inputfields": true,
-                "scale": "linear",
-                "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer",
-                "layout": {
-                  "xxl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 6,
-                    "y": 8,
-                    "x": 26
-                  },
-                  "xl": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 5,
-                    "y": 8,
-                    "x": 20
-                  },
-                  "lg": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 6,
-                    "y": 6,
-                    "x": 12
-                  },
-                  "md": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 6,
-                    "w": 5,
-                    "y": 14,
-                    "x": 5
-                  },
-                  "sm": {
-                    "minH": 3,
-                    "minW": 3,
-                    "h": 5,
-                    "w": 4,
-                    "y": 5,
-                    "x": 8
-                  }
-                }
-              }
-            ]
-          },
           "columns": {
-            "enable": [
-              "results.material.chemical_formula_descriptive",
-              "results.properties.optoelectronic.solar_cell.efficiency",
-              "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
-              "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
-              "results.properties.optoelectronic.solar_cell.fill_factor",
-              "references"
-            ],
             "options": {
               "results.material.chemical_formula_descriptive": {
                 "label": "Descriptive Formula",
@@ -1494,6 +1056,7 @@ window.nomadEnv = {
               },
               "results.properties.optoelectronic.solar_cell.efficiency": {
                 "label": "Efficiency (%)",
+                "align": "left",
                 "format": {
                   "decimals": 2,
                   "mode": "standard"
@@ -1501,6 +1064,7 @@ window.nomadEnv = {
               },
               "results.properties.optoelectronic.solar_cell.open_circuit_voltage": {
                 "label": "Open circuit voltage",
+                "align": "left",
                 "unit": "V",
                 "format": {
                   "decimals": 3,
@@ -1509,6 +1073,7 @@ window.nomadEnv = {
               },
               "results.properties.optoelectronic.solar_cell.short_circuit_current_density": {
                 "label": "Short circuit current density",
+                "align": "left",
                 "unit": "A/m**2",
                 "format": {
                   "decimals": 3,
@@ -1517,6 +1082,7 @@ window.nomadEnv = {
               },
               "results.properties.optoelectronic.solar_cell.fill_factor": {
                 "label": "Fill factor",
+                "align": "left",
                 "format": {
                   "decimals": 3,
                   "mode": "standard"
@@ -1531,10 +1097,12 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.material.structural_type": {
-                "label": "Dimensionality"
+                "label": "Dimensionality",
+                "align": "left"
               },
               "results.properties.optoelectronic.solar_cell.illumination_intensity": {
                 "label": "Illum. intensity",
+                "align": "left",
                 "unit": "W/m**2",
                 "format": {
                   "decimals": 3,
@@ -1542,19 +1110,24 @@ window.nomadEnv = {
                 }
               },
               "results.eln.lab_ids": {
-                "label": "Lab IDs"
+                "label": "Lab IDs",
+                "align": "left"
               },
               "results.eln.sections": {
-                "label": "Sections"
+                "label": "Sections",
+                "align": "left"
               },
               "results.eln.methods": {
-                "label": "Methods"
+                "label": "Methods",
+                "align": "left"
               },
               "results.eln.tags": {
-                "label": "Tags"
+                "label": "Tags",
+                "align": "left"
               },
               "results.eln.instruments": {
-                "label": "Instruments"
+                "label": "Instruments",
+                "align": "left"
               },
               "entry_name": {
                 "label": "Name",
@@ -1585,80 +1158,81 @@ window.nomadEnv = {
                 "align": "left"
               },
               "published": {
-                "label": "Access"
+                "label": "Access",
+                "align": "left"
               }
-            }
+            },
+            "selected": [
+              "results.material.chemical_formula_descriptive",
+              "results.properties.optoelectronic.solar_cell.efficiency",
+              "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+              "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
+              "results.properties.optoelectronic.solar_cell.fill_factor",
+              "references"
+            ]
           },
           "rows": {
             "actions": {
-              "enable": true
+              "enabled": true
             },
             "details": {
-              "enable": true
+              "enabled": true
             },
             "selection": {
-              "enable": true
+              "enabled": true
             }
           },
           "filter_menus": {
             "options": {
               "material": {
                 "label": "Absorber Material",
-                "level": 0
+                "level": 0,
+                "size": "small"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large",
-                "menu_items": {}
+                "size": "large"
               },
               "structure": {
                 "label": "Structure",
                 "level": 1,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "electronic": {
                 "label": "Electronic Properties",
                 "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "solarcell": {
                 "label": "Solar Cell Properties",
                 "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "eln": {
                 "label": "Electronic Lab Notebook",
                 "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "custom_quantities": {
                 "label": "User Defined Quantities",
                 "level": 0,
-                "size": "large",
-                "menu_items": {}
+                "size": "large"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small",
-                "menu_items": {}
+                "size": "small"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium",
-                "menu_items": {}
+                "size": "medium"
               }
             }
           },
@@ -1669,20 +1243,456 @@ window.nomadEnv = {
               "combine"
             ]
           },
+          "dashboard": {
+            "widgets": [
+              {
+                "type": "periodictable",
+                "layout": {
+                  "xxl": {
+                    "minH": 8,
+                    "minW": 12,
+                    "h": 8,
+                    "w": 13,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "xl": {
+                    "minH": 8,
+                    "minW": 12,
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "lg": {
+                    "minH": 8,
+                    "minW": 12,
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "md": {
+                    "minH": 8,
+                    "minW": 12,
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "sm": {
+                    "minH": 8,
+                    "minW": 12,
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 16
+                  }
+                },
+                "quantity": "results.material.elements",
+                "scale": "linear"
+              },
+              {
+                "type": "scatterplot",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 8,
+                    "w": 12,
+                    "x": 24,
+                    "y": 0
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 8,
+                    "w": 9,
+                    "x": 12,
+                    "y": 0
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 12,
+                    "x": 0,
+                    "y": 8
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 9,
+                    "x": 0,
+                    "y": 8
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 6,
+                    "x": 0,
+                    "y": 0
+                  }
+                },
+                "x": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+                "y": "results.properties.optoelectronic.solar_cell.efficiency",
+                "color": "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
+                "size": 1000,
+                "autorange": true
+              },
+              {
+                "type": "scatterplot",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 8,
+                    "w": 11,
+                    "x": 13,
+                    "y": 0
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 8,
+                    "w": 9,
+                    "x": 21,
+                    "y": 0
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 12,
+                    "x": 0,
+                    "y": 14
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 9,
+                    "x": 9,
+                    "y": 8
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 6,
+                    "x": 6,
+                    "y": 0
+                  }
+                },
+                "x": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+                "y": "results.properties.optoelectronic.solar_cell.efficiency",
+                "color": "results.properties.optoelectronic.solar_cell.device_architecture",
+                "size": 1000,
+                "autorange": true
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 14,
+                    "y": 8
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 14,
+                    "y": 8
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 12,
+                    "y": 0
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 4
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 4,
+                    "x": 0,
+                    "y": 10
+                  }
+                },
+                "quantity": "results.properties.optoelectronic.solar_cell.device_stack",
+                "scale": "linear",
+                "showinput": true
+              },
+              {
+                "type": "histogram",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 8
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 11
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 12
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 3,
+                    "w": 8,
+                    "x": 10,
+                    "y": 17
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 3,
+                    "w": 8,
+                    "x": 4,
+                    "y": 13
+                  }
+                },
+                "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity",
+                "scale": "1/4",
+                "autorange": true,
+                "showinput": true,
+                "nbins": 30
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 8,
+                    "y": 8
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 8,
+                    "y": 8
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 18,
+                    "y": 0
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 0
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 4,
+                    "x": 0,
+                    "y": 5
+                  }
+                },
+                "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication",
+                "scale": "linear",
+                "showinput": true
+              },
+              {
+                "type": "histogram",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 8,
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 11
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 8,
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 8
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 8,
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 16
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 8,
+                    "h": 3,
+                    "w": 8,
+                    "x": 10,
+                    "y": 14
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 8,
+                    "h": 3,
+                    "w": 8,
+                    "x": 4,
+                    "y": 10
+                  }
+                },
+                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                "scale": "1/4",
+                "autorange": false,
+                "showinput": false,
+                "nbins": 30
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 20,
+                    "y": 8
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 5,
+                    "x": 25,
+                    "y": 8
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 18,
+                    "y": 6
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 5,
+                    "x": 0,
+                    "y": 14
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 4,
+                    "x": 4,
+                    "y": 5
+                  }
+                },
+                "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer",
+                "scale": "linear",
+                "showinput": true
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 26,
+                    "y": 8
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 5,
+                    "x": 20,
+                    "y": 8
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 12,
+                    "y": 6
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 5,
+                    "x": 5,
+                    "y": 14
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 4,
+                    "x": 8,
+                    "y": 5
+                  }
+                },
+                "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer",
+                "scale": "linear",
+                "showinput": true
+              }
+            ]
+          },
           "filters_locked": {
             "sections": "nomad.datamodel.results.SolarCell"
           }
         }
       }
     },
-    "example_uploads": {
-      "include": null,
-      "exclude": null
-    },
-    "default_unit_system": "Custom",
-    "north_enabled": true,
-    "theme": {
-      "title": "NOMAD"
-    }
+    "north": {},
+    "example_uploads": {}
   }
 }

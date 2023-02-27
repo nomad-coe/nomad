@@ -30,6 +30,7 @@ import EntryDownloadButton from '../entry/EntryDownloadButton'
 import EntryDetails, { EntryRowActions } from '../entry/EntryDetails'
 import { MaterialRowActions } from '../material/MaterialDetails'
 import { pluralize, formatInteger } from '../../utils'
+import { isEmpty } from 'lodash'
 import { useSearchContext } from './SearchContext'
 
 /**
@@ -55,7 +56,7 @@ const SearchResults = React.memo(function SearchResults(props) {
     return {entry_id: [...selected]}
   }, [selected, searchQuery])
 
-  if (!columns) {
+  if (isEmpty(columns)) {
     return <Alert severity="warning">
       No search columns defined within this search context. Ensure that all GUI artifacts are created.
     </Alert>
@@ -86,23 +87,23 @@ const SearchResults = React.memo(function SearchResults(props) {
       data={data}
       pagination={pagination}
       onPaginationChanged={setPagination}
-      columns={columns?.options}
-      shownColumns={columns?.enable}
-      selected={rows?.selection?.enable ? selected : undefined}
+      columns={columns?.options && Object.values(columns.options)}
+      shownColumns={columns?.selected}
+      selected={rows?.selection?.enabled ? selected : undefined}
       getId={option => option.entry_id}
-      onSelectedChanged={rows?.selection?.enable ? setSelected : undefined}
+      onSelectedChanged={rows?.selection?.enabled ? setSelected : undefined}
       {...otherProps}
     >
       <DatatableToolbar title={`${formatInteger(data.length)}/${pluralize('result', pagination.total, true, true, 'search')}`}>
-        {rows?.selection?.enable &&
+        {rows?.selection?.enabled &&
           <DatatableToolbarActions selection>
             {buttons}
           </DatatableToolbarActions>
         }
       </DatatableToolbar>
       <DatatableTable
-        actions={rows?.actions?.enable ? actions : undefined}
-        details={rows?.details?.enable ? details : undefined}
+        actions={rows?.actions?.enabled ? actions : undefined}
+        details={rows?.details?.enabled ? details : undefined}
         defaultUncollapsedRow={defaultUncollapsedEntryID && data.find(row => row.entry_id === defaultUncollapsedEntryID)}
       >
         <DatatableLoadMorePagination color="primary">load more</DatatableLoadMorePagination>

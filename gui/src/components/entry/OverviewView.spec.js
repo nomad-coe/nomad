@@ -32,7 +32,6 @@ import { ui } from '../../config'
 import { EntryContext } from './EntryContext'
 import userEvent from '@testing-library/user-event'
 import { act } from 'react-dom/test-utils'
-import { cloneDeep } from 'lodash'
 
 test.each([
   ['material', 'material', 'Material'],
@@ -43,17 +42,16 @@ test.each([
   ['structural', 'rdf', 'Structural properties']
 ])('correctly renders %s card when card is enabled/disabled in config', async (card, state, label) => {
   await startAPI(`tests.states.entry.${state}`, `tests/data/entry/${card}_card`)
-  const overview = cloneDeep(ui.entry_context.overview)
   for (const enabled of [true, false]) {
-    overview.exclude = enabled ? [] : [card]
+    const cards = enabled ? {options: {card: ui.entry.cards.options[card]}} : {options: {}}
     render(
-      <EntryContext entryId={'dft_bulk'} overview={overview}>
+      <EntryContext entryId={'dft_bulk'} cards={cards}>
         <OverviewView/>
       </EntryContext>
     )
 
     // Wait until initial render is done.
-    const firstLabel = 'Entry References'
+    const firstLabel = 'Metadata'
     expect(await screen.findByText(firstLabel))
 
     // Check that the correct sections are shown

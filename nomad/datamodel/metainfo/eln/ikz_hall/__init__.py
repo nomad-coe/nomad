@@ -17,7 +17,7 @@
 #
 from nomad.metainfo import Package, Quantity, SubSection
 from nomad.datamodel.data import EntryData
-import nexusutils.dataconverter.readers.hall.reader as hall_reader
+import nexusutils.dataconverter.readers.hall.reader as hall_reader  # pylint: disable=import-error
 from .measurement import Measurement
 from .hall_instrument import Instrument
 from .nexus_to_msection import get_measurements, get_instrument

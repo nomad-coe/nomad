@@ -46,7 +46,7 @@ export const WidgetHistogram = React.memo((
   nbins,
   scale,
   autorange,
-  inputfields,
+  showinput,
   className
 }) => {
   const { useSetWidget } = useSearchContext()
@@ -89,7 +89,7 @@ export const WidgetHistogram = React.memo((
       scale={scale}
       anchored={true}
       autorange={autorange}
-      inputfields={inputfields}
+      showinput={showinput}
       disableHistogram={false}
       aggId={id}
     />
@@ -104,7 +104,7 @@ WidgetHistogram.propTypes = {
   nbins: PropTypes.number,
   scale: PropTypes.string,
   autorange: PropTypes.bool,
-  inputfields: PropTypes.bool,
+  showinput: PropTypes.bool,
   className: PropTypes.string
 }
 
@@ -214,7 +214,7 @@ export const WidgetHistogramEdit = React.memo((props) => {
         </WidgetEditOption>
         <WidgetEditOption>
           <FormControlLabel
-            control={<Checkbox checked={settings.inputfields} onChange={(event, value) => handleChange('inputfields', value)}/>}
+            control={<Checkbox checked={settings.showinput} onChange={(event, value) => handleChange('showinput', value)}/>}
             label='Show input fields'
           />
         </WidgetEditOption>
@@ -230,7 +230,7 @@ WidgetHistogramEdit.propTypes = {
   scale: PropTypes.string,
   nbins: PropTypes.number,
   autorange: PropTypes.bool,
-  inputfields: PropTypes.bool,
+  showinput: PropTypes.bool,
   onClose: PropTypes.func
 }
 
@@ -239,5 +239,5 @@ export const schemaWidgetHistogram = schemaWidget.shape({
   scale: string().required('Scale is required.'),
   nbins: number().integer().required(),
   autorange: bool(),
-  inputfields: bool()
+  showinput: bool()
 })

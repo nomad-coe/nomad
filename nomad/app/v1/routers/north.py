@@ -26,6 +26,7 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from mongoengine.queryset.visitor import Q
 
 from nomad import config
+from nomad.config.models import NORTHTool
 from nomad.utils import strip, get_logger, slugify
 from nomad.processing import Upload
 from .auth import create_user_dependency, oauth2_scheme
@@ -47,7 +48,7 @@ class ToolStateEnum(str, Enum):
     stopped = 'stopped'
 
 
-class ToolModel(config.NorthTool):
+class ToolModel(NORTHTool):
     name: str
     state: Optional[ToolStateEnum]
 
@@ -72,7 +73,7 @@ def _get_status(tool: ToolModel, user: User) -> ToolModel:
     if not user:
         return tool
 
-    url = f'{config.north.hub_url()}/api/users/{user.username}/servers/{tool.name}/progress'
+    url = f'{config.hub_url()}/api/users/{user.username}/servers/{tool.name}/progress'
     response = requests.get(url, headers=hub_api_headers)
 
     if response.status_code == 404:
@@ -103,7 +104,7 @@ async def get_tools(user: User = Depends(create_user_dependency())):
     return ToolsResponseModel(
         data=[
             _get_status(ToolModel(name=name, **tool.dict()), user)
-            for name, tool in cast(Dict[str, config.NorthTool], config.north.tools).items()
+            for name, tool in cast(Dict[str, NORTHTool], config.north.tools).items()
         ]
     )
 
@@ -114,7 +115,7 @@ async def tool(name: str) -> ToolModel:
             status_code=status.HTTP_404_NOT_FOUND,
             detail='The tools does not exist.')
 
-    tool = cast(Dict[str, config.NorthTool], config.north.tools)[name]
+    tool = cast(Dict[str, NORTHTool], config.north.tools)[name]
     return ToolModel(name=name, **tool.dict())
 
 
@@ -151,7 +152,7 @@ async def start_tool(
     tool.state = ToolStateEnum.stopped
 
     # Make sure the user exists
-    url = f'{config.north.hub_url()}/api/users/{user.username}'
+    url = f'{config.hub_url()}/api/users/{user.username}'
     response = requests.get(url, headers=hub_api_headers)
     if response.status_code == 404:
         response = requests.post(url, headers=hub_api_headers)
@@ -203,7 +204,7 @@ async def start_tool(
             username=user.username,
             data=_get_status(tool, user))
 
-    url = f'{config.north.hub_url()}/api/users/{user.username}/servers/{tool.name}'
+    url = f'{config.hub_url()}/api/users/{user.username}/servers/{tool.name}'
     body = {
         'tool': {
             'image': tool.image,
@@ -254,7 +255,7 @@ async def stop_tool(
     tool: ToolModel = Depends(tool),
     user: User = Depends(create_user_dependency(required=True))
 ):
-    url = f'{config.north.hub_url()}/api/users/{user.username}/servers/{tool.name}'
+    url = f'{config.hub_url()}/api/users/{user.username}/servers/{tool.name}'
     response = requests.delete(url, json={'remove': True}, headers=hub_api_headers)
 
     if response.status_code == 404:

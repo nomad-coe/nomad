@@ -21,8 +21,8 @@ from nomad.datamodel.metainfo.workflow import Workflow
 import numpy as np
 from typing import List, Union, Any, Set, Optional
 import ase.data
-from matid import SymmetryAnalyzer
-import matid.geometry
+from matid import SymmetryAnalyzer  # pylint: disable=import-error
+import matid.geometry  # pylint: disable=import-error
 
 from nomad import config
 from nomad import atomutils

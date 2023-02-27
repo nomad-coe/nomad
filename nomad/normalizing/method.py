@@ -592,7 +592,7 @@ class MethodNormalizer():
         '''Assign the exact exachange mixing factor to `results` section when explicitly stated.
         Else, fall back on XC functional default.'''
         def scan_patterns(patterns, xc_name) -> bool:
-            return any([x for x in patterns if re.search('_' + x + '$', xc_name)])
+            return any(x for x in patterns if re.search('_' + x + '$', xc_name))
 
         if self.repr_method.dft:
             xc_functional = self.repr_method.dft.xc_functional

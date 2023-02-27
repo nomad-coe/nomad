@@ -194,7 +194,7 @@ for (const [systemName, system] of Object.entries(unitSystems)) {
 // A state containing the currently configured unit system.
 export const unitsState = atom({
   key: 'units',
-  default: unitSystems[ui.default_unit_system || 'Custom'] || unitSystems.Custom
+  default: unitSystems[ui?.unitsystems?.selected || 'Custom'] || unitSystems.Custom
 })
 
 /**

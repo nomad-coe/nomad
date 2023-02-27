@@ -392,7 +392,7 @@ class QueryParameters:
                     'loc': ['query', 'q'],
                     'msg': 'wrong format, use <quantity>[__<op>]__<value>'}])
             name_op, value = '__'.join(fragments[:-1]), fragments[-1]
-            quantity_name = name_op.split('__')[0]
+            quantity_name = name_op.split('__', maxsplit=1)[0]
 
             doc_type = self.doc_type
             if quantity_name.startswith('entries.'):

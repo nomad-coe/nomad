@@ -205,7 +205,7 @@ export default withLoginRequired(NorthPage)
  * Hook for loading the list of available tools from the NORTH API.
 */
 export function useTools() {
-  if (!ui.north_enabled) {
+  if (!ui?.north?.enabled) {
     return []
   }
   return _tools.default

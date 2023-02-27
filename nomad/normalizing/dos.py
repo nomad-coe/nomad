@@ -20,7 +20,7 @@ import numpy as np
 from nptyping import NDArray
 
 from nomad import config
-from nomad_dos_fingerprints import DOSFingerprint
+from nomad_dos_fingerprints import DOSFingerprint  # pylint: disable=import-error
 from nomad.datamodel.metainfo.simulation.calculation import (
     Dos, DosFingerprint, BandGap)
 

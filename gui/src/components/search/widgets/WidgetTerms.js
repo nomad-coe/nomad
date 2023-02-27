@@ -99,7 +99,7 @@ export const WidgetTerms = React.memo((
   description,
   quantity,
   scale,
-  inputfields,
+  showinput,
   className,
   'data-testid': testID
 }) => {
@@ -192,7 +192,7 @@ export const WidgetTerms = React.memo((
     <InputTooltip>
       <div className={clsx(styles.outerContainer)}>
         <div className={clsx(styles.innerContainer)}>
-          {inputfields
+          {showinput
             ? <InputTextQuantity
                 className={styles.textField}
                 quantity={quantity}
@@ -229,7 +229,7 @@ WidgetTerms.propTypes = {
   nbins: PropTypes.number,
   scale: PropTypes.string,
   autorange: PropTypes.bool,
-  inputfields: PropTypes.bool,
+  showinput: PropTypes.bool,
   className: PropTypes.string,
   'data-testid': PropTypes.string
 }
@@ -322,7 +322,7 @@ export const WidgetTermsEdit = React.memo((props) => {
       <WidgetEditGroup title="general">
         <WidgetEditOption>
           <FormControlLabel
-            control={<Checkbox checked={settings.inputfields} onChange={(event, value) => handleChange('inputfields', value)}/>}
+            control={<Checkbox checked={settings.showinput} onChange={(event, value) => handleChange('showinput', value)}/>}
             label='Show input field'
           />
         </WidgetEditOption>
@@ -338,12 +338,12 @@ WidgetTermsEdit.propTypes = {
   scale: PropTypes.string,
   nbins: PropTypes.number,
   autorange: PropTypes.bool,
-  inputfields: PropTypes.bool,
+  showinput: PropTypes.bool,
   onClose: PropTypes.func
 }
 
 export const schemaWidgetTerms = schemaWidget.shape({
   quantity: string().required('Quantity is required.'),
   scale: string().required('Scale is required.'),
-  inputfields: bool()
+  showinput: bool()
 })

@@ -15,8 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-# from atomisticparsers.utils.mdanalysis import mean_squared_displacement
 import numpy as np
 from typing import List, Union
 import pytest
@@ -25,7 +23,6 @@ import ase.build
 import re
 import yaml
 from warnings import warn
-# from nomad.datamodel.results import MeanSquaredDisplacement
 
 from nomad.utils import strip
 from nomad.units import ureg
@@ -184,7 +181,7 @@ def get_template_eels() -> EntryArchive:
     '''Returns a basic archive template for an EELS experiment.
     '''
     # Ensure that the eels schema is loaded
-    from eelsdbparser import eelsdb_parser  # pylint: disable=unused-import
+    from eelsdbparser import eelsdb_parser  # pylint: disable=unused-import,import-error
     dct_data = yaml.safe_load(strip(f'''
         results:
             properties:

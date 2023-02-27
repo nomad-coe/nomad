@@ -73,6 +73,7 @@ def assert_edit_request(user, **kwargs):
         query=query, owner=owner, metadata=metadata, entries=entries, entries_key=entries_key,
         verify=verify_only)
     edit_start = datetime.utcnow().isoformat()[0:22]
+    error_locs = []
     try:
         MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
     except RequestValidationError as e:

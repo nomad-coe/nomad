@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 from ase import Atoms
 import ase.build
-from matid.symmetry.wyckoffset import WyckoffSet
+from matid.symmetry.wyckoffset import WyckoffSet  # pylint: disable=import-error
 
 from nomad.units import ureg
 from nomad import atomutils

@@ -186,7 +186,7 @@ class EQEAnalyzer():
         start, stop = self.select_range(y, min_eqe_fit, max_eqe_fit)
         self.start = start
         self.stop = stop
-        popt, pcov = optimize.curve_fit(
+        popt, pcov = optimize.curve_fit(  # pylint: disable=unbalanced-tuple-unpacking
             self.linear,
             x[start:stop],
             np.log(y[start:stop]),

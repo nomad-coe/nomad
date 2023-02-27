@@ -16,8 +16,8 @@
 # limitations under the License.
 #
 
-import matid.symmetry.symmetryanalyzer
-import matid.utils.segfault_protect
+import matid.symmetry.symmetryanalyzer  # pylint: disable=import-error
+import matid.utils.segfault_protect  # pylint: disable=import-error
 
 
 # A patch for the segfault protection of systax (internally uses protection for spglib calls.)

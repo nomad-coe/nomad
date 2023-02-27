@@ -18,7 +18,6 @@
 
 import React, { useState, useMemo, useEffect, useContext } from 'react'
 import PropTypes from 'prop-types'
-import { cloneDeep } from 'lodash'
 import { useApi } from '../api'
 import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { ui, apiBase} from '../../config'
@@ -90,7 +89,7 @@ export const useEntryContext = () => {
  * by different components.
  */
 const entryContext = React.createContext()
-export const EntryContext = React.memo(({entryId, overview, children}) => {
+export const EntryContext = React.memo(({entryId, cards, children}) => {
   const dataStore = useDataStore()
   dataStore.resetIfNeeded(entryId)
 
@@ -101,23 +100,18 @@ export const EntryContext = React.memo(({entryId, overview, children}) => {
   }, [dataStore, entryId])
 
   // Get the overview config
-  const finalOverview = useMemo(() => {
-    const tmpOverview = overview || ui?.entry_context?.overview
-    if (!tmpOverview) return {}
-    const finalOverview = cloneDeep(tmpOverview)
-    const options = (finalOverview.include || Object.keys(finalOverview.options))
-      .filter(key => !finalOverview?.exclude?.includes(key))
-      .map(key => ({key, ...finalOverview.options[key]}))
-    return {options}
-  }, [overview])
+  const finalCards = useMemo(() => {
+    const finalCards = cards || ui?.entry?.cards
+    return finalCards || undefined
+  }, [cards])
 
-  const value = useMemo(() => ({entryId, overview: finalOverview}), [entryId, finalOverview])
+  const value = useMemo(() => ({entryId, cards: finalCards}), [entryId, finalCards])
   return <entryContext.Provider value={value}>
     {children}
   </entryContext.Provider>
 })
 EntryContext.propTypes = {
   entryId: PropTypes.string,
-  overview: PropTypes.object,
+  cards: PropTypes.object,
   children: PropTypes.node
 }

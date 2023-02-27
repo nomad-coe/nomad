@@ -40,9 +40,9 @@ import { cloneDeep } from 'lodash'
 import {getItemLabelKey} from '../archive/ArchiveBrowser'
 
 const searchDialogContext = React.createContext()
-const context = cloneDeep(ui?.search_contexts?.options?.entries)
+const context = cloneDeep(ui?.apps?.options?.entries)
 
-const allFilters = new Set(filterGroups && (context?.filter_menus?.include || Object.keys(context?.filter_menus?.options))
+const allFilters = new Set(filterGroups && (Object.keys(context?.filter_menus?.options))
   .map(filter => {
     const group = filterGroups?.[filter]
     return group ? Array.from(group) : []
@@ -319,13 +319,11 @@ function SectionSelectDialog(props) {
   const {open, onSelectedChanged, selected, onCancel, filtersLocked} = props
   const columns = context?.columns
   const rows = context?.rows
-  columns['enable'] = shownColumns
-  rows['details'] = {enable: true, render: Details}
-  rows['actions'] = {enable: false}
+  columns.selected = shownColumns
+  rows.details = {enabled: true, render: Details}
+  rows.actions = {enabled: false}
 
-  if (!open) {
-    return null
-  }
+  if (!open) return null
 
   return <SearchContext
     resource={context?.resource}

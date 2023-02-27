@@ -27,6 +27,7 @@ import json
 import yaml
 
 from nomad import utils, infrastructure, config
+from nomad.config.models import BundleImportSettings
 from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.parsing.parser import Parser
@@ -319,7 +320,7 @@ def test_publish_failed(
     #     config.BundleImportSettings(include_archive_files=True, trigger_processing=False), 0,
     #     id='no-processing'),
     pytest.param(
-        config.BundleImportSettings(include_archive_files=False, trigger_processing=True), 17,
+        BundleImportSettings(include_archive_files=False, trigger_processing=True), 17,
         id='trigger-processing')
 ])
 def test_publish_to_central_nomad(

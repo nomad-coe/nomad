@@ -30,7 +30,7 @@ This page allows you to **inspect** and **download** NOMAD datasets. It also all
 to explore a dataset with similar controls that the search page offers.
 `
 
-const context = ui?.search_contexts?.options?.entries
+const context = ui?.apps?.options?.entries
 const useStyles = makeStyles(theme => ({
   header: {
     display: 'flex',

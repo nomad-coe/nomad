@@ -89,10 +89,7 @@ def setup_mongo():
 
 
 def remove_mongo():
-    global mongo_client_resources
-
     setup_mongo()
-
     mongo_client_resources.drop_database(config.resources.db_name)
 
 

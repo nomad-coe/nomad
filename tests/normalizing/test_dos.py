@@ -28,7 +28,7 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     run_normalize,
 )
 
-from nomad_dos_fingerprints import DOSFingerprint
+from nomad_dos_fingerprints import DOSFingerprint  # pylint: disable=import-error
 from nomad.normalizing.dos_integrator import integrate_dos
 
 

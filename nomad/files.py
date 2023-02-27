@@ -61,6 +61,7 @@ import yaml
 import magic
 
 from nomad import config, utils, datamodel
+from nomad.config.models import BundleImportSettings, BundleExportSettings
 from nomad.archive import write_archive, read_archive, ArchiveReader
 
 # TODO this should become obsolete, once we are going beyong python 3.6. For now
@@ -680,7 +681,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
                     utils.get_logger(__name__).error(
                         'could not remove empty prefix dir', directory=parent_directory, exc_info=e)
 
-    def files_to_bundle(self, export_settings: config.BundleExportSettings) -> Iterable[FileSource]:
+    def files_to_bundle(self, export_settings: BundleExportSettings) -> Iterable[FileSource]:
         '''
         A generator of :class:`FileSource` objects, defining the files/folders to be included in an
         upload bundle when *exporting*. The arguments allows for further filtering of what to include.
@@ -692,7 +693,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
     @classmethod
     def files_from_bundle(
-            cls, bundle_file_source: BrowsableFileSource, import_settings: config.BundleImportSettings) -> Iterable[FileSource]:
+            cls, bundle_file_source: BrowsableFileSource, import_settings: BundleImportSettings) -> Iterable[FileSource]:
         '''
         Returns an Iterable of :class:`FileSource`, defining the files/folders to be included in an
         upload bundle when *importing*. Only the files specified by the import_settings are included.
@@ -1175,7 +1176,7 @@ class StagingUploadFiles(UploadFiles):
             hash.update(mainfile_key.encode('utf8'))
         return utils.make_websave(hash)
 
-    def files_to_bundle(self, export_settings: config.BundleExportSettings) -> Iterable[FileSource]:
+    def files_to_bundle(self, export_settings: BundleExportSettings) -> Iterable[FileSource]:
         # Defines files for upload bundles of staging uploads.
         if export_settings.include_raw_files:
             yield DiskFileSource(self.os_path, 'raw')
@@ -1184,7 +1185,7 @@ class StagingUploadFiles(UploadFiles):
 
     @classmethod
     def files_from_bundle(
-            cls, bundle_file_source: BrowsableFileSource, import_settings: config.BundleImportSettings) -> Iterable[FileSource]:
+            cls, bundle_file_source: BrowsableFileSource, import_settings: BundleImportSettings) -> Iterable[FileSource]:
         # Files to import for a staging upload
         if import_settings.include_raw_files:
             yield bundle_file_source.sub_source('raw')
@@ -1520,7 +1521,7 @@ class PublicUploadFiles(UploadFiles):
         self._raw_zip_file = self._raw_zip_file_object = None
         self._archive_msg_file = self._archive_msg_file_object = None
 
-    def files_to_bundle(self, export_settings: config.BundleExportSettings) -> Iterable[FileSource]:
+    def files_to_bundle(self, export_settings: BundleExportSettings) -> Iterable[FileSource]:
         # Defines files for upload bundles of published uploads.
         for filename in sorted(os.listdir(self.os_path)):
             if filename.startswith('raw-') and export_settings.include_raw_files:
@@ -1530,7 +1531,7 @@ class PublicUploadFiles(UploadFiles):
 
     @classmethod
     def files_from_bundle(
-            cls, bundle_file_source: BrowsableFileSource, import_settings: config.BundleImportSettings) -> Iterable[FileSource]:
+            cls, bundle_file_source: BrowsableFileSource, import_settings: BundleImportSettings) -> Iterable[FileSource]:
         for filename in bundle_file_source.directory_list(''):
             if filename.startswith('raw-') and import_settings.include_raw_files:
                 yield bundle_file_source.sub_source(filename)

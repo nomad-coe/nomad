@@ -229,7 +229,7 @@ function registerFilterOptions(name, group, target, label, description, options)
 const histogramWidgetConfig = {
   type: 'histogram',
   scale: 'linear',
-  inputfields: false,
+  showinput: false,
   autorange: false,
   nbins: 30,
   layout: {
@@ -244,7 +244,7 @@ const histogramWidgetConfig = {
 const termsWidgetConfig = {
   type: 'terms',
   scale: 'linear',
-  inputfields: false,
+  showinput: false,
   layout: {
     sm: {w: 6, h: 9, minW: 6, minH: 9},
     md: {w: 6, h: 9, minW: 6, minH: 9},
