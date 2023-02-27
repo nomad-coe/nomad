@@ -29,7 +29,7 @@ import {fireEvent, waitFor, within, act} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const testSectionSelectAutocomplete = async () => {
-  await waitFor(() => expect(screen.queryAllByTestId('section-select-entry-activated').length).toBe(4))
+  await waitFor(() => expect(screen.queryAllByTestId('section-select-entry-activated').length).toBe(5))
 
   const sectionSelectEntries = screen.getAllByTestId('section-select-entry-activated')
 
@@ -41,6 +41,8 @@ const testSectionSelectAutocomplete = async () => {
   await waitFor(() => expect(within(sectionSelectEntries[2]).queryByText('upload id: references_upload_id2')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[3]).queryByText('Set your name here')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[3]).queryByText('upload id: references_upload_id2')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[4]).queryByText('Set your name here')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[4]).queryByText('upload id: references_upload_id2')).toBeInTheDocument())
 }
 
 test.each([
@@ -56,9 +58,7 @@ test.each([
   await startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
 
-  // TODO: It must not contain any failed entry. We need to solve it somewhere. Until then I leave it as is.
-  await waitFor(() => expect(screen.getByText('Processing completed, 2/3 entries processed, 1 failed')).toBeInTheDocument())
-  // await waitFor(() => expect(screen.getByText('Processing completed, 3/3 entries processed')).toBeInTheDocument()) // The correct one
+  await waitFor(() => expect(screen.getByText('Processing completed, 3/3 entries processed')).toBeInTheDocument())
 
   const createEntryButton = screen.getByButtonText('Create entry')
   await act(async () => { await userEvent.click(createEntryButton) })

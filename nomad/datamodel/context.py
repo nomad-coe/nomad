@@ -241,7 +241,12 @@ class ServerContext(Context):
         except KeyError:
             raise MetainfoReferenceError(f'archive does not exist {entry_id}')
 
-        return EntryArchive.m_from_dict(archive_dict, m_context=self)
+        context = self
+        if upload_id != self.upload_id:
+            from nomad.processing import Upload
+            context = ServerContext(Upload(upload_id=upload_id))
+
+        return EntryArchive.m_from_dict(archive_dict, m_context=context)
 
     def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> EntryArchive:
         upload_files = self._get_upload_files(upload_id, installation_url)
@@ -323,6 +328,7 @@ class ClientContext(Context):
         username: str = None, password: str = None, auth=None
     ):
         super().__init__(config.client.url + '/v1' if installation_url is None else installation_url)
+        self._installation_url = installation_url
         self.local_dir = local_dir
         if auth:
             self._auth = auth
@@ -347,7 +353,11 @@ class ClientContext(Context):
         if response.status_code != 200:
             raise MetainfoReferenceError(f'cannot retrieve archive {entry_id} from {installation_url}')
 
-        return EntryArchive.m_from_dict(response.json()['data']['archive'], m_context=self)
+        context = self
+        if upload_id != self.upload_id:
+            context = ClientContext(installation_url=self._installation_url, local_dir=self.local_dir, upload_id=upload_id, auth=self._auth)
+
+        return EntryArchive.m_from_dict(response.json()['data']['archive'], m_context=context)
 
     def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
         # TODO currently upload_id might be None
