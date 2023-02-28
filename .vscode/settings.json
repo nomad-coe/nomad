@@ -14,17 +14,14 @@
         "--rcfile=${workspaceFolder}/.pylintrc"
     ],
     "python.linting.pycodestylePath": "pycodestyle",
-    "python.linting.pycodestyleEnabled": true,
     "python.linting.pycodestyleArgs": [
         "--config=${workspaceFolder}/pycodestyle.ini"
     ],
-    "python.linting.mypyEnabled": true,
     "python.linting.mypyArgs": [
         "--ignore-missing-imports",
         "--follow-imports=silent",
         "--no-strict-optional"
     ],
-    "python.linting.pylintEnabled": true,
     "files.watcherExclude": {
       "${workspaceFolder}/.pyenv/**": true,
     },
@@ -124,6 +121,5 @@
         "tests"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
     "jest.autoRun": "off"
 }
