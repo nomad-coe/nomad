@@ -15,6 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import './index.css'
+import '@fontsource/titillium-web/400.css'
+import '@fontsource/titillium-web/600.css'
 import './wdyr'
 import 'react-app-polyfill/ie11'
 import 'react-app-polyfill/stable'
@@ -22,10 +25,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import '../node_modules/react-grid-layout/css/styles.css'
 import '../node_modules/react-resizable/css/styles.css'
-import './index.css'
 import App from './components/App'
-import '@fontsource/titillium-web/400.css'
-import '@fontsource/titillium-web/600.css'
 import '@fontsource/material-icons'
 
 ReactDOM.render(<App />, document.getElementById('root'))

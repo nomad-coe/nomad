@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!--Root error-->
+    <script>
+      window.addEventListener("error", async (error) => {
+        // In react development builds, errors will always propagate to the top
+        // (also through error boundaries) and will be displayed with the error
+        // overlay, so we don't handle them here.
+        if (process.env.NODE_ENV === 'development') return
+
+        // Log the error in console to help in debugging
+        console.log(error)
+
+        // Display a help message for the user that suggests reloading. The style and
+        // contents of this message mimics the the React error boundary.
+        const rootError = document.getElementById("rootError")
+        rootError.style.display = 'block'
+      })
+    </script>
     <!-- Include tinyMCE -->
     <script src="%PUBLIC_URL%/tinymce/tinymce.min.js"></script>
 
@@ -57,5 +74,9 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
+    <div id="rootError">
+      <p class="errorText" id="errorTextRed">Something went wrong in this part of the app (Javascript error). Please close all NOMAD tabs and try again. Let us know, if this error keeps happening.</p>
+      <p class="errorText">Please, write to <a class="errorLink" href="mailto:support@nomad-lab.eu">support@nomad-lab.eu</a>, or open an issue on our <a class="errorLink" href="https://github.com/nomad-coe/nomad/issues">github project<a>.</p>
+    </div>
   </body>
 </html>

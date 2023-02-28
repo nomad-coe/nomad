@@ -544,17 +544,43 @@ export class Metainfo {
     const path = []
     const visitedSubSections = new Set()
     while (def) {
-      const parentSubSection = def._parentSubSections && def._parentSubSections.filter(
-        subSection => !visitedSubSections.has(subSection))[0]
-      if (parentSubSection) {
-        visitedSubSections.add(parentSubSection)
-        def = parentSubSection
+      if (def.m_def === SectionMDef) {
+        // See if there is a sub-section that uses this section. If there is only one
+        // sub-section, we use this sub-section to represent the section def, because
+        // typically it is more desirable to show the section within the overall hierarchy
+        // than just the section def in its defining package.
+        // We also remember visited sub-sections to avoid circles.
+        const parentSubSections = def._parentSubSections && def._parentSubSections.filter(
+          subSection => !visitedSubSections.has(subSection))
+        if (parentSubSections.length === 1) {
+          def = parentSubSections[0]
+          visitedSubSections.add(def)
+        }
       }
-      path.push(def.name)
-      if (def.m_def === SubSectionMDef) {
-        def = def._section
+
+      if (def._parent?.m_def === PackageMDef) {
+        // For package contents, we need to annotate the path segment corresponding to
+        // the package adaptor in the Metainfo browser.
+        if (def.m_def === SectionMDef) {
+          path.push(`section_definitions@${def._qualifiedName}`)
+        } else if (def.m_def === CategoryMDef) {
+          path.push(`category_definitions@${def._qualifiedName}`)
+        }
+      } else if (def.m_def === PackageMDef) {
+        // For packages, we use only the root package name. This merges you all the
+        // sub-pacakges in one. This is just how the Metainfo adaptor hierarchy is setup.
+        path.push(def.name.split('.')[0])
       } else {
+        path.push(def.name)
+      }
+
+      if (def._qualifiedName === 'nomad.datamodel.datamodel.EntryArchive') {
+        // If definitions are contained in EntryArchive, we adapt to show them below
+        // the root section EntryArchive instead of its package nomad.
+        path[path.length - 1] = def._qualifiedName
         def = null
+      } else {
+        def = def._parent
       }
 
       while (def && def.extends_base_section) {

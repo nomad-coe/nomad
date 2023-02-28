@@ -3,3 +3,27 @@ body {
   padding: 0;
   font-family: sans-serif;
 }
+#rootError {
+  z-index: 1000;
+  display: none;
+  margin: 16px;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+.errorText {
+  margin: 0;
+  font-size: 1rem;
+  font-family: Titillium Web,sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+}
+#errorTextRed {
+  color: #f44336;
+}
+.errorLink {
+  color: #008DC3;
+  text-decoration: none;
+}
