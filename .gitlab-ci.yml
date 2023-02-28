@@ -67,8 +67,6 @@ build:
     - docker push ${CI_REGISTRY_IMAGE}/dev_node:${DOCKER_TAG}
     - docker push ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
   rules:
-    - if: $CI_COMMIT_TAG
-      when: never
     - when: on_success
 
 python linting:
@@ -241,8 +239,6 @@ deploy dev:
   needs:
     - job: build
   rules:
-    - if: $CI_COMMIT_TAG
-      when: never
     - when: manual
       allow_failure: true
 
@@ -261,8 +257,6 @@ stop deploy dev:
   needs:
     - job: build
   rules:
-    - if: $CI_COMMIT_TAG
-      when: never
     - when: manual
       allow_failure: true
 
@@ -288,8 +282,6 @@ deploy prod staging:
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
       nomad client -n https://nomad-lab.eu/prod/v1/staging/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
   rules:
-    - if: $CI_COMMIT_TAG
-      when: never
     - when: manual
       allow_failure: true
 
@@ -315,8 +307,6 @@ deploy prod test:
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
       nomad client -n https://nomad-lab.eu/prod/v1/test/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
   rules:
-    - if: $CI_COMMIT_TAG
-      when: never
     - when: manual
       allow_failure: true
 
@@ -335,8 +325,6 @@ deploy prod util:
       --timeout=15m
       --wait
   rules:
-    - if: $CI_COMMIT_TAG
-      when: never
     - when: manual
       allow_failure: true
 
@@ -365,8 +353,6 @@ deploy prod develop:
   needs:
     - job: build
   rules:
-    - if: $CI_COMMIT_TAG
-      when: never
     - when: manual
       allow_failure: true
 
@@ -425,8 +411,10 @@ pypi package:
     - docker run --rm ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
       twine upload -u $CI_TWINE_USER -p $CI_TWINE_PASSWORD dist/nomad-lab-*.tar.gz
   rules:
-    - when: manual
+    - if: $CI_COMMIT_TAG
+      when: manual
       allow_failure: true
+    - when: never
 
 push to github:
   stage: release

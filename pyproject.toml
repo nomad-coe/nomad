@@ -36,9 +36,6 @@ dependencies = [
     'pyyaml==6.0'
 ]
 
-[tool.setuptools_scm]
-
-
 [project.urls]
 homepage = "https://nomad-lab.eu/"
 documentation = "https://nomad-lab.eu/prod/v1/docs"
@@ -152,3 +149,5 @@ where = [
 ]
 exclude = ["tests*"]
 namespaces = false
+
+[tool.setuptools_scm]
