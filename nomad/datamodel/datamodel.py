@@ -34,7 +34,7 @@ from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry
 from .util import parse_path
 from ..metainfo import (
     Bytes, Package, Definition, MProxy, MSection, MCategory, Section, SubSection, Quantity, Reference,
-    SectionProxy, MEnum, Datetime, JSON)
+    MEnum, Datetime, JSON)
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requiring the m_package already, this would be too late.
@@ -810,16 +810,16 @@ class EntryMetadata(MSection):
             else:
                 # for subsections
                 target_section = current_def.section_def
-                if not isinstance(target_section, SectionProxy):
+                if not hasattr(target_section, 'm_proxy_value'):
                     return
 
                 current_value = target_section
 
             ref_list: list = []
-            if isinstance(current_value, MProxy):
+            if hasattr(current_value, 'm_proxy_value'):
                 ref_list = [current_value]
             elif isinstance(current_value, list):
-                ref_list = [v for v in current_value if isinstance(v, MProxy)]
+                ref_list = [v for v in current_value if hasattr(v, 'm_proxy_value')]
 
             for ref in ref_list:
                 reference_section = create_reference_section(ref.m_proxy_value, current_def, quantity_path)
