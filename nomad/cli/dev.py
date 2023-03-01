@@ -46,7 +46,7 @@ def qa(skip_tests: bool, exitfirst: bool):
     click.echo('Run linter ...')
     ret_code += os.system('python -m pylint --rcfile=.pylintrc nomad tests')
     click.echo('Run static type checks ...')
-    ret_code += os.system('python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests')
+    ret_code += os.system('python -m mypy nomad tests')
 
     sys.exit(ret_code)
 

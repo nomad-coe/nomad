@@ -25,7 +25,7 @@
 
 
 FROM node:16.15 AS base_node
-FROM python:3.7-slim AS base_python
+FROM python:3.9-slim AS base_python
 
 # ================================================================================
 # Built the GUI in the gui build image
@@ -179,9 +179,9 @@ COPY --from=dev_python /app/dist/nomad-lab-*.tar.gz .
 RUN pip install nomad-lab-*.tar.gz
 
 # Reduce the size of the packages
-RUN find /usr/local/lib/python3.7/ -type d -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + \
- && find /usr/local/lib/python3.7/ -type d -name 'test' -exec rm -r '{}' + \
- && find /usr/local/lib/python3.7/site-packages/ -name '*.so' ! -path '*/h5py/*' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
+RUN find /usr/local/lib/python3.9/ -type d -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + \
+ && find /usr/local/lib/python3.9/ -type d -name 'test' -exec rm -r '{}' + \
+ && find /usr/local/lib/python3.9/site-packages/ -name '*.so' ! -path '*/h5py/*' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
 
 
 # ================================================================================
@@ -212,14 +212,14 @@ COPY --chown=nomad:1000 nomad/jupyterhub_config.py ./nomad/jupyterhub_config.py
 COPY --chown=nomad:1000 dependencies/nomad-remote-tools-hub/tools.json ./dependencies/nomad-remote-tools-hub/tools.json
 
 COPY --chown=nomad:1000 --from=dev_python /app/examples/data/uploads /app/examples/data/uploads
-COPY --chown=nomad:1000 --from=builder /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
+COPY --chown=nomad:1000 --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
 COPY --chown=nomad:1000 --from=builder /usr/local/share/jupyterhub /usr/local/share/jupyterhub
 COPY --chown=nomad:1000 --from=builder /usr/local/bin/nomad /usr/local/bin/nomad
 
 RUN useradd -ms /bin/bash nomad \
  && mkdir -p /app/.volumes/fs \
  && chown -R nomad:1000 /app \
- && chown -R nomad:1000 /usr/local/lib/python3.7/site-packages/nomad
+ && chown -R nomad:1000 /usr/local/lib/python3.9/site-packages/nomad
 
 USER nomad
 

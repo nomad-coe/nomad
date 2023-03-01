@@ -11,7 +11,7 @@ authors = [
 ]
 dynamic = ["version"]
 license = { file = "LICENSE" }
-requires-python = ">=3.6"
+requires-python = ">=3.8"
 dependencies = [
     'nptyping==1.4.4',
     'cachetools==4.2.4',
@@ -19,13 +19,13 @@ dependencies = [
     'Pint==0.17',
     'orjson==3.6.0',
     'click>=7.1.2',
-    'requests==2.27.1',
+    'requests==2.28.2',
     'pytz==2021.1',
     'aniso8601==7.0.0',
     'ase==3.19.0',
     'python-keycloak==0.26.1',
     'elasticsearch-dsl==7.4.0',
-    'pydantic==1.9.1',
+    'pydantic==1.10.5',
     'jmespath==0.10.0',
     'h5grove>=1.0.0',
     'httpx==0.22.0',
@@ -54,7 +54,7 @@ parsing = [
     'mdanalysis==2.1.0',
     'xarray',
     'phonopy==2.11.0',
-    'pymatgen==2022.0.17',
+    'pymatgen==2023.2.28',
     'asr==0.4.1',
     'bitarray==2.3.5',
     'xrdtools==0.1.1',
@@ -94,7 +94,7 @@ infrastructure = [
     'recommonmark==0.7.1',
     'jinja2==3.0.3',
     'rdflib==5.0.0',
-    'fastapi==0.65.3',
+    'fastapi==0.92.0',
     'uvicorn[standard]',
     'python-multipart==0.0.5',
     'jupyterhub==1.4.2',
@@ -102,7 +102,7 @@ infrastructure = [
     'oauthenticator==14.2.0',
     'validators==0.18.2',
     'aiofiles==0.8.0',
-    'joblib==1.1.0',
+    'joblib>=1.1.0',
     'importlib-metadata~=4.13.0' # Needed because of https://github.com/python/importlib_metadata/issues/411
 ]
 dev = [
@@ -110,7 +110,7 @@ dev = [
     'pip-tools',
     'markupsafe',
     'gitpython==3.1.24',
-    'mypy==0.730',
+    'mypy>=1.0.1',
     'typed-ast>=1.4.2',
     'astroid>=2.5.1',
     'pylint==2.13.9',
@@ -149,5 +149,13 @@ where = [
 ]
 exclude = ["tests*"]
 namespaces = false
+
+[tool.mypy]
+strict = false
+ignore_missing_imports = true
+follow_imports = "silent"
+no_strict_optional = true
+disable_error_code = "import, annotation-unchecked"
+
 
 [tool.setuptools_scm]
