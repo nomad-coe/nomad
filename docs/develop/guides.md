@@ -31,9 +31,6 @@ applies to all python code (and were applicable, also to JS and other code):
 - Add doc-strings to the *public* interface of each sub-module (e.g. python file). Public meaning API that
   is exposed to other sub-modules (i.e. other python files).
 
-- Use google [docstrings](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) and
-  use Markdown.
-
 - The project structure is according to [this guide](https://docs.python-guide.org/writing/structure/).
   Keep it!
 
@@ -50,6 +47,59 @@ run `nomad qa` to run all these tests and checks before committing.
 
 See [git/gitlab](./gitlab.md) for more details on how to work with issues, branches, merge
 requests, and CI/CD.
+
+## Documenting code
+
+Write [clean code](https://youtu.be/7EmboKQH8lM) that is easy to comprehend.
+
+However, you should document the whole publically exposed interface of a module. For Python this
+include most classes and functions that you will write. For react its exported components
+and their props.
+
+For all functionality that is exposed to clients (APIs, CLI, schema base classes and annotations, UI functionality),
+you must consider to add explanations, tutorials, and examples to the documentation system (i.e. the `/docs` folder).
+This is built with [mkdocs](https://www.mkdocs.org/) and published as part of each NOMAD installation.
+Also mind `/nomad/mkdocs.py` and `mkdocs.yaml` and have a look at used plugins and extra functions.
+E.g. this includs generation of markdown from `/examples` or Pydantic models.
+
+To document Python functions and classes, use google [docstrings](https://github.com/NilsJPWerner/autoDocstring/blob/HEAD/docs/google.md).
+Use markdown if you need to add markup, but try to reduce this to a minimum.
+You can use VSCode plugins like
+[autoDocstring](https://github.com/NilsJPWerner/autoDocstring/tree/f7bc9f427d5ebcd87e6f5839077a87ecd1cbb404)
+to help. Use single quotes (as always), pad single-line docstrings with spaces and start
+multi-line ones on a new line.
+ Here are a few examples:
+
+```python
+def generate_uuid() -> str:
+    ''' Generates a base64 encoded Version 4 unique identifier. '''
+
+    return base64.encode(uuid4())
+
+def add(a: float, b: float) -> float:
+    '''
+    Adds two numbers.
+
+    Args:
+      a (float): One number.
+      b (float): The other number.
+
+    Returns:
+      float: The sum of a and b.
+    '''
+
+    return a + b
+```
+
+The only reason to comment individual lines is because there is absolutely no way
+to write it simple enough. The typical scenarios are:
+
+- workarrounds to known issues with used dependencies
+- complex interactions between seemingly unrelated pieces of code that cannot be resolved otherwise
+- code that has to be cumbersome due to performance optimizations
+
+DO NOT out-comment code. We have git for that.
+
 
 ## Names and identifiers
 
