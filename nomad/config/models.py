@@ -259,10 +259,17 @@ class NORTH(NomadSettings):
 
     @validator('tools', pre=True, always=True)
     def load_tools(cls, v):  # pylint: disable=no-self-argument
-        if isinstance(v, str):
-            # interpret as file
-            with open(v, 'rt') as f:
-                v = json.load(f)
+        if not isinstance(v, str):
+            return v
+
+        # interpret as file
+        path = v
+        if not os.path.exists(path):
+            root_path = os.path.join(os.path.dirname(__file__), '../..')
+            path = os.path.join(root_path, v)
+
+        with open(path, 'rt') as f:
+            v = json.load(f)
 
         return v
 
