@@ -830,6 +830,10 @@ class _Bytes(DataType):
         return base64.b64decode(value)
 
 
+class _HDF5Reference(DataType):
+    pass
+
+
 Dimension = _Dimension()
 Unit = _Unit()
 QuantityType = _QuantityType()
@@ -840,10 +844,12 @@ Capitalized = _Capitalized()
 Bytes = _Bytes()
 File = _File()
 URL = _URL()
+HDF5Reference = _HDF5Reference()
 
 predefined_datatypes = {
     'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
-    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File, 'URL': URL}
+    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File, 'URL': URL,
+    'HDF5Reference': HDF5Reference}
 
 
 # Metainfo data storage and reflection interface

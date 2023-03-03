@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import List, Iterable, Dict, Union, Any, Optional
+from typing import List, Iterable, Dict, Union, Any, Optional, IO
 from abc import ABCMeta, abstractmethod
 import re
 import os
@@ -367,6 +367,17 @@ class MatchingParser(Parser):
 
     def __repr__(self):
         return self.name
+
+
+def to_hdf5(value: Any, f: Union[str, IO], path: str):
+    with h5py.File(f, 'a') as root:
+        segments = path.rsplit('/', 1)
+        group = root.require_group(segments[0]) if len(segments) == 2 else root
+        dataset = group.require_dataset(
+            segments[-1], shape=value.shape if hasattr(value, 'shape') else (),
+            dtype=value.dtype if hasattr(value, 'dtype') else None)
+        dataset[...] = value.magnitude if hasattr(value, 'magnitude') else value
+    return f'{f if isinstance(f, str) else os.path.basename(f.name)}#{path}'
 
 
 class MatchingParserInterface(MatchingParser):

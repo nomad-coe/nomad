@@ -20,7 +20,7 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference, MEnum, derived)
+    Reference, MEnum, derived, HDF5Reference)
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import Method, HoppingMatrix
 from nomad.datamodel.data import ArchiveSection
@@ -1461,6 +1461,15 @@ class Density(Volumetric):
         unit='1 / m ** 3',
         description='''
         Values of the potential evaluated at each grid point.
+        ''')
+
+    # TODO rename this to value or restructure metainfo def for densities and perhaps
+    # rename density_charge to charge_density if no other densities are to be added.
+    value_hdf5 = Quantity(
+        type=HDF5Reference,
+        shape=[],
+        description='''
+        Specifies the HDF5 file and the path to the value in the file .
         ''')
 
 
