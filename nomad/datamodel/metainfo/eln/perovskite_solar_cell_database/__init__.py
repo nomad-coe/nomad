@@ -1617,7 +1617,7 @@ Ozone
                 archive.results.material.chemical_formula_reduced = Formula(chemical_formula_reduced).format('reduced')
                 archive.results.material.chemical_formula_iupac = Formula(chemical_formula_reduced).format('iupac')
                 archive.results.material.chemical_formula_anonymous = Formula(chemical_formula_reduced).format('anonymous')
-                archive.results.material.chemical_formula_descriptive = self.composition_long_form
+                archive.results.material.chemical_formula_descriptive = formula_cleaner.pre_process_formula()
             except Exception as e:
                 logger.warn('could not analyse chemical formula', exc_info=e)
 
