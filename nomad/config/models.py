@@ -960,6 +960,8 @@ class ExampleUploads(OptionsBase):
 
 class UI(StrictSettings):
     '''Used to customize the user interface.'''
+    app_base: str = Field(None, description='This is automatically set from the nomad.yaml')
+    north_base: str = Field(None, description='This is automatically set from the nomad.yaml')
     theme: Theme = Field(
         Theme(**{
             'title': 'NOMAD'

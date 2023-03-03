@@ -121,7 +121,7 @@ async def startup_event():
     GuiFiles.gui_artifacts_data = get_gui_artifacts_js()
 
     from nomad.cli.dev import get_gui_config
-    GuiFiles.gui_env_data = get_gui_config(proxy=True)
+    GuiFiles.gui_env_data = get_gui_config()
 
     infrastructure.setup()
 

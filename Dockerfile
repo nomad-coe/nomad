@@ -50,6 +50,7 @@ COPY tests/states/archives/dft.json  /app/tests/states/archives/dft.json
 
 # Copy and build the applicaion itself
 COPY gui .
+RUN echo "REACT_APP_BACKEND_URL=/fairdi/nomad/latest" > .env
 
 RUN yarn run build
 

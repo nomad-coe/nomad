@@ -228,38 +228,6 @@ def springer_update(max_n_query, retry_time):
 #     similarity.ingest(input_path, batch_size, verbose)
 
 
-@ops.command(help='Configures the GUI for production based on NOMAD config.')
-def gui_config():
-    import os.path
-    from nomad import config
-    import glob
-    import shutil
-
-    gui_folder = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), '../../app/static/gui'))
-    run_gui_folder = os.path.join(gui_folder, '../.gui_configured')
-
-    # copy
-    shutil.rmtree(run_gui_folder, ignore_errors=True)
-    shutil.copytree(gui_folder, run_gui_folder)
-
-    # replace base path in all GUI files
-    source_file_globs = [
-        '**/*.json',
-        '**/*.html',
-        '**/*.js',
-        '**/*.js.map',
-        '**/*.css']
-    for source_file_glob in source_file_globs:
-        source_files = glob.glob(os.path.join(run_gui_folder, source_file_glob), recursive=True)
-        for source_file in source_files:
-            with open(source_file, 'rt') as f:
-                file_data = f.read()
-            file_data = file_data.replace('/fairdi/nomad/latest', config.services.api_base_path)
-            with open(source_file, 'wt') as f:
-                f.write(file_data)
-
-
 @admin.group(help='Commands for upgrading to a newer NOMAD version')
 def upgrade():
     pass

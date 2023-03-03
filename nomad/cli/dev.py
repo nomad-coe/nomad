@@ -205,7 +205,7 @@ def parser_metadata():
     print(json.dumps(code_metadata, indent=2, sort_keys=True))
 
 
-def get_gui_config(proxy: bool = False) -> str:
+def get_gui_config() -> str:
     '''Create a simplified and strippped version of the nomad.yaml contents that
     is used by the GUI.
 
@@ -216,16 +216,9 @@ def get_gui_config(proxy: bool = False) -> str:
     '''
     from nomad import config
 
-    if proxy:
-        appBase = f'{config.services.api_base_path.rstrip("/")}'
-        northBase = f'{config.services.api_base_path.rstrip("/")}/north'
-    else:
-        appBase = f'{"https" if config.services.https else "http"}://{config.services.api_host}:{config.services.api_port}{config.services.api_base_path.rstrip("/")}'
-        northBase = f'{"https" if config.services.https else "http"}://{config.north.hub_host}:{config.north.hub_port}{config.services.api_base_path.rstrip("/")}/north'
-
     data = {
-        'appBase': appBase,
-        'northBase': northBase,
+        'appBase': config.ui.app_base,
+        'northBase': config.ui.north_base,
         'keycloakBase': config.keycloak.public_server_url,
         'keycloakRealm': config.keycloak.realm_name,
         'keycloakClientId': config.keycloak.client_id,

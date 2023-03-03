@@ -1,4 +1,3 @@
 #!/bin/bash
 
-python -m nomad.cli admin ops gui-config
-python -m uvicorn --host 0.0.0.0 nomad.app.main:app
+python -m nomad.cli admin run app --with-gui --host 0.0.0.0 $@

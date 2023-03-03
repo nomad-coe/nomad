@@ -182,6 +182,8 @@ def _check_config():
         fs.north_home_external = get_external_path(fs.north_home)
 
     ui.north.enabled = north.enabled
+    ui.app_base = f'{"https" if services.https else "http"}://{services.api_host}:{services.api_port}{services.api_base_path.rstrip("/")}'
+    ui.north_base = f'{"https" if services.https else "http"}://{north.hub_host}:{north.hub_port}{services.api_base_path.rstrip("/")}/north'
 
 
 def _merge(a: Union[dict, NomadSettings], b: dict, path: List[str] = None) -> Union[dict, NomadSettings]:

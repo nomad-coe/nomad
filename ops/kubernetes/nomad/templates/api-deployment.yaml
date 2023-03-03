@@ -44,21 +44,6 @@ data:
     [formatter_logstash]
     class=nomad.utils.structlogging.LogstashFormatter
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "nomad.fullname" . }}-app-run-script
-  labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-app-run-script
-    helm.sh/chart: {{ include "nomad.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-data:
-  run.sh: |
-    #!/bin/bash
-    python -m nomad.cli admin ops gui-config
-    python -m uvicorn --log-config  uvicorn.log.conf --workers {{ .Values.app.worker }} --host 0.0.0.0 nomad.app.main:app
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -95,9 +80,6 @@ spec:
         - mountPath: /app/uvicorn.log.conf
           name: uvicorn-log-conf
           subPath: uvicorn.log.conf
-        - mountPath: /app/run.sh
-          name: app-run-script
-          subPath: run.sh
         - mountPath: /app/.volumes/fs/public
           name: public-volume
         - mountPath: /app/.volumes/fs/staging
@@ -160,7 +142,7 @@ spec:
               name: {{ .Values.north.hubServiceApiTokenSecret }}
               key: token
         {{ end }}
-        command: ["/bin/sh", "run.sh"]
+        command: ["/bin/sh", "run.sh", "--log-config", "uvicorn.log.conf", "--workers", "{{ .Values.app.worker }}"]
         livenessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/alive"
