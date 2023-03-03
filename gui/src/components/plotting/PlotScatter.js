@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useState, useEffect, useMemo, forwardRef} from 'react'
+import React, {useState, useEffect, useMemo, useCallback, forwardRef} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core'
 import { getDeep, hasWebGLSupport } from '../../utils'
@@ -24,6 +24,9 @@ import * as d3 from 'd3'
 import { isArray, isNil } from 'lodash'
 import FilterTitle from '../search/FilterTitle'
 import Plot from './Plot'
+import { useSearchContext } from '../search/SearchContext'
+import { useHistory } from 'react-router-dom'
+import { getUrl } from '../nav/Routes'
 
 /**
  * A Plotly-based interactive scatter plot.
@@ -99,12 +102,15 @@ const PlotScatter = React.memo(forwardRef((
   dragmode,
   onSelected,
   onDeselect,
+  onNavigateToEntry,
   'data-testid': testID
 }, canvas) => {
   const styles = useStyles()
   const theme = useTheme()
   const [finalData, setFinalData] = useState(!data ? data : undefined)
   const units = useUnits()
+  const { filterData } = useSearchContext()
+  const history = useHistory()
 
   // Side effect that runs when the data that is displayed should change. By
   // running all this heavy stuff within useEffect (instead of e.g. useMemo),
@@ -120,11 +126,26 @@ const PlotScatter = React.memo(forwardRef((
     // return hits that actually have the requested values. This way we would
     // get a better match for the query size and we would not need to manually
     // validate and check the results.
+
+    const hoverTemplate = (xLabel, yLabel, colorLabel, xUnit, yUnit, colorUnit, discrete) => {
+      let template = `<b>Click to go to entry page</b>` +
+        `<br>` +
+        `${xLabel || ''}: %{x} ${xUnit === 'dimensionless' ? '' : xUnit}<br>` +
+        `${yLabel || ''}: %{y} ${yUnit === 'dimensionless' ? '' : yUnit}<br>`
+      if (colorLabel) {
+        template = template +
+          `${colorLabel || ''}: %{${discrete ? 'text' : 'text:.3'}} ${colorUnit === 'dimensionless' ? '' : colorUnit}<br>`
+      }
+      template = template + `<extra></extra>`
+      return template
+    }
+
     const values = data
       .map((d) => ({
         x: getDeep(d, x),
         y: getDeep(d, y),
-        color: color && getDeep(d, color)
+        color: color && getDeep(d, color),
+        entry_id: d.entry_id
       }))
       // We filter out points that don't have x, y values. Also for continuous
       // coloring the color property needs to be defined.
@@ -154,15 +175,28 @@ const PlotScatter = React.memo(forwardRef((
         const optionValues = values.filter((d) => d.color === option)
         const xArray = optionValues.map((d) => new Quantity(d.x, unitXObj).toSystem(units).value())
         const yArray = optionValues.map((d) => new Quantity(d.y, unitYObj).toSystem(units).value())
+        const unitLabelX = optionValues[0] ? new Quantity(optionValues[0].x, unitXObj).toSystem(units).label() : ''
+        const unitLabelY = optionValues[0] ? new Quantity(optionValues[0].y, unitYObj).toSystem(units).label() : ''
+        const entryIdArray = optionValues.map((d) => d.entry_id)
         traces.push({
           x: xArray,
           y: yArray,
+          entry_id: entryIdArray,
           name: option,
+          text: colorArray,
           mode: 'markers',
           type: hasWebGL ? 'scattergl' : 'scatter',
           textposition: 'top center',
           showlegend: true,
-          hoverinfo: "x+y",
+          hovertemplate: hoverTemplate(
+            filterData[x]?.label,
+            filterData[y]?.label,
+            filterData[color]?.label,
+            unitLabelX,
+            unitLabelY,
+            '',
+            true
+          ),
           marker: {
             size: 8,
             color: scale(offset + (1 - 2 * offset) * options.indexOf(option) / (nOptions - 1)),
@@ -178,15 +212,30 @@ const PlotScatter = React.memo(forwardRef((
       const xArray = values.map((d) => new Quantity(d.x, unitXObj).toSystem(units).value())
       const yArray = values.map((d) => new Quantity(d.y, unitYObj).toSystem(units).value())
       const colors = values.map((d) => new Quantity(d.color, unitColorObj).toSystem(units).value())
+      const entryIdArray = values.map((d) => d.entry_id)
+      const unitLabelX = values[0] ? new Quantity(values[0].x, unitXObj).toSystem(units).label() : ''
+      const unitLabelY = values[0] ? new Quantity(values[0].y, unitYObj).toSystem(units).label() : ''
+      const unitLabelColors = values[0] ? new Quantity(values[0].color, unitColorObj).toSystem(units).label() : ''
       traces.push({
         x: xArray,
         y: yArray,
+        color: colors,
+        text: colors,
+        entry_id: entryIdArray,
         name: "Test",
         mode: 'markers',
         type: 'scattergl',
         textposition: 'top center',
         showlegend: false,
-        hoverinfo: "x+y",
+        hoverinfo: "text",
+        hovertemplate: hoverTemplate(
+          filterData[x]?.label,
+          filterData[y]?.label,
+          filterData[color]?.label,
+          unitLabelX,
+          unitLabelY,
+          unitLabelColors
+        ),
         marker: {
           size: 8,
           color: colors,
@@ -210,14 +259,26 @@ const PlotScatter = React.memo(forwardRef((
     } else {
       const xArray = values.map((d) => new Quantity(d.x, unitXObj).toSystem(units).value())
       const yArray = values.map((d) => new Quantity(d.y, unitYObj).toSystem(units).value())
+      const entryIdArray = values.map((d) => d.entry_id)
+      const unitLabelX = values[0] ? new Quantity(values[0].x, unitXObj).toSystem(units).label() : ''
+      const unitLabelY = values[0] ? new Quantity(values[0].y, unitYObj).toSystem(units).label() : ''
       traces.push({
         x: xArray,
         y: yArray,
+        entry_id: entryIdArray,
         mode: 'markers',
         type: 'scattergl',
         textposition: 'top center',
         showlegend: false,
-        hoverinfo: "x+y",
+        hoverinfo: "text",
+        hovertemplate: hoverTemplate(
+          filterData[x]?.label,
+          filterData[y]?.label,
+          '',
+          unitLabelX,
+          unitLabelY,
+          ''
+        ),
         marker: {
           size: 8,
           color: theme.palette.secondary.main,
@@ -229,12 +290,20 @@ const PlotScatter = React.memo(forwardRef((
       })
     }
     setFinalData(traces)
-  }, [data, x, y, color, discrete, theme, units, unitX, unitY, unitColor])
+  }, [data, x, y, color, discrete, theme, units, unitX, unitY, unitColor, filterData])
 
   const layout = useMemo(() => {
     return {
       dragmode: dragmode,
       hovermode: 'closest',
+      hoverlabel: {
+        bgcolor: theme.palette.grey[100],
+        bordercolor: theme.palette.grey[100],
+        font: {
+          color: theme.palette.grey[800],
+          family: theme.typography.fontFamily
+        }
+      },
       showlegend: true,
       legend: {
         x: 1,
@@ -275,6 +344,14 @@ const PlotScatter = React.memo(forwardRef((
     })
   }, [dragmode, canvas])
 
+  const handleClick = useCallback(d => {
+    const pointIndex = d.points[0].pointIndex
+    const entryId = d.points[0].data.entry_id[pointIndex]
+    const path = `entry/id/${entryId}`
+    onNavigateToEntry()
+    history.push(getUrl(path))
+  }, [history, onNavigateToEntry])
+
   return <div className={styles.root}>
     <div className={styles.yaxis}>
       <FilterTitle quantity={y} variant="caption" rotation="up"/>
@@ -292,6 +369,7 @@ const PlotScatter = React.memo(forwardRef((
         throttleResize
         data-testid={testID}
         ref={canvas}
+        onClick={handleClick}
       />
     </div>
     <div className={styles.square} />
@@ -325,6 +403,7 @@ PlotScatter.propTypes = {
   dragmode: PropTypes.string,
   onSelected: PropTypes.func,
   onDeselect: PropTypes.func,
+  onNavigateToEntry: PropTypes.func,
   'data-testid': PropTypes.string
 }
 

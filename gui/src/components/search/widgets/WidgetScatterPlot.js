@@ -200,6 +200,10 @@ export const WidgetScatterPlot = React.memo((
       </>
   }, [dragmode, handleDragModeChanged, handleResetClick, handleFloat, autorange, setWidget, styles])
 
+  const handleNavigated = useCallback(() => {
+    setFloat(false)
+  }, [])
+
   return <Floatable
       className={className}
       float={float}
@@ -226,6 +230,7 @@ export const WidgetScatterPlot = React.memo((
         onSelected={handleSelected}
         onDeselect={handleDeselect}
         dragmode={dragmode}
+        onNavigateToEntry={handleNavigated}
         data-testid={id}
         ref={canvas}
       />
