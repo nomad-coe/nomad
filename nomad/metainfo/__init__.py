@@ -62,6 +62,7 @@ from .metainfo import (
     JSON,
     Dimension,
     Bytes,
+    HDF5Reference,
     Context,
     m_package,
     Annotation,
