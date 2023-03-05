@@ -18,8 +18,7 @@
 
 from nomad.metainfo import Quantity, SubSection, Section
 
-from ..datamodel import ArchiveSection
-from ..data import EntryData, WorkflowsElnCategory
+from nomad.datamodel.data import ArchiveSection, EntryData, WorkflowsElnCategory
 
 
 class Link(ArchiveSection):
@@ -36,6 +35,11 @@ class Link(ArchiveSection):
     section = Quantity(type=ArchiveSection, description=(
         'A reference to the section that contains the actual input or output data.'),
         a_eln=dict(component='ReferenceEditQuantity'))
+
+    def normalize(self, archive, logger):
+        super(Link, self).normalize(archive, logger)
+        if not self.name and self.section:
+            self.name = getattr(self.section, 'name', None)
 
 
 class Task(ArchiveSection):
@@ -60,8 +64,6 @@ class TaskReference(Task):
     in a different entry or workflow.
     '''
 
-    m_def = Section(a_eln=dict(hide=['name']))
-
     task = Quantity(type=Task, description=(
         'A reference to the task that this section is a proxy for.'),
         a_eln=dict(component='ReferenceEditQuantity'))
@@ -70,6 +72,9 @@ class TaskReference(Task):
         super(TaskReference, self).normalize(archive, logger)
         if not self.name and self.task:
             self.name = self.task.name
+        if self.task:
+            self.inputs += self.task.inputs
+            self.outputs += self.task.outputs
 
 
 class Workflow(Task, EntryData):
@@ -82,6 +87,13 @@ class Workflow(Task, EntryData):
     '''
     m_def = Section(categories=[WorkflowsElnCategory])
 
-    tasks = SubSection(sub_section=TaskReference, repeats=True, description=(
+    tasks = SubSection(sub_section=Task, repeats=True, description=(
         'The tasks of this workflow as a repeating sub section. Use TaskReference if '
         'tasks cannot be contained.'))
+
+    def normalize(self, archive, logger):
+        super(Workflow, self).normalize(archive, logger)
+
+        from nomad.datamodel import EntryArchive
+        if isinstance(self.m_parent, EntryArchive):
+            archive.workflow2 = self
