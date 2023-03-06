@@ -219,7 +219,46 @@ def test_tabular(raw_files, monkeypatch, schema, content):
                 m_def: My_schema
                 process:
                     data_file: Test.xlsx
-        '''), id='w_sheetName_colMode')
+        '''), id='w_sheetName_colMode'),
+    pytest.param(
+        strip('''
+            definitions:
+                name: 'multiple similar columns in row mode'
+                sections:
+                    My_schema:
+                        base_section: nomad.parsing.tabular.TableData
+                        quantities:
+                            data_file:
+                                type: str
+                                m_annotations:
+                                    tabular_parser:
+                                        comment: '#'
+                                        mode: row
+                                        target_sub_section:
+                                            - test_subsection
+                        sub_sections:
+                            test_subsection:
+                                repeats: true
+                                section:
+                                    sub_sections:
+                                        my_subsection:
+                                            repeats: true
+                                            section:
+                                                quantities:
+                                                    my_quantity_1:
+                                                        type: str
+                                                        m_annotations:
+                                                            tabular:
+                                                                name: sheet_3/quantity_1
+                                                    my_quantity_2:
+                                                        type: str
+                                                        m_annotations:
+                                                            tabular:
+                                                                name: sheet_3/quantity_2
+            data:
+                m_def: My_schema
+                data_file: Test.xlsx
+        '''), id='row mode with similar multiple columns in the excel sheet')
 ])
 def test_tabular_entry_mode(raw_files, monkeypatch, schema):
     '''
@@ -238,10 +277,17 @@ def test_tabular_entry_mode(raw_files, monkeypatch, schema):
     run_normalize(main_archive)
 
     assert main_archive.data is not None
-    assert 'quantity_1' in main_archive.data.process
-    assert main_archive.data.process.quantity_1 == 'value_1'
-    if 'quantity_2' in main_archive.data.process:
-        assert len(main_archive.data.process['quantity_2']) == 6
+    if 'A test schema for excel file parsing' in schema:
+        assert 'quantity_1' in main_archive.data.process
+        assert main_archive.data.process.quantity_1 == 'value_1'
+        if 'quantity_2' in main_archive.data.process:
+            assert len(main_archive.data.process['quantity_2']) == 6
+    elif 'multiple similar columns in row mode' in schema:
+        assert len(main_archive.data.test_subsection) == 2  # 2 rows in sheet_3 of the Excel file
+        for row_index, test_subsection in enumerate(main_archive.data.test_subsection):
+            for data_index, my_subsection in enumerate(test_subsection.my_subsection):
+                assert my_subsection['my_quantity_1'] == f'q1_d{data_index}_r{row_index}'
+                assert my_subsection['my_quantity_2'] == f'q2_d{data_index}_r{row_index}'
 
 
 @pytest.mark.parametrize('test_case,section_placeholder,sub_sections_placeholder,quantity_placeholder,csv_content', [
@@ -480,6 +526,7 @@ data:
               quantities:
                 csv_file:
                   type: str
+                  default: 'asghar'
                   m_annotations:
                     tabular_parser:
                       mode: row
@@ -496,9 +543,9 @@ data:
               quantities:
                 data_file_1:
                   type: str
+                  default: '#data/csv_file'
                   m_annotations:
                     tabular_parser:
-                      path_to_data_file: '#data/csv_file'
                       mode: row
                       target_sub_section:
                       - subsection_1
@@ -518,9 +565,10 @@ data:
               quantities:
                 data_file_2:
                   type: str
+                  default: '#data/csv_file'
                   m_annotations:
                     tabular_parser:
-                      path_to_data_file: '#data/csv_file'
+                      mode: column
               sub_sections:
                 subsection_1:
                   section:

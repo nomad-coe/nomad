@@ -16,11 +16,12 @@
 # limitations under the License.
 #
 
-from typing import Union, List, Iterable, Dict, Callable, Set, Any, Tuple, cast
+from typing import Union, List, Iterable, Dict, Callable, Set, Any, Tuple, cast, Iterator
 from memoization import cached
 import os.path
 import re
 import math
+import numpy as np
 
 from nomad import utils
 from nomad.units import ureg
@@ -109,14 +110,16 @@ class TableData(ArchiveSection):
         if not quantity_def.is_scalar:
             raise NotImplementedError('CSV parser is only implemented for single files.')
 
-        if annotation.path_to_data_file:
-            self.m_set(
-                quantity_def,
-                traverse_to_target_data_file(
-                    archive,
-                    annotation.path_to_data_file.split('#')[1].split('/')
+        if quantity_def.default:
+            datafile_path = quantity_def.default
+            if re.match(r'^#data/(\w+/)*\w+$', datafile_path):
+                self.m_set(
+                    quantity_def,
+                    traverse_to_target_data_file(
+                        archive,
+                        datafile_path.split('#')[1].split('/')
+                    )
                 )
-            )
 
         data_file = self.m_get(quantity_def)
         if not data_file:
@@ -166,22 +169,27 @@ class TableData(ArchiveSection):
         except AttributeError:
             self.fill_archive_from_datafile = False
 
-    def append_section_to_subsection(self, section_name: str, section: MSection):
+    def append_section_to_subsection(self, section_name: str, source_section: MSection):
         section_name_list = section_name.split('/')
         top_level_section = section_name_list[0]
         self_updated = getattr(self, top_level_section)
-        section_updated = section
-        section_name_list.pop(0)
-        for section_path in section_name_list:
+        section_updated = source_section
+        for section_path in section_name_list[1:]:
             self_updated = self_updated[section_path]
             section_updated = section_updated[section_path]
-        if len(section_name_list) == 0:
+        if len(section_name_list) == 1:
             self_updated.append(section_updated)
         else:
             self_updated.append(section_updated[0])
 
 
 m_package.__init_metainfo__()
+
+
+def _get_relative_path(section_def) -> Iterator[str]:
+    if section_def.m_parent:
+        yield from _get_relative_path(section_def.m_parent)
+    yield section_def.m_parent_sub_section.name if section_def.m_parent_sub_section else section_def.m_def.name
 
 
 @cached(max_size=10)
@@ -211,10 +219,9 @@ def _create_column_to_quantity_mapping(section_def: Section):
                     f'Column names must be unique, to be used for tabular parsing.')
 
             def set_value(
-                    section: MSection, value, path=path, quantity=quantity,
+                    section: MSection, value, section_path_to_top_subsection=[], path=path, quantity=quantity,
                     annotation: TabularAnnotation = annotation):
 
-                import numpy as np
                 for sub_section, section_def in path:
                     next_section = None
                     try:
@@ -251,7 +258,9 @@ def _create_column_to_quantity_mapping(section_def: Section):
                             'The shape of {quantity.name} does not match the given data.')
 
                 section.m_set(quantity, value)
-
+                _section_path_list: List[str] = list(_get_relative_path(section))
+                _section_path_str: str = '/'.join(_section_path_list)
+                section_path_to_top_subsection.append(_section_path_str)
             mapping[col_name] = set_value
 
         for sub_section in section_def.all_sub_sections.values():
@@ -284,10 +293,16 @@ def parse_columns(pd_dataframe, section: MSection):
                     'The sheet name {sheet_name} doesn''t exist in the excel file')
 
             df = pd.DataFrame.from_dict(data.loc[0, sheet_name])
+
+            # trimming the column names from leading/trailing white-spaces
+            _strip_whitespaces_from_df_columns(df)
             mapping[column](section, df.loc[:, col_name])
         else:
-            # Otherwise, assume the sheet_name is the first sheet of excel/csv
+            # Otherwise, assume the sheet_name is the first sheet of Excel/csv
             df = pd.DataFrame.from_dict(data.iloc[0, 0])
+
+            # trimming the column names from leading/trailing white-spaces
+            _strip_whitespaces_from_df_columns(df)
             if column in df:
                 mapping[column](section, df.loc[:, column])
 
@@ -315,26 +330,86 @@ def parse_table(pd_dataframe, section_def: Section, logger):
         if '/' in column:
             sheet_name = column.split('/')[0]
 
-    df = pd.DataFrame.from_dict(data.loc[0, sheet_name] if isinstance(sheet_name, str) else data.iloc[0, sheet_name])
+    df = pd.DataFrame.from_dict(
+        data.loc[0, sheet_name] if isinstance(sheet_name, str) else data.iloc[0, sheet_name])
 
-    for row_index, row in df.iterrows():
-        section = section_def.section_cls()
+    # trimming the column names from leading/trailing white-spaces
+    _strip_whitespaces_from_df_columns(df)
+
+    # Extracting column with exact same names. For each similar column that will be mapped to a quantity, we need
+    # to append a section the proper subsection.
+    max_no_of_repeated_columns = 0
+    for col in list(df):
         try:
-            for column in mapping:
-                col_name = column.split('/')[1] if '/' in column else column
+            no_of_stacked_section = int(col.split('.')[1])
+            if no_of_stacked_section > max_no_of_repeated_columns:
+                max_no_of_repeated_columns = no_of_stacked_section
+        except ValueError as e:
+            logger.error('No dot (.) is allowed in the column name.', details=dict(column=col), exc_info=e)
+        except Exception:
+            continue
 
-                if col_name in df:
-                    try:
-                        mapping[column](section, row[col_name])
-                    except Exception as e:
-                        logger.error(
-                            f'could not parse cell',
-                            details=dict(row=row_index, column=col_name), exc_info=e)
-        except Exception as e:
-            logger.error(f'could not parse row', details=dict(row=row_index), exc_info=e)
-        sections.append(section)
+    path_quantities_to_top_subsection: Set[str] = set()
+    for row_index, row in df.iterrows():
+        for col_index in range(0, max_no_of_repeated_columns + 1):
+            section = section_def.section_cls()
+            try:
+                for column in mapping:
+                    col_name = column.split('/')[1] if '/' in column else column
+                    col_name = f'{col_name}.{col_index}' if col_index > 0 else col_name
 
+                    if col_name in df:
+                        try:
+                            temp_quantity_path_container: List[str] = []
+                            mapping[column](
+                                section,
+                                row[col_name],
+                                section_path_to_top_subsection=temp_quantity_path_container)
+                        except Exception as e:
+                            logger.error(
+                                f'could not parse cell',
+                                details=dict(row=row_index, column=col_name), exc_info=e)
+                        if col_index > 0:
+                            path_quantities_to_top_subsection.update(temp_quantity_path_container)
+            except Exception as e:
+                logger.error(f'could not parse row', details=dict(row=row_index), exc_info=e)
+
+            # if there is no other similar columns/quantities in the Excel file, or it is the first time this quantity
+            # is getting parsed, just create the section and append it to list of sections. Otherwise, append the
+            # appropriate section to the repeating subsection.
+            if col_index == 0:
+                sections.append(section)
+            else:
+                try:
+                    section_name = path_quantities_to_top_subsection.pop().split('/')[1:]
+                    _append_subsections_from_section(section_name, sections[row_index], section)
+                except Exception as e:
+                    logger.error(
+                        f'could not append repeating columns to the subsection',
+                        details=dict(row=row_index), exc_info=e)
     return sections
+
+
+def _strip_whitespaces_from_df_columns(df):
+    transformed_column_names: Dict[str, str] = {}
+    for col_name in list(df.columns):
+        transformed_column_names.update({col_name: col_name.strip()})
+    df.rename(columns=transformed_column_names, inplace=True)
+
+
+def _append_subsections_from_section(section_name: List[str], target_section: MSection, source_section: MSection):
+    if len(section_name) == 1:
+        for sub_section_name, sub_section_content in target_section.m_def.all_sub_sections.items():
+            if sub_section_name == section_name[0] and sub_section_content.repeats:
+                target_section[section_name[0]].append(source_section[section_name[0]][0])
+    else:
+        top_level_section = section_name.pop(0)
+        target_section = getattr(target_section, top_level_section)
+        source_section = getattr(source_section, top_level_section)
+        if isinstance(target_section, list) and len(target_section) != 0:
+            target_section = target_section[0]
+            source_section = source_section[0]
+        _append_subsections_from_section(section_name, target_section, source_section)
 
 
 def read_table_data(
