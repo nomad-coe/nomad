@@ -169,7 +169,7 @@ class Meta(NomadSettings):
     maintainer_email = Field(
         'markus.scheidgen@physik.hu-berlin.de',
         description='Email of the NOMAD deployment maintainer.')
-    beta: dict = Field(None, description='''
+    beta: dict = Field({}, description='''
         Additional data that describes how the deployment is labeled as a beta-version in the UI.
     ''')
 

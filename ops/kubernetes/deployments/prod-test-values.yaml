@@ -1,4 +1,5 @@
 version:
+  label: test
   isBeta: true
   usesBetaData: true
   officialUrl: "https://nomad-lab.eu/prod/v1/gui"
