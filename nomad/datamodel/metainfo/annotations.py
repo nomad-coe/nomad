@@ -366,18 +366,6 @@ class TabularParserAnnotation(AnnotationModel):
         Has to be used to annotate the quantity that
         holds the path to the `.csv` or excel file.
     ''')
-    path_to_data_file: str = Field(None, description='''
-        A string indicating if a data_file name (i.e. a csv or xls file)
-        should be retrieved from the base class. Default value is set to `None`.
-    ''')
-
-    @validator('path_to_data_file')
-    def validate_data_file_references(cls, value):  # pylint: disable=no-self-argument
-        if not value:
-            value = value if isinstance(value, str) else str(value)
-            assert re.match(r'^#data/(\w+/)*\w+$', value), f'{value} is not a valid data_file reference.'
-
-        return value
 
 
 class TabularAnnotation(AnnotationModel):
