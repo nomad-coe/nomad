@@ -94,6 +94,7 @@ COPY nomad ./nomad
 COPY scripts ./scripts
 COPY tests ./tests
 COPY .pylintrc \
+     .coveragerc \
      AUTHORS \
      LICENSE \
      MANIFEST.in \

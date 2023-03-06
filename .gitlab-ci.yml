@@ -168,7 +168,7 @@ python tests:
     - curl http://elastic:9200/_cat/health
     - cd /app
   script:
-    - python -m pytest --cov=nomad --cov-report term --cov-report xml:coverage.xml -sv tests
+    - python -m pytest --cov=nomad --cov-report term --cov-report xml:coverage.xml --cov-config=.coveragerc -sv tests
   after_script:
     - cd /app
     - cp coverage.xml $CI_PROJECT_DIR
