@@ -1,0 +1,12 @@
+[run]
+omit =
+    nomad/cli/admin/migrate.py
+    nomad/cli/admin/springer.py
+    nomad/cli/admin/similarity.py
+    nomad/cli/aflow.py
+    nomad/cli/dev.py
+    nomad/jupyterhub_config.py
+    nomad/metainfo/benchmarks.py
+    nomad/metainfo/generate.py
+    nomad/metainfo/pylint_plugin.py
+    nomad/mkdocs.py

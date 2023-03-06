@@ -4,7 +4,8 @@
 .pyenv*/
 .pytest/
 .coverage_html/
-.coverage*
+.coverage
+.coverage.*
 *.log.conf
 parser.osio.log
 docs/*.graffle
