@@ -26,7 +26,6 @@ app:
   replicas: 4
   worker: 4
   threads: 4
-  workerClass: "gthread"
   nomadNodeType: "public"
 
 worker:
@@ -100,5 +99,3 @@ jupyterhub:
         userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
   singleuser:
     podNameTemplate: "nomad-staging-v1-north-{username}--{servername}"
-
-
