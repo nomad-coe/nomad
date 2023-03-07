@@ -395,8 +395,7 @@ parsers = [
             r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
             r'\s+\* O   R   C   A \*\s*'
             r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-            r'\s*'
-            r'\s*--- An Ab Initio, DFT and Semiempirical electronic structure package ---\s*')
+            r'\s*')
     ),
     MatchingParserInterface(
         'electronicparsers.Psi4Parser',
@@ -474,6 +473,11 @@ parsers = [
         mainfile_binary_header_re=br'AFFormatASE\-Trajectory'
     ),
     MatchingParserInterface(
+        'atomisticparsers.BOPfoxParser',
+        metadata_path=f'{prefix_atomistic}/bopfox/metadata.yaml',
+        mainfile_contents_re=r'\-+\s+BOPfox \(v'
+    ),
+    MatchingParserInterface(
         'atomisticparsers.DFTBPlusParser',
         metadata_path=f'{prefix_atomistic}/dftbplus/metadata.yaml',
         mainfile_contents_re=r'\|  DFTB\+',
@@ -522,6 +526,11 @@ parsers = [
         'atomisticparsers.TinkerParser',
         metadata_path=f'{prefix_atomistic}/tinker/metadata.yaml',
         mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design'
+    ),
+    MatchingParserInterface(
+        'atomisticparsers.XTBParser',
+        metadata_path=f'{prefix_atomistic}/xtb/metadata.yaml',
+        mainfile_contents_re=r'x T B\s+\|\s+\|\s+='
     ),
     MatchingParserInterface(
         'workflowparsers.AFLOWParser',

@@ -102,6 +102,19 @@
     "status": "production",
     "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`*materials.json` | **Mainfile:** a json file containing system info|\n|`*.json` | json files containing workflow results|\n"
   },
+  "BOPfox": {
+    "codeCategory": "Atomistic code",
+    "codeLabel": "BOPfox",
+    "codeLabelStyle": "Capitals: B,O,P",
+    "codeName": "bopfox",
+    "codeUrl": "http://bopfox.de/",
+    "parserDirName": "dependencies/parsers/atomistic/atomisticparsers/bopfox/",
+    "parserGitUrl": "https://github.com/nomad-coe/atomistic-parsers.git",
+    "parserSpecific": "",
+    "preamble": "",
+    "status": "production",
+    "tableOfFiles": ""
+  },
   "BigDFT": {
     "codeCategory": "Atomistic code",
     "codeLabel": "BigDFT",
@@ -830,5 +843,18 @@
     "preamble": "",
     "status": "production",
     "tableOfFiles": "| Input Filename | Description |\n| --- | --- |\n| `*.hdf5` | **Mainfile:** hdf5 file containing all i/o parameters w/ arbitrary name |\n| `*.in` | input text file containing [general], [atoms], and [QMC] input parameters |\n| `epsk` | plain text, discrete bath levels |\n| `Vk` | plain text, hybridizations |\n| `w2d.log` | output log error file |\n"
+  },
+  "xTB": {
+    "codeCategory": "Atomistic code",
+    "codeLabel": "xTB",
+    "codeLabelStyle": "Capitals: TB",
+    "codeName": "xtb",
+    "codeUrl": "https://www.chemie.uni-bonn.de/pctc/mulliken-center/software/xtb/",
+    "parserDirName": "dependencies/parsers/atomistic/atomisticparsers/gromacs//xtb/",
+    "parserGitUrl": "https://github.com/nomad-coe/atomistic-parsers.git",
+    "parserSpecific": "",
+    "preamble": "",
+    "status": "production",
+    "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`*.out` | **Mainfile:** a plain text file w/ **user-defined** name|\n|`*.coord`|plain text; structure file|\n|`*.xyz`| plain text, structure file|\n|`*xtbopt.log`|plain text, trajectory file of geometry optimization|\n|`*xtb.trj`|plain text, trajectory of molecular dynamics|\n|`*xtbtopo.mol`|plain text, topology file|\n|`*xtbrestart`|binary file, restart file|\n|`charges` |plain text, output charges|\n"
   }
 }
