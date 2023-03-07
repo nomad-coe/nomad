@@ -744,9 +744,9 @@ def validate_shape(section, quantity_def, value: Any) -> bool:
     if type(value) == np.ndarray:
         value_shape = value.shape
     elif isinstance(value, list) and not isinstance(value, MEnum):
-        value_shape = [len(value)]
+        value_shape = (len(value),)
     else:
-        value_shape = []
+        value_shape = ()
 
     if len(value_shape) != len(quantity_shape):
         return False

@@ -1677,7 +1677,7 @@ async def get_upload_bundle(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
             Could not export due to error: ''' + str(e)))
 
-    return StreamingResponse(stream, media_type='application/zip')
+    return StreamingResponse(iter(stream), media_type='application/zip')
 
 
 @router.post(

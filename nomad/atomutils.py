@@ -1516,7 +1516,7 @@ def __parse_jumps(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup
     __ = universe.trajectory[0]
     prev = np.array(selection.positions)
     box = universe.trajectory[0].dimensions[:3]
-    sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])
+    sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])  # type: ignore[name-match]
     jump_data = (
         sparse_data(data=array('b'), row=array('l'), col=array('l')),
         sparse_data(data=array('b'), row=array('l'), col=array('l')),

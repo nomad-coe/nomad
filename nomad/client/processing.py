@@ -133,9 +133,14 @@ class LocalEntryProcessing:
             response = self.__handle_response(
                 api.get(f'entries/{self.entry_id}/raw', auth=auth))
 
+            iter_content = getattr(response, 'iter_content', None)
             with open(self.local_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
-                    f.write(chunk)
+                if iter_content:
+                    for chunk in iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                        f.write(chunk)
+                else:
+                    # Fallback for clients that don't support iterating the content
+                    f.write(response.content)
         else:
             print('Entry already downloaded.')
 

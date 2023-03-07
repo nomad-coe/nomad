@@ -51,6 +51,9 @@ Omitted versions are plain bugfix releases with only minor changes and fixes. Th
 file `CHANGELOG.md` might contain more detailed change information for the latest
 versions.
 
+### v1.1.8
+- use Python 3.9
+
 ### v1.1.7
 - refactored NORTH configuration and k8s deployment
 - categorized build-in ELN schemas

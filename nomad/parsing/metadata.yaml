@@ -14,7 +14,7 @@ preamble: |
   You should create a virtual environment. This is optional, but highly recommended as
   the required nomad-lab pypi package requires many dependencies with specific versions
   that might conflict with other libraries that you have installed. This was tested
-  with Python 3.7.
+  with Python 3.9.
 
   ```
   pip install virtualenv

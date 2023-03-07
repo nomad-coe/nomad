@@ -410,9 +410,9 @@ able to run NOMAD in user space.
 
 You will need:
 
-- preferably a linux computer, which Python 3.7, preferable a Python virtual environment
-- elasticsearch 6.x, running without users and authentication, preferable on the default settings
-- mongodb 4.x, running without users and authentication, preferable on the default settings
+- preferably a linux computer, which Python 3.9, preferable a Python virtual environment
+- elasticsearch 7.x, running without users and authentication, preferable on the default settings
+- mongodb 5.x, running without users and authentication, preferable on the default settings
 - rabbitmq 3.x, running without users and authentication, preferable on the default settings
 - nginx
 - an empty directory to work in

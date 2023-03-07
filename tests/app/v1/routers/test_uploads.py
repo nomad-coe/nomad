@@ -55,9 +55,12 @@ to assert for certain aspects in the responses.
 
 
 def perform_get(client, base_url, user_auth=None, accept='application/json', **query_args):
-    headers = {'Accept': accept}
+    headers = {}
+    if accept:
+        headers['Accept'] = accept
     if user_auth:
         headers.update(user_auth)
+
     response = client.get(build_url(base_url, query_args), headers=headers)
     return response
 
