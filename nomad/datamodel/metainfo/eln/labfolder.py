@@ -21,20 +21,13 @@ import yaml
 import requests
 import re
 from urllib.parse import urlparse, parse_qs
+from lxml.html.clean import clean_html  # pylint: disable=no-name-in-module
 
 from nomad.metainfo import MSection, Section, Quantity, SubSection, Package, Datetime, MEnum, JSON, Reference
 from nomad.datamodel.data import EntryData, ElnIntegrationCategory
 from nomad.metainfo.metainfo import SectionProxy
 
 m_package = Package(name='labfolder')
-
-# Removing any html tags plus stuff like '&nsbm' from imported texts
-html_tag_regex = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
-script_tag_regex = re.compile('<script([^>]*)?>.*?</script>')
-
-
-def clean_html_tag(raw_text):
-    return re.sub(script_tag_regex, '', raw_text)
 
 
 class LabfolderDataElementDataContent(MSection):
@@ -85,7 +78,7 @@ class LabfolderTextElement(LabfolderElement):
         a_browser=dict(value_component='HtmlValue'))
 
     def post_process(self, *args, **kwargs):
-        self.content = clean_html_tag(self.content)
+        self.content = clean_html(self.content)
 
 
 class LabfolderFileElement(LabfolderElement):
@@ -105,8 +98,8 @@ class LabfolderFileElement(LabfolderElement):
 
         self.file = self.file_name
 
-    def post_process(self, labfodler_api_method, archive, logger, res_data={}):
-        self.download_files(labfodler_api_method, archive, logger)
+    def post_process(self, labfolder_api_method, archive, logger, res_data={}):
+        self.download_files(labfolder_api_method, archive, logger)
 
 
 class LabfolderImageElement(LabfolderElement):

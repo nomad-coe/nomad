@@ -68,6 +68,7 @@ import ReactJson from 'react-json-view'
 import { range } from 'lodash'
 import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { useEntryStore } from '../entry/EntryContext'
+import DOMPurify from 'dompurify'
 
 export const configState = atom({
   key: 'config',
@@ -754,7 +755,8 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
       return <Number value={finalValue} exp={16} variant="body1" unit={finalUnit}/>
     }
   } else if (def.m_annotations?.browser?.[0]?.render_value === 'HtmlValue' || def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
-    return <div dangerouslySetInnerHTML={{__html: value}}/>
+    const html = DOMPurify.sanitize(value)
+    return <div dangerouslySetInnerHTML={{__html: html}}/>
   } else if (def.type?.type_data === 'nomad.metainfo.metainfo._JSON') {
     return <ReactJson
       name="value"
