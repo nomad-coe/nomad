@@ -857,6 +857,9 @@ class GeometryOptimization(SerialSimulation):
                         self.results.final_force_maximum = max_force * forces.units
 
         if not self.results.final_displacement_maximum:
+            if not self._systems:
+                return
+
             def get_atoms(index):
                 system = self._systems[index]
                 atoms = Atoms(
