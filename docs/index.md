@@ -1,10 +1,11 @@
-# NOMAD makes materials science data FAIR
+# Materials science data managed and shared
 
 The **NOvel Materials Discovery (NOMAD)** is a data management platform for materials
 science data. Here, NOMAD is a [web-application and database](https://nomad-lab.eu/prod/v1/gui/search)
 that allows to centrally publish data. But you can also use the NOMAD software to build your
-own local [NOMAD Oasis](oasis.md).
-
+own local [NOMAD Oasis](oasis.md). See more basic information about NOMAD on the
+official [homepage](https://nomad-lab.eu).
+<!--
 
 ![NOMAD](assets/nomad-hero-shot.png){ align=right width=400 }
 *More than 12 million of simulations from over 400 authors world-wide*
@@ -13,27 +14,7 @@ own local [NOMAD Oasis](oasis.md).
 - Manage research data though its whole life-cycle
 - Extracts <b>rich metadata</b> from data automatically
 - All data in <b>raw</b> and <b>machine processable</b> form
-- Use integrated tools to <b>explore</b>, <b>visualize</b>, and <b>analyze</b>
-
-## History of NOMAD
-NOMAD was founded 2014 as a repository for sharing electronic structure code files.
-
-The first [NOMAD-coe](http://nomad-coe.eu) project (2016-2019) extended the raw-file *repository*.
-Parsers were developed to automatically extract rich metadata and transform all
-data into a common machine processable *archive*. The *encyclopedia* allowed to explore
-and visualize data from a materials and properties perspective. The *ai toolkit* was
-established to run analysis notebooks directly on NOMAD servers.
-
-The current official installation of [NOMAD (v1.0.x)](https://nomad-lab.eu/prod/v1) is the
-result of a consolidation process that integrated the NOMAD-CoE services *repository*,
-*archive*, *encyclopedia*, and *ai toolkit*. Here, we also introduced the NOMAD Oasis and
-allowed to the local use of NOMAD.
-
-Since then, NOMAD is developed by [nomad-lab.eu](https://nomad-lab.eu) and
-[fair-di e.V.](https://fair-di.eu) as a general platform for managing materials science data.
-Upcoming NOMAD version including [this NOMAD (v1.1)](https://nomad-lab.eu/prod/v1/staging/gui) extend
-NOMAD towards material science synthesis, experiments, and computational material science
-at different scales.
+- Use integrated tools to <b>explore</b>, <b>visualize</b>, and <b>analyze</b> -->
 
 ## How does NOMAD work?
 

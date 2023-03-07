@@ -64,7 +64,7 @@ const useElementStyles = makeStyles(theme => ({
     opacity: 0,
     willChange: 'opacity',
     transition: 'opacity 250ms',
-    backgroundColor: theme.palette.secondary.main
+    backgroundColor: theme.palette.primary.light
   },
   disabled: {
     opacity: 1,
@@ -73,7 +73,7 @@ const useElementStyles = makeStyles(theme => ({
     backgroundColor: '#eee'
   },
   selected: {
-    backgroundColor: theme.palette.primary.dark,
+    backgroundColor: theme.palette.secondary.main,
     display: 'none'
   },
   visible: {

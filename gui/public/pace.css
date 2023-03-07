@@ -8,7 +8,7 @@
 }
 
 html, body {
-  background: url('nomad.png') no-repeat center center;
+  background: url('nomad-text.png') no-repeat center center;
   min-height: 100%;
   height: 100%;
   width: 100%;
@@ -36,7 +36,7 @@ img.bg {
 }
 
 .pace .pace-progress {
-  background: #00CED1;
+  background: #7F94EC;
   position: fixed;
   z-index: 2000;
   top: 0;

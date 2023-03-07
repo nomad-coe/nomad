@@ -1,4 +1,4 @@
-site_name: NOMAD Documentation
+site_name: Documentation
 site_description: |
   The documentation for NOMAD v1.
 site_author: The NOMAD Authors
@@ -32,8 +32,8 @@ nav:
 theme:
   name: material
   palette:
-    primary: light blue
-    accent: teal
+    primary: '#2A4CDF'
+    accent: '#008A67'
   font:
     text: 'Titillium Web'
   logo: assets/nomad-logo.png
@@ -58,7 +58,7 @@ markdown_extensions:
       generic: true
 extra:
   generator: false
-  homepage: https://nomad-lab.eu/prod/v1/gui/about
+  homepage: https://nomad-lab.eu
 use_directory_urls: false
 plugins:
     - search

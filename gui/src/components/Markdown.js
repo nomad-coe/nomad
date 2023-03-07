@@ -47,7 +47,7 @@ const styles = theme => {
       '& pre, & pre[class*="language-"]': {
         margin: '24px 0',
         padding: '12px 18px',
-        backgroundColor: theme.palette.secondary.veryLight,
+        backgroundColor: theme.palette.primary.veryLight,
         borderRadius: theme.shape.borderRadius,
         overflow: 'auto',
         WebkitOverflowScrolling: 'touch' // iOS momentum scrolling.
@@ -58,8 +58,8 @@ const styles = theme => {
         lineHeight: 1,
         fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
         padding: '5px 4px 2px 4px',
-        color: theme.palette.text.primary,
-        backgroundColor: theme.palette.secondary.veryLight,
+        color: theme.palette.text.primary.dark,
+        backgroundColor: theme.palette.primary.veryLight,
         borderRadius: theme.shape.borderRadius,
         fontSize: 14
       },
