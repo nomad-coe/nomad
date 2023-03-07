@@ -153,11 +153,11 @@ const MeanSquaredDisplacement = React.memo(({
 })
 
 const msdPlotShape = PropTypes.oneOfType([
+  PropTypes.oneOf([false, undefined]),
   PropTypes.shape({
     times: PropTypes.arrayOf(PropTypes.number),
     value: PropTypes.arrayOf(PropTypes.number)
-  }),
-  PropTypes.oneOf([false, undefined])
+  })
 ])
 const msdLabelShape = PropTypes.arrayOf(msdPlotShape)
 const msdShape = PropTypes.objectOf(msdLabelShape)

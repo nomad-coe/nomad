@@ -311,7 +311,6 @@ export const PropertyMethodologyItem = React.memo(({title, data, path, columns})
     const quantities = []
     for (const [key, value] of traverseDeep(data, true)) {
       quantities.push({
-        label: key[key.length - 1].replace(/_/g, ' '),
         quantity: `${path === '' ? '' : `${path}.`}${key.join('.')}`,
         value: value
       })
@@ -331,9 +330,9 @@ export const PropertyMethodologyItem = React.memo(({title, data, path, columns})
     <AccordionDetails>
       <QuantityTable>
         {rows.map((row) =>
-          <QuantityRow key={row[0].label}>
+          <QuantityRow key={row[0].quantity}>
             {row.map((column) => <QuantityCell
-              key={column.label}
+              key={column.quantity}
               {...column}
             />)}
           </QuantityRow>

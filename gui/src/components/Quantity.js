@@ -170,24 +170,29 @@ const Quantity = React.memo((props) => {
     valueClassName = `${valueClassName} ${styles.ellipsisFront}`
   }
 
-  const def = typeof quantity === 'string'
-    ? searchQuantities[quantity]
+  const isQuantityString = isString(quantity)
+  const def = isQuantityString
+    ? (searchQuantities[quantity])
     : quantity?.name && quantity.type && quantity
 
   // Determine the final label to show
   const useLabel = useMemo(() => {
     let useLabel = label
     if (!useLabel) {
-      if (def?.name) {
+      // Primarily use a lowercase 'pretty' label if one is defined in FilterRegistry
+      if (isQuantityString && filterData?.[quantity]?.label) {
+        useLabel = filterData?.[quantity]?.label.toLowerCase()
+      // Alternatively use the original name in metainfo, underscores replaced by spaces
+      } else if (def?.name) {
         useLabel = def.name.replace(/_/g, ' ')
-      } else if (typeof quantity === 'string') {
+      } else if (isQuantityString) {
         useLabel = quantity
       } else {
         useLabel = 'MISSING LABEL'
       }
     }
     return useLabel
-  }, [quantity, label, def])
+  }, [quantity, label, def, isQuantityString])
 
   const tooltip = description || def?.description || ''
 

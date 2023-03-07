@@ -23,6 +23,7 @@ import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
 import BandGap from './BandGap'
+import GreensFunctions from './GreensFunctions'
 import { makeStyles } from '@material-ui/core/styles'
 import { electronicRange } from '../../config'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
@@ -37,6 +38,12 @@ const useStyles = makeStyles((theme) => {
     placeholder: {
       top: theme.spacing(0.7),
       bottom: theme.spacing(2)
+    },
+    regtau: {
+      height: '300px'
+    },
+    imsiw: {
+      height: '300px'
     }
   }
 })
@@ -46,8 +53,13 @@ const ElectronicProperties = React.memo(({
   dos,
   brillouin_zone,
   band_gap,
+  gf,
+  index,
   classes
 }) => {
+  // We resolve the DMFT methodology from results.method
+  const dmftmethodology = index?.results?.method?.simulation?.dmft || []
+
   const units = useUnits()
   const range = useMemo(() => new Quantity(electronicRange, 'electron_volt').toSystem(units).value(), [units])
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
@@ -71,14 +83,14 @@ const ElectronicProperties = React.memo(({
   }, [dosYSubject])
 
   // Custom layout if only band gaps are available
-  if (bs === false && dos === false && brillouin_zone === false) {
+  if (bs === false && dos === false && brillouin_zone === false && gf === false) {
     return <PropertyGrid>
       <PropertyItem title="Band gaps" xs={12} height="auto">
         <BandGap data={band_gap}/>
       </PropertyItem>
     </PropertyGrid>
   // Custom layout if only DOS is available
-  } else if (bs === false && band_gap === false && brillouin_zone === false) {
+  } else if (bs === false && band_gap === false && brillouin_zone === false && gf === false) {
     return <PropertyGrid>
       <PropertyItem title="Band structure" xs={8}>
         <BandStructure
@@ -105,7 +117,18 @@ const ElectronicProperties = React.memo(({
         />
       </PropertyItem>
     </PropertyGrid>
-  // In all other cases we show all properties whether they are present or not
+  // Custom layout if only Greens functions are available
+  } else if (bs === false && dos === false && band_gap === false && brillouin_zone === false) {
+    return <PropertyGrid>
+      <PropertyItem title="Green's functions" xs={12} height="auto">
+        <GreensFunctions
+          data={gf}
+          methodology={dmftmethodology}
+          classes={{regtau: styles.regtau, imsiw: styles.imsiw}}
+        />
+      </PropertyItem>
+    </PropertyGrid>
+  // Layout when all properties can be present
   } else {
     return <PropertyGrid>
       <PropertyItem title="Band structure" xs={8}>
@@ -141,6 +164,15 @@ const ElectronicProperties = React.memo(({
       <PropertyItem title="Band gaps" xs={4}>
         <BandGap data={band_gap}/>
       </PropertyItem>
+      {gf !== false &&
+        <PropertyItem title="Green's functions" xs={12} height="auto">
+          <GreensFunctions
+            data={gf}
+            methodology={dmftmethodology}
+            classes={{regtau: styles.regtau, imsiw: styles.imsiw}}
+          />
+        </PropertyItem>
+      }
     </PropertyGrid>
   }
 })
@@ -150,7 +182,9 @@ ElectronicProperties.propTypes = {
   bs: PropTypes.any,
   brillouin_zone: PropTypes.any,
   band_gap: PropTypes.any,
-  classes: PropTypes.object
+  gf: PropTypes.any,
+  classes: PropTypes.object,
+  index: PropTypes.object
 }
 
 export default ElectronicProperties

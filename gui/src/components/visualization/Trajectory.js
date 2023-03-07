@@ -18,12 +18,11 @@
 import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { isNil, get } from 'lodash'
-import { useTheme } from '@material-ui/core/styles'
+import { useTheme, makeStyles } from '@material-ui/core/styles'
+import { Box } from '@material-ui/core'
 import Plot from '../plotting/Plot'
 import { mergeObjects, getLocation } from '../../utils'
 import {
-  PropertyGrid,
-  PropertyItem,
   PropertyMethodologyItem,
   PropertyMethodologyList
 } from '../entry/properties/PropertyCard'
@@ -39,8 +38,11 @@ export const trajectoryPath = ['results', 'properties', 'thermodynamic', 'trajec
 export const trajectoryError = 'Could not load trajectory data.'
 
 /**
- * Graph for the thermodynamic properties reported during molecular dynamics.
+ * Plot for the thermodynamic properties reported during molecular dynamics.
  */
+const useStyles = makeStyles((theme) => ({
+  trajectory: {}
+}))
 const Trajectory = React.memo(({
   temperature,
   pressure,
@@ -48,6 +50,7 @@ const Trajectory = React.memo(({
   methodology,
   layout,
   className,
+  classes,
   archiveURL,
   ...other
 }) => {
@@ -55,6 +58,7 @@ const Trajectory = React.memo(({
   if (temperature !== false) ++nPlots
   if (pressure !== false) ++nPlots
   if (energyPotential !== false) ++nPlots
+  const styles = useStyles({classes: classes})
   const theme = useTheme()
   const units = useUnits()
   const [finalData, setFinalData] = useState(nPlots === 0 ? false : undefined)
@@ -106,27 +110,29 @@ const Trajectory = React.memo(({
     setFinalLayout(mergedLayout)
   }, [temperature, pressure, energyPotential, layout, units, theme, nPlots])
 
-  return <PropertyGrid>
-    <PropertyItem xs={12} title="Trajectory" height={`${Math.max(nPlots, 1) * 200}px`}>
+  return <Box display="flex" flexDirection="column" height="100%" width="100%">
+    <Box flex="1 1 auto">
       <Plot
         data={finalData}
         layout={finalLayout}
         floatTitle="Trajectory"
         fixedMargins={true}
-        className={className}
+        className={styles.trajectory}
         data-testid='trajectory'
         metaInfoLink={archiveURL}
         {...other}
       />
-    </PropertyItem>
-    {methodology && <PropertyMethodologyList xs={12}>
-      <PropertyMethodologyItem
-        title="Molecular dynamics"
-        data={methodology.molecular_dynamics}
-        path={([...trajectoryPath, 'methodology', 'molecular_dynamics']).join('.')}
-      />
-    </PropertyMethodologyList>}
-  </PropertyGrid>
+    </Box>
+    {methodology && <Box flex="0 0 auto">
+      <PropertyMethodologyList xs={12}>
+        <PropertyMethodologyItem
+          title="Molecular dynamics"
+          data={methodology.molecular_dynamics}
+          path={([...trajectoryPath, 'methodology', 'molecular_dynamics']).join('.')}
+        />
+      </PropertyMethodologyList>
+    </Box>}
+  </Box>
 })
 
 const dynamicShape = PropTypes.oneOfType([
@@ -144,6 +150,7 @@ Trajectory.propTypes = {
   methodology: PropTypes.object,
   layout: PropTypes.object,
   className: PropTypes.string,
+  classes: PropTypes.object,
   archiveURL: PropTypes.string // Path for the data in the archive browser
 }
 
@@ -152,7 +159,11 @@ export default withErrorHandler(trajectoryError)(Trajectory)
 /**
  * Fetches all trajectories from the archive and displays them.
  */
+const useTrajectoriesStyles = makeStyles((theme) => ({
+  trajectory: {height: '450px'}
+}))
 const TrajectoriesRaw = React.memo(({index, archive}) => {
+  const styles = useTrajectoriesStyles()
   const urlPrefix = `${getLocation()}/data`
 
   // Resolve and return component for showing the list of trajectories
@@ -176,6 +187,7 @@ const TrajectoriesRaw = React.memo(({index, archive}) => {
       temperature={temperature}
       energyPotential={energyPotential}
       methodology={methodology}
+      classes={{trajectory: styles.trajectory}}
       archiveURL={`${urlPrefix}/${trajectoryPath.join('/')}:${i}`}
     />
   })

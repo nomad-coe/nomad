@@ -23,7 +23,7 @@
     "parserSpecific": "",
     "preamble": "",
     "status": "production",
-    "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`*.out` | **Mainfile:** a plain text file w/ **user-defined** name|\n|`*.files`|plain text; user-defined filenames |\n|`*.in`| plain text, input parameters|\n|`*_o_DDB`|binary file, Derivative DataBases of total energy|\n|`*_o_DEN`|binary file, charge density|\n|`*_o_EIG`|text file, eigenvalues|\n|`*_o_WFK`|binary file, wavefunction|\n|`log` | plain text, redirection of screen output (`stdout`)|\n"
+    "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`*.*o*` | **Mainfile:** a plain text file w/ **user-defined** name|\n|`*.files`| plain text; user-defined filenames |\n|`*.*i*`| plain text, input parameters|\n|`*_o_DDB`| netcdf binary file, Derivative DataBases of total energy|\n|`*_o_DEN`| netcdf binary file, charge density|\n|`*_o_EIG`| text file, eigenvalues|\n|`*_o_WFK`| netcdf binary file, wavefunction|\n|`*o_SCR`| netcdf binary file, RPA inverse dielectric screening |\n|`*o_SIGRES`| netcdf binary file, GW self-energy correction |\n|`log` | plain text, redirection of screen output (`stdout`)|\n"
   },
   "AFLOW": {
     "codeCategory": "Workflow manager",
