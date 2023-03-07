@@ -376,7 +376,7 @@ registerFilter('results.method.simulation.dmft.total_filling', idDMFT, {...numbe
 registerFilter('results.method.simulation.dmft.magnetic_state', idDMFT, {...termQuantity})
 registerFilter('results.method.simulation.dmft.inverse_temperature', idDMFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dmft.u', idDMFT, {...numberHistogramQuantity, scale: '1/2'})
-registerFilter('results.method.simulation.dmft.hunds_hubbard_ratio', idDMFT, {...numberHistogramQuantity, label: 'J\u2095 / U', scale: '1/2'})
+registerFilter('results.method.simulation.dmft.hunds_hubbard_ratio', idDMFT, {...numberHistogramQuantity, label: `JH / U`, scale: '1/2'})
 registerFilter('results.method.simulation.precision.k_line_density', idPrecision, termQuantity)
 registerFilter('results.eln.sections', idELN, termQuantity)
 registerFilter('results.eln.tags', idELN, termQuantity)

@@ -19,10 +19,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { RadialDistributionFunctions } from './RadialDistributionFunction'
 import { RadiiOfGyration } from './RadiusOfGyration'
-
-import {
-  PropertyGrid
-} from '../entry/properties/PropertyCard'
+import { PropertyGrid } from '../entry/properties/PropertyCard'
 
 export const rdfPath = ['results', 'properties', 'structural', 'radial_distribution_function']
 export const rdfError = 'Could not load radial distribution function data.'

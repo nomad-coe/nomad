@@ -41,6 +41,7 @@ import { APIProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import DataStore from './DataStore'
 import searchQuantities from '../searchQuantities'
+import { filterData } from './search/FilterRegistry'
 import { keycloakBase } from '../config'
 import { useKeycloak } from '@react-keycloak/web'
 import { GlobalMetainfo } from './archive/metainfo'
@@ -312,7 +313,7 @@ export function within(element, queriesToBind = defaultAndCustomQueries) {
 */
 export function expectQuantity(name, data, label = undefined, description = undefined, root = screen) {
   description = description || searchQuantities[name].description
-  label = label || searchQuantities[name].name.replace(/_/g, ' ')
+  label = label || filterData?.[name]?.label?.toLowerCase() || searchQuantities[name].name.replace(/_/g, ' ')
   const value = isPlainObject(data) ? get(data, name) : data
   const element = root.getByTitle(description, {normalizer: getDefaultNormalizer({trim: false, collapseWhitespace: false})})
   expect(root.getByText(label)).toBeInTheDocument()

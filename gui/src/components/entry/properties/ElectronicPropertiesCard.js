@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -17,6 +18,7 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
+import { isEmpty } from 'lodash'
 import { resolveInternalRef } from '../../../utils'
 import { PropertyCard } from './PropertyCard'
 import ElectronicProperties from '../../visualization/ElectronicProperties'
@@ -26,15 +28,18 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   const hasDos = properties.has('dos_electronic')
   const hasBs = properties.has('band_structure_electronic')
   const hasBandGap = properties.has('electronic.band_structure_electronic.band_gap')
+  const hasGf = properties.has('greens_functions_electronic')
 
   // Do not show the card if none of the properties are available
-  if (!hasDos && !hasBs && !hasBandGap) return null
+  if (!hasDos && !hasBs && !hasBandGap && !hasGf) return null
 
   let dosReferences = archive?.results?.properties?.electronic?.dos_electronic || []
   let bsReferences = archive?.results?.properties?.electronic?.band_structure_electronic || []
+  let gfReferences = archive?.results?.properties?.electronic?.greens_functions_electronic || []
   const pattern = '\\.\\./(?:entries|upload/archive|uploads.+?archive)/(.+?)(?:/archive#|#)(.+)'
   if (!Array.isArray(bsReferences)) bsReferences = [bsReferences]
   if (!Array.isArray(dosReferences)) dosReferences = [dosReferences]
+  if (!Array.isArray(gfReferences)) gfReferences = [gfReferences]
 
   // Resolve DOS data
   let dos = hasDos ? undefined : false
@@ -120,12 +125,28 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
     bg = false
   }
 
+  // Resolve Greens functions data
+  let gf = hasGf ? undefined : false
+  if (hasGf) {
+    if (!isEmpty(gfReferences)) {
+      const reference = gfReferences[0]
+      gf = {
+        tau: reference.tau,
+        regtau: reference.real_greens_function_tau,
+        iw: reference.matsubara_freq,
+        imsiw: reference.imag_self_energy_iw
+      }
+    }
+  }
+
   return <PropertyCard title="Electronic properties">
     <ElectronicProperties
       bs={bs}
       dos={dos}
       brillouin_zone={bz}
       band_gap={bg}
+      gf={gf}
+      index={index}
     />
   </PropertyCard>
 })

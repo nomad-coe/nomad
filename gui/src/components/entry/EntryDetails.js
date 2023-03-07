@@ -40,10 +40,7 @@ export const MethodMetadata = React.memo(({data}) => {
       const value = obj[key]
       if (Array.isArray(value) || typeof value === 'string') {
         if (value.length > 0) {
-          methodQuantities.push({
-            quantity: `${parentKey}.${key}`,
-            label: key.replace(/_/g, ' ')
-          })
+          methodQuantities.push({quantity: `${parentKey}.${key}`})
         }
       } else if (value instanceof Object) {
         children[key] = value

@@ -18,19 +18,19 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
-import { Trajectories } from '../../visualization/Trajectory'
+import ThermodynamicProperties from '../../visualization/ThermodynamicProperties'
 
 /**
  * Card displaying molecular dynamics properties.
  */
 const ThermodynamicPropertiesCard = React.memo(({index, properties, archive}) => {
-  // Check what data is available and do not show the card if none of the properties are
-  // available.
+  // Check what data is available and do not show the card if none of the
+  // properties are available.
   const hasTrajectory = properties.has('trajectory')
   if (!hasTrajectory) return null
 
   return <PropertyCard title="Thermodynamic properties">
-    {hasTrajectory && <Trajectories index={index} archive={archive} />}
+    <ThermodynamicProperties index={index} archive={archive} />
   </PropertyCard>
 })
 
