@@ -1,8 +1,8 @@
 window.nomadEnv = {
-  "appBase": "http://localhost:8000/fairdi/nomad/latest",
+  "appBase": "https://nomad-lab.eu/prod/v1",
   "northBase": "http://localhost:9000/fairdi/nomad/latest/north",
   "keycloakBase": "https://nomad-lab.eu/fairdi/keycloak/auth/",
-  "keycloakRealm": "fairdi_nomad_test",
+  "keycloakRealm": "fairdi_nomad_prod",
   "keycloakClientId": "nomad_public",
   "debug": false,
   "encyclopediaBase": "https://nomad-lab.eu/prod/rae/encyclopedia/#",

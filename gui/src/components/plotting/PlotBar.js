@@ -46,14 +46,14 @@ const usePlotAxisStyles = makeStyles(theme => ({
     transition: 'transform 250ms',
     transformOrigin: 'bottom left',
     willChange: 'transform',
-    backgroundColor: theme.palette.secondary.veryLight,
+    backgroundColor: theme.palette.primary.veryLight,
     position: 'relatives'
   },
   highlight: {
     position: 'absolute',
     top: 0,
     bottom: 0,
-    backgroundColor: theme.palette.primary.veryLight
+    backgroundColor: theme.palette.secondary.veryLight
   }
 }))
 

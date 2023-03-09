@@ -38,7 +38,7 @@ const useCodeStyles = makeStyles(theme => ({
     overflow: 'auto',
     padding: '12px 18px',
     borderRadius: 4,
-    backgroundColor: theme.palette.secondary.veryLight,
+    backgroundColor: theme.palette.primary.veryLight,
     fontSize: 16,
     fontFamily: 'monospace',
     whiteSpace: 'pre'
@@ -193,7 +193,7 @@ const useSourceApiCallStyles = makeStyles(theme => ({
     padding: '12px 18px',
     overflow: 'auto',
     borderRadius: 4,
-    backgroundColor: theme.palette.secondary.veryLight,
+    backgroundColor: theme.palette.primary.veryLight,
     whiteSpace: 'pre'
   },
   heading: {

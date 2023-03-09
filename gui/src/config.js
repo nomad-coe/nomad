@@ -101,17 +101,17 @@ export const email = 'support@nomad-lab.eu'
 export const maxLogsToShow = 50
 
 export const nomadPrimaryColor = {
-  main: '#008DC3',
-  light: '#03B9FF',
-  dark: '#005271',
-  veryLight: '#99e2ff'
+  main: '#2A4CDF',
+  light: '#7F94EC',
+  dark: '#192E86',
+  veryLight: '#eaedfc'
 }
 
 export const nomadSecondaryColor = {
-  main: '#00CED1',
-  light: '#54DCDC',
-  dark: '#007C7C',
-  veryLight: '#B5F0F0'
+  main: '#008A67',
+  light: '#80C583',
+  dark: '#00533e',
+  veryLight: '#CCE8E1'
 }
 
 export const nomadFontFamily = [

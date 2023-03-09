@@ -72,7 +72,7 @@ const InputCheckbox = React.memo(({
     <Tooltip title={descFinal}>
       <FormControlLabel
         control={<Checkbox
-          color="primary"
+          color="secondary"
           disabled={locked}
           checked={val}
           onChange={handleChange}
@@ -136,7 +136,7 @@ export const InputCheckboxValue = React.memo(({
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <Tooltip title={descFinal}>
       <Checkbox
-        color="primary"
+        color="secondary"
         checked={filter ? filter.has(value) : false}
         onChange={handleChange}
         className={styles.control}

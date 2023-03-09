@@ -39,7 +39,7 @@ export const appBarHeight = 10
  */
 function LoadingIndicator({className}) {
   const loading = useLoading()
-  return loading && <LinearProgress className={className} color="secondary" />
+  return loading && <LinearProgress className={className} color="primary" />
 }
 
 LoadingIndicator.propTypes = {
@@ -63,13 +63,14 @@ const useStyles = makeStyles(theme => ({
   },
   toolbar: {
     display: 'flex',
-    flexDirection: 'row',
-    paddingRight: theme.spacing(3)
+    flexDirection: 'row'
+    // paddingRight: theme.spacing(3)
   },
   logoImg: {
-    height: theme.spacing(appBarHeight - 2),
-    marginLeft: theme.spacing(-0.5),
-    marginRight: theme.spacing(-0.5)
+    height: 44,
+    marginLeft: theme.spacing(1),
+    marginRight: theme.spacing(2),
+    marginTop: theme.spacing(1)
   },
   actions: {
     display: 'flex',
@@ -86,8 +87,8 @@ const useStyles = makeStyles(theme => ({
   navigation: {
     flexGrow: 1,
     marginRight: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-    marginTop: theme.spacing(0.25),
+    // marginBottom: theme.spacing(1),
+    // marginTop: theme.spacing(0.25),
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',

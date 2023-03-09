@@ -322,7 +322,7 @@ const PlotHistogram = React.memo(({
           {!disableSlider &&
             <Slider
               disabled={disabled || isArtificial || (maxX - minX) === discretization}
-              color={highlight ? 'primary' : 'secondary'}
+              color={highlight ? 'secondary' : 'primary'}
               min={minX}
               max={maxX}
               step={step}

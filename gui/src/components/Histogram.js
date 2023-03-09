@@ -129,7 +129,7 @@ export default function Histogram({
     const max = d3.max(data, d => d.value) || 1
     x.domain([0, max])
 
-    const rectColor = d => isSelected(d, selected, multiple) ? nomadPrimaryColor.dark : nomadSecondaryColor.light
+    const rectColor = d => isSelected(d, selected, multiple) ? nomadSecondaryColor.main : nomadPrimaryColor.light
     const textColor = d => {
       if (d.value === 0) {
         return '#999'
