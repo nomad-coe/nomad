@@ -20,6 +20,7 @@ import { Editor } from '@tinymce/tinymce-react'
 import PropTypes from 'prop-types'
 import { Box, FormControl, FormLabel, makeStyles } from '@material-ui/core'
 import { getFieldProps } from './StringEditQuantity'
+import DOMPurify from 'dompurify'
 
 const useStyle = makeStyles(theme => ({
   root: {
@@ -96,7 +97,7 @@ const RichTextEditQuantity = React.memo((props) => {
           onEditorChange={handleChange}
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
-          initialValue={initialValue.current || ''}
+          initialValue={DOMPurify.sanitize(initialValue.current || '')}
         />
       </Box>
     </FormControl>
