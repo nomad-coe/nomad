@@ -27,6 +27,9 @@ app:
   worker: 1
   nomadNodeType: "public"
 
+celery:
+  timeout: 7200
+
 worker:
   replicas: 1
   routing: "worker"
