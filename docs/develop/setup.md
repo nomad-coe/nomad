@@ -497,8 +497,16 @@ for all major platforms [here](https://code.visualstudio.com/download).
 You should launch and run vscode directly from the projects root directory. The source
 code already contains settings for vscode in the `.vscode` directory. The settings
 contain the same setup for stylechecks, linter, etc. that is also used in our CI/CD
-pipelines. If you want to augment this with your own settings, you can have a
-`.vscode/settings.local.json`. This file is in .gitignore and only belongs to you.
+pipelines. 
+In order to ractually use the these features you have to make sure that they are enabled 
+in your own User settings:
+```
+    "python.linting.pycodestyleEnabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.testing.pytestEnabled": true,
+```
+
 
 The settings also include a few launch configuration for vscode's debugger. You can create
 your own launch configs in `.vscode/launch.json` (also in .gitignore).
