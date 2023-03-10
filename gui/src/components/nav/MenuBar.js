@@ -81,7 +81,7 @@ const useMenuBarItemStyles = makeStyles(theme => ({
   }
 }))
 
-export const MenuBarItem = React.forwardRef(({label, tooltip, route, href, onClick}, ref) => {
+export const MenuBarItem = React.forwardRef(({label, tooltip, route, href}, ref) => {
   const classes = useMenuBarItemStyles()
   const {pathname} = useLocation()
   const selected = matchPath(pathname, route) && true
@@ -91,8 +91,6 @@ export const MenuBarItem = React.forwardRef(({label, tooltip, route, href, onCli
   const handleClick = () => {
     if (route) {
       history.push(route)
-    } else if (!href) {
-      onClick()
     }
   }
 
@@ -113,8 +111,7 @@ MenuBarItem.propTypes = {
   tooltip: PropTypes.string,
   icon: PropTypes.node,
   route: PropTypes.string,
-  href: PropTypes.string,
-  onClick: PropTypes.func
+  href: PropTypes.string
 }
 
 const useMenuBarMenuStyles = makeStyles(theme => ({

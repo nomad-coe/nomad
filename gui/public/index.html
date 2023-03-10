@@ -64,7 +64,7 @@
         // In react development builds, errors will always propagate to the top
         // (also through error boundaries) and will be displayed with the error
         // overlay, so we don't handle them here.
-        if (process.env.NODE_ENV === 'development') return
+        if (process && process.env.NODE_ENV === 'development') return
 
         // Log the error in console to help in debugging
         console.log(error)

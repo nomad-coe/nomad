@@ -366,7 +366,8 @@ export const routes = [
       {
         menu: 'Terms',
         consent: true,
-        tooltip: 'The terms of service and cookie consent'
+        tooltip: 'The terms of service',
+        href: 'https://nomad-lab.eu/nomad-lab/terms.html'
       }
     ]
   },
