@@ -11,6 +11,42 @@
 ### added (1 change)
 
 - [Replaced config object with pydantic models.](nomad-lab/nomad-FAIR@b9c1e023d95d14fd337b98a7ac895f505d4715a9) ([merge request](nomad-lab/nomad-FAIR!981))
+## 1.1.8 (2023-03-10)
+
+### Fixed (8 changes)
+
+- [Fixed a bug in handling UI load errors.](nomad-lab/nomad-FAIR@bc01f359fbd55048fff0c7213ba42ae53451add3) ([merge request](nomad-lab/nomad-FAIR!1143))
+- [Add parsers](nomad-lab/nomad-FAIR@b1c177f75cd72dfabaea6137d93375357857b3a6) ([merge request](nomad-lab/nomad-FAIR!1136))
+- [Fixed the backend test batch to actually show the coverage.](nomad-lab/nomad-FAIR@532eba1e0ae44f56a93a9580b11ac44d02fa49e5) ([merge request](nomad-lab/nomad-FAIR!1131))
+- [Check existance of `m_proxy_value` for references.](nomad-lab/nomad-FAIR@79040365fd370257941f663b92a40984da3bd67b) ([merge request](nomad-lab/nomad-FAIR!1123))
+- [Minor fix workflow visualizer](nomad-lab/nomad-FAIR@1b0154166bf24b17a701e91564140e1fdfaf0d7f) ([merge request](nomad-lab/nomad-FAIR!1121))
+- [ability to reference to the other uploads properly](nomad-lab/nomad-FAIR@8befc8efe92218aa63a63c562ac8057de54e5ba2) ([merge request](nomad-lab/nomad-FAIR!1070))
+- [Added the staging url](nomad-lab/nomad-FAIR@5a0b31a7cff12106a28f0fc02bba7fda764d4708) ([merge request](nomad-lab/nomad-FAIR!1086))
+- [Workflow fix](nomad-lab/nomad-FAIR@75170b392d779cf9a27880fd83433c3d47a85b37) ([merge request](nomad-lab/nomad-FAIR!1113))
+
+### Added (10 changes)
+
+- [Added additional html sanitization before using html on the UI.](nomad-lab/nomad-FAIR@1f00ee39dd664090a3c0467c81dc7adb48c32e39) ([merge request](nomad-lab/nomad-FAIR!1140))
+- [Added Green's functions into electronic properties.](nomad-lab/nomad-FAIR@105c975e35c2a9d179a007a016263e2db6b89448) ([merge request](nomad-lab/nomad-FAIR!1065))
+- [Appending similar quantities (column names) to the appropriate subsection in Tabular_Parser](nomad-lab/nomad-FAIR@46a3bb8ca9a8798d9b37fe4ad242b7b459c18551) ([merge request](nomad-lab/nomad-FAIR!1088))
+- [Added Feature for Creating Workflow in ELN](nomad-lab/nomad-FAIR@09e6c80bde3519d11cb42f85139adf1febf5c484) ([merge request](nomad-lab/nomad-FAIR!1101))
+- [Added hyperlink to entry in scatter plot widget and hover details](nomad-lab/nomad-FAIR@6a8e55f9dee79aed241273d82aeb9d58016ee82d) ([merge request](nomad-lab/nomad-FAIR!1126))
+- [Added an HDF5Reference type to the metainfo.](nomad-lab/nomad-FAIR@26de816576d73d05d4a2db79433abc6c4db610f4) ([merge request](nomad-lab/nomad-FAIR!1040))
+- [Added better description of our code documentation practices.](nomad-lab/nomad-FAIR@eab55e797c21dcc8a2df68b451fb6bbc5f08fe60) ([merge request](nomad-lab/nomad-FAIR!1129))
+- [Added properties eln annotation to customize the appearance and the permissions](nomad-lab/nomad-FAIR@87debf8136b58bb16d57ec8e7a492797504e60b1) ([merge request](nomad-lab/nomad-FAIR!1093))
+- [Adding ReferenceEditQuantity Field to LabfolderProject allowing for further customization](nomad-lab/nomad-FAIR@c1c8adf0b1d8316e7cfb7bd7e505b46a202ca819) ([merge request](nomad-lab/nomad-FAIR!1025))
+- [Added the possibility to define plots in the custom schemas that use scalar...](nomad-lab/nomad-FAIR@aba802ce34061d27c7bdf9863d30c0aa6605fd0f) ([merge request](nomad-lab/nomad-FAIR!1110))
+
+### Changed (3 changes)
+
+- [Changed the branding of the app and docs.](nomad-lab/nomad-FAIR@c8de145b9f95b9ef44fb511410256be17f375e0f) ([merge request](nomad-lab/nomad-FAIR!1135))
+- [Upgraded nomad-lab to Python 3.9 and bumped a few dependency version.](nomad-lab/nomad-FAIR@5cb6d4a46c5ac6c4809e66cc288dee32a68721de) ([merge request](nomad-lab/nomad-FAIR!1125))
+- [Changed the config to use Pydantic models for UI aspects.](nomad-lab/nomad-FAIR@de1ed6ffb8db168f6f7ae4f6e9addd59879f552f) ([merge request](nomad-lab/nomad-FAIR!1104))
+
+### Fixed. (1 change)
+
+- [Fixed the availability of the beta/test snack in the UI.](nomad-lab/nomad-FAIR@a3f29510858bf6ba6056f1c52af177e70d24eacc) ([merge request](nomad-lab/nomad-FAIR!1134))
+
 ## 1.1.7 (2023-02-20)
 
 ### Added (17 changes)
