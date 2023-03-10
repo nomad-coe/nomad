@@ -56,9 +56,16 @@ function ReloadSnack() {
   </Snackbar>
 }
 
+const useTermsSnackStyles = makeStyles(theme => ({
+  termsLink: {
+    color: theme.palette.primary.light
+  }
+}))
+
 function TermsSnack() {
   const [cookies, setCookie] = useCookies()
   const [accepted, setAccepted] = useState(cookies['terms-accepted'])
+  const classes = useTermsSnackStyles()
 
   const cookieOptions = useMemo(() => ({
     expires: new Date(2147483647 * 1000),
@@ -76,7 +83,7 @@ function TermsSnack() {
       message={<span>
         NOMAD only uses cookies that are strictly necessary for this site&apos;s functionality.
         No tracking or marketing cookies are used. By using this site you agree to
-        our <Link href="https://nomad-lab.eu/terms" title="terms of service">terms of service</Link>.
+        our <Link className={classes.termsLink} href="https://nomad-lab.eu/nomad-lab/terms.html" title="terms of service">terms of service</Link>.
       </span>}
       action={[
         <IconButton
