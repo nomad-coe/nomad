@@ -484,6 +484,42 @@ for running the test suite, as configured in `package.json`:
     3. Activate the correct python virtual environment before running the tests
        with yarn (yarn will run the python functions that prepare the state).
 
+## Build the docker image
+
+Normally the docker image is build via a CI/CD pipeline that is run when pushing
+commits to NOMAD's gitlab at MPCDF. These images are distributed via NOMAD's gitlab
+container registry. For most purposes you would use these automatically build images.
+
+If you want to build a custom images, e.g. to be used in your Oasis, you can
+run the NOMAD docker built manually. From the cloned project root run
+
+```sh
+docker build -t <image-name>:<image-tag> .
+```
+
+This will build the normal image indented for production use. There are other build
+targets: `dev_python` and `dev_node`. Especially `dev_python` might be interesting
+for debugging purposes as it contains all sources and dev dependencies. You
+can build specific targets with:
+
+```sh
+docker build --target dev_python -t <image-name>:<image-tag> .
+```
+
+If you want to build an image directly from a remote git repository (e.g. for a specific `branch`), run
+
+```
+DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_CONTEXT_KEEP_GIT_DIR=1 --pull -t <image-name>:<image-tag> https://github.com/mdforti/nomad.git#<branch>
+```
+
+The buildkit parametrization ensures that the the `.git` directory is available in the
+docker build context. NOMAD's build process requires the `.git` folder to determine the
+package version from version tags in the repository.
+
+The build process installs a substantial amount of dependencies and requires multiple
+docker images for various build stages. Make sure that docker has at least 20 GB of
+storage available.
+
 ## Setup your IDE
 
 The documentation section for development guidelines (see below) details how the code is organized,
@@ -497,8 +533,8 @@ for all major platforms [here](https://code.visualstudio.com/download).
 You should launch and run vscode directly from the projects root directory. The source
 code already contains settings for vscode in the `.vscode` directory. The settings
 contain the same setup for stylechecks, linter, etc. that is also used in our CI/CD
-pipelines. 
-In order to ractually use the these features you have to make sure that they are enabled 
+pipelines.
+In order to ractually use the these features you have to make sure that they are enabled
 in your own User settings:
 ```
     "python.linting.pycodestyleEnabled": true,
