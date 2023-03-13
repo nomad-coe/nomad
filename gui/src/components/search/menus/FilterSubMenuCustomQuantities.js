@@ -19,7 +19,17 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
-import { Box, Button, FormControl, InputLabel, LinearProgress, ListItemText, MenuItem, Select, TextField, Typography } from '@material-ui/core'
+import {
+  Box,
+  Button,
+  FormControl,
+  InputLabel,
+  LinearProgress,
+  MenuItem,
+  Select,
+  TextField,
+  Typography
+} from '@material-ui/core'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import { useApi } from '../../api'
 import { useErrors } from '../../errors'
@@ -30,8 +40,8 @@ import { StringEditQuantity } from '../../editQuantity/StringEditQuantity'
 import { EnumEditQuantity } from '../../editQuantity/EnumEditQuantity'
 import { DateTimeEditQuantity } from '../../editQuantity/DateTimeEditQuantity'
 import { editQuantityComponents } from '../../editQuantity/EditQuantity'
+import { InputMetainfo } from '../../search/input/InputText'
 import { DType, getDatatype } from '../../../utils'
-import { Autocomplete } from '@material-ui/lab'
 
 const types = {
   str: 'String',
@@ -136,8 +146,13 @@ const QuantityFilter = React.memo(({quantities, filter, onChange}) => {
   const quantityDef = useMemo(() => {
     return quantities.find(q => q.path === path)?._quantityDef
   }, [path, quantities])
-  const quantitiesMap = useMemo(() => {
-    return quantities.reduce((map, quantity) => ({ ...map, [quantity.path]: quantity}), {})
+
+  const options = useMemo(() => {
+    return quantities.map(quantity => ({
+      path: quantity.path,
+      secondary: quantity._description,
+      description: quantity?._quantityDef?.description
+    }))
   }, [quantities])
 
   const handleValueChange = useCallback((value) => {
@@ -148,7 +163,7 @@ const QuantityFilter = React.memo(({quantities, filter, onChange}) => {
     })
   }, [filter, onChange])
 
-  const handlePathChange = useCallback((e, value) => {
+  const handlePathChange = useCallback((value) => {
     onChange({
       operator: 'search',
       path: value
@@ -165,23 +180,20 @@ const QuantityFilter = React.memo(({quantities, filter, onChange}) => {
   const availableOperators = quantityDef ? getOperators(quantityDef) : ['search']
 
   return (<React.Fragment>
-    <Box display="flex" flexDirection="row" alignItems="flex-start" marginTop={1}>
-      <Box width={250}>
-        <Autocomplete
-          options={Object.keys(quantitiesMap)}
+    <Box display="flex" flexWrap="wrap" flexDirection="row" alignItems="flex-start" marginTop={1}>
+      <Box marginBottom={1} width="100%">
+        <InputMetainfo
+          options={options}
           value={path}
-          fullWidth
-          renderInput={(params) => (
-            <TextField {...params} label="quantity path" variant="filled" size="small" />
-          )}
-          renderOption={(path) => {
-            const quantity = quantitiesMap[path]
-            return <ListItemText primary={quantity.path} secondary={quantity._description}/>
-          }}
           onChange={handlePathChange}
+          onSelect={handlePathChange}
+          // TODO: There should be better error handling here. Errors for now
+          // simply clear out the input.
+          onError={(error) => error && handlePathChange("")}
+          optional
         />
       </Box>
-      <Box marginX={1} width={65}>
+      <Box marginRight={1} width={65}>
         <FormControl fullWidth size="small" variant="filled">
           <InputLabel>op</InputLabel>
           <Select
@@ -278,7 +290,7 @@ const FilterSubMenuCustomQuantities = React.memo(({
           description = 'Enum'
         }
         if (quantityDef.unit) {
-          description += `in ${quantityDef.unit}`
+          description += ` in ${quantityDef.unit}`
         }
         quantities.push({
           ...searchableQuantity,

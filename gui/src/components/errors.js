@@ -147,7 +147,7 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.log('cought error in boundary', error, errorInfo, pwaRegistrationRef)
+    console.log('caught error in boundary', error, errorInfo, pwaRegistrationRef)
     // check for a newer version of the app
     if (pwaRegistrationRef.current) {
       console.log('try service worker update')
@@ -164,7 +164,9 @@ export class ErrorBoundary extends React.Component {
     // code to keep it functional no matter where the error originates from.
     if (this.state.hasError) {
       const error = document.getElementById("rootError")
-      error.style.display = 'block'
+      if (error) {
+        error.style.display = 'block'
+      }
       return null
     }
 

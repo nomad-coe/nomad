@@ -782,11 +782,18 @@ class FilterMenuActions(Options):
     )
 
 
+class FilterMenuSizeEnum(str, Enum):
+    S = 's'
+    M = 'm'
+    L = 'l'
+    XL = 'xl'
+
+
 class FilterMenu(UISetting):
     '''Defines the layout and functionality for a filter menu.'''
     label: Optional[str] = Field(description='Menu label to show in the UI.')
     level: Optional[int] = Field(0, description='Indentation level of the menu.')
-    size: Optional[str] = Field('small', description='Width of the menu.')
+    size: Optional[FilterMenuSizeEnum] = Field(FilterMenuSizeEnum.S, description='Width of the menu.')
     actions: Optional[FilterMenuActions]
 
 
@@ -1039,26 +1046,26 @@ class UI(UISetting):
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
-                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large'},
-                            'structure': {'label': 'Structure', 'level': 1, 'size': 'small'},
+                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
+                            'structure': {'label': 'Structure', 'level': 1},
                             'method': {'label': 'Method', 'level': 0},
-                            'dft': {'label': 'DFT', 'level': 1, 'size': 'small'},
-                            'gw': {'label': 'GW', 'level': 1, 'size': 'small'},
-                            'projection': {'label': 'Projection', 'level': 1, 'size': 'small'},
-                            'dmft': {'label': 'DMFT', 'level': 1, 'size': 'small'},
-                            'eels': {'label': 'EELS', 'level': 1, 'size': 'small'},
+                            'dft': {'label': 'DFT', 'level': 1},
+                            'gw': {'label': 'GW', 'level': 1},
+                            'projection': {'label': 'Projection', 'level': 1},
+                            'dmft': {'label': 'DMFT', 'level': 1},
+                            'eels': {'label': 'EELS', 'level': 1},
                             'workflow': {'label': 'Workflow', 'level': 0},
-                            'molecular_dynamics': {'label': 'Molecular dynamics', 'level': 1, 'size': 'small'},
-                            'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1, 'size': 'small'},
+                            'molecular_dynamics': {'label': 'Molecular dynamics', 'level': 1},
+                            'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1},
                             'properties': {'label': 'Properties', 'level': 0},
-                            'electronic': {'label': 'Electronic', 'level': 1, 'size': 'small'},
-                            'vibrational': {'label': 'Vibrational', 'level': 1, 'size': 'small'},
-                            'mechanical': {'label': 'Mechanical', 'level': 1, 'size': 'small'},
-                            'usecases': {'label': 'Use Cases', 'level': 0, 'size': 'small'},
-                            'solarcell': {'label': 'Solar Cells', 'level': 1, 'size': 'small'},
-                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'medium'},
-                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0, 'size': 'small'},
-                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium'},
+                            'electronic': {'label': 'Electronic', 'level': 1},
+                            'vibrational': {'label': 'Vibrational', 'level': 1},
+                            'mechanical': {'label': 'Mechanical', 'level': 1},
+                            'usecases': {'label': 'Use Cases', 'level': 0},
+                            'solarcell': {'label': 'Solar Cells', 'level': 1},
+                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'm'},
+                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
+                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
                     },
                     'filters': {
@@ -1123,23 +1130,23 @@ class UI(UISetting):
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
-                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large'},
-                            'structure': {'label': 'Structure', 'level': 1, 'size': 'small'},
+                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
+                            'structure': {'label': 'Structure', 'level': 1},
                             'method': {'label': 'Method', 'level': 0},
-                            'dft': {'label': 'DFT', 'level': 1, 'size': 'small'},
-                            'gw': {'label': 'GW', 'level': 1, 'size': 'small'},
-                            'projection': {'label': 'Projection', 'level': 1, 'size': 'small'},
-                            'dmft': {'label': 'DMFT', 'level': 1, 'size': 'small'},
+                            'dft': {'label': 'DFT', 'level': 1},
+                            'gw': {'label': 'GW', 'level': 1},
+                            'projection': {'label': 'Projection', 'level': 1},
+                            'dmft': {'label': 'DMFT', 'level': 1},
                             'workflow': {'label': 'Workflow', 'level': 0},
-                            'molecular_dynamics': {'label': 'Molecular dynamics', 'level': 1, 'size': 'small'},
-                            'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1, 'size': 'small'},
+                            'molecular_dynamics': {'label': 'Molecular dynamics', 'level': 1},
+                            'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1},
                             'properties': {'label': 'Properties', 'level': 0},
-                            'electronic': {'label': 'Electronic', 'level': 1, 'size': 'small'},
-                            'vibrational': {'label': 'Vibrational', 'level': 1, 'size': 'small'},
-                            'mechanical': {'label': 'Mechanical', 'level': 1, 'size': 'small'},
-                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'medium'},
-                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0, 'size': 'small'},
-                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium'},
+                            'electronic': {'label': 'Electronic', 'level': 1},
+                            'vibrational': {'label': 'Vibrational', 'level': 1},
+                            'mechanical': {'label': 'Mechanical', 'level': 1},
+                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'm'},
+                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
+                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
                     },
                     'filters': {
@@ -1210,23 +1217,23 @@ class UI(UISetting):
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
-                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large'},
-                            'structure': {'label': 'Structure', 'level': 1, 'size': 'small'},
+                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
+                            'structure': {'label': 'Structure', 'level': 1},
                             'method': {'label': 'Method', 'level': 0},
-                            'dft': {'label': 'DFT', 'level': 1, 'size': 'small'},
-                            'gw': {'label': 'GW', 'level': 1, 'size': 'small'},
-                            'projection': {'label': 'Projection', 'level': 1, 'size': 'small'},
-                            'dmft': {'label': 'DMFT', 'level': 1, 'size': 'small'},
+                            'dft': {'label': 'DFT', 'level': 1},
+                            'gw': {'label': 'GW', 'level': 1},
+                            'projection': {'label': 'Projection', 'level': 1},
+                            'dmft': {'label': 'DMFT', 'level': 1},
                             'workflow': {'label': 'Workflow', 'level': 0},
-                            'molecular_dynamics': {'label': 'Molecular dynamics', 'level': 1, 'size': 'small'},
-                            'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1, 'size': 'small'},
-                            'properties': {'label': 'Properties', 'level': 0, 'size': 'small'},
-                            'electronic': {'label': 'Electronic', 'level': 1, 'size': 'small'},
-                            'vibrational': {'label': 'Vibrational', 'level': 1, 'size': 'small'},
-                            'mechanical': {'label': 'Mechanical', 'level': 1, 'size': 'small'},
-                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'medium'},
-                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0, 'size': 'small'},
-                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium'},
+                            'molecular_dynamics': {'label': 'Molecular dynamics', 'level': 1},
+                            'geometry_optimization': {'label': 'Geometry Optimization', 'level': 1},
+                            'properties': {'label': 'Properties', 'level': 0},
+                            'electronic': {'label': 'Electronic', 'level': 1},
+                            'vibrational': {'label': 'Vibrational', 'level': 1},
+                            'mechanical': {'label': 'Mechanical', 'level': 1},
+                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'm'},
+                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
+                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                             'combine': {
                                 'actions': {
                                     'options': {
@@ -1294,12 +1301,12 @@ class UI(UISetting):
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
-                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large'},
-                            'eln': {'label': 'Electronic Lab Notebook', 'level': 0, 'size': 'small'},
-                            'custom_quantities': {'label': 'User Defined Quantities', 'level': 0, 'size': 'large'},
-                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'medium'},
-                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0, 'size': 'small'},
-                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium'},
+                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
+                            'eln': {'label': 'Electronic Lab Notebook', 'level': 0},
+                            'custom_quantities': {'label': 'User Defined Quantities', 'level': 0, 'size': 'l'},
+                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'm'},
+                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
+                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
                     },
                     'filters': {
@@ -1359,12 +1366,12 @@ class UI(UISetting):
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
-                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large'},
-                            'method': {'label': 'Method', 'level': 0, 'size': 'small'},
-                            'eels': {'label': 'EELS', 'level': 1, 'size': 'small'},
-                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'medium'},
-                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0, 'size': 'small'},
-                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium'},
+                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
+                            'method': {'label': 'Method', 'level': 0},
+                            'eels': {'label': 'EELS', 'level': 1},
+                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'm'},
+                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
+                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
                     },
                     'filters': {
@@ -1593,15 +1600,15 @@ class UI(UISetting):
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Absorber Material', 'level': 0},
-                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'large'},
-                            'structure': {'label': 'Structure', 'level': 1, 'size': 'small'},
-                            'electronic': {'label': 'Electronic Properties', 'level': 0, 'size': 'small'},
-                            'solarcell': {'label': 'Solar Cell Properties', 'level': 0, 'size': 'small'},
-                            'eln': {'label': 'Electronic Lab Notebook', 'level': 0, 'size': 'small'},
-                            'custom_quantities': {'label': 'User Defined Quantities', 'level': 0, 'size': 'large'},
-                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'medium'},
-                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0, 'size': 'small'},
-                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'medium'},
+                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
+                            'structure': {'label': 'Structure', 'level': 1},
+                            'electronic': {'label': 'Electronic Properties', 'level': 0},
+                            'solarcell': {'label': 'Solar Cell Properties', 'level': 0},
+                            'eln': {'label': 'Electronic Lab Notebook', 'level': 0},
+                            'custom_quantities': {'label': 'User Defined Quantities', 'level': 0, 'size': 'l'},
+                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'm'},
+                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
+                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
                     },
                     'filters': {

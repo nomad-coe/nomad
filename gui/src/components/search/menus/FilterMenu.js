@@ -181,7 +181,7 @@ export const FilterMenu = React.memo(({
   children
 }) => {
   const styles = useFilterMenuStyles()
-  const [size, setSize] = useState('medium')
+  const [size, setSize] = useState('m')
 
   const handleChange = useCallback((newValue) => {
     if (newValue !== selected) {
@@ -527,9 +527,10 @@ FilterMenuItem.defaultProps = {
 }
 
 const useFilterSubMenusStyles = makeStyles(theme => {
-  const widthSmall = 25
-  const widthMedium = 32
-  const widthLarge = 48
+  const widthS = 25
+  const widthM = 32
+  const widthL = 40
+  const widthXL = 48
   return {
     root: {
       zIndex: 2,
@@ -539,7 +540,7 @@ const useFilterSubMenusStyles = makeStyles(theme => {
       right: 0,
       top: 0,
       bottom: 0,
-      width: `${widthLarge}rem`,
+      width: `${widthXL}rem`,
       backgroundColor: theme.palette.background.paper,
       '-webkit-transform': 'none',
       transform: 'none',
@@ -551,17 +552,21 @@ const useFilterSubMenusStyles = makeStyles(theme => {
     collapsed: {
       display: 'none'
     },
-    containerSmall: {
-      '-webkit-transform': `translateX(${widthSmall}rem)`,
-      transform: `translateX(${widthSmall}rem)`
+    containerS: {
+      '-webkit-transform': `translateX(${widthS}rem)`,
+      transform: `translateX(${widthS}rem)`
     },
-    containerMedium: {
-      '-webkit-transform': `translateX(${widthMedium}rem)`,
-      transform: `translateX(${widthMedium}rem)`
+    containerM: {
+      '-webkit-transform': `translateX(${widthM}rem)`,
+      transform: `translateX(${widthM}rem)`
     },
-    containerLarge: {
-      '-webkit-transform': `translateX(${widthLarge}rem)`,
-      transform: `translateX(${widthLarge}rem)`
+    containerL: {
+      '-webkit-transform': `translateX(${widthL}rem)`,
+      transform: `translateX(${widthL}rem)`
+    },
+    containerXL: {
+      '-webkit-transform': `translateX(${widthXL}rem)`,
+      transform: `translateX(${widthXL}rem)`
     },
     menu: {
       position: 'absolute',
@@ -576,14 +581,17 @@ const useFilterSubMenusStyles = makeStyles(theme => {
       flex: 1,
       minHeight: 0
     },
-    menuSmall: {
-      width: `${widthSmall}rem`
+    menuS: {
+      width: `${widthS}rem`
     },
-    menuMedium: {
-      width: `${widthMedium}rem`
+    menuM: {
+      width: `${widthM}rem`
     },
-    menuLarge: {
-      width: `${widthLarge}rem`
+    menuL: {
+      width: `${widthL}rem`
+    },
+    menuXL: {
+      width: `${widthXL}rem`
     },
     button: {
       marginRight: 0
@@ -599,9 +607,10 @@ export const FilterSubMenus = React.memo(({
   const styles = useFilterSubMenusStyles()
   const { open, onOpenChange, size, collapsed } = useContext(filterMenuContext)
   const [menuStyle, containerStyle] = {
-    small: [styles.menuSmall, styles.containerSmall],
-    medium: [styles.menuMedium, styles.containerMedium],
-    large: [styles.menuLarge, styles.containerLarge]
+    s: [styles.menuS, styles.containerS],
+    m: [styles.menuM, styles.containerM],
+    l: [styles.menuL, styles.containerL],
+    xl: [styles.menuXL, styles.containerXL]
   }[size]
 
   return <Paper
@@ -679,12 +688,12 @@ export const FilterSubMenu = React.memo(({
 FilterSubMenu.propTypes = {
   id: PropTypes.string,
   label: PropTypes.string,
-  size: PropTypes.oneOf(['small', 'medium', 'large']),
+  size: PropTypes.oneOf(['s', 'm', 'l', 'xl']),
   actions: PropTypes.node,
   children: PropTypes.node
 }
 FilterSubMenu.defaultProps = {
-  size: 'small'
+  size: 's'
 }
 
 export default FilterSubMenu

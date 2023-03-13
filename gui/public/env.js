@@ -212,107 +212,107 @@ window.nomadEnv = {
               "material": {
                 "label": "Material",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large"
+                "size": "xl"
               },
               "structure": {
                 "label": "Structure",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "method": {
                 "label": "Method",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "dft": {
                 "label": "DFT",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "gw": {
                 "label": "GW",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "projection": {
                 "label": "Projection",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "dmft": {
                 "label": "DMFT",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "eels": {
                 "label": "EELS",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "workflow": {
                 "label": "Workflow",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "molecular_dynamics": {
                 "label": "Molecular dynamics",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "geometry_optimization": {
                 "label": "Geometry Optimization",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "properties": {
                 "label": "Properties",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "electronic": {
                 "label": "Electronic",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "vibrational": {
                 "label": "Vibrational",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "mechanical": {
                 "label": "Mechanical",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "usecases": {
                 "label": "Use Cases",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "solarcell": {
                 "label": "Solar Cells",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               }
             }
           },
@@ -459,92 +459,92 @@ window.nomadEnv = {
               "material": {
                 "label": "Material",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large"
+                "size": "xl"
               },
               "structure": {
                 "label": "Structure",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "method": {
                 "label": "Method",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "dft": {
                 "label": "DFT",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "gw": {
                 "label": "GW",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "projection": {
                 "label": "Projection",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "dmft": {
                 "label": "DMFT",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "workflow": {
                 "label": "Workflow",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "molecular_dynamics": {
                 "label": "Molecular dynamics",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "geometry_optimization": {
                 "label": "Geometry Optimization",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "properties": {
                 "label": "Properties",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "electronic": {
                 "label": "Electronic",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "vibrational": {
                 "label": "Vibrational",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "mechanical": {
                 "label": "Mechanical",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               }
             }
           },
@@ -630,96 +630,96 @@ window.nomadEnv = {
               "material": {
                 "label": "Material",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large"
+                "size": "xl"
               },
               "structure": {
                 "label": "Structure",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "method": {
                 "label": "Method",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "dft": {
                 "label": "DFT",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "gw": {
                 "label": "GW",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "projection": {
                 "label": "Projection",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "dmft": {
                 "label": "DMFT",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "workflow": {
                 "label": "Workflow",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "molecular_dynamics": {
                 "label": "Molecular dynamics",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "geometry_optimization": {
                 "label": "Geometry Optimization",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "properties": {
                 "label": "Properties",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "electronic": {
                 "label": "Electronic",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "vibrational": {
                 "label": "Vibrational",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "mechanical": {
                 "label": "Mechanical",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               },
               "combine": {
                 "level": 0,
-                "size": "small",
+                "size": "s",
                 "actions": {
                   "options": {
                     "combine": {
@@ -845,37 +845,37 @@ window.nomadEnv = {
               "material": {
                 "label": "Material",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large"
+                "size": "xl"
               },
               "eln": {
                 "label": "Electronic Lab Notebook",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "custom_quantities": {
                 "label": "User Defined Quantities",
                 "level": 0,
-                "size": "large"
+                "size": "l"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               }
             }
           },
@@ -987,37 +987,37 @@ window.nomadEnv = {
               "material": {
                 "label": "Material",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large"
+                "size": "xl"
               },
               "method": {
                 "label": "Method",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "eels": {
                 "label": "EELS",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               }
             }
           },
@@ -1187,52 +1187,52 @@ window.nomadEnv = {
               "material": {
                 "label": "Absorber Material",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "elements": {
                 "label": "Elements / Formula",
                 "level": 1,
-                "size": "large"
+                "size": "xl"
               },
               "structure": {
                 "label": "Structure",
                 "level": 1,
-                "size": "small"
+                "size": "s"
               },
               "electronic": {
                 "label": "Electronic Properties",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "solarcell": {
                 "label": "Solar Cell Properties",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "eln": {
                 "label": "Electronic Lab Notebook",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "custom_quantities": {
                 "label": "User Defined Quantities",
                 "level": 0,
-                "size": "large"
+                "size": "l"
               },
               "author": {
                 "label": "Author / Origin / Dataset",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               },
               "metadata": {
                 "label": "Visibility / IDs / Schema",
                 "level": 0,
-                "size": "small"
+                "size": "s"
               },
               "optimade": {
                 "label": "Optimade",
                 "level": 0,
-                "size": "medium"
+                "size": "m"
               }
             }
           },
