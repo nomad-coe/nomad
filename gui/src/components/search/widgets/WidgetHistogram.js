@@ -25,7 +25,7 @@ import {
   FormControlLabel
 } from '@material-ui/core'
 import { useSearchContext } from '../SearchContext'
-import { InputMetainfo } from '../input/InputText'
+import { InputSearchMetainfo } from '../input/InputText'
 import { Widget, schemaWidget } from './Widget'
 import { ActionCheckbox, ActionSelect } from '../../Actions'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
@@ -163,7 +163,7 @@ export const WidgetHistogramEdit = React.memo((props) => {
       >
       <WidgetEditGroup title="x axis">
         <WidgetEditOption>
-          <InputMetainfo
+          <InputSearchMetainfo
             label="quantity"
             value={settings.quantity}
             error={errors.quantity}

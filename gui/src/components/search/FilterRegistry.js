@@ -16,7 +16,15 @@
  * limitations under the License.
  */
 import { isNil, isArray, isEmpty } from 'lodash'
-import { setToArray, getDatatype, getSerializer, getDeserializer, formatLabel, DType } from '../../utils'
+import {
+  setToArray,
+  getDatatype,
+  getSerializer,
+  getDeserializer,
+  formatLabel,
+  DType,
+  getSuggestions
+} from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { Unit } from '../../units'
 import elementData from '../../elementData'
@@ -707,51 +715,6 @@ for (const name of Object.keys(searchQuantities)) {
 }
 
 /**
- * Function for creating static suggestions. Mimics the suggestion logic used by
- * the suggestions API endpoint.
- *
- * @param {str} category Category for the suggestions
- * @param {array} values Array of available values
- * @param {number} minLength Minimum input length before suggestions are considered.
- * @param {func} text Function that maps the value into the suggested text input
- *
- * @return {object} Object containing a list of options and a function for
- *   filtering them based on the input.
- */
-function getSuggestions(
-  category, values, minLength = 2, text = (value) => value) {
-  const options = values
-    .map(value => {
-      const optionCleaned = value.trim().replace(/_/g, ' ').toLowerCase()
-      const matches = [...optionCleaned.matchAll(/[ .]/g)]
-      let tokens = [optionCleaned]
-      tokens = tokens.concat(matches.map(match => optionCleaned.slice(match.index + 1)))
-      return {
-        value: value,
-        category: category,
-        text: text && text(value),
-        tokens: tokens
-      }
-    })
-  const filter = (input) => {
-    // Minimum input length
-    if (input.length < minLength) {
-      return []
-    }
-    // Gather all matches
-    const inputCleaned = input.trim().replace(/_/g, ' ').toLowerCase()
-    let suggestions = options.filter(option => option.tokens.some(token => token.startsWith(inputCleaned)))
-
-    // Sort matches based on value length (the more the input covers from the
-    // value, the better the match)
-    suggestions = suggestions.sort((a, b) => a.value.length - b.value.length)
-    return suggestions
-  }
-
-  return {options, filter}
-}
-
-/**
  * Creates static suggestion for all metainfo quantities that have an enum
  * value. Also provides suggestions for quantity names.
  */
@@ -771,9 +734,9 @@ export function getStaticSuggestions(quantities) {
       const maxLength = Math.max(...options.map(option => option.length))
       const minLength = maxLength <= 2 ? 1 : 2
       suggestions[quantity] = getSuggestions(
-        quantity,
         options,
         minLength,
+        quantity,
         (value) => `${quantity}=${value}`
       )
     }
@@ -782,9 +745,9 @@ export function getStaticSuggestions(quantities) {
   // Add suggestions for quantity names
   if (quantities.has(quantityNameSearch)) {
     suggestions[quantityNameSearch] = getSuggestions(
-      quantityNameSearch,
       filters.filter(value => value !== quantityNameSearch && !filterData[value].section),
-      2
+      2,
+      quantityNameSearch
     )
   }
   return suggestions

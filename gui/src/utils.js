@@ -1339,3 +1339,48 @@ export const alphabet = [
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
   'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
 ]
+
+/**
+ * Function for creating suggestions functionality for a list of string values.
+ * Mimics the suggestion logic used by the suggestions API endpoint.
+ *
+ * @param {str} category Category for the suggestions
+ * @param {array} values Array of available values
+ * @param {number} minLength Minimum input length before suggestions are considered.
+ * @param {func} text Function that maps the value into the suggested text input
+ *
+ * @return {object} Object containing a list of options and a function for
+ *   filtering them based on the input.
+ */
+export function getSuggestions(
+  values, minLength = 2, category, text = (value) => value) {
+  const options = values
+    .map(value => {
+      const optionCleaned = value.trim().replace(/_/g, ' ').toLowerCase()
+      const matches = [...optionCleaned.matchAll(/[ .]/g)]
+      let tokens = [optionCleaned]
+      tokens = tokens.concat(matches.map(match => optionCleaned.slice(match.index + 1)))
+      return {
+        value: value,
+        category: category,
+        text: text && text(value),
+        tokens: tokens
+      }
+    })
+  const filter = (input) => {
+    // Minimum input length
+    if (input.length < minLength) {
+      return []
+    }
+    // Gather all matches
+    const inputCleaned = input.trim().replace(/_/g, ' ').toLowerCase()
+    let suggestions = options.filter(option => option.tokens.some(token => token.startsWith(inputCleaned)))
+
+    // Sort matches based on value length (the more the input covers from the
+    // value, the better the match)
+    suggestions = suggestions.sort((a, b) => a.value.length - b.value.length)
+    return suggestions
+  }
+
+  return {options, filter}
+}

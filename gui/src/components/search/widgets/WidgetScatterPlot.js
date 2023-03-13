@@ -29,7 +29,7 @@ import {
   FormControlLabel
 } from '@material-ui/core'
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
-import { InputMetainfo } from '../input/InputText'
+import { InputSearchMetainfo } from '../input/InputText'
 import { Widget, schemaWidget } from './Widget'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
 import { useSearchContext } from '../SearchContext'
@@ -307,7 +307,7 @@ export const WidgetScatterPlotEdit = React.memo((props) => {
       >
       <WidgetEditGroup title="x axis">
         <WidgetEditOption>
-          <InputMetainfo
+          <InputSearchMetainfo
             label="quantity"
             value={settings.x}
             error={errors.x}
@@ -321,7 +321,7 @@ export const WidgetScatterPlotEdit = React.memo((props) => {
       </WidgetEditGroup>
       <WidgetEditGroup title="y axis">
         <WidgetEditOption>
-          <InputMetainfo
+          <InputSearchMetainfo
             label="quantity"
             value={settings.y}
             error={errors.y}
@@ -335,7 +335,7 @@ export const WidgetScatterPlotEdit = React.memo((props) => {
       </WidgetEditGroup>
       <WidgetEditGroup title="color">
         <WidgetEditOption>
-          <InputMetainfo
+          <InputSearchMetainfo
             label="quantity"
             value={settings.color}
             error={errors.color}
