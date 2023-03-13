@@ -107,6 +107,14 @@ window.nomadEnv = {
                 "label": "Entry type",
                 "align": "left"
               },
+              "upload_name": {
+                "label": "Upload name",
+                "align": "left"
+              },
+              "upload_id": {
+                "label": "Upload id",
+                "align": "left"
+              },
               "upload_create_time": {
                 "label": "Upload time",
                 "align": "left"

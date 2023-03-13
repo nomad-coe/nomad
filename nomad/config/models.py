@@ -1016,6 +1016,8 @@ class UI(UISetting):
                             'entry_name': {'label': 'Name', 'align': 'left'},
                             'results.material.chemical_formula_hill': {'label': 'Formula', 'align': 'left'},
                             'entry_type': {'label': 'Entry type', 'align': 'left'},
+                            'upload_name': {'label': 'Upload name', 'align': 'left'},
+                            'upload_id': {'label': 'Upload id', 'align': 'left'},
                             'upload_create_time': {'label': 'Upload time', 'align': 'left'},
                             'authors': {'label': 'Authors', 'align': 'left'},
                             'results.method.method_name': {'label': 'Method name'},
