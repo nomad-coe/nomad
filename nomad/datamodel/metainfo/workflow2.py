@@ -73,8 +73,10 @@ class TaskReference(Task):
         if not self.name and self.task:
             self.name = self.task.name
         if self.task:
-            self.inputs += self.task.inputs
-            self.outputs += self.task.outputs
+            for input in self.task.inputs:
+                self.m_add_sub_section(Task.inputs, input)
+            for output in self.task.outputs:
+                self.m_add_sub_section(Task.outputs, output)
 
 
 class Workflow(Task, EntryData):
