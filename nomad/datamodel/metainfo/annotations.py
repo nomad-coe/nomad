@@ -429,6 +429,9 @@ class PlotAnnotation(AnnotationModel):
     "sub_section_name/2/parameter_name" or with a slice notation `start:stop` where
     negative values index from the end of the array, e.g.
     "sub_section_name/1:-5/parameter_name".
+
+    The interactive examples of the plot annotations can be found
+    [here](https://nomad-lab.eu/prod/v1/staging/gui/dev/plot).
     '''
 
     def __init__(self, *args, **kwargs):
