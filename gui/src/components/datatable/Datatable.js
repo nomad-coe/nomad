@@ -532,7 +532,7 @@ DatatableTable.propTypes = {
 export const DatatableToolbarActions = React.memo(function DatatableToolbarActions({children, selection}) {
   const {selected} = useDatatableContext()
 
-  const hasSelection = selected?.size > 0
+  const hasSelection = selected === 'all' || selected?.size > 0
   if ((hasSelection && selection) || (!hasSelection && !selection)) {
     return <React.Fragment>
       {children}
