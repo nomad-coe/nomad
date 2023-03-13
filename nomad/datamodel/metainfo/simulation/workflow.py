@@ -25,7 +25,9 @@ from nomad.metainfo import MSection, SubSection, Section, Quantity, MEnum, Refer
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.datamodel.metainfo.workflow2 import Workflow, Link, Task
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
-from nomad.datamodel.metainfo.simulation.method import Method
+from nomad.datamodel.metainfo.simulation.method import (
+    Method, XCFunctional, BasisSet, GW as GWMethodology
+)
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Dos, BandStructure, BandEnergies, Density, Potential, Spectra,
     RadiusOfGyration as RadiusOfGyrationCalculation,
@@ -2335,7 +2337,23 @@ class GWResults(SimulationWorkflowResults):
 
 class GWMethod(SimulationWorkflowMethod):
 
-    pass
+    gw_method_ref = Quantity(
+        type=Reference(GWMethodology),
+        description='''
+        GW methodology reference.
+        ''')
+
+    starting_point = Quantity(
+        type=Reference(XCFunctional),
+        description='''
+        Starting point (XC functional or HF) used.
+        ''')
+
+    basis_set = Quantity(
+        type=Reference(BasisSet),
+        description='''
+        Basis set used.
+        ''')
 
 
 class GW(SerialSimulation):

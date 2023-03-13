@@ -38,14 +38,14 @@ class KMesh(MSection):
     m_def = Section(validate=False)
 
     n_points = Quantity(
-        type=int,
+        type=np.int32,
         shape=[],
         description='''
         Number of k points in the mesh (i.e. the k points used to evaluate energy_total).
         ''')
 
     grid = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[3],
         description='''
         k-point grid used in notation [nx, ny, nz] in fractional coordinates.
@@ -59,7 +59,7 @@ class KMesh(MSection):
         ''')
 
     points = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=['n_points', 3],
         description='''
         List of all the k points in the $k$-point mesh. These are the k point used to
@@ -68,7 +68,7 @@ class KMesh(MSection):
         ''')
 
     weights = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=['n_points'],
         description='''
         Weights of all the k points in the $k$-point mesh. These are the weights for
@@ -902,6 +902,43 @@ class LatticeModelHamiltonian(MSection):
     hubbard_kanamori_model = SubSection(sub_section=HubbardKanamoriModel.m_def, repeats=True)
 
 
+class FreqMesh(MSection):
+    '''
+    Contains the settings for a uniformly spaced (real) frequency-point grid (if employed).
+    '''
+
+    m_def = Section(validate=False)
+
+    type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Grid type.
+        ''')
+
+    n_points = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Number of frequency points in the mesh.
+        ''')
+
+    values = Quantity(
+        type=np.complex128,
+        shape=['n_points'],
+        unit='joule',
+        description='''
+        List of all the real+imag frequencies.
+        ''')
+
+    weights = Quantity(
+        type=np.float64,
+        shape=['n_points'],
+        description='''
+        Weights of all the frequencies.
+        ''')
+
+
 class GW(MSection):
     '''
     Section containing the various parameters that define a GW calculation.
@@ -932,67 +969,8 @@ class GW(MSection):
         | `"qp-scGW"`  | quasiparticle self-consistent GW | PRL 96, 226402 (2006) |
         ''')
 
-    q_grid = SubSection(sub_section=KMesh.m_def, repeats=False)
-
-    n_frequencies = Quantity(
-        type=np.dtype(np.int32),
-        shape=[],
-        description='''
-        Number of frequency points used in the calculation of the self energy.
-        ''')
-
-    frequency_values = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_frequencies'],
-        unit='joule',
-        description='''
-        Values of the frequency used in the calculation of the self energy.
-        ''')
-
-    core_treatment = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Specifies if core states are treated in the GW calculation:
-
-        | Name    | Description                                             |
-
-        | ------- | ------------------------------------------------------- |
-
-        | `"all"` | All electron calculation                                |
-
-        | `"val"` | Valence electron only calculation                       |
-
-        | `"fc"`  | Frozen-core approximation                               |
-
-        | `"xal"` | All electron treatment of the exchange self-energy only |
-        ''')
-
-    dielectric_function_treatment = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Model used to calculate the dinamically-screened dielectric function:
-
-        | Name        | Description                                    | Reference             |
-
-        | ----------- | ---------------------------------------------- | --------------------- |
-
-        | `"rpa"`     | Full frequency random-phase approximation      | -                     |
-
-        | `"ppm"`     | Godby-Needs plasmon-pole model                 | PRL 62, 1169 (1989)   |
-
-        | `"ppm_hl"`  | Hybertsen and Louie plasmon-pole model         | PRB 34, 5390 (1986)   |
-
-        | `"ppm_hl2"` | von der Linden and P. Horsh plasmon-pole model | PRB 37, 8351 (1988)   |
-
-        | `"ppm_fe"`  | Farid and Engel plasmon-pole model             | PRB 47, 15931 (1993)  |
-
-        | `"cdm"`     | Countour-deformation method                    | PRB 67, 155208 (2003) |
-        ''')
-
-    self_energy_analytical_continuation = Quantity(
-        type=MEnum(["pade", "multi-pole", "CD"]),
+    analytical_continuation = Quantity(
+        type=MEnum(["pade", "countour_deformation", "ppm_GodbyNeeds", "ppm_HybertsenLouie", "ppm_vonderLindenHorsh", "ppm_FaridEngel", "multi_pole"]),
         shape=[],
         description='''
         Analytical continuation approximations of the GW self-energy:
@@ -1001,22 +979,42 @@ class GW(MSection):
 
         | -------------- | ------------------- | -------------------------------- |
 
-        | `"pade"`       | Pade's approximant  | J. Low Temp. Phys 29, 179 (1977) |
+        | `"pade"` | Pade's approximant  | J. Low Temp. Phys 29, 179 (1977) |
 
-        | `"multi-pole"` | Multi-pole fitting  | PRL 74, 1827 (1995)              |
+        | `"countour_deformation"` | Contour deformation | PRB 67, 155208 (2003) |
 
-        | `"CD"`         | Contour deformation | PRB 67, 155208 (2003)            |
+        | `"ppm_GodbyNeeds"` | Godby-Needs plasmon-pole model | PRL 62, 1169 (1989) |
+
+        | `"ppm_HybertsenLouie"` | Hybertsen and Louie plasmon-pole model | PRB 34, 5390 (1986) |
+
+        | `"ppm_vonderLindenHorsh"` | von der Linden and P. Horsh plasmon-pole model | PRB 37, 8351 (1988) |
+
+        | `"ppm_FaridEngel"` | Farid and Engel plasmon-pole model  | PRB 47, 15931 (1993) |
+
+        | `"multi_pole"` | Multi-pole fitting  | PRL 74, 1827 (1995) |
+        ''')
+
+    q_grid = SubSection(sub_section=KMesh.m_def, repeats=False)
+
+    frequency_grid = SubSection(sub_section=FreqMesh.m_def, repeats=False)
+
+    interval_qp_corrections = Quantity(
+        type=np.int32,
+        shape=[2],
+        description='''
+        Band indices (in an interval) for which the GW quasiparticle corrections are
+        calculated.
         ''')
 
     n_empty_states_polarizability = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Number of empty states used to compute the polarizability P
         ''')
 
     n_empty_states_self_energy = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Number of empty states to be used to calculate the correlation self energy.
