@@ -109,7 +109,7 @@ def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
             1.0,1.1
         '''), id='units')
 ])
-def test_tabular(raw_files, monkeypatch, schema, content):
+def test_tabular_entry_mode(raw_files, monkeypatch, schema, content):
     mainfile, schema_file = get_files(schema, content)
     data = pd.read_csv(mainfile)
     parser = TabularDataParser()
@@ -133,7 +133,7 @@ def test_tabular(raw_files, monkeypatch, schema, content):
     pytest.param(
         strip('''
             definitions:
-                name: 'A test schema for excel file parsing'
+                name: 'testing_modes'
                 sections:
                     My_schema:
                         base_section: nomad.datamodel.data.EntryData
@@ -160,7 +160,7 @@ def test_tabular(raw_files, monkeypatch, schema, content):
     pytest.param(
         strip('''
             definitions:
-                name: 'A test schema for excel file parsing'
+                name: 'testing_modes'
                 sections:
                     My_schema:
                         base_section: nomad.datamodel.data.EntryData
@@ -187,7 +187,7 @@ def test_tabular(raw_files, monkeypatch, schema, content):
     pytest.param(
         strip('''
             definitions:
-                name: 'A test schema for excel file parsing'
+                name: 'testing_modes'
                 sections:
                     My_schema:
                         base_section: nomad.datamodel.data.EntryData
@@ -223,7 +223,7 @@ def test_tabular(raw_files, monkeypatch, schema, content):
     pytest.param(
         strip('''
             definitions:
-                name: 'multiple similar columns in row mode'
+                name: 'testing_similar_cols_in_datafile'
                 sections:
                     My_schema:
                         base_section: nomad.parsing.tabular.TableData
@@ -258,9 +258,94 @@ def test_tabular(raw_files, monkeypatch, schema, content):
             data:
                 m_def: My_schema
                 data_file: Test.xlsx
-        '''), id='row mode with similar multiple columns in the excel sheet')
+        '''), id='row mode with similar multiple columns in the excel sheet'),
+    pytest.param(
+        strip('''
+        definitions:
+            name: 'testing_mixed_mode'
+            sections:
+                MyColumnMode:
+                  base_sections:
+                    - nomad.parsing.tabular.TableData
+                    - nomad.datamodel.data.EntryData
+                  quantities:
+                    data_file:
+                      type: str
+                      default: datafile.xlsx
+                      m_annotations:
+                        tabular_parser:
+                          comment: '#'
+                          mode: column
+                    my_quantity_1:
+                      type: np.float64
+                      shape: ['*']
+                      m_annotations:
+                        tabular:
+                          name: sheet_4/Header 1
+                  sub_sections:
+                    MyColumnModeSubsection:
+                      section:
+                        quantities:
+                          my_quantity_2:
+                            type: str
+                            shape: ['*']
+                            m_annotations:
+                              tabular:
+                                name: sheet_4/Header 2
+                          my_quantity_3:
+                            type: str
+                            shape: ['*']
+                            m_annotations:
+                              tabular:
+                                name: sheet_4/Header 3
+                MyRowMode:
+                  base_sections:
+                    - nomad.parsing.tabular.TableData
+                  quantities:
+                    data_file:
+                      type: str
+                      default: datafile.xlsx
+                      m_annotations:
+                        tabular_parser:
+                          comment: '#'
+                          mode: row
+                          target_sub_section:
+                            - MyRowModeSubsection
+                  sub_sections:
+                    MyRowModeSubsection:
+                      repeats: true
+                      section:
+                        quantities:
+                          my_quantity_4:
+                            type: str
+                            m_annotations:
+                              tabular:
+                                name: sheet_4/Header 4
+                MyMixedMode:
+                  base_sections:
+                    - nomad.parsing.tabular.TableData
+                    - nomad.datamodel.data.EntryData
+                  quantities:
+                    data_file:
+                      type: str
+                      default: datafile.xlsx
+                      m_annotations:
+                        tabular_parser:
+                          mode: root
+                  sub_sections:
+                    MySubsection1:
+                      repeats: true
+                      section: '#/MyRowMode'
+                    MySubsection2:
+                      repeats: true
+                      section:
+                        base_section: '#/MyColumnMode'
+        data:
+            m_def: MyMixedMode
+            data_file: Test.xlsx
+    '''), id='mixed mode')
 ])
-def test_tabular_entry_mode(raw_files, monkeypatch, schema):
+def test_tabular_mixed_mode(raw_files, monkeypatch, schema):
     '''
     Testing TabularParser parser. This feature creates an entry out of each row from the given excel/csv file
     '''
@@ -277,17 +362,22 @@ def test_tabular_entry_mode(raw_files, monkeypatch, schema):
     run_normalize(main_archive)
 
     assert main_archive.data is not None
-    if 'A test schema for excel file parsing' in schema:
+    if 'testing_modes' in schema:
         assert 'quantity_1' in main_archive.data.process
         assert main_archive.data.process.quantity_1 == 'value_1'
         if 'quantity_2' in main_archive.data.process:
             assert len(main_archive.data.process['quantity_2']) == 6
-    elif 'multiple similar columns in row mode' in schema:
+    elif 'testing_similar_cols_in_datafile' in schema:
         assert len(main_archive.data.test_subsection) == 2  # 2 rows in sheet_3 of the Excel file
         for row_index, test_subsection in enumerate(main_archive.data.test_subsection):
             for data_index, my_subsection in enumerate(test_subsection.my_subsection):
                 assert my_subsection['my_quantity_1'] == f'q1_d{data_index}_r{row_index}'
                 assert my_subsection['my_quantity_2'] == f'q2_d{data_index}_r{row_index}'
+    elif 'testing_mixed_mode' in schema:
+        assert len(main_archive.data.MySubsection1[0].MyRowModeSubsection) == 3
+        assert len(main_archive.data.MySubsection2[0].my_quantity_1) == 3
+        assert len(main_archive.data.MySubsection2[0].MyColumnModeSubsection.my_quantity_2) == 3
+        assert len(main_archive.data.MySubsection2[0].MyColumnModeSubsection.my_quantity_3) == 3
 
 
 @pytest.mark.parametrize('test_case,section_placeholder,sub_sections_placeholder,quantity_placeholder,csv_content', [

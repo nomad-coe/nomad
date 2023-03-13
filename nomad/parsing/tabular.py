@@ -110,7 +110,7 @@ class TableData(ArchiveSection):
         if not quantity_def.is_scalar:
             raise NotImplementedError('CSV parser is only implemented for single files.')
 
-        if quantity_def.default:
+        if quantity_def.default and not self.m_get(quantity_def):
             datafile_path = quantity_def.default
             if re.match(r'^#data/(\w+/)*\w+$', datafile_path):
                 self.m_set(
@@ -158,8 +158,13 @@ class TableData(ArchiveSection):
                 for section in sections:
                     self.append_section_to_subsection(section_name, section)
 
+        elif tabular_parser_mode == TabularMode.root:
+            self._prepare_root_tabular_data(create_sub_sections=True, archive=archive, logger=logger)
+            self._prepare_root_tabular_data(populate_sub_sections=True, archive=archive, logger=logger)
+
         else:
-            raise MetainfoError(f'The provided mode {tabular_parser_mode.value} should be either "column" or "row".')
+            raise MetainfoError(
+                f'The provided mode {tabular_parser_mode.value} should be either "column", "row" or "root".')
 
         # If the `fill_archive_from_datafile` checkbox is set to be hidden for this specific section, parser's logic
         # also needs to be modified to 'Always run the parser if it's been called'.
@@ -181,6 +186,31 @@ class TableData(ArchiveSection):
             self_updated.append(section_updated)
         else:
             self_updated.append(section_updated[0])
+
+    def _prepare_root_tabular_data(
+            self, create_sub_sections=False, populate_sub_sections=False, archive=None, logger=None):
+        for sub_section_name, sub_section_content in self.m_def.all_sub_sections.items():
+            if not any(
+                    'TableData' == section.name for section in sub_section_content.sub_section.all_base_sections):
+                continue
+            else:
+                if create_sub_sections:
+                    try:
+                        section_cls = sub_section_content.sub_section.section_cls()
+                        self.m_add_sub_section(sub_section_content, section_cls, -1)
+                    except Exception as e:
+                        logger.error(
+                            'could not create subsection',
+                            section=sub_section_name,
+                            exc_info=e)
+                elif populate_sub_sections:
+                    try:
+                        if isinstance(getattr(self, sub_section_name), MSubSectionList):
+                            getattr(self, sub_section_name)[0].normalize(archive, logger)
+                        else:
+                            getattr(self, sub_section_name).normalize(archive, logger)
+                    except Exception as e:
+                        logger.error('could not populate subsection', section=sub_section_name, exc_info=e)
 
 
 m_package.__init_metainfo__()
