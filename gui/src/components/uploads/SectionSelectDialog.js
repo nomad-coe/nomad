@@ -75,7 +75,7 @@ const shownColumns = [
   'entry_name',
   'entry_type',
   'authors',
-  'upload_create_time'
+  'upload_name'
 ]
 
 export async function getSectionsInfo(api, dataStore, reference, entry_id) {
