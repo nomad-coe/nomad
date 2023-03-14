@@ -41,7 +41,7 @@ m_package = Package()
 
 
 def traverse_to_target_data_file(section, path_list: List[str]):
-    if len(path_list) == 0 and isinstance(section, str):
+    if len(path_list) == 0 and (isinstance(section, str) or section is None):
         return section
     else:
         try:
@@ -110,7 +110,10 @@ class TableData(ArchiveSection):
         if not quantity_def.is_scalar:
             raise NotImplementedError('CSV parser is only implemented for single files.')
 
-        if quantity_def.default and not self.m_get(quantity_def):
+        if self.m_get(quantity_def, None) is None:
+            pass
+        elif (quantity_def.default and not self.m_get(quantity_def)) or quantity_def.default == self.m_get(
+                quantity_def):
             datafile_path = quantity_def.default
             if re.match(r'^#data/(\w+/)*\w+$', datafile_path):
                 self.m_set(
@@ -122,7 +125,7 @@ class TableData(ArchiveSection):
                 )
 
         data_file = self.m_get(quantity_def)
-        if not data_file:
+        if not data_file or re.match(r'^#data/(\w+/)*\w+$', data_file):
             return
 
         with archive.m_context.raw_file(data_file) as f:
