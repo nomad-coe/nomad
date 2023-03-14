@@ -161,8 +161,11 @@ def _generate_search_quantities():
             nested = any(x.nested for x in es_annotations)
             metadict['nested'] = nested
         else:
-            keys = ['name', 'description', 'type', 'unit', 'shape', 'aliases']
+            keys = ['name', 'description', 'type', 'unit', 'shape', 'aliases', 'aggregatable']
             metadict = search_quantity.definition.m_to_dict(with_meta=True)
+            # We UI needs to know whether the quantity can be used in
+            # aggregations or not.
+            metadict['aggregatable'] = search_quantity.aggregatable
         result = {}
         for key in keys:
             val = metadict.get(key)

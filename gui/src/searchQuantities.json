@@ -5,7 +5,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "upload_name": {
     "name": "upload_name",
@@ -13,7 +14,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "upload_create_time": {
     "name": "upload_create_time",
@@ -21,7 +23,8 @@
     "type": {
       "type_kind": "custom",
       "type_data": "nomad.metainfo.metainfo._Datetime"
-    }
+    },
+    "aggregatable": false
   },
   "entry_id": {
     "name": "entry_id",
@@ -29,7 +32,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "entry_name": {
     "name": "entry_name",
@@ -38,6 +42,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "entry_name.prefix": {
@@ -46,7 +51,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": false
   },
   "entry_type": {
     "name": "entry_type",
@@ -54,7 +60,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "calc_id": {
     "name": "calc_id",
@@ -62,7 +69,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "entry_create_time": {
     "name": "entry_create_time",
@@ -70,7 +78,8 @@
     "type": {
       "type_kind": "custom",
       "type_data": "nomad.metainfo.metainfo._Datetime"
-    }
+    },
+    "aggregatable": false
   },
   "parser_name": {
     "name": "parser_name",
@@ -78,7 +87,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "mainfile": {
     "name": "mainfile",
@@ -87,6 +97,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "mainfile.path": {
@@ -95,7 +106,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": false
   },
   "mainfile_key": {
     "name": "mainfile_key",
@@ -103,7 +115,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "mainfile_key.path": {
     "name": "mainfile_key",
@@ -111,7 +124,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": false
   },
   "files": {
     "name": "files",
@@ -122,7 +136,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": true
   },
   "files.path": {
     "name": "files",
@@ -133,7 +148,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": false
   },
   "pid": {
     "name": "pid",
@@ -141,7 +157,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "raw_id": {
     "name": "raw_id",
@@ -149,7 +166,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "external_id": {
     "name": "external_id",
@@ -157,7 +175,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "published": {
     "name": "published",
@@ -165,7 +184,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "bool"
-    }
+    },
+    "aggregatable": true
   },
   "publish_time": {
     "name": "publish_time",
@@ -173,7 +193,8 @@
     "type": {
       "type_kind": "custom",
       "type_data": "nomad.metainfo.metainfo._Datetime"
-    }
+    },
+    "aggregatable": false
   },
   "with_embargo": {
     "name": "with_embargo",
@@ -181,7 +202,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "bool"
-    }
+    },
+    "aggregatable": true
   },
   "processed": {
     "name": "processed",
@@ -189,7 +211,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "bool"
-    }
+    },
+    "aggregatable": true
   },
   "last_processing_time": {
     "name": "last_processing_time",
@@ -197,7 +220,8 @@
     "type": {
       "type_kind": "custom",
       "type_data": "nomad.metainfo.metainfo._Datetime"
-    }
+    },
+    "aggregatable": false
   },
   "processing_errors": {
     "name": "processing_errors",
@@ -208,7 +232,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": true
   },
   "nomad_version": {
     "name": "nomad_version",
@@ -216,7 +241,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "nomad_commit": {
     "name": "nomad_commit",
@@ -224,7 +250,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "comment": {
     "name": "comment",
@@ -232,7 +259,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": false
   },
   "references": {
     "name": "references",
@@ -243,7 +271,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": true
   },
   "external_db": {
     "name": "external_db",
@@ -258,7 +287,8 @@
         "OQMD",
         "Kyoto Phonopy Database"
       ]
-    }
+    },
+    "aggregatable": true
   },
   "origin": {
     "name": "origin",
@@ -266,7 +296,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "main_author.name": {
     "name": "name",
@@ -274,6 +305,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "main_author.name.text": {
@@ -281,7 +313,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": false
   },
   "main_author.user_id": {
     "name": "user_id",
@@ -289,7 +322,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "main_author": {
     "name": "main_author",
@@ -297,7 +331,8 @@
     "type": {
       "type_kind": "User",
       "type_data": "User"
-    }
+    },
+    "aggregatable": false
   },
   "authors.name": {
     "name": "name",
@@ -305,6 +340,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "authors.name.text": {
@@ -312,7 +348,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": false
   },
   "authors": {
     "name": "authors",
@@ -323,7 +360,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": false
   },
   "writers.name": {
     "name": "name",
@@ -331,6 +369,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "writers.name.text": {
@@ -338,7 +377,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": false
   },
   "writers.user_id": {
     "name": "user_id",
@@ -346,7 +386,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "writers": {
     "name": "writers",
@@ -357,7 +398,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": false
   },
   "viewers.name": {
     "name": "name",
@@ -365,6 +407,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "viewers.name.text": {
@@ -372,7 +415,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": false
   },
   "viewers.user_id": {
     "name": "user_id",
@@ -380,7 +424,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "viewers": {
     "name": "viewers",
@@ -391,7 +436,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": false
   },
   "datasets.dataset_id": {
     "name": "dataset_id",
@@ -399,7 +445,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "datasets.dataset_name": {
     "name": "dataset_name",
@@ -408,6 +455,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "datasets.doi": {
@@ -416,7 +464,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "datasets.dataset_create_time": {
     "name": "dataset_create_time",
@@ -424,7 +473,8 @@
     "type": {
       "type_kind": "custom",
       "type_data": "nomad.metainfo.metainfo._Datetime"
-    }
+    },
+    "aggregatable": false
   },
   "datasets.dataset_modified_time": {
     "name": "dataset_modified_time",
@@ -432,7 +482,8 @@
     "type": {
       "type_kind": "custom",
       "type_data": "nomad.metainfo.metainfo._Datetime"
-    }
+    },
+    "aggregatable": false
   },
   "datasets.dataset_type": {
     "name": "dataset_type",
@@ -443,7 +494,8 @@
         "owned",
         "foreign"
       ]
-    }
+    },
+    "aggregatable": true
   },
   "datasets": {
     "name": "datasets",
@@ -454,7 +506,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": false
   },
   "domain": {
     "name": "domain",
@@ -465,7 +518,8 @@
         "dft",
         "ems"
       ]
-    }
+    },
+    "aggregatable": true
   },
   "n_quantities": {
     "name": "n_quantities",
@@ -473,7 +527,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "quantities": {
     "name": "quantities",
@@ -484,7 +539,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": true
   },
   "quantities.path": {
     "name": "quantities",
@@ -495,7 +551,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": false
   },
   "sections": {
     "name": "sections",
@@ -506,7 +563,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": true
   },
   "optimade.elements": {
     "name": "elements",
@@ -637,7 +695,8 @@
     },
     "shape": [
       "1..*"
-    ]
+    ],
+    "aggregatable": true
   },
   "optimade.nelements": {
     "name": "nelements",
@@ -645,7 +704,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "optimade.elements_ratios": {
     "name": "elements_ratios",
@@ -656,7 +716,8 @@
     },
     "shape": [
       "nelements"
-    ]
+    ],
+    "aggregatable": false
   },
   "optimade.chemical_formula_descriptive": {
     "name": "chemical_formula_descriptive",
@@ -664,7 +725,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "optimade.chemical_formula_reduced": {
     "name": "chemical_formula_reduced",
@@ -672,7 +734,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "optimade.chemical_formula_hill": {
     "name": "chemical_formula_hill",
@@ -680,7 +743,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "optimade.chemical_formula_anonymous": {
     "name": "chemical_formula_anonymous",
@@ -688,7 +752,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "optimade.nperiodic_dimensions": {
     "name": "nperiodic_dimensions",
@@ -696,7 +761,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "optimade.nsites": {
     "name": "nsites",
@@ -704,7 +770,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "optimade.species_at_sites": {
     "name": "species_at_sites",
@@ -715,7 +782,8 @@
     },
     "shape": [
       "nsites"
-    ]
+    ],
+    "aggregatable": true
   },
   "optimade.structure_features": {
     "name": "structure_features",
@@ -730,7 +798,8 @@
     },
     "shape": [
       "1..*"
-    ]
+    ],
+    "aggregatable": true
   },
   "section_defs.definition_qualified_name": {
     "name": "definition_qualified_name",
@@ -738,7 +807,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "section_defs.definition_id": {
     "name": "definition_id",
@@ -746,7 +816,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "section_defs.used_directly": {
     "name": "used_directly",
@@ -754,7 +825,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "bool"
-    }
+    },
+    "aggregatable": true
   },
   "entry_references.target_reference": {
     "name": "target_reference",
@@ -762,7 +834,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "entry_references.target_entry_id": {
     "name": "target_entry_id",
@@ -770,7 +843,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "entry_references.target_name": {
     "name": "target_name",
@@ -778,7 +852,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "entry_references.target_path": {
     "name": "target_path",
@@ -786,7 +861,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "entry_references.source_name": {
     "name": "source_name",
@@ -794,7 +870,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "entry_references.source_path": {
     "name": "source_path",
@@ -802,7 +879,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "entry_references.source_quantity": {
     "name": "source_quantity",
@@ -810,7 +888,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "searchable_quantities.quantity_name": {
     "name": "quantity_name",
@@ -818,7 +897,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "searchable_quantities.section_definition": {
     "name": "section_definition",
@@ -826,7 +906,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "searchable_quantities.path": {
     "name": "path",
@@ -834,7 +915,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "searchable_quantities.keyword_value": {
     "name": "keyword_value",
@@ -842,7 +924,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "searchable_quantities.text_value": {
     "name": "text_value",
@@ -850,7 +933,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": false
   },
   "searchable_quantities.long_value": {
     "name": "long_value",
@@ -858,7 +942,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "searchable_quantities.double_value": {
     "name": "double_value",
@@ -866,7 +951,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "float"
-    }
+    },
+    "aggregatable": false
   },
   "searchable_quantities.date_value": {
     "name": "date_value",
@@ -874,7 +960,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": false
   },
   "results.material.material_id": {
     "name": "material_id",
@@ -882,7 +969,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.material.material_name": {
     "name": "material_name",
@@ -891,6 +979,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.structural_type": {
@@ -909,6 +998,7 @@
         "not processed"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.functional_type": {
@@ -921,6 +1011,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.compound_type": {
@@ -933,6 +1024,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.elements": {
@@ -1065,6 +1157,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.n_elements": {
@@ -1073,7 +1166,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.material.elements_exclusive": {
     "name": "elements_exclusive",
@@ -1081,7 +1175,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.material.chemical_formula_descriptive": {
     "name": "chemical_formula_descriptive",
@@ -1090,6 +1185,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.chemical_formula_reduced": {
@@ -1099,6 +1195,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.chemical_formula_hill": {
@@ -1108,6 +1205,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.chemical_formula_iupac": {
@@ -1117,6 +1215,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.chemical_formula_anonymous": {
@@ -1126,6 +1225,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.chemical_formula_reduced_fragments": {
@@ -1137,7 +1237,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": false
   },
   "results.material.symmetry.bravais_lattice": {
     "name": "bravais_lattice",
@@ -1162,6 +1263,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.symmetry.crystal_system": {
@@ -1180,6 +1282,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.symmetry.hall_number": {
@@ -1189,7 +1292,8 @@
       "type_kind": "numpy",
       "type_data": "int32"
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.material.symmetry.hall_symbol": {
     "name": "hall_symbol",
@@ -1199,6 +1303,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.symmetry.point_group": {
@@ -1209,6 +1314,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.symmetry.space_group_number": {
@@ -1218,7 +1324,8 @@
       "type_kind": "numpy",
       "type_data": "int32"
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.material.symmetry.space_group_symbol": {
     "name": "space_group_symbol",
@@ -1228,6 +1335,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.symmetry.prototype_formula": {
@@ -1236,7 +1344,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.material.symmetry.prototype_aflow_id": {
     "name": "prototype_aflow_id",
@@ -1245,6 +1354,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.symmetry.structure_name": {
@@ -1272,6 +1382,7 @@
         "zincblende"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.symmetry.strukturbericht_designation": {
@@ -1281,6 +1392,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.system_id": {
@@ -1289,7 +1401,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.material.topology.label": {
     "name": "label",
@@ -1297,7 +1410,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.material.topology.method": {
     "name": "method",
@@ -1309,7 +1423,8 @@
         "user",
         "matid"
       ]
-    }
+    },
+    "aggregatable": true
   },
   "results.material.topology.description": {
     "name": "description",
@@ -1317,7 +1432,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.material.topology.material_id": {
     "name": "material_id",
@@ -1325,7 +1441,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.material.topology.material_name": {
     "name": "material_name",
@@ -1334,6 +1451,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.structural_type": {
@@ -1355,6 +1473,7 @@
         "monomer"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.functional_type": {
@@ -1367,6 +1486,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.compound_type": {
@@ -1379,6 +1499,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.elements": {
@@ -1511,6 +1632,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.n_elements": {
@@ -1519,7 +1641,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.material.topology.elements_exclusive": {
     "name": "elements_exclusive",
@@ -1527,7 +1650,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.material.topology.chemical_formula_descriptive": {
     "name": "chemical_formula_descriptive",
@@ -1536,6 +1660,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.chemical_formula_reduced": {
@@ -1545,6 +1670,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.chemical_formula_hill": {
@@ -1554,6 +1680,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.chemical_formula_iupac": {
@@ -1563,6 +1690,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.chemical_formula_anonymous": {
@@ -1572,6 +1700,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.chemical_formula_reduced_fragments": {
@@ -1583,7 +1712,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": false
   },
   "results.material.topology.parent_system": {
     "name": "parent_system",
@@ -1591,7 +1721,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.material.topology.child_systems": {
     "name": "child_systems",
@@ -1602,7 +1733,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": true
   },
   "results.material.topology.n_atoms": {
     "name": "n_atoms",
@@ -1611,7 +1743,8 @@
       "type_kind": "python",
       "type_data": "int"
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.material.topology.system_relation.type": {
     "name": "type",
@@ -1622,7 +1755,8 @@
         "subsystem",
         "idealization"
       ]
-    }
+    },
+    "aggregatable": true
   },
   "results.material.topology.cell.a": {
     "name": "a",
@@ -1631,7 +1765,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.material.topology.cell.b": {
     "name": "b",
@@ -1640,7 +1775,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.material.topology.cell.c": {
     "name": "c",
@@ -1649,7 +1785,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.material.topology.cell.alpha": {
     "name": "alpha",
@@ -1658,7 +1795,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.material.topology.cell.beta": {
     "name": "beta",
@@ -1667,7 +1805,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.material.topology.cell.gamma": {
     "name": "gamma",
@@ -1676,7 +1815,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.material.topology.cell.volume": {
     "name": "volume",
@@ -1685,7 +1825,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter ** 3"
+    "unit": "meter ** 3",
+    "aggregatable": false
   },
   "results.material.topology.cell.atomic_density": {
     "name": "atomic_density",
@@ -1694,7 +1835,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "1 / meter ** 3"
+    "unit": "1 / meter ** 3",
+    "aggregatable": false
   },
   "results.material.topology.cell.mass_density": {
     "name": "mass_density",
@@ -1703,7 +1845,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "kilogram / meter ** 3"
+    "unit": "kilogram / meter ** 3",
+    "aggregatable": false
   },
   "results.material.topology.symmetry.bravais_lattice": {
     "name": "bravais_lattice",
@@ -1728,6 +1871,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.symmetry.crystal_system": {
@@ -1746,6 +1890,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.symmetry.hall_number": {
@@ -1755,7 +1900,8 @@
       "type_kind": "numpy",
       "type_data": "int32"
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.material.topology.symmetry.hall_symbol": {
     "name": "hall_symbol",
@@ -1765,6 +1911,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.symmetry.point_group": {
@@ -1775,6 +1922,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.symmetry.space_group_number": {
@@ -1784,7 +1932,8 @@
       "type_kind": "numpy",
       "type_data": "int32"
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.material.topology.symmetry.space_group_symbol": {
     "name": "space_group_symbol",
@@ -1794,6 +1943,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.symmetry.strukturbericht_designation": {
@@ -1803,6 +1953,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.prototype.aflow_id": {
@@ -1813,6 +1964,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.prototype.name": {
@@ -1822,6 +1974,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material.topology.prototype.formula": {
@@ -1830,7 +1983,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.method.method_id": {
     "name": "method_id",
@@ -1838,7 +1992,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "str"
-    }
+    },
+    "aggregatable": true
   },
   "results.method.method_name": {
     "name": "method_name",
@@ -1857,6 +2012,7 @@
         "unavailable"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.workflow_name": {
@@ -1883,6 +2039,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.program_name": {
@@ -1892,6 +2049,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.program_version": {
@@ -1901,6 +2059,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dft.basis_set_type": {
@@ -1919,6 +2078,7 @@
         "not processed"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dft.basis_set_name": {
@@ -1929,6 +2089,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dft.core_electron_treatment": {
@@ -1943,6 +2104,7 @@
         "unavailable"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dft.spin_polarized": {
@@ -1951,7 +2113,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "bool"
-    }
+    },
+    "aggregatable": true
   },
   "results.method.simulation.dft.scf_threshold_energy_change": {
     "name": "scf_threshold_energy_change",
@@ -1961,7 +2124,8 @@
       "type_data": "float64"
     },
     "unit": "joule",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.method.simulation.dft.van_der_Waals_method": {
     "name": "van_der_Waals_method",
@@ -1971,6 +2135,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dft.relativity_method": {
@@ -1985,6 +2150,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dft.smearing_kind": {
@@ -1995,6 +2161,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dft.smearing_width": {
@@ -2004,7 +2171,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.method.simulation.dft.xc_functional_type": {
     "name": "xc_functional_type",
@@ -2022,7 +2190,8 @@
         "unavailable",
         "not processed"
       ]
-    }
+    },
+    "aggregatable": true
   },
   "results.method.simulation.dft.xc_functional_names": {
     "name": "xc_functional_names",
@@ -2034,6 +2203,7 @@
     "shape": [
       "*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dft.exact_exchange_mixing_factor": {
@@ -2042,7 +2212,8 @@
     "type": {
       "type_kind": "numpy",
       "type_data": "float64"
-    }
+    },
+    "aggregatable": false
   },
   "results.method.simulation.dft.hubbard_kanamori_model.u_effective": {
     "name": "u_effective",
@@ -2052,7 +2223,8 @@
       "type_data": "float64"
     },
     "unit": "joule",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.method.simulation.dft.hubbard_kanamori_model.u": {
     "name": "u",
@@ -2062,7 +2234,8 @@
       "type_data": "float64"
     },
     "unit": "joule",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.method.simulation.dft.hubbard_kanamori_model.j": {
     "name": "j",
@@ -2072,7 +2245,8 @@
       "type_data": "float64"
     },
     "unit": "joule",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.method.simulation.projection.type": {
     "name": "type",
@@ -2085,6 +2259,7 @@
         "custom"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.projection.localization_type": {
@@ -2097,6 +2272,7 @@
         "maximally_localized"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.gw.type": {
@@ -2114,6 +2290,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.gw.basis_set_type": {
@@ -2132,6 +2309,7 @@
         "not processed"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.gw.basis_set_name": {
@@ -2142,6 +2320,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.gw.starting_point_type": {
@@ -2160,7 +2339,8 @@
         "unavailable",
         "not processed"
       ]
-    }
+    },
+    "aggregatable": true
   },
   "results.method.simulation.gw.starting_point_names": {
     "name": "starting_point_names",
@@ -2172,6 +2352,7 @@
     "shape": [
       "*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dmft.impurity_solver_type": {
@@ -2194,6 +2375,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dmft.total_filling": {
@@ -2202,7 +2384,8 @@
     "type": {
       "type_kind": "numpy",
       "type_data": "float64"
-    }
+    },
+    "aggregatable": false
   },
   "results.method.simulation.dmft.inverse_temperature": {
     "name": "inverse_temperature",
@@ -2212,7 +2395,8 @@
       "type_data": "float64"
     },
     "unit": "1 / joule",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.method.simulation.dmft.magnetic_state": {
     "name": "magnetic_state",
@@ -2226,6 +2410,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.method.simulation.dmft.u": {
@@ -2236,7 +2421,8 @@
       "type_data": "float64"
     },
     "unit": "joule",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.method.simulation.dmft.hunds_hubbard_ratio": {
     "name": "hunds_hubbard_ratio",
@@ -2244,7 +2430,8 @@
     "type": {
       "type_kind": "numpy",
       "type_data": "float64"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.n_calculations": {
     "name": "n_calculations",
@@ -2252,7 +2439,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.available_properties": {
     "name": "available_properties",
@@ -2263,7 +2451,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": true
   },
   "results.properties.structural.radial_distribution_function.type": {
     "name": "type",
@@ -2276,6 +2465,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.structural.radial_distribution_function.label": {
@@ -2286,6 +2476,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.structural.radial_distribution_function.methodology.molecular_dynamics.time_step": {
@@ -2296,7 +2487,8 @@
       "type_data": "float64"
     },
     "unit": "second",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.structural.radial_distribution_function.methodology.molecular_dynamics.ensemble_type": {
     "name": "ensemble_type",
@@ -2310,7 +2502,8 @@
         "NPH"
       ]
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": true
   },
   "results.properties.structural.radius_of_gyration.kind": {
     "name": "kind",
@@ -2320,6 +2513,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.structural.radius_of_gyration.label": {
@@ -2330,6 +2524,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.structural.radius_of_gyration.methodology.molecular_dynamics.time_step": {
@@ -2340,7 +2535,8 @@
       "type_data": "float64"
     },
     "unit": "second",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.structural.radius_of_gyration.methodology.molecular_dynamics.ensemble_type": {
     "name": "ensemble_type",
@@ -2354,7 +2550,8 @@
         "NPH"
       ]
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": true
   },
   "results.properties.dynamical.mean_squared_displacement.type": {
     "name": "type",
@@ -2367,6 +2564,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.dynamical.mean_squared_displacement.label": {
@@ -2377,6 +2575,7 @@
       "type_data": "str"
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.dynamical.mean_squared_displacement.methodology.molecular_dynamics.time_step": {
@@ -2387,7 +2586,8 @@
       "type_data": "float64"
     },
     "unit": "second",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.dynamical.mean_squared_displacement.methodology.molecular_dynamics.ensemble_type": {
     "name": "ensemble_type",
@@ -2401,7 +2601,8 @@
         "NPH"
       ]
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": true
   },
   "results.properties.structures.structure_original.nperiodic_dimensions": {
     "name": "nperiodic_dimensions",
@@ -2409,7 +2610,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.structures.structure_original.n_sites": {
     "name": "n_sites",
@@ -2417,7 +2619,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.structures.structure_original.cell_volume": {
     "name": "cell_volume",
@@ -2426,7 +2629,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter ** 3"
+    "unit": "meter ** 3",
+    "aggregatable": false
   },
   "results.properties.structures.structure_original.lattice_parameters.a": {
     "name": "a",
@@ -2435,7 +2639,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.structures.structure_original.lattice_parameters.b": {
     "name": "b",
@@ -2444,7 +2649,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.structures.structure_original.lattice_parameters.c": {
     "name": "c",
@@ -2453,7 +2659,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.structures.structure_original.lattice_parameters.alpha": {
     "name": "alpha",
@@ -2462,7 +2669,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.structures.structure_original.lattice_parameters.beta": {
     "name": "beta",
@@ -2471,7 +2679,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.structures.structure_original.lattice_parameters.gamma": {
     "name": "gamma",
@@ -2480,7 +2689,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.structures.structure_conventional.nperiodic_dimensions": {
     "name": "nperiodic_dimensions",
@@ -2488,7 +2698,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.structures.structure_conventional.n_sites": {
     "name": "n_sites",
@@ -2496,7 +2707,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.structures.structure_conventional.cell_volume": {
     "name": "cell_volume",
@@ -2505,7 +2717,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter ** 3"
+    "unit": "meter ** 3",
+    "aggregatable": false
   },
   "results.properties.structures.structure_conventional.lattice_parameters.a": {
     "name": "a",
@@ -2514,7 +2727,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.structures.structure_conventional.lattice_parameters.b": {
     "name": "b",
@@ -2523,7 +2737,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.structures.structure_conventional.lattice_parameters.c": {
     "name": "c",
@@ -2532,7 +2747,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.structures.structure_conventional.lattice_parameters.alpha": {
     "name": "alpha",
@@ -2541,7 +2757,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.structures.structure_conventional.lattice_parameters.beta": {
     "name": "beta",
@@ -2550,7 +2767,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.structures.structure_conventional.lattice_parameters.gamma": {
     "name": "gamma",
@@ -2559,7 +2777,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.structures.structure_primitive.nperiodic_dimensions": {
     "name": "nperiodic_dimensions",
@@ -2567,7 +2786,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.structures.structure_primitive.n_sites": {
     "name": "n_sites",
@@ -2575,7 +2795,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.structures.structure_primitive.cell_volume": {
     "name": "cell_volume",
@@ -2584,7 +2805,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter ** 3"
+    "unit": "meter ** 3",
+    "aggregatable": false
   },
   "results.properties.structures.structure_primitive.lattice_parameters.a": {
     "name": "a",
@@ -2593,7 +2815,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.structures.structure_primitive.lattice_parameters.b": {
     "name": "b",
@@ -2602,7 +2825,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.structures.structure_primitive.lattice_parameters.c": {
     "name": "c",
@@ -2611,7 +2835,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.structures.structure_primitive.lattice_parameters.alpha": {
     "name": "alpha",
@@ -2620,7 +2845,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.structures.structure_primitive.lattice_parameters.beta": {
     "name": "beta",
@@ -2629,7 +2855,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.structures.structure_primitive.lattice_parameters.gamma": {
     "name": "gamma",
@@ -2638,7 +2865,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.electronic.band_structure_electronic.spin_polarized": {
     "name": "spin_polarized",
@@ -2646,7 +2874,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "bool"
-    }
+    },
+    "aggregatable": true
   },
   "results.properties.electronic.band_structure_electronic.band_gap.index": {
     "name": "index",
@@ -2654,7 +2883,8 @@
     "type": {
       "type_kind": "numpy",
       "type_data": "int32"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.electronic.band_structure_electronic.band_gap.value": {
     "name": "value",
@@ -2664,7 +2894,8 @@
       "type_data": "float64"
     },
     "unit": "joule",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.electronic.band_structure_electronic.band_gap.type": {
     "name": "type",
@@ -2677,6 +2908,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.electronic.dos_electronic.spin_polarized": {
@@ -2685,7 +2917,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "bool"
-    }
+    },
+    "aggregatable": true
   },
   "results.properties.electronic.dos_electronic.band_gap.index": {
     "name": "index",
@@ -2693,7 +2926,8 @@
     "type": {
       "type_kind": "numpy",
       "type_data": "int32"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.electronic.dos_electronic.band_gap.value": {
     "name": "value",
@@ -2703,7 +2937,8 @@
       "type_data": "float64"
     },
     "unit": "joule",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.electronic.dos_electronic.band_gap.type": {
     "name": "type",
@@ -2716,6 +2951,7 @@
       ]
     },
     "shape": [],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.optoelectronic.solar_cell.efficiency": {
@@ -2725,7 +2961,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.optoelectronic.solar_cell.fill_factor": {
     "name": "fill_factor",
@@ -2734,7 +2971,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.optoelectronic.solar_cell.open_circuit_voltage": {
     "name": "open_circuit_voltage",
@@ -2744,7 +2982,8 @@
       "type_data": "float64"
     },
     "unit": "volt",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.optoelectronic.solar_cell.short_circuit_current_density": {
     "name": "short_circuit_current_density",
@@ -2754,7 +2993,8 @@
       "type_data": "float64"
     },
     "unit": "ampere / meter ** 2",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.optoelectronic.solar_cell.illumination_intensity": {
     "name": "illumination_intensity",
@@ -2764,7 +3004,8 @@
       "type_data": "float64"
     },
     "unit": "watt / meter ** 2",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.optoelectronic.solar_cell.device_area": {
     "name": "device_area",
@@ -2774,7 +3015,8 @@
       "type_data": "float64"
     },
     "unit": "meter ** 2",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.optoelectronic.solar_cell.device_architecture": {
     "name": "device_architecture",
@@ -2783,6 +3025,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.optoelectronic.solar_cell.device_stack": {
@@ -2795,6 +3038,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.optoelectronic.solar_cell.absorber": {
@@ -2807,6 +3051,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.optoelectronic.solar_cell.absorber_fabrication": {
@@ -2819,6 +3064,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.optoelectronic.solar_cell.electron_transport_layer": {
@@ -2831,6 +3077,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.optoelectronic.solar_cell.hole_transport_layer": {
@@ -2843,6 +3090,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.optoelectronic.solar_cell.substrate": {
@@ -2855,6 +3103,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.optoelectronic.solar_cell.back_contact": {
@@ -2867,6 +3116,7 @@
     "shape": [
       "0..*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.mechanical.energy_volume_curve.type": {
@@ -2886,6 +3136,7 @@
         "murnaghan"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.mechanical.bulk_modulus.type": {
@@ -2908,6 +3159,7 @@
         "voigt_reuss_hill_average"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.mechanical.bulk_modulus.value": {
@@ -2917,7 +3169,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "pascal"
+    "unit": "pascal",
+    "aggregatable": false
   },
   "results.properties.mechanical.shear_modulus.type": {
     "name": "type",
@@ -2930,6 +3183,7 @@
         "voigt_reuss_hill_average"
       ]
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.mechanical.shear_modulus.value": {
@@ -2939,7 +3193,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "pascal"
+    "unit": "pascal",
+    "aggregatable": false
   },
   "results.properties.thermodynamic.trajectory.available_properties": {
     "name": "available_properties",
@@ -2955,7 +3210,8 @@
     },
     "shape": [
       "0..*"
-    ]
+    ],
+    "aggregatable": true
   },
   "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step": {
     "name": "time_step",
@@ -2965,7 +3221,8 @@
       "type_data": "float64"
     },
     "unit": "second",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type": {
     "name": "ensemble_type",
@@ -2979,7 +3236,8 @@
         "NPH"
       ]
     },
-    "shape": []
+    "shape": [],
+    "aggregatable": true
   },
   "results.properties.spectroscopy.eels.detector_type": {
     "name": "detector_type",
@@ -2987,6 +3245,7 @@
       "type_kind": "python",
       "type_data": "str"
     },
+    "aggregatable": true,
     "suggestion": true
   },
   "results.properties.spectroscopy.eels.resolution": {
@@ -2995,7 +3254,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "joule"
+    "unit": "joule",
+    "aggregatable": false
   },
   "results.properties.spectroscopy.eels.max_energy": {
     "name": "max_energy",
@@ -3003,7 +3263,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "joule"
+    "unit": "joule",
+    "aggregatable": false
   },
   "results.properties.spectroscopy.eels.min_energy": {
     "name": "min_energy",
@@ -3011,7 +3272,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "joule"
+    "unit": "joule",
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.convergence_tolerance_energy_difference": {
     "name": "convergence_tolerance_energy_difference",
@@ -3021,7 +3283,8 @@
       "type_data": "float64"
     },
     "unit": "joule",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.convergence_tolerance_force_maximum": {
     "name": "convergence_tolerance_force_maximum",
@@ -3031,7 +3294,8 @@
       "type_data": "float64"
     },
     "unit": "newton",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.final_force_maximum": {
     "name": "final_force_maximum",
@@ -3041,7 +3305,8 @@
       "type_data": "float64"
     },
     "unit": "newton",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.final_energy_difference": {
     "name": "final_energy_difference",
@@ -3051,7 +3316,8 @@
       "type_data": "float64"
     },
     "unit": "joule",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.final_displacement_maximum": {
     "name": "final_displacement_maximum",
@@ -3061,7 +3327,8 @@
       "type_data": "float64"
     },
     "unit": "meter",
-    "shape": []
+    "shape": [],
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.structure_optimized.nperiodic_dimensions": {
     "name": "nperiodic_dimensions",
@@ -3069,7 +3336,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.structure_optimized.n_sites": {
     "name": "n_sites",
@@ -3077,7 +3345,8 @@
     "type": {
       "type_kind": "python",
       "type_data": "int"
-    }
+    },
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.structure_optimized.cell_volume": {
     "name": "cell_volume",
@@ -3086,7 +3355,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter ** 3"
+    "unit": "meter ** 3",
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.structure_optimized.lattice_parameters.a": {
     "name": "a",
@@ -3095,7 +3365,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.structure_optimized.lattice_parameters.b": {
     "name": "b",
@@ -3104,7 +3375,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.structure_optimized.lattice_parameters.c": {
     "name": "c",
@@ -3113,7 +3385,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "meter"
+    "unit": "meter",
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.structure_optimized.lattice_parameters.alpha": {
     "name": "alpha",
@@ -3122,7 +3395,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.structure_optimized.lattice_parameters.beta": {
     "name": "beta",
@@ -3131,7 +3405,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.properties.geometry_optimization.structure_optimized.lattice_parameters.gamma": {
     "name": "gamma",
@@ -3140,7 +3415,8 @@
       "type_kind": "numpy",
       "type_data": "float64"
     },
-    "unit": "radian"
+    "unit": "radian",
+    "aggregatable": false
   },
   "results.eln.sections": {
     "name": "sections",
@@ -3151,7 +3427,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": true
   },
   "results.eln.tags": {
     "name": "tags",
@@ -3162,7 +3439,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": true
   },
   "results.eln.names": {
     "name": "names",
@@ -3173,7 +3451,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": false
   },
   "results.eln.descriptions": {
     "name": "descriptions",
@@ -3184,7 +3463,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": false
   },
   "results.eln.instruments": {
     "name": "instruments",
@@ -3195,7 +3475,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": true
   },
   "results.eln.methods": {
     "name": "methods",
@@ -3206,7 +3487,8 @@
     },
     "shape": [
       "*"
-    ]
+    ],
+    "aggregatable": true
   },
   "results.eln.lab_ids": {
     "name": "lab_ids",
@@ -3218,6 +3500,7 @@
     "shape": [
       "*"
     ],
+    "aggregatable": true,
     "suggestion": true
   },
   "results.material": {
