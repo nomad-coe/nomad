@@ -35,7 +35,7 @@ const suggestionQuantities = [{'name': 'entry_name', 'size': 10}, {'name': 'main
 const quantitiesAllSet = new Set(['entry_name', 'mainfile'])
 
 const entryFilterOptions = (option) => {
-    return `${option.mainfile}|${option.entry_name}|${option.upload_id}|${option.entry_id}`
+    return `${option.mainfile}|${option.entry_name}|${option.upload_name || option.upload_id}|${option.entry_id}`
 }
 
 const pathFilterOptions = (option) => {
@@ -112,6 +112,7 @@ function SectionSelectAutocomplete(props) {
       const data = response?.data?.map(entry => {
         return {
           upload_id: entry.upload_id,
+          upload_name: entry.upload_name,
           entry_id: entry.entry_id,
           mainfile: entry.mainfile,
           entry_name: entry.entry_name,
@@ -224,7 +225,7 @@ function SectionSelectAutocomplete(props) {
         return <ListItemText
           key={option.entry_id}
           primary={option?.entry_name || option.mainfile}
-          secondary={`upload id: ${option.upload_id}`}
+          secondary={option?.upload_name ? `upload name: ${option.upload_name}` : `upload id: ${option.upload_id}`}
           onClick={(event) => handleEntryClicked(event, option)}
           data-testid={'section-select-entry-activated'}/>
       } else {
