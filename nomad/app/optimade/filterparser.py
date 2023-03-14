@@ -36,7 +36,7 @@ class FilterException(Exception):
 
 
 @cached(cache={})
-def _get_transformer(without_prefix):
+def _get_transformer(without_prefix, **kwargs):
     from nomad.datamodel import OptimadeEntry
     quantities: Dict[str, Quantity] = {
         q.name: Quantity(
@@ -67,7 +67,7 @@ def _get_transformer(without_prefix):
                     backend_field=search_quantity.search_field,
                     elastic_mapping_type=search_quantity.mapping['type'])
 
-    return ElasticTransformer(quantities=quantities)
+    return ElasticTransformer(quantities=quantities, **kwargs)
 
 
 def parse_filter(filter_str: str, without_prefix=False) -> Q:
@@ -82,7 +82,8 @@ def parse_filter(filter_str: str, without_prefix=False) -> Q:
         FilterException: If the given str cannot be parsed, or if there are any semantic
             errors in the given expression.
     '''
-    transformer = _get_transformer(without_prefix)
+    from .elasticsearch import NomadStructureMapper
+    transformer = _get_transformer(without_prefix, mapper=NomadStructureMapper)
 
     try:
         parse_tree = _parser.parse(filter_str)

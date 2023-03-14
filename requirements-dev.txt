@@ -72,7 +72,7 @@ escapism==1.0.1           # via -r requirements.txt, dockerspawner
 essential-generators==1.0  # via nomad-lab (pyproject.toml)
 et-xmlfile==1.1.0         # via -r requirements.txt, openpyxl
 executing==0.10.0         # via devtools
-fastapi==0.92.0           # via -r requirements.txt, nomad-lab (pyproject.toml), optimade
+fastapi==0.92.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
 fasteners==0.18           # via -r requirements.txt, zarr
 fastjsonschema==2.16.2    # via -r requirements.txt, nbformat
 filelock==3.3.1           # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -128,7 +128,7 @@ jupyterlab-pygments==0.2.2  # via -r requirements.txt, nbconvert
 keyring==23.11.0          # via twine
 kiwisolver==1.4.4         # via -r requirements.txt, matplotlib
 kombu==4.6.11             # via -r requirements.txt, celery
-lark-parser==0.12.0       # via -r requirements.txt, optimade
+lark==1.1.5               # via -r requirements.txt, optimade
 latexcodec==2.0.1         # via -r requirements.txt, pybtex
 lazy-object-proxy==1.9.0  # via astroid
 llvmlite==0.39.1          # via -r requirements.txt, numba
@@ -177,7 +177,7 @@ numpy==1.21.6             # via -r requirements.txt, ase, biopython, cftime, das
 oauthenticator==14.2.0    # via -r requirements.txt, nomad-lab (pyproject.toml)
 oauthlib==3.2.2           # via -r requirements.txt, jupyterhub
 openpyxl==3.0.9           # via -r requirements.txt, nomad-lab (pyproject.toml)
-optimade[mongo]==0.18.0   # via -r requirements.txt, nomad-lab (pyproject.toml)
+optimade[mongo]==0.22.1   # via -r requirements.txt, nomad-lab (pyproject.toml)
 orjson==3.6.0             # via -r requirements.txt, h5grove, nomad-lab (pyproject.toml)
 packaging==23.0           # via -r requirements.txt, build, dask, docker, hyperspy, ipykernel, jupyter-server, matplotlib, mdanalysis, mkdocs, mongomock, nbconvert, pint, scikit-image, sphinx
 palettable==3.3.0         # via -r requirements.txt, pymatgen

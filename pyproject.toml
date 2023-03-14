@@ -62,7 +62,7 @@ parsing = [
     'toposort',
 ]
 infrastructure = [
-    'optimade[mongo]==0.18.0',
+    'optimade[mongo]==0.22.1',
     'structlog',
     'elasticsearch==7.17.1',
     'msgpack',

@@ -28,6 +28,12 @@ class NomadStructureMapper(StructureMapper):
         # find method below
         return results
 
+    @classmethod
+    def map_back(cls, doc):
+        # We are not doing this here, but will do it in the overwritten StructureCollection
+        # find method below
+        return doc
+
     @classproperty
     def ALL_ATTRIBUTES(cls) -> Set[str]:  # pylint: disable=no-self-argument
         result = getattr(cls, '_ALL_ATTRIBUTES', None)
@@ -44,7 +50,7 @@ class StructureCollection(EntryCollection):
         super().__init__(
             resource_cls=StructureResource,
             resource_mapper=NomadStructureMapper,
-            transformer=get_transformer(without_prefix=False))
+            transformer=get_transformer(without_prefix=False, mapper=NomadStructureMapper))
 
         self.parser = LarkParser(version=(1, 0, 0), variant="default")
 
