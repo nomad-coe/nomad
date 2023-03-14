@@ -328,7 +328,7 @@ def test_entries_all_metrics(client, example_data):
                 'quantity': quantity, 'metrics': [metric for metric in entry_type.metrics]
             }
         }
-        for quantity in entry_type.quantities if entry_type.quantities[quantity].aggregateable}
+        for quantity in entry_type.quantities if entry_type.quantities[quantity].aggregatable}
     response_json = perform_entries_metadata_test(
         client, aggregations=aggregations, status_code=200, http_method='post')
     for name, agg in aggregations.items():

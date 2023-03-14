@@ -696,7 +696,7 @@ def _api_to_es_aggregation(
     es_agg = None
 
     if isinstance(agg, TermsAggregation):
-        if not quantity.aggregateable:
+        if not quantity.aggregatable:
             raise QueryValidationError(
                 'The aggregation quantity cannot be used in a terms aggregation.',
                 loc=['aggregation', name, 'terms', 'quantity'])

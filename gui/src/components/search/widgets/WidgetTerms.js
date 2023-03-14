@@ -301,7 +301,8 @@ export const WidgetTermsEdit = React.memo((props) => {
             onSelect={(value) => handleAccept('quantity', value)}
             onError={(value) => handleError('quantity', value)}
             dtypes={new Set([DType.String, DType.Enum])}
-            repeats={true}
+            dtypesRepeatable={new Set([DType.String, DType.Enum])}
+            disableNonAggregatable
           />
         </WidgetEditOption>
         <WidgetEditOption>

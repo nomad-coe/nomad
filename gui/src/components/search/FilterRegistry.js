@@ -139,10 +139,11 @@ function saveFilter(name, group, config, parent) {
   }
 
   const data = filterData[name] || {}
+  const metadata = searchQuantities[name]
   const parts = name.split('.')
   const path = []
   function getRepeats(name) {
-    return searchQuantities[name]?.repeats || !isEmpty(searchQuantities[name]?.shape)
+    return metadata?.repeats || !isEmpty(metadata?.shape)
   }
   data.repeatsRecursive = false
   for (const part of parts) {
@@ -158,21 +159,22 @@ function saveFilter(name, group, config, parent) {
   data.placeholder = config.placeholder
   data.multiple = config.multiple === undefined ? true : config.multiple
   data.exclusive = config.exclusive === undefined ? true : config.exclusive
-  data.unit = config.unit || searchQuantities[name]?.unit
+  data.unit = config.unit || metadata?.unit
   data.dtype = config.dtype || getDatatype(name)
   data.customSerialization = !!config.serializerExact
   data.serializerExact = config.serializerExact || getSerializer(data.dtype, false)
   data.serializerPretty = config.serializerPretty || getSerializer(data.dtype, true)
   data.dimension = data.unit && new Unit(data.unit).dimension()
   data.deserializer = config.deserializer || getDeserializer(data.dtype, data.dimension)
-  data.label = config.label || formatLabel(searchQuantities[name]?.name || name)
+  data.label = config.label || formatLabel(metadata?.name || name)
   data.labelFull = parent ? `${filterData[parent].label} ${data.label}` : data.label
-  data.nested = searchQuantities[name]?.nested
+  data.nested = metadata?.nested
+  data.aggregatable = metadata?.aggregatable
   data.section = !isNil(data.nested)
   data.repeats = config.repeats === undefined ? getRepeats(name) : config.repeats
-  data.widget = config.widget || getWidgetConfig(data.dtype)
+  data.widget = config.widget || getWidgetConfig(data.dtype, metadata?.aggregatable)
   data.parent = parent
-  data.description = config.description || searchQuantities[name]?.description
+  data.description = config.description || metadata?.description
   data.scale = config.scale || 'linear'
   if (data.queryMode && !data.multiple) {
     throw Error('Only filters that accept multiple values may have a query mode.')
@@ -275,17 +277,18 @@ const ptWidgetConfig = {
 }
 
 /**
- * Tries to automatically create a suitable widget config for the given
+ * Tries to automatically create a default widget config for the given
  * quantity.
  *
  * @param {string} parent Parent quantity
  * @param {DType} dtype Datatype of the quantity
+ * @param {bool} aggregatable Whether the quantity is aggregatable
  * @returns A widget config object.
  */
-const getWidgetConfig = (dtype) => {
+const getWidgetConfig = (dtype, aggregatable) => {
   if (dtype === DType.Float || dtype === DType.Int || dtype === DType.Timestamp) {
     return histogramWidgetConfig
-  } else {
+  } else if (aggregatable) {
     return termsWidgetConfig
   }
 }
@@ -391,8 +394,8 @@ registerFilter('results.eln.tags', idELN, termQuantity)
 registerFilter('results.eln.methods', idELN, termQuantity)
 registerFilter('results.eln.instruments', idELN, termQuantity)
 registerFilter('results.eln.lab_ids', idELN, termQuantity)
-registerFilter('results.eln.names', idELN, termQuantity)
-registerFilter('results.eln.descriptions', idELN, termQuantity)
+registerFilter('results.eln.names', idELN, noAggQuantity)
+registerFilter('results.eln.descriptions', idELN, noAggQuantity)
 registerFilter('external_db', idAuthor, {...termQuantity, label: 'External Database', scale: '1/4'})
 registerFilter('authors.name', idAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
 registerFilter('upload_create_time', idAuthor, {...numberHistogramQuantity, scale: '1/2'})

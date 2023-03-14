@@ -464,23 +464,25 @@ export const InputSearchMetainfo = React.memo(({
   onError,
   dtypes,
   dtypesRepeatable,
-  optional
+  optional,
+  disableNonAggregatable
 }) => {
   const { filterData } = useSearchContext()
 
   // Fetch the available metainfo names and create options that are compatible
   // with InputMetainfo.
   const suggestions = useMemo(() => {
-    const suggestions = Object.keys(filterData)
-      .filter((d) => {
-        const dtype = filterData[d]?.dtype
-        return filterData[d]?.repeatsRecursive
+    const suggestions = Object.entries(filterData)
+      .filter(([key, data]) => {
+        if (disableNonAggregatable && !data.aggregatable) return false
+        const dtype = data?.dtype
+        return data?.repeatsRecursive
           ? dtypesRepeatable?.has(dtype)
           : dtypes?.has(dtype)
       })
-      .map((d) => ({path: d}))
+      .map(([key, data]) => ({path: key, description: data.description}))
     return suggestions
-  }, [filterData, dtypes, dtypesRepeatable])
+  }, [filterData, dtypes, dtypesRepeatable, disableNonAggregatable])
 
   return <InputMetainfo
     options={suggestions}
@@ -503,9 +505,14 @@ InputSearchMetainfo.propTypes = {
   onSelect: PropTypes.func,
   onAccept: PropTypes.func,
   onError: PropTypes.func,
+  /* List of allowed data types for non-repeatable quantities. */
   dtypes: PropTypes.object,
+  /* List of allowed data types for repeatable quantities. */
   dtypesRepeatable: PropTypes.object,
-  optional: PropTypes.bool
+  /* Whether the value is optional */
+  optional: PropTypes.bool,
+  /* Whether non-aggregatable values are excluded */
+  disableNonAggregatable: PropTypes.bool
 }
 
 /**

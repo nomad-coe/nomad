@@ -828,7 +828,7 @@ class SearchQuantity():
             Same name as qualified_field. This will be used to address the search
             property in our APIs.
         definition: The metainfo quantity definition that this search quantity is based on
-        aggregateable:
+        aggregatable:
             A boolean that determines, if this quantity can be used in aggregations.
     '''
     def __init__(self, annotation: Elasticsearch, doc_type: DocumentType, prefix: str):
@@ -858,7 +858,7 @@ class SearchQuantity():
         return self.annotation.definition
 
     @property
-    def aggregateable(self):
+    def aggregatable(self):
         if isinstance(self.definition.type, Reference):
             return False
 

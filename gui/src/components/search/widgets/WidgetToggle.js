@@ -32,6 +32,10 @@ const WidgetToggle = React.memo(({quantity, disabled, 'data-testid': testID}) =>
   const addWidget = useAddWidget()
   const removeWidget = useRemoveWidget()
   const hasWidget = !!widget
+  const widgetDefault = filterData[quantity]?.widget
+
+  // If there is no default widget configured, then do not show the toggle.
+  if (!widgetDefault) return null
 
   return <Action
     tooltip={hasWidget
@@ -46,7 +50,7 @@ const WidgetToggle = React.memo(({quantity, disabled, 'data-testid': testID}) =>
         editing: false,
         visible: true,
         quantity: quantity,
-        ...cloneDeep(filterData[quantity].widget),
+        ...cloneDeep(widgetDefault),
         scale: filterData[quantity].scale
       }
       if (hasWidget) {
