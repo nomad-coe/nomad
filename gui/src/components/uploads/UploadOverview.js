@@ -18,7 +18,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
-  TextField, Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
+  Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
   Input, DialogTitle, DialogContent, Dialog, LinearProgress, IconButton, Accordion, AccordionSummary, AccordionDetails} from '@material-ui/core'
 import { useDropzone } from 'react-dropzone'
 import UploadIcon from '@material-ui/icons/CloudUpload'
@@ -29,7 +29,6 @@ import FilesBrower from './FilesBrowser'
 import { useErrors } from '../errors'
 import ProcessingTable from './ProcessingTable'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import EditIcon from '@material-ui/icons/Edit'
 import DeleteIcon from '@material-ui/icons/Delete'
 import ReprocessIcon from '@material-ui/icons/Autorenew'
 import WithButton from '../utils/WithButton'
@@ -50,6 +49,7 @@ import { useApi } from '../api'
 import ReloadIcon from '@material-ui/icons/Replay'
 import { formatTimestamp } from '../../utils'
 import DialogLink from '../utils/DialogLink'
+import UploadName from './UploadName'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -111,48 +111,6 @@ function UploadStatus({upload, ...props}) {
 }
 UploadStatus.propTypes = {
   upload: PropTypes.object
-}
-
-const useUploadNameStyles = makeStyles(theme => ({
-  edit: {
-    display: 'flex',
-    alignItems: 'center',
-    '& button': {
-      marginLeft: theme.spacing(2)
-    }
-  }
-}))
-
-function UploadName({upload_name, onChange}) {
-  const [edit, setEdit] = useState(false)
-  const [value, setValue] = useState(null)
-  const classes = useUploadNameStyles()
-
-  const handleSave = () => {
-    setEdit(false)
-    if (onChange) {
-      onChange(value)
-    }
-  }
-
-  if (edit) {
-    return <div className={classes.edit}>
-      <TextField value={value} onChange={event => setValue(event.target.value)} fullWidth />
-      <Button size="small" variant="contained" onClick={handleSave}>save</Button>
-    </div>
-  }
-
-  return <WithButton size="small"
-    icon={<EditIcon style={{fontSize: 24}} />} onClick={() => { setEdit(true); setValue(upload_name) }}
-  >
-    <Typography variant="h6">
-      {upload_name || <i>unnamed upload</i>}
-    </Typography>
-  </WithButton>
-}
-UploadName.propTypes = {
-  upload_name: PropTypes.string,
-  onChange: PropTypes.func
 }
 
 function PublishUpload({upload, onPublish}) {
@@ -364,7 +322,7 @@ function UploadOverview(props) {
 
   const handleNameChange = (upload_name) => {
     api.post(`/uploads/${uploadId}/edit`, {metadata: {upload_name: upload_name}})
-      .then(requestRefreshUpload())
+      .then(() => requestRefreshUpload())
       .catch(raiseError)
   }
 
@@ -377,7 +335,7 @@ function UploadOverview(props) {
   const handleLiftEmbargo = () => {
     setOpenEmbargoConfirmDialog(false)
     api.post(`/uploads/${uploadId}/edit`, {metadata: {embargo_length: 0}})
-      .then(requestRefreshUpload())
+      .then(() => requestRefreshUpload())
       .catch(raiseError)
   }
 
