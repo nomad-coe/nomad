@@ -11,5 +11,6 @@
         "description": "A FAIR data sharing platform for materials science data",
         "prefix": "nmd",
         "homepage": "https://nomad-lab.eu"
-    }
+    },
+    "validate_api_response": false
 }
