@@ -47,3 +47,10 @@ def test_get_user(user_management: UserManagement, key, value):
     user = user_management.get_user(**{key: value})
     assert user is not None
     assert getattr(user, key) == (value if key != 'email' else None)
+
+
+def test_get_admin_user(monkeypatch, user_management: UserManagement):
+    user = user_management.get_user(username='scooper')
+    assert user is not None
+    monkeypatch.setattr('nomad.config.services.admin_user_id', user.user_id)
+    assert user.is_admin
