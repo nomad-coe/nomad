@@ -587,7 +587,7 @@ parsers = [
     MatchingParserInterface(
         'workflowparsers.PhonopyParser',
         metadata_path=f'{prefix_workflow}/phonopy/metadata.yaml',
-        mainfile_name_re=(r'(.*/phonopy-FHI-aims-displacement-0*1/control.in$)|(.*/phon.+yaml)')
+        mainfile_name_re=(r'(.*/phonopy-FHI-aims-displacement-0*1/control.in$)|(.*/phon[^/]+yaml)')
     ),
     MatchingParserInterface(
         'eelsdbparser.EELSDBParser',
