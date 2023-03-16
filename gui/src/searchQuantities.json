@@ -2277,7 +2277,7 @@
   },
   "results.method.simulation.gw.type": {
     "name": "type",
-    "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `\"G0W0\"`  | single-shot                      | -                     |\n\n| `\"scGW\"`  | self-consistent GW               | PRB 88, 075105 (2013) |\n\n| `\"scGW0\"` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `\"scG0W\"` | self-consistent W with fixed G0  | -                     |\n\n| `\"ev-scGW\"`  | eigenvalues self-consistent GW   | PRB 34, 5390 (1986)   |\n\n| `\"qp-scGW\"`  | quasiparticle self-consistent GW | PRL 96, 226402 (2006) |",
+    "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `\"G0W0\"`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `\"scGW\"`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `\"scGW0\"` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `\"scG0W\"` | self-consistent W with fixed G0  | -                     |\n\n| `\"ev-scGW0\"`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `\"ev-scGW\"`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `\"qp-scGW0\"`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `\"qp-scGW\"`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
     "type": {
       "type_kind": "Enum",
       "type_data": [
@@ -2285,7 +2285,9 @@
         "scGW",
         "scGW0",
         "scG0W",
+        "ev-scGW0",
         "ev-scGW",
+        "qp-scGW0",
         "qp-scGW"
       ]
     },
