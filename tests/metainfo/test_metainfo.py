@@ -643,6 +643,19 @@ class TestM1:
         test_section.list[0] = '2'
         assert test_section.derived == '21'
 
+    def test_derived_deserialize(self):
+        class TestSection(MSection):
+            value = Quantity(type=str, derived=lambda _: 'test_value')
+
+        test_section = TestSection()
+        assert test_section.value == 'test_value'
+
+        with pytest.raises(MetainfoError):
+            test_section = TestSection(value='wrong')
+
+        test_section = TestSection.m_from_dict({'test_value': 'wrong'})
+        assert test_section.value == 'test_value'
+
     def test_extension(self):
         run = Run()
         run.m_as(VaspRun).x_vasp_raw_format = 'outcar'
