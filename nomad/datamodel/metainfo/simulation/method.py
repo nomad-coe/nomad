@@ -947,7 +947,7 @@ class GW(MSection):
     m_def = Section(validate=False)
 
     type = Quantity(
-        type=MEnum(["G0W0", "scGW", "scGW0", "scG0W", "ev-scGW", "qp-scGW"]),
+        type=MEnum(["G0W0", "scGW", "scGW0", "scG0W", "ev-scGW0", "ev-scGW", "qp-scGW0", "qp-scGW"]),
         shape=[],
         description='''
         GW Hedin's self-consistency cycle:
@@ -956,21 +956,25 @@ class GW(MSection):
 
         | --------- | -------------------------------- | --------------------- |
 
-        | `"G0W0"`  | single-shot                      | -                     |
+        | `"G0W0"`  | single-shot                      | PRB 74, 035101 (2006) |
 
-        | `"scGW"`  | self-consistent GW               | PRB 88, 075105 (2013) |
+        | `"scGW"`  | self-consistent G and W               | PRB 75, 235102 (2007) |
 
         | `"scGW0"` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |
 
         | `"scG0W"` | self-consistent W with fixed G0  | -                     |
 
-        | `"ev-scGW"`  | eigenvalues self-consistent GW   | PRB 34, 5390 (1986)   |
+        | `"ev-scGW0"`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |
 
-        | `"qp-scGW"`  | quasiparticle self-consistent GW | PRL 96, 226402 (2006) |
+        | `"ev-scGW"`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |
+
+        | `"qp-scGW0"`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |
+
+        | `"qp-scGW"`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |
         ''')
 
     analytical_continuation = Quantity(
-        type=MEnum(["pade", "countour_deformation", "ppm_GodbyNeeds", "ppm_HybertsenLouie", "ppm_vonderLindenHorsh", "ppm_FaridEngel", "multi_pole"]),
+        type=MEnum(["pade", "contour_deformation", "ppm_GodbyNeeds", "ppm_HybertsenLouie", "ppm_vonderLindenHorsh", "ppm_FaridEngel", "multi_pole"]),
         shape=[],
         description='''
         Analytical continuation approximations of the GW self-energy:
@@ -981,7 +985,7 @@ class GW(MSection):
 
         | `"pade"` | Pade's approximant  | J. Low Temp. Phys 29, 179 (1977) |
 
-        | `"countour_deformation"` | Contour deformation | PRB 67, 155208 (2003) |
+        | `"contour_deformation"` | Contour deformation | PRB 67, 155208 (2003) |
 
         | `"ppm_GodbyNeeds"` | Godby-Needs plasmon-pole model | PRL 62, 1169 (1989) |
 
@@ -1006,18 +1010,25 @@ class GW(MSection):
         calculated.
         ''')
 
+    n_states_self_energy = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Number of states used in the calculation of the GW self energy.
+        ''')
+
     n_empty_states_polarizability = Quantity(
         type=np.int32,
         shape=[],
         description='''
-        Number of empty states used to compute the polarizability P
+        Number of empty states used in the calculation of the polarizability.
         ''')
 
     n_empty_states_self_energy = Quantity(
         type=np.int32,
         shape=[],
         description='''
-        Number of empty states to be used to calculate the correlation self energy.
+        Number of empty states used in the calculation of the GW self energy.
         ''')
 
 
