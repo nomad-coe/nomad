@@ -2218,6 +2218,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 quantity_def = property_def
                 quantity_value = dct[name]
 
+                if quantity_def.virtual:
+                    # We silently ignore this, similar to how we ignore additional values.
+                    continue
+
                 if quantity_def.use_full_storage:
                     if not isinstance(quantity_value, dict):
                         raise MetainfoError('Full storage quantity must be a dict')

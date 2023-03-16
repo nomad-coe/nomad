@@ -249,6 +249,8 @@ class OasisUserManagement(UserManagement):
 
     def __user_from_api_user(self, api_user):
         from nomad import datamodel
+        del api_user['is_admin']
+        del api_user['is_oasis_admin']
         return datamodel.User.m_from_dict(api_user)
 
     def search_user(self, query: str):
