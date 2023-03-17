@@ -2196,8 +2196,15 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         section = self
         m_context = self.m_context if self.m_context else self
 
+        if 'definitions' in dct:
+            definition_def = section_def.all_aliases['definitions']
+            definition_cls = definition_def.sub_section.section_cls
+            definition_section = definition_cls.m_from_dict(
+                dct['definitions'], m_parent=self, m_context=m_context)
+            section.m_add_sub_section(definition_def, definition_section)
+
         for name, property_def in section_def.all_aliases.items():
-            if name not in dct:
+            if name not in dct or name == 'definitions':
                 continue
 
             if isinstance(property_def, SubSection):
