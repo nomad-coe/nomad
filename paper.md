@@ -30,7 +30,7 @@ authors:
     email: mohammad.nakhaee@physik.hu-berlin.de
     equal-contrib: true
     affiliation: 1
-  - name: Adam Fekete
+  - name: Ádám Fekete
     email: adam@fekete.co.uk
     equal-contrib: true
     affiliation: 1
@@ -50,17 +50,17 @@ authors:
     affiliation: 1
   - name: Sebastian Brückner
     email: sebastian.brueckner@ikz-berlin.de
-    affiliation: 3
-  - name: Luca Ghiringhelli
+    affiliation: 2
+  - name: Luca M. Ghiringhelli
     email: luca.ghiringhelli@physik.hu-berlin.de
     affiliation: 1
   - name: Felix Dietrich
     email: felix.dietrich@tum.de
-    affiliation: 4
+    affiliation: 3
   - name: Daniel Lehmberg
     email: d.lehmberg@tum.de
-    affiliation: 4
-  - name: Thea, Denell
+    affiliation: 3
+  - name: Thea Denell
     email: denell@physik.hu-berlin.de
     affiliation: 1
   - name: Andrea Albino
@@ -81,47 +81,37 @@ authors:
   - name: Rubel Mozumder
     email: mozumder@physik.hu-berlin.de
     affiliation: 1
-  - name: Joseph Rudzinski
-    email: josepth.rudzinski@physik.hu-berlin.de
+  - name: Joseph F. Rudzinski
+    email: joseph.rudzinski@physik.hu-berlin.de
     affiliation: 1
   - name: Nathan Daelman
     email: ndaelman@physik.hu-berlin.de
     affiliation: 1
-  - name: Jose Pizarro
+  - name: José M. Pizarro
     email: jose.pizarro@physik.hu-berlin.de
     affiliation: 1
   - name: Martin Kuban
     email: kuban@physik.hu-berlin.de
     affiliation: 1
-  - name: Luigi Sbailo
-    email: sbailo@fhi-berlin.mpg.de
-    affiliation: 1
-  - name: Ondračka, Pavel
+  - name: Pavel Ondračka
     email: ondracka@mail.muni.cz
-    affiliation: 5
-  - name: Maja-Olivia Lenz
-    email: lenz@fhi-berlin.mpg.de
-    affiliation: 2
-  - name: James Kermode
-    email: j.r.kermode@warwick.ac.uk
-    affiliation: 6
-  - name: Draxl, Claudia
+    affiliation: 4
+  - name: Hans-Joachim Bungartz
+    email: bungartz@cit.tum.de
+    affiliation: 3
+  - name: Claudia Draxl
     email: claudia.draxl@physik.hu-berlin.de
     affiliation: 1
 affiliations:
   - name: Institut für Physik, Humboldt-Universität zu Berlin, Germany
     index: 1
-  - name: Fritz-Haber-Institut der Max-Planck-Gesellschaft, Germany
+  - name: Leibniz Institut für Kristallzüchtung, Germany
     index: 2
-  - name: Leibnitz Institut für Kristallzüchtung, Germany
+  - name: Technical University of Munich, Germany
     index: 3
-  - name: Technische Universität München, Germany
-    index: 4
   - name: Masaryk University, Czech Republic
-    index: 5
-  - name: University of Warwick, United Kingdom
-    index: 6
-date: 15 March 2023
+    index: 4
+date: 20 March 2023
 bibliography: paper.bib
 ---
 
@@ -140,23 +130,24 @@ The NOMAD software is distributed as a Docker image to create data management se
 In materials science, researchers use many methods, instruments, tools, and workflows
 to produce large volumes of heterogeneous data artifacts. The contained data often
 describes related research objects (materials, samples, or properties) and it is believed
-that all combined data hold great potential for data re-use and machine learning [@scheffler:2022].
+that all combined data hold great potential for data re-use and machine learning [@scheffler:2022; @sbailo:2022].
 This is clearly being acknowledged not only by the research community but also by funding agencies,
 which are increasingly demanding coordinated efforts in availability and longevity of open data by preserving
 and documenting all produced research data and meta-data.
 
-While individual researchers struggle in organizing and analyzing more and more data
+While individual researchers struggle with organizing and analyzing more and more data
 artifacts, communities face new challenges in making data findable, accessible, inter-operable,
-and re-produceable (FAIR) [@wilkinson:2016]. A key factor to FAIR data, is to combine data with meta-data
-and to put all data into machine and human comprehensible representations [@ghiringhelli:2022].
+and reproducible (FAIR) [@wilkinson:2016]. A key factor to FAIR data, is to combine data with meta-data
+and to put all data into machine and human comprehensible representations [@ghiringhelli:2017; @ghiringhelli:2022].
 
 Materials scientists require effective solutions for managing their research data, but they cannot and
 should not develop their own individual solutions. Hence, there is great demand in services (and software to run such services) that provide the mentioned features and make data FAIR.
-This is evident in the great number of published datasets on services like [NOMAD](https://nomad-lab.eu) [@draxl:2018] (the main deployment of the NOMAD software), and an increasing number of materials science database that all (re-)implement very similar functionality to publish their data.
+This is evident in the great number of published datasets on services like [NOMAD](https://nomad-lab.eu) [@draxl:2018] (the main deployment of the NOMAD software), and an increasing number of materials science databases that all (re-)implement very similar functionality to publish their data.
 
 NOMAD addresses these needs in two ways. First, NOMAD improves the data-driven workflows of individuals
 and small labs by formalizing data acquisition, organizing and sharing data, homogenizing and normalizing data
-for analysis, and integrating with analysis tools. This way, NOMAD provides the incentives and tools for research individuals
+for analysis, and integrating with analysis tools.
+This way, NOMAD provides the incentives and tools for research individuals
 to put the necessary efforts into preparing FAIR (meta-)data. Secondly, NOMAD allows to share or
 publish prepared data and can be used by communities as a repository for FAIR data.
 
@@ -184,7 +175,7 @@ uses NOMAD software as the bases for its federated FAIR data infrastructure [@sc
 
 [OPTIMADE](https://www.optimade.org/) [@andersen:2021] is an API specification (with associated
 software implementation) for materials science databases. NOMAD implements OPTIMADE
-and is an active part of the OPTIMADE consortia.
+and is an active part of the OPTIMADE consortium.
 
 Other materials science databases (and the respective software) focus on only publishing
 data that were produced by the group behind the database itself. Typical examples are databases of
@@ -197,13 +188,16 @@ to AiiDA's [materialscloud](https://www.materialscloud.org/). There are also exa
 materials science databases, e.g. [HTEM](https://data.nrel.gov/submissions/75) [@zakutayev:2017].
 
 NOMAD relies on many open source packages; a few more notable ones from the materials
-science domains are: *MatID*, a software package to identify material structure system types and symmetries [@himanen:2018]),
+science domains are: *MatID*, a software package to identify material structure system types and symmetries [@himanen:2018],
 *ASE*, a software package to manipulate material structures in Python [@larsen:2017],
 pymatgen, open-source python library for materials analysis [@ong:2013], and *NeXus*,
 a file-format standard, schemas, and tools for experimental materials science data [@konnecke:2015].
 
 # Acknowledgements
 
-NOMAD software development is funded by the the NDFI consortia FAIRmat and the NOMAD CoE (EU Horizon 2020 and 951786), previous financial support was provided by the NOMAD CoE (EU Horizon 2020 676580) the Max-Planck Netzwerk BigMax. The Max Planck Computing and Data Facility (MPCDF) is hosting NOMAD's github and operating the public NOMAD service.
+NOMAD software development is funded by the the German National Research Data
+ Infrastructure (NDFI) consortia FAIRmat and the NOMAD CoE (EU Horizon 2020, 951786), 
+previous financial support was provided by the NOMAD CoE (EU Horizon 2020, 676580) and the Max-Planck Netzwerk BigMax. 
+The Max Planck Computing and Data Facility (MPCDF) is hosting NOMAD's github and operating the public NOMAD service. 
 
 # References
