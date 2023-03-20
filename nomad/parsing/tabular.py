@@ -22,6 +22,8 @@ import os.path
 import re
 import math
 import numpy as np
+import json
+import yaml
 
 from nomad import utils
 from nomad.units import ureg
@@ -38,6 +40,16 @@ from nomad.metainfo.util import MSubSectionList
 # this as base section definition.
 # TODO maybe this should be moved to nomad.datamodel.metainfo
 m_package = Package()
+
+
+def create_archive(entry_dict, context, file_name, file_type):
+    if not context.raw_path_exists(file_name):
+        with context.raw_file(file_name, 'w') as outfile:
+            if file_type == 'json':
+                json.dump(entry_dict, outfile)
+            elif file_type == 'yaml':
+                yaml.dump(entry_dict, outfile)
+        context.upload.process_updated_raw_file(file_name, allow_modify=True)
 
 
 def traverse_to_target_data_file(section, path_list: List[str]):
@@ -134,6 +146,27 @@ class TableData(ArchiveSection):
         tabular_parser_mode = annotation.mode
         if tabular_parser_mode == TabularMode.column:
             parse_columns(data, self)
+
+        elif tabular_parser_mode == TabularMode.entry:
+            child_sections = parse_table(data, self.m_def, logger=logger)
+            try:
+                mainfile_name = getattr(getattr(self.m_root(), 'metadata'), 'mainfile')
+            except Exception:
+                logger.error('could not extract the mainfile')
+
+            if mainfile_name.endswith('yaml'):
+                mainfile_name = mainfile_name.split('.archive.yaml')[0]
+                file_type = 'yaml'
+            elif mainfile_name.endswith('json'):
+                mainfile_name = mainfile_name.split('.archive.json')[0]
+                file_type = 'json'
+            if '.entry_data' in mainfile_name:
+                return
+
+            for index, child_section in enumerate(child_sections):
+                filename = f"{mainfile_name}_{index}.entry_data.archive.{file_type}"
+                child_archive = EntryArchive(data=child_section, m_context=archive.m_context)
+                create_archive(child_archive.m_to_dict(), archive.m_context, filename, file_type)
 
         elif tabular_parser_mode == TabularMode.row:
             # Getting list of all repeating sections where new instances are going to be read from excel/csv file

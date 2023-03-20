@@ -239,7 +239,12 @@ class ServerContext(Context):
         try:
             archive_dict = upload_files.read_archive(entry_id)[entry_id].to_dict()
         except KeyError:
-            raise MetainfoReferenceError(f'archive does not exist {entry_id}')
+            if upload_id != self.upload_id:
+                raise MetainfoReferenceError(f'Referencing another Upload is not allowed.')
+            from nomad.processing import Entry
+            if entry := Entry.objects(entry_id=entry_id).first():
+                return self.load_raw_file(entry.mainfile, upload_id, installation_url)
+            raise MetainfoReferenceError(f'Could not load {entry_id}.')
 
         context = self
         if upload_id != self.upload_id:

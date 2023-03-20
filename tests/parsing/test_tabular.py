@@ -30,6 +30,9 @@ from nomad.utils import generate_entry_id, strip
 from nomad.parsing.tabular import TabularDataParser
 from nomad.parsing.parser import ArchiveParser
 from tests.normalizing.conftest import run_normalize
+from nomad.processing import Upload, Entry
+from nomad.processing import ProcessStatus
+from nomad import files
 
 
 def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
@@ -109,7 +112,7 @@ def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
             1.0,1.1
         '''), id='units')
 ])
-def test_tabular_entry_mode(raw_files, monkeypatch, schema, content):
+def test_tabular_entry_mode_original(raw_files, monkeypatch, schema, content):
     mainfile, schema_file = get_files(schema, content)
     data = pd.read_csv(mainfile)
     parser = TabularDataParser()
@@ -345,7 +348,7 @@ def test_tabular_entry_mode(raw_files, monkeypatch, schema, content):
             data_file: Test.xlsx
     '''), id='mixed mode')
 ])
-def test_tabular_mixed_mode(raw_files, monkeypatch, schema):
+def test_tabular_complex_schema(raw_files, monkeypatch, schema):
     '''
     Testing TabularParser parser. This feature creates an entry out of each row from the given excel/csv file
     '''
@@ -378,6 +381,23 @@ def test_tabular_mixed_mode(raw_files, monkeypatch, schema):
         assert len(main_archive.data.MySubsection2[0].my_quantity_1) == 3
         assert len(main_archive.data.MySubsection2[0].MyColumnModeSubsection.my_quantity_2) == 3
         assert len(main_archive.data.MySubsection2[0].MyColumnModeSubsection.my_quantity_3) == 3
+
+
+def test_tabular_entry_mode(mongo, test_user, raw_files, monkeypatch, proc_infra):
+
+    upload = Upload(
+        upload_id='test_upload_id',
+        main_author=test_user.user_id)
+    upload.save()
+    files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
+    upload.staging_upload_files.add_rawfiles('tests/data/parsers/tabular/')
+    upload.process_upload()
+    upload.block_until_complete()
+    assert upload is not None
+    assert upload.processed_entries_count == 2
+
+    for entry in Entry.objects(upload_id='test_upload_id'):
+        assert entry.process_status == ProcessStatus.SUCCESS
 
 
 @pytest.mark.parametrize('test_case,section_placeholder,sub_sections_placeholder,quantity_placeholder,csv_content', [
