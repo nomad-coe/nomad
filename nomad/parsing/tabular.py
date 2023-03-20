@@ -318,10 +318,10 @@ def _create_column_to_quantity_mapping(section_def: Section):
                             value = None
                         else:
                             raise MetainfoError(
-                                'The shape of {quantity.name} does not match the given data.')
+                                f'The shape of {quantity.name} does not match the given data.')
                     elif len(value.shape) != len(quantity.shape):
                         raise MetainfoError(
-                            'The shape of {quantity.name} does not match the given data.')
+                            f'The shape of {quantity.name} does not match the given data.')
 
                 section.m_set(quantity, value)
                 _section_path_list: List[str] = list(_get_relative_path(section))
@@ -356,7 +356,7 @@ def parse_columns(pd_dataframe, section: MSection):
             sheet_name, col_name = column.split('/')
             if sheet_name not in list(data):
                 raise ValueError(
-                    'The sheet name {sheet_name} doesn''t exist in the excel file')
+                    f'The sheet name {sheet_name} doesn''t exist in the excel file')
 
             df = pd.DataFrame.from_dict(data.loc[0, sheet_name])
 
@@ -433,12 +433,12 @@ def parse_table(pd_dataframe, section_def: Section, logger):
                                 section_path_to_top_subsection=temp_quantity_path_container)
                         except Exception as e:
                             logger.error(
-                                f'could not parse cell',
+                                'could not parse cell',
                                 details=dict(row=row_index, column=col_name), exc_info=e)
                         if col_index > 0:
                             path_quantities_to_top_subsection.update(temp_quantity_path_container)
             except Exception as e:
-                logger.error(f'could not parse row', details=dict(row=row_index), exc_info=e)
+                logger.error('could not parse row', details=dict(row=row_index), exc_info=e)
 
             # if there is no other similar columns/quantities in the Excel file, or it is the first time this quantity
             # is getting parsed, just create the section and append it to list of sections. Otherwise, append the
@@ -451,7 +451,7 @@ def parse_table(pd_dataframe, section_def: Section, logger):
                     _append_subsections_from_section(section_name, sections[row_index], section)
                 except Exception as e:
                     logger.error(
-                        f'could not append repeating columns to the subsection',
+                        'could not append repeating columns to the subsection',
                         details=dict(row=row_index), exc_info=e)
     return sections
 
