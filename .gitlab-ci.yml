@@ -363,6 +363,7 @@ deploy prod develop:
   needs:
     - job: build
   rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
     - when: manual
       allow_failure: true
 
@@ -409,6 +410,7 @@ python package:
   rules:
     - when: manual
       allow_failure: true
+
 
 pypi package:
   stage: release
