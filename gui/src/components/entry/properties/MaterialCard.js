@@ -17,14 +17,13 @@
  */
 import React, { useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
-import { get, capitalize, isEmpty } from 'lodash'
+import { capitalize, isEmpty } from 'lodash'
 import { Select, FormControl, MenuItem } from '@material-ui/core'
 import { PropertyCard, PropertyGrid, PropertyItem, PropertyCardActions } from './PropertyCard'
 import Quantity, { QuantityTable, QuantityRow, QuantityCell } from '../../Quantity'
 import { MaterialButton } from '../../nav/Routes'
 import Structure, { toMateriaStructure } from '../../visualization/Structure'
 import NoData from '../../visualization/NoData'
-import searchQuantities from '../../../searchQuantities'
 import { encyclopediaBase, guiBase } from '../../../config'
 
 /**
@@ -54,18 +53,6 @@ Formula.propTypes = {
 /**
  * Displays a summary of material related properties for an entry.
  */
-const nElementMap = {
-  1: 'unary',
-  2: 'binary',
-  3: 'ternary',
-  4: 'quaternary',
-  5: 'quinary',
-  6: 'sexinary',
-  7: 'septenary',
-  8: 'octanary',
-  9: 'nonary',
-  10: 'decimary'
-}
 const MaterialCard = React.memo(({index, properties, archive}) => {
   // Find out which properties are present
   const structures = index?.results?.properties?.structures
@@ -143,15 +130,7 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
             <QuantityCell quantity="results.material.elements" colSpan={2}/>
           </QuantityRow>
           <QuantityRow>
-            <QuantityCell
-              label="number of elements"
-              description={searchQuantities['results.material.n_elements']?.description}
-              quantity={(data) => {
-                const n = get(data, 'results.material.n_elements')
-                const label = nElementMap[n]
-                return `${n}${label ? ` (${label})` : ''}`
-              }}
-            />
+            <QuantityCell quantity="results.material.n_elements"/>
           </QuantityRow>
         </QuantityTable>
       </PropertyItem>
