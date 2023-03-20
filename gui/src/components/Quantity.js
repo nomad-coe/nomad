@@ -328,6 +328,18 @@ Quantity.defaultProps = {
 export default Quantity
 
 // Preset configuration for quantities
+const nElementMap = {
+  1: 'unary',
+  2: 'binary',
+  3: 'ternary',
+  4: 'quaternary',
+  5: 'quinary',
+  6: 'sexinary',
+  7: 'septenary',
+  8: 'octanary',
+  9: 'nonary',
+  10: 'decimary'
+}
 const quantityPresets = {
   datasets: {
     label: 'datasets',
@@ -433,6 +445,15 @@ const quantityPresets = {
           </Typography>
         </Box>
         : null
+    }
+  },
+  'results.material.n_elements': {
+    noWrap: true,
+    label: "number of elements",
+    render: (data) => {
+      const n = get(data, 'results.material.n_elements')
+      const label = nElementMap[n]
+      return <Typography noWrap>{`${n}${label ? ` (${label})` : ''}`}</Typography>
     }
   },
   mainfile: {

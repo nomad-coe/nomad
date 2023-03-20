@@ -26,6 +26,7 @@ import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCa
 import SolarCellPropertiesCard from '../entry/properties/SolarCellPropertiesCard'
 import MaterialCard from '../entry/properties/MaterialCard'
 import MaterialCardTopology from '../entry/properties/MaterialCardTopology'
+import MaterialCardFormula from './properties/MaterialCardFormula'
 import NexusCard from './properties/NexusCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
 import MechanicalPropertiesCard from '../entry/properties/MechanicalPropertiesCard'
@@ -169,7 +170,9 @@ const OverviewView = React.memo(() => {
       nexus: NexusCard,
       material: index?.results?.material?.topology
         ? MaterialCardTopology
-        : MaterialCard,
+        : index?.results?.properties?.structures
+          ? MaterialCard
+          : MaterialCardFormula,
       electronic: ElectronicPropertiesCard,
       solarcell: SolarCellPropertiesCard,
       vibrational: VibrationalPropertiesCard,
