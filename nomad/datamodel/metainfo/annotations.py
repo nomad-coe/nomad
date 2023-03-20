@@ -327,6 +327,7 @@ class TabularMode(str, Enum):
     row = 'row'
     column = 'column'
     root = 'root'
+    entry = 'entry'
 
 
 class TabularParserAnnotation(AnnotationModel):
@@ -353,11 +354,12 @@ class TabularParserAnnotation(AnnotationModel):
     ''')
     separator: str = Field(None, description='An alias for `sep`')
     mode: TabularMode = Field(TabularMode.column, description='''
-        Either `column`, `row` or `root`. With `column` the whole column is mapped into a quantity
+        Either `column`, `row`, `entry` or `root`. With `column` the whole column is mapped into a quantity
         (needs to be a list).
         With `row` each row (and its cells) are mapped into instances of a repeating
         sub section, where each section represents a row (quantities need to be scalars).
-        With `root` in the root section, a mixed mode can be properly set up to use both column and row mode.
+        With `entry` new entry is created and populated from each row (and its cells) where
+        all quantities should remain to be scalars.
         Has to be used to annotate the quantity that
         holds the path to the `.csv` or excel file.
     ''')

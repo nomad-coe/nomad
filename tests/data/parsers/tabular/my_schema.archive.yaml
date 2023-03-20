@@ -1,0 +1,21 @@
+definitions:
+    name: 'reworked entry mode'
+    sections:
+        My_schema:
+            base_section: nomad.parsing.tabular.TableData
+            quantities:
+                data_file:
+                    type: str
+                    default: Test.xlsx
+                    m_annotations:
+                        tabular_parser:
+                            comment: '#'
+                            mode: entry
+                my_quantity_1:
+                    type: str
+                    m_annotations:
+                        tabular:
+                            name: sheet_1/column_1
+data:
+    m_def: My_schema
+    data_file: Test.xlsx
