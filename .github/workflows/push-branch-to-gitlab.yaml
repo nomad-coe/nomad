@@ -11,3 +11,10 @@ jobs:
       - name: Git push
         run: |
           git push "https://username:${{ secrets.GITLAB_ACCESS_TOKEN }}@gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git" ${{ github.head_ref }}
+      - name: Create MR
+        run: |
+          curl -X POST \
+            --header "Content-Type: application/json" \
+            --header "PRIVATE-TOKEN: ${{ secrets.GITLAB_ACCESS_TOKEN }}" \
+            -d '{"source_branch": "${{ github.head_ref }}", "target_branch": "develop", "title": "GitHub PR: ${{ github.event.pull_request.title }}", "description": "Original pull request on GitHub: ${{ github.event.pull_request.url }}", "remove_source_branch": true}'
+            gitlab.mpcdf.mpg.de/projects/2187/merge_requests
