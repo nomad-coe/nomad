@@ -42,7 +42,7 @@ def assert_log(caplog, level: str, event_part: str) -> LogRecord:
         contain this string.
 
     '''
-    record = None
+    match = None
     for record in caplog.get_records(when='call'):
         if record.levelname == level:
             try:
@@ -52,12 +52,13 @@ def assert_log(caplog, level: str, event_part: str) -> LogRecord:
                 present = event_part in record.msg
 
             if present:
-                record = record
+                match = record
                 # No need to look for more matches since we aren't counting matches.
                 break
-    assert record is not None
 
-    return record
+    assert match is not None
+
+    return match
 
 
 def assert_at_least(source, target):
