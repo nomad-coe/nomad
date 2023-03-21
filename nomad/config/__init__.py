@@ -253,10 +253,10 @@ def _apply(key, value, raise_error: bool = True) -> None:
         key = config_key
 
     try:
-        if current_value is not None and not isinstance(value, type(current_value)):
-            value = _transformations.get(full_key, type(current_value))(value)
         if isinstance(value, dict):
             value = _merge(current_value, value)
+        elif current_value is not None and not isinstance(value, type(current_value)):
+            value = _transformations.get(full_key, type(current_value))(value)
         setattr(current, key, value)
         logger.info(f'set config setting {full_key}={value}')
     except Exception as e:

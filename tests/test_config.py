@@ -21,6 +21,7 @@ import os
 import yaml
 
 from nomad import config
+from nomad.utils import flat
 
 from .utils import assert_log
 
@@ -40,16 +41,16 @@ def test_apply(with_config, caplog):
     assert config.fs.archive_version_suffix == 'test_value'
 
     config._apply('does_not_exist', 'test_value')
-    assert_log(caplog, 'ERROR', 'does_not_exist does not exist')
+    assert_log(caplog, 'ERROR', 'config key does not exist: does_not_exist')
 
     config._apply('fs_does_not_exist', 'test_value')
-    assert_log(caplog, 'ERROR', 'fs_does_not_exist does not exist')
+    assert_log(caplog, 'ERROR', 'config key does not exist: fs_does_not_exist')
 
     config._apply('services_max_entry_download', 'not_a_number')
     assert_log(caplog, 'ERROR', 'cannot set')
 
     config._apply('nounderscore', 'test_value')
-    assert_log(caplog, 'ERROR', 'nounderscore does not exist')
+    assert_log(caplog, 'ERROR', 'config key does not exist: nounderscore')
 
 
 def test_env(with_config, monkeypatch):
@@ -59,30 +60,40 @@ def test_env(with_config, monkeypatch):
     assert config.fs.public == 'test_value'
 
 
-def test_nomad_yaml(raw_files, with_config, monkeypatch, caplog):
-    config_data = {
-        'fs': {
-            'public': 'test_value',
-            'archive_version_suffix': 'test_value',
-            'does_not_exist': 'test_value'
-        },
-        'does_not_exist': 'test_value',
-        'services': {
-            'max_entry_download': 'not_a_number'
-        }
-    }
-
+def load_config(config_dict, monkeypatch):
+    '''Loads the given dictionary into the current config.
+    '''
     test_nomad_yaml = os.path.join(config.fs.tmp, 'nomad_test.yaml')
     monkeypatch.setattr('os.environ', dict(NOMAD_CONFIG=test_nomad_yaml))
     with open(test_nomad_yaml, 'w') as file:
-        yaml.dump(config_data, file)
-
+        yaml.dump(config_dict, file)
     config.load_config()
-
     os.remove(test_nomad_yaml)
 
-    assert config.fs.public == 'test_value'
-    assert config.fs.archive_version_suffix == 'test_value'
-    assert_log(caplog, 'ERROR', 'does_not_exist does not exist')
-    assert_log(caplog, 'ERROR', 'fs_does_not_exist does not exist')
-    assert_log(caplog, 'ERROR', 'cannot set')
+
+@pytest.mark.parametrize('config_dict', [
+    pytest.param({'services': {'max_entry_download': 123}}, id='set integer'),
+    pytest.param({'services': {'api_host': 'http://myhost'}}, id='set string'),
+    pytest.param({'ui': {'theme': {'title': 'mytitle'}}}, id='set nested'),
+])
+def test_config(raw_files, with_config, monkeypatch, caplog, config_dict):
+    load_config(config_dict, monkeypatch)
+    for key, value in config_dict.items():
+        flat_real = flat(getattr(config, key).dict())
+        flat_expected = flat(value)
+        for key2, value2 in flat_expected.items():
+            assert flat_real[key2] == value2
+
+
+@pytest.mark.parametrize('config_dict, error', [
+    pytest.param({'does_not_exist': 'test_value'}, 'config key does not exist: does_not_exist', id='undefined field root'),
+    pytest.param({'fs': {'does_not_exist': 'test_value'}}, 'config key does not exist: fs_does_not_exist', id='undefined field child'),
+    pytest.param(
+        {'services': {'max_entry_download': 'not_a_number'}},
+        "cannot set config setting services_max_entry_download=not_a_number: invalid literal for int() with base 10: 'not_a_number'",
+        id='incompatible value'
+    ),
+])
+def test_config_error(raw_files, with_config, monkeypatch, caplog, config_dict, error):
+    load_config(config_dict, monkeypatch)
+    assert_log(caplog, 'ERROR', error)
