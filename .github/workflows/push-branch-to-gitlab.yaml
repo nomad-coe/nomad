@@ -1,0 +1,35 @@
+name: Push the branch to the home Project at MPCDF's gitlab
+on:
+  pull_request_review:
+    types: [submitted]
+jobs:
+  push-to-gitlab:
+    if: github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Git push
+        run: |
+          git push "https://username:${{ secrets.GITLAB_ACCESS_TOKEN }}@gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git" ${{ github.event.pull_request.head.ref }} -f
+      - name: Create MR
+        run: |
+          curl -X POST -L -G \
+            --header "PRIVATE-TOKEN: ${{ secrets.GITLAB_ACCESS_TOKEN }}" \
+            --data-urlencode "source_branch=${{ github.event.pull_request.head.ref }}" \
+            --data-urlencode "target_branch=develop" \
+            --data-urlencode "title=GitHub PR: ${{ github.event.pull_request.title }}" \
+            --data-urlencode "description=Original pull request on GitHub: ${{ github.event.pull_request.html_url }}" \
+            --data-urlencode "remove_source_branch=true" \
+            gitlab.mpcdf.mpg.de/api/v4/projects/2187/merge_requests
+      - name: Comment PR
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            A merge request has been opened on gitlab. View the [GitLab merge requests](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/merge_requests).
+            This will run CI/CD pipelines, we will continue the discussion, and
+            merge on GitLab. After the merge has completed on GitLab, the changes will
+            be pushed to `develop` here.
