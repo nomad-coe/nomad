@@ -337,7 +337,7 @@ async def get_signature_token(user: User = Depends(create_user_dependency())):
     expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
     signature_token = jwt.encode(
         dict(user=user.user_id, exp=expires_at),
-        config.services.api_secret, 'HS256').decode('utf-8')
+        config.services.api_secret, 'HS256')
 
     return {'signature_token': signature_token}
 

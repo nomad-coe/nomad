@@ -44,7 +44,6 @@ original mainfile, and vice versa.
 '''
 
 from abc import ABCMeta
-import sys
 from typing import IO, Set, Dict, Iterable, Iterator, List, Tuple, Any, NamedTuple
 from functools import lru_cache
 from pydantic import BaseModel
@@ -59,18 +58,12 @@ import io
 import json
 import yaml
 import magic
+import zipfile
 
 from nomad import config, utils, datamodel
 from nomad.config.models import BundleImportSettings, BundleExportSettings
 from nomad.archive import write_archive, read_archive, ArchiveReader
 
-# TODO this should become obsolete, once we are going beyong python 3.6. For now
-# python 3.6's zipfile does not allow to seek/tell within a file-like opened from a
-# file in a zipfile.
-if sys.version_info >= (3, 7):
-    import zipfile
-else:
-    import zipfile37 as zipfile
 
 decompress_file_extensions = ('.zip', '.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar')
 bundle_info_filename = 'bundle_info.json'

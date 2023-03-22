@@ -70,9 +70,10 @@ indices = [elastic_test_entries_index, elastic_test_materials_index]
 
 warnings.simplefilter("ignore")
 
-
 structlogging.ConsoleFormatter.short_format = True
 setattr(logging, 'Formatter', structlogging.ConsoleFormatter)
+
+pytest_plugins = ("celery.contrib.pytest", )
 
 
 @pytest.fixture(scope='function')
