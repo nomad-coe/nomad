@@ -360,8 +360,6 @@ deploy prod develop:
     - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
       nomad client -n https://nomad-lab.eu/prod/v1/develop/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
-  needs:
-    - job: build
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
     - when: manual
