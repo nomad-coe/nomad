@@ -40,7 +40,7 @@ nomad parse --show-archive <your-file-to-parse>
 
 ### For NOMAD developer
 
-Read the latest [docs](https://nomad-lab.eu/prod/v1/staging/docs/index.html). The documentation is also part
+Read the latest [docs](https://nomad-lab.eu/prod/v1/develop/docs/index.html). The documentation is also part
 of the source code. It covers aspects like introduction, architecture, development setup/deployment,
 contributing, and API reference.
 
