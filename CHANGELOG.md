@@ -1,19 +1,7 @@
-## v1.1.6 (2022-12-23)
 
-### fixed (1 change)
-
-- [Fixed failing plot annotation valiation.](nomad-lab/nomad-FAIR@3cd5d0635566d9882e1c44cd922e113dfbeb1292) ([merge request](nomad-lab/nomad-FAIR!1005))
-
-### feature (1 change)
-
-- [Added a way to define formal models for metainfo annotations.](nomad-lab/nomad-FAIR@6a84b55e17dd5cd41cb5ba571f2451d528dbe6a0) ([merge request](nomad-lab/nomad-FAIR!990))
-
-### added (1 change)
-
-- [Replaced config object with pydantic models.](nomad-lab/nomad-FAIR@b9c1e023d95d14fd337b98a7ac895f505d4715a9) ([merge request](nomad-lab/nomad-FAIR!981))
 ## 1.1.8 (2023-03-10)
 
-### Fixed (8 changes)
+### Fixed (9 changes)
 
 - [Fixed a bug in handling UI load errors.](nomad-lab/nomad-FAIR@bc01f359fbd55048fff0c7213ba42ae53451add3) ([merge request](nomad-lab/nomad-FAIR!1143))
 - [Add parsers](nomad-lab/nomad-FAIR@b1c177f75cd72dfabaea6137d93375357857b3a6) ([merge request](nomad-lab/nomad-FAIR!1136))
@@ -23,6 +11,7 @@
 - [ability to reference to the other uploads properly](nomad-lab/nomad-FAIR@8befc8efe92218aa63a63c562ac8057de54e5ba2) ([merge request](nomad-lab/nomad-FAIR!1070))
 - [Added the staging url](nomad-lab/nomad-FAIR@5a0b31a7cff12106a28f0fc02bba7fda764d4708) ([merge request](nomad-lab/nomad-FAIR!1086))
 - [Workflow fix](nomad-lab/nomad-FAIR@75170b392d779cf9a27880fd83433c3d47a85b37) ([merge request](nomad-lab/nomad-FAIR!1113))
+- [Fixed the availability of the beta/test snack in the UI.](nomad-lab/nomad-FAIR@a3f29510858bf6ba6056f1c52af177e70d24eacc) ([merge request](nomad-lab/nomad-FAIR!1134))
 
 ### Added (10 changes)
 
@@ -43,13 +32,9 @@
 - [Upgraded nomad-lab to Python 3.9 and bumped a few dependency version.](nomad-lab/nomad-FAIR@5cb6d4a46c5ac6c4809e66cc288dee32a68721de) ([merge request](nomad-lab/nomad-FAIR!1125))
 - [Changed the config to use Pydantic models for UI aspects.](nomad-lab/nomad-FAIR@de1ed6ffb8db168f6f7ae4f6e9addd59879f552f) ([merge request](nomad-lab/nomad-FAIR!1104))
 
-### Fixed. (1 change)
-
-- [Fixed the availability of the beta/test snack in the UI.](nomad-lab/nomad-FAIR@a3f29510858bf6ba6056f1c52af177e70d24eacc) ([merge request](nomad-lab/nomad-FAIR!1134))
-
 ## 1.1.7 (2023-02-20)
 
-### Added (17 changes)
+### Added (18 changes)
 
 - [Added a config switch to enable disable north tools.](nomad-lab/nomad-FAIR@37d9b6db1e8044ae28476488e8c3ae1896e149ad) ([merge request](nomad-lab/nomad-FAIR!1099))
 - [Refactor NORTH and Jupyterhub deployment. Add a new north API endpoint. Mount...](nomad-lab/nomad-FAIR@b0e28fa7fd3f47fcd538f33bd84bad659ee6549a) ([merge request](nomad-lab/nomad-FAIR!996))
@@ -68,8 +53,9 @@
 - [Added a automatically generated changelog to our git.](nomad-lab/nomad-FAIR@fe795eff97145e0e28d61ca840cbb3069217d24a) ([merge request](nomad-lab/nomad-FAIR!1016))
 - [Added a glossary to the documentation.](nomad-lab/nomad-FAIR@aa42834ed51b3d231a8edc58b00ea1f2dddc21f5) ([merge request](nomad-lab/nomad-FAIR!1024))
 - [Added dropdown list to select from sections.](nomad-lab/nomad-FAIR@a332abed1318f60078463e2ee71ae68b2086ef1a) ([merge request](nomad-lab/nomad-FAIR!992))
+- [Implement extended matching of h5 files.](nomad-lab/nomad-FAIR@96372aa26a0675a0bbae99b8e5059f5e0f1a5f3a) ([merge request](nomad-lab/nomad-FAIR!1023))
 
-### Fixed (16 changes)
+### Fixed (18 changes)
 
 - [Fixed wrong property inheritance base section order in UI metainfo.](nomad-lab/nomad-FAIR@9cbd6d9c37d21f06cf9fc3f5d9fbde746d7873b3) ([merge request](nomad-lab/nomad-FAIR!1098))
 - [Fixed the build-in schema entry create to use the right definitions.](nomad-lab/nomad-FAIR@8db7bb1be8ab502f4aef178107f50d27297123a2) ([merge request](nomad-lab/nomad-FAIR!1095))
@@ -87,21 +73,28 @@
 - [Fixed the README batches and changed pipeline to push tags to github.](nomad-lab/nomad-FAIR@8c42e102387b2d0c5f0a55fd368b266306b705f1) ([merge request](nomad-lab/nomad-FAIR!1057))
 - [Fixed issue with optimade filter menu performing premature API calls.](nomad-lab/nomad-FAIR@7c4ad789591ce6a30cb6236825798e440711ce21) ([merge request](nomad-lab/nomad-FAIR!1048))
 - [Fixed generation of duplicated subsections on updating an entry that triggers tabular parser](nomad-lab/nomad-FAIR@e91176fe2a197f9d8450e29dc8b599f669ecad1d) ([merge request](nomad-lab/nomad-FAIR!1033))
+- [Fix the select feature of the Datatable component](nomad-lab/nomad-FAIR@8fd52ed7bccc14c13c6c83d90e3a931df3cf9d25) ([merge request](nomad-lab/nomad-FAIR!1060))
+- [Datafile quantity containing `tabular_parser` annotation can be referenced](nomad-lab/nomad-FAIR@8ad191bf7f37b9c1286200127f6f5b2f0cf3701a) ([merge request](nomad-lab/nomad-FAIR!1017))
 
 ### Changed (2 changes)
 
 - [Small UX changes to the upload interface.](nomad-lab/nomad-FAIR@5e18b0e12d4ce4d608a5cd68efbeb02ee2d51f04) ([merge request](nomad-lab/nomad-FAIR!1085))
 - [Refactored the overview UI code to optimise loading performance.](nomad-lab/nomad-FAIR@161051655e8b9406197247ed943e027fdd13771b) ([merge request](nomad-lab/nomad-FAIR!1075))
 
-### fixed (2 changes)
-
-- [Fix the select feature of the Datatable component](nomad-lab/nomad-FAIR@8fd52ed7bccc14c13c6c83d90e3a931df3cf9d25) ([merge request](nomad-lab/nomad-FAIR!1060))
-- [Datafile quantity containing `tabular_parser` annotation can be referenced](nomad-lab/nomad-FAIR@8ad191bf7f37b9c1286200127f6f5b2f0cf3701a) ([merge request](nomad-lab/nomad-FAIR!1017))
-
-### added (1 change)
-
-- [Implement extended matching of h5 files.](nomad-lab/nomad-FAIR@96372aa26a0675a0bbae99b8e5059f5e0f1a5f3a) ([merge request](nomad-lab/nomad-FAIR!1023))
-
-### feature (1 change)
+### Feature (1 change)
 
 - [Adds an ELN schema that allows to create entries that clone data from a labfolder project.](nomad-lab/nomad-FAIR@166a8aaa65f63bf368453365689e1dab577fc94d) ([merge request](nomad-lab/nomad-FAIR!948))
+
+## 1.1.6 (2022-12-23)
+
+### Fixed (1 change)
+
+- [Fixed failing plot annotation valiation.](nomad-lab/nomad-FAIR@3cd5d0635566d9882e1c44cd922e113dfbeb1292) ([merge request](nomad-lab/nomad-FAIR!1005))
+
+### Feature (1 change)
+
+- [Added a way to define formal models for metainfo annotations.](nomad-lab/nomad-FAIR@6a84b55e17dd5cd41cb5ba571f2451d528dbe6a0) ([merge request](nomad-lab/nomad-FAIR!990))
+
+### Added (1 change)
+
+- [Replaced config object with pydantic models.](nomad-lab/nomad-FAIR@b9c1e023d95d14fd337b98a7ac895f505d4715a9) ([merge request](nomad-lab/nomad-FAIR!981))
