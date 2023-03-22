@@ -18,6 +18,7 @@
 
 import email.utils
 import hashlib
+import os
 import re
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -74,15 +75,18 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
             f'Cannot type {_type.__name__} to complex number of type {complex_type.__name__} '
             f'due to possibility of loss of precision.')
 
+        def __check_unix():
+            if os.name != 'nt' and _type in (np.float128, np.complex256):
+                raise precision_error
+
         if complex_type in (np.complex128, complex):  # 64-bit complex
-            if _type in (np.int64, np.uint64, np.float128, np.complex256):
+            if _type in (np.int64, np.uint64):
                 raise precision_error
+            __check_unix()
         elif complex_type == np.complex64:  # 32-bit complex
-            if _type in (
-                    int, float,
-                    np.int32, np.int64, np.uint32, np.uint64,
-                    np.float64, np.float128, np.complex128, np.complex256):
+            if _type in (int, float, np.int32, np.int64, np.uint32, np.uint64, np.float64, np.complex128):
                 raise precision_error
+            __check_unix()
 
     if isinstance(value, pint.Quantity):
         scaled: np.ndarray = value.to(to_unit).magnitude if to_unit else value.magnitude
@@ -174,13 +178,13 @@ class MTypes:
         bool: lambda v: None if v is None else bool(v),
         np.bool_: lambda v: None if v is None else bool(v)}
 
-    primitive_name = {**{v.__name__: v for v in primitive}, 'string': str, 'boolean': bool}
+    primitive_name = {v.__name__: v for v in primitive} | {'string': str, 'boolean': bool}
 
     int_numpy = {np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64}
     int_python = {int}
     int = int_python | int_numpy
-    float_numpy = {np.float16, np.float32, np.float64, np.float128}
-    complex_numpy = {np.complex64, np.complex128, np.complex256}
+    float_numpy = {np.float16, np.float32, np.float64} | (set() if os.name == 'nt' else {np.float128})
+    complex_numpy = {np.complex64, np.complex128} | (set() if os.name == 'nt' else {np.complex256})
     float_python = {float}
     complex_python = {complex}
     float = float_python | float_numpy

@@ -218,7 +218,6 @@ def test_complex_number_dict(unit, quantity_type, value, result, shape):
 
 @pytest.mark.parametrize('quantity_type,value', [
     pytest.param(np.complex128, np.int64(1), id='downcast-from-int-128'),
-    pytest.param(np.complex128, np.complex256(1), id='downcast-from-float-128'),
     pytest.param(np.complex64, {'re': 1}, id='downcast-from-int-64'),
     pytest.param(np.complex64, {'re': 1.25}, id='downcast-from-float-64'),
     pytest.param(np.complex128, {'re': [1.25, 1], 'im': 1}, id='mismatch-shape'),
