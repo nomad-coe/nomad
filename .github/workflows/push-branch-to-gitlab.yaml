@@ -6,6 +6,8 @@ jobs:
   push-to-gitlab:
     if: github.event.review.state == 'approved'
     runs-on: ubuntu-latest
+    env:
+      gitlab_ref: "github-${{ github.event.pull_request.number }}-${{ github.event.pull_request.user.login }}-${{ github.event.pull_request.head.ref }}"
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -14,12 +16,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
       - name: Git push
         run: |
-          git push "https://username:${{ secrets.GITLAB_ACCESS_TOKEN }}@gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git" ${{ github.event.pull_request.head.ref }} -f
+          git push "https://username:${{ secrets.GITLAB_ACCESS_TOKEN }}@gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git" ${{ github.event.pull_request.head.ref }}:$gitlab_ref -f
       - name: Create MR
         run: |
           curl -X POST -L -G \
             --header "PRIVATE-TOKEN: ${{ secrets.GITLAB_ACCESS_TOKEN }}" \
-            --data-urlencode "source_branch=${{ github.event.pull_request.head.ref }}" \
+            --data-urlencode "source_branch=$gitlab_ref" \
             --data-urlencode "target_branch=develop" \
             --data-urlencode "title=GitHub PR: ${{ github.event.pull_request.title }}" \
             --data-urlencode "description=Original pull request on GitHub: ${{ github.event.pull_request.html_url }}" \
