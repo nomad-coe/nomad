@@ -25,6 +25,7 @@ import matid.geometry  # pylint: disable=import-error
 
 from nomad import atomutils
 from nomad import config
+from nomad.utils import hash
 from nomad.units import ureg
 from nomad.datamodel.metainfo.simulation.system import System, Atoms as NOMADAtoms
 from nomad.datamodel.optimade import Species
@@ -154,29 +155,6 @@ def cell_from_ase_atoms(atoms: Atoms) -> Cell:
     cell.mass_density = mass_density
 
     return cell
-
-
-def cell_from_structure(structure: Structure) -> Cell:
-    '''Extracts Cell metainfo from the given Structure.
-    Undefined angle values are not stored.
-
-    Args:
-        structure: The system from which the information is extracted from.
-
-    Returns:
-        Cell object.
-    '''
-    return Cell(
-        a=structure.lattice_parameters.a,
-        b=structure.lattice_parameters.b,
-        c=structure.lattice_parameters.c,
-        alpha=structure.lattice_parameters.alpha,
-        beta=structure.lattice_parameters.beta,
-        gamma=structure.lattice_parameters.gamma,
-        volume=structure.cell_volume,
-        atomic_density=structure.atomic_density,
-        mass_density=structure.mass_density,
-    )
 
 
 def structure_from_ase_atoms(system: Atoms, wyckoff_sets: List[WyckoffSetMatID] = None, logger=None) -> Structure:
@@ -381,3 +359,106 @@ def structures_2d(original_atoms, logger=None):
                 exc_info=e
             )
     return conv_atoms, prim_atoms, wyckoff_sets, spg_number
+
+
+def material_id_bulk(spg_number: int, wyckoff_sets) -> str:
+    if spg_number is None or wyckoff_sets is None:
+        return None
+    norm_hash_string = atomutils.get_symmetry_string(spg_number, wyckoff_sets)
+    return hash(norm_hash_string)
+
+
+def material_id_2d(spg_number: int, wyckoff_sets) -> str:
+    if spg_number is None or wyckoff_sets is None:
+        return None
+    norm_hash_string = atomutils.get_symmetry_string(spg_number, wyckoff_sets, is_2d=True)
+    return hash(norm_hash_string)
+
+
+def material_id_1d(conv_atoms: Atoms) -> str:
+    '''Hash to be used as identifier for a 1D material. Based on Coulomb
+    matrix eigenvalues and the Hill formula.
+
+    The fingerprint is based on calculating a discretized version of a
+    sorted Coulomb matrix eigenspectrum (Grégoire Montavon, Katja Hansen,
+    Siamac Fazli, Matthias Rupp, Franziska Biegler, Andreas Ziehe,
+    Alexandre Tkatchenko, Anatole V. Lilienfeld, and Klaus-Robert Müller.
+    Learning invariant representations of molecules for atomization energy
+    prediction. In F. Pereira, C. J. C. Burges, L. Bottou, and K. Q.
+    Weinberger, editors, Advances in Neural Information Processing Systems
+    25, pages 440–448. Curran Associates, Inc., 2012.).
+
+    The fingerprints are discretized in order to perform O(n) matching
+    between structures (no need to compare fingerprints against each
+    other). As regular discretization is susceptible to the 'edge problem',
+    a robust discretization is used instead (Birget, Jean-Camille & Hong,
+    Dawei & Memon, Nasir. (2003). Robust discretization, with an
+    application to graphical passwords. IACR Cryptology ePrint Archive.
+    2003. 168.) Basically for the 1-dimensional domain two grids are
+    created and the points are mapped to the first grid in which they are
+    robust using a minimum tolerance parameter r, with the maximum
+    tolerance being 5r.
+
+    There are other robust discretization methods that can guarantee exact
+    r-tolerance (e.g. Sonia Chiasson, Jayakumar Srinivasan, Robert Biddle,
+    and P. C. van Oorschot. 2008. Centered discretization with application
+    to graphical passwords. In Proceedings of the 1st Conference on
+    Usability, Psychology, and Security (UPSEC’08). USENIX Association,
+    USA, Article 6, 1–9.). This method however requires that a predefined
+    'correct' structure exists against which the search is done.
+    '''
+    if conv_atoms is None:
+        return None
+
+    # Calculate charge part
+    q = conv_atoms.get_atomic_numbers()
+    qiqj = np.sqrt(q[None, :] * q[:, None])
+
+    # Calculate distance part. Notice that the minimum image convention
+    # must be used. Without it, differently oriented atoms in the same cell
+    # may be detected as the same material.
+    pos = conv_atoms.get_positions()
+    cell = conv_atoms.get_cell()
+    cmat = 10 - matid.geometry.get_distance_matrix(pos, pos, cell, pbc=True, mic=True)
+    cmat = np.clip(cmat, a_min=0, a_max=None)
+    np.fill_diagonal(cmat, 0)
+    cmat = qiqj * cmat
+
+    # Calculate eigenvalues
+    eigval, _ = np.linalg.eigh(cmat)
+
+    # Sort eigenvalues
+    eigval = np.array(sorted(eigval))
+
+    # Perform robust discretization (see function docstring for details). r
+    # = 0.5 ensures that all grids are integers which can be uniquely
+    # mapped to strings. If finer grid is needed adjust the eigenvalue scale
+    # instead.
+    eigval /= 25  # Go to smaller scale where integer numbers are meaningful
+    dimension = 1
+    r = 0.5
+    spacing = 2 * r * (dimension + 1)
+    phi_k = 2 * r * np.array(range(dimension + 1))
+    t = np.mod((eigval[None, :] + phi_k[:, None]), (2 * r * (dimension + 1)))
+    grid_mask = (r <= t) & (t < r * (2 * dimension + 1))
+    safe_grid_k = np.argmax(grid_mask == True, axis=0)   # noqa: E712
+    discretization = spacing * np.floor((eigval + (2 * r * safe_grid_k)) / spacing)
+    discretization[safe_grid_k == 1] += 2 * r
+
+    # Construct formula
+    names, counts = atomutils.get_hill_decomposition(conv_atoms.get_chemical_symbols(), reduced=False)
+    formula = atomutils.get_formula_string(names, counts)
+
+    # Form hash
+    strings = []
+    for number in discretization:
+        num_str = str(int(number))
+        strings.append(num_str)
+    fingerprint = ';'.join(strings)
+    id_strings = []
+    id_strings.append(formula)
+    id_strings.append(fingerprint)
+    hash_seed = ', '.join(id_strings)
+    hash_val = hash(hash_seed)
+
+    return hash_val

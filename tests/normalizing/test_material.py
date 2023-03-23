@@ -25,22 +25,7 @@ from matid.symmetry.wyckoffset import WyckoffSet  # pylint: disable=import-error
 from nomad.units import ureg
 from nomad import atomutils
 from nomad.utils import hash
-from tests.normalizing.conftest import (
-    get_template_for_structure,
-    get_template_topology,
-    single_Cu_surface_atoms,
-    single_Cu_surface_topology,
-    single_Cr_surface_atoms,
-    single_Cr_surface_topology,
-    stacked_Cu_Ni_surface,
-    single_2D_graphene_layer_atoms,
-    single_2D_graphene_layer_topology,
-    single_2D_BN_layer_atoms,
-    single_2D_BN_layer_topology,
-    single_2D_MoS2_layer_atoms,
-    single_2D_MoS2_layer_topology,
-    stacked_C_BN_2D_layers
-)
+from tests.normalizing.conftest import get_template_for_structure
 
 
 def assert_material(material):
@@ -112,7 +97,7 @@ def test_material_atom(atom):
     material = atom.results.material
     assert_material(material)
     assert material.material_id is None
-    assert material.structural_type == "atom"
+    assert material.structural_type == 'atom'
     assert material.functional_type is None
     assert material.compound_type is None
     assert material.material_name is None
@@ -126,7 +111,7 @@ def test_material_molecule(molecule):
     material = molecule.results.material
     assert_material(material)
     assert material.material_id is None
-    assert material.structural_type == "molecule / cluster"
+    assert material.structural_type == 'molecule / cluster'
     assert material.functional_type is None
     assert material.compound_type is None
     assert material.material_name is None
@@ -141,16 +126,16 @@ def test_material_1d(one_d):
     material = one_d.results.material
     assert_material(material)
     assert isinstance(material.material_id, str)
-    assert material.structural_type == "1D"
+    assert material.structural_type == '1D'
     assert material.functional_type is None
     assert material.compound_type is None
     assert material.material_name is None
-    assert material.chemical_formula_hill == "C2H2"
-    assert material.chemical_formula_iupac == "CH"
-    assert material.chemical_formula_descriptive == "C2H2"
-    assert material.chemical_formula_reduced == "CH"
-    assert material.chemical_formula_anonymous == "AB"
-    assert material.elements == ["C", "H"]
+    assert material.chemical_formula_hill == 'C2H2'
+    assert material.chemical_formula_iupac == 'CH'
+    assert material.chemical_formula_descriptive == 'C2H2'
+    assert material.chemical_formula_reduced == 'CH'
+    assert material.chemical_formula_anonymous == 'AB'
+    assert material.elements == ['C', 'H']
     assert material.n_elements == 2
     assert material.symmetry is None
 
@@ -158,7 +143,7 @@ def test_material_1d(one_d):
     conv = one_d.results.properties.structures.structure_conventional
     assert_structure(conv)
     assert conv.n_sites == 4
-    assert conv.species_at_sites == ["C", "C", "H", "H"]
+    assert conv.species_at_sites == ['C', 'C', 'H', 'H']
     assert np.array_equal(conv.dimension_types, [1, 0, 0])
     assert conv.lattice_parameters.a.to(ureg.angstrom).magnitude == pytest.approx(2.459, abs=1e-3)
     assert conv.lattice_parameters.b.to(ureg.angstrom).magnitude == 0
@@ -179,16 +164,16 @@ def test_material_2d(two_d):
     material = two_d.results.material
     assert_material(material)
     assert isinstance(material.material_id, str)
-    assert material.structural_type == "2D"
+    assert material.structural_type == '2D'
     assert material.functional_type is None
     assert material.compound_type is None
     assert material.material_name is None
-    assert material.chemical_formula_hill == "C2"
-    assert material.chemical_formula_iupac == "C"
-    assert material.chemical_formula_descriptive == "C2"
-    assert material.chemical_formula_reduced == "C"
-    assert material.chemical_formula_anonymous == "A"
-    assert material.elements == ["C"]
+    assert material.chemical_formula_hill == 'C2'
+    assert material.chemical_formula_iupac == 'C'
+    assert material.chemical_formula_descriptive == 'C2'
+    assert material.chemical_formula_reduced == 'C'
+    assert material.chemical_formula_anonymous == 'A'
+    assert material.elements == ['C']
     assert material.n_elements == 1
     assert material.symmetry is None
 
@@ -196,7 +181,7 @@ def test_material_2d(two_d):
     conv = two_d.results.properties.structures.structure_conventional
     assert_structure(conv)
     assert conv.n_sites == 2
-    assert conv.species_at_sites == ["C", "C"]
+    assert conv.species_at_sites == ['C', 'C']
     assert np.array_equal(conv.dimension_types, [1, 1, 0])
     assert conv.lattice_parameters.a.to(ureg.angstrom).magnitude == pytest.approx(2.461, abs=1e-3)
     assert conv.lattice_parameters.b.to(ureg.angstrom).magnitude == pytest.approx(2.461, abs=1e-3)
@@ -216,7 +201,7 @@ def test_material_surface(surface):
     material = surface.results.material
     assert_material(material)
     assert material.material_id is None
-    assert material.structural_type == "surface"
+    assert material.structural_type == 'surface'
     assert material.functional_type is None
     assert material.compound_type is None
     assert material.material_name is None
@@ -231,16 +216,16 @@ def test_material_bulk(bulk):
     material = bulk.results.material
     assert_material(material)
     assert isinstance(material.material_id, str)
-    assert material.structural_type == "bulk"
+    assert material.structural_type == 'bulk'
     assert material.functional_type
     assert material.compound_type
-    assert material.material_name == "Silicon"
-    assert material.chemical_formula_hill == "Si8"
-    assert material.chemical_formula_iupac == "Si"
-    assert material.chemical_formula_descriptive == "Si8"
-    assert material.chemical_formula_reduced == "Si"
-    assert material.chemical_formula_anonymous == "A"
-    assert material.elements == ["Si"]
+    assert material.material_name == 'Silicon'
+    assert material.chemical_formula_hill == 'Si8'
+    assert material.chemical_formula_iupac == 'Si'
+    assert material.chemical_formula_descriptive == 'Si8'
+    assert material.chemical_formula_reduced == 'Si'
+    assert material.chemical_formula_anonymous == 'A'
+    assert material.elements == ['Si']
     assert material.n_elements == 1
     assert_symmetry(material.symmetry)
 
@@ -248,7 +233,7 @@ def test_material_bulk(bulk):
     conv = bulk.results.properties.structures.structure_conventional
     assert_structure(conv, has_wyckoff=True)
     assert conv.n_sites == 8
-    assert conv.species_at_sites == ["Si", "Si", "Si", "Si", "Si", "Si", "Si", "Si"]
+    assert conv.species_at_sites == ['Si', 'Si', 'Si', 'Si', 'Si', 'Si', 'Si', 'Si']
     assert np.array_equal(conv.dimension_types, [1, 1, 1])
     assert conv.lattice_parameters.a.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
     assert conv.lattice_parameters.b.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
@@ -267,11 +252,11 @@ def test_material_bulk(bulk):
 def test_material_eels(eels):
     material = eels.results.material
     assert material.n_elements == 2
-    assert material.elements == ["Si", "O"]
-    assert material.chemical_formula_hill == "OSi"
-    assert material.chemical_formula_iupac == "SiO"
-    assert material.chemical_formula_reduced == "OSi"
-    assert material.chemical_formula_descriptive == "OSi"
+    assert material.elements == ['Si', 'O']
+    assert material.chemical_formula_hill == 'OSi'
+    assert material.chemical_formula_iupac == 'SiO'
+    assert material.chemical_formula_reduced == 'OSi'
+    assert material.chemical_formula_descriptive == 'OSi'
 
 
 def test_1d_material_identification():
@@ -281,7 +266,7 @@ def test_1d_material_identification():
 
     # Rotated copy
     nanotube2 = nanotube1.copy()
-    nanotube2.rotate(90, "z", rotate_cell=True)
+    nanotube2.rotate(90, 'z', rotate_cell=True)
     hash2 = get_template_for_structure(nanotube2).results.material.material_id
     assert hash2 == hash1
 
@@ -315,8 +300,8 @@ def test_2d_material_identification():
     # Expected information for graphene. Graphene is an example of completely
     # flat 2D material.
     wyckoff_sets = [WyckoffSet(
-        wyckoff_letter="c",
-        element="C",
+        wyckoff_letter='c',
+        element='C',
         indices=[0, 1]
     )]
     space_group_number = 191
@@ -325,7 +310,7 @@ def test_2d_material_identification():
 
     # Graphene orthogonal cell
     graphene = Atoms(
-        symbols=["C", "C", "C", "C"],
+        symbols=['C', 'C', 'C', 'C'],
         positions=[
             [2.84, 7.5, 6.148780366869514e-1],
             [3.55, 7.5, 1.8446341100608543],
@@ -350,7 +335,7 @@ def test_2d_material_identification():
 
     # Graphene primitive cell
     graphene3 = Atoms(
-        symbols=["C", "C"],
+        symbols=['C', 'C'],
         positions=[
             [0, 1.42, 6],
             [1.2297560733739028, 7.100000000000001e-1, 6]
@@ -389,18 +374,18 @@ def test_2d_material_identification():
     # separately.
     wyckoff_sets = [
         WyckoffSet(
-            wyckoff_letter="e",
-            element="S",
+            wyckoff_letter='e',
+            element='S',
             indices=[2, 5]
         ),
         WyckoffSet(
-            wyckoff_letter="e",
-            element="S",
+            wyckoff_letter='e',
+            element='S',
             indices=[3, 4]
         ),
         WyckoffSet(
-            wyckoff_letter="e",
-            element="Mo",
+            wyckoff_letter='e',
+            element='Mo',
             indices=[0, 1]
         )
     ]
@@ -410,7 +395,7 @@ def test_2d_material_identification():
 
     # MoS2 orthogonal cell
     atoms = Atoms(
-        symbols=["Mo", "Mo", "S", "S", "S", "S"],
+        symbols=['Mo', 'Mo', 'S', 'S', 'S', 'S'],
         scaled_positions=[
             [0.000000, 0.022916, 0.630019],
             [0.500000, 0.418064, 0.635988],
@@ -437,12 +422,12 @@ def test_2d_material_identification():
 
 def test_bulk_material_identification():
     # Original system
-    wurtzite = ase.build.bulk("SiC", crystalstructure="wurtzite", a=3.086, c=10.053)
+    wurtzite = ase.build.bulk('SiC', crystalstructure='wurtzite', a=3.086, c=10.053)
     material_id_wurtzite = get_template_for_structure(wurtzite).results.material.material_id
 
     # Rotated
     wurtzite2 = wurtzite.copy()
-    wurtzite2.rotate(90, "z", rotate_cell=True)
+    wurtzite2.rotate(90, 'z', rotate_cell=True)
     material_id = get_template_for_structure(wurtzite2).results.material.material_id
     assert material_id == material_id_wurtzite
 
@@ -473,7 +458,7 @@ def test_bulk_material_identification():
 
 
 one_d_split = Atoms(
-    symbols=["H", "C"],
+    symbols=['H', 'C'],
     positions=[
         [0.0, 0.0, 0],
         [1.0, 0.0, 10.0]
@@ -486,7 +471,7 @@ one_d_split = Atoms(
     pbc=True
 )
 one_d_split_expected = Atoms(
-    symbols=["H", "C"],
+    symbols=['H', 'C'],
     positions=[
         [0, 0, 0],
         [0, 0, 1],
@@ -499,7 +484,7 @@ one_d_split_expected = Atoms(
     pbc=[True, False, False]
 )
 two_d_split = Atoms(
-    symbols=["H", "C"],
+    symbols=['H', 'C'],
     positions=[
         [0.0, 0.0, 0],
         [0.0, 0.0, 13.800000000000002]
@@ -512,7 +497,7 @@ two_d_split = Atoms(
     pbc=True
 )
 two_d_split_expected = Atoms(
-    symbols=["H", "C"],
+    symbols=['H', 'C'],
     positions=[
         [0, 0, 1.2],
         [0, 0, 0],
@@ -525,7 +510,7 @@ two_d_split_expected = Atoms(
     pbc=[True, True, False]
 )
 two_d_swap = Atoms(
-    symbols=["B", "N"],
+    symbols=['B', 'N'],
     positions=[
         [0, 0, 0],
         [-0.6, 0.3, 0],
@@ -538,7 +523,7 @@ two_d_swap = Atoms(
     pbc=True
 )
 two_d_swap_expected = Atoms(
-    symbols=["B", "N"],
+    symbols=['B', 'N'],
     positions=[
         [0, 0, 1.51589629],
         [0, 0, 0.84507589],
@@ -553,7 +538,7 @@ two_d_swap_expected = Atoms(
 
 
 @pytest.mark.parametrize(
-    "atoms, expected",
+    'atoms, expected',
     [
         # 1D with cell boundary in the middle of the structure
         (one_d_split, one_d_split_expected),
@@ -565,8 +550,8 @@ two_d_swap_expected = Atoms(
     ]
 )
 def test_conventional_structure(atoms, expected):
-    """Tests that the conventional structure has the correct form.
-    """
+    '''Tests that the conventional structure has the correct form.
+    '''
     entry = get_template_for_structure(atoms)
     structure_conventional = entry.results.properties.structures.structure_conventional
     pos = structure_conventional.cartesian_site_positions.to(ureg.angstrom).magnitude
@@ -577,209 +562,3 @@ def test_conventional_structure(atoms, expected):
     assert np.allclose(pos, expected.get_positions())
     assert np.array_equal(structure_conventional.species_at_sites, expected.get_chemical_symbols())
     assert np.allclose(cell, expected.get_cell())
-
-
-@pytest.mark.parametrize(
-    "pbc",
-    [
-        pytest.param(True, id="fully periodic"),
-        pytest.param(True, id="non-periodic"),
-    ]
-)
-def test_topology_calculation(pbc):
-    """Tests that a topology that originates from the calculation itself is
-    correctly extracted.
-    """
-    topology_calculation = get_template_topology(pbc)
-    topology = topology_calculation.results.material.topology
-    assert len(topology) == 5
-
-    # Test the original structure
-    original = topology[0]
-    assert original.structural_type == "unavailable"
-    assert original.atoms_ref.positions.shape == (6, 3)
-    assert len(original.atoms_ref.labels) == 6
-    assert original.atoms_ref.lattice_vectors.shape == (3, 3)
-    expected_pbc = np.zeros(3, bool)
-    expected_pbc[:] = pbc
-    assert original.atoms_ref.periodic == expected_pbc.tolist()
-    assert original.chemical_formula_hill == "H4O2"
-    assert original.chemical_formula_reduced == "H2O"
-    assert original.chemical_formula_anonymous == "A2B"
-    assert original.elements == ["H", "O"]
-    assert original.n_elements == 2
-    assert original.n_atoms == 6
-    assert original.parent_system is None
-    assert original.child_systems == ['results/material/topology/1']
-
-    # Test molecule group
-    mol_group = topology[1]
-    assert mol_group.structural_type == "group"
-    assert np.array_equal(mol_group.indices, [[0, 1, 2, 3, 4, 5]])
-    assert original.chemical_formula_hill == "H4O2"
-    assert original.chemical_formula_reduced == "H2O"
-    assert original.chemical_formula_anonymous == "A2B"
-    assert mol_group.elements == ["H", "O"]
-    assert mol_group.n_elements == 2
-    assert mol_group.n_atoms == 6
-    assert mol_group.parent_system == 'results/material/topology/0'
-    assert mol_group.child_systems == ['results/material/topology/2']
-
-    # Test molecule
-    mol = topology[2]
-    assert mol.structural_type == "molecule"
-    assert np.array_equal(mol.indices, [[0, 1, 2], [3, 4, 5]])
-    assert mol.chemical_formula_hill == "H2O"
-    assert mol.chemical_formula_reduced == "H2O"
-    assert mol.chemical_formula_anonymous == "A2B"
-    assert mol.elements == ["H", "O"]
-    assert mol.n_elements == 2
-    assert mol.n_atoms == 3
-    assert mol.parent_system == 'results/material/topology/1'
-    assert mol.child_systems == ['results/material/topology/3']
-
-    # Test monomer group
-    mon_group = topology[3]
-    assert mon_group.structural_type == "group"
-    assert np.array_equal(mon_group.indices, [[0, 1]])
-    assert mon_group.chemical_formula_hill == "H2"
-    assert mon_group.chemical_formula_reduced == "H"
-    assert mon_group.chemical_formula_anonymous == "A"
-    assert mon_group.elements == ["H"]
-    assert mon_group.n_elements == 1
-    assert mon_group.n_atoms == 2
-    assert mon_group.parent_system == 'results/material/topology/2'
-    assert mon_group.child_systems == ['results/material/topology/4']
-
-    # Test monomer
-    mon = topology[4]
-    assert mon.structural_type == "monomer"
-    assert np.array_equal(mon.indices, [[0, 1]])
-    assert mon.chemical_formula_hill == "H2"
-    assert mon.chemical_formula_reduced == "H"
-    assert mon.chemical_formula_anonymous == "A"
-    assert mon.elements == ["H"]
-    assert mon.n_elements == 1
-    assert mon.n_atoms == 2
-    assert mon.parent_system == 'results/material/topology/3'
-    assert mon.child_systems is None
-
-
-@pytest.mark.parametrize('fixture', [
-    pytest.param('atom', id='atom'),
-    pytest.param('molecule', id='molecule'),
-    pytest.param('one_d', id='1D'),
-    pytest.param('bulk', id='bulk'),
-])
-def test_no_topology(fixture, request):
-    # Test that some entries don't get a topology. This will changed later, but
-    # for now we only create topologies for a subset of systems.
-    entry = request.getfixturevalue(fixture)
-    assert not entry.results.material.topology
-
-
-@pytest.mark.skip
-@pytest.mark.parametrize('surface, ref_topologies', [
-    pytest.param(single_Cu_surface_atoms()[0], single_Cu_surface_topology(),
-                 id='single surface Cu FCC 100'),
-    pytest.param(single_Cu_surface_atoms()[1], single_Cu_surface_topology(),
-                 id='single surface Cu FCC 110'),
-    pytest.param(single_Cr_surface_atoms()[0], single_Cr_surface_topology(),
-                 id='single surface Cr BCC 100'),
-    pytest.param(single_Cr_surface_atoms()[1], single_Cr_surface_topology(),
-                 id='single surface Cr BCC 110'),
-    pytest.param(stacked_Cu_Ni_surface()[0], stacked_Cu_Ni_surface()[1],
-                 id='stacked surfaces of Cu and Ni'),
-    pytest.param(single_2D_graphene_layer_atoms(), single_2D_graphene_layer_topology(),
-                 id='single 2D layer of graphene'),
-    pytest.param(single_2D_BN_layer_atoms(), single_2D_BN_layer_topology(),
-                 id='single 2D layer of BN'),
-    pytest.param(single_2D_MoS2_layer_atoms(), single_2D_MoS2_layer_topology(),
-                 id='single 2D layer of MoS2'),
-    pytest.param(stacked_C_BN_2D_layers()[0], stacked_C_BN_2D_layers()[1],
-                 id='stacked layer of BN and C')
-])
-def test_surface_2D_topology(surface, ref_topologies):
-    entry_archive = get_template_for_structure(surface)
-    topology = entry_archive.results.material.topology
-    subsystem_topologies = topology[1:]
-    # Compare topology with reference system topology. topology[0] is the original system
-    assert len(subsystem_topologies) == len(ref_topologies)
-    for subsystem_topology in subsystem_topologies:
-        formula_hill = subsystem_topology['chemical_formula_hill']
-        for ref_top_counter, ref_topology in enumerate(ref_topologies):
-            if ref_topology['chemical_formula_hill'] == formula_hill:
-                ref_formula_hill = ref_topology['chemical_formula_hill']
-                ref_index = ref_top_counter
-                break
-        ref_elements = ref_topologies[ref_index]['elements']
-        elements = subsystem_topology['elements']
-        assert elements == ref_elements
-        assert formula_hill == ref_formula_hill
-
-        ref_structural_type = ref_topologies[ref_index]['structural_type']
-        structural_type = subsystem_topology['structural_type']
-        assert ref_structural_type == structural_type
-
-        if subsystem_topology['label'] == 'conventional cell':
-            # Cell
-            ref_cell = ref_topologies[ref_index]['cell']
-            cell = subsystem_topology['cell']
-            if ref_structural_type == '2D':
-                assert np.allclose(list(cell.values())[:4], list(ref_cell.values()), rtol=1e-05, atol=1e-9)
-            else:
-                assert np.allclose(list(cell.values())[:6], list(ref_cell.values()), rtol=1e-05, atol=1e-9)
-
-            # Symmetry
-            if ref_topologies[ref_index].symmetry:
-                symmetry = subsystem_topology['symmetry'].m_to_dict()
-                ref_symmetry = ref_topologies[ref_index]['symmetry'].m_to_dict()
-                for ref_symmetry_property_key, ref_symmetry_property in ref_symmetry.items():
-                    symmetry_property = symmetry[ref_symmetry_property_key]
-                    assert ref_symmetry_property == symmetry_property
-            else:
-                assert subsystem_topology.symmetry == ref_topologies[ref_index].symmetry
-
-            # Prototype
-            if ref_topologies[ref_index].prototype:
-                prototype = subsystem_topology['prototype'].m_to_dict()
-                ref_prototype = ref_topologies[ref_index]['prototype'].m_to_dict()
-                for ref_prototype_property_key, ref_prototype_property in ref_prototype.items():
-                    prototype_property = prototype[ref_prototype_property_key]
-                    assert ref_prototype_property == prototype_property
-            else:
-                assert ref_topologies[ref_index].prototype == subsystem_topology.prototype
-
-            # Atoms
-            atoms = subsystem_topology['atoms'].m_to_dict()
-            ref_atoms = ref_topologies[ref_index]['atoms'].m_to_dict()
-            for ref_atoms_property_key, ref_atoms_property in ref_atoms.items():
-                atoms_property = atoms[ref_atoms_property_key]
-                if type(atoms_property) == list:
-                    property = atoms_property[0]
-                    if type(property) == list:
-                        assert np.allclose(atoms_property, ref_atoms_property, rtol=1e-05, atol=1e-9)
-                    elif type(property) == dict:
-                        for property_keys, property_values in property.items():
-                            ref_property = ref_atoms_property[0][property_keys]
-                            assert property_values == ref_property
-                elif type(atoms_property) == dict:
-                    for property_keys, property_values in atoms_property.items():
-                        ref_property_value = ref_atoms_property[property_keys]
-                        if type(property_values) == float:
-                            assert np.allclose(property_values, ref_property_value, rtol=1e-05, atol=1e-9)
-                        else:
-                            assert ref_atoms_property == property_values
-                else:
-                    if type(atoms_property) == float:
-                        assert np.allclose(ref_atoms_property, atoms_property, rtol=1e-05, atol=1e-9)
-                    else:
-                        assert ref_atoms_property == atoms_property
-
-        elif subsystem_topology['label'] == 'subsystem':
-            # Indices: passes if the index overlapp is large enough
-            ref_indices = ref_topologies[ref_index].indices
-            indices = subsystem_topology['indices'][0]
-            indices_overlap = set(ref_indices).intersection(set(indices))
-            assert len(indices_overlap) / \
-                len(ref_indices) > 0.85
