@@ -509,7 +509,7 @@ docker build --target dev_python -t <image-name>:<image-tag> .
 If you want to build an image directly from a remote git repository (e.g. for a specific `branch`), run
 
 ```
-DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_CONTEXT_KEEP_GIT_DIR=1 --pull -t <image-name>:<image-tag> https://github.com/mdforti/nomad.git#<branch>
+DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_CONTEXT_KEEP_GIT_DIR=1 --pull -t <image-name>:<image-tag> https://github.com/nomad-coe/nomad.git#<branch>
 ```
 
 The buildkit parametrization ensures that the the `.git` directory is available in the
