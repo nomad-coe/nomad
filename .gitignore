@@ -437,3 +437,5 @@ $RECYCLE.BIN/
 # .nfs files are created when an open file is removed but is still being accessed
 .nfs*
 
+# local overwrites for docker-compose files
+docker-compose.local.yml
