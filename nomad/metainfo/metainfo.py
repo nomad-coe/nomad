@@ -1558,7 +1558,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if sub_section_lst.__class__ != MSubSectionList:
                 self._on_add_sub_section(sub_section_def, sub_section, len(sub_section_lst) - 1)
         else:
-            old_sub_section = self.__dict__.get(sub_section_name, None)
+            if (old_sub_section := self.__dict__.get(sub_section_name, None)) is sub_section:
+                return
             self.__dict__[sub_section_name] = sub_section
             if sub_section is not None:
                 self._on_add_sub_section(sub_section_def, sub_section, -1)
