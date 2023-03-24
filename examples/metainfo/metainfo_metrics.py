@@ -1,3 +1,7 @@
+# This example reads all Python define metainfo and computes
+# basic metrics on how many sections and properties are defined
+# per package
+
 from nomad.metainfo import Section, Property, Quantity, Package
 from nomad.cli.dev import _all_metainfo_packages
 
