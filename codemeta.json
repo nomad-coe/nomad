@@ -1,0 +1,205 @@
+{
+  "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+  "@type": "Code",
+  "author": [
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Markus Scheidgen",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Lauri Himanen",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Alvin Noe Ladines",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "David Sikter",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Mohammad Nakhaee",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Ádám Fekete",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Theodore Chang",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Amir Golparvar",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "José A. Márquez",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Sandor Brockhauser",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Sebastian Brückner",
+      "affiliation": "Leibniz Institut für Kristallzüchtung, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Luca M.Ghringhelli",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Daniel Lehmberg",
+      "affiliation": "Technical University of Munich, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Thea Denell",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Andrea Albino",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Hampus Näsström",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Sherjeel Shabih",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Florian Dobener",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Markus Kühbach",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Rubel Mozumder",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Joseph F. Rudzinski",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Nathan Daelman",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "José M. Pizarro",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Martin Kuban",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Pavel Ondračka",
+      "affiliation": "Masaryk University, Czech Republic"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Hans-Joachim Bungartz",
+      "affiliation": "Technical University of Munich, Germany"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "",
+      "name": "Claudia Draxl",
+      "affiliation": "Institut für Physik, Humboldt-Universität zu Berlin, Germany"
+    }
+  ],
+  "identifier": "",
+  "codeRepository": "https://github.com/nomad-coe/nomad",
+  "datePublished": "2023-03-24",
+  "dateModified": "2023-03-24",
+  "dateCreated": "2023-03-24",
+  "description": "NOMAD lets you manage and share your materials science data in a way that makes it truly useful to you, your group, and the community.",
+  "keywords": "research data management, materials science",
+  "license": "Apache 2.0",
+  "title": "NOMAD",
+  "version": "v1.1.8"
+}
