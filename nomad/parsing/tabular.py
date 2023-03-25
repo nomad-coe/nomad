@@ -17,6 +17,8 @@
 #
 
 from typing import Union, List, Iterable, Dict, Callable, Set, Any, Tuple, cast, Iterator
+
+import pandas as pd
 from memoization import cached
 import os.path
 import re
@@ -307,7 +309,7 @@ def _create_column_to_quantity_mapping(section_def: Section):
                 if isinstance(value, float) and math.isnan(value):
                     value = None
 
-                if isinstance(value, (int, float, str)):
+                if isinstance(value, (int, float, str, pd.Timestamp)):
                     value = np.array([value])
 
                 if value is not None:
