@@ -132,7 +132,7 @@ const UnitSelector = React.memo(({
         classes={{root: styles.systems}}
       >
         <FormLabel component="legend">Unit system</FormLabel>
-        <RadioGroup aria-label="gender" name="gender1" value={units.label} onChange={handleSystemChange}>
+        <RadioGroup name="unit-system" value={units.label} onChange={handleSystemChange}>
           {Object.values(unitSystems).map(system => {
             return <Tooltip key={system.label} title={system.description}>
               <FormControlLabel value={system.label} control={<Radio />} label={system.label} />
