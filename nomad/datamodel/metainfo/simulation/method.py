@@ -222,6 +222,9 @@ class AtomParameters(MSection):
     Contains method-related information about a kind of atom identified by label. This
     allows the assignment of an atom-centered basis set or pseudopotential for different
     atoms belonging to the same kind.
+
+    Through this section we use the wording "active" mainly for defining orbital-related
+    quantities. Active refers to the relevant orbital parameters in the atom.
     '''
 
     m_def = Section(validate=False)
@@ -271,14 +274,14 @@ class AtomParameters(MSection):
         type=np.dtype(np.int32),
         shape=[],
         description='''
-        Number of valence orbitals of the atom.
+        Number of active orbitals of the atom.
         ''')
 
     orbitals = Quantity(
         type=str,
         shape=['n_orbitals'],
         description='''
-        Label of the valence orbitals of the atoms.
+        Label of the active orbitals of the atoms.
         ''')
 
     onsite_energies = Quantity(
