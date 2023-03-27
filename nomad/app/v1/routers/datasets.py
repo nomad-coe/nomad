@@ -427,12 +427,15 @@ async def assign_doi(
         doi.create_draft()
         doi.make_findable()
     except DOIException:
+        if doi.doi:
+            dataset.doi = doi
+            dataset.save()
+
         raise HTTPException(
             status_code=_datacite_did_not_resolve[0],
             detail=_datacite_did_not_resolve[1]['description'])
 
     dataset.doi = doi.doi
-
     dataset.save()
 
     return {
