@@ -194,13 +194,17 @@ class TopologyNormalizer():
                         'molecule': 'Molecule extracted from the calculation topology.',
                         'molecule_group': 'Group of molecules extracted from the calculation topology.',
                         'monomer_group': 'Group of monomers extracted from the calculation topology.',
-                        'monomer': 'Monomer extracted from the calculation topology.'
+                        'monomer': 'Monomer extracted from the calculation topology.',
+                        'projection': 'Atom(s) considered to obtain the projected tight-binding model.',
+                        'core_hole': 'Atom with the core-hole state.'
                     }
                     structural_type_map = {
                         'molecule': 'molecule',
                         'molecule_group': 'group',
                         'monomer': 'monomer',
                         'monomer_group': 'group',
+                        'projection': 'group',
+                        'core_hole': 'group'
                     }
                     system = System(
                         method='parser',

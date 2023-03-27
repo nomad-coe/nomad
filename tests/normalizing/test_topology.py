@@ -36,6 +36,7 @@ from tests.normalizing.conftest import (
     single_2D_MoS2_layer_topology,
     stacked_C_BN_2D_layers
 )
+from tests.normalizing.conftest import projection  # pylint: disable=unused-import
 
 
 def assert_topology(topology):
@@ -269,3 +270,29 @@ def test_surface_2D_topology(surface, ref_topologies):
             indices_overlap = set(ref_indices).intersection(set(indices))
             assert len(indices_overlap) / \
                 len(ref_indices) > 0.85
+
+
+def test_topology_projection(projection):
+    system = projection.run[-1].system[-1]
+    assert system.type == 'bulk'
+    assert len(system.atoms_group) == 1
+    assert system.atoms_group[-1].label == 'Br'
+    assert system.atoms_group[-1].type == 'projection'
+    assert system.atoms_group[-1].n_atoms == 1
+    assert not system.atoms_group[-1].is_molecule
+    assert system.atoms_group[-1].atom_indices[0] == 0
+    assert not system.atoms_group[-1].atoms_group
+    material = projection.results.material
+    assert material.structural_type == system.type
+    assert material.m_xpath('topology')
+    topology = material.topology
+    assert_topology(topology)
+    assert len(topology) == 2
+    assert topology[0].label == 'original'
+    assert topology[1].label == system.atoms_group[-1].label
+    assert topology[0].structural_type == 'bulk'
+    assert topology[1].structural_type == 'group'
+    assert len(topology[0].child_systems) == 1
+    assert topology[0].child_systems[-1] == topology[1].system_id
+    assert topology[0].elements == ['Br', 'K', 'Si']
+    assert topology[1].elements == ['Br']

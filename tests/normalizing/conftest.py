@@ -576,6 +576,14 @@ def projection() -> EntryArchive:
         ],
         labels=['Br', 'K', 'Si', 'Si'],
         periodic=[True, True, True])
+    system.m_add_sub_section(System.atoms_group, AtomsGroup(
+        label='Br',
+        type='projection',
+        index=0,
+        is_molecule=False,
+        n_atoms=1,
+        atom_indices=np.array([0])
+    ))
     scc = run.m_create(Calculation)
     scc.system_ref = system
     scc.method_ref = method
