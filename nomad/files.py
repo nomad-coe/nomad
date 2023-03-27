@@ -663,7 +663,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         pass
 
     def delete(self) -> None:
-        shutil.rmtree(self.os_path)
+        shutil.rmtree(self.os_path, ignore_errors=True)
         if config.fs.prefix_size > 0:
             # If using prefix, also remove the parent directory if empty
             parent_directory = os.path.dirname(self.os_path)
