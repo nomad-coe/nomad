@@ -536,6 +536,20 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
         assert not upload.with_embargo
 
 
+@pytest.mark.parametrize('reuse_parser', [False, True])
+def test_reuse_parser(monkeypatch, tmp, test_user, proc_infra, reuse_parser, no_warn):
+    upload_path = os.path.join(tmp, 'example_upload.zip')
+    with zipfile.ZipFile(upload_path, 'w') as zf:
+        zf.write('tests/data/parsers/vasp/vasp.xml', 'one/run.vasp.xml')
+        zf.write('tests/data/parsers/vasp/vasp.xml', 'two/run.vasp.xml')
+
+    monkeypatch.setattr('nomad.config.process.reuse_parser', reuse_parser)
+    upload = run_processing(('example_upload', upload_path,), test_user)
+
+    assert upload.total_entries_count == 2
+    assert upload.process_status == 'SUCCESS'
+
+
 @pytest.mark.parametrize('args', [
     pytest.param(
         dict(

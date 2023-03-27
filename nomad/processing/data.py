@@ -1140,7 +1140,7 @@ class Entry(Proc):
             if not config.process.reuse_parser:
                 if isinstance(parser, parsing.MatchingParserInterface):
                     try:
-                        parser = parser.__class__()
+                        parser.new_parser_instance()
                     except Exception as e:
                         raise ProcessFailure(
                             'could not re-create parser instance',

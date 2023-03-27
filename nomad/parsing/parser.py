@@ -392,6 +392,11 @@ class MatchingParserInterface(MatchingParser):
         self._parser_class_name = parser_class_name
         self._mainfile_parser = None
 
+    def new_parser_instance(self):
+        ''' Forgets the existing parser instance and forces the creation of a new one. '''
+        self._mainfile_parser = None
+        return self._mainfile_parser
+
     @property
     def mainfile_parser(self):
         if self._mainfile_parser is None:
