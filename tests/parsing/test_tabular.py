@@ -917,8 +917,8 @@ def get_context(upload_id, schema_file):
     '''Prepares a custom context for testing.
     '''
     class MyContext(ClientContext):
-        def load_raw_file(self, path, upload_id, installation_url):
-            archive = super().load_raw_file(path, upload_id, installation_url)
+        def load_raw_file(self, path: str, upload_id: str, installation_url: str, url: str = None):
+            archive = super().load_raw_file(path, upload_id, installation_url, url)
             archive.metadata = EntryMetadata(
                 upload_id=upload_id,
                 entry_id=generate_entry_id(upload_id, schema_file))

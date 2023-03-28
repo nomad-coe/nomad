@@ -1,0 +1,15 @@
+definitions:
+  name: 'myPackage'
+  sections:
+    A:
+      base_section: nomad.datamodel.data.EntryData
+      quantities:
+        sample_name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+      sub_sections:
+        myProcess:
+          section: ../upload/raw/B.schema.archive.yaml#B
+

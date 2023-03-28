@@ -29,7 +29,7 @@ from nomad.parsing.parser import ArchiveParser
 from nomad.datamodel import Context
 from nomad.datamodel.context import ServerContext, ClientContext, parse_path
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
-from nomad.processing import Upload
+from nomad.processing import Upload, Entry, ProcessStatus
 
 
 @pytest.fixture(scope='module')
@@ -42,7 +42,7 @@ def context():
             assert installation_url is None or installation_url == self.installation_url
             return EntryArchive(metadata=EntryMetadata(entry_id=entry_id, upload_id=upload_id))
 
-        def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
+        def load_raw_file(self, path: str, upload_id: str, installation_url: str, url: str = None) -> MSection:
             assert installation_url is None or installation_url == self.installation_url
             return MySection()
 
@@ -509,3 +509,16 @@ def test_client_external_schema(
         results = archive.m_to_dict(with_out_meta=True)
         del results['metadata']
         assert results == content
+
+
+def test_circular_external_schema(raw_files, test_user, api_v1, proc_infra):
+    upload1 = Upload(
+        upload_id='upload_id',
+        main_author=test_user.user_id)
+    upload1.save()
+    files.StagingUploadFiles(upload_id=upload1.upload_id, create=True)
+    upload1.staging_upload_files.add_rawfiles('examples/data/references/circular')
+    upload1.process_upload()
+    upload1.block_until_complete()
+    for entry in Entry.objects(upload_id='upload_id'):
+        assert entry.process_status == ProcessStatus.SUCCESS
