@@ -27,7 +27,7 @@ from nomad import utils
 from nomad.metainfo.util import camel_case_to_snake_case
 from nomad.parsing.parser import MatchingParser
 
-m_package = Package(name='ElabFTWParser')
+m_package = Package(name='elabftw')
 
 
 def _remove_at_sign_from_keys(obj):
@@ -232,7 +232,7 @@ class ELabFTWParser(MatchingParser):
 
     def __init__(self) -> None:
         super().__init__(
-            name='parser/elabftw_parser', code_name='ElabFTW',
+            name='parsers/elabftw_parser', code_name='ElabFTW',
             domain=None,
             mainfile_mime_re=r'text/plain|application/json',
             mainfile_name_re=r'.*ro-crate-metadata.json$')

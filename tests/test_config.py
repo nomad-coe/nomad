@@ -19,6 +19,7 @@
 import pytest
 import os
 import yaml
+from pydantic import parse_obj_as
 
 from nomad import config
 from nomad.utils import flat
@@ -90,10 +91,42 @@ def test_config(raw_files, with_config, monkeypatch, caplog, config_dict):
     pytest.param({'fs': {'does_not_exist': 'test_value'}}, 'config key does not exist: fs_does_not_exist', id='undefined field child'),
     pytest.param(
         {'services': {'max_entry_download': 'not_a_number'}},
-        "cannot set config setting services_max_entry_download=not_a_number: invalid literal for int() with base 10: 'not_a_number'",
-        id='incompatible value'
+        "cannot set config setting services_max_entry_download=not_a_number: 1 validation error for ParsingModel[int]",
+        id='incompatible-value'
     ),
 ])
 def test_config_error(raw_files, with_config, monkeypatch, caplog, config_dict, error):
     load_config(config_dict, monkeypatch)
     assert_log(caplog, 'ERROR', error)
+
+
+def test_parser_plugins():
+    from nomad import config
+    from nomad.config import Parser
+    parsers = [
+        plugin for plugin in config.plugins.options.values()
+        if isinstance(plugin, Parser)]
+    assert len(parsers) == 67
+
+
+def test_plugin_polymorphism():
+    plugins_yaml = parse_obj_as(config.Plugins, yaml.safe_load('''
+        options:
+            schema:
+                plugin_type: schema
+                name: test
+                python_package: nomad.datamodel.metainfo.simulation
+    '''))
+
+    plugins_config = config.Plugins(options=dict(parser=config.Parser(
+        name='parsers/abinit',
+        python_package='electronicparsers.abinit',
+        parser_class_name='electronicparsers.abinit.parser.AbinitParser'
+    )))
+
+    from nomad.config import _merge
+    _merge(plugins_config.options, plugins_yaml.options)
+    plugins = plugins_config
+
+    assert isinstance(plugins.options['schema'], config.Schema)
+    assert isinstance(plugins.options['parser'], config.Parser)

@@ -16,20 +16,4 @@
 # limitations under the License.
 #
 
-import importlib
-from pydantic import parse_obj_as
-
-from nomad import config
-from nomad.config import Schema, Plugin
-
-from . import annotations  # Should be imported first to register the annotations before they are used
-from .simulation import m_env
-from .eln.material_library import m_package
-from .eln.perovskite_solar_cell_database import m_package
-from .downloads import m_package
-from .eln.labfolder import m_package
-from .eln.ikz_hall import m_package
-
-for plugin in config.plugins.filtered():
-    if isinstance(plugin, Schema):
-        importlib.import_module(plugin.python_package)
+from .nexus import NexusParser

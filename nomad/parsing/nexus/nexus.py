@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import os.path
+
 import xml.etree.ElementTree as ET
 from typing import Optional
 
@@ -25,7 +25,7 @@ from nexusutils.nexus import nexus as read_nexus  # pylint: disable=import-error
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import MSection, nexus
 from nomad.metainfo.util import MQuantity, MSubSectionList, resolve_variadic_name
-from nomad.parsing import MatchingParser
+from nomad.parsing import Parser
 from nomad.units import ureg
 from nomad.utils import get_logger
 from nomad.datamodel.results import Material
@@ -108,18 +108,12 @@ def _get_value(hdf_node):
     return hdf_node[()].decode()
 
 
-class NexusParser(MatchingParser):
+class NexusParser(Parser):
     '''
     NexusParser doc
     '''
 
     def __init__(self):
-        super().__init__(
-            metadata_path=os.path.join(os.path.dirname(__file__), 'metadata.yaml'),
-            mainfile_mime_re=r'(application/.*)|(text/.*)',
-            mainfile_name_re=r'.*\.nxs',
-            supported_compressions=['gz', 'bz2', 'xz']
-        )
         self.archive: Optional[EntryArchive] = None
         self.nx_root = None
         self._logger = None
@@ -349,3 +343,6 @@ class NexusParser(MatchingParser):
         except Exception as e:
             self._logger.warn('could not analyse chemical formula', exc_info=e)
         self._logger.info("atoms : " + str(archive.results.material.elements))
+
+    def is_mainfile(self, filename: str, mime: str, buffer: bytes, decoded_buffer: str, compression: str = None):
+        return True

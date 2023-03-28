@@ -1849,6 +1849,18 @@ window.nomadArtifacts = {
       "unit": "kilogram / meter ** 3",
       "aggregatable": false
     },
+    "results.material.topology.cell.pbc": {
+      "name": "pbc",
+      "description": "Periodic boundary conditions of the cell lattice vectors, given in order a, b, c.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "bool"
+      },
+      "shape": [
+        3
+      ],
+      "aggregatable": true
+    },
     "results.material.topology.symmetry.bravais_lattice": {
       "name": "bravais_lattice",
       "description": "Identifier for the Bravais lattice in Pearson notation. The first lowercase letter\nidentifies the crystal family and can be one of the following: a (triclinic), b\n(monoclinic), o (orthorhombic), t (tetragonal), h (hexagonal) or c (cubic). The\nsecond uppercase letter identifies the centring and can be one of the following: P\n(primitive), S (face centred), I (body centred), R (rhombohedral centring) or F\n(all faces centred).",
@@ -2278,7 +2290,7 @@ window.nomadArtifacts = {
     },
     "results.method.simulation.gw.type": {
       "name": "type",
-      "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `\"G0W0\"`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `\"scGW\"`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `\"scGW0\"` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `\"scG0W\"` | self-consistent W with fixed G0  | -                     |\n\n| `\"ev-scGW0\"`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `\"ev-scGW\"`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `\"qp-scGW0\"`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `\"qp-scGW\"`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
+      "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'G0W0'`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `'scGW'`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `'scGW0'` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `'scG0W'` | self-consistent W with fixed G0  | -                     |\n\n| `'ev-scGW0'`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `'ev-scGW'`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `'qp-scGW0'`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `'qp-scGW'`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
       "type": {
         "type_kind": "Enum",
         "type_data": [
@@ -2360,7 +2372,7 @@ window.nomadArtifacts = {
     },
     "results.method.simulation.dmft.impurity_solver_type": {
       "name": "impurity_solver_type",
-      "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `\"CT-INT\"`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `\"CT-HYB\"`        | Werner et al., PRL 97 (2006)         |\n\n| `\"CT-AUX\"`        | Gull et al., EPL 82 (2008)           |\n\n| `\"ED\"`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `\"NRG\"`           | Bulla et al., RMP 80 (2008)          |\n\n| `\"MPS\"`           | Ganahl et al., PRB 90 (2014)         |\n\n| `\"IPT\"`           | Georges et al., PRB 45 (1992)        |\n\n| `\"NCA\"`           | Pruschke et al., PRB 47 (1993)       |\n\n| `\"OCA\"`           | Pruschke et al., PRB 47 (1993)       |\n\n| `\"slave_bosons\"`  | Kotliar et al., PRL 57 (1986)        |\n\n| `\"hubbard_I\"`     | -                                    |",
+      "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `'CT-INT'`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `'CT-HYB'`        | Werner et al., PRL 97 (2006)         |\n\n| `'CT-AUX'`        | Gull et al., EPL 82 (2008)           |\n\n| `'ED'`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `'NRG'`           | Bulla et al., RMP 80 (2008)          |\n\n| `'MPS'`           | Ganahl et al., PRB 90 (2014)         |\n\n| `'IPT'`           | Georges et al., PRB 45 (1992)        |\n\n| `'NCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'OCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'slave_bosons'`  | Kotliar et al., PRL 57 (1986)        |\n\n| `'hubbard_I'`     | -                                    |",
       "type": {
         "type_kind": "Enum",
         "type_data": [
@@ -3926,15 +3938,15 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 0,
             "m_parent_sub_section": "section_definitions",
-            "name": "KMesh",
-            "description": "Contains the settings for a uniformly spaced k-point grid (if employed).",
+            "name": "Mesh",
+            "description": "Contains the settings for a sampling mesh. Supports uniformly-spaced meshes and symmetry-reduced representations.",
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
-                "name": "n_points",
-                "description": "Number of k points in the mesh (i.e. the k points used to evaluate energy_total).",
+                "name": "dimensionality",
+                "description": "Dimensionality of the mesh.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "int32"
@@ -3945,22 +3957,109 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
-                "name": "grid",
-                "description": "k-point grid used in notation [nx, ny, nz] in fractional coordinates.",
+                "name": "sampling_method",
+                "description": "Method used to generate the mesh:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'Gamma-centered'` | Regular mesh is centered around Gamma. No offset. |\n\n| `'Monkhorst-Pack'` | Regular mesh with an offset of half the reciprocal lattice vector. |\n\n| `'Gamma-offcenter'` | Regular mesh with an offset that is neither `'Gamma-centered'`, nor `'Monkhorst-Pack'`. |\n\n| `'Line-path'` | Line path along high-symmetry points. Typically employed for simualting band structures. |\n\n| `'Equidistant'`  | Equidistant 1D grid (also known as 'Newton-Cotes')                      |\n\n| `'Logarithmic'`  | log distance 1D grid               |\n\n| `'Gauss-Legendre'` | Quadrature rule for integration using Legendre polynomials |\n\n| `'Gauss-Laguerre'` | Quadrature rule for integration using Laguerre polynomials |\n\n| `'Clenshaw-Curtis'`  | Quadrature rule for integration using Chebyshev polynomials using discrete cosine transformations |\n\n| `'Gauss-Hermite'`  | Quadrature rule for integration using Hermite polynomials |",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "Gamma-centered",
+                    "Monkhorst-Pack",
+                    "Gamma-offcenter",
+                    "Line-path",
+                    "Equidistant",
+                    "Logarithmic",
+                    "Gauss-Legendre",
+                    "Gauss-LaguerreClenshaw-Curtis",
+                    "Newton-Cotes",
+                    "Gauss-Hermite"
+                  ]
                 },
-                "shape": [
-                  3
-                ]
+                "shape": []
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
-                "name": "generation_method",
-                "description": "Method used to generate the k points.",
+                "name": "n_points",
+                "description": "Total number of points in the mesh, accounting for the multiplicities.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "grid",
+                "description": "Amount of mesh point sampling along each axis, i.e. [nx, ny, nz].",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                },
+                "shape": [
+                  "dimensionality"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "points",
+                "description": "List of all the points in the mesh.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "complex128"
+                },
+                "shape": [
+                  "*",
+                  "dimensionality"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "multiplicities",
+                "description": "The amount of times the same point reappears. These are accounted for in `n_points`.\nA value larger than 1, typically indicates a symmtery operation that was applied to the mesh.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "name": "weights",
+                "description": "The frequency of times the same point reappears.\nA value larger than 1, typically indicates a symmtery operation that was applied to the mesh.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 1,
+            "m_parent_sub_section": "section_definitions",
+            "name": "LinePathSegment",
+            "description": "Contains the settings for a single line path segment in a mesh.",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "start_point",
+                "description": "Name of the hihg-symmetry starting point of the line path segment.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -3969,38 +4068,177 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
-                "name": "points",
-                "description": "List of all the k points in the $k$-point mesh. These are the k point used to\nevaluate energy_total, and are in fractional coordinates (in the basis of the\nreciprocal-lattice vectors).",
+                "name": "end_point",
+                "description": "Name of the high-symmetry end point of the line path segment.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
+                  "type_kind": "python",
+                  "type_data": "str"
                 },
-                "shape": [
-                  "n_points",
-                  3
-                ]
+                "shape": []
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
-                "name": "weights",
-                "description": "Weights of all the k points in the $k$-point mesh. These are the weights for\nk_mesh_points (i.e. the k point used to evaluate energy_total).",
+                "name": "n_points",
+                "description": "Number of points in the line path segment.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "points",
+                "description": "List of all the points in the line path segment.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
                 },
                 "shape": [
-                  "n_points"
+                  "*",
+                  3
                 ]
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 1,
+            "m_parent_index": 2,
+            "m_parent_sub_section": "section_definitions",
+            "name": "KMesh",
+            "description": "Contains the settings for a sampling mesh in 3D reciprocal space. Supports uniformly-spaced meshes, line paths along high-symmetry points,\nas well as symmetry-reduced and full representations.",
+            "base_sections": [
+              "/packages/0/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "offset",
+                "description": "Offset vector shifting the mesh with respect to a Gamma-centered case.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "all_points",
+                "description": "Full list of the mesh points without any symmetry operations.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*",
+                  3
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "high_symmetry_points",
+                "description": "Named high symmetry points in the mesh.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "line_path_segments",
+                "sub_section": "/packages/0/section_definitions/1",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 3,
+            "m_parent_sub_section": "section_definitions",
+            "name": "FrequencyMesh",
+            "description": "Contains the settings for a sampling mesh in 1D frequency space, either real or imaginary.",
+            "base_sections": [
+              "/packages/0/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "points",
+                "description": "List of all the points in the mesh in joules.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "complex128"
+                },
+                "shape": [
+                  "n_points",
+                  "dimensionality"
+                ],
+                "unit": "joule"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "smearing",
+                "description": "Numerical smearing parameter used for convolutions.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": []
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 4,
+            "m_parent_sub_section": "section_definitions",
+            "name": "TimeMesh",
+            "description": "Contains the settings for a sampling mesh in 1D time space, either real or imaginary.",
+            "base_sections": [
+              "/packages/0/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "smearing",
+                "description": "Numerical smearing parameter used for convolutions.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": []
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 5,
             "m_parent_sub_section": "section_definitions",
             "name": "Scf",
             "description": "Section containing the parameters related to self consistency.",
@@ -4063,7 +4301,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 2,
+            "m_parent_index": 6,
             "m_parent_sub_section": "section_definitions",
             "name": "HubbardKanamoriModel",
             "description": "Setup of the local Hubbard model.",
@@ -4219,7 +4457,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 3,
+            "m_parent_index": 7,
             "m_parent_sub_section": "section_definitions",
             "name": "AtomParameters",
             "description": "Contains method-related information about a kind of atom identified by label. This allows the assignment of an atom-centered basis set or pseudopotential for different\natoms belonging to the same kind.\n\nThrough this section we use the wording \"active\" mainly for defining orbital-related\nquantities. Active refers to the relevant orbital parameters in the atom.",
@@ -4361,14 +4599,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hubbard_kanamori_model",
-                "sub_section": "/packages/0/section_definitions/2",
+                "sub_section": "/packages/0/section_definitions/6",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 4,
+            "m_parent_index": 8,
             "m_parent_sub_section": "section_definitions",
             "name": "MoleculeParameters",
             "description": "Contains method-related information about a kind of atom identified by label. This allows the assignment of an atom-centered basis set or pseudopotential for different\natoms belonging to the same kind.",
@@ -4404,14 +4642,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "atom_parameters",
-                "sub_section": "/packages/0/section_definitions/3",
+                "sub_section": "/packages/0/section_definitions/7",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 5,
+            "m_parent_index": 9,
             "m_parent_sub_section": "section_definitions",
             "name": "Photon",
             "description": "Section containing the details of the photon field used for spectrum calculations.",
@@ -4471,7 +4709,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 6,
+            "m_parent_index": 10,
             "m_parent_sub_section": "section_definitions",
             "name": "GaussianBasisGroup",
             "description": "Section that describes a group of Gaussian contractions. Groups allow one to calculate the primitive Gaussian integrals once for several different linear combinations of\nthem. This defines basis functions with radial part $f_i(r) = r^{l_i} \\sum_{j} c_{i j}\nA(l_i, \\alpha_j) exp(-\\alpha_j r^2)$ where $A(l_i, \\alpha_j)$ is a the normalization\ncoefficient for primitive Gaussian basis functions. Here, $\\alpha_j$ is defined in\ngaussian_basis_group_exponents, $l_i$ is given in gaussian_basis_group_ls, and $c_{i\nj}$ is given in gaussian_basis_group_contractions, whereas the radial part is given by\nthe spherical harmonics $Y_{l m}$.\n\nThis section is defined only if the original basis function uses Gaussian basis\nfunctions, and the sequence of radial functions $f_i$ across all\nsection_gaussian_basis_group in section_basis_set_atom_centered should match the one\nof basis_set_atom_centered_radial_functions.",
@@ -4548,7 +4786,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 7,
+            "m_parent_index": 11,
             "m_parent_sub_section": "section_definitions",
             "name": "BasisSetAtomCentered",
             "description": "This section describes the atom-centered basis set. The main contained information is a short, non unique but human-interpretable, name for identifying the basis set\n(short_name), a longer unique name, the atomic number of the atomic species the\nbasis set is meant for.",
@@ -4596,14 +4834,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "gaussian_basis_group",
-                "sub_section": "/packages/0/section_definitions/6",
+                "sub_section": "/packages/0/section_definitions/10",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 8,
+            "m_parent_index": 12,
             "m_parent_sub_section": "section_definitions",
             "name": "BasisSetCellDependent",
             "description": "Section describing a cell-dependent (atom-independent) basis set, e.g. plane waves. The contained information is the type of basis set (in basis_set_cell_dependent_kind),\nits parameters (e.g., for plane waves in basis_set_planewave_cutoff), and a name that\nidentifies the actually used basis set (a string combining the type and the\nparameter(s), stored in name).",
@@ -4662,7 +4900,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 9,
+            "m_parent_index": 13,
             "m_parent_sub_section": "section_definitions",
             "name": "BasisSet",
             "description": "This section contains all basis sets used to represent the wavefunction or electron density.",
@@ -4716,7 +4954,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cell_dependent",
-                "sub_section": "/packages/0/section_definitions/8",
+                "sub_section": "/packages/0/section_definitions/12",
                 "repeats": true
               },
               {
@@ -4724,14 +4962,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "atom_centered",
-                "sub_section": "/packages/0/section_definitions/7",
+                "sub_section": "/packages/0/section_definitions/11",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 10,
+            "m_parent_index": 14,
             "m_parent_sub_section": "section_definitions",
             "name": "Interaction",
             "description": "Section containing the parameters of a contribution to a force field model.",
@@ -4839,7 +5077,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 11,
+            "m_parent_index": 15,
             "m_parent_sub_section": "section_definitions",
             "name": "Model",
             "description": "Section containing the parameters of a force field model. If specified, the parameters corresponding to the individual contributions to the model are given in contributions.\nOtherwise, the parameters can also be found in a reference to the published model.",
@@ -4875,14 +5113,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "contributions",
-                "sub_section": "/packages/0/section_definitions/10",
+                "sub_section": "/packages/0/section_definitions/14",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 12,
+            "m_parent_index": 16,
             "m_parent_sub_section": "section_definitions",
             "name": "Functional",
             "description": "Section containing the parameters of an exchange or correlation functional.",
@@ -4926,12 +5164,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 13,
+            "m_parent_index": 17,
             "m_parent_sub_section": "section_definitions",
             "name": "XCFunctional",
             "description": "Section describing the exchange-correlation functional used in the DFT calculation. The name of the exchange-correlation functional is given by name and the reference to\nthe published functional is provided by reference. Other contributions to the\nfunctional not covered by exchange, correlation or hybrid types may be specified in\ncontributions.",
             "base_sections": [
-              "/packages/0/section_definitions/11"
+              "/packages/0/section_definitions/15"
             ],
             "sub_sections": [
               {
@@ -4939,7 +5177,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "exchange",
-                "sub_section": "/packages/0/section_definitions/12",
+                "sub_section": "/packages/0/section_definitions/16",
                 "repeats": true
               },
               {
@@ -4947,7 +5185,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "correlation",
-                "sub_section": "/packages/0/section_definitions/12",
+                "sub_section": "/packages/0/section_definitions/16",
                 "repeats": true
               },
               {
@@ -4955,7 +5193,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hybrid",
-                "sub_section": "/packages/0/section_definitions/12",
+                "sub_section": "/packages/0/section_definitions/16",
                 "repeats": true
               },
               {
@@ -4963,14 +5201,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "contributions",
-                "sub_section": "/packages/0/section_definitions/12",
+                "sub_section": "/packages/0/section_definitions/16",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 14,
+            "m_parent_index": 18,
             "m_parent_sub_section": "section_definitions",
             "name": "DFT",
             "description": "Section containing the various parameters that define a DFT calculation. These include settings for the exchange correlation functionals, LDA+U, etc.",
@@ -4994,13 +5232,13 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "xc_functional",
-                "sub_section": "/packages/0/section_definitions/13"
+                "sub_section": "/packages/0/section_definitions/17"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 15,
+            "m_parent_index": 19,
             "m_parent_sub_section": "section_definitions",
             "name": "Wannier",
             "description": "Section containing the various parameters that define a Wannier tight-binding method.",
@@ -5079,21 +5317,11 @@ window.nomadArtifacts = {
                 ],
                 "unit": "electron_volt"
               }
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "k_mesh",
-                "sub_section": "/packages/0/section_definitions/0",
-                "repeats": false
-              }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 16,
+            "m_parent_index": 20,
             "m_parent_sub_section": "section_definitions",
             "name": "Projection",
             "description": "Section containing the various parameters that define a Wannier90-like projection",
@@ -5103,14 +5331,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "wannier",
-                "sub_section": "/packages/0/section_definitions/15",
+                "sub_section": "/packages/0/section_definitions/19",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 17,
+            "m_parent_index": 21,
             "m_parent_sub_section": "section_definitions",
             "name": "HoppingMatrix",
             "description": "Section containing the hopping/overlap matrix elements between N projected orbitals.",
@@ -5171,7 +5399,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 18,
+            "m_parent_index": 22,
             "m_parent_sub_section": "section_definitions",
             "name": "LatticeModelHamiltonian",
             "description": "Section containing the parameters of the non-interacting parts of a lattice model Hamiltonian.",
@@ -5237,7 +5465,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hopping_matrix",
-                "sub_section": "/packages/0/section_definitions/17",
+                "sub_section": "/packages/0/section_definitions/21",
                 "repeats": false
               },
               {
@@ -5245,200 +5473,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hubbard_kanamori_model",
-                "sub_section": "/packages/0/section_definitions/2",
+                "sub_section": "/packages/0/section_definitions/6",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 19,
-            "m_parent_sub_section": "section_definitions",
-            "name": "FreqMesh",
-            "description": "Contains the settings for a uniformly spaced (real) frequency-point grid (if employed).",
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "type",
-                "description": "Grid type.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "n_points",
-                "description": "Number of frequency points in the mesh.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "values",
-                "description": "List of all the real+imag frequencies.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "complex128"
-                },
-                "shape": [
-                  "n_points"
-                ],
-                "unit": "joule"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "weights",
-                "description": "Weights of all the frequencies.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "n_points"
-                ]
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 20,
-            "m_parent_sub_section": "section_definitions",
-            "name": "GW",
-            "description": "Section containing the various parameters that define a GW calculation.",
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.method.simulation.gw.type",
-                    "results.method.simulation.gw.type__suggestion"
-                  ]
-                },
-                "name": "type",
-                "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `\"G0W0\"`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `\"scGW\"`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `\"scGW0\"` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `\"scG0W\"` | self-consistent W with fixed G0  | -                     |\n\n| `\"ev-scGW0\"`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `\"ev-scGW\"`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `\"qp-scGW0\"`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `\"qp-scGW\"`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
-                "type": {
-                  "type_kind": "Enum",
-                  "type_data": [
-                    "G0W0",
-                    "scGW",
-                    "scGW0",
-                    "scG0W",
-                    "ev-scGW0",
-                    "ev-scGW",
-                    "qp-scGW0",
-                    "qp-scGW"
-                  ]
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "analytical_continuation",
-                "description": "Analytical continuation approximations of the GW self-energy:\n\n| Name           | Description         | Reference                        |\n\n| -------------- | ------------------- | -------------------------------- |\n\n| `\"pade\"` | Pade's approximant  | J. Low Temp. Phys 29, 179 (1977) |\n\n| `\"contour_deformation\"` | Contour deformation | PRB 67, 155208 (2003) |\n\n| `\"ppm_GodbyNeeds\"` | Godby-Needs plasmon-pole model | PRL 62, 1169 (1989) |\n\n| `\"ppm_HybertsenLouie\"` | Hybertsen and Louie plasmon-pole model | PRB 34, 5390 (1986) |\n\n| `\"ppm_vonderLindenHorsh\"` | von der Linden and P. Horsh plasmon-pole model | PRB 37, 8351 (1988) |\n\n| `\"ppm_FaridEngel\"` | Farid and Engel plasmon-pole model  | PRB 47, 15931 (1993) |\n\n| `\"multi_pole\"` | Multi-pole fitting  | PRL 74, 1827 (1995) |",
-                "type": {
-                  "type_kind": "Enum",
-                  "type_data": [
-                    "pade",
-                    "contour_deformation",
-                    "ppm_GodbyNeeds",
-                    "ppm_HybertsenLouie",
-                    "ppm_vonderLindenHorsh",
-                    "ppm_FaridEngel",
-                    "multi_pole"
-                  ]
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "interval_qp_corrections",
-                "description": "Band indices (in an interval) for which the GW quasiparticle corrections are\ncalculated.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
-                },
-                "shape": [
-                  2
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "n_states_self_energy",
-                "description": "Number of states used in the calculation of the GW self energy.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
-                "name": "n_empty_states_polarizability",
-                "description": "Number of empty states used in the calculation of the polarizability.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "quantities",
-                "name": "n_empty_states_self_energy",
-                "description": "Number of empty states used in the calculation of the GW self energy.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
-                },
-                "shape": []
-              }
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "q_grid",
-                "sub_section": "/packages/0/section_definitions/0",
-                "repeats": false
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "sub_sections",
-                "name": "frequency_grid",
-                "sub_section": "/packages/0/section_definitions/19",
-                "repeats": false
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 21,
+            "m_parent_index": 23,
             "m_parent_sub_section": "section_definitions",
             "name": "CoreHole",
             "description": "Section containing the various parameters that define a core-hole calculation. It can be within BSE as a \"core\" subsection.",
@@ -5509,26 +5551,26 @@ window.nomadArtifacts = {
                   "type_kind": "numpy",
                   "type_data": "float64"
                 },
-                "unit": "electron_volt"
+                "unit": "joule"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 22,
+            "m_parent_index": 24,
             "m_parent_sub_section": "section_definitions",
-            "name": "BSE",
-            "description": "Section containing the various parameters that define a BSE calculation.",
+            "name": "ExcitedStateMethodology",
+            "description": "Base class containing the common numerical parameters typical of excited-state calculations.",
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
-                "name": "n_empty_states",
-                "description": "Number of empty states to calculate the BSE response function.",
+                "name": "type",
+                "description": "Type which allows to identify the excited-state calculation with a\ncommon string.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
+                  "type_kind": "python",
+                  "type_data": "str"
                 },
                 "shape": []
               },
@@ -5536,35 +5578,37 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
-                "name": "screening_type",
-                "description": "Type of treatment for the screening.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "dielectric_infinity",
-                "description": "Value of the static dielectric constant at infinite q. For metals, this is infinite,\nwhile for insulators is finite.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "n_empty_states_screening",
-                "description": "Number of empty states to calculate the screening matrix.",
+                "name": "n_states",
+                "description": "Number of states used to calculate the excitations.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "int32"
                 },
                 "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "n_empty_states",
+                "description": "Number of empty states used to calculate the excitations. This quantity is\ncomplementary to `n_states`.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "broadening",
+                "description": "Lifetime broadening applied to the spectra in full-width at half maximum.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "joule"
               }
             ],
             "sub_sections": [
@@ -5572,21 +5616,159 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
-                "name": "k_mesh_screening",
-                "sub_section": "/packages/0/section_definitions/0"
+                "name": "k_mesh",
+                "sub_section": "/packages/0/section_definitions/2"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
-                "name": "core",
-                "sub_section": "/packages/0/section_definitions/21"
+                "name": "q_mesh",
+                "sub_section": "/packages/0/section_definitions/2"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "sub_sections",
+                "name": "frequency_mesh",
+                "sub_section": "/packages/0/section_definitions/3"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 23,
+            "m_parent_index": 25,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Screening",
+            "description": "Section containing the various parameters that define a screening calculation, as for example, in RPA.",
+            "base_sections": [
+              "/packages/0/section_definitions/24"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "dielectric_infinity",
+                "description": "Value of the static dielectric constant at infinite q. For metals, this is infinite\n(or a very large value), while for insulators is finite.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 26,
+            "m_parent_sub_section": "section_definitions",
+            "name": "GW",
+            "description": "Section containing the various parameters that define a GW calculation.",
+            "base_sections": [
+              "/packages/0/section_definitions/24"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.method.simulation.gw.type",
+                    "results.method.simulation.gw.type__suggestion"
+                  ]
+                },
+                "name": "type",
+                "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'G0W0'`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `'scGW'`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `'scGW0'` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `'scG0W'` | self-consistent W with fixed G0  | -                     |\n\n| `'ev-scGW0'`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `'ev-scGW'`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `'qp-scGW0'`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `'qp-scGW'`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "G0W0",
+                    "scGW",
+                    "scGW0",
+                    "scG0W",
+                    "ev-scGW0",
+                    "ev-scGW",
+                    "qp-scGW0",
+                    "qp-scGW"
+                  ]
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "analytical_continuation",
+                "description": "Analytical continuation approximations of the GW self-energy:\n\n| Name           | Description         | Reference                        |\n\n| -------------- | ------------------- | -------------------------------- |\n\n| `'pade'` | Pade's approximant  | J. Low Temp. Phys 29, 179 (1977) |\n\n| `'contour_deformation'` | Contour deformation | PRB 67, 155208 (2003) |\n\n| `'ppm_GodbyNeeds'` | Godby-Needs plasmon-pole model | PRL 62, 1169 (1989) |\n\n| `'ppm_HybertsenLouie'` | Hybertsen and Louie plasmon-pole model | PRB 34, 5390 (1986) |\n\n| `'ppm_vonderLindenHorsh'` | von der Linden and P. Horsh plasmon-pole model | PRB 37, 8351 (1988) |\n\n| `'ppm_FaridEngel'` | Farid and Engel plasmon-pole model  | PRB 47, 15931 (1993) |\n\n| `'multi_pole'` | Multi-pole fitting  | PRL 74, 1827 (1995) |",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "pade",
+                    "contour_deformation",
+                    "ppm_GodbyNeeds",
+                    "ppm_HybertsenLouie",
+                    "ppm_vonderLindenHorsh",
+                    "ppm_FaridEngel",
+                    "multi_pole"
+                  ]
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "interval_qp_corrections",
+                "description": "Band indices (in an interval) for which the GW quasiparticle corrections are\ncalculated.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                },
+                "shape": [
+                  2
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "screening",
+                "sub_section": "/packages/0/section_definitions/25"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 27,
+            "m_parent_sub_section": "section_definitions",
+            "name": "BSE",
+            "description": "Section containing the various parameters that define a BSE calculation.",
+            "base_sections": [
+              "/packages/0/section_definitions/24"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "screening",
+                "sub_section": "/packages/0/section_definitions/25"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "core_hole",
+                "sub_section": "/packages/0/section_definitions/23"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 28,
             "m_parent_sub_section": "section_definitions",
             "name": "DMFT",
             "description": "Section containing the various parameters that define a DMFT calculation",
@@ -5660,7 +5842,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "magnetic_state",
-                "description": "Magnetic state in which the DMFT calculation is done:\n\n| Name                  | State                   |\n\n| --------------------- | ----------------------- |\n\n| `\"paramagnetic\"`      | paramagnetic state      |\n\n| `\"ferromagnetic\"`     | ferromagnetic state     |\n\n| `\"antiferromagnetic\"` | antiferromagnetic state |",
+                "description": "Magnetic state in which the DMFT calculation is done:\n\n| Name                  | State                   |\n\n| --------------------- | ----------------------- |\n\n| `'paramagnetic'`      | paramagnetic state      |\n\n| `'ferromagnetic'`     | ferromagnetic state     |\n\n| `'antiferromagnetic'` | antiferromagnetic state |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -5675,30 +5857,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
-                "name": "n_matsubara_freq",
-                "description": "Number of Matsubara frequencies (imaginary frequencies).",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
-                "m_parent_sub_section": "quantities",
-                "name": "n_tau",
-                "description": "Number of tau (imaginary times).",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "int32"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
-                "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
                     "results.method.simulation.dmft.impurity_solver_type",
@@ -5706,7 +5864,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "impurity_solver",
-                "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `\"CT-INT\"`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `\"CT-HYB\"`        | Werner et al., PRL 97 (2006)         |\n\n| `\"CT-AUX\"`        | Gull et al., EPL 82 (2008)           |\n\n| `\"ED\"`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `\"NRG\"`           | Bulla et al., RMP 80 (2008)          |\n\n| `\"MPS\"`           | Ganahl et al., PRB 90 (2014)         |\n\n| `\"IPT\"`           | Georges et al., PRB 45 (1992)        |\n\n| `\"NCA\"`           | Pruschke et al., PRB 47 (1993)       |\n\n| `\"OCA\"`           | Pruschke et al., PRB 47 (1993)       |\n\n| `\"slave_bosons\"`  | Kotliar et al., PRL 57 (1986)        |\n\n| `\"hubbard_I\"`     | -                                    |",
+                "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `'CT-INT'`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `'CT-HYB'`        | Werner et al., PRL 97 (2006)         |\n\n| `'CT-AUX'`        | Gull et al., EPL 82 (2008)           |\n\n| `'ED'`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `'NRG'`           | Bulla et al., RMP 80 (2008)          |\n\n| `'MPS'`           | Ganahl et al., PRB 90 (2014)         |\n\n| `'IPT'`           | Georges et al., PRB 45 (1992)        |\n\n| `'NCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'OCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'slave_bosons'`  | Kotliar et al., PRL 57 (1986)        |\n\n| `'hubbard_I'`     | -                                    |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -5729,12 +5887,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 24,
+            "m_parent_index": 29,
             "m_parent_sub_section": "section_definitions",
             "name": "TBModel",
             "description": "Section containing the parameters pertaining to a tight-binding calculation.",
             "base_sections": [
-              "/packages/0/section_definitions/11"
+              "/packages/0/section_definitions/15"
             ],
             "sub_sections": [
               {
@@ -5742,7 +5900,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hamiltonian",
-                "sub_section": "/packages/0/section_definitions/10",
+                "sub_section": "/packages/0/section_definitions/14",
                 "repeats": true
               },
               {
@@ -5750,7 +5908,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "overlap",
-                "sub_section": "/packages/0/section_definitions/10",
+                "sub_section": "/packages/0/section_definitions/14",
                 "repeats": true
               },
               {
@@ -5758,7 +5916,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "repulsion",
-                "sub_section": "/packages/0/section_definitions/10",
+                "sub_section": "/packages/0/section_definitions/14",
                 "repeats": true
               },
               {
@@ -5766,7 +5924,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "magnetic",
-                "sub_section": "/packages/0/section_definitions/10",
+                "sub_section": "/packages/0/section_definitions/14",
                 "repeats": true
               },
               {
@@ -5774,14 +5932,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "coulomb",
-                "sub_section": "/packages/0/section_definitions/10",
+                "sub_section": "/packages/0/section_definitions/14",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 25,
+            "m_parent_index": 30,
             "m_parent_sub_section": "section_definitions",
             "name": "TB",
             "description": "Section containing the parameters pertaining to a tight-binding calculation.",
@@ -5805,14 +5963,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "model",
-                "sub_section": "/packages/0/section_definitions/24",
+                "sub_section": "/packages/0/section_definitions/29",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 26,
+            "m_parent_index": 31,
             "m_parent_sub_section": "section_definitions",
             "name": "NeighborSearching",
             "description": "Section containing the parameters for neighbor searching/lists during a molecular dynamics run.",
@@ -5846,7 +6004,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 27,
+            "m_parent_index": 32,
             "m_parent_sub_section": "section_definitions",
             "name": "ForceCalculations",
             "description": "Section containing the parameters for force calculations according to the referenced force field during a molecular dynamics run.",
@@ -5903,14 +6061,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "neighbor_searching",
-                "sub_section": "/packages/0/section_definitions/26",
+                "sub_section": "/packages/0/section_definitions/31",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 28,
+            "m_parent_index": 33,
             "m_parent_sub_section": "section_definitions",
             "name": "ForceField",
             "description": "Section containing the parameters pertaining to a force field calculation.",
@@ -5920,7 +6078,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "model",
-                "sub_section": "/packages/0/section_definitions/11",
+                "sub_section": "/packages/0/section_definitions/15",
                 "repeats": true
               },
               {
@@ -5928,14 +6086,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "force_calculations",
-                "sub_section": "/packages/0/section_definitions/27",
+                "sub_section": "/packages/0/section_definitions/32",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 29,
+            "m_parent_index": 34,
             "m_parent_sub_section": "section_definitions",
             "name": "Smearing",
             "description": "Section containing the parameters related to the smearing of the electronic density of states at the Fermi level.",
@@ -5979,7 +6137,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 30,
+            "m_parent_index": 35,
             "m_parent_sub_section": "section_definitions",
             "name": "Electronic",
             "description": "Section containing the parameters related to the electronic structure.",
@@ -6106,13 +6264,13 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "smearing",
-                "sub_section": "/packages/0/section_definitions/29"
+                "sub_section": "/packages/0/section_definitions/34"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 31,
+            "m_parent_index": 36,
             "m_parent_sub_section": "section_definitions",
             "name": "Method",
             "description": "Section containing the various parameters that define the theory and the approximations (convergence, thresholds, etc.) behind the calculation.",
@@ -6143,7 +6301,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/31"
+                  "type_data": "/packages/0/section_definitions/36"
                 },
                 "shape": []
               },
@@ -6158,7 +6316,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/31"
+                  "type_data": "/packages/0/section_definitions/36"
                 },
                 "shape": []
               },
@@ -6185,7 +6343,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/31"
+                  "type_data": "/packages/0/section_definitions/36"
                 },
                 "shape": [
                   "n_references"
@@ -6198,21 +6356,21 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dft",
-                "sub_section": "/packages/0/section_definitions/14"
+                "sub_section": "/packages/0/section_definitions/18"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "projection",
-                "sub_section": "/packages/0/section_definitions/16"
+                "sub_section": "/packages/0/section_definitions/20"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "lattice_model_hamiltonian",
-                "sub_section": "/packages/0/section_definitions/18",
+                "sub_section": "/packages/0/section_definitions/22",
                 "repeats": true
               },
               {
@@ -6220,104 +6378,118 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "gw",
-                "sub_section": "/packages/0/section_definitions/20"
+                "sub_section": "/packages/0/section_definitions/26"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "bse",
-                "sub_section": "/packages/0/section_definitions/22"
+                "sub_section": "/packages/0/section_definitions/27"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dmft",
-                "sub_section": "/packages/0/section_definitions/23"
+                "sub_section": "/packages/0/section_definitions/28"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
                 "name": "tb",
-                "sub_section": "/packages/0/section_definitions/25"
+                "sub_section": "/packages/0/section_definitions/30"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "force_field",
-                "sub_section": "/packages/0/section_definitions/28"
+                "sub_section": "/packages/0/section_definitions/33"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "k_mesh",
-                "sub_section": "/packages/0/section_definitions/0"
+                "sub_section": "/packages/0/section_definitions/2"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
-                "name": "electronic",
-                "sub_section": "/packages/0/section_definitions/30"
+                "name": "frequency_mesh",
+                "sub_section": "/packages/0/section_definitions/3"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
-                "name": "scf",
-                "sub_section": "/packages/0/section_definitions/1"
+                "name": "time_mesh",
+                "sub_section": "/packages/0/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 11,
                 "m_parent_sub_section": "sub_sections",
-                "name": "atom_parameters",
-                "more": {
-                  "label_quantity": "label"
-                },
-                "sub_section": "/packages/0/section_definitions/3",
-                "repeats": true
+                "name": "electronic",
+                "sub_section": "/packages/0/section_definitions/35"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 12,
                 "m_parent_sub_section": "sub_sections",
-                "name": "molecule_parameters",
-                "more": {
-                  "label_quantity": "label"
-                },
-                "sub_section": "/packages/0/section_definitions/4",
-                "repeats": true
+                "name": "scf",
+                "sub_section": "/packages/0/section_definitions/5"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 13,
                 "m_parent_sub_section": "sub_sections",
-                "name": "basis_set",
+                "name": "atom_parameters",
                 "more": {
-                  "label_quantity": "type"
+                  "label_quantity": "label"
                 },
-                "sub_section": "/packages/0/section_definitions/9",
+                "sub_section": "/packages/0/section_definitions/7",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 14,
                 "m_parent_sub_section": "sub_sections",
-                "name": "photon",
-                "sub_section": "/packages/0/section_definitions/5",
+                "name": "molecule_parameters",
+                "more": {
+                  "label_quantity": "label"
+                },
+                "sub_section": "/packages/0/section_definitions/8",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 15,
                 "m_parent_sub_section": "sub_sections",
+                "name": "basis_set",
+                "more": {
+                  "label_quantity": "type"
+                },
+                "sub_section": "/packages/0/section_definitions/13",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 16,
+                "m_parent_sub_section": "sub_sections",
+                "name": "photon",
+                "sub_section": "/packages/0/section_definitions/9",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 17,
+                "m_parent_sub_section": "sub_sections",
                 "name": "core_hole",
-                "sub_section": "/packages/0/section_definitions/21",
+                "sub_section": "/packages/0/section_definitions/23",
                 "repeats": true
               }
             ]
@@ -9935,7 +10107,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/31"
+                  "type_data": "/packages/0/section_definitions/36"
                 },
                 "shape": []
               },
@@ -10211,7 +10383,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hopping_matrix",
-                "sub_section": "/packages/0/section_definitions/17",
+                "sub_section": "/packages/0/section_definitions/21",
                 "repeats": true
               },
               {
@@ -10697,7 +10869,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/0/section_definitions/31",
+                "sub_section": "/packages/0/section_definitions/36",
                 "repeats": true
               },
               {
@@ -12165,6 +12337,25 @@ window.nomadArtifacts = {
                   "type_data": "float64"
                 },
                 "unit": "kilogram / meter ** 3"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 9,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.material.topology.cell.pbc"
+                  ]
+                },
+                "name": "pbc",
+                "description": "Periodic boundary conditions of the cell lattice vectors, given in order a, b, c.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "bool"
+                },
+                "shape": [
+                  3
+                ]
               }
             ]
           },
@@ -13942,7 +14133,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "type",
-                "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `\"G0W0\"`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `\"scGW\"`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `\"scGW0\"` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `\"scG0W\"` | self-consistent W with fixed G0  | -                     |\n\n| `\"ev-scGW0\"`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `\"ev-scGW\"`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `\"qp-scGW0\"`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `\"qp-scGW\"`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
+                "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'G0W0'`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `'scGW'`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `'scGW0'` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `'scG0W'` | self-consistent W with fixed G0  | -                     |\n\n| `'ev-scGW0'`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `'ev-scGW'`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `'qp-scGW0'`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `'qp-scGW'`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -14068,7 +14259,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "impurity_solver_type",
-                "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `\"CT-INT\"`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `\"CT-HYB\"`        | Werner et al., PRL 97 (2006)         |\n\n| `\"CT-AUX\"`        | Gull et al., EPL 82 (2008)           |\n\n| `\"ED\"`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `\"NRG\"`           | Bulla et al., RMP 80 (2008)          |\n\n| `\"MPS\"`           | Ganahl et al., PRB 90 (2014)         |\n\n| `\"IPT\"`           | Georges et al., PRB 45 (1992)        |\n\n| `\"NCA\"`           | Pruschke et al., PRB 47 (1993)       |\n\n| `\"OCA\"`           | Pruschke et al., PRB 47 (1993)       |\n\n| `\"slave_bosons\"`  | Kotliar et al., PRL 57 (1986)        |\n\n| `\"hubbard_I\"`     | -                                    |",
+                "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `'CT-INT'`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `'CT-HYB'`        | Werner et al., PRL 97 (2006)         |\n\n| `'CT-AUX'`        | Gull et al., EPL 82 (2008)           |\n\n| `'ED'`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `'NRG'`           | Bulla et al., RMP 80 (2008)          |\n\n| `'MPS'`           | Ganahl et al., PRB 90 (2014)         |\n\n| `'IPT'`           | Georges et al., PRB 45 (1992)        |\n\n| `'NCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'OCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'slave_bosons'`  | Kotliar et al., PRL 57 (1986)        |\n\n| `'hubbard_I'`     | -                                    |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -16482,7 +16673,9 @@ window.nomadArtifacts = {
                 },
                 "shape": [
                   "0..*"
-                ]
+                ],
+                "default": [],
+                "virtual": true
               }
             ],
             "sub_sections": [
@@ -53522,7 +53715,9 @@ window.nomadArtifacts = {
                     "json_map",
                     "json_yml",
                     "mpes",
-                    "transmission"
+                    "rii_database",
+                    "transmission",
+                    "xps"
                   ]
                 }
               },
@@ -53587,16 +53782,24 @@ window.nomadArtifacts = {
                     "NXapm_paraprobe_config_intersector",
                     "NXapm_paraprobe_config_nanochem",
                     "NXapm_paraprobe_config_ranger",
+                    "NXapm_paraprobe_config_selector",
                     "NXapm_paraprobe_config_spatstat",
                     "NXapm_paraprobe_config_surfacer",
                     "NXapm_paraprobe_config_tessellator",
                     "NXapm_paraprobe_config_transcoder",
+                    "NXapm_paraprobe_results_clusterer",
+                    "NXapm_paraprobe_results_distancer",
+                    "NXapm_paraprobe_results_intersector",
+                    "NXapm_paraprobe_results_nanochem",
                     "NXapm_paraprobe_results_ranger",
+                    "NXapm_paraprobe_results_selector",
+                    "NXapm_paraprobe_results_spatstat",
+                    "NXapm_paraprobe_results_surfacer",
+                    "NXapm_paraprobe_results_tessellator",
                     "NXapm_paraprobe_results_transcoder",
-                    "NXatom_set",
                     "NXbeam",
                     "NXcalibration",
-                    "NXcg_alpha_shape",
+                    "NXcg_alpha_complex",
                     "NXcg_cylinder_set",
                     "NXcg_ellipsoid_set",
                     "NXcg_face_list_data_structure",
@@ -53604,7 +53807,6 @@ window.nomadArtifacts = {
                     "NXcg_grid",
                     "NXcg_half_edge_data_structure",
                     "NXcg_hexahedron_set",
-                    "NXcg_isocontour",
                     "NXcg_marching_cubes",
                     "NXcg_parallelogram_set",
                     "NXcg_point_set",
@@ -53618,6 +53820,7 @@ window.nomadArtifacts = {
                     "NXcg_triangulated_surface_mesh",
                     "NXcg_unit_normal_set",
                     "NXchamber",
+                    "NXchemical_composition",
                     "NXclustering",
                     "NXcollectioncolumn",
                     "NXcontainer",
@@ -53638,12 +53841,21 @@ window.nomadArtifacts = {
                     "NXdeflector",
                     "NXdelocalization",
                     "NXdetector",
+                    "NXdispersion",
+                    "NXdispersion_function",
+                    "NXdispersion_repeated_parameter",
+                    "NXdispersion_single_parameter",
+                    "NXdispersion_table",
+                    "NXdispersive_material",
                     "NXdistortion",
                     "NXebeam_column",
                     "NXelectronanalyser",
                     "NXelectrostatic_kicker",
                     "NXellipsometry",
                     "NXem",
+                    "NXem_ebsd",
+                    "NXem_ebsd_conventions",
+                    "NXem_ebsd_crystal_structure_model",
                     "NXenergydispersion",
                     "NXentry",
                     "NXevent_data_em",
@@ -53653,6 +53865,7 @@ window.nomadArtifacts = {
                     "NXgraph_node_set",
                     "NXgraph_root",
                     "NXibeam_column",
+                    "NXimage_set_em",
                     "NXimage_set_em_adf",
                     "NXimage_set_em_bf",
                     "NXimage_set_em_bse",
@@ -53666,13 +53879,22 @@ window.nomadArtifacts = {
                     "NXinstrument",
                     "NXinteraction_vol_em",
                     "NXion",
+                    "NXisocontour",
                     "NXiv_temp",
+                    "NXlab_electro_chemo_mechanical_preparation",
+                    "NXlab_sample_mounting",
                     "NXlens_em",
                     "NXmagnetic_kicker",
                     "NXmanipulator",
                     "NXmatch_filter",
                     "NXmpes",
+                    "NXms",
+                    "NXms_atom_set",
                     "NXms_crystal_set",
+                    "NXms_dislocation_set",
+                    "NXms_interface_set",
+                    "NXms_score_config",
+                    "NXms_score_results",
                     "NXms_snapshot",
                     "NXms_snapshot_set",
                     "NXoptical_system_em",
@@ -53680,6 +53902,7 @@ window.nomadArtifacts = {
                     "NXpeak",
                     "NXpid",
                     "NXprocess",
+                    "NXprogram",
                     "NXpulser_apm",
                     "NXpump",
                     "NXquadric",
@@ -53691,6 +53914,7 @@ window.nomadArtifacts = {
                     "NXscanbox_em",
                     "NXsensor_scan",
                     "NXseparator",
+                    "NXsimilarity_grouping",
                     "NXslip_system_set",
                     "NXsnsevent",
                     "NXsnshisto",
@@ -53881,17 +54105,6 @@ window.nomadArtifacts = {
                   "type_kind": "python",
                   "type_data": "str"
                 }
-              }
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "users",
-                "description": "The responsible person for this archive entry.",
-                "sub_section": "/packages/8/section_definitions/0",
-                "repeats": true
               }
             ]
           },
@@ -61444,8 +61657,8 @@ window.nomadArtifacts = {
                 "name": "digital_filter_count",
                 "description": "If the digital filter is turned on, what is its count? Value must be between 1 and 100.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
+                  "type_kind": "python",
+                  "type_data": "int"
                 }
               },
               {
@@ -61484,11 +61697,12 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "compliance_voltage",
-                "description": "FILL THE DESCRIPTION",
+                "description": "What is the voltage compliance for your current source? in V. (default = 100 V)",
                 "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
-                }
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "volt"
               }
             ]
           },
@@ -61504,10 +61718,10 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "reading_rate",
-                "description": "FILL THE DESCRIPTION",
+                "description": "What is the set reading rate for the Keithley2000? 0=[Slow] 1=[Medium(default)] 2=[Fast]",
                 "type": {
                   "type_kind": "python",
-                  "type_data": "int"
+                  "type_data": "str"
                 }
               },
               {
@@ -61515,7 +61729,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "digital_filter",
-                "description": "FILL THE DESCRIPTION",
+                "description": "Is a digitial filter turned on? True=[on (default)]",
                 "type": {
                   "type_kind": "python",
                   "type_data": "bool"
@@ -61526,10 +61740,10 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "digital_filter_type",
-                "description": "FILL THE DESCRIPTION",
+                "description": "If the digital filter is turned on, what is its mode? 0=[Repeat] 1=[Moving]",
                 "type": {
                   "type_kind": "python",
-                  "type_data": "int"
+                  "type_data": "str"
                 }
               },
               {
@@ -61537,7 +61751,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "digital_filter_count",
-                "description": "FILL THE DESCRIPTION",
+                "description": "If the digital filter is turned on, what is its count? Value must be between 1 and 100.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "int"
@@ -61557,7 +61771,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "line_synchronization",
-                "description": "FILL THE DESCRIPTION",
+                "description": "Is line synchronization turned on? True=[on (default)]",
                 "type": {
                   "type_kind": "python",
                   "type_data": "bool"
@@ -61568,10 +61782,10 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "reading_rate",
-                "description": "FILL THE DESCRIPTION",
+                "description": "What is the set reading rate for the Keithley2182? 0=[Slow(default)] 1=[Medium] 2=[Fast]",
                 "type": {
                   "type_kind": "python",
-                  "type_data": "int"
+                  "type_data": "str"
                 }
               },
               {
@@ -61579,7 +61793,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "analog_filter",
-                "description": "FILL THE DESCRIPTION",
+                "description": "Is the analog filter turned on? False=[off (default)]",
                 "type": {
                   "type_kind": "python",
                   "type_data": "bool"
@@ -61590,7 +61804,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "digital_filter",
-                "description": "FILL THE DESCRIPTION",
+                "description": "Is a digitial filter turned on? True=[on (default)]",
                 "type": {
                   "type_kind": "python",
                   "type_data": "bool"
@@ -61601,10 +61815,10 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "digital_filter_type",
-                "description": "FILL THE DESCRIPTION",
+                "description": "If the digital filter is turned on, what is its mode? 0=[Repeat] 1=[Moving]",
                 "type": {
                   "type_kind": "python",
-                  "type_data": "int"
+                  "type_data": "str"
                 }
               },
               {
@@ -61612,10 +61826,10 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
                 "name": "digital_filter_window",
-                "description": "FILL THE DESCRIPTION",
+                "description": "If the digital filter is turned on, what is its window? 0=[None] 1=[0.01%] 2=[0.1%] 3=[1%] 4=[10%]",
                 "type": {
                   "type_kind": "python",
-                  "type_data": "int"
+                  "type_data": "str"
                 }
               },
               {
@@ -61623,7 +61837,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "name": "digital_filter_count",
-                "description": "FILL THE DESCRIPTION",
+                "description": "If the digital filter is turned on, what is its count? Value must be between 1 and 100.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "int"
@@ -61643,10 +61857,10 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "integration_time",
-                "description": "FILL THE DESCRIPTION",
+                "description": "What is the set integration time for the Keithley182? 0=[1 line cycle (default)] 1=[3 ms] 2=[100 ms]",
                 "type": {
                   "type_kind": "python",
-                  "type_data": "int"
+                  "type_data": "str"
                 }
               },
               {
@@ -61654,7 +61868,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "analog_filter",
-                "description": "FILL THE DESCRIPTION",
+                "description": "Is the analog filter turned on? False=[off (default)]",
                 "type": {
                   "type_kind": "python",
                   "type_data": "bool"
@@ -61665,10 +61879,10 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "digital_filter",
-                "description": "FILL THE DESCRIPTION",
+                "description": "Is the digital filter turned on, what is it set on? 0=[Off] 1=[Fast] 2=[Medium (default)] 3=[Slow]",
                 "type": {
                   "type_kind": "python",
-                  "type_data": "int"
+                  "type_data": "str"
                 }
               }
             ]
@@ -61685,7 +61899,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "line_synchronization",
-                "description": "FILL THE DESCRIPTION",
+                "description": "Is line synchronization turned on? True=[on (default)]",
                 "type": {
                   "type_kind": "python",
                   "type_data": "bool"
@@ -61696,18 +61910,29 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "reading_rate",
-                "description": "FILL THE DESCRIPTION",
+                "description": "What is the set reading rate for the Keithley2700? 0=[Slow] 1=[Medium (default)] 2=[Fast]",
                 "type": {
                   "type_kind": "python",
-                  "type_data": "int"
+                  "type_data": "str"
                 }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
+                "name": "resting_state",
+                "description": "Are all relays in the switch matrix 0=[closed (defalut)] or 1=[open] in resting state?",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
                 "name": "digital_filter",
-                "description": "FILL THE DESCRIPTION",
+                "description": "Is a digitial filter turned on? True=[on (default)]",
                 "type": {
                   "type_kind": "python",
                   "type_data": "bool"
@@ -61715,32 +61940,32 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "digital_filter_type",
-                "description": "FILL THE DESCRIPTION",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
-                "name": "digital_filter_window",
-                "description": "FILL THE DESCRIPTION",
+                "name": "digital_filter_type",
+                "description": "If the digital filter is turned on, what is its mode? 0=[Repeat] 1=[Moving]",
                 "type": {
                   "type_kind": "python",
-                  "type_data": "int"
+                  "type_data": "str"
                 }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
+                "name": "digital_filter_window",
+                "description": "If the digital filter is turned on, what is its window? 0=[None] 1=[0.01%] 2=[0.1%] 3=[1%] 4=[10%]",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
                 "name": "digital_filter_count",
-                "description": "FILL THE DESCRIPTION",
+                "description": "If the digital filter is turned on, what is its count? Value must be between 1 and 100.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "int"
@@ -61760,10 +61985,10 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "compliance_voltage",
-                "description": "FILL THE DESCRIPTION",
+                "description": "What is the voltage compliance for your current source? in V? Must be a value between 0 V and 210 V. (default = 20 V) Value of 20 V and lower will set current compliance to 1 A. Value of larger than 20 V will set current compliance to 100 mA.",
                 "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
+                  "type_kind": "numpy",
+                  "type_data": "float64"
                 }
               }
             ]
@@ -62143,8 +62368,8 @@ window.nomadArtifacts = {
                 "name": "loop_2_heater",
                 "description": "Is the heater for the loop 2 controller turned on? 0=[off] 1=[on]",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
+                  "type_kind": "python",
+                  "type_data": "str"
                 }
               },
               {
@@ -64533,6 +64758,19 @@ window.nomadArtifacts = {
                 },
                 "shape": [],
                 "unit": "second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "effective_mass",
+                "description": "The effective or fictitious mass of the temperature resevoir.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "kilogram"
               }
             ]
           },
@@ -66390,7 +66628,7 @@ window.nomadArtifacts = {
                 "description": "GW methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/20"
+                  "type_data": "/packages/0/section_definitions/26"
                 }
               },
               {
@@ -66401,7 +66639,7 @@ window.nomadArtifacts = {
                 "description": "Starting point (XC functional or HF) used.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/13"
+                  "type_data": "/packages/0/section_definitions/17"
                 }
               },
               {
@@ -66412,7 +66650,7 @@ window.nomadArtifacts = {
                 "description": "Basis set used.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/9"
+                  "type_data": "/packages/0/section_definitions/13"
                 }
               }
             ]

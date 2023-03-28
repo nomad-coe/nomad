@@ -10,11 +10,10 @@ fs:
   tmp: '.volumes/test_fs/tmp'
   staging: '.volumes/test_fs/staging'
   public: '.volumes/test_fs/public'
-parsing:
-  parsers:
-    include:
-      - parsers/archive
-      - parsers/tabular
-      - parsers/vasp
+plugins:
+  include:
+    - parsers/archive
+    - parsers/tabular
+    - parsers/vasp
 services:
   aitoolkit_enabled: true

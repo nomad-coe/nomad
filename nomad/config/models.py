@@ -25,6 +25,8 @@ from typing import TypeVar, List, Dict, Any, Union, Optional, cast
 from typing_extensions import Literal, Annotated  # type: ignore
 from pydantic import BaseModel, Field, validator, Extra  # pylint: disable=unused-import
 from pkg_resources import get_distribution, DistributionNotFound
+from collections.abc import Iterator
+
 try:
     __version__ = get_distribution('nomad-lab').version
 except DistributionNotFound:
@@ -96,6 +98,11 @@ class Options(OptionsBase):
     elements and defining the configuration of each element.
     '''
     options: Dict[str, Any] = Field(description='Contains the available options.')
+
+    def filtered(self) -> Iterator[Any]:
+        for key, value in self.options.items():
+            if self.filter(key):
+                yield value
 
 
 class OptionsSingle(Options):
@@ -314,6 +321,7 @@ class NORTH(NomadSettings):
             return json.load(f)
 
 
+
 class RabbitMQ(NomadSettings):
     '''
     Configures how NOMAD is connecting to RabbitMQ.
@@ -402,15 +410,6 @@ class Mail(NomadSettings):
     password = ''
     from_address = 'support@nomad-lab.eu'
     cc_address: Optional[str]
-
-
-class Parsing(NomadSettings):
-    parsers: OptionsBase = Field(
-        OptionsBase(include=['*']),
-        description='''
-            A specification that select a subset of all available parser, by parser name.
-        '''
-    )
 
 
 class Normalize(NomadSettings):

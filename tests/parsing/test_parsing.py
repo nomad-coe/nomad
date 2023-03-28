@@ -24,7 +24,7 @@ from shutil import copyfile
 from nomad import utils, files
 from nomad.datamodel import EntryArchive
 from nomad.parsing import BrokenParser, MatchingParserInterface
-from nomad.parsing.parsers import parser_dict, match_parser, run_parser, prefix_workflow, parsers
+from nomad.parsing.parsers import parser_dict, match_parser, run_parser, parsers
 from nomad.utils import dump_json
 
 parser_examples = [
@@ -191,7 +191,7 @@ def with_latin_1_file(raw_files):
 @pytest.mark.parametrize('parsers, num_output_files', [
     ([[MatchingParserInterface(
         'workflowparsers.fhivibes.parser.FHIVibesParser',
-        metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
+        code_name='parsers/fhivibes',
         mainfile_name_re=(r'^.*\.(nc)$'),
         mainfile_mime_re=r'(application/x-hdf)',
         mainfile_binary_header_re=br'^\x89HDF',
@@ -199,21 +199,21 @@ def with_latin_1_file(raw_files):
     )], 1]),
     ([[MatchingParserInterface(
         'workflowparsers.fhivibes.parser.FHIVibesParser',
-        metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
+        code_name='parsers/fhivibes',
         mainfile_mime_re=r'(application/x-hdf)',
         mainfile_binary_header_re=br'^\x89HDF',
         mainfile_contents_dict={'__has_key': 'aims_uuid'}
     )], 1]),
     ([[MatchingParserInterface(
         'workflowparsers.fhivibes.parser.FHIVibesParser',
-        metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
+        code_name='parsers/fhivibes',
         mainfile_mime_re=r'(application/x-hdf)',
         mainfile_binary_header_re=br'^\x89HDF',
         mainfile_contents_dict={'a': [0, 0, 0]}
     )], 1]),
     ([[MatchingParserInterface(
         'workflowparsers.fhivibes.parser.FHIVibesParser',
-        metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
+        code_name='parsers/fhivibes',
         mainfile_mime_re=r'(application/x-hdf)',
         mainfile_binary_header_re=br'^\x89HDF',
         mainfile_contents_dict={'I': [0, 0]}

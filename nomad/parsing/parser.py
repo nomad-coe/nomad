@@ -16,12 +16,11 @@
 # limitations under the License.
 #
 
-from typing import List, Iterable, Dict, Union, Any, Optional, IO
+from typing import List, Iterable, Dict, Union, Any, IO
 from abc import ABCMeta, abstractmethod
 import re
 import os
 import os.path
-from enum import Enum
 from functools import lru_cache
 import importlib
 from pydantic import BaseModel, Extra  # pylint: disable=unused-import
@@ -33,19 +32,6 @@ import json
 from nomad import config, utils
 from nomad.datamodel import EntryArchive, EntryMetadata
 from nomad.metainfo import Package
-
-
-class ParserStatus(Enum):
-    PRODUCTION = "production"
-    BETA = "beta"
-
-
-class ParserMetadata(BaseModel, use_enum_values=True, extra=Extra.allow):
-    codeLabel: str
-    codeUrl: Optional[str]
-    codeCategory: str
-    codeName: str
-    status: ParserStatus
 
 
 class Parser(metaclass=ABCMeta):
@@ -203,7 +189,6 @@ class MatchingParser(Parser):
             code_name: str = None,
             code_homepage: str = None,
             code_category: str = None,
-            metadata_path: str = None,
             mainfile_contents_re: str = None,
             mainfile_binary_header: bytes = None,
             mainfile_binary_header_re: bytes = None,
@@ -212,6 +197,7 @@ class MatchingParser(Parser):
             mainfile_alternative: bool = False,
             mainfile_contents_dict: dict = None,
             domain='dft',
+            metadata: dict = None,
             supported_compressions: List[str] = []) -> None:
 
         super().__init__()
@@ -220,29 +206,7 @@ class MatchingParser(Parser):
         self.code_name = code_name
         self.code_homepage = code_homepage
         self.code_category = code_category
-
-        # If a metainfo path is given, read the code metainfo from there.
-        self.metadata_path = metadata_path
-        metadata_keys = {
-            'code_name': 'codeLabel',
-            'code_homepage': 'codeUrl',
-            'code_category': 'codeCategory',
-            'status': 'status',
-            'name': 'codeName'
-        }
-        if metadata_path is not None:
-            metadata = ParserMetadata(**self.read_metadata_file(metadata_path))
-            self.metadata = metadata
-            for key_var, key_file in metadata_keys.items():
-                val_local = locals().get(key_var)
-                val_file = getattr(metadata, key_file)
-                if val_local is not None:
-                    raise ValueError(
-                        f'{key_var} specified both in metadata file ({val_file}) and in '
-                        f'parser constructor ({val_local})')
-                if key_file == 'codeName':
-                    val_file = f'parsers/{val_file}'
-                setattr(self, key_var, val_file)
+        self.metadata = metadata
 
         assert self.code_name, f'please provide a code name for {name}'
         self.domain = domain
@@ -380,6 +344,22 @@ def to_hdf5(value: Any, f: Union[str, IO], path: str):
     return f'{f if isinstance(f, str) else os.path.basename(f.name)}#{path}'
 
 
+def import_class(class_name, class_description: str = None):
+    logger = utils.get_logger(__name__)
+    try:
+        module_path, cls = class_name.rsplit('.', 1)
+        module = importlib.import_module(module_path)
+        instance = getattr(module, cls)
+    except Exception as e:
+        if not class_description:
+            logger.error('cannot import', exc_info=e)
+        else:
+            logger.error(f'cannot import {class_description}', exc_info=e)
+        raise e
+
+    return instance
+
+
 class MatchingParserInterface(MatchingParser):
     '''
     An interface to the NOMAD parsers.
@@ -416,16 +396,7 @@ class MatchingParserInterface(MatchingParser):
         self.mainfile_parser.parse(mainfile, archive, logger)
 
     def import_parser_class(self):
-        logger = utils.get_logger(__name__)
-        try:
-            module_path, parser_class = self._parser_class_name.rsplit('.', 1)
-            module = importlib.import_module(module_path)
-            parser = getattr(module, parser_class)
-        except Exception as e:
-            logger.error('cannot import parser', exc_info=e)
-            raise e
-
-        return parser
+        return import_class(self._parser_class_name, 'parser')
 
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
