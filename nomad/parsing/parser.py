@@ -453,6 +453,20 @@ class ArchiveParser(MatchingParser):
             mainfile_mime_re='.*',
             mainfile_name_re=r'.*(archive|metainfo)\.(json|yaml|yml)$')
 
+    def validate_defintions(self, archive, logger=None):
+        if not archive or not archive.definitions:
+            return
+        errors, warnings = archive.definitions.m_all_validate()
+        has_definition_errors = len(errors) > 0
+        if logger:
+            for error in errors:
+                logger.error('Validation error', details=error)
+            for warning in warnings:
+                logger.warn('Validation warning', details=warning)
+
+        if has_definition_errors:
+            raise Exception('Archive contains definitions that have validation errors')
+
     def parse_file(self, mainfile, f, archive, logger=None):
         try:
             if mainfile.endswith('.json'):
@@ -475,29 +489,21 @@ class ArchiveParser(MatchingParser):
 
         # ensure that definitions are parsed first to make them available for the
         # parsing itself.
-        has_definition_errors = False
         if 'definitions' in archive_data:
             archive.definitions = Package.m_from_dict(
                 archive_data['definitions'], m_context=archive.m_context)
-            errors, warnings = archive.definitions.m_all_validate()
-            has_definition_errors = len(errors) > 0
-            if logger:
-                for error in errors:
-                    logger.error('Validation error', details=error)
-                for warning in warnings:
-                    logger.warn('Validation warning', details=warning)
 
             archive.definitions.archive = archive
 
             del archive_data['definitions']
 
         archive.m_update_from_dict(archive_data)
-        if has_definition_errors:
-            raise Exception('Archive contains definitions that have validation errors')
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
         with open(mainfile, 'rt') as f:
             self.parse_file(mainfile, f, archive, logger)
+
+        self.validate_defintions(archive, logger)
 
 
 class MissingParser(MatchingParser):

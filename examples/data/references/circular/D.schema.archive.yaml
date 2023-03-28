@@ -1,0 +1,23 @@
+definitions:
+  name: 'myPackage'
+  sections:
+    Process:
+      base_section: nomad.datamodel.data.EntryData
+      quantities:
+        process_name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+      sub_sections:
+        mySample:
+          section: ../upload/raw/D.schema.archive.yaml#Sample
+    Sample:
+      base_section: nomad.datamodel.data.EntryData
+      quantities:
+        sample_name:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+

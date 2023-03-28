@@ -138,7 +138,7 @@ class Context(MetainfoContext):
         ''' Loads the archive for the given identification. '''
         raise NotImplementedError()
 
-    def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
+    def load_raw_file(self, path: str, upload_id: str, installation_url: str, url: str = None) -> MSection:
         ''' Loads a raw file based on the given upload and path. Interpret as metainfo data. '''
         raise NotImplementedError()
 
@@ -190,7 +190,7 @@ class Context(MetainfoContext):
         if kind == 'archive':
             return self.load_archive(entry_id_or_mainfile, upload_id, installation_url)
 
-        return self.load_raw_file(entry_id_or_mainfile, upload_id, installation_url)
+        return self.load_raw_file(entry_id_or_mainfile, upload_id, installation_url, url)
 
     def resolve_archive_url(self, url: str) -> MSection:
         if url not in self.archives:
@@ -253,7 +253,7 @@ class ServerContext(Context):
 
         return EntryArchive.m_from_dict(archive_dict, m_context=context)
 
-    def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> EntryArchive:
+    def load_raw_file(self, path: str, upload_id: str, installation_url: str, url: str = None) -> EntryArchive:
         upload_files = self._get_upload_files(upload_id, installation_url)
 
         try:
@@ -267,8 +267,12 @@ class ServerContext(Context):
                     mainfile=path,
                     entry_id=utils.generate_entry_id(upload_id, path)))
             from nomad.parsing.parser import ArchiveParser
+            parser = ArchiveParser()
             with upload_files.raw_file(path, 'rt') as f:
-                ArchiveParser().parse_file(path, f, archive)
+                parser.parse_file(path, f, archive)
+            if url:
+                self.cache_archive(url, archive)
+            parser.validate_defintions(archive)
             return archive
         except Exception:
             raise MetainfoReferenceError(f'Could not load {path}.')
@@ -364,7 +368,7 @@ class ClientContext(Context):
 
         return EntryArchive.m_from_dict(response.json()['data']['archive'], m_context=context)
 
-    def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
+    def load_raw_file(self, path: str, upload_id: str, installation_url: str, url: str = None) -> MSection:
         # TODO currently upload_id might be None
         if upload_id is None:
             # try to find a local file, useful when the context is used for local parsing
