@@ -33,3 +33,9 @@
 [submodule "dependencies/matid"]
 	path = dependencies/matid
 	url = https://github.com/SINGROUP/matid.git
+[submodule "examples/plugins/schema"]
+	path = examples/plugins/schema
+	url = https://github.com/nomad-coe/nomad-schema-plugin-example.git
+[submodule "examples/plugins/parser"]
+	path = examples/plugins/parser
+	url = https://github.com/nomad-coe/nomad-parser-plugin-example.git

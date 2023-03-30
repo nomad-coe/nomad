@@ -235,6 +235,12 @@ def get_gui_config() -> str:
     return f'window.nomadEnv = {json.dumps(data, indent=2)}'
 
 
+@dev.command(help='Generates the GUI development .env file based on NOMAD config.')
+def gui_env():
+    from nomad import config
+    print(f'REACT_APP_BACKEND_URL={config.ui.app_base}')
+
+
 @dev.command(help='Generates the GUI development config JS file based on NOMAD config.')
 def gui_config():
     print(get_gui_config())
