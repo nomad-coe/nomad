@@ -21,7 +21,7 @@ import {Paper, IconButton, Tooltip, DialogContent, Button, Dialog, DialogTitle} 
 import { useApi, withLoginRequired } from '../api'
 import Page from '../Page'
 import { useErrors } from '../errors'
-import DetailsIcon from '@material-ui/icons/MoreHoriz'
+import DetailsIcon from '@material-ui/icons/ArrowForward'
 import DeleteIcon from '@material-ui/icons/Delete'
 import DOIIcon from '@material-ui/icons/Bookmark'
 import { DatasetButton } from '../nav/Routes'

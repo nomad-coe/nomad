@@ -42,7 +42,7 @@ import AutoComplete from '@material-ui/lab/Autocomplete'
 import {useDataStore} from '../DataStore'
 import SectionSelectAutocomplete from '../uploads/SectionSelectAutocomplete'
 import {Link} from "react-router-dom"
-import DetailsIcon from '@material-ui/icons/MoreHoriz'
+import DetailsIcon from '@material-ui/icons/ArrowForward'
 
 const referenceEditQuantityContext = React.createContext(undefined)
 

@@ -33,7 +33,7 @@ import Page from '../Page'
 import { useErrors } from '../errors'
 import PublicIcon from '@material-ui/icons/Public'
 import UploaderIcon from '@material-ui/icons/AccountCircle'
-import DetailsIcon from '@material-ui/icons/MoreHoriz'
+import DetailsIcon from '@material-ui/icons/ArrowForward'
 import { UploadButton } from '../nav/Routes'
 import {
   addColumnDefaults, combinePagination, Datatable, DatatablePagePagination,

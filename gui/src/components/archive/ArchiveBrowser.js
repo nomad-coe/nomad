@@ -58,7 +58,7 @@ import {
   resolveNomadUrl, systemMetainfoUrl, titleCase, isWaitingForUpdateTestId
 } from '../../utils'
 import { EntryButton } from '../nav/Routes'
-import NavigateIcon from '@material-ui/icons/MoreHoriz'
+import NavigateIcon from '@material-ui/icons/ArrowForward'
 import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import { apiBase } from '../../config'
