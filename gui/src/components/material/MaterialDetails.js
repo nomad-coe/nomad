@@ -19,7 +19,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { IconButton } from '@material-ui/core'
 import { MaterialButton } from '../nav/Routes'
-import DetailsIcon from '@material-ui/icons/MoreHoriz'
+import DetailsIcon from '@material-ui/icons/ArrowForward'
 
 export const MaterialRowActions = React.memo(({data, ...rest}) => {
   return <MaterialButton materialId={data.material_id} {...rest} component={IconButton}>
