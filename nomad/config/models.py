@@ -97,7 +97,7 @@ class Options(OptionsBase):
     '''Common configuration class used for enabling/disabling certain
     elements and defining the configuration of each element.
     '''
-    options: Dict[str, Any] = Field(description='Contains the available options.')
+    options: Dict[str, Any] = Field({}, description='Contains the available options.')
 
     def filtered(self) -> Iterator[Any]:
         for key, value in self.options.items():
@@ -317,9 +317,11 @@ class NORTH(NomadSettings):
             root_path = os.path.join(os.path.dirname(__file__), '../..')
             path = os.path.join(root_path, v)
 
-        with open(path, 'rt') as f:
-            return json.load(f)
+        if os.path.exists(path):
+            with open(path, 'rt') as f:
+                return json.load(f)
 
+        return []
 
 
 class RabbitMQ(NomadSettings):
@@ -413,6 +415,18 @@ class Mail(NomadSettings):
 
 
 class Normalize(NomadSettings):
+    normalizers: Options = Field(Options(
+        options=dict(
+            SystemNormalizer='nomad.normalizing.system.SystemNormalizer',
+            OptimadeNormalizer='nomad.normalizing.optimade.OptimadeNormalizer',
+            DosNormalizer='nomad.normalizing.dos.DosNormalizer',
+            BandStructureNormalizer='nomad.normalizing.band_structure.BandStructureNormalizer',
+            WorkflowNormalizer='nomad.normalizing.workflow.WorkflowNormalizer',
+            Workflow2Normalizer='nomad.normalizing.workflow2.WorkflowNormalizer',
+            ResultsNormalizer='nomad.normalizing.results.ResultsNormalizer',
+            MetainfoNormalizer='nomad.normalizing.metainfo.MetainfoNormalizer'
+        )
+    ))
     system_classification_with_clusters_threshold = Field(
         64, description='''
             The system size limit for running the dimensionality analysis. For very
