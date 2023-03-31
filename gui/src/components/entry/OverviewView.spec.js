@@ -340,7 +340,7 @@ test.each([
   const deleteButton1 = screen1.getByTitle('Delete entry').closest('button')
   expect(deleteButton1).toBeEnabled()
   await userEvent.click(deleteButton1)
-  const deleteMainfileButton = await screen1.findByRole('button', {name: 'Delete mainfile'})
+  const deleteMainfileButton = await screen1.findByRole('button', {name: 'Delete 1 entry'})
 
   const screen2 = render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
 

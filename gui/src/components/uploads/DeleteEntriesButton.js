@@ -17,18 +17,29 @@
  */
 import React, { useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
-import { Tooltip, IconButton, Dialog, DialogContent, DialogContentText, DialogActions, Button } from '@material-ui/core'
+import {
+  Tooltip, IconButton, Dialog, DialogContent, DialogContentText, DialogActions, Button, Checkbox, FormControlLabel
+} from '@material-ui/core'
 import DeleteIcon from '@material-ui/icons/Delete'
 import { useUploadPageContext } from './UploadPageContext'
 import {useApi} from '../api'
 import {useErrors} from '../errors'
 import {pluralize} from '../../utils'
+import {useEntryStore} from '../entry/EntryContext'
+import {useHistory} from 'react-router-dom'
 
-const DeleteEntriesButton = React.memo(({tooltip, disabled, buttonProps, dark, selectedEntries, selectedCount, setSelected}) => {
-  const {uploadId, updateUpload} = useUploadPageContext()
+export const DeleteEntriesButton = React.memo(({tooltip, disabled, buttonProps, dark, selectedEntries, selectedCount, setSelected}) => {
+  const history = useHistory()
+  const uploadContext = useUploadPageContext()
+  const entryContext = useEntryStore()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
+  const [deleteFolders, setDeleteFolders] = useState(false)
+  const {uploadId} = uploadContext || entryContext
+  const {updateUpload} = uploadContext || {}
+  const {entryId, editable} = entryContext || {}
+  const count = entryId ? 1 : selectedCount
 
   const handleClick = useCallback(() => {
     setOpenDeleteConfirmDialog(true)
@@ -36,26 +47,27 @@ const DeleteEntriesButton = React.memo(({tooltip, disabled, buttonProps, dark, s
 
   const handleDelete = useCallback((includeParentFolders) => {
     setOpenDeleteConfirmDialog(false)
-    const requestBody = {query: selectedEntries, include_parent_folders: includeParentFolders}
+    const requestBody = {query: selectedEntries || {entry_id: entryId}, include_parent_folders: includeParentFolders}
     api.post(`uploads/${uploadId}/action/delete-entry-files`, requestBody)
       .then(results => {
-        updateUpload({upload: results.data})
-        setSelected(new Set())
+        updateUpload && updateUpload({upload: results.data})
+        setSelected && setSelected(new Set())
+        entryId && history.push(`/user/uploads/upload/id/${uploadId}`)
       })
       .catch(err =>
         raiseError(err)
       )
-  }, [setOpenDeleteConfirmDialog, api, raiseError, uploadId, selectedEntries, setSelected, updateUpload])
+  }, [setOpenDeleteConfirmDialog, api, raiseError, uploadId, selectedEntries, setSelected, updateUpload, entryId, history])
 
   return (
-    <React.Fragment>
+    uploadContext || (entryContext && editable) ? <React.Fragment>
       <IconButton
         {...buttonProps}
         disabled={disabled}
         onClick={handleClick}
         style={dark ? {color: 'white'} : null}
       >
-        <Tooltip title={tooltip || 'Delete selected entries'}>
+        <Tooltip title={tooltip || entryContext ? 'Delete entry' : 'Delete selected entries'}>
           <DeleteIcon />
         </Tooltip>
       </IconButton>
@@ -65,19 +77,28 @@ const DeleteEntriesButton = React.memo(({tooltip, disabled, buttonProps, dark, s
       >
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            <b>{`Really delete selected ${pluralize('entry', selectedCount, true)}?`}</b>
+            <b>{`Please confirm deleting the ${pluralize('entry', count, false)}.`}</b>
           </DialogContentText>
           <DialogContentText>
-            You can choose to delete only the mainfiles, or to delete the mainfiles and their folders.
+            You have selected {pluralize('entry', count, true)}. Are you sure you want to delete the selected {pluralize('entry', count, false)}?
           </DialogContentText>
+          <FormControlLabel
+            control={<Checkbox
+              onChange={event => setDeleteFolders(event.target.checked)}
+              color='primary'
+              checked={deleteFolders}
+              name='Delete folders'
+            />}
+            label={`Delete also the ${pluralize("entry's", count, false)} folders. There might be more entries in them.`}
+          />
         </DialogContent>
-        <DialogActions>
+        <DialogActions >
           <Button onClick={() => setOpenDeleteConfirmDialog(false)} autoFocus>Cancel</Button>
-          <Button onClick={() => handleDelete(false)}>Delete mainfiles</Button>
-          <Button onClick={() => handleDelete(true)}>Delete mainfiles and folders</Button>
+          {!deleteFolders && <Button onClick={() => handleDelete(false)}>Delete {pluralize('entry', count, true)}</Button>}
+          {deleteFolders && <Button onClick={() => handleDelete(true)}>Delete {pluralize('entry', count, true)} and the {pluralize('folder', count, false)}</Button>}
         </DialogActions>
       </Dialog>
-    </React.Fragment>)
+    </React.Fragment> : null)
 })
 DeleteEntriesButton.propTypes = {
   selectedEntries: PropTypes.object.isRequired,

@@ -736,7 +736,6 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
   // these words, the pluralize-library should be used instead.
   const dictionary = {
     'result': 'results',
-    'search result': 'search results',
     'entry': 'entries',
     'value': 'values',
     'material': 'materials',
@@ -745,13 +744,22 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
     'upload': 'uploads',
     'code': 'codes',
     'manager': 'managers',
-    'filter': 'filters'
+    'filter': 'filters',
+    'mainfile': 'mainfiles',
+    'folder': 'folders'
   }
   const words = word.trim().split(" ")
-  const lastWord = words[words.length - 1]
+  let lastWord = words[words.length - 1]
+  const isPossessive = lastWord.endsWith("'s")
+  if (isPossessive) {
+    lastWord = lastWord.slice(0, -2)
+  }
   let plural = dictionary[lastWord]
   if (isNil(plural)) {
     throw Error(`The word ${word} is not in the dictionary, please add it.`)
+  }
+  if (isPossessive) {
+    plural = plural.endsWith("s") ? `${plural}'` : `${plural}'s`
   }
   words[words.length - 1] = plural
   plural = words.join(" ")
@@ -761,7 +769,7 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
 
   const number = inclusive
     ? format ? formatNumber(count, DType.Int, 'separators', 0) : count
-    : ''
+    : undefined
   return `${isNil(number)
     ? ''
     : `${number} `}${isNil(prefix)

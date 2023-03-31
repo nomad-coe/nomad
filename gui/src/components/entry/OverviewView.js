@@ -43,13 +43,14 @@ import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../bu
 import SectionCard from './properties/SectionCard'
 import { useMetainfoDef, traverse } from '../archive/metainfo'
 import {
-  ArchiveSaveButton, ArchiveDeleteButton, ArchiveReloadButton, ArchiveReUploadButton
+  ArchiveSaveButton, ArchiveReloadButton, ArchiveReUploadButton
 } from '../archive/ArchiveBrowser'
 import { useErrors } from '../errors'
 import DefinitionsCard from './properties/DefinitionsCard'
 import { ErrorHandler } from '../ErrorHandler'
 import ReferenceUsingCard from "./properties/ReferenceCard"
 import { useEntryStore, useEntryContext, useIndex } from './EntryContext'
+import DeleteEntriesButton from '../uploads/DeleteEntriesButton'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -280,7 +281,10 @@ const OverviewView = React.memo(() => {
             <ArchiveReloadButton />
             <ArchiveSaveButton />
             <ArchiveReUploadButton />
-            <ArchiveDeleteButton />
+            <DeleteEntriesButton
+              isIcon
+              buttonProps={{color: "primary"}}
+            />
           </Box>
         )}
         {cardComps}
