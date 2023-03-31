@@ -22,6 +22,10 @@ gui:
   matomoSiteId: 2
   encyclopediaBase: "https://nomad-lab.eu/prod/rae/encyclopedia/#"
   aitoolkitEnabled: false
+  config:     
+    entry:
+      cards:
+        exclude: ["relatedResources", "workflow"]
 
 app:
   replicas: 8

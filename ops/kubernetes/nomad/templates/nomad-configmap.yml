@@ -82,6 +82,11 @@ data:
       password: "{{ .Values.mail.password }}"
       {{ end }}
       from_address: "{{ .Values.mail.from }}"
+      {{ if .Values.mail.cc_adress }}
+      cc_address: "{{ .Values.mail.cc_adress }}"
+      {{ else }}
+      cc_address: null
+      {{ end }}
     celery:
       routing: "{{ .Values.worker.routing }}"
       timeout: {{ .Values.worker.timeout }}

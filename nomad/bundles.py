@@ -12,6 +12,7 @@ from typing import cast, Any, Tuple, List, Set, Dict, Iterable
 import os
 import json
 from datetime import datetime, timedelta
+from packaging import version
 
 from nomad import config, utils, datamodel, search
 from nomad.config.models import BundleImportSettings, BundleExportSettings
@@ -323,10 +324,13 @@ class BundleImporter:
         keys_exist(self.bundle_info, required_keys_root_level, 'Missing key in bundle_info.json: {key}')
 
         # Check version
-        bundle_nomad_version = self.bundle_info['source']['version']
-        assert bundle_nomad_version >= config.bundle_import.required_nomad_version, (
-            f'Bundle created in NOMAD version {bundle_nomad_version}, '
-            f'required at least {config.bundle_import.required_nomad_version}')
+        try:
+            bundle_nomad_version = self.bundle_info['source']['version']
+            assert version.parse(bundle_nomad_version) >= version.parse(config.bundle_import.required_nomad_version), (
+                f'Bundle created in NOMAD version {bundle_nomad_version}, '
+                f'required at least {config.bundle_import.required_nomad_version}')
+        except Exception:
+            assert False, 'Bad bundle version'
 
     def _import_upload_mongo_data(self, current_time):
         upload_dict = self.bundle_info['upload']
