@@ -62,7 +62,7 @@ class NomadSettings(BaseModel):
                     try:
                         setattr(rv, key, value)
                     except Exception:
-                        raise AssertionError(f'Invalid setting: {field_name}')
+                        raise AssertionError(f'Invalid setting: ({key}: {value})')
 
         return cast(NomadSettingsBound, rv)
 

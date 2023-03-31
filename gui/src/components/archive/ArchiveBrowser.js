@@ -187,57 +187,6 @@ export const ArchiveReloadButton = React.memo(function ArchiveReloadButton(props
   </React.Fragment>
 })
 
-export const ArchiveDeleteButton = React.memo(function ArchiveDeleteButton(props) {
-  const history = useHistory()
-  const {editable, uploadId, entryId} = useEntryStore()
-  const {api} = useApi()
-  const {raiseError} = useErrors()
-  const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
-
-  const handleClick = useCallback(() => {
-    setOpenDeleteConfirmDialog(true)
-  }, [setOpenDeleteConfirmDialog])
-
-  const handleDelete = useCallback(includeParentFolders => {
-    setOpenDeleteConfirmDialog(false)
-    const requestBody = {query: {entry_id: entryId}, include_parent_folders: includeParentFolders}
-    api.post(`uploads/${uploadId}/action/delete-entry-files`, requestBody)
-      .then(results => {
-        history.push(`/user/uploads/upload/id/${uploadId}`)
-      })
-      .catch(err =>
-        raiseError(err)
-      )
-  }, [uploadId, entryId, history, api, raiseError, setOpenDeleteConfirmDialog])
-
-  return editable ? (
-    <React.Fragment>
-      <IconButton color="primary" onClick={handleClick}>
-        <Tooltip title="Delete entry">
-          <DeleteIcon/>
-        </Tooltip>
-      </IconButton>
-      <Dialog
-        open={openDeleteConfirmDialog}
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            <b>Really delete this entry?</b>
-          </DialogContentText>
-          <DialogContentText>
-            You can choose to delete only the mainfile, or to delete the mainfile and its folder.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteConfirmDialog(false)} autoFocus>Cancel</Button>
-          <Button onClick={() => handleDelete(false)}>Delete mainfile</Button>
-          <Button onClick={() => handleDelete(true)}>Delete mainfile and folder</Button>
-        </DialogActions>
-      </Dialog>
-    </React.Fragment>) : ''
-})
-
 const useStyles = makeStyles(theme => {
   return {
     container: {

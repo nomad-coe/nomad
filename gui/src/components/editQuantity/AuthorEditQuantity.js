@@ -115,7 +115,7 @@ export const AuthorEditQuantity = React.memo((props) => {
         .then(users => {
           if (users.length > 0) {
             handleChange('user', users[0])
-            setSuggestions(users[0])
+            setSuggestions([users[0]])
           } else {
             setSuggestions([])
           }

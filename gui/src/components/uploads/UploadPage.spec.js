@@ -285,7 +285,7 @@ test('Delete selected entries from table', async () => {
 
   // Delete the entry
   await userEvent.click(deleteButton)
-  let deleteConfirmButton = await screen.findByButtonText('Delete mainfiles')
+  let deleteConfirmButton = await screen.findByButtonText('Delete 1 entry')
   await userEvent.click(deleteConfirmButton)
   // Should delete and go back to the first page
   await waitFor(() => {
@@ -306,7 +306,7 @@ test('Delete selected entries from table', async () => {
 
   // Delete the entries
   await userEvent.click(deleteButton)
-  deleteConfirmButton = await screen.findByButtonText('Delete mainfiles')
+  deleteConfirmButton = await screen.findByButtonText('Delete 2 entries')
   await userEvent.click(deleteConfirmButton)
   await waitFor(() => {
     expect(screen.queryByText('3 entries')).toBeInTheDocument()
