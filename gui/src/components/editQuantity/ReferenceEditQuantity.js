@@ -250,7 +250,7 @@ CreateNewReferenceDialog.propTypes = {
 
 export const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, ref) {
   const reference = useReferenceEditQuantityContext()
-  const path = reference?.value?.replace(/\/(\d)/g, ":$1")
+  const path = reference?.value
   return <Link
     {...props}
     data-testid={`item:${itemKey}`}

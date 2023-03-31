@@ -159,7 +159,8 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     }
     computingForUrl.current = url
     const rootPath = url.endsWith('/') ? url.substring(0, url.length - 1) : url
-    const segments = ['root'].concat(pathname.substring(url.length).split('/').filter(segment => segment))
+    const path = pathname?.replace(/\/(\d)/g, ":$1")
+    const segments = ['root'].concat(path.substring(url.length).split('/').filter(segment => segment))
     const oldLanes = lanes.current
     const newLanes = []
     for (let index = 0; index < segments.length; index++) {
@@ -177,7 +178,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         lane = {
           index: index,
           key: segment,
-          path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
+          path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment?.replace(':', '/'))) : rootPath,
           next: null,
           prev: prev,
           initialized: false
@@ -468,7 +469,7 @@ export function Item({children, itemKey, disabled, highlighted, icon, actions, c
   const classes = useItemStyles()
   const lane = useLane()
   const selected = lane.next && lane.next.key
-  const isSelected = itemKey && selected === itemKey
+  const isSelected = itemKey && (selected === itemKey || selected?.replace(':', '/') === itemKey)
   if (disabled) {
     return <Grid
       container spacing={0} alignItems="center" wrap="nowrap"

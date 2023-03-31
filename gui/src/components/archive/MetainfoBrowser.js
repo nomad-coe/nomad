@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useState } from 'react'
+import React, {useMemo, useEffect, useRef, useLayoutEffect, useContext, useState, useCallback} from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
@@ -37,6 +37,7 @@ import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { SourceJsonDialogButton } from '../buttons/SourceDialogButton'
 import ReactJson from 'react-json-view'
+import ArchiveSearchBar from './ArchiveSearchBar'
 
 export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
@@ -102,7 +103,27 @@ export default function MetainfoBrowser() {
   />
 }
 
+const useStyles = makeStyles(theme => {
+  return {
+    container: {
+      alignItems: 'center',
+      flexWrap: 'nowrap'
+    },
+    searchBar: {
+      width: 850,
+      marginRight: theme.spacing(1.5)
+    },
+    sourceBar: {
+      width: 350
+    },
+    textInput: {
+      margin: 0
+    }
+  }
+})
+
 const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
+  const styles = useStyles()
   const [config, setConfig] = useRecoilState(metainfoConfigState)
   const globalMetainfo = useGlobalMetainfo()
   const history = useHistory()
@@ -110,51 +131,64 @@ const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
 
   const searchOptions = useMemo(() => {
     const defsByName = globalMetainfo.getDefsByName()
-    return globalMetainfo && Object.keys(defsByName).reduce((results, name) => {
+    const searchOptions = {}
+    globalMetainfo && Object.keys(defsByName).forEach((name) => {
       const defsForName = defsByName[name].filter(def => (
         !def.extends_base_section && def.m_def !== SubSectionMDef && (
           def._package.name.startsWith(config.packagePrefix) || def._package.name.startsWith('nomad'))
       ))
-      results.push(...defsForName.map(def => {
-        let label = def.more?.label || def.name
-        if (defsForName.length > 1) {
-          if (def._parentSections?.length) {
-            label = `${label} (${def._parentSections[0].name})`
-          } else {
-            label = `${label} (${def._qualifiedName.split(':')[0]})`
-          }
+      defsForName.forEach(def => {
+        const path = globalMetainfo.path(def)
+        const prefix = 'nomad.datamodel.datamodel.EntryArchive/'
+        const instance = path.startsWith(prefix)
+        let info, label
+        if (instance) {
+          info = path.slice(prefix.length, path.length)?.replace(/\//g, ".")
+          label = info.split(".").slice(-1)[0] || info
+        } else {
+          info = def?._qualifiedName?.split('/')[0]
+          label = def.more?.label || def.name
         }
-        return {
-          path: url + '/' + globalMetainfo.path(def),
-          label: `${label} [${def.m_def.toLowerCase()}]`
+        const key = info || label
+        const option = {
+          url: url + '/' + path,
+          primary: label,
+          secondary: info,
+          key: key
         }
-      }))
-      return results
-    }, []).sort((a, b) => a.label.localeCompare(b.label))
+        searchOptions[key] = option
+      })
+    })
+    return searchOptions
   }, [config.packagePrefix, url, globalMetainfo])
 
+  const handleChange = useCallback((path) => {
+    if (path) {
+      history.push(path)
+    }
+  }, [history])
+
   return (
-    <Box marginTop={-2}>
-      <FormGroup row style={{alignItems: 'flex-end'}}>
-        <Autocomplete
+    <Box marginBottom={1.5} padding={0}>
+      <FormGroup row className={styles.container}>
+        <ArchiveSearchBar
           options={searchOptions}
-          getOptionLabel={(option) => option.label}
-          style={{ width: 500 }}
-          onChange={(_, value) => {
-            if (value) {
-              history.push(value.path)
-            }
-          }}
-          renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
+          onChange={handleChange}
+          className={styles.searchBar}
         />
-        <Box margin={1} />
         <Autocomplete
+          className={styles.sourceBar}
           value={config.packagePrefix}
           options={globalMetainfo ? Object.keys(globalMetainfo.getPackagePrefixes()) : []}
           getOptionLabel={option => option.replace(/parser/g, '')}
-          style={{ width: 350 }}
           onChange={(_, value) => setConfig({...config, packagePrefix: value})}
-          renderInput={(params) => <TextField {...params} label="source" margin="normal" />}
+          renderInput={(params) => <TextField
+            {...params}
+            variant="filled"
+            label="source"
+            margin="normal"
+            className={styles.textInput}
+          />}
         />
       </FormGroup>
     </Box>

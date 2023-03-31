@@ -38,8 +38,14 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 /**
  * A dialog that is used to configure a widget.
  */
+export const useStyles = makeStyles(theme => ({
+  width: {
+    maxWidth: "700px"
+  }
+}))
 export const WidgetEditDialog = React.memo(({id, title, open, visible, onAccept, onClose, error, children}) => {
-    const { useRemoveWidget } = useSearchContext()
+  const styles = useStyles()
+  const { useRemoveWidget } = useSearchContext()
   const removeWidget = useRemoveWidget()
     const handleClose = useCallback(() => {
       // If the widget has not bee visualized, then closing the dialog deletes
@@ -58,6 +64,7 @@ export const WidgetEditDialog = React.memo(({id, title, open, visible, onAccept,
       fullWidth={true}
       maxWidth="sm"
       open={open}
+      classes={{paperWidthSm: styles.width}}
       onClose={handleClose}
     >
       <DialogTitle>{title || ''}</DialogTitle>
