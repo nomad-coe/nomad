@@ -1,4 +1,4 @@
-# Query and Access Processed Data
+# Query Processed Data
 
 The `ArchiveQuery` allows you to search for entries and access their parsed and processed *archive* data
 at the same time. Furthermore, all data is accessible through a convenient Python interface
