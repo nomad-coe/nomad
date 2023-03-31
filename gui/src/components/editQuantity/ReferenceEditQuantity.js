@@ -43,6 +43,7 @@ import {useDataStore} from '../DataStore'
 import SectionSelectAutocomplete from '../uploads/SectionSelectAutocomplete'
 import {Link} from "react-router-dom"
 import DetailsIcon from '@material-ui/icons/ArrowForward'
+import OverwriteExistingFileDialog from './OverwriteExistingFileDialog'
 
 const referenceEditQuantityContext = React.createContext(undefined)
 
@@ -140,6 +141,17 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
     })
   }, [selectedSection, deploymentUrl, selectedUpload?.upload_id, api])
 
+  const handleOverwrite = useCallback((data) => {
+    createNewEntry(data, true)
+      .then(response => {
+        onSuccess(response.processing)
+      })
+      .catch(error => {
+        onFailed(new Error(error))
+      })
+    setAskForOverwrite(false)
+  }, [createNewEntry, onFailed, onSuccess])
+
   const handleCreateClick = useCallback(() => {
     createNewEntry(value)
       .then(response => {
@@ -160,21 +172,6 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
       setSelectedUpload(thisUpload)
     }
   }, [suggestions, uploadId])
-
-  const handleOverwriteYesClicked = () => {
-    createNewEntry(value, true)
-        .then(response => {
-          onSuccess(response.processing)
-        })
-        .catch(error => {
-          onFailed(new Error(error))
-        })
-    setAskForOverwrite(false)
-  }
-
-  const handleOverwriteNoClicked = () => {
-    setAskForOverwrite(false)
-  }
 
   return <React.Fragment>
     <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown data-testid='create-reference-dialog'>
@@ -221,23 +218,12 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
         </Button>
       </DialogActions>
     </Dialog>
-    <Dialog classes={{paper: classes.dialog}} open={askForOverwrite} disableEscapeKeyDown data-testid='overwrite-reference-dialog'>
-      <DialogTitle>Overwrite file</DialogTitle>
-      <DialogContent>
-        <DialogContentText>
-          {`There is already a file with the same name in this path. Do you want to overwrite the file?`}
-        </DialogContentText>
-      </DialogContent>
-      <DialogActions>
-        <span style={{flexGrow: 1}} />
-        <Button onClick={handleOverwriteNoClicked} color="secondary">
-          No
-        </Button>
-        <Button onClick={handleOverwriteYesClicked} color="secondary">
-          Yes
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <OverwriteExistingFileDialog
+      open={askForOverwrite}
+      data={value}
+      onOverwrite={handleOverwrite}
+      onCancel={() => setAskForOverwrite(false)}
+    />
   </React.Fragment>
 })
 CreateNewReferenceDialog.propTypes = {
