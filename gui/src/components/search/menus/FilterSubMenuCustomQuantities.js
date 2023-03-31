@@ -27,7 +27,6 @@ import {
   LinearProgress,
   MenuItem,
   Select,
-  TextField,
   Typography
 } from '@material-ui/core'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
@@ -40,8 +39,9 @@ import { StringEditQuantity } from '../../editQuantity/StringEditQuantity'
 import { EnumEditQuantity } from '../../editQuantity/EnumEditQuantity'
 import { DateTimeEditQuantity } from '../../editQuantity/DateTimeEditQuantity'
 import { editQuantityComponents } from '../../editQuantity/EditQuantity'
-import { InputMetainfo } from '../../search/input/InputText'
+import { InputMetainfo } from '../../search/input/InputMetainfo'
 import { DType, getDatatype } from '../../../utils'
+import { InputTextField } from '../input/InputText'
 
 const types = {
   str: 'String',
@@ -148,11 +148,13 @@ const QuantityFilter = React.memo(({quantities, filter, onChange}) => {
   }, [path, quantities])
 
   const options = useMemo(() => {
-    return quantities.map(quantity => ({
-      path: quantity.path,
-      secondary: quantity._description,
-      description: quantity?._quantityDef?.description
-    }))
+    return Object.fromEntries(quantities.map(quantity => [
+      quantity.path, {
+        key: quantity.path,
+        secondary: quantity._description,
+        description: quantity?._quantityDef?.description
+      }
+    ]))
   }, [quantities])
 
   const handleValueChange = useCallback((value) => {
@@ -217,9 +219,11 @@ const QuantityFilter = React.memo(({quantities, filter, onChange}) => {
               quantityDef={quantityDef}
             />
           ) : (
-            <TextField
-              variant="filled" size="small" label="value" fullWidth
-              value={filter.value || ''} onChange={e => handleValueChange(e.target.value)}
+            <InputTextField
+              label="value"
+              fullWidth
+              value={filter.value || ''}
+              onChange={e => handleValueChange(e.target.value)}
             />
           )
         }

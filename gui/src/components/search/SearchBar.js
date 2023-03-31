@@ -54,11 +54,11 @@ const opMapReverse = {
 const numericTypes = new Set([DType.Timestamp, DType.Int, DType.Float])
 
 // Customized paper component for the autocompletion options
-const CustomPaper = (props) => {
+export const CustomPaper = (props) => {
   return <Paper elevation={3} {...props} />
 }
 
-const useStyles = makeStyles(theme => ({
+export const useStyles = makeStyles(theme => ({
   root: {
     display: 'flex',
     alignItems: 'center',

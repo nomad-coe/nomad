@@ -25,7 +25,7 @@ import {
   FormControlLabel
 } from '@material-ui/core'
 import { useSearchContext } from '../SearchContext'
-import { InputSearchMetainfo } from '../input/InputText'
+import { InputSearchMetainfo } from '../input/InputMetainfo'
 import { Widget, schemaWidget } from './Widget'
 import { ActionCheckbox, ActionSelect } from '../../Actions'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'

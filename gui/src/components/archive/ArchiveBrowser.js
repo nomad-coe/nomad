@@ -22,8 +22,7 @@ import {
   Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, FormControl, FormControlLabel,
   FormGroup, FormHelperText, Grid, IconButton, makeStyles, MenuItem, TextField, Tooltip, Typography
 } from '@material-ui/core'
-import { useHistory, useRouteMatch } from 'react-router-dom'
-import Autocomplete from '@material-ui/lab/Autocomplete'
+import {useHistory, useRouteMatch} from 'react-router-dom'
 import Browser, {
   Adaptor, browserContext, Compartment, Content, formatSubSectionName, Item, ItemChip, laneContext, useLane
 } from './Browser'
@@ -55,7 +54,7 @@ import SectionEditor from './SectionEditor'
 import XYPlot from './XYPlot'
 import {
   appendDataUrl, createEntryUrl, createUploadUrl, formatTimestamp, parseNomadUrl, refType, resolveInternalRef,
-  resolveNomadUrl, systemMetainfoUrl, titleCase, isWaitingForUpdateTestId
+  resolveNomadUrl, systemMetainfoUrl, titleCase, isWaitingForUpdateTestId, resolveNomadUrlNoThrow
 } from '../../utils'
 import { EntryButton } from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/ArrowForward'
@@ -68,6 +67,7 @@ import ReactJson from 'react-json-view'
 import { range } from 'lodash'
 import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { useEntryStore } from '../entry/EntryContext'
+import ArchiveSearchBar from './ArchiveSearchBar'
 import DOMPurify from 'dompurify'
 
 export const configState = atom({
@@ -81,13 +81,22 @@ export const configState = atom({
 
 const ArchiveBrowser = React.memo(function ArchiveBrowser({url}) {
   const parsedUrl = useMemo(() => parseNomadUrl(url), [url])
-  const {archive} = useEntryStoreObj(parsedUrl.deploymentUrl, parsedUrl.entryId, false, '*')
+  const {archive, metadata} = useEntryStoreObj(parsedUrl.deploymentUrl, parsedUrl.entryId, false, '*')
   const metainfo = useMetainfo(systemMetainfoUrl)
+  const dataStore = useDataStore()
+  const [searchOptions, setSearchOptions] = useState({})
   const rootSectionDef = metainfo ? metainfo.getEntryArchiveDefinition() : null
 
-  const searchOptions = useMemo(() => {
-    return metainfo ? archiveSearchOptions(archive, metainfo) : []
-  }, [archive, metainfo])
+  useEffect(() => {
+    if (!metainfo) return
+    let isSubscribed = true
+    archiveSearchOptions(archive, metainfo, metadata, dataStore).then((options) => {
+      isSubscribed && setSearchOptions(options)
+    })
+    return () => {
+      isSubscribed = false
+    }
+  }, [archive, metainfo, metadata, dataStore])
 
   const adaptor = useMemo(() => {
     if (!archive || !rootSectionDef) {
@@ -229,8 +238,24 @@ export const ArchiveDeleteButton = React.memo(function ArchiveDeleteButton(props
     </React.Fragment>) : ''
 })
 
+const useStyles = makeStyles(theme => {
+  return {
+    container: {
+      alignItems: 'center',
+      flexWrap: 'nowrap'
+    },
+    searchBar: {
+      width: 750,
+      marginRight: theme.spacing(1)
+    }
+  }
+})
+
 const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, data}) {
+  const styles = useStyles()
   const [config, setConfig] = useRecoilState(configState)
+  const history = useHistory()
+  const { url } = useRouteMatch()
 
   const handleConfigChange = event => {
     const changes = {[event.target.name]: event.target.checked}
@@ -242,30 +267,23 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
     setConfig({...config, ...changes})
   }
 
-  const history = useHistory()
-  const {url} = useRouteMatch()
-
   const entryId = data?.metadata?.entry_id
 
+  const handleChange = useCallback((path) => {
+    if (path) {
+      history.push(url + path)
+    }
+  }, [history, url])
+
   return (
-    <Box padding={0}>
-      <FormGroup row style={{alignItems: 'center'}}>
-        <Box style={{width: 350, height: 60}}>
-          <Autocomplete
-            options={searchOptions}
-            getOptionLabel={(option) => option.name}
-            style={{width: 500, marginTop: -20}}
-            onChange={(_, value) => {
-              if (value) {
-                history.push(url + value.path)
-              }
-            }}
-            renderInput={(params) => <TextField
-              {...params} variant="filled"
-              size="small" label="search" margin="normal"
-            />}
-          />
-        </Box>
+    <Box marginBottom={1.5} padding={0}>
+      <FormGroup row className={styles.container}>
+        <ArchiveSearchBar
+          options={searchOptions}
+          onChange={handleChange}
+          className={styles.searchBar}
+          group
+        />
         <Box flexGrow={1}/>
         <Tooltip title="Enable to also show all code specific data">
           <FormControlLabel
@@ -320,7 +338,7 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
 })
 ArchiveConfigForm.propTypes = ({
   data: PropTypes.object.isRequired,
-  searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired
+  searchOptions: PropTypes.object.isRequired
 })
 
 export const ArchiveReUploadButton = React.memo((props) => {
@@ -359,53 +377,82 @@ export function archiveAdaptorFactory(archiveRootUrl, archiveRootObj, rootSectio
   return new SectionAdaptor(archiveRootUrl, archiveRootObj, rootSectionDef)
 }
 
-function archiveSearchOptions(data, metainfo) {
-  const options = []
-  const optionDefs = {}
+async function archiveSearchOptions(data, metainfo, metadata, dataStore) {
+  const options = {}
 
-  function traverse(data, def, parentName, parentPath) {
+  async function traverse(data, sectionDef, parentName, parentPath) {
+    let def = sectionDef
+    if (data?.m_def) {
+      const m_def = data.m_def
+      if (def._qualifiedName === 'nomad.datamodel.data.EntryData' || def._qualifiedName === 'nomad.datamodel.datamodel.EntryArchiveReference') {
+        const url = metadata.upload_id && metadata.entry_id ? `${apiBase}/uploads/${metadata.upload_id}/archive/${metadata.entry_id}` : undefined
+        const sectionDefUrl = resolveNomadUrlNoThrow(m_def, url)
+        def = await dataStore.getMetainfoDefAsync(sectionDefUrl)
+      }
+    }
+
     for (const key in data) {
-      const childDef = def._properties[key]
+      const childDef = def?._properties?.[key]
       if (!childDef) {
         continue
       }
 
-      const child = data[key]
-      if (!child) {
+      if (key === "quantities" || key === "base_sections" || key === "sub_sections" || key === 'processing_logs') {
         continue
       }
-      const path = parentPath ? `${parentPath}/${key}` : `/${key}`
+
+      if (!(key in data)) {
+        continue
+      }
+
+      const child = data[key]
+
+      if (child === undefined) {
+        continue
+      }
+
+      const isSectionDefinitions = key === 'section_definitions'
+      const path = parentPath ? (isSectionDefinitions ? parentPath : `${parentPath}/${key}`) : `/${key}`
       const name = parentName ? `${parentName}.${childDef.name}` : childDef.name
 
-      if (optionDefs[childDef._qualifiedName]) {
-        continue
+      const value = child
+      let secondary = childDef?.m_def || ''
+      if (typeof value !== 'object' && !Array.isArray(value) && value !== null) {
+        secondary = `${value}`
       }
-      optionDefs[childDef._qualifiedName] = childDef
-      const option = {
-        name: name, // key
+      const pathSections = path.split('/')
+      const group = pathSections[0] || pathSections[1]
+      options[name] = {
+        key: name,
+        primary: name,
+        secondary: secondary,
+        group: group,
         data: data,
         def: childDef,
-        path: path
+        url: path
       }
-      options.push(option)
 
       if (childDef.m_def === SubSectionMDef) {
         const sectionDef = childDef.sub_section
         if (Array.isArray(child) && child.length > 0 && child[0]) {
           if (child.length > 1) {
-            child.forEach((value, index) => traverse(value, sectionDef, name, `${path}:${index}`))
+            for (const [index, value] of child.entries()) {
+              await traverse(value, sectionDef, isSectionDefinitions ? `${name}.${value.name}` : name, isSectionDefinitions ? `${path}/${value.name}` : `${path}/${index}`)
+            }
           } else {
-            traverse(child[0], sectionDef, name, path)
+            await traverse(child[0], sectionDef, name, path)
           }
         } else {
-          traverse(child, sectionDef, name, path)
+          await traverse(child, sectionDef, name, path)
         }
       }
     }
   }
 
-  traverse(data, metainfo.getEntryArchiveDefinition(), null, null)
-  return options
+  await traverse(data, metainfo.getEntryArchiveDefinition(), null, null)
+  return new Promise((resolve, reject) => {
+    resolve(options)
+  })
 }
 
 class ArchiveAdaptor extends Adaptor {
@@ -1177,8 +1224,8 @@ function SubSection({subSectionDef, section, editable}) {
     return (
       <Box data-testid={'subsection'}>
         <Item
-          itemKey={subSectionDef.name} disabled={!values}
-          actions={actions}
+          itemKey={subSectionDef.repeats ? `${subSectionDef.name}/0` : subSectionDef.name}
+          disabled={!values} actions={actions}
         >
           <Typography component="span">
             <Box fontWeight="bold" component="span">
@@ -1252,10 +1299,10 @@ export function PropertyValuesList({label, values, actions, nTop, nBottom, pageS
   const [nShownBottom, setNShownBottom] = useState(0)
   const lane = useContext(laneContext)
   const selected = lane.next && lane.next.key
-  const showSelected = !open && selected && selected.startsWith(label + ':')
+  const showSelected = !open && (selected === label || selected?.startsWith(label + ':'))
 
   const item = (index, item) => {
-    return <Item key={index} itemKey={`${label}:${index}`}>
+    return <Item key={index} itemKey={`${label}/${index}`}>
       <Box display="flex" flexDirection="row" flexGrow={1}>
         <Box component="span" marginLeft={2}>
           {item && typeof item === 'object'
