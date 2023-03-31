@@ -360,7 +360,7 @@ class Mail(NomadSettings):
     user = ''
     password = ''
     from_address = 'support@nomad-lab.eu'
-    cc_address = 'support@nomad-lab.eu'
+    cc_address: Optional[str]
 
 
 class Normalize(NomadSettings):
