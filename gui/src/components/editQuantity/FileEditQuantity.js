@@ -15,15 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback } from 'react'
+import React, {useCallback, useRef, useState} from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, IconButton, Tooltip, TextField } from '@material-ui/core'
+import {
+  makeStyles, IconButton, Tooltip, TextField
+} from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import { useDropzone } from 'react-dropzone'
 import { useApi } from '../api'
 import { ItemButton } from '../archive/Browser'
 import { useEntryStore } from '../entry/EntryContext'
-import { useErrors } from '../errors'
+import OverwriteExistingFileDialog from './OverwriteExistingFileDialog'
 
 const useFileEditQuantityStyles = makeStyles(theme => ({
   dropzone: {
@@ -40,35 +42,53 @@ const useFileEditQuantityStyles = makeStyles(theme => ({
 }))
 const FileEditQuantity = React.memo(props => {
   const classes = useFileEditQuantityStyles()
-  const {onChange, quantityDef, value, ...otherProps} = props
+  const {onChange, onFailed, quantityDef, value, ...otherProps} = props
   const {uploadId, metadata} = useEntryStore()
   const {api} = useApi()
-  const {raiseError} = useErrors()
+  const [askForOverwrite, setAskForOverwrite] = useState(false)
+  const dropedFiles = useRef([])
 
-  const handleDropFiles = useCallback(files => {
-    if (!files[0]?.name) {
-      return // Not dropping a file, but something else. Ignore.
-    }
+  const uploadFile = useCallback((file, overwrite = false) => {
     const mainfilePathSegments = metadata.mainfile.split('/')
     const mainfileDir = mainfilePathSegments.slice(0, mainfilePathSegments.length - 1).join('/')
     const mainfileDirEncoded = mainfileDir.split('/').map(segment => encodeURIComponent(segment)).join('/')
-    const fullPath = mainfileDir ? mainfileDir + '/' + files[0].name : files[0].name
+    const fullPath = mainfileDir ? mainfileDir + '/' + file.name : file.name
 
     const formData = new FormData() // eslint-disable-line no-undef
-    formData.append('file', files[0])
+    formData.append('file', file)
 
-    api.put(
-      `/uploads/${uploadId}/raw/${mainfileDirEncoded}?wait_for_processing=true`,
-      formData, {
-        onUploadProgress: (progressEvent) => {
-          // TODO: would be nice to show progress somehow
+    return new Promise((resolve, reject) => {
+      api.put(
+        `/uploads/${uploadId}/raw/${mainfileDirEncoded}?wait_for_processing=true&overwrite_if_exists=${overwrite}`,
+        formData, {
+          onUploadProgress: (progressEvent) => {
+            // TODO: would be nice to show progress somehow
+          }
         }
-      }
-    ).catch(raiseError)
-    if (onChange) {
-      onChange(fullPath)
+      )
+        .then(response => resolve({response, fullPath}))
+        .catch(error => reject(error))
+    })
+  }, [api, uploadId, metadata])
+
+  const handleDropFiles = useCallback(files => {
+    if (!files?.[0]?.name) {
+      return // Not dropping a file, but something else. Ignore.
     }
-  }, [api, raiseError, uploadId, metadata, onChange])
+
+    dropedFiles.current = files
+    uploadFile(files[0]).then(({response, fullPath}) => {
+      if (onChange) {
+        onChange(fullPath)
+      }
+    }).catch(error => {
+      if (error.apiMessage === "The provided path already exists and overwrite_if_exists is set to False.") {
+        setAskForOverwrite(true)
+      } else {
+        onFailed(new Error(error))
+      }
+    })
+  }, [uploadFile, onChange, onFailed])
 
   const handleChange = useCallback(event => {
     const value = event.target.value
@@ -79,6 +99,23 @@ const FileEditQuantity = React.memo(props => {
 
   const {getRootProps, getInputProps, open, isDragAccept} = useDropzone({onDrop: handleDropFiles, noClick: true})
   const dropzoneClassName = isDragAccept ? classes.dropzoneActive : classes.dropzone
+
+  const handleOverwrite = useCallback((files) => {
+    if (!files?.[0]?.name) {
+      return
+    }
+
+    uploadFile(files[0], true)
+      .then(({response, fullPath}) => {
+        if (onChange) {
+          onChange(fullPath)
+        }
+      })
+      .catch(error => {
+        onFailed(new Error(error))
+      })
+    setAskForOverwrite(false)
+  }, [onChange, onFailed, uploadFile])
 
   return (
     <div {...getRootProps({className: dropzoneClassName})}>
@@ -103,12 +140,19 @@ const FileEditQuantity = React.memo(props => {
           )
         }}
       />
+      <OverwriteExistingFileDialog
+        open={askForOverwrite}
+        data={dropedFiles.current}
+        onOverwrite={handleOverwrite}
+        onCancel={() => setAskForOverwrite(false)}
+      />
     </div>
   )
 })
 FileEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   value: PropTypes.string,
-  onChange: PropTypes.func
+  onChange: PropTypes.func,
+  onFailed: PropTypes.func
 }
 export default FileEditQuantity
