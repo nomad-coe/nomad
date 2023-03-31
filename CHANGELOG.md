@@ -1,4 +1,46 @@
 
+## 1.1.9 (2023-03-31)
+
+### Added (10 changes)
+
+- [Added a checkbox to avoid accidentally delete mainfile's folders](nomad-lab/nomad-FAIR@0d138d5b79cdad7fd64bceafd87bdeaa2c6bed68) ([merge request](nomad-lab/nomad-FAIR!1154))
+- [Added overwrite dialog for existing files](nomad-lab/nomad-FAIR@d69d719ce6d158c0eb209e730f3f133f0ee4c1c5) ([merge request](nomad-lab/nomad-FAIR!1197))
+- [Added example script that printsout metainfo metrics.](nomad-lab/nomad-FAIR@a0ba5ec249e8626bf027cb171140ec501a89489d) ([merge request](nomad-lab/nomad-FAIR!1186))
+- [Update parser submodule](nomad-lab/nomad-FAIR@99f350714fea29233e2f9ad9eb16a1d30dbda313) ([merge request](nomad-lab/nomad-FAIR!1170))
+- [Added github actions to move PRs to gitlab.](nomad-lab/nomad-FAIR@e2522ee7739d46b1fa800dcc23fcdafbe3363bc1) ([merge request](nomad-lab/nomad-FAIR!1167))
+- [Added entry mode to follow the same workflow as the column/row modes in tabular parser](nomad-lab/nomad-FAIR@e9c409b8f0d4b1baa8f1babe4f83ca8fecae5e3c) ([merge request](nomad-lab/nomad-FAIR!1148))
+- [Added MaterialCardFormula for entries without structure.](nomad-lab/nomad-FAIR@ae7dc0835a84f6451f17283edbb28b6a3ee7383e) ([merge request](nomad-lab/nomad-FAIR!1142))
+- [Added `root` mode to the tabular parser to enable more generalized usage of mixed column/row modes](nomad-lab/nomad-FAIR@12488c1ff2dfca572a4ab686de86529d157977df) ([merge request](nomad-lab/nomad-FAIR!1116))
+- [Link to the plot examples was added to the corresponding documentation](nomad-lab/nomad-FAIR@ae4ae61403e1a1ccb78c62b27a08f566b9d7c4b7) ([merge request](nomad-lab/nomad-FAIR!1120))
+- [Added docker image build instructions to the docs.](nomad-lab/nomad-FAIR@a471bafb3c77ebe7b55bf3dab75ff3bba045d2fa) ([merge request](nomad-lab/nomad-FAIR!1147))
+
+### Changed (6 changes)
+
+- [Changed docs and pyproject to require Python 3.9.](nomad-lab/nomad-FAIR@64f6bcadb1deddf94b3a5618689e4ee3fe300667) ([merge request](nomad-lab/nomad-FAIR!1201))
+- [Improved the metainfo search visuals and performance.](nomad-lab/nomad-FAIR@56658e712b8f252ddc1aff1021091440d05127f0) ([merge request](nomad-lab/nomad-FAIR!1127))
+- [Changed the icon used for navigating to a particular entry/upload/dataset.](nomad-lab/nomad-FAIR@296519efd1e6eb6b04182cd8fde0f0992667d230) ([merge request](nomad-lab/nomad-FAIR!1150))
+- [1. Show upload name column by default in section select dialog](nomad-lab/nomad-FAIR@8fcf6107762d2852909d4e36cea3b8b9ecf5e8eb) ([merge request](nomad-lab/nomad-FAIR!1151))
+- [Disabled optimade respone validation.](nomad-lab/nomad-FAIR@582a90c77558b10cc1bf6574b2c0f6d051119645) ([merge request](nomad-lab/nomad-FAIR!1153))
+- [Improved the custom quantities search menu layout and search functionality.](nomad-lab/nomad-FAIR@0c0cf1ccfdd50dbf2aa139104c20a3313b14319c) ([merge request](nomad-lab/nomad-FAIR!1144))
+
+### Fixed (15 changes)
+
+- [Fixed Circular referencing](nomad-lab/nomad-FAIR@f8dcc7999cfa14fdfcb63e7f2ca32f47a94760e6) ([merge request](nomad-lab/nomad-FAIR!1165))
+- [Fixed that created but otherwise failed DOIs are not saved.](nomad-lab/nomad-FAIR@bc3fb1fd96fd705cb8f731f823b78f0e075ba75c) ([merge request](nomad-lab/nomad-FAIR!1194))
+- [Fixed processing with reuse_parser set to False.](nomad-lab/nomad-FAIR@75031ccb574c697574d743af0b9019196cd47385) ([merge request](nomad-lab/nomad-FAIR!1193))
+- [Fixed issue with unit system selection not being read correctly from configuration file.](nomad-lab/nomad-FAIR@476427b8a17e928c4dd2cd6dac06b10935046ce8) ([merge request](nomad-lab/nomad-FAIR!1192))
+- [Disable unsupported float point number types on Windows](nomad-lab/nomad-FAIR@0794724a9c571246d1bbdfc442e92157b6a688f5) ([merge request](nomad-lab/nomad-FAIR!1146))
+- [Rename bad parser test file](nomad-lab/nomad-FAIR@fad1c6b07e2adcde63908506c5e8aca33fd3e9b5) ([merge request](nomad-lab/nomad-FAIR!1169))
+- [Fixed issue in reading deeply nested config file settings.](nomad-lab/nomad-FAIR@782a382e84d1509f7d7634672cf7123c5aaa2273) ([merge request](nomad-lab/nomad-FAIR!1164))
+- [Adjust phonopy matcher regex](nomad-lab/nomad-FAIR@0144ed4a7de8ba4452a5e7151535b0ba0a7c7099) ([merge request](nomad-lab/nomad-FAIR!1160))
+- [Fixed that metainfo deserialization can overwrite derived values.](nomad-lab/nomad-FAIR@a7e3d45020fac57707cce81115682446aeddaeee) ([merge request](nomad-lab/nomad-FAIR!1159))
+- [Fixed is_admin overwrite in OasisUserManagement.](nomad-lab/nomad-FAIR@ef5ab815658d6b6829473ed628a36779733fe6a8) ([merge request](nomad-lab/nomad-FAIR!1159))
+- [Fixed issues in upload name not updating correctly after editing.](nomad-lab/nomad-FAIR@aad7fcb63e196136d54e1328140cab26a4209efc) ([merge request](nomad-lab/nomad-FAIR!1156))
+- [Fixed data_file referencing of tabular_parser when creating new entries from GUI](nomad-lab/nomad-FAIR@222b4d814c051eebd82f722326951af1709f7430) ([merge request](nomad-lab/nomad-FAIR!1155))
+- [Fixed issue with UI allowing terms aggregations for incompatible quantities.](nomad-lab/nomad-FAIR@6e7be3c8d6de76de60b8b6c4e0315138f77d6be4) ([merge request](nomad-lab/nomad-FAIR!1152))
+- [Minor fix workflow normalizer](nomad-lab/nomad-FAIR@28e494c0f0884f25b637c202a4e9b7d41b4d4325) ([merge request](nomad-lab/nomad-FAIR!1149))
+- [Add new columns and fix some problems with the datatable](nomad-lab/nomad-FAIR@a6e9790c3d48731536182092b879fcda4122f3ec) ([merge request](nomad-lab/nomad-FAIR!1138))
+
 ## 1.1.8 (2023-03-10)
 
 ### Fixed (9 changes)
