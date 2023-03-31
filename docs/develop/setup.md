@@ -66,7 +66,8 @@ system's python.
 #### virtualenv
 Create a virtual environment. It allows you
 to keep nomad and its dependencies separate from your system's python installation.
-Make sure that the virtual environment is based on Python 3.8 or higher (ideally Python 3.9). Use the built-in `venv` or (virtualenv)[https://pypi.org/project/virtualenv/] alternatively.
+Make sure that the virtual environment is based on Python 3.9 or higher.
+Use the built-in `venv` or (virtualenv)[https://pypi.org/project/virtualenv/] alternatively.
 
 ```
 python3 -m venv .pyenv

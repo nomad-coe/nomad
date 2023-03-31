@@ -36,11 +36,17 @@ For a general project overview visit the official project page [https://nomad-la
 ## Change log
 
 Omitted versions are plain bugfix releases with only minor changes and fixes. The
-file `CHANGELOG.md` might contain more detailed change information for the latest
-versions.
+file [`CHANGELOG.md`](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/blob/develop/CHANGELOG.md)
+contains much more detailed information about changes and fixes in the released versions.
+
+### v1.1.9
+- ELN improvements for safer file handling
+- many smaller fixes and changes
 
 ### v1.1.8
+- updated app branding to fit the new http://nomad-lab.eu
 - use Python 3.9
+- Pydantic models for config
 
 ### v1.1.7
 - refactored NORTH configuration and k8s deployment
