@@ -270,7 +270,7 @@ class ArchiveItem:
     @cached(thread_safe=False, max_size=512)
     def _child(self, child_toc_entry):
         if isinstance(child_toc_entry, dict):
-            if 'toc' in child_toc_entry:
+            if child_toc_entry.get('toc', None):
                 return ArchiveDict(child_toc_entry, self._f, self._offset)
 
             return self._read(child_toc_entry['pos'])
@@ -468,6 +468,15 @@ class ArchiveReader(ArchiveDict):
 
     def is_closed(self):
         return self._f.closed
+
+
+def serialise_container(v):
+    if isinstance(v, ArchiveList):
+        return v.to_list()
+    if isinstance(v, ArchiveDict):
+        return v.to_dict()
+
+    return v
 
 
 def write_archive(

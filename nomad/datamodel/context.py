@@ -76,14 +76,14 @@ class Context(MetainfoContext):
             global_reference: bool = False
     ) -> str:
         fragment = value.m_path()
-
-        source_root: MSection = section.m_root()
         target_root: MSection = value.m_root()
 
         if global_reference:
             upload_id, entry_id = self._get_ids(target_root, required=True)
 
             return f'../uploads/{upload_id}/archive/{entry_id}#{fragment}'
+
+        source_root: MSection = section.m_root()
 
         if source_root == target_root:
             return f'#{fragment}'
