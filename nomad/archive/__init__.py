@@ -34,7 +34,7 @@ section annotations/categories.
 '''
 
 from .storage import (
-    write_archive, read_archive, ArchiveError, ArchiveReader, ArchiveWriter,
+    serialise_container, write_archive, read_archive, ArchiveError, ArchiveReader, ArchiveWriter,
     ArchiveDict, ArchiveList, ArchiveItem)
 from .query import query_archive, filter_archive, ArchiveQueryError
 from .partial import (

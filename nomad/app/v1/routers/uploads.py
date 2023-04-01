@@ -486,7 +486,7 @@ async def get_uploads(
 
     mongodb_query = mongodb_query.order_by(*order_by_args)
 
-    data = [_upload_to_pydantic(upload) for upload in mongodb_query[start:end]]
+    data = [upload_to_pydantic(upload) for upload in mongodb_query[start:end]]
 
     pagination_response = PaginationResponse(total=mongodb_query.count(), **pagination.dict())
     pagination_response.populate_simple_index_and_urls(request)
@@ -513,11 +513,11 @@ async def get_upload(
     Fetches a specific upload by its upload_id.
     '''
     # Get upload (or throw exception if nonexistent/no access)
-    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    upload = get_upload_with_read_access(upload_id, user, include_others=True)
 
     return UploadProcDataResponse(
         upload_id=upload_id,
-        data=_upload_to_pydantic(upload))
+        data=upload_to_pydantic(upload))
 
 
 @router.get(
@@ -538,7 +538,7 @@ async def get_upload_entries(
     Fetches the entries of a specific upload. Pagination is used to browse through the
     results.
     '''
-    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    upload = get_upload_with_read_access(upload_id, user, include_others=True)
 
     order_by = pagination.order_by
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
@@ -567,7 +567,7 @@ async def get_upload_entries(
     # convert data to pydantic
     data = []
     for entry in entries:
-        pydantic_entry = _entry_to_pydantic(entry)
+        pydantic_entry = entry_to_pydantic(entry)
         pydantic_entry.entry_metadata = metadata_entries_map.get(entry.entry_id)
         data.append(pydantic_entry)
 
@@ -578,7 +578,7 @@ async def get_upload_entries(
         pagination=pagination_response,
         processing_successful=upload.processed_entries_count - failed_entries_count,
         processing_failed=failed_entries_count,
-        upload=_upload_to_pydantic(upload),
+        upload=upload_to_pydantic(upload),
         data=data)
 
 
@@ -600,13 +600,13 @@ async def get_upload_entry(
     '''
     Fetches a specific entry for a specific upload.
     '''
-    upload = _get_upload_with_read_access(upload_id, user)
+    upload = get_upload_with_read_access(upload_id, user)
     entry = upload.get_entry(entry_id)
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             An entry by that id could not be found in the specified upload.'''))
 
-    data = _entry_to_pydantic(entry, add_es_metadata=True, user=user)
+    data = entry_to_pydantic(entry, add_es_metadata=True, user=user)
 
     return EntryProcDataResponse(entry_id=entry_id, data=data)
 
@@ -641,7 +641,7 @@ async def get_upload_rawdir_path(
     (files and folders) in the directory. For directories, the result is paginated.
     '''
     # Get upload
-    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    upload = get_upload_with_read_access(upload_id, user, include_others=True)
     upload_files = None
     try:
         # Get upload files
@@ -770,7 +770,7 @@ async def get_upload_raw_path(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
             Cannot specify `offset` or `length` when `compress` is true'''))
     # Get upload
-    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    upload = get_upload_with_read_access(upload_id, user, include_others=True)
     # Get upload files
     upload_files = upload.upload_files
     try:
@@ -1015,7 +1015,7 @@ async def put_upload_raw_path(
         if request.headers.get('Accept') == 'application/json':
             response = PutRawFileResponse(
                 upload_id=upload_id,
-                data=_upload_to_pydantic(upload))
+                data=upload_to_pydantic(upload))
             response_text = response.json()
             media_type = 'application/json'
         else:
@@ -1059,13 +1059,13 @@ async def put_upload_raw_path(
 
             response = PutRawFileResponse(
                 upload_id=upload_id,
-                data=_upload_to_pydantic(upload),
+                data=upload_to_pydantic(upload),
                 processing=ProcessingData(
                     upload_id=upload_id,
                     path=full_path,
                     entry_id=entry.entry_id if entry else None,
                     parser_name=entry.parser_name if entry else None,
-                    entry=_entry_to_pydantic(entry) if entry else None,
+                    entry=entry_to_pydantic(entry) if entry else None,
                     archive=archive))
             response_text = response.json()
             media_type = 'application/json'
@@ -1130,7 +1130,7 @@ async def delete_upload_raw_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='The upload is currently blocked by another process.')
 
-    return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
+    return UploadProcDataResponse(upload_id=upload_id, data=upload_to_pydantic(upload))
 
 
 @router.post(
@@ -1175,7 +1175,7 @@ async def post_upload_raw_create_dir_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f'Failed to create directory: {e}')
 
-    return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
+    return UploadProcDataResponse(upload_id=upload_id, data=upload_to_pydantic(upload))
 
 
 @router.get(
@@ -1200,7 +1200,7 @@ async def get_upload_entry_archive_mainfile(
     For the upload specified by `upload_id`, gets the full archive of a single entry that
     is identified by the given `mainfile`.
     '''
-    _get_upload_with_read_access(upload_id, user, include_others=True)
+    get_upload_with_read_access(upload_id, user, include_others=True)
     query = dict(upload_id=upload_id, mainfile=mainfile)
     if mainfile_key:
         query.update(mainfile_key=mainfile_key)
@@ -1226,7 +1226,7 @@ async def get_upload_entry_archive(
     For the upload specified by `upload_id`, gets the full archive of a single entry that
     is identified by the given `entry_id`.
     '''
-    _get_upload_with_read_access(upload_id, user, include_others=True)
+    get_upload_with_read_access(upload_id, user, include_others=True)
     return answer_entry_archive_request(
         dict(upload_id=upload_id, entry_id=entry_id),
         required='*', user=user)
@@ -1342,7 +1342,7 @@ async def post_upload(
     if request.headers.get('Accept') == 'application/json':
         upload_proc_data_response = UploadProcDataResponse(
             upload_id=upload_id,
-            data=_upload_to_pydantic(upload))
+            data=upload_to_pydantic(upload))
         response_text = upload_proc_data_response.json()
         media_type = 'application/json'
     else:
@@ -1384,7 +1384,7 @@ async def post_upload_edit(
     edit_request_json = await request.json()
     try:
         MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
-        return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(Upload.get(upload_id)))
+        return UploadProcDataResponse(upload_id=upload_id, data=upload_to_pydantic(Upload.get(upload_id)))
     except RequestValidationError:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.
     except Exception as e:
@@ -1424,7 +1424,7 @@ async def delete_upload(
 
     return UploadProcDataResponse(
         upload_id=upload_id,
-        data=_upload_to_pydantic(upload))
+        data=upload_to_pydantic(upload))
 
 
 @router.post(
@@ -1507,7 +1507,7 @@ async def post_upload_action_publish(
 
     return UploadProcDataResponse(
         upload_id=upload_id,
-        data=_upload_to_pydantic(upload))
+        data=upload_to_pydantic(upload))
 
 
 @router.post(
@@ -1534,7 +1534,7 @@ async def post_upload_action_process(
     upload.process_upload()
     return UploadProcDataResponse(
         upload_id=upload_id,
-        data=_upload_to_pydantic(upload))
+        data=upload_to_pydantic(upload))
 
 
 @router.post(
@@ -1588,7 +1588,7 @@ async def post_upload_action_delete_entry_files(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='The upload is currently blocked by another process.')
 
-    return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
+    return UploadProcDataResponse(upload_id=upload_id, data=upload_to_pydantic(upload))
 
 
 @router.post(
@@ -1619,7 +1619,7 @@ async def post_upload_action_lift_embargo(
         upload.reload()
         return UploadProcDataResponse(
             upload_id=upload_id,
-            data=_upload_to_pydantic(upload))
+            data=upload_to_pydantic(upload))
     except Exception as e:
         # Should only happen if the upload just started processing or something unexpected happens
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -1656,7 +1656,7 @@ async def get_upload_bundle(
     Get an *upload bundle* for the specified upload. An upload bundle is a file bundle which
     can be used to export and import uploads between different NOMAD deployments.
     '''
-    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    upload = get_upload_with_read_access(upload_id, user, include_others=True)
     _check_upload_not_processing(upload)
 
     export_settings = config.bundle_export.default_settings.customize(
@@ -1789,7 +1789,7 @@ async def post_upload_bundle(
             embargo_length=embargo_length)
         return UploadProcDataResponse(
             upload_id=upload.upload_id,
-            data=_upload_to_pydantic(upload))
+            data=upload_to_pydantic(upload))
 
     except Exception as e:
         if bundle_importer:
@@ -1916,7 +1916,7 @@ def _query_mongodb(**kwargs):
     return Upload.objects(**kwargs)
 
 
-def _get_upload_with_read_access(upload_id: str, user: User, include_others: bool = False) -> Upload:
+def get_upload_with_read_access(upload_id: str, user: User, include_others: bool = False) -> Upload:
     '''
     Determines if the specified user has read access to the specified upload. If so, the
     corresponding Upload object is returned. If the upload does not exist, or the user has
@@ -1984,7 +1984,7 @@ def _get_upload_with_write_access(
     return upload
 
 
-def _upload_to_pydantic(upload: Upload) -> UploadProcData:
+def upload_to_pydantic(upload: Upload) -> UploadProcData:
     ''' Converts the mongo db object to an UploadProcData object. '''
     pydantic_upload = UploadProcData.from_orm(upload)
     pydantic_upload.entries = upload.total_entries_count
@@ -1997,7 +1997,7 @@ def _upload_to_pydantic(upload: Upload) -> UploadProcData:
     return pydantic_upload
 
 
-def _entry_to_pydantic(entry: Entry, add_es_metadata: bool = False, user=None) -> EntryProcData:
+def entry_to_pydantic(entry: Entry, add_es_metadata: bool = False, user=None) -> EntryProcData:
     '''
     Converts the mongo db object to an EntryProcData object, and optionally also adds metadata
     from ES

@@ -753,6 +753,9 @@ class StagingUploadFiles(UploadFiles):
             return
         os_path = os.path.join(self._raw_dir.os_path, path)
         if not os.path.isdir(os_path):
+            is_file = os.path.isfile(os_path)
+            if is_file:
+                yield RawPathInfo(path=path, is_file=True, size=os.stat(os_path).st_size, access='unpublished')
             return
         for element_name in sorted(os.listdir(os_path)):
             element_raw_path = os.path.join(path, element_name)
@@ -1369,6 +1372,7 @@ class PublicUploadFiles(UploadFiles):
                             is_file=True,
                             size=size,
                             access=self.access)
+                        self._directories[path] = directory_content[file_name]
             except FileNotFoundError:
                 pass
             # Add directories with the calculated sizes.

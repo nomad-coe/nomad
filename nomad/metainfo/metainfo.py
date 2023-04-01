@@ -492,7 +492,7 @@ class _QuantityType(DataType):
                 try:
                     module_name, impl_name = type_data.rsplit('.', 1)
                     module = importlib.import_module(module_name)
-                    return getattr(module, impl_name)
+                    return getattr(module, impl_name.replace('_', ''))
                 except Exception:
                     raise MetainfoError(
                         f'Could not load python implementation of custom datatype {type_data}')
@@ -2519,14 +2519,17 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                             f'Could not resolve {path}, there is no subsection {prop_name}')
 
             elif isinstance(prop_def, Quantity):
-                if len(path_stack) > 0:
-                    raise MetainfoReferenceError(f'Could not resolve {path}, no property {prop_name}')
-
                 if not section.m_is_set(prop_def):
                     raise MetainfoReferenceError(
                         f'Could not resolve {path}, {prop_name} is not set in {section}')
 
-                return _check_definition_id(target_id, section.m_get(prop_def))
+                quantity = section.m_get(prop_def)
+                while len(path_stack) > 0:
+                    if not isinstance(quantity, list):
+                        raise MetainfoReferenceError(f'Could not resolve {path}, no property {prop_name}')
+                    quantity = quantity[int(path_stack.pop())]
+
+                return _check_definition_id(target_id, quantity)
 
         return _check_definition_id(target_id, cast(MSectionBound, section))
 

@@ -505,7 +505,7 @@ class Pagination(BaseModel):
     order: Optional[Direction] = Field(
         Direction.asc, description=strip('''
             The ordering direction of the results based on `order_by`. Its either
-            ascending `asc` or decending `desc`. Default is `asc`.
+            ascending `asc` or descending `desc`. Default is `asc`.
         '''))
     page_after_value: Optional[str] = Field(
         None, description=strip('''
@@ -532,7 +532,7 @@ class Pagination(BaseModel):
             **NOTE #1**: the option to request pages by submitting the `page` number is
             limited. There are api calls where this attribute cannot be used for indexing,
             or where it can only be used partially. **If you want to just iterate through
-            all the results, aways use the `page_after_value` and `next_page_after_value`!**
+            all the results, always use the `page_after_value` and `next_page_after_value`!**
 
             **NOTE #2**: Only one, `page`, `page_offset` or `page_after_value`, can be used.
         '''))
@@ -739,7 +739,7 @@ class MetadataPagination(MetadataBasedPagination):
             requested page (1-based). When provided in a request, this attribute can be
             used instead of `page_after_value` to jump to a particular results page.
 
-            However, you can only retreive up to the 10.000th entry with a page number.
+            However, you can only retrieve up to the 10.000th entry with a page number.
             Only one, `page`, `page_offset` or `page_after_value`, can be used.
         '''))
 
@@ -748,7 +748,7 @@ class MetadataPagination(MetadataBasedPagination):
             Return the page that follows the given number of entries. Overwrites
             `page` and `page_after_value`.
 
-            However, you can only retreive up to the 10.000th entry.
+            However, you can only retrieve up to the 10.000th entry.
             Only one, `page`, `page_offset` or `page_after_value`, can be used.
         ''')
     )
