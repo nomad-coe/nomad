@@ -103,13 +103,13 @@ authors:
     email: claudia.draxl@physik.hu-berlin.de
     affiliation: 1
 affiliations:
-  - name: Institut für Physik, Humboldt-Universität zu Berlin, Berlin, Germany
+  - name: Department of Physics, Humboldt-Universität zu Berlin, Berlin, Germany
     index: 1
   - name: Leibniz Institut für Kristallzüchtung, Berlin, Germany
     index: 2
-  - name: Technical University of Munich, Munich, Germany
+  - name: Department of Informatics, Technical University of Munich, Munich, Germany
     index: 3
-  - name: Masaryk University, Brno, Czech Republic
+  - name: Department of Physical Electronics, Masaryk University, Brno, Czech Republic
     index: 4
 date: 20 March 2023
 bibliography: paper.bib
