@@ -103,13 +103,13 @@ authors:
     email: claudia.draxl@physik.hu-berlin.de
     affiliation: 1
 affiliations:
-  - name: Institut für Physik, Humboldt-Universität zu Berlin, Germany
+  - name: Institut für Physik, Humboldt-Universität zu Berlin, Berlin, Germany
     index: 1
-  - name: Leibniz Institut für Kristallzüchtung, Germany
+  - name: Leibniz Institut für Kristallzüchtung, Berlin, Germany
     index: 2
-  - name: Technical University of Munich, Germany
+  - name: Technical University of Munich, Munich, Germany
     index: 3
-  - name: Masaryk University, Czech Republic
+  - name: Masaryk University, Brno, Czech Republic
     index: 4
 date: 20 March 2023
 bibliography: paper.bib
@@ -185,7 +185,7 @@ of the larger databases of this kind are the [Materials Project](https://materia
 The raw data of these databases have also been published on NOMAD. The project [AiiDA](https://aiida.net/) [@huber:2020]
 allows scientists to design and run simulation workflows. AiiDA data can be published
 to AiiDA's [materialscloud](https://www.materialscloud.org/). There are also examples for experimental
-materials science databases, e.g. [HTEM](https://data.nrel.gov/submissions/75) [@zakutayev:2017].
+materials science databases, e.g. [HTEM](https://data.nrel.gov/submissions/75) [@zakutayev:2018].
 
 NOMAD relies on many open source packages; a few more notable ones from the materials
 science domains are: *MatID*, a software package to identify material structure system types and symmetries [@himanen:2018],
