@@ -146,6 +146,10 @@ const Quantity = React.memo((props) => {
       return <Typography noWrap>
         {formatTimestamp(data[quantity.name])}
       </Typography>
+    } else if (type.type_data === 'nomad.metainfo.metainfo._JSON') {
+      return <Typography noWrap>
+        JSON Formatted Data
+      </Typography>
     }
     return <Typography noWrap>
       {data[quantity.name]}

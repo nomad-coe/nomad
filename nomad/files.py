@@ -65,7 +65,7 @@ from nomad.config.models import BundleImportSettings, BundleExportSettings
 from nomad.archive import write_archive, read_archive, ArchiveReader
 
 
-decompress_file_extensions = ('.zip', '.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar')
+decompress_file_extensions = ('.zip', '.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar', '.eln')
 bundle_info_filename = 'bundle_info.json'
 
 # Used to check if zip-files/archive files are empty
