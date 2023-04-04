@@ -72,11 +72,6 @@ class TaskReference(Task):
         super(TaskReference, self).normalize(archive, logger)
         if not self.name and self.task:
             self.name = self.task.name
-        if self.task:
-            for input in self.task.inputs:
-                self.m_add_sub_section(Task.inputs, input)
-            for output in self.task.outputs:
-                self.m_add_sub_section(Task.outputs, output)
 
 
 class Workflow(Task, EntryData):

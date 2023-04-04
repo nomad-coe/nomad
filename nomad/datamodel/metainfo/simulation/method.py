@@ -76,6 +76,50 @@ class KMesh(MSection):
         ''')
 
 
+class FrequencyMesh(MSection):
+    '''
+    Contains the settings for a uniformly spaced frequency-point grid.
+    '''
+
+    m_def = Section(validate=False)
+
+    type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Grid type.
+        ''')
+
+    n_points = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Number of frequency points in the mesh.
+        ''')
+
+    values = Quantity(
+        type=np.complex128,
+        shape=['n_points'],
+        unit='joule',
+        description='''
+        List of all the real+imag frequencies.
+        ''')
+
+    weights = Quantity(
+        type=np.float64,
+        shape=['n_points'],
+        description='''
+        Weights of all the frequencies.
+        ''')
+
+    smearing = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Numerical smearing parameter used for convolutions.
+        ''')
+
+
 class Scf(MSection):
     '''
     Section containing the parameters related to self consistency.
@@ -905,136 +949,6 @@ class LatticeModelHamiltonian(MSection):
     hubbard_kanamori_model = SubSection(sub_section=HubbardKanamoriModel.m_def, repeats=True)
 
 
-class FreqMesh(MSection):
-    '''
-    Contains the settings for a uniformly spaced (real) frequency-point grid (if employed).
-    '''
-
-    m_def = Section(validate=False)
-
-    type = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Grid type.
-        ''')
-
-    n_points = Quantity(
-        type=np.int32,
-        shape=[],
-        description='''
-        Number of frequency points in the mesh.
-        ''')
-
-    values = Quantity(
-        type=np.complex128,
-        shape=['n_points'],
-        unit='joule',
-        description='''
-        List of all the real+imag frequencies.
-        ''')
-
-    weights = Quantity(
-        type=np.float64,
-        shape=['n_points'],
-        description='''
-        Weights of all the frequencies.
-        ''')
-
-
-class GW(MSection):
-    '''
-    Section containing the various parameters that define a GW calculation.
-    '''
-
-    m_def = Section(validate=False)
-
-    type = Quantity(
-        type=MEnum(["G0W0", "scGW", "scGW0", "scG0W", "ev-scGW0", "ev-scGW", "qp-scGW0", "qp-scGW"]),
-        shape=[],
-        description='''
-        GW Hedin's self-consistency cycle:
-
-        | Name      | Description                      | Reference             |
-
-        | --------- | -------------------------------- | --------------------- |
-
-        | `"G0W0"`  | single-shot                      | PRB 74, 035101 (2006) |
-
-        | `"scGW"`  | self-consistent G and W               | PRB 75, 235102 (2007) |
-
-        | `"scGW0"` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |
-
-        | `"scG0W"` | self-consistent W with fixed G0  | -                     |
-
-        | `"ev-scGW0"`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |
-
-        | `"ev-scGW"`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |
-
-        | `"qp-scGW0"`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |
-
-        | `"qp-scGW"`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |
-        ''')
-
-    analytical_continuation = Quantity(
-        type=MEnum(["pade", "contour_deformation", "ppm_GodbyNeeds", "ppm_HybertsenLouie", "ppm_vonderLindenHorsh", "ppm_FaridEngel", "multi_pole"]),
-        shape=[],
-        description='''
-        Analytical continuation approximations of the GW self-energy:
-
-        | Name           | Description         | Reference                        |
-
-        | -------------- | ------------------- | -------------------------------- |
-
-        | `"pade"` | Pade's approximant  | J. Low Temp. Phys 29, 179 (1977) |
-
-        | `"contour_deformation"` | Contour deformation | PRB 67, 155208 (2003) |
-
-        | `"ppm_GodbyNeeds"` | Godby-Needs plasmon-pole model | PRL 62, 1169 (1989) |
-
-        | `"ppm_HybertsenLouie"` | Hybertsen and Louie plasmon-pole model | PRB 34, 5390 (1986) |
-
-        | `"ppm_vonderLindenHorsh"` | von der Linden and P. Horsh plasmon-pole model | PRB 37, 8351 (1988) |
-
-        | `"ppm_FaridEngel"` | Farid and Engel plasmon-pole model  | PRB 47, 15931 (1993) |
-
-        | `"multi_pole"` | Multi-pole fitting  | PRL 74, 1827 (1995) |
-        ''')
-
-    q_grid = SubSection(sub_section=KMesh.m_def, repeats=False)
-
-    frequency_grid = SubSection(sub_section=FreqMesh.m_def, repeats=False)
-
-    interval_qp_corrections = Quantity(
-        type=np.int32,
-        shape=[2],
-        description='''
-        Band indices (in an interval) for which the GW quasiparticle corrections are
-        calculated.
-        ''')
-
-    n_states_self_energy = Quantity(
-        type=np.int32,
-        shape=[],
-        description='''
-        Number of states used in the calculation of the GW self energy.
-        ''')
-
-    n_empty_states_polarizability = Quantity(
-        type=np.int32,
-        shape=[],
-        description='''
-        Number of empty states used in the calculation of the polarizability.
-        ''')
-
-    n_empty_states_self_energy = Quantity(
-        type=np.int32,
-        shape=[],
-        description='''
-        Number of empty states used in the calculation of the GW self energy.
-        ''')
-
-
 class CoreHole(MSection):
     '''
     Section containing the various parameters that define a core-hole calculation. It can
@@ -1050,64 +964,171 @@ class CoreHole(MSection):
         ''')
 
     edge = Quantity(
-        type=MEnum([
-            "K", "L1", "L2", "L3", "L23", "M1", "M2", "M3", "M23", "M4", "M5", "M45",
-            "N1", "N2", "N3", "N23", "N4", "N5", "N45"]),
+        type=MEnum(
+            'K', 'L1', 'L2', 'L3', 'L23', 'M1', 'M2', 'M3', 'M23', 'M4', 'M5', 'M45',
+            'N1', 'N2', 'N3', 'N23', 'N4', 'N5', 'N45'),
         description='''
         Edge to be calculated for the core-hole spectra.
         ''')
 
     mode = Quantity(
-        type=MEnum(["absorption", "emission"]),
+        type=MEnum('absorption', 'emission'),
         description='''
         Type of spectra to be calculated: absorption or emission.
         ''')
 
     broadening = Quantity(
         type=np.float64,
-        unit='electron_volt',
+        unit='joule',
         description='''
         Core-hole lifetime broadening applied to the edge spectra in full-width at half maximum.
         ''')
 
 
-class BSE(MSection):
+class ExcitedStateMethodology(MSection):
+    '''
+    Base class containing the common numerical parameters typical of excited-state
+    calculations.
+    '''
+
+    m_def = Section(validate=False)
+
+    type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Type which allows to identify the excited-state calculation with a
+        common string.
+        ''')
+
+    n_states = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Number of states used to calculate the excitations.
+        ''')
+
+    n_empty_states = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Number of empty states used to calculate the excitations. This quantity is
+        complementary to `n_states`.
+        ''')
+
+    broadening = Quantity(
+        type=np.float64,
+        unit='joule',
+        description='''
+        Lifetime broadening applied to the spectra in full-width at half maximum.
+        ''')
+
+    # Used to define the k_mesh of sub_sections that are not base classes yet, e.g., screening
+    k_mesh = SubSection(sub_section=KMesh.m_def)
+
+    q_mesh = SubSection(sub_section=KMesh.m_def)
+
+    frequency_mesh = SubSection(sub_section=FrequencyMesh.m_def)
+
+
+class Screening(ExcitedStateMethodology):
+    '''
+    Section containing the various parameters that define a screening calculation, as for
+    example, in RPA.
+    '''
+
+    m_def = Section(validate=False)
+
+    dielectric_infinity = Quantity(
+        type=np.int32,
+        description='''
+        Value of the static dielectric constant at infinite q. For metals, this is infinite
+        (or a very large value), while for insulators is finite.
+        ''')
+
+
+class GW(ExcitedStateMethodology):
+    '''
+    Section containing the various parameters that define a GW calculation.
+    '''
+
+    m_def = Section(validate=False)
+
+    type = Quantity(
+        type=MEnum('G0W0', 'scGW', 'scGW0', 'scG0W', 'ev-scGW0', 'ev-scGW', 'qp-scGW0', 'qp-scGW'),
+        shape=[],
+        description='''
+        GW Hedin's self-consistency cycle:
+
+        | Name      | Description                      | Reference             |
+
+        | --------- | -------------------------------- | --------------------- |
+
+        | `'G0W0'`  | single-shot                      | PRB 74, 035101 (2006) |
+
+        | `'scGW'`  | self-consistent G and W               | PRB 75, 235102 (2007) |
+
+        | `'scGW0'` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |
+
+        | `'scG0W'` | self-consistent W with fixed G0  | -                     |
+
+        | `'ev-scGW0'`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |
+
+        | `'ev-scGW'`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |
+
+        | `'qp-scGW0'`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |
+
+        | `'qp-scGW'`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |
+        ''')
+
+    analytical_continuation = Quantity(
+        type=MEnum(
+            'pade', 'contour_deformation', 'ppm_GodbyNeeds', 'ppm_HybertsenLouie',
+            'ppm_vonderLindenHorsh', 'ppm_FaridEngel', 'multi_pole'),
+        shape=[],
+        description='''
+        Analytical continuation approximations of the GW self-energy:
+
+        | Name           | Description         | Reference                        |
+
+        | -------------- | ------------------- | -------------------------------- |
+
+        | `'pade'` | Pade's approximant  | J. Low Temp. Phys 29, 179 (1977) |
+
+        | `'contour_deformation'` | Contour deformation | PRB 67, 155208 (2003) |
+
+        | `'ppm_GodbyNeeds'` | Godby-Needs plasmon-pole model | PRL 62, 1169 (1989) |
+
+        | `'ppm_HybertsenLouie'` | Hybertsen and Louie plasmon-pole model | PRB 34, 5390 (1986) |
+
+        | `'ppm_vonderLindenHorsh'` | von der Linden and P. Horsh plasmon-pole model | PRB 37, 8351 (1988) |
+
+        | `'ppm_FaridEngel'` | Farid and Engel plasmon-pole model  | PRB 47, 15931 (1993) |
+
+        | `'multi_pole'` | Multi-pole fitting  | PRL 74, 1827 (1995) |
+        ''')
+
+    interval_qp_corrections = Quantity(
+        type=np.int32,
+        shape=[2],
+        description='''
+        Band indices (in an interval) for which the GW quasiparticle corrections are
+        calculated.
+        ''')
+
+    screening = SubSection(sub_section=Screening.m_def)
+
+
+class BSE(ExcitedStateMethodology):
     '''
     Section containing the various parameters that define a BSE calculation.
     '''
 
     m_def = Section(validate=False)
 
-    n_empty_states = Quantity(
-        type=np.int32,
-        shape=[],
-        description='''
-        Number of empty states to calculate the BSE response function.
-        ''')
+    screening = SubSection(sub_section=Screening.m_def)
 
-    screening_type = Quantity(
-        type=str,
-        description='''
-        Type of treatment for the screening.
-        ''')
-
-    dielectric_infinity = Quantity(
-        type=np.int32,
-        description='''
-        Value of the static dielectric constant at infinite q. For metals, this is infinite,
-        while for insulators is finite.
-        ''')
-
-    n_empty_states_screening = Quantity(
-        type=np.int32,
-        shape=[],
-        description='''
-        Number of empty states to calculate the screening matrix.
-        ''')
-
-    k_mesh_screening = SubSection(sub_section=KMesh.m_def)
-
-    core = SubSection(sub_section=CoreHole.m_def)
+    core_hole = SubSection(sub_section=CoreHole.m_def)
 
 
 class DMFT(MSection):
@@ -1147,7 +1168,7 @@ class DMFT(MSection):
         ''')
 
     magnetic_state = Quantity(
-        type=MEnum(["paramagnetic", "ferromagnetic", "antiferromagnetic"]),
+        type=MEnum('paramagnetic', 'ferromagnetic', 'antiferromagnetic'),
         shape=[],
         description='''
         Magnetic state in which the DMFT calculation is done:
@@ -1156,11 +1177,11 @@ class DMFT(MSection):
 
         | --------------------- | ----------------------- |
 
-        | `"paramagnetic"`      | paramagnetic state      |
+        | `'paramagnetic'`      | paramagnetic state      |
 
-        | `"ferromagnetic"`     | ferromagnetic state     |
+        | `'ferromagnetic'`     | ferromagnetic state     |
 
-        | `"antiferromagnetic"` | antiferromagnetic state |
+        | `'antiferromagnetic'` | antiferromagnetic state |
         ''')
 
     n_matsubara_freq = Quantity(
@@ -1178,7 +1199,9 @@ class DMFT(MSection):
         ''')
 
     impurity_solver = Quantity(
-        type=MEnum(["CT-INT", "CT-HYB", "CT-AUX", "ED", "NRG", "MPS", "IPT", "NCA", "OCA", "slave_bosons", "hubbard_I"]),
+        type=MEnum(
+            'CT-INT', 'CT-HYB', 'CT-AUX', 'ED', 'NRG', 'MPS', 'IPT', 'NCA', 'OCA',
+            'slave_bosons', 'hubbard_I'),
         shape=[],
         description='''
         Impurity solver method used in the DMFT loop:
@@ -1187,27 +1210,27 @@ class DMFT(MSection):
 
         | ----------------- | ------------------------------------ |
 
-        | `"CT-INT"`        | Rubtsov et al., JEPT Lett 80 (2004)  |
+        | `'CT-INT'`        | Rubtsov et al., JEPT Lett 80 (2004)  |
 
-        | `"CT-HYB"`        | Werner et al., PRL 97 (2006)         |
+        | `'CT-HYB'`        | Werner et al., PRL 97 (2006)         |
 
-        | `"CT-AUX"`        | Gull et al., EPL 82 (2008)           |
+        | `'CT-AUX'`        | Gull et al., EPL 82 (2008)           |
 
-        | `"ED"`            | Caffarrel et al, PRL 72 (1994)       |
+        | `'ED'`            | Caffarrel et al, PRL 72 (1994)       |
 
-        | `"NRG"`           | Bulla et al., RMP 80 (2008)          |
+        | `'NRG'`           | Bulla et al., RMP 80 (2008)          |
 
-        | `"MPS"`           | Ganahl et al., PRB 90 (2014)         |
+        | `'MPS'`           | Ganahl et al., PRB 90 (2014)         |
 
-        | `"IPT"`           | Georges et al., PRB 45 (1992)        |
+        | `'IPT'`           | Georges et al., PRB 45 (1992)        |
 
-        | `"NCA"`           | Pruschke et al., PRB 47 (1993)       |
+        | `'NCA'`           | Pruschke et al., PRB 47 (1993)       |
 
-        | `"OCA"`           | Pruschke et al., PRB 47 (1993)       |
+        | `'OCA'`           | Pruschke et al., PRB 47 (1993)       |
 
-        | `"slave_bosons"`  | Kotliar et al., PRL 57 (1986)        |
+        | `'slave_bosons'`  | Kotliar et al., PRL 57 (1986)        |
 
-        | `"hubbard_I"`     | -                                    |
+        | `'hubbard_I'`     | -                                    |
         ''')
 
 

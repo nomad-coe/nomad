@@ -109,12 +109,13 @@ class SimulationWorkflow(Workflow):
             return
 
         if not self.inputs:
-            self.inputs = []
             if self._systems:
-                self.inputs.append(Link(name=_input_structure_name, section=self._systems[0]))
+                self.m_add_sub_section(
+                    Workflow.inputs, Link(name=_input_structure_name, section=self._systems[0]))
 
             if self.method:
-                self.inputs.append(Link(name=_workflow_method_name, section=self.method))
+                self.m_add_sub_section(
+                    Workflow.inputs, Link(name=_workflow_method_name, section=self.method))
 
         for link in self.inputs:
             if isinstance(link.section, System):
@@ -122,12 +123,13 @@ class SimulationWorkflow(Workflow):
                 break
 
         if not self.outputs:
-            self.outputs = []
             if self._calculations:
-                self.outputs.append(Link(name=_output_calculation_name, section=self._calculations[-1]))
+                self.m_add_sub_section(
+                    Workflow.outputs, Link(name=_output_calculation_name, section=self._calculations[-1]))
 
             if self.results:
-                self.outputs.append(Link(name=_workflow_results_name, section=self.results))
+                self.m_add_sub_section(
+                    Workflow.outputs, Link(name=_workflow_results_name, section=self.results))
 
 
 class Decomposition(MSection):
@@ -516,11 +518,14 @@ class SinglePoint(SimulationWorkflow):
         if not self.tasks:
             task = Task()
             if self._systems:
-                task.inputs.append(Link(name=_input_structure_name, section=self._systems[0]))
+                task.m_add_sub_section(
+                    Task.inputs, Link(name=_input_structure_name, section=self._systems[0]))
             if self._methods:
-                task.inputs.append(Link(name=_input_method_name, section=self._methods[0]))
+                task.m_add_sub_section(
+                    Task.inputs, Link(name=_input_method_name, section=self._methods[0]))
             if self._calculations:
-                task.outputs = [Link(name=_output_calculation_name, section=self._calculations[0])]
+                task.m_add_sub_section(
+                    Task.inputs, Link(name=_output_calculation_name, section=self._calculations[0]))
 
             self.tasks = [task]
 
@@ -528,17 +533,23 @@ class SinglePoint(SimulationWorkflow):
             self.method = SinglePointMethod()
 
         if not self.inputs:
-            self.inputs.append(Link(name=_workflow_method_name, section=self.method))
+            self.m_add_sub_section(
+                SimulationWorkflow.inputs, Link(name=_workflow_method_name, section=self.method))
 
         if not self.results:
             self.results = SinglePointResults()
 
         if not self.outputs:
-            self.outputs.append(Link(name=_workflow_results_name, section=self.results))
+            self.m_add_sub_section(
+                SimulationWorkflow.outputs, Link(name=_workflow_results_name, section=self.results))
 
         if not self.method.method:
             try:
-                self.method.method = self._methods[-1].electronic.method
+                # TODO keep extending for other SinglePoint
+                for method_name in ['dft', 'gw', 'bse', 'dmft']:
+                    if self._methods[-1].m_xpath(method_name):
+                        self.method.method = method_name.upper()
+                        break
             except Exception:
                 pass
 
@@ -971,6 +982,14 @@ class ThermostatParameters(MSection):
         description='''
         The time constant for temperature coupling. Need to describe what this means for the various
         thermostat options...
+        ''')
+
+    effective_mass = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='kilogram',
+        description='''
+        The effective or fictitious mass of the temperature resevoir.
         ''')
 
 
