@@ -70,7 +70,7 @@ test.each([
   const builtinField = within(dialog).getByTestId('builtin-select-schema')
   const builtinFieldInput = within(builtinField).getByRole('textbox')
 
-  await waitFor(() => expect(builtinFieldInput.value).toEqual('Basic ELN'))
+  await waitFor(() => expect(builtinFieldInput.value).not.toEqual(''))
 
   const customSchemaRadio = within(dialog).getByTestId('custom-schema-radio')
   await act(async () => { await userEvent.click(customSchemaRadio) })

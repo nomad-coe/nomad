@@ -866,3 +866,19 @@ def normalize_datetime(value) -> Optional[datetime]:
         value = value.astimezone(pytz.utc)
 
     return value
+
+
+def camel_case_to_snake_case(obj: dict):
+    for k, v in list(obj.items()):
+        if k != k.lower() and k != k.upper() and "_" not in k:
+            snake_case_key = re.sub(r'(?<!^)(?=[A-Z])', '_', k).lower()
+            obj[snake_case_key] = v
+            del obj[k]
+            k = snake_case_key
+        if isinstance(v, dict):
+            obj[k] = camel_case_to_snake_case(v)
+        if isinstance(v, list):
+            for i, item in enumerate(v):
+                if isinstance(item, dict):
+                    obj[k][i] = camel_case_to_snake_case(item)
+    return obj
