@@ -1038,15 +1038,16 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         sec_atoms = sec_system_top.atoms
         sec_atoms_group = sec_system_top.atoms_group
         sec_method = sec_run.method[method_index] if sec_run.get('method') is not None else None
-        sec_model = sec_method.force_field.model[model_index] if sec_method is not None else None
+        sec_force_field = sec_method.force_field if sec_method is not None else None
+        sec_model = sec_force_field.model[model_index] if sec_force_field is not None else None
     except IndexError:
-        logging.error('Supplied indices do not exist in archive.')
-        return []
+        logging.warning('Supplied indices or necessary sections do not exist in archive. Cannot build the MDA universe.')
+        return None
 
     n_atoms = sec_atoms.get('n_atoms')
     if n_atoms is None:
-        logging.error('No atoms found in the archive. Cannot build the MDA universe.')
-        return []
+        logging.warning('No atoms found in the archive. Cannot build the MDA universe.')
+        return None
 
     n_frames = len(sec_system) if sec_system is not None else None
     atom_names = sec_atoms.get('labels')
@@ -1188,8 +1189,8 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
 
     # add the bonds
     if hasattr(metainfo_universe, 'bonds'):
-        logging.error('archive_to_universe() failed, universe already has bonds.')
-        return []
+        logging.warning('archive_to_universe() failed, universe already has bonds.')
+        return None
     metainfo_universe.add_TopologyAttr('bonds', bonds)
 
     return metainfo_universe
