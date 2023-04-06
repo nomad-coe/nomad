@@ -220,6 +220,15 @@ test.each([
   await testShownColumnsAction()
 })
 
+const expectEntriesOrder = (list) => {
+  const rows = screen.queryAllByTestId('datatable-row')
+  const n = list.length
+  expect(rows.length).toBe(n)
+  for (let i = 0; i < n; i++) {
+    expect(within(rows[i]).queryByText(`vasp_${list[i]}.xml`)).toBeInTheDocument()
+  }
+}
+
 test('Render upload page: multiple entries', async () => {
   await startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries', 'test', 'password')
   render(<UploadPage uploadId="dft_upload_1"/>)
@@ -234,17 +243,24 @@ test('Render upload page: multiple entries', async () => {
 
   const datatableBody = screen.getByTestId('datatable-body')
 
-  // Test if the pagination works correctly
-  const rows = screen.queryAllByTestId('datatable-row')
-  expect(rows.length).toBe(5)
+  // Test the default order of the entries
   expect(within(datatableBody).queryByText('vasp_6.xml')).not.toBeInTheDocument()
+  expectEntriesOrder([1, 2, 3, 4, 5])
 
-  // Test if the name of the entries are rendered in the right order
-  expect(within(rows[0]).queryByText('vasp_1.xml')).toBeInTheDocument()
-  expect(within(rows[1]).queryByText('vasp_2.xml')).toBeInTheDocument()
-  expect(within(rows[2]).queryByText('vasp_3.xml')).toBeInTheDocument()
-  expect(within(rows[3]).queryByText('vasp_4.xml')).toBeInTheDocument()
-  expect(within(rows[4]).queryByText('vasp_5.xml')).toBeInTheDocument()
+  // Test the order of entries: ascending sort by Mainfile
+  await userEvent.click(screen.getByTestId('sortable_mainfile'))
+  await waitFor(() =>
+    expect(within(datatableBody).queryByText('vasp_6.xml')).not.toBeInTheDocument()
+  )
+  expectEntriesOrder([1, 2, 3, 4, 5])
+
+  await waitForGUI()
+  // Test the order of entries: descending sort by Mainfile
+  await userEvent.click(screen.getByTestId('sortable_mainfile'))
+  await waitFor(() =>
+    expect(within(datatableBody).queryByText('vasp_1.xml')).not.toBeInTheDocument()
+  )
+  expectEntriesOrder([6, 5, 4, 3, 2])
 })
 
 test('Delete selected entries from table', async () => {
