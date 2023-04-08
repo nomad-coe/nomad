@@ -1,10 +1,12 @@
 # Run NOMAD parser locally
 
-If you install `nomad-lab[parsers]`, you can use the NOMAD parsers locally on your computer.
-To use the NOMAD parsers from the command line, you can use the parse CLI command. The parse command will automatically match the right parser to your code output file and run the parser. There are two output formats, `--show-metadata` (a JSON representation of the basic metadata) and `--show-archive` (a JSON representation of the full parse results).
+If you install `nomad-lab[parsing]`, you can use the NOMAD parsers locally on your computer.
+To use the NOMAD parsers from the command line, you can use the parse CLI command. The parse command will automatically
+match the right parser to your code output file and run the parser. There are two output formats, `--show-metadata` (a
+JSON representation of the basic metadata) and `--show-archive` (a JSON representation of the full parse results).
 
 ```sh
-nomad parser --show-archive <path-to-your-mainfile-code-output-file>
+nomad parse --show-archive <path-to-your-mainfile-code-output-file>
 ```
 
 You can also use the NOMAD parsers within Python, as shown below. This will give you the parse results as metainfo objects to conveniently analyze the results in Python. See metainfo for more details on how to use the metainfo in Python.
@@ -31,7 +33,7 @@ You can also clone a parser project to debug or fix a parser:
 git clone https://github.com/nomad-coe/nomad-parser-vasp.git
 cd nomad-parser-vasp
 git checkout metainfo-refactor
-python -m nomad.cli nomad parser --show-archive <path-to-your-vasp-file>
+python -m nomad.cli nomad parse --show-archive <path-to-your-vasp-file>
 ```
 
 Our parsers are hosted in github. They are in the [nomad-coe](https://github.com/nomad-coe) organization. They are typically named `nomad-parser-<code-name>`. The parser version
