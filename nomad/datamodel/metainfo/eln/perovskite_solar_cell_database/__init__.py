@@ -37,11 +37,6 @@ def add_band_gap(archive, band_gap):
         band_structure = BandStructureElectronic(band_gap=[band_gap])
         electronic = ElectronicProperties(band_structure_electronic=[band_structure])
         archive.results.properties.electronic = electronic
-        props = archive.results.properties.available_properties
-        if not props:
-            props = []
-        props.append('electronic.band_structure_electronic.band_gap')
-        archive.results.properties.available_properties = props
 
 
 def add_solar_cell(archive):
@@ -54,12 +49,6 @@ def add_solar_cell(archive):
         archive.results.properties.optoelectronic = OptoelectronicProperties()
     if not archive.results.properties.optoelectronic.solar_cell:
         archive.results.properties.optoelectronic.solar_cell = SolarCell()
-    props = archive.results.properties.available_properties
-    if not props:
-        props = []
-    if 'solar_cell' not in props:
-        props.append('solar_cell')
-    archive.results.properties.available_properties = props
 
 
 class Ref(MSection):

@@ -589,3 +589,37 @@ def query_list_to_dict(path_list: List[Union[str, int]], value: Any) -> Dict[str
         current = current[key]
         i += 1
     return returned
+
+
+def traverse_reversed(archive: Any, path: List[str]) -> Any:
+    '''Traverses the given metainfo path in reverse order. Useful in finding the
+    latest reported section or value.
+
+    Args:
+        archive: The root section to traverse
+        path: List of path names to traverse
+
+    Returns:
+        Returns the last metainfo section or quantity in the given path or None
+        if not found.
+    '''
+    def traverse(root, path, i):
+        if not root:
+            return
+        sections = getattr(root, path[i])
+        if isinstance(sections, list):
+            for section in reversed(sections):
+                if i == len(path) - 1:
+                    yield section
+                else:
+                    for s in traverse(section, path, i + 1):
+                        yield s
+        else:
+            if i == len(path) - 1:
+                yield sections
+            else:
+                for s in traverse(sections, path, i + 1):
+                    yield s
+    for t in traverse(archive, path, 0):
+        if t is not None:
+            yield t
