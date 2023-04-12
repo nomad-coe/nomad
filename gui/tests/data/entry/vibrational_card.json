@@ -24,9 +24,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-02-14T07:42:02.462178+00:00",
+            "upload_create_time": "2023-04-11T15:34:54.039820+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-02-14T07:42:02.465178+00:00",
+            "publish_time": "2023-04-11T15:34:54.042820+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -78,7 +78,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-02-14T07:42:02.466178+00:00",
+            "entry_create_time": "2023-04-11T15:34:54.043820+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -124,9 +124,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-02-14T07:42:02.462178+00:00",
+            "upload_create_time": "2023-04-11T15:34:54.039820+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-02-14T07:42:02.465178+00:00",
+            "publish_time": "2023-04-11T15:34:54.042820+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -178,7 +178,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-02-14T07:42:02.466178+00:00",
+            "entry_create_time": "2023-04-11T15:34:54.043820+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -224,9 +224,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-02-14T07:42:02.462178+00:00",
+            "upload_create_time": "2023-04-11T15:34:54.039820+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-02-14T07:42:02.465178+00:00",
+            "publish_time": "2023-04-11T15:34:54.042820+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -278,7 +278,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-02-14T07:42:02.466178+00:00",
+            "entry_create_time": "2023-04-11T15:34:54.043820+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -324,9 +324,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-02-14T07:42:02.462178+00:00",
+            "upload_create_time": "2023-04-11T15:34:54.039820+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-02-14T07:42:02.465178+00:00",
+            "publish_time": "2023-04-11T15:34:54.042820+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -378,7 +378,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-02-14T07:42:02.466178+00:00",
+            "entry_create_time": "2023-04-11T15:34:54.043820+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -395,61 +395,6 @@
         "headers": {
           "connection": "close",
           "content-length": "2098",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    }
-  ],
-  "da6be92ee1aee4bb3ef210aa440ced90": [
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/resources/?",
-        "method": "GET",
-        "body": "",
-        "headers": {
-          "accept": "application/json",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 404,
-        "body": {
-          "detail": "Not found",
-          "info": {
-            "app": {
-              "label": null,
-              "beta": null,
-              "version": "1.1.2.dev717+g548f58be7.d20221222",
-              "commit": "",
-              "deployment": "devel",
-              "deployment_url": "http://localhost:8000/fairdi/nomad/latest/api",
-              "service": "app",
-              "name": "NOMAD",
-              "homepage": "https://nomad-lab.eu",
-              "source_url": "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR",
-              "maintainer_email": "markus.scheidgen@physik.hu-berlin.de"
-            },
-            "apis": {
-              "v1": {
-                "root": "/fairdi/nomad/latest/api/v1",
-                "dashboard": "/fairdi/nomad/latest/api/v1/extensions/docs",
-                "documentation": "/fairdi/nomad/latest/api/v1/extensions/redoc"
-              },
-              "optimade": {
-                "root": "/fairdi/nomad/latest/optimade/v1",
-                "dashboard": "/fairdi/nomad/latest/optimade/v1/extensions/docs"
-              },
-              "dcat": {
-                "root": "/fairdi/nomad/latest/dcat",
-                "dashboard": "/fairdi/nomad/latest/dcat/extensions/docs"
-              }
-            }
-          }
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "787",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -553,14 +498,14 @@
               ],
               "metadata": {
                 "upload_id": "dft_upload",
-                "upload_create_time": "2023-02-14T07:42:02.462178+00:00",
+                "upload_create_time": "2023-04-11T15:34:54.039820+00:00",
                 "entry_id": "dft_bulk",
                 "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2023-02-14T07:42:02.466178+00:00",
+                "entry_create_time": "2023-04-11T15:34:54.043820+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "vasp.xml",
                 "published": true,
-                "publish_time": "2023-02-14T07:42:02.465178+00:00",
+                "publish_time": "2023-04-11T15:34:54.042820+00:00",
                 "with_embargo": false,
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
@@ -614,60 +559,6 @@
         "headers": {
           "connection": "close",
           "content-length": "3188",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    }
-  ],
-  "afa783d98e040c74b68e5cfd3d82f3f0": [
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
-        "method": "POST",
-        "body": {
-          "required": {
-            "metadata": "*"
-          },
-          "owner": "visible",
-          "pagination": {
-            "order_by": "upload_create_time",
-            "order": "desc",
-            "page_size": 20
-          },
-          "query": {
-            "entry_references.target_entry_id": "dft_bulk"
-          }
-        },
-        "headers": {
-          "accept": "application/json, text/plain, */*",
-          "content-type": "application/json",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 200,
-        "body": {
-          "owner": "visible",
-          "query": {
-            "prefix": "entry_references",
-            "query": {
-              "name": "target_entry_id",
-              "value": "dft_bulk"
-            }
-          },
-          "pagination": {
-            "page_size": 20,
-            "order_by": "upload_create_time",
-            "order": "desc",
-            "total": 0
-          },
-          "required": {},
-          "data": []
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "306",
           "content-type": "application/json",
           "server": "uvicorn"
         }

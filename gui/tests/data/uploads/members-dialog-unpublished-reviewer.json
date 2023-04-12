@@ -1,13 +1,13 @@
 {
-  "9efcb5c38a525a0d1b33c9740d2fec4f": [
+  "ef176469409874c83459089471302b81": [
     {
       "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?page_size=5&page=1&order=asc&order_by=process_status",
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?order=asc&order_by=process_status&page=1&page_size=5",
         "method": "GET",
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyMzJhMmY1ZC0yZWNmLTQyZTEtYTlhMi01N2M2ZGZjZTJjYjMiLCJleHAiOjE2NzA5ODQ0NjAsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4NDcyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjIxYzFiY2RlLTkwZjYtNDVkNS1hMzJmLTE5YTJiNDczNzJjMCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.CjzHoKQ_mygM3tEen_cpUFZRzOYbLtPwd-8vrVhKHoe8nMo0f2us9TH1c2AHT8t9MQMVZgmMjOKY51p8UPgLDZww1jIjxoFmHYNtEvJVenzAwVMG4bPnaJ7-_fMD1V1POzhqv7GyMeYJAV4FI2rNBH5CuNIyIUqfY5ojazMQ16pWY0cRWJcGyffjyD7YeLpMkgjHz8J6AVjysR31gYhvEHUn58liwR1TSXLScuXDY29KILjiJrmMJF1cM2ZN_PurgSD4dMV6gnfaJfIC9oNEVhR2gcPEl4t_lBiN5MfDd_skllwDve0kKE06WrdOlfwQuKrnEZUzTlF0i5ZTQxDWxQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIxZGYzMzgwNy0wOThlLTQ2ZGItOWIxMS1iYzJiZTlkMTVlMjYiLCJleHAiOjE2ODEzMTcyNzcsIm5iZiI6MCwiaWF0IjoxNjgxMjgxMzA2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImIxNjM2NGM5LWFlN2MtNDdmNS05MTY4LTU3MDU0OGNjOTQwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.FOvGinfWElhkDDtHywEUouyFvt-ecabvd7cJOr-WFAQeR7jPvFAVYxTPQ8MQf8wOlS5mP36bWxotYbD-ZYOMaDNwTLYOjJBOrFo5mVCQey7BYFSlty_4v6OV4Hh5t2no9XcEpJqT63UBhzwNbESKiRIMqyhApqQaFTBa4ejOqmao0cSKkP8SLylPDt-TrZQsl6ELAAlx2FavUU448AHyk2PErKqiVWRo5PclLDbm6GQ7E5tJ8sWOYnQo_W411CK_8sUfy6AZ9ReNwmMm7Hy5L9qMWRe8ZEl-FB6UBj-r2nqoc2iwFhigwImPYT1amZCyDhoNSX5boNzjrz17WjBYCA",
           "cookie": null
         }
       },
@@ -20,8 +20,8 @@
             "order": "asc",
             "page": 1,
             "total": 1,
-            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?page_size=5&page=1&order=asc&order_by=process_status",
-            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?page_size=5&order=asc&order_by=process_status"
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?order=asc&order_by=process_status&page=1&page_size=5",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?order=asc&order_by=process_status&page_size=5"
           },
           "processing_successful": 1,
           "processing_failed": 0,
@@ -31,9 +31,9 @@
             "process_status": "SUCCESS",
             "errors": [],
             "warnings": [],
-            "complete_time": "2022-12-13T16:21:07.473000",
+            "complete_time": "2023-04-12T06:34:57.684000",
             "upload_id": "dft_upload",
-            "upload_create_time": "2022-12-13T16:21:07.472000",
+            "upload_create_time": "2023-04-12T06:34:57.683000",
             "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
             "coauthors": [
               "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
@@ -65,7 +65,7 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk",
-              "entry_create_time": "2022-12-13T16:21:07.475000",
+              "entry_create_time": "2023-04-12T06:34:57.686000",
               "mainfile": "vasp.xml",
               "upload_id": "dft_upload",
               "parser_name": "parsers/vasp",
@@ -78,6 +78,7 @@
                 "parser_name": "parsers/vasp",
                 "origin": "Markus Scheidgen",
                 "calc_id": "dft_bulk",
+                "datasets": [],
                 "published": false,
                 "writers": [
                   {
@@ -89,12 +90,11 @@
                     "name": "Sheldon Cooper"
                   }
                 ],
-                "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-12-13T16:21:07.472510+00:00",
-                "processed": true,
+                "upload_create_time": "2023-04-12T06:34:57.683851+00:00",
                 "nomad_commit": "bf3c06fa",
+                "processed": true,
                 "mainfile": "vasp.xml",
                 "main_author": {
                   "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -114,7 +114,7 @@
                     "name": "Test Tester"
                   }
                 ],
-                "entry_create_time": "2022-12-13T16:21:07.475510+00:00",
+                "entry_create_time": "2023-04-12T06:34:57.686851+00:00",
                 "with_embargo": false,
                 "domain": "dft",
                 "comment": "Mocked",
@@ -132,10 +132,10 @@
                       "Si"
                     ],
                     "elements_exclusive": "Si",
-                    "chemical_formula_anonymous": "A2",
+                    "chemical_formula_anonymous": "A",
                     "material_id": "bulk_material",
                     "structural_type": "bulk",
-                    "chemical_formula_reduced": "Si2",
+                    "chemical_formula_reduced": "Si",
                     "n_elements": 1,
                     "chemical_formula_descriptive": "Si2",
                     "material_name": "Silicon",
@@ -287,7 +287,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "8435",
+          "content-length": "8433",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -302,7 +302,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyMzJhMmY1ZC0yZWNmLTQyZTEtYTlhMi01N2M2ZGZjZTJjYjMiLCJleHAiOjE2NzA5ODQ0NjAsIm5iZiI6MCwiaWF0IjoxNjcwOTQ4NDcyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjIxYzFiY2RlLTkwZjYtNDVkNS1hMzJmLTE5YTJiNDczNzJjMCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.CjzHoKQ_mygM3tEen_cpUFZRzOYbLtPwd-8vrVhKHoe8nMo0f2us9TH1c2AHT8t9MQMVZgmMjOKY51p8UPgLDZww1jIjxoFmHYNtEvJVenzAwVMG4bPnaJ7-_fMD1V1POzhqv7GyMeYJAV4FI2rNBH5CuNIyIUqfY5ojazMQ16pWY0cRWJcGyffjyD7YeLpMkgjHz8J6AVjysR31gYhvEHUn58liwR1TSXLScuXDY29KILjiJrmMJF1cM2ZN_PurgSD4dMV6gnfaJfIC9oNEVhR2gcPEl4t_lBiN5MfDd_skllwDve0kKE06WrdOlfwQuKrnEZUzTlF0i5ZTQxDWxQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIxZGYzMzgwNy0wOThlLTQ2ZGItOWIxMS1iYzJiZTlkMTVlMjYiLCJleHAiOjE2ODEzMTcyNzcsIm5iZiI6MCwiaWF0IjoxNjgxMjgxMzA2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNTRjYjFmNjQtZjg0ZS00ODE1LTlhZGUtNDQwY2UwYjU0MzBmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImIxNjM2NGM5LWFlN2MtNDdmNS05MTY4LTU3MDU0OGNjOTQwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiVGVzdCBUZXN0ZXIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0dGVzdGVyIiwiZ2l2ZW5fbmFtZSI6IlRlc3QiLCJmYW1pbHlfbmFtZSI6IlRlc3RlciIsImVtYWlsIjoidGVzdEBub21hZC1jb2UuZXUifQ.FOvGinfWElhkDDtHywEUouyFvt-ecabvd7cJOr-WFAQeR7jPvFAVYxTPQ8MQf8wOlS5mP36bWxotYbD-ZYOMaDNwTLYOjJBOrFo5mVCQey7BYFSlty_4v6OV4Hh5t2no9XcEpJqT63UBhzwNbESKiRIMqyhApqQaFTBa4ejOqmao0cSKkP8SLylPDt-TrZQsl6ELAAlx2FavUU448AHyk2PErKqiVWRo5PclLDbm6GQ7E5tJ8sWOYnQo_W411CK_8sUfy6AZ9ReNwmMm7Hy5L9qMWRe8ZEl-FB6UBj-r2nqoc2iwFhigwImPYT1amZCyDhoNSX5boNzjrz17WjBYCA",
           "cookie": null
         }
       },
