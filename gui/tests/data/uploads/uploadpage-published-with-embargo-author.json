@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwNDNlNTNjNC02MzZjLTRkYjgtYWJmZC0zYTA5ZGQ2ZGJhODUiLCJleHAiOjE2NzA5ODM0NzYsIm5iZiI6MCwiaWF0IjoxNjcwOTQ3NDg4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImM1Y2IxNTMyLTM3OWMtNGVmNy1iN2NjLTgzZGVkZThiYjYyZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.BlTJtRruTi3_3RFyBt935mMdWST0L7qnBeqzZiQcFDq3VYNEOn7IofLtqRc7LTB0L2jAPPD6oKmuJvIamZ5eu71WBgwQocnnjUwwut-0cx1M_cVZ40Zp-5JMTb5WvpxvTcUk487rmZpPmmc8hJwlAA-yXGZxF8kQAGPtKUz3KkU88eZ3fm4Ns3TcaIOG9mKzOgWpAybVFcYAQSb9THWMqUxy5JeDu82E66NHax5W-FJ2H8V7mTBi9mHFsuh_kV7g3f1UyCjY1R_lLypx78lM6y-ZHR2yyyoRwFvpKZIK8gdNPuYFF6u65TlbamvQdEuPEg8rnRYPpSo9VyxychbsTg",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjOTgxY2ZhMC01YTMyLTQzYzgtYWZlZS02OTZiYTAwZDUyZDQiLCJleHAiOjE2ODEyNTc0NjIsIm5iZiI6MCwiaWF0IjoxNjgxMjIxNDkyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjMxYjA4NGQ1LWYxZmEtNDUxNi04YTVkLWY3ZjU3NDM2ZDViMiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.DuV0ZcnC5E2E85uy2ecLT-5GIh5wWAWc1RwHE7p3ElPDYFSEV4WYWvWKFJlNYKw_VkfR-pFNtiTATDLpMPyeTtjlSfCgL8ZCH9XJNR5LJH460eWqdY-kpWlfBSyDGfm19mit1SgUKJj73t28Gp0I2XulBPSaSz1gGGQAeIruOK0qZXC6JDgXe31ut4N62lBSkeAlb5cF2yoy6jv8kyvf-1kJG0VLahYcnQMqRwDt3EgrYSYE9jT1_oJL9riVBIM0EkKrdj-1Lej5ZQGqN08l-dh03V_l8agaJ5KNpeIygY7YJryKE2xnP_h87A8ZU-uqoLGwkKOCA09g47KVNxEf1w",
           "cookie": null
         }
       },
@@ -25,15 +25,15 @@
       }
     }
   ],
-  "9efcb5c38a525a0d1b33c9740d2fec4f": [
+  "ef176469409874c83459089471302b81": [
     {
       "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?page_size=5&page=1&order=asc&order_by=process_status",
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?order=asc&order_by=process_status&page=1&page_size=5",
         "method": "GET",
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwNDNlNTNjNC02MzZjLTRkYjgtYWJmZC0zYTA5ZGQ2ZGJhODUiLCJleHAiOjE2NzA5ODM0NzYsIm5iZiI6MCwiaWF0IjoxNjcwOTQ3NDg4LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImM1Y2IxNTMyLTM3OWMtNGVmNy1iN2NjLTgzZGVkZThiYjYyZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.BlTJtRruTi3_3RFyBt935mMdWST0L7qnBeqzZiQcFDq3VYNEOn7IofLtqRc7LTB0L2jAPPD6oKmuJvIamZ5eu71WBgwQocnnjUwwut-0cx1M_cVZ40Zp-5JMTb5WvpxvTcUk487rmZpPmmc8hJwlAA-yXGZxF8kQAGPtKUz3KkU88eZ3fm4Ns3TcaIOG9mKzOgWpAybVFcYAQSb9THWMqUxy5JeDu82E66NHax5W-FJ2H8V7mTBi9mHFsuh_kV7g3f1UyCjY1R_lLypx78lM6y-ZHR2yyyoRwFvpKZIK8gdNPuYFF6u65TlbamvQdEuPEg8rnRYPpSo9VyxychbsTg",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJjOTgxY2ZhMC01YTMyLTQzYzgtYWZlZS02OTZiYTAwZDUyZDQiLCJleHAiOjE2ODEyNTc0NjIsIm5iZiI6MCwiaWF0IjoxNjgxMjIxNDkyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjMxYjA4NGQ1LWYxZmEtNDUxNi04YTVkLWY3ZjU3NDM2ZDViMiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.DuV0ZcnC5E2E85uy2ecLT-5GIh5wWAWc1RwHE7p3ElPDYFSEV4WYWvWKFJlNYKw_VkfR-pFNtiTATDLpMPyeTtjlSfCgL8ZCH9XJNR5LJH460eWqdY-kpWlfBSyDGfm19mit1SgUKJj73t28Gp0I2XulBPSaSz1gGGQAeIruOK0qZXC6JDgXe31ut4N62lBSkeAlb5cF2yoy6jv8kyvf-1kJG0VLahYcnQMqRwDt3EgrYSYE9jT1_oJL9riVBIM0EkKrdj-1Lej5ZQGqN08l-dh03V_l8agaJ5KNpeIygY7YJryKE2xnP_h87A8ZU-uqoLGwkKOCA09g47KVNxEf1w",
           "cookie": null
         }
       },
@@ -46,8 +46,8 @@
             "order": "asc",
             "page": 1,
             "total": 1,
-            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?page_size=5&page=1&order=asc&order_by=process_status",
-            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?page_size=5&order=asc&order_by=process_status"
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?order=asc&order_by=process_status&page=1&page_size=5",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?order=asc&order_by=process_status&page_size=5"
           },
           "processing_successful": 1,
           "processing_failed": 0,
@@ -57,9 +57,9 @@
             "process_status": "SUCCESS",
             "errors": [],
             "warnings": [],
-            "complete_time": "2022-12-13T16:04:44.159000",
+            "complete_time": "2023-04-11T13:58:02.879000",
             "upload_id": "dft_upload",
-            "upload_create_time": "2022-12-13T16:04:44.158000",
+            "upload_create_time": "2023-04-11T13:58:02.878000",
             "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
             "coauthors": [
               "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
@@ -78,7 +78,7 @@
             ],
             "published": true,
             "published_to": [],
-            "publish_time": "2022-12-13T16:04:44.161000",
+            "publish_time": "2023-04-11T13:58:02.881000",
             "with_embargo": true,
             "embargo_length": 3,
             "license": "CC BY 4.0",
@@ -91,7 +91,7 @@
               "errors": [],
               "warnings": [],
               "entry_id": "dft_bulk",
-              "entry_create_time": "2022-12-13T16:04:44.162000",
+              "entry_create_time": "2023-04-11T13:58:02.882000",
               "mainfile": "vasp.xml",
               "upload_id": "dft_upload",
               "parser_name": "parsers/vasp",
@@ -104,9 +104,9 @@
                 "datasets": [],
                 "n_quantities": 0,
                 "nomad_version": "0.10.0",
-                "upload_create_time": "2022-12-13T16:04:44.158411+00:00",
+                "upload_create_time": "2023-04-11T13:58:02.878462+00:00",
                 "nomad_commit": "bf3c06fa",
-                "publish_time": "2022-12-13T16:04:44.161411+00:00",
+                "publish_time": "2023-04-11T13:58:02.881462+00:00",
                 "results": {
                   "material": {
                     "symmetry": {
@@ -121,10 +121,10 @@
                       "Si"
                     ],
                     "elements_exclusive": "Si",
-                    "chemical_formula_anonymous": "A2",
+                    "chemical_formula_anonymous": "A",
                     "material_id": "bulk_material",
                     "structural_type": "bulk",
-                    "chemical_formula_reduced": "Si2",
+                    "chemical_formula_reduced": "Si",
                     "n_elements": 1,
                     "chemical_formula_descriptive": "Si2",
                     "material_name": "Silicon",
@@ -292,7 +292,7 @@
                     "name": "Test Tester"
                   }
                 ],
-                "entry_create_time": "2022-12-13T16:04:44.162411+00:00",
+                "entry_create_time": "2023-04-11T13:58:02.882462+00:00",
                 "with_embargo": true,
                 "domain": "dft",
                 "comment": "Mocked",
@@ -314,22 +314,22 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "8467",
+          "content-length": "8465",
           "content-type": "application/json",
           "server": "uvicorn"
         }
       }
     }
   ],
-  "82d17176ee69d18778e33cc33362abe1": [
+  "80ec323a29eee43f73e987f8f8980bcb": [
     {
       "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/rawdir/?page_size=500&include_entry_info=true",
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/rawdir/?include_entry_info=true&page_size=500",
         "method": "GET",
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI5YmM4YzU5ZS0wNzI4LTRiYzktYWY2Ny1kN2YxMmE4NWRlYzAiLCJleHAiOjE2NzA5ODM0NzYsIm5iZiI6MCwiaWF0IjoxNjcwOTQ3NDg5LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImM1Y2IxNTMyLTM3OWMtNGVmNy1iN2NjLTgzZGVkZThiYjYyZiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.Aoj39hWL1zYbM5WvA9rZtgCzaGTIfKL2Qi_O1wFIe9FVBr2P-932gTJbemvr0baQH5iHS-NjfsZlr3BwNCffpejtV60AC6YPDuO_pcWsP28IcnJgFfsmT8G2Y97h-nssNhJPb7Sjm2MznrS130WzsKKIsMhiPIVVyerp8JJj4a-WOrWvPdDBXBFOpssL1dhkkkgTfmo-2d6VnWoYSK4QRwpO3SYqKRrKbzxPImHJWlCpLJuLn1_dIlXBo_9JMRhnHeGuOYWVXcC5jygVWORpBSn8ga4hcfstn1ezissTkGgGnmeaRrilrFwlMtZu9CIBShzaxvibzaAEO6coV7l5xQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwY2UyYmRmOC1jMDk5LTQ3NTUtYjMxOS0wZjI4NTI1MGYyN2QiLCJleHAiOjE2ODEyNTc0NjIsIm5iZiI6MCwiaWF0IjoxNjgxMjIxNDkzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjMxYjA4NGQ1LWYxZmEtNDUxNi04YTVkLWY3ZjU3NDM2ZDViMiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.ho5sRoKseVP-rEy56iVebWGSYzYAzQUrlWbvWJ29db3woVu56Hxn1QTE3w-aXxN52iuPRpnRm-DNiCsDOWY2cpYzap1K9VZoZdj5eUZOtqcYNK_3ymfxrVP4u3S9um6fzmpb6_t7UVjtuiOJK8FWicBNMlJ1Xn4t26W-7s5shiglj-_sAbBO-LEeBE14QlINFrf1oo6ImEhmL9r6uw0hX7selVNg2rqsM2sQ6EvItpoubL4ie8WMe2DBobznU1_e1NIIi1_zw9Pzuek2DRxMr0hMMw0grj9xj23Pohsh03tAPjlW9ihrVRks2URYeEBIGPuPgD3aLDhwv3Wf-vLWGg",
           "cookie": null
         }
       },
@@ -376,8 +376,8 @@
             "order": "asc",
             "page": 1,
             "total": 5,
-            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/rawdir/?page_size=500&include_entry_info=true",
-            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/rawdir/?page_size=500&include_entry_info=true"
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/rawdir/?include_entry_info=true&page_size=500",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/rawdir/?include_entry_info=true&page_size=500"
           }
         },
         "headers": {

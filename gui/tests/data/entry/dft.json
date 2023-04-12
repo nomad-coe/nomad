@@ -24,9 +24,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-02-14T07:42:48.127631+00:00",
+            "upload_create_time": "2023-04-11T15:35:34.340124+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-02-14T07:42:48.130631+00:00",
+            "publish_time": "2023-04-11T15:35:34.343124+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -200,7 +200,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-02-14T07:42:48.131631+00:00",
+            "entry_create_time": "2023-04-11T15:35:34.344124+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -246,9 +246,9 @@
             "datasets": [],
             "n_quantities": 0,
             "nomad_version": "0.10.0",
-            "upload_create_time": "2023-02-14T07:42:48.127631+00:00",
+            "upload_create_time": "2023-04-11T15:35:34.340124+00:00",
             "nomad_commit": "bf3c06fa",
-            "publish_time": "2023-02-14T07:42:48.130631+00:00",
+            "publish_time": "2023-04-11T15:35:34.343124+00:00",
             "results": {
               "material": {
                 "symmetry": {
@@ -422,7 +422,7 @@
                 "name": "Markus Scheidgen"
               }
             ],
-            "entry_create_time": "2023-02-14T07:42:48.131631+00:00",
+            "entry_create_time": "2023-04-11T15:35:34.344124+00:00",
             "with_embargo": false,
             "domain": "dft",
             "comment": "Mocked",
@@ -439,6 +439,60 @@
         "headers": {
           "connection": "close",
           "content-length": "5440",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "afa783d98e040c74b68e5cfd3d82f3f0": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "metadata": "*"
+          },
+          "owner": "visible",
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          },
+          "query": {
+            "entry_references.target_entry_id": "dft_bulk"
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "prefix": "entry_references",
+            "query": {
+              "name": "target_entry_id",
+              "value": "dft_bulk"
+            }
+          },
+          "pagination": {
+            "page_size": 20,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "total": 0
+          },
+          "required": {},
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "306",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -679,14 +733,14 @@
               ],
               "metadata": {
                 "upload_id": "dft_upload",
-                "upload_create_time": "2023-02-14T07:42:48.127631+00:00",
+                "upload_create_time": "2023-04-11T15:35:34.340124+00:00",
                 "entry_id": "dft_bulk",
                 "entry_hash": "dummy_hash_dft_bulk",
-                "entry_create_time": "2023-02-14T07:42:48.131631+00:00",
+                "entry_create_time": "2023-04-11T15:35:34.344124+00:00",
                 "parser_name": "parsers/vasp",
                 "mainfile": "vasp.xml",
                 "published": true,
-                "publish_time": "2023-02-14T07:42:48.130631+00:00",
+                "publish_time": "2023-04-11T15:35:34.343124+00:00",
                 "with_embargo": false,
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
@@ -898,60 +952,6 @@
         "headers": {
           "connection": "close",
           "content-length": "11682",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    }
-  ],
-  "afa783d98e040c74b68e5cfd3d82f3f0": [
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
-        "method": "POST",
-        "body": {
-          "required": {
-            "metadata": "*"
-          },
-          "owner": "visible",
-          "pagination": {
-            "order_by": "upload_create_time",
-            "order": "desc",
-            "page_size": 20
-          },
-          "query": {
-            "entry_references.target_entry_id": "dft_bulk"
-          }
-        },
-        "headers": {
-          "accept": "application/json, text/plain, */*",
-          "content-type": "application/json",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 200,
-        "body": {
-          "owner": "visible",
-          "query": {
-            "prefix": "entry_references",
-            "query": {
-              "name": "target_entry_id",
-              "value": "dft_bulk"
-            }
-          },
-          "pagination": {
-            "page_size": 20,
-            "order_by": "upload_create_time",
-            "order": "desc",
-            "total": 0
-          },
-          "required": {},
-          "data": []
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "306",
           "content-type": "application/json",
           "server": "uvicorn"
         }

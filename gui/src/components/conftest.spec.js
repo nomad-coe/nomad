@@ -575,6 +575,11 @@ async function mockKeycloak(username, password) {
  * Creates a hash for an HTTP request.
  */
 function hashRequest(req) {
+  // Query parameters are sorted before serialization. Otherwise they may appear
+  // in random order which breaks the hashing.
+  const params = req.url.searchParams
+  params.sort()
+
   const url = req.url.toString()
   const method = req.method
   const body = req.body

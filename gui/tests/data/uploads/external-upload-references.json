@@ -1,13 +1,39 @@
 {
-  "b18e1f72b62e2042471cd587f16adc45": [
+  "a3d4c3106501f7109c04a197d8b599bb": [
     {
       "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/entries?page_size=5&page=1&order=asc&order_by=process_status",
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/raw/README.md",
         "method": "GET",
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI2MmU2OWZjNS1kOTVmLTRkOGItYjgwNS1kNTY0MDQwMmUyZGIiLCJleHAiOjE2NzUyOTAwMDgsIm5iZiI6MCwiaWF0IjoxNjc1MjU0MDIzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjEyZDg4OGJkLTEyY2QtNDg1ZC1iZDVlLTUwMzc2YzhjNzFmZCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.G3mWE2hyCmVx6H9yVinm6LtmVADRo4X7-PF0op7Irahv-HyATJeGFLhhJ5_terrBjZX-LI2vNI3shIOBidC28zqCf2XMeLx0kq00farOQNZm5gy5hK73FqaGkrAnYANSRpnd95Qv0fU34ebZs6sy5RcbnwHWFF0Idvb_37_YYqFuvcAZeCJGGBx6B-fAuuTwIX1yjtGnDIVda19rSZChy7B69pXc-CezVkEdDUfw7ZamG1bbgxnpspU7ZDVycS0UhOUCOKkXky0AO00ZcZrX5PkUTkx6HKmOSg52n6D7p66ZZI380x9kXdI11BU0y9XoPaqk_3NGCJCseTTZvWuOfw",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1M2IyMjQ5YS00MDUyLTQzOTktOGViNC1iNzBiODg5ZjljZDUiLCJleHAiOjE2ODEyNjE2OTAsIm5iZiI6MCwiaWF0IjoxNjgxMjI1NzIzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImYwM2ZmZTE3LWI1ZjQtNDEyMS04N2M0LWRmNDQzNjAyNTI3OSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.WWS09pFnjdvVsEBxWMqSBGPJyRi3IeaznUFPz0V7FMjJ99tkhiVedoOF8zGwwvI7ZHeyx-PscH0SxQhaV2e8vPy5-4frksYhEVWtAKDmhCysT9DaYwSlow26l4oKMABQR3c7mE9-u_DUZRFVkY-3B7DS3GnDuaYQ3Do6FL1vhFQcwOmdXADRYFcBLu6a6LHp4u-tyvI84N412Q-jTb8Wg0-qH984To6mHoJU5K8tyb5OAV9R2li41B8DWX3VUuv3E3vrZ6R6oaBAdQ-DDTFJ8L3u-BdQnnc4_E2tXcVtZ50lgvg9M1eq26yhaWDV5PjnuTaPCpcw051U6Q-rN-5rHA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "detail": "Not found. Invalid path?"
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "37",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "462caf6c63845afa381eebb0a79e5805": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/entries?order=asc&order_by=process_status&page=1&page_size=5",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1M2IyMjQ5YS00MDUyLTQzOTktOGViNC1iNzBiODg5ZjljZDUiLCJleHAiOjE2ODEyNjE2OTAsIm5iZiI6MCwiaWF0IjoxNjgxMjI1NzIzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImYwM2ZmZTE3LWI1ZjQtNDEyMS04N2M0LWRmNDQzNjAyNTI3OSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.WWS09pFnjdvVsEBxWMqSBGPJyRi3IeaznUFPz0V7FMjJ99tkhiVedoOF8zGwwvI7ZHeyx-PscH0SxQhaV2e8vPy5-4frksYhEVWtAKDmhCysT9DaYwSlow26l4oKMABQR3c7mE9-u_DUZRFVkY-3B7DS3GnDuaYQ3Do6FL1vhFQcwOmdXADRYFcBLu6a6LHp4u-tyvI84N412Q-jTb8Wg0-qH984To6mHoJU5K8tyb5OAV9R2li41B8DWX3VUuv3E3vrZ6R6oaBAdQ-DDTFJ8L3u-BdQnnc4_E2tXcVtZ50lgvg9M1eq26yhaWDV5PjnuTaPCpcw051U6Q-rN-5rHA",
           "cookie": null
         }
       },
@@ -20,8 +46,8 @@
             "order": "asc",
             "page": 1,
             "total": 3,
-            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/entries?page_size=5&page=1&order=asc&order_by=process_status",
-            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/entries?page_size=5&order=asc&order_by=process_status"
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/entries?order=asc&order_by=process_status&page=1&page_size=5",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/entries?order=asc&order_by=process_status&page_size=5"
           },
           "processing_successful": 3,
           "processing_failed": 0,
@@ -32,9 +58,9 @@
             "last_status_message": "Process process_upload completed successfully",
             "errors": [],
             "warnings": [],
-            "complete_time": "2023-02-01T12:20:18.690000",
+            "complete_time": "2023-04-11T15:08:37.851000",
             "upload_id": "references_upload_id2",
-            "upload_create_time": "2023-02-01T12:20:18.242000",
+            "upload_create_time": "2023-04-11T15:08:36.928000",
             "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
             "coauthors": [
               "a03af8b6-3aa7-428a-b3b1-4a6317e576b6"
@@ -67,9 +93,9 @@
               "last_status_message": "Process process_entry completed successfully",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-02-01T12:20:18.553000",
+              "complete_time": "2023-04-11T15:08:37.407000",
               "entry_id": "SFewp4XgAR_YJAZv078a1VcWU9o3",
-              "entry_create_time": "2023-02-01T12:20:18.261000",
+              "entry_create_time": "2023-04-11T15:08:36.954000",
               "mainfile": "baseOnAContents.schema.archive.yaml",
               "upload_id": "references_upload_id2",
               "parser_name": "parsers/archive",
@@ -99,6 +125,14 @@
                   "metadata.entry_hash",
                   "metadata.entry_id",
                   "metadata.entry_name",
+                  "metadata.entry_references",
+                  "metadata.entry_references.source_name",
+                  "metadata.entry_references.source_path",
+                  "metadata.entry_references.source_quantity",
+                  "metadata.entry_references.target_entry_id",
+                  "metadata.entry_references.target_name",
+                  "metadata.entry_references.target_path",
+                  "metadata.entry_references.target_reference",
                   "metadata.entry_timestamp",
                   "metadata.entry_timestamp.timestamp",
                   "metadata.entry_timestamp.token",
@@ -133,8 +167,8 @@
                 ],
                 "datasets": [],
                 "n_quantities": 49,
-                "nomad_version": "1.1.7.dev124+gda5c4ac3f.d20230201",
-                "upload_create_time": "2023-02-01T12:20:18.242000+00:00",
+                "nomad_version": "1.1.9.dev99+gdb2312624.d20230330",
+                "upload_create_time": "2023-04-11T15:08:36.928000+00:00",
                 "nomad_commit": "",
                 "section_defs": [
                   {
@@ -144,8 +178,13 @@
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "c4b15eb9ce442c189aa761b300b924d5ae068616",
+                    "definition_id": "4b9c2c1cc58f12cd74da03b51ab7d701a14dbca7",
                     "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+                  },
+                  {
+                    "used_directly": true,
+                    "definition_id": "4e94041db1cb8b110c348717f6ec50a56054df65",
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchiveReference"
                   },
                   {
                     "used_directly": true,
@@ -164,32 +203,32 @@
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "aba375c9adc93ee652366e08668c2288eac1eaf7",
+                    "definition_id": "3d33457b156dd998c30d07a4f4429b1836ad0ea4",
                     "definition_qualified_name": "nomad.datamodel.results.Results"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "55b8cfcd563d7c38b23e7b48c7a0bd035b30652d",
+                    "definition_id": "f6617f133366ffb8cd1bde4bf643ca5bae1db7f8",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Definition"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "a94743ce066ba5623b93cfe9b2e77f3035fb378e",
+                    "definition_id": "4b3a70a5e3f97b976da7ec3ed8c7c73f2078a518",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Package"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "c4ce7d97f40568925244fff8f4c95abfc5b1ebb6",
+                    "definition_id": "28f841a88474d266eded1141318ea4c42d3aff3f",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Property"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "a702ec274491e803c6d8b3dfe137a8b14c4564dd",
+                    "definition_id": "d12b9e6f4aed521dc6feeb67239a929542f78b8d",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Quantity"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "f6b02a14b8a3ab94a50eac83a4fd329bd70168d6",
+                    "definition_id": "af7788dea6a320c2bec44814d49fb334cae97efa",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Section"
                   }
                 ],
@@ -200,7 +239,7 @@
                   }
                 },
                 "entry_name": "Set your name here",
-                "last_processing_time": "2023-02-01T12:20:18.475000+00:00",
+                "last_processing_time": "2023-04-11T15:08:37.325000+00:00",
                 "parser_name": "parsers/archive",
                 "calc_id": "SFewp4XgAR_YJAZv078a1VcWU9o3",
                 "published": false,
@@ -216,6 +255,7 @@
                 ],
                 "sections": [
                   "nomad.datamodel.datamodel.EntryArchive",
+                  "nomad.datamodel.datamodel.EntryArchiveReference",
                   "nomad.datamodel.datamodel.EntryMetadata",
                   "nomad.datamodel.datamodel.RFC3161Timestamp",
                   "nomad.datamodel.results.Properties",
@@ -244,12 +284,23 @@
                     "name": "Test Tester"
                   }
                 ],
-                "entry_create_time": "2023-02-01T12:20:18.261000+00:00",
+                "entry_create_time": "2023-04-11T15:08:36.954000+00:00",
                 "with_embargo": false,
                 "files": [
                   "baseOnAContents.schema.archive.yaml",
                   "baseOnSubstance.schema.archive.yaml",
                   "baseOnSubstanceExtended.schema.archive.yaml"
+                ],
+                "entry_references": [
+                  {
+                    "target_entry_id": "RYcY1pQC7GkErLJaMQHaNhAxW_oN",
+                    "target_name": "AContents",
+                    "target_reference": "../upload/references_upload_id1/archive/RYcY1pQC7GkErLJaMQHaNhAxW_oN#AContents",
+                    "source_path": "definitions.section_definitions.base_sections",
+                    "target_path": "/AContents",
+                    "source_name": "base_sections",
+                    "source_quantity": "nomad.metainfo.metainfo.Section.base_sections"
+                  }
                 ],
                 "entry_type": "Schema",
                 "entry_id": "SFewp4XgAR_YJAZv078a1VcWU9o3",
@@ -273,9 +324,9 @@
               "last_status_message": "Process process_entry completed successfully",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-02-01T12:20:18.575000",
+              "complete_time": "2023-04-11T15:08:37.711000",
               "entry_id": "WAT1x19Jvf4_wAYwD-6pcC6khYsu",
-              "entry_create_time": "2023-02-01T12:20:18.275000",
+              "entry_create_time": "2023-04-11T15:08:36.974000",
               "mainfile": "baseOnSubstance.schema.archive.yaml",
               "upload_id": "references_upload_id2",
               "parser_name": "parsers/archive",
@@ -305,6 +356,14 @@
                   "metadata.entry_hash",
                   "metadata.entry_id",
                   "metadata.entry_name",
+                  "metadata.entry_references",
+                  "metadata.entry_references.source_name",
+                  "metadata.entry_references.source_path",
+                  "metadata.entry_references.source_quantity",
+                  "metadata.entry_references.target_entry_id",
+                  "metadata.entry_references.target_name",
+                  "metadata.entry_references.target_path",
+                  "metadata.entry_references.target_reference",
                   "metadata.entry_timestamp",
                   "metadata.entry_timestamp.timestamp",
                   "metadata.entry_timestamp.token",
@@ -339,8 +398,8 @@
                 ],
                 "datasets": [],
                 "n_quantities": 49,
-                "nomad_version": "1.1.7.dev124+gda5c4ac3f.d20230201",
-                "upload_create_time": "2023-02-01T12:20:18.242000+00:00",
+                "nomad_version": "1.1.9.dev99+gdb2312624.d20230330",
+                "upload_create_time": "2023-04-11T15:08:36.928000+00:00",
                 "nomad_commit": "",
                 "section_defs": [
                   {
@@ -350,8 +409,13 @@
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "c4b15eb9ce442c189aa761b300b924d5ae068616",
+                    "definition_id": "4b9c2c1cc58f12cd74da03b51ab7d701a14dbca7",
                     "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+                  },
+                  {
+                    "used_directly": true,
+                    "definition_id": "4e94041db1cb8b110c348717f6ec50a56054df65",
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchiveReference"
                   },
                   {
                     "used_directly": true,
@@ -370,32 +434,32 @@
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "aba375c9adc93ee652366e08668c2288eac1eaf7",
+                    "definition_id": "3d33457b156dd998c30d07a4f4429b1836ad0ea4",
                     "definition_qualified_name": "nomad.datamodel.results.Results"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "55b8cfcd563d7c38b23e7b48c7a0bd035b30652d",
+                    "definition_id": "f6617f133366ffb8cd1bde4bf643ca5bae1db7f8",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Definition"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "a94743ce066ba5623b93cfe9b2e77f3035fb378e",
+                    "definition_id": "4b3a70a5e3f97b976da7ec3ed8c7c73f2078a518",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Package"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "c4ce7d97f40568925244fff8f4c95abfc5b1ebb6",
+                    "definition_id": "28f841a88474d266eded1141318ea4c42d3aff3f",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Property"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "a702ec274491e803c6d8b3dfe137a8b14c4564dd",
+                    "definition_id": "d12b9e6f4aed521dc6feeb67239a929542f78b8d",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Quantity"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "f6b02a14b8a3ab94a50eac83a4fd329bd70168d6",
+                    "definition_id": "af7788dea6a320c2bec44814d49fb334cae97efa",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Section"
                   }
                 ],
@@ -406,7 +470,7 @@
                   }
                 },
                 "entry_name": "Set your name here",
-                "last_processing_time": "2023-02-01T12:20:18.490000+00:00",
+                "last_processing_time": "2023-04-11T15:08:37.644000+00:00",
                 "parser_name": "parsers/archive",
                 "calc_id": "WAT1x19Jvf4_wAYwD-6pcC6khYsu",
                 "published": false,
@@ -422,6 +486,7 @@
                 ],
                 "sections": [
                   "nomad.datamodel.datamodel.EntryArchive",
+                  "nomad.datamodel.datamodel.EntryArchiveReference",
                   "nomad.datamodel.datamodel.EntryMetadata",
                   "nomad.datamodel.datamodel.RFC3161Timestamp",
                   "nomad.datamodel.results.Properties",
@@ -450,12 +515,23 @@
                     "name": "Test Tester"
                   }
                 ],
-                "entry_create_time": "2023-02-01T12:20:18.275000+00:00",
+                "entry_create_time": "2023-04-11T15:08:36.974000+00:00",
                 "with_embargo": false,
                 "files": [
                   "baseOnSubstance.schema.archive.yaml",
                   "baseOnAContents.schema.archive.yaml",
                   "baseOnSubstanceExtended.schema.archive.yaml"
+                ],
+                "entry_references": [
+                  {
+                    "target_entry_id": "RYcY1pQC7GkErLJaMQHaNhAxW_oN",
+                    "target_name": "Substance",
+                    "target_reference": "../upload/references_upload_id1/archive/RYcY1pQC7GkErLJaMQHaNhAxW_oN#Substance",
+                    "source_path": "definitions.section_definitions.base_sections",
+                    "target_path": "/Substance",
+                    "source_name": "base_sections",
+                    "source_quantity": "nomad.metainfo.metainfo.Section.base_sections"
+                  }
                 ],
                 "entry_type": "Schema",
                 "entry_id": "WAT1x19Jvf4_wAYwD-6pcC6khYsu",
@@ -479,9 +555,9 @@
               "last_status_message": "Process process_entry completed successfully",
               "errors": [],
               "warnings": [],
-              "complete_time": "2023-02-01T12:20:18.604000",
+              "complete_time": "2023-04-11T15:08:37.741000",
               "entry_id": "zExpq70TT-0IcJrWHRQvxryx89tC",
-              "entry_create_time": "2023-02-01T12:20:18.287000",
+              "entry_create_time": "2023-04-11T15:08:36.992000",
               "mainfile": "baseOnSubstanceExtended.schema.archive.yaml",
               "upload_id": "references_upload_id2",
               "parser_name": "parsers/archive",
@@ -511,6 +587,14 @@
                   "metadata.entry_hash",
                   "metadata.entry_id",
                   "metadata.entry_name",
+                  "metadata.entry_references",
+                  "metadata.entry_references.source_name",
+                  "metadata.entry_references.source_path",
+                  "metadata.entry_references.source_quantity",
+                  "metadata.entry_references.target_entry_id",
+                  "metadata.entry_references.target_name",
+                  "metadata.entry_references.target_path",
+                  "metadata.entry_references.target_reference",
                   "metadata.entry_timestamp",
                   "metadata.entry_timestamp.timestamp",
                   "metadata.entry_timestamp.token",
@@ -545,8 +629,8 @@
                 ],
                 "datasets": [],
                 "n_quantities": 49,
-                "nomad_version": "1.1.7.dev124+gda5c4ac3f.d20230201",
-                "upload_create_time": "2023-02-01T12:20:18.242000+00:00",
+                "nomad_version": "1.1.9.dev99+gdb2312624.d20230330",
+                "upload_create_time": "2023-04-11T15:08:36.928000+00:00",
                 "nomad_commit": "",
                 "section_defs": [
                   {
@@ -556,8 +640,13 @@
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "c4b15eb9ce442c189aa761b300b924d5ae068616",
+                    "definition_id": "4b9c2c1cc58f12cd74da03b51ab7d701a14dbca7",
                     "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+                  },
+                  {
+                    "used_directly": true,
+                    "definition_id": "4e94041db1cb8b110c348717f6ec50a56054df65",
+                    "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchiveReference"
                   },
                   {
                     "used_directly": true,
@@ -576,32 +665,32 @@
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "aba375c9adc93ee652366e08668c2288eac1eaf7",
+                    "definition_id": "3d33457b156dd998c30d07a4f4429b1836ad0ea4",
                     "definition_qualified_name": "nomad.datamodel.results.Results"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "55b8cfcd563d7c38b23e7b48c7a0bd035b30652d",
+                    "definition_id": "f6617f133366ffb8cd1bde4bf643ca5bae1db7f8",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Definition"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "a94743ce066ba5623b93cfe9b2e77f3035fb378e",
+                    "definition_id": "4b3a70a5e3f97b976da7ec3ed8c7c73f2078a518",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Package"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "c4ce7d97f40568925244fff8f4c95abfc5b1ebb6",
+                    "definition_id": "28f841a88474d266eded1141318ea4c42d3aff3f",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Property"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "a702ec274491e803c6d8b3dfe137a8b14c4564dd",
+                    "definition_id": "d12b9e6f4aed521dc6feeb67239a929542f78b8d",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Quantity"
                   },
                   {
                     "used_directly": true,
-                    "definition_id": "f6b02a14b8a3ab94a50eac83a4fd329bd70168d6",
+                    "definition_id": "af7788dea6a320c2bec44814d49fb334cae97efa",
                     "definition_qualified_name": "nomad.metainfo.metainfo.Section"
                   }
                 ],
@@ -612,7 +701,7 @@
                   }
                 },
                 "entry_name": "Set your name here",
-                "last_processing_time": "2023-02-01T12:20:18.507000+00:00",
+                "last_processing_time": "2023-04-11T15:08:37.660000+00:00",
                 "parser_name": "parsers/archive",
                 "calc_id": "zExpq70TT-0IcJrWHRQvxryx89tC",
                 "published": false,
@@ -628,6 +717,7 @@
                 ],
                 "sections": [
                   "nomad.datamodel.datamodel.EntryArchive",
+                  "nomad.datamodel.datamodel.EntryArchiveReference",
                   "nomad.datamodel.datamodel.EntryMetadata",
                   "nomad.datamodel.datamodel.RFC3161Timestamp",
                   "nomad.datamodel.results.Properties",
@@ -656,12 +746,23 @@
                     "name": "Test Tester"
                   }
                 ],
-                "entry_create_time": "2023-02-01T12:20:18.287000+00:00",
+                "entry_create_time": "2023-04-11T15:08:36.992000+00:00",
                 "with_embargo": false,
                 "files": [
                   "baseOnSubstanceExtended.schema.archive.yaml",
                   "baseOnAContents.schema.archive.yaml",
                   "baseOnSubstance.schema.archive.yaml"
+                ],
+                "entry_references": [
+                  {
+                    "target_entry_id": "-ld_4ohLePE2oOcfX_CYa9oiu_1l",
+                    "target_name": "SubstanceExtended",
+                    "target_reference": "../upload/references_upload_id1/archive/-ld_4ohLePE2oOcfX_CYa9oiu_1l#SubstanceExtended",
+                    "source_path": "definitions.section_definitions.base_sections",
+                    "target_path": "/SubstanceExtended",
+                    "source_name": "base_sections",
+                    "source_quantity": "nomad.metainfo.metainfo.Section.base_sections"
+                  }
                 ],
                 "entry_type": "Schema",
                 "entry_id": "zExpq70TT-0IcJrWHRQvxryx89tC",
@@ -682,48 +783,22 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "24682",
+          "content-length": "28351",
           "content-type": "application/json",
           "server": "uvicorn"
         }
       }
     }
   ],
-  "a3d4c3106501f7109c04a197d8b599bb": [
+  "6e5e9a28df4cb914b777f9f66bba9f0e": [
     {
       "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/raw/README.md",
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/rawdir/?include_entry_info=true&page_size=500",
         "method": "GET",
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI2MmU2OWZjNS1kOTVmLTRkOGItYjgwNS1kNTY0MDQwMmUyZGIiLCJleHAiOjE2NzUyOTAwMDgsIm5iZiI6MCwiaWF0IjoxNjc1MjU0MDIzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjEyZDg4OGJkLTEyY2QtNDg1ZC1iZDVlLTUwMzc2YzhjNzFmZCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.G3mWE2hyCmVx6H9yVinm6LtmVADRo4X7-PF0op7Irahv-HyATJeGFLhhJ5_terrBjZX-LI2vNI3shIOBidC28zqCf2XMeLx0kq00farOQNZm5gy5hK73FqaGkrAnYANSRpnd95Qv0fU34ebZs6sy5RcbnwHWFF0Idvb_37_YYqFuvcAZeCJGGBx6B-fAuuTwIX1yjtGnDIVda19rSZChy7B69pXc-CezVkEdDUfw7ZamG1bbgxnpspU7ZDVycS0UhOUCOKkXky0AO00ZcZrX5PkUTkx6HKmOSg52n6D7p66ZZI380x9kXdI11BU0y9XoPaqk_3NGCJCseTTZvWuOfw",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 404,
-        "body": {
-          "detail": "Not found. Invalid path?"
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "37",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    }
-  ],
-  "7ed84556a5921502767d252127c9d357": [
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/rawdir/?page_size=500&include_entry_info=true",
-        "method": "GET",
-        "body": "",
-        "headers": {
-          "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJhZWViYTBmZi03ZjIyLTRlNjUtOGZkNC02NjBiZjNiODE3MzUiLCJleHAiOjE2NzUyOTAwMDgsIm5iZiI6MCwiaWF0IjoxNjc1MjU0MDIzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjEyZDg4OGJkLTEyY2QtNDg1ZC1iZDVlLTUwMzc2YzhjNzFmZCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.EzkfrE2Hp05p9UKaCS6JU3JfmiL7ITufdfbPOAnSookc1NKDFlGO4KytmttKcz1WBwaOtvd4ZMdeyOdLYeqcDh0Z6IPiiPryGz4hk7AP_SH017XEYzjAAloCEcXO6qfC9qoNp2i425zT1InTMMa96DzXjvJR8VvvF5xR65QqyeU53_HL3WvDE82GGu29__N5_fWWo5fa08x5dOEkOjY10l2oHfNbqzKAzfQi8TUPplwq91o9MUiwy7kXWF9Tpr7f254npmJOwDBv76SVvHJJDnYp6VzOety7MAsZyGea4wAgCK4GZVc6youSkB9TLS-wfxX7p7OA7hyK68GoLo7ynA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI3NjZhMTBmZC04YzYxLTQ0ZGMtOGI3ZS01NjJlMmI5NGQ2ZDkiLCJleHAiOjE2ODEyNjE2OTAsIm5iZiI6MCwiaWF0IjoxNjgxMjI1NzI2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImYwM2ZmZTE3LWI1ZjQtNDEyMS04N2M0LWRmNDQzNjAyNTI3OSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.TmEbmbQPuyewzCkb-_2I0TkoPTJnLmHKrGalOcqFUMPE2sNK-oYu5dTubShSmsv8HOJo97kcJz1TXCxdO7FZWTJ7grBfeLyaqbWEO0AvsGc4OqjdxU_oQxRPYbseQOeKS5raGj2f2DxQLZW5AybNUePCF97UPrCfgR-b44z24_Yc7a_SKiMGv1gT64H9gjwXj67tbZdsg1ucqfWKAt7mOmFxX17zYYjigyfS-FmV_c62g8aH0W6ZEH7rgM481F1uGlhgw-mr7jlu5OkZOihwGsQm0DhuEf2twjYpJpaWxsBqszlXi7PBUX9C_dH1meAoLmWSvvl-pCUjXkqHdPtWMQ",
           "cookie": null
         }
       },
@@ -764,8 +839,8 @@
             "order": "asc",
             "page": 1,
             "total": 3,
-            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/rawdir/?page_size=500&include_entry_info=true",
-            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/rawdir/?page_size=500&include_entry_info=true"
+            "page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/rawdir/?include_entry_info=true&page_size=500",
+            "first_page_url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/references_upload_id2/rawdir/?include_entry_info=true&page_size=500"
           }
         },
         "headers": {
@@ -798,7 +873,7 @@
         "headers": {
           "accept": "application/json, text/plain, */*",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkNjZlYzc3OC04MTJiLTQyMDUtODUxZC01MjRlNzE1MGVkYzkiLCJleHAiOjE2NzUyOTAwMDgsIm5iZiI6MCwiaWF0IjoxNjc1MjU0MDI3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjEyZDg4OGJkLTEyY2QtNDg1ZC1iZDVlLTUwMzc2YzhjNzFmZCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.Of5AqCJTA7hzQo3RyBLPtu3svV06JIKftLYYOr9z9zJwEbd0jLSuHK8amoOs9dM_EmtsJJgpf59HeeWtJb6_y6r-OP685o_v2bOF1lhdvjqjsfYGBnP9aoxA4R34Q4PMFlFjCkMTVJ4u2VFX6i-72aIA_ooK__38rY1p2H8LfbNbos94irlNiZlbta4syPlknJrK-kcPGjBwUk8hzqEAy8t7Tw6CsJHb7E9kCz5JSHdoLQIltSDgNjqKWyVGIFzoTD6GHPUoUDOURwf6zZDGkLuUcEP6ENo7HJYgSkHhYTkEpTi0K0InMev5Er_RJsZXswbi8Mznj1KmqRKWg_cnfQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0YWJhNWM1NC1kMDIzLTRhMDgtOGI2ZS1lZGI5Y2Y5OGExY2QiLCJleHAiOjE2ODEyNjE2OTAsIm5iZiI6MCwiaWF0IjoxNjgxMjI1NzMxLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImYwM2ZmZTE3LWI1ZjQtNDEyMS04N2M0LWRmNDQzNjAyNTI3OSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.FZeQWO6l7MKh1bePVBl5G_BSBCCBdgazppdiUDRzTrDv59s-0XR92Aaf7qdQSGO0AAoWASDB81Q8nokY195kgBO8ywOZBHrcjADiiu_gnChg3RqQpKfY6R8_QstViaWPwQozUlgFZI6sHcBez53WMugCDw-uo0_gFmKZUoNEJxZajXErhDl1AR3cJ6eUz3NCX56czjg4wd9ZqZMVht3SvSUkSs2t_6rclkbJOf4EEpIStGcPycaWIRIv5w0XaTffY0I3pIVPO_TIkMupE9ELm5btAxPpB3wT1ZbBN_WDeTWtx7Ynu5DPhckJUMneRGmqnB2k5FwjAphqnTE-ohg1IQ",
           "cookie": null
         }
       },
@@ -855,7 +930,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyYzQ3MmI3ZS1jYTExLTQ2MGMtODY1Ni00MzRmOWYzZDFjMzciLCJleHAiOjE2NzUyOTAwMDgsIm5iZiI6MCwiaWF0IjoxNjc1MjU0MDI3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjEyZDg4OGJkLTEyY2QtNDg1ZC1iZDVlLTUwMzc2YzhjNzFmZCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.eaFd8PLeHUGlTWaGakL2NU2Q9JWuTw-fHJ_db5d8rvReKE0FELCxQ4dG3V4_cvWG3s7j5gYzlb0sYOfQFvNO54bJrU1n9O9tdxSpg5JZop1FRgXP8nuTw18fFT8DM4rC37_Iu-2yLGDoZry_LD8J2AX9QRvLKNnE2AGlLlBkhs5FY-W8kuIsn5XUqlU2KIyvoBVTxtLnyGizvm-h75-c4-Il3FymADcPAjwVS1KA4vUI_syooGdiL9cTixiS0rV-pVke8lza63uGk-QcnVLjHxvfo5E5kYv98YDm1DTTA4tq8DQqHsBYXfyYjSFeQWCmDyFlASQkTpDAij69Pryb6w",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1N2I1Nzg1Ni00N2MxLTQzZDYtYmZlZC1lOTEwNzU4MDRiNDYiLCJleHAiOjE2ODEyNjE2OTAsIm5iZiI6MCwiaWF0IjoxNjgxMjI1NzMyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNjg4NzhhZjctNjg0NS00NmMwLWIyYzEtMjUwZDRkOGViNDcwIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImYwM2ZmZTE3LWI1ZjQtNDEyMS04N2M0LWRmNDQzNjAyNTI3OSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTWFya3VzIFNjaGVpZGdlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InRlc3QiLCJnaXZlbl9uYW1lIjoiTWFya3VzIiwiZmFtaWx5X25hbWUiOiJTY2hlaWRnZW4iLCJlbWFpbCI6Im1hcmt1cy5zY2hlaWRnZW5AZmhpLWJlcmxpbi5kZSJ9.Jx32VtPg1UOKW5JvIsFftNs3s0vlHlgW4sBTQSmMHBBT-XMN-D-EwcUNNFub5VJp5ufO8xLKohctek6Xy04CgcdKB3XKbSPsI3tiWLEn1bUAcpPbVkZ6csfA-aiclovg_vudtbSQR1N9L2aRetPkGsEZ9wqMKTLCg1qBM__615YOhWNgItETs73cIxLlSXQNkoaRfkWF5WOvr1yWj3mii2BZjyWi1jRMRZut5ck2fpJuLtR_Y98XLLCmzDAyO-eLfJL1ph0K7-2JKfIak20uEoIcr00i5Lcnpm70uNHCRLeAOc4TY2tzwaKjhyYn0Wwn848QQUbglo_vU8W5KtmGFg",
           "cookie": null
         }
       },
@@ -920,6 +995,14 @@
                 "metadata.entry_hash",
                 "metadata.entry_id",
                 "metadata.entry_name",
+                "metadata.entry_references",
+                "metadata.entry_references.source_name",
+                "metadata.entry_references.source_path",
+                "metadata.entry_references.source_quantity",
+                "metadata.entry_references.target_entry_id",
+                "metadata.entry_references.target_name",
+                "metadata.entry_references.target_path",
+                "metadata.entry_references.target_reference",
                 "metadata.entry_timestamp",
                 "metadata.entry_timestamp.timestamp",
                 "metadata.entry_timestamp.token",
@@ -954,8 +1037,8 @@
               ],
               "datasets": [],
               "n_quantities": 49,
-              "nomad_version": "1.1.7.dev124+gda5c4ac3f.d20230201",
-              "upload_create_time": "2023-02-01T12:20:15.824000+00:00",
+              "nomad_version": "1.1.9.dev99+gdb2312624.d20230330",
+              "upload_create_time": "2023-04-11T15:08:29.194000+00:00",
               "nomad_commit": "",
               "section_defs": [
                 {
@@ -965,8 +1048,13 @@
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "c4b15eb9ce442c189aa761b300b924d5ae068616",
+                  "definition_id": "4b9c2c1cc58f12cd74da03b51ab7d701a14dbca7",
                   "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "4e94041db1cb8b110c348717f6ec50a56054df65",
+                  "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchiveReference"
                 },
                 {
                   "used_directly": true,
@@ -985,32 +1073,32 @@
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "aba375c9adc93ee652366e08668c2288eac1eaf7",
+                  "definition_id": "3d33457b156dd998c30d07a4f4429b1836ad0ea4",
                   "definition_qualified_name": "nomad.datamodel.results.Results"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "55b8cfcd563d7c38b23e7b48c7a0bd035b30652d",
+                  "definition_id": "f6617f133366ffb8cd1bde4bf643ca5bae1db7f8",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Definition"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "a94743ce066ba5623b93cfe9b2e77f3035fb378e",
+                  "definition_id": "4b3a70a5e3f97b976da7ec3ed8c7c73f2078a518",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Package"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "c4ce7d97f40568925244fff8f4c95abfc5b1ebb6",
+                  "definition_id": "28f841a88474d266eded1141318ea4c42d3aff3f",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Property"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "a702ec274491e803c6d8b3dfe137a8b14c4564dd",
+                  "definition_id": "d12b9e6f4aed521dc6feeb67239a929542f78b8d",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Quantity"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "f6b02a14b8a3ab94a50eac83a4fd329bd70168d6",
+                  "definition_id": "af7788dea6a320c2bec44814d49fb334cae97efa",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Section"
                 }
               ],
@@ -1021,7 +1109,7 @@
                 }
               },
               "entry_name": "Set your name here",
-              "last_processing_time": "2023-02-01T12:20:16.632000+00:00",
+              "last_processing_time": "2023-04-11T15:08:32.039000+00:00",
               "parser_name": "parsers/archive",
               "calc_id": "-ld_4ohLePE2oOcfX_CYa9oiu_1l",
               "published": false,
@@ -1037,6 +1125,7 @@
               ],
               "sections": [
                 "nomad.datamodel.datamodel.EntryArchive",
+                "nomad.datamodel.datamodel.EntryArchiveReference",
                 "nomad.datamodel.datamodel.EntryMetadata",
                 "nomad.datamodel.datamodel.RFC3161Timestamp",
                 "nomad.datamodel.results.Properties",
@@ -1065,7 +1154,7 @@
                   "name": "Test Tester"
                 }
               ],
-              "entry_create_time": "2023-02-01T12:20:15.988000+00:00",
+              "entry_create_time": "2023-04-11T15:08:31.206000+00:00",
               "with_embargo": false,
               "files": [
                 "sameUploadExtendedSections.schema.archive.yaml",
@@ -1081,6 +1170,17 @@
                 "ref6.archive.yaml",
                 "wrong-path.data.archive.yaml",
                 "wrong-upload-id.data.archive.yaml"
+              ],
+              "entry_references": [
+                {
+                  "target_entry_id": "RYcY1pQC7GkErLJaMQHaNhAxW_oN",
+                  "target_name": "Substance",
+                  "target_reference": "../upload/raw/baseSections.schema.archive.yaml#Substance",
+                  "source_path": "definitions.section_definitions.base_sections",
+                  "target_path": "/Substance",
+                  "source_name": "base_sections",
+                  "source_quantity": "nomad.metainfo.metainfo.Section.base_sections"
+                }
               ],
               "entry_type": "Schema",
               "entry_id": "-ld_4ohLePE2oOcfX_CYa9oiu_1l",
@@ -1161,8 +1261,8 @@
               ],
               "datasets": [],
               "n_quantities": 125,
-              "nomad_version": "1.1.7.dev124+gda5c4ac3f.d20230201",
-              "upload_create_time": "2023-02-01T12:20:15.824000+00:00",
+              "nomad_version": "1.1.9.dev99+gdb2312624.d20230330",
+              "upload_create_time": "2023-04-11T15:08:29.194000+00:00",
               "nomad_commit": "",
               "section_defs": [
                 {
@@ -1172,7 +1272,7 @@
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "c4b15eb9ce442c189aa761b300b924d5ae068616",
+                  "definition_id": "4b9c2c1cc58f12cd74da03b51ab7d701a14dbca7",
                   "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
                 },
                 {
@@ -1192,37 +1292,37 @@
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "aba375c9adc93ee652366e08668c2288eac1eaf7",
+                  "definition_id": "3d33457b156dd998c30d07a4f4429b1836ad0ea4",
                   "definition_qualified_name": "nomad.datamodel.results.Results"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "55b8cfcd563d7c38b23e7b48c7a0bd035b30652d",
+                  "definition_id": "f6617f133366ffb8cd1bde4bf643ca5bae1db7f8",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Definition"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "a94743ce066ba5623b93cfe9b2e77f3035fb378e",
+                  "definition_id": "4b3a70a5e3f97b976da7ec3ed8c7c73f2078a518",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Package"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "c4ce7d97f40568925244fff8f4c95abfc5b1ebb6",
+                  "definition_id": "28f841a88474d266eded1141318ea4c42d3aff3f",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Property"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "a702ec274491e803c6d8b3dfe137a8b14c4564dd",
+                  "definition_id": "d12b9e6f4aed521dc6feeb67239a929542f78b8d",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Quantity"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "f6b02a14b8a3ab94a50eac83a4fd329bd70168d6",
+                  "definition_id": "af7788dea6a320c2bec44814d49fb334cae97efa",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Section"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "0beebaee917126daac73d2a20d1ab9b8c7b1c492",
+                  "definition_id": "51616d2baf8f6a35b9bd54fb580e7d3b6ed1325b",
                   "definition_qualified_name": "nomad.metainfo.metainfo.SubSection"
                 }
               ],
@@ -1233,7 +1333,7 @@
                 }
               },
               "entry_name": "Set your name here",
-              "last_processing_time": "2023-02-01T12:20:16.390000+00:00",
+              "last_processing_time": "2023-04-11T15:08:31.879000+00:00",
               "parser_name": "parsers/archive",
               "calc_id": "RYcY1pQC7GkErLJaMQHaNhAxW_oN",
               "published": false,
@@ -1278,7 +1378,7 @@
                   "name": "Test Tester"
                 }
               ],
-              "entry_create_time": "2023-02-01T12:20:15.885000+00:00",
+              "entry_create_time": "2023-04-11T15:08:31.018000+00:00",
               "with_embargo": false,
               "files": [
                 "baseSections.schema.archive.yaml",
@@ -1335,6 +1435,14 @@
                 "metadata.entry_hash",
                 "metadata.entry_id",
                 "metadata.entry_name",
+                "metadata.entry_references",
+                "metadata.entry_references.source_name",
+                "metadata.entry_references.source_path",
+                "metadata.entry_references.source_quantity",
+                "metadata.entry_references.target_entry_id",
+                "metadata.entry_references.target_name",
+                "metadata.entry_references.target_path",
+                "metadata.entry_references.target_reference",
                 "metadata.entry_timestamp",
                 "metadata.entry_timestamp.timestamp",
                 "metadata.entry_timestamp.token",
@@ -1369,8 +1477,8 @@
               ],
               "datasets": [],
               "n_quantities": 49,
-              "nomad_version": "1.1.7.dev124+gda5c4ac3f.d20230201",
-              "upload_create_time": "2023-02-01T12:20:18.242000+00:00",
+              "nomad_version": "1.1.9.dev99+gdb2312624.d20230330",
+              "upload_create_time": "2023-04-11T15:08:36.928000+00:00",
               "nomad_commit": "",
               "section_defs": [
                 {
@@ -1380,8 +1488,13 @@
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "c4b15eb9ce442c189aa761b300b924d5ae068616",
+                  "definition_id": "4b9c2c1cc58f12cd74da03b51ab7d701a14dbca7",
                   "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "4e94041db1cb8b110c348717f6ec50a56054df65",
+                  "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchiveReference"
                 },
                 {
                   "used_directly": true,
@@ -1400,32 +1513,32 @@
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "aba375c9adc93ee652366e08668c2288eac1eaf7",
+                  "definition_id": "3d33457b156dd998c30d07a4f4429b1836ad0ea4",
                   "definition_qualified_name": "nomad.datamodel.results.Results"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "55b8cfcd563d7c38b23e7b48c7a0bd035b30652d",
+                  "definition_id": "f6617f133366ffb8cd1bde4bf643ca5bae1db7f8",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Definition"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "a94743ce066ba5623b93cfe9b2e77f3035fb378e",
+                  "definition_id": "4b3a70a5e3f97b976da7ec3ed8c7c73f2078a518",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Package"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "c4ce7d97f40568925244fff8f4c95abfc5b1ebb6",
+                  "definition_id": "28f841a88474d266eded1141318ea4c42d3aff3f",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Property"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "a702ec274491e803c6d8b3dfe137a8b14c4564dd",
+                  "definition_id": "d12b9e6f4aed521dc6feeb67239a929542f78b8d",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Quantity"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "f6b02a14b8a3ab94a50eac83a4fd329bd70168d6",
+                  "definition_id": "af7788dea6a320c2bec44814d49fb334cae97efa",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Section"
                 }
               ],
@@ -1436,7 +1549,7 @@
                 }
               },
               "entry_name": "Set your name here",
-              "last_processing_time": "2023-02-01T12:20:18.475000+00:00",
+              "last_processing_time": "2023-04-11T15:08:37.325000+00:00",
               "parser_name": "parsers/archive",
               "calc_id": "SFewp4XgAR_YJAZv078a1VcWU9o3",
               "published": false,
@@ -1452,6 +1565,7 @@
               ],
               "sections": [
                 "nomad.datamodel.datamodel.EntryArchive",
+                "nomad.datamodel.datamodel.EntryArchiveReference",
                 "nomad.datamodel.datamodel.EntryMetadata",
                 "nomad.datamodel.datamodel.RFC3161Timestamp",
                 "nomad.datamodel.results.Properties",
@@ -1480,12 +1594,23 @@
                   "name": "Test Tester"
                 }
               ],
-              "entry_create_time": "2023-02-01T12:20:18.261000+00:00",
+              "entry_create_time": "2023-04-11T15:08:36.954000+00:00",
               "with_embargo": false,
               "files": [
                 "baseOnAContents.schema.archive.yaml",
                 "baseOnSubstance.schema.archive.yaml",
                 "baseOnSubstanceExtended.schema.archive.yaml"
+              ],
+              "entry_references": [
+                {
+                  "target_entry_id": "RYcY1pQC7GkErLJaMQHaNhAxW_oN",
+                  "target_name": "AContents",
+                  "target_reference": "../upload/references_upload_id1/archive/RYcY1pQC7GkErLJaMQHaNhAxW_oN#AContents",
+                  "source_path": "definitions.section_definitions.base_sections",
+                  "target_path": "/AContents",
+                  "source_name": "base_sections",
+                  "source_quantity": "nomad.metainfo.metainfo.Section.base_sections"
+                }
               ],
               "entry_type": "Schema",
               "entry_id": "SFewp4XgAR_YJAZv078a1VcWU9o3",
@@ -1527,6 +1652,14 @@
                 "metadata.entry_hash",
                 "metadata.entry_id",
                 "metadata.entry_name",
+                "metadata.entry_references",
+                "metadata.entry_references.source_name",
+                "metadata.entry_references.source_path",
+                "metadata.entry_references.source_quantity",
+                "metadata.entry_references.target_entry_id",
+                "metadata.entry_references.target_name",
+                "metadata.entry_references.target_path",
+                "metadata.entry_references.target_reference",
                 "metadata.entry_timestamp",
                 "metadata.entry_timestamp.timestamp",
                 "metadata.entry_timestamp.token",
@@ -1561,8 +1694,8 @@
               ],
               "datasets": [],
               "n_quantities": 49,
-              "nomad_version": "1.1.7.dev124+gda5c4ac3f.d20230201",
-              "upload_create_time": "2023-02-01T12:20:18.242000+00:00",
+              "nomad_version": "1.1.9.dev99+gdb2312624.d20230330",
+              "upload_create_time": "2023-04-11T15:08:36.928000+00:00",
               "nomad_commit": "",
               "section_defs": [
                 {
@@ -1572,8 +1705,13 @@
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "c4b15eb9ce442c189aa761b300b924d5ae068616",
+                  "definition_id": "4b9c2c1cc58f12cd74da03b51ab7d701a14dbca7",
                   "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "4e94041db1cb8b110c348717f6ec50a56054df65",
+                  "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchiveReference"
                 },
                 {
                   "used_directly": true,
@@ -1592,32 +1730,32 @@
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "aba375c9adc93ee652366e08668c2288eac1eaf7",
+                  "definition_id": "3d33457b156dd998c30d07a4f4429b1836ad0ea4",
                   "definition_qualified_name": "nomad.datamodel.results.Results"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "55b8cfcd563d7c38b23e7b48c7a0bd035b30652d",
+                  "definition_id": "f6617f133366ffb8cd1bde4bf643ca5bae1db7f8",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Definition"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "a94743ce066ba5623b93cfe9b2e77f3035fb378e",
+                  "definition_id": "4b3a70a5e3f97b976da7ec3ed8c7c73f2078a518",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Package"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "c4ce7d97f40568925244fff8f4c95abfc5b1ebb6",
+                  "definition_id": "28f841a88474d266eded1141318ea4c42d3aff3f",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Property"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "a702ec274491e803c6d8b3dfe137a8b14c4564dd",
+                  "definition_id": "d12b9e6f4aed521dc6feeb67239a929542f78b8d",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Quantity"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "f6b02a14b8a3ab94a50eac83a4fd329bd70168d6",
+                  "definition_id": "af7788dea6a320c2bec44814d49fb334cae97efa",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Section"
                 }
               ],
@@ -1628,7 +1766,7 @@
                 }
               },
               "entry_name": "Set your name here",
-              "last_processing_time": "2023-02-01T12:20:18.490000+00:00",
+              "last_processing_time": "2023-04-11T15:08:37.644000+00:00",
               "parser_name": "parsers/archive",
               "calc_id": "WAT1x19Jvf4_wAYwD-6pcC6khYsu",
               "published": false,
@@ -1644,6 +1782,7 @@
               ],
               "sections": [
                 "nomad.datamodel.datamodel.EntryArchive",
+                "nomad.datamodel.datamodel.EntryArchiveReference",
                 "nomad.datamodel.datamodel.EntryMetadata",
                 "nomad.datamodel.datamodel.RFC3161Timestamp",
                 "nomad.datamodel.results.Properties",
@@ -1672,12 +1811,23 @@
                   "name": "Test Tester"
                 }
               ],
-              "entry_create_time": "2023-02-01T12:20:18.275000+00:00",
+              "entry_create_time": "2023-04-11T15:08:36.974000+00:00",
               "with_embargo": false,
               "files": [
                 "baseOnSubstance.schema.archive.yaml",
                 "baseOnAContents.schema.archive.yaml",
                 "baseOnSubstanceExtended.schema.archive.yaml"
+              ],
+              "entry_references": [
+                {
+                  "target_entry_id": "RYcY1pQC7GkErLJaMQHaNhAxW_oN",
+                  "target_name": "Substance",
+                  "target_reference": "../upload/references_upload_id1/archive/RYcY1pQC7GkErLJaMQHaNhAxW_oN#Substance",
+                  "source_path": "definitions.section_definitions.base_sections",
+                  "target_path": "/Substance",
+                  "source_name": "base_sections",
+                  "source_quantity": "nomad.metainfo.metainfo.Section.base_sections"
+                }
               ],
               "entry_type": "Schema",
               "entry_id": "WAT1x19Jvf4_wAYwD-6pcC6khYsu",
@@ -1719,6 +1869,14 @@
                 "metadata.entry_hash",
                 "metadata.entry_id",
                 "metadata.entry_name",
+                "metadata.entry_references",
+                "metadata.entry_references.source_name",
+                "metadata.entry_references.source_path",
+                "metadata.entry_references.source_quantity",
+                "metadata.entry_references.target_entry_id",
+                "metadata.entry_references.target_name",
+                "metadata.entry_references.target_path",
+                "metadata.entry_references.target_reference",
                 "metadata.entry_timestamp",
                 "metadata.entry_timestamp.timestamp",
                 "metadata.entry_timestamp.token",
@@ -1753,8 +1911,8 @@
               ],
               "datasets": [],
               "n_quantities": 49,
-              "nomad_version": "1.1.7.dev124+gda5c4ac3f.d20230201",
-              "upload_create_time": "2023-02-01T12:20:18.242000+00:00",
+              "nomad_version": "1.1.9.dev99+gdb2312624.d20230330",
+              "upload_create_time": "2023-04-11T15:08:36.928000+00:00",
               "nomad_commit": "",
               "section_defs": [
                 {
@@ -1764,8 +1922,13 @@
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "c4b15eb9ce442c189aa761b300b924d5ae068616",
+                  "definition_id": "4b9c2c1cc58f12cd74da03b51ab7d701a14dbca7",
                   "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "4e94041db1cb8b110c348717f6ec50a56054df65",
+                  "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchiveReference"
                 },
                 {
                   "used_directly": true,
@@ -1784,32 +1947,32 @@
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "aba375c9adc93ee652366e08668c2288eac1eaf7",
+                  "definition_id": "3d33457b156dd998c30d07a4f4429b1836ad0ea4",
                   "definition_qualified_name": "nomad.datamodel.results.Results"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "55b8cfcd563d7c38b23e7b48c7a0bd035b30652d",
+                  "definition_id": "f6617f133366ffb8cd1bde4bf643ca5bae1db7f8",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Definition"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "a94743ce066ba5623b93cfe9b2e77f3035fb378e",
+                  "definition_id": "4b3a70a5e3f97b976da7ec3ed8c7c73f2078a518",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Package"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "c4ce7d97f40568925244fff8f4c95abfc5b1ebb6",
+                  "definition_id": "28f841a88474d266eded1141318ea4c42d3aff3f",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Property"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "a702ec274491e803c6d8b3dfe137a8b14c4564dd",
+                  "definition_id": "d12b9e6f4aed521dc6feeb67239a929542f78b8d",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Quantity"
                 },
                 {
                   "used_directly": true,
-                  "definition_id": "f6b02a14b8a3ab94a50eac83a4fd329bd70168d6",
+                  "definition_id": "af7788dea6a320c2bec44814d49fb334cae97efa",
                   "definition_qualified_name": "nomad.metainfo.metainfo.Section"
                 }
               ],
@@ -1820,7 +1983,7 @@
                 }
               },
               "entry_name": "Set your name here",
-              "last_processing_time": "2023-02-01T12:20:18.507000+00:00",
+              "last_processing_time": "2023-04-11T15:08:37.660000+00:00",
               "parser_name": "parsers/archive",
               "calc_id": "zExpq70TT-0IcJrWHRQvxryx89tC",
               "published": false,
@@ -1836,6 +1999,7 @@
               ],
               "sections": [
                 "nomad.datamodel.datamodel.EntryArchive",
+                "nomad.datamodel.datamodel.EntryArchiveReference",
                 "nomad.datamodel.datamodel.EntryMetadata",
                 "nomad.datamodel.datamodel.RFC3161Timestamp",
                 "nomad.datamodel.results.Properties",
@@ -1864,12 +2028,23 @@
                   "name": "Test Tester"
                 }
               ],
-              "entry_create_time": "2023-02-01T12:20:18.287000+00:00",
+              "entry_create_time": "2023-04-11T15:08:36.992000+00:00",
               "with_embargo": false,
               "files": [
                 "baseOnSubstanceExtended.schema.archive.yaml",
                 "baseOnAContents.schema.archive.yaml",
                 "baseOnSubstance.schema.archive.yaml"
+              ],
+              "entry_references": [
+                {
+                  "target_entry_id": "-ld_4ohLePE2oOcfX_CYa9oiu_1l",
+                  "target_name": "SubstanceExtended",
+                  "target_reference": "../upload/references_upload_id1/archive/-ld_4ohLePE2oOcfX_CYa9oiu_1l#SubstanceExtended",
+                  "source_path": "definitions.section_definitions.base_sections",
+                  "target_path": "/SubstanceExtended",
+                  "source_name": "base_sections",
+                  "source_quantity": "nomad.metainfo.metainfo.Section.base_sections"
+                }
               ],
               "entry_type": "Schema",
               "entry_id": "zExpq70TT-0IcJrWHRQvxryx89tC",
@@ -1889,7 +2064,7 @@
         },
         "headers": {
           "connection": "close",
-          "content-length": "35479",
+          "content-length": "40140",
           "content-type": "application/json",
           "server": "uvicorn"
         }

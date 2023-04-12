@@ -76,7 +76,7 @@ const testAddRemoveMembers = async (dialog) => {
   fireEvent.change(autocompleteInput, { target: { value: 'teste' } })
   await waitForGUI(700, true)
   await waitFor(() => expect(autocompleteInput.value).toEqual('teste'))
-  await waitForGUI(700, true)
+  await waitForGUI(3500, true)
   fireEvent.keyDown(searchMembers, { key: 'ArrowDown' })
   fireEvent.keyDown(searchMembers, { key: 'Enter' })
   await waitForGUI()
@@ -91,7 +91,7 @@ const testAddRemoveMembers = async (dialog) => {
   fireEvent.change(autocompleteInput, { target: { value: 'admin' } })
   await waitForGUI(700, true)
   await waitFor(() => expect(autocompleteInput.value).toEqual('admin'))
-  await waitForGUI(700, true)
+  await waitForGUI(3500, true)
   fireEvent.keyDown(searchMembers, { key: 'ArrowDown' })
   fireEvent.keyDown(searchMembers, { key: 'Enter' })
   await waitForGUI()
@@ -161,14 +161,16 @@ test.each([
     'dft_upload',
     'test',
     'password'
-  ], [
+  ],
+  [
     'Published and logged in as coauthor',
     'tests.states.uploads.published',
     'tests/data/uploads/members-dialog-published-coauthor',
     'dft_upload',
     'scooper',
     'password'
-  ], [
+  ],
+  [
     'Unpublished and logged in as main author',
     'tests.states.uploads.unpublished',
     'tests/data/uploads/members-dialog-unpublished-author',
