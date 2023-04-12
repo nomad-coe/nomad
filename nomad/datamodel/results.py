@@ -16,12 +16,14 @@
 # limitations under the License.
 #
 
+from typing import List
 import numpy as np
 from elasticsearch_dsl import Text
 
 from ase.data import chemical_symbols
 
 from nomad import config
+from nomad.utils import traverse_reversed
 from nomad.atomutils import Formula
 from nomad.datamodel.metainfo.measurements import Spectrum
 from nomad.datamodel.metainfo.simulation.system import Atoms
@@ -188,6 +190,43 @@ def get_formula_iupac(formula: str) -> str:
         Chemical formula in the IUPAC format.
     '''
     return None if formula is None else Formula(formula).format('iupac')
+
+
+def available_properties(root: MSection) -> List[str]:
+    '''Returns a list of property names that are available in results.properties.
+
+    Args:
+        root: The metainfo section containing the properties
+
+    Returns:
+        List of property names that are present
+    '''
+    available_property_names = {
+        'electronic.band_structure_electronic.band_gap': 'electronic.band_structure_electronic.band_gap',
+        'electronic.band_structure_electronic': 'band_structure_electronic',
+        'electronic.dos_electronic': 'dos_electronic',
+        'electronic.greens_functions_electronic': 'greens_functions_electronic',
+        'vibrational.dos_phonon': 'dos_phonon',
+        'vibrational.band_structure_phonon': 'band_structure_phonon',
+        'vibrational.energy_free_helmholtz': 'energy_free_helmholtz',
+        'vibrational.heat_capacity_constant_volume': 'heat_capacity_constant_volume',
+        'thermodynamic.trajectory': 'trajectory',
+        'structural.radial_distribution_function': 'radial_distribution_function',
+        'dynamical.mean_squared_displacement': 'mean_squared_displacement',
+        'structural.radius_of_gyration': 'radius_of_gyration',
+        'geometry_optimization': 'geometry_optimization',
+        'mechanical.bulk_modulus': 'bulk_modulus',
+        'mechanical.shear_modulus': 'shear_modulus',
+        'mechanical.energy_volume_curve': 'energy_volume_curve',
+        'spectroscopy.eels': 'eels',
+        'optoelectronic.solar_cell': 'solar_cell',
+    }
+    available_properties: List[str] = []
+    for path, shortcut in available_property_names.items():
+        for _ in traverse_reversed(root, path.split('.')):
+            available_properties.append(shortcut)
+            break
+    return sorted(available_properties)
 
 
 tokenizer_formula = get_tokenizer(r'[A-Z][a-z]?\d*')
@@ -2512,6 +2551,8 @@ class Properties(MSection):
     )
     available_properties = Quantity(
         type=str,
+        default=[],
+        derived=lambda a: available_properties(a),
         shape=['0..*'],
         description='Subset of the property names that are present in this entry.',
         a_elasticsearch=Elasticsearch(material_entry_type),

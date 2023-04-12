@@ -26,6 +26,7 @@ import matid.geometry  # pylint: disable=import-error
 
 from nomad import config
 from nomad import atomutils
+from nomad.utils import traverse_reversed
 from nomad.atomutils import Formula
 from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
@@ -113,34 +114,6 @@ class ResultsNormalizer(Normalizer):
 
         for measurement in self.entry_archive.measurement:
             self.normalize_measurement(measurement)
-
-        # Add the list of available_properties: it is a selected subset of the
-        # stored properties.
-        available_property_names = {
-            "results.properties.electronic.band_structure_electronic.band_gap": "electronic.band_structure_electronic.band_gap",
-            "results.properties.electronic.band_structure_electronic": "band_structure_electronic",
-            "results.properties.electronic.dos_electronic": "dos_electronic",
-            "results.properties.electronic.greens_functions_electronic": "greens_functions_electronic",
-            "results.properties.vibrational.dos_phonon": "dos_phonon",
-            "results.properties.vibrational.band_structure_phonon": "band_structure_phonon",
-            "results.properties.vibrational.energy_free_helmholtz": "energy_free_helmholtz",
-            "results.properties.vibrational.heat_capacity_constant_volume": "heat_capacity_constant_volume",
-            "results.properties.thermodynamic.trajectory": "trajectory",
-            "results.properties.structural.radial_distribution_function": "radial_distribution_function",
-            "results.properties.dynamical.mean_squared_displacement": "mean_squared_displacement",
-            "results.properties.structural.radius_of_gyration": "radius_of_gyration",
-            "results.properties.geometry_optimization": "geometry_optimization",
-            "results.properties.mechanical.bulk_modulus": "bulk_modulus",
-            "results.properties.mechanical.shear_modulus": "shear_modulus",
-            "results.properties.mechanical.energy_volume_curve": "energy_volume_curve",
-            "results.properties.spectroscopy.eels": "eels",
-        }
-        available_properties: List[str] = []
-        for path, shortcut in available_property_names.items():
-            for _ in self.traverse_reversed(path.split('.')):
-                available_properties.append(shortcut)
-                break
-        results.properties.available_properties = sorted(available_properties)
 
     def normalize_sample(self, sample) -> None:
         results = self.entry_archive.results
@@ -260,7 +233,7 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of energies.
         """
         def resolve_band_structure(path):
-            for bs in self.traverse_reversed(path):
+            for bs in traverse_reversed(self.entry_archive, path):
                 if not bs.segment:
                     continue
                 valid = True
@@ -319,7 +292,7 @@ class ResultsNormalizer(Normalizer):
         """
 
         def resolve_dos(path):
-            for dos in self.traverse_reversed(path):
+            for dos in traverse_reversed(self.entry_archive, path):
                 energies = dos.energies
                 values = np.array([d.value.magnitude for d in dos.total])
                 if valid_array(energies) and valid_array(values):
@@ -366,7 +339,7 @@ class ResultsNormalizer(Normalizer):
         """
 
         def resolve_greens_functions(path):
-            for gfs in self.traverse_reversed(path):
+            for gfs in traverse_reversed(self.entry_archive, path):
                 tau = gfs.tau
                 iw = gfs.matsubara_freq
                 values_gtau = np.array([np.absolute(gtau) for gtau in gfs.greens_function_tau.real])
@@ -403,7 +376,7 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of energies.
         """
         path = ["run", "calculation", "band_structure_phonon"]
-        for bs in self.traverse_reversed(path):
+        for bs in traverse_reversed(self.entry_archive, path):
             if not bs.segment:
                 continue
             valid = True
@@ -430,7 +403,7 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of energies.
         """
         path = ["run", "calculation", "dos_phonon"]
-        for dos in self.traverse_reversed(path):
+        for dos in traverse_reversed(self.entry_archive, path):
             energies = dos.energies
             values = np.array([d.value.magnitude for d in dos.total])
             if valid_array(energies) and valid_array(values):
@@ -450,7 +423,7 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of energies.
         """
         path = ["workflow", "thermodynamics"]
-        for thermo_prop in self.traverse_reversed(path):
+        for thermo_prop in traverse_reversed(self.entry_archive, path):
             temperatures = thermo_prop.temperature
             energies = thermo_prop.vibrational_free_energy_at_constant_volume
             if valid_array(temperatures) and valid_array(energies):
@@ -470,7 +443,7 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of energies.
         """
         path = ["workflow", "thermodynamics"]
-        for thermo_prop in self.traverse_reversed(path):
+        for thermo_prop in traverse_reversed(self.entry_archive, path):
             temperatures = thermo_prop.temperature
             heat_capacities = thermo_prop.heat_capacity_c_v
             if valid_array(temperatures) and valid_array(heat_capacities):
@@ -486,7 +459,7 @@ class ResultsNormalizer(Normalizer):
         properties based on the first found geometry optimization workflow.
         """
         path = ["workflow"]
-        for workflow in self.traverse_reversed(path):
+        for workflow in traverse_reversed(self.entry_archive, path):
             # Check validity
             if workflow.type == "geometry_optimization" and workflow.calculations_ref:
 
@@ -529,7 +502,7 @@ class ResultsNormalizer(Normalizer):
         """
         path = ["workflow"]
         trajs = []
-        for workflow in self.traverse_reversed(path):
+        for workflow in traverse_reversed(self.entry_archive, path):
             # Check validity
             if workflow.type == "molecular_dynamics":
                 traj = Trajectory()
@@ -590,7 +563,7 @@ class ResultsNormalizer(Normalizer):
         """
         path = ["workflow", "molecular_dynamics", "results", "radial_distribution_functions"]
         rdfs = []
-        for rdf_workflow in self.traverse_reversed(path):
+        for rdf_workflow in traverse_reversed(self.entry_archive, path):
             rdf_values = rdf_workflow.radial_distribution_function_values
             if rdf_values is not None:
                 for rdf_value in rdf_values or []:
@@ -620,7 +593,7 @@ class ResultsNormalizer(Normalizer):
         """
         path_workflow = ["workflow"]
         rgs: List[RadiusOfGyration] = []
-        for workflow in self.traverse_reversed(path_workflow):
+        for workflow in traverse_reversed(self.entry_archive, path_workflow):
 
             # Check validity
             if workflow.type == "molecular_dynamics":
@@ -654,7 +627,7 @@ class ResultsNormalizer(Normalizer):
         """
         path = ["workflow", "molecular_dynamics", "results", "mean_squared_displacements"]
         msds = []
-        for msd_workflow in self.traverse_reversed(path):
+        for msd_workflow in traverse_reversed(self.entry_archive, path):
             msd_values = msd_workflow.mean_squared_displacement_values
             if msd_values is not None:
                 for msd_value in msd_values or []:
@@ -1011,28 +984,3 @@ class ResultsNormalizer(Normalizer):
                     ))
 
         return shear_modulus
-
-    def traverse_reversed(self, path: List[str]) -> Any:
-        """Traverses the given metainfo path in reverse order. Useful in
-        finding the latest reported section or value.
-        """
-        def traverse(root, path, i):
-            if not root:
-                return
-            sections = getattr(root, path[i])
-            if isinstance(sections, list):
-                for section in reversed(sections):
-                    if i == len(path) - 1:
-                        yield section
-                    else:
-                        for s in traverse(section, path, i + 1):
-                            yield s
-            else:
-                if i == len(path) - 1:
-                    yield sections
-                else:
-                    for s in traverse(sections, path, i + 1):
-                        yield s
-        for t in traverse(self.entry_archive, path, 0):
-            if t is not None:
-                yield t
