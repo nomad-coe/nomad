@@ -5,7 +5,7 @@
         "nxdl": "NXiv_temp.nxdl",
         "input_files": [
             "IV_temp.mapping.json",
-            "IV_temp.h5"
+            "IV_temp.pickle"
         ],
         "output": "IV_temp.nxs"
     },
