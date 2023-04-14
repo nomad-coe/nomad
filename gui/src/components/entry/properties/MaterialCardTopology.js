@@ -241,12 +241,12 @@ const useTopologyItemStyles = makeStyles({
     justifyContent: 'center',
     flexDirection: 'column',
     padding: props.theme.spacing(0.25, 0),
-    flexGrow: 1
+    flexGrow: 1,
+    height: props.theme.spacing(5)
   }),
   nodeLabelPrimary: (props) => ({
     textTransform: 'uppercase',
-    fontSize: 14,
-    marginBottom: -props.theme.spacing(0.3)
+    fontSize: 14
   }),
   nodeLabelSecondary: (props) => ({
     fontSize: 12
@@ -281,9 +281,11 @@ const TopologyItem = React.memo(({node, level, selected}) => {
               color: isSelected ? 'white' : theme.palette.text.secondary
             }}
           >
-            {`${node.structural_type}` + (!isEmpty(node?.child_systems) && node.structural_type === 'group'
-              ? ` (${[...new Set(node.child_systems.map(x => x.structural_type))].join(', ')})`
-              : ''
+            {node.label === 'original'
+              ? undefined
+              : `${node.structural_type}` + (!isEmpty(node?.child_systems) && node.structural_type === 'group'
+                ? ` (${[...new Set(node.child_systems.map(x => x.structural_type))].join(', ')})`
+                : ''
             )}
           </Typography>
         </div>

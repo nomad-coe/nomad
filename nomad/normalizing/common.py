@@ -19,6 +19,7 @@ import numpy as np
 from ase import Atoms
 from typing import List, Set, Any, Optional
 from nptyping import NDArray
+import MDAnalysis as mda
 from matid import SymmetryAnalyzer  # pylint: disable=import-error
 from matid.symmetry.wyckoffset import WyckoffSet as WyckoffSetMatID  # pylint: disable=import-error
 import matid.geometry  # pylint: disable=import-error
@@ -146,13 +147,12 @@ def cell_from_ase_atoms(atoms: Atoms) -> Cell:
     cell.gamma = None if np.isnan(gamma) else gamma * ureg.radian
 
     volume = atoms.cell.volume * ureg.angstrom ** 3
-    mass = atomutils.get_summed_atomic_mass(atoms.get_atomic_numbers()) * ureg.kg
-    mass_density = mass / volume
-    number_of_atoms = atoms.get_number_of_atoms()
-    atomic_density = number_of_atoms / volume
     cell.volume = volume
-    cell.atomic_density = atomic_density
-    cell.mass_density = mass_density
+    mass = atomutils.get_summed_atomic_mass(atoms.get_atomic_numbers()) * ureg.kg
+    cell.mass_density = None if volume == 0 else mass / volume
+    number_of_atoms = atoms.get_number_of_atoms()
+    cell.atomic_density = None if volume == 0 else number_of_atoms / volume
+    cell.pbc = np.zeros(3, bool)[:] = atoms.get_pbc()
 
     return cell
 
@@ -288,47 +288,91 @@ def ase_atoms_from_structure(system: Structure) -> Atoms:
     )
 
 
+def mda_universe_from_nomad_atoms(system: Atoms, logger=None) -> mda.Universe:
+    '''Returns an instance of mda.Universe from a NOMAD Atoms-section.
+
+    Args:
+        system: The atoms to transform
+
+    Returns:
+        A new mda.Universe created from the given data.
+    '''
+    n_atoms = len(system.positions)
+    n_residues = 1
+    atom_resindex = [0] * n_atoms
+    residue_segindex = [0]
+
+    universe = mda.Universe.empty(
+        n_atoms,
+        n_residues=n_residues,
+        atom_resindex=atom_resindex,
+        residue_segindex=residue_segindex,
+        trajectory=True
+    )
+
+    # Add positions
+    universe.atoms.positions = system.positions.to(ureg.angstrom).magnitude
+
+    # Add atom attributes
+    atom_names = system.labels
+    universe.add_TopologyAttr('name', atom_names)
+    universe.add_TopologyAttr('type', atom_names)
+    universe.add_TopologyAttr('element', atom_names)
+
+    # Add the box dimensions
+    universe.atoms.dimensions = atomutils.cell_to_cellpar(
+        system.lattice_vectors.to(ureg.angstrom).magnitude,
+        degrees=True
+    )
+
+    return universe
+
+
 def structures_2d(original_atoms, logger=None):
     conv_atoms = None
     prim_atoms = None
     wyckoff_sets = None
     spg_number = None
+    symm_system = original_atoms.copy()
+    n_pbc = sum(original_atoms.get_pbc())
+
     try:
-        # Get dimension of system by also taking into account the covalent radii
-        dimensions = matid.geometry.get_dimensions(original_atoms, [True, True, True])
-        basis_dimensions = np.linalg.norm(original_atoms.get_cell(), axis=1)
-        gaps = basis_dimensions - dimensions
-        periodicity = gaps <= config.normalize.cluster_threshold
+        # If the given system if fully periodic, try to extract a 2D system by
+        # checking the presence of vacuum gaps.
+        if n_pbc == 3:
+            # Get dimension of system by also taking into account the covalent radii
+            dimensions = matid.geometry.get_dimensions(original_atoms, [True, True, True])
+            basis_dimensions = np.linalg.norm(original_atoms.get_cell(), axis=1)
+            gaps = basis_dimensions - dimensions
+            periodicity = gaps <= config.normalize.cluster_threshold
 
-        # If two axis are not periodic, return. This only happens if the vacuum
-        # gap is not aligned with a cell vector or if the linear gap search is
-        # unsufficient (the structure is "wavy" making also the gap highly
-        # nonlinear).
-        if sum(periodicity) != 2:
-            # TODO: @ Lauri: I'm not sure if this is smart/wise, but the periodicity calculation doesn't seem to work for conventional cell systems. The calculated periodicity is always (True, True, True). At least that's my interpretation of what's happening. This is my quick and dirty and at the moment only solution for this problem.
-            periodicity = original_atoms.pbc
-            # if logger:
-            #     logger.error("could not detect the periodic dimensions in a 2D system")
-            # return conv_atoms, prim_atoms, wyckoff_sets, spg_number
+            # If two axis are not periodic, return. This only happens if the vacuum
+            # gap is not aligned with a cell vector or if the linear gap search is
+            # unsufficient (the structure is "wavy" making also the gap highly
+            # nonlinear).
+            if sum(periodicity) != 2:
+                if logger:
+                    logger.error("could not detect the periodic dimensions in a 2D system")
+                return conv_atoms, prim_atoms, wyckoff_sets, spg_number
 
-        # Center the system in the non-periodic direction, also taking
-        # periodicity into account. The get_center_of_mass()-function in MatID
-        # takes into account periodicity and can produce the correct CM unlike
-        # the similar function in ASE.
-        pbc_cm = matid.geometry.get_center_of_mass(original_atoms)
-        cell_center = 0.5 * np.sum(original_atoms.get_cell(), axis=0)
-        translation = cell_center - pbc_cm
-        symm_system = original_atoms.copy()
-        symm_system.translate(translation)
-        symm_system.wrap()
+            # Center the system in the non-periodic direction, also taking
+            # periodicity into account. The get_center_of_mass()-function in MatID
+            # takes into account periodicity and can produce the correct CM unlike
+            # the similar function in ASE.
+            pbc_cm = matid.geometry.get_center_of_mass(original_atoms)
+            cell_center = 0.5 * np.sum(original_atoms.get_cell(), axis=0)
+            translation = cell_center - pbc_cm
+            symm_system = original_atoms.copy()
+            symm_system.translate(translation)
+            symm_system.wrap()
 
-        # Set the periodicity according to detected periodicity in order
-        # for SymmetryAnalyzer to use the symmetry analysis designed for 2D
-        # systems.
-        symm_system.set_pbc(periodicity)
+            # Set the periodicity according to detected periodicity in order
+            # for SymmetryAnalyzer to use the symmetry analysis designed for 2D
+            # systems.
+            symm_system.set_pbc(periodicity)
         symmetry_analyzer = SymmetryAnalyzer(
             symm_system,
-            config.normalize.symmetry_tolerance,
+            0.4,  # The value is increased here to better match 2D materials.
             config.normalize.flat_dim_threshold
         )
 
@@ -341,17 +385,6 @@ def structures_2d(original_atoms, logger=None):
         # dimensions.
         conv_atoms = atomutils.get_minimized_structure(conv_atoms)
         prim_atoms = atomutils.get_minimized_structure(prim_atoms)
-
-        # Swap the cell axes so that the non-periodic one is always the
-        # last basis (=c)
-        swap_dim = 2
-        for i, periodic in enumerate(conv_atoms.get_pbc()):
-            if not periodic:
-                non_periodic_dim = i
-                break
-        if non_periodic_dim != swap_dim:
-            atomutils.swap_basis(conv_atoms, non_periodic_dim, swap_dim)
-            atomutils.swap_basis(prim_atoms, non_periodic_dim, swap_dim)
     except Exception as e:
         if logger:
             logger.error(

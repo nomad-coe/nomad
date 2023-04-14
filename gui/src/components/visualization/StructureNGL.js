@@ -115,7 +115,7 @@ const StructureNGL = React.memo(({
           const color = elementColors[symbolUpperCase]
           return {
             label: symbol,
-            color: color ? `#${color.toString(16)}` : '#ff1493',
+            color: color ? `#${color.toString(16).padStart(6, 0)}` : '#ff1493',
             radius: vdwRadii[atomicNumber] || 0.1,
             atomicNumber: atomicNumber || 0
           }
@@ -334,20 +334,40 @@ const StructureNGL = React.memo(({
       // The objects are added to a dummy 'unitcell' representation that is
       // supported by NGL.
       const nglCell = component?.object?.unitcell
-      const collapsed = [false, false, false]
-      const pbc = [true, true, true]
       if (nglCell) {
+        const pbc = topologyMap[root]?.cell?.pbc || [true, true, true]
         component.addRepresentation('unitcell', {opacity: 0})
         const fracToCart = nglCell.fracToCart
+        fracToCart.elements = nglCell.fracToCart.elements.map((e) => isNaN(e) ? 0 : e)
         const a = new THREE.Vector3(1, 0, 0).applyMatrix4(fracToCart)
         const b = new THREE.Vector3(0, 1, 0).applyMatrix4(fracToCart)
         const c = new THREE.Vector3(0, 0, 1).applyMatrix4(fracToCart)
+
+        // If some of the basis vectors are collapsed, we need to create
+        // artificial ones for the wrapping
+        const collapsed = [nglCell.a === 0, nglCell.b === 0, nglCell.c === 0]
         const basis = [a, b, c]
+        const validBases = []
+        const invalidBases = []
+        for (let i = 0; i < collapsed.length; ++i) {
+          const isCollapsed = collapsed[i]
+          if (!isCollapsed) validBases.push(basis[i])
+          else invalidBases.push(i)
+        }
+        if (validBases.length === 2) {
+          const newBasis = new THREE.Vector3().crossVectors(
+            validBases[0],
+            validBases[1]
+          ).normalize()
+          basis[invalidBases[0]] = newBasis
+        }
+        const cartToFrac = new THREE.Matrix4().makeBasis(basis[0], basis[1], basis[2]).clone().invert()
+        nglCell.cartToFrac = cartToFrac
+
         const cell = createCell(
           new THREE.Vector3(),
           basis,
           collapsed,
-          pbc,
           '#000',
           1,
           0,
@@ -372,6 +392,8 @@ const StructureNGL = React.memo(({
         )
         addObject3DToStage(latticeConstants, stageRef.current)
         component.unitCell = cell
+        component.cartToFrac = cartToFrac
+        component.fracToCart = fracToCart
         component.basis = basis
         component.pbc = pbc
         component.latticeConstants = latticeConstants
@@ -420,26 +442,22 @@ const StructureNGL = React.memo(({
     const topParent = topologyMap[selection].parent_system
     const structuralType = topSelection.structural_type
     const isMonomer = structuralType === 'monomer'
-    const isGroup = structuralType === 'group'
-    const isSubSystem = structuralType === 'subsystem'
+    const isMolecule = structuralType === 'molecule'
+    const isGroup = structuralType === 'group' || topSelection.label === 'subsystem'
+    const independent = topSelection.atoms || topSelection.atoms_ref || isMolecule || isMonomer
     const child_types = topSelection.child_systems
       ? new Set(topSelection.child_systems.map(x => x.structural_type))
       : new Set()
     const isMonomerGroup = isGroup && isEqual(child_types, new Set(['monomer']))
-    const isMolecule = structuralType === 'molecule'
-    const showParent = isGroup || isSubSystem
 
     // Determine the selection to center on.
-    selectionRef.current = representationMap.current[(isMonomerGroup
-      ? topParent
-      : selection
-    )]?.sele
+    selectionRef.current = representationMap.current[independent ? selection : topParent]?.sele
 
     // Determine the selections to show opaque
     const opaque = new Set([selection])
 
     // Determine the selections to show transparent
-    const transparent = new Set(showParent ? [topParent] : [])
+    const transparent = new Set(isGroup ? [topParent] : [])
 
     // Determine whether to show cell
     const cellVisible = !(isMolecule || isMonomer || isMonomerGroup)
@@ -607,7 +625,6 @@ function getAlignment(alignments, directions) {
  * @param origin - The origin position for the cell
  * @param basis - The cell basis vectors
  * @param collapsed - Whether a basis vector is collapsed (length = 0)
- * @param periodicity - Periodicity of the cell as three boolean, one for each basis vector
  * @param color - Color for the cell wireframe
  * @param linewidth - Cell wireframe line width
  * @param dashSize - Cell wireframe dash size. Defaults to 0. Provide a value >
@@ -615,7 +632,7 @@ function getAlignment(alignments, directions) {
  * @param gapSize - Cell wireframe dash size. Defaults to 0. Provide a value >
  *   0 for a dashed line.
  */
-function createCell(origin, basis, collapsed, periodicity, color, linewidth, dashSize, gapSize) {
+function createCell(origin, basis, collapsed, color, linewidth, dashSize, gapSize) {
     const cell = new THREE.Object3D()
     let lineMaterial
     if (!(dashSize === 0 && gapSize === 0)) {
@@ -632,42 +649,45 @@ function createCell(origin, basis, collapsed, periodicity, color, linewidth, das
         })
     }
 
-    function addEdge(points, isDim, isCollapsed) {
-        if (!(isDim && isCollapsed)) {
-            const lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
-            const line = new THREE.Line(lineGeometry, lineMaterial)
-            cell.add(line)
-            line.computeLineDistances()
-        }
+    function addEdge(points) {
+      const lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
+      const line = new THREE.Line(lineGeometry, lineMaterial)
+      cell.add(line)
+      line.computeLineDistances()
     }
 
     for (let len = basis.length, i = 0; i < len; ++i) {
+        const isFirstCollapsed = collapsed[i]
+        if (isFirstCollapsed) continue
         const basisVector = basis[i]
-        const isCollapsed = collapsed[i]
 
         // First edge
-        const isDim1 = !periodicity[i]
         const points1 = [origin, basisVector.clone().add(origin)]
-        addEdge(points1, isDim1, isCollapsed)
+        addEdge(points1)
 
         // Second edge
         const secondIndex = (i + 1) % len
+        const isSecondCollapsed = collapsed[secondIndex]
         const secondAddition = basis[secondIndex].clone()
-        const isDim2 = !periodicity[i] || !periodicity[(i + 1) % 3]
-        const points2 = [secondAddition.clone().add(origin), basisVector.clone().add(secondAddition).add(origin)]
-        addEdge(points2, isDim2, isCollapsed)
+        if (!isSecondCollapsed) {
+          const points2 = [secondAddition.clone().add(origin), basisVector.clone().add(secondAddition).add(origin)]
+          addEdge(points2)
+        }
 
         // Third edge
         const thirdIndex = (i + 2) % len
+        const isThirdCollapsed = collapsed[thirdIndex]
         const thirdAddition = basis[thirdIndex].clone()
-        const isDim3 = !periodicity[i] || !periodicity[(i + 2) % 3]
-        const points3 = [thirdAddition.clone().add(origin), basisVector.clone().add(thirdAddition).add(origin)]
-        addEdge(points3, isDim3, isCollapsed)
+        if (!isThirdCollapsed) {
+          const points3 = [thirdAddition.clone().add(origin), basisVector.clone().add(thirdAddition).add(origin)]
+          addEdge(points3)
+        }
 
         // Fourth edge
-        const isDim4 = !periodicity[i] || !periodicity[(i + 2) % 3] || !periodicity[(i + 1) % 3]
-        const points4 = [secondAddition.clone().add(thirdAddition).add(origin), basisVector.clone().add(secondAddition).add(thirdAddition).add(origin)]
-        addEdge(points4, isDim4, isCollapsed)
+        if (!isSecondCollapsed && !isThirdCollapsed) {
+          const points4 = [secondAddition.clone().add(thirdAddition).add(origin), basisVector.clone().add(secondAddition).add(thirdAddition).add(origin)]
+          addEdge(points4)
+        }
     }
     return cell
 }
@@ -1099,7 +1119,8 @@ function addObject3DToStage(object, stage) {
 function wrapPositions(component, wrap) {
   let posNew
   const basis = component.basis
-  const unitCell = component.object.unitcell
+  const cartToFrac = component.cartToFrac
+  const fracToCart = component.fracToCart
   const pbc = component.pbc
 
   if (!basis) return
@@ -1120,10 +1141,10 @@ function wrapPositions(component, wrap) {
       posNew = component.posWrap
     } else {
       posNew = component.posCart.map(pos => {
-        return pos.clone().applyMatrix4(unitCell.cartToFrac)
+        return pos.clone().applyMatrix4(cartToFrac)
       })
       const eps = 1e-2
-      const epsArray = new THREE.Vector3(eps, eps, eps).applyMatrix4(unitCell.cartToFrac).toArray()
+      const epsArray = new THREE.Vector3(eps, eps, eps).applyMatrix4(cartToFrac).toArray()
       const center = [0.5, 0.5, 0.5] // Positions will be nearest to this location
       const shift = center.map((center, i) => pbc[i] ? center - 0.5 - epsArray[i] : 0)
       for (let len = posNew.length, i = 0; i < len; ++i) {
@@ -1137,7 +1158,7 @@ function wrapPositions(component, wrap) {
           iFracPos.setComponent(i, remainder)
         }
       }
-      posNew = posNew.map(pos => pos.applyMatrix4(unitCell.fracToCart))
+      posNew = posNew.map(pos => pos.applyMatrix4(fracToCart))
       component.posWrap = posNew
     }
   // Use original cartesian positions

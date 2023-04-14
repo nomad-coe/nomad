@@ -24,9 +24,10 @@ from fastapi import APIRouter, Depends, Path, Query, status, HTTPException
 from fastapi.responses import StreamingResponse
 import ase.io
 import ase.build
+from MDAnalysis.lib.util import NamedStream
 
 from nomad.utils import strip, deep_get, query_list_to_dict
-from nomad.normalizing.common import ase_atoms_from_nomad_atoms
+from nomad.normalizing.common import ase_atoms_from_nomad_atoms, mda_universe_from_nomad_atoms
 from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
 from .entries import answer_entry_archive_request, _bad_id_response
 
@@ -42,7 +43,7 @@ format_list: List[dict] = [
         'description': 'Protein Data Bank file',
         'extension': 'pdb',
         'mime_type': 'chemical/x-pdb',
-        'reader': 'ase',
+        'reader': 'mdanalysis',
     }
 ]
 format_map: Dict[str, dict] = OrderedDict()
@@ -53,6 +54,9 @@ format_description = "\n".join([f' - `{format["label"]}`: {format["description"]
 
 ase_format_map = {
     'pdb': 'proteindatabank'
+}
+mda_format_map = {
+    'pdb': 'pdb'
 }
 
 
@@ -128,13 +132,26 @@ async def get_entry_raw_file(
     # Transform the system into ase atoms, catch any errors
     format_info = format_map[format]
     stringio = StringIO()
+
     try:
+        atoms = NOMADAtoms.m_from_dict(result_dict)
         if format_info['reader'] == 'ase':
-            atoms = ase_atoms_from_nomad_atoms(NOMADAtoms.m_from_dict(result_dict))
+            atoms = ase_atoms_from_nomad_atoms(atoms)
             ase_format = ase_format_map[format]
             ase.io.write(stringio, atoms, ase_format)
         elif format_info['reader'] == 'mdanalysis':
-            pass
+            universe = mda_universe_from_nomad_atoms(atoms)
+            mda_format = mda_format_map[format]
+            # For some reason NamedStream tries to close the stream: here we
+            # disable closing. The memory will be freed when stringio goes out
+            # of scope.
+            stringio.close = lambda: None  # type: ignore[assignment]
+            namedstream = NamedStream(stringio, f'temp.{mda_format}', close=False, reset=False)
+            universe = mda_universe_from_nomad_atoms(atoms)
+            selection = universe.select_atoms("all")
+            selection.write(namedstream)
+        else:
+            raise ValueError("No reader for filetype.")
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

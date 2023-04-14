@@ -25,6 +25,7 @@ from matid.symmetry.wyckoffset import WyckoffSet  # pylint: disable=import-error
 from nomad.units import ureg
 from nomad import atomutils
 from nomad.utils import hash
+from nomad.normalizing.common import ase_atoms_from_nomad_atoms, ase_atoms_from_structure
 from tests.normalizing.conftest import get_template_for_structure
 
 
@@ -177,25 +178,6 @@ def test_material_2d(two_d):
     assert material.n_elements == 1
     assert material.symmetry is None
 
-    # Conventional structure
-    conv = two_d.results.properties.structures.structure_conventional
-    assert_structure(conv)
-    assert conv.n_sites == 2
-    assert conv.species_at_sites == ['C', 'C']
-    assert np.array_equal(conv.dimension_types, [1, 1, 0])
-    assert conv.lattice_parameters.a.to(ureg.angstrom).magnitude == pytest.approx(2.461, abs=1e-3)
-    assert conv.lattice_parameters.b.to(ureg.angstrom).magnitude == pytest.approx(2.461, abs=1e-3)
-    assert conv.lattice_parameters.c.to(ureg.angstrom).magnitude == 0
-    assert conv.lattice_parameters.alpha is None
-    assert conv.lattice_parameters.beta is None
-    assert conv.lattice_parameters.gamma.magnitude == pytest.approx(120 / 180 * np.pi)
-
-    # Original structure
-    assert_structure(two_d.results.properties.structures.structure_original)
-
-    # Primitive structure
-    assert_structure(two_d.results.properties.structures.structure_primitive)
-
 
 def test_material_surface(surface):
     material = surface.results.material
@@ -206,9 +188,6 @@ def test_material_surface(surface):
     assert material.compound_type is None
     assert material.material_name is None
     assert material.symmetry is None
-
-    properties = surface.results.properties
-    assert_structure(properties.structures.structure_original)
 
 
 def test_material_bulk(bulk):
@@ -540,25 +519,24 @@ two_d_swap_expected = Atoms(
 @pytest.mark.parametrize(
     'atoms, expected',
     [
-        # 1D with cell boundary in the middle of the structure
-        (one_d_split, one_d_split_expected),
-        # 2D with cell boundary in the middle of the structure
-        (two_d_split, two_d_split_expected),
-        # 2D with cell where the nonperiodic axis is not last by default in the
-        # conventional cell.
-        (two_d_swap, two_d_swap_expected),
+        pytest.param(one_d_split, one_d_split_expected, id='1D with cell boundary in the middle of the structure'),
+        pytest.param(two_d_split, two_d_split_expected, id='2D with cell boundary in the middle of the structure'),
+        pytest.param(two_d_swap, two_d_swap_expected, id='2D cell where the nonperiodic axis is not last by default in the conventional cell.'),
     ]
 )
 def test_conventional_structure(atoms, expected):
     '''Tests that the conventional structure has the correct form.
     '''
     entry = get_template_for_structure(atoms)
-    structure_conventional = entry.results.properties.structures.structure_conventional
-    pos = structure_conventional.cartesian_site_positions.to(ureg.angstrom).magnitude
-    cell = structure_conventional.lattice_vectors.to(ureg.angstrom).magnitude
-    pbc = np.array(structure_conventional.dimension_types, dtype=bool)
+    topology = entry.results.material.topology
+    if topology:
+        for top in topology:
+            if top.label == 'conventional cell':
+                conv = ase_atoms_from_nomad_atoms(top.atoms)
+    else:
+        conv = ase_atoms_from_structure(entry.results.properties.structures.structure_conventional)
 
-    assert np.array_equal(pbc, expected.get_pbc())
-    assert np.allclose(pos, expected.get_positions())
-    assert np.array_equal(structure_conventional.species_at_sites, expected.get_chemical_symbols())
-    assert np.allclose(cell, expected.get_cell())
+    assert np.array_equal(conv.get_pbc(), expected.get_pbc())
+    assert np.allclose(conv.get_positions(), expected.get_positions())
+    assert np.array_equal(conv.get_chemical_symbols(), expected.get_chemical_symbols())
+    assert np.allclose(conv.get_cell(), expected.get_cell())
