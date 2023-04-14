@@ -20,23 +20,27 @@ import numpy as np
 from collections import defaultdict
 import pytest
 
-from tests.normalizing.conftest import (
+from nomad.units import ureg
+from tests.normalizing.conftest import (  # pylint: disable=unused-import
     get_template_for_structure,
     get_template_topology,
-    single_Cu_surface_atoms,
-    single_Cu_surface_topology,
-    single_Cr_surface_atoms,
-    single_Cr_surface_topology,
-    stacked_Cu_Ni_surface,
-    single_2D_graphene_layer_atoms,
-    single_2D_graphene_layer_topology,
-    single_2D_BN_layer_atoms,
-    single_2D_BN_layer_topology,
-    single_2D_MoS2_layer_atoms,
-    single_2D_MoS2_layer_topology,
-    stacked_C_BN_2D_layers
+    conv_bcc,
+    conv_fcc,
+    rattle,
+    stack,
+    surf,
+    single_cu_surface_topology,
+    single_cr_surface_topology,
+    stacked_cu_ni_surface_topology,
+    graphene,
+    graphene_topology,
+    boron_nitride,
+    boron_nitride_topology,
+    mos2,
+    mos2_topology,
+    stacked_graphene_boron_nitride_topology,
+    projection
 )
-from tests.normalizing.conftest import projection  # pylint: disable=unused-import
 
 
 def assert_topology(topology):
@@ -81,7 +85,6 @@ def test_topology_calculation(pbc):
 
     # Test the original structure
     original = topology[0]
-    assert original.structural_type == 'unavailable'
     assert original.atoms_ref.positions.shape == (6, 3)
     assert len(original.atoms_ref.labels) == 6
     assert original.atoms_ref.lattice_vectors.shape == (3, 3)
@@ -165,26 +168,61 @@ def test_no_topology(fixture, request):
 
 @pytest.mark.skip
 @pytest.mark.parametrize('surface, ref_topologies', [
-    pytest.param(single_Cu_surface_atoms()[0], single_Cu_surface_topology(),
+    pytest.param(rattle(surf(conv_fcc('Cu'), [1, 0, 0])), single_cu_surface_topology(),
                  id='single surface Cu FCC 100'),
-    pytest.param(single_Cu_surface_atoms()[1], single_Cu_surface_topology(),
+    pytest.param(rattle(surf(conv_fcc('Cu'), [1, 1, 0])), single_cu_surface_topology(),
                  id='single surface Cu FCC 110'),
-    pytest.param(single_Cr_surface_atoms()[0], single_Cr_surface_topology(),
+    pytest.param(rattle(surf(conv_bcc('Cr'), [1, 0, 0])), single_cr_surface_topology(),
                  id='single surface Cr BCC 100'),
-    pytest.param(single_Cr_surface_atoms()[1], single_Cr_surface_topology(),
+    pytest.param(rattle(surf(conv_bcc('Cr'), [1, 1, 0])), single_cr_surface_topology(),
                  id='single surface Cr BCC 110'),
-    pytest.param(stacked_Cu_Ni_surface()[0], stacked_Cu_Ni_surface()[1],
-                 id='stacked surfaces of Cu and Ni'),
-    pytest.param(single_2D_graphene_layer_atoms(), single_2D_graphene_layer_topology(),
+    pytest.param(rattle(
+        stack(
+            surf(conv_fcc('Cu'), [1, 0, 0], vacuum=0),
+            surf(conv_fcc('Ni'), [1, 0, 0], vacuum=0)
+        )),
+        stacked_cu_ni_surface_topology(),
+        id='stacked surfaces of Cu and Ni'),
+    pytest.param(rattle(graphene()), graphene_topology(),
                  id='single 2D layer of graphene'),
-    pytest.param(single_2D_BN_layer_atoms(), single_2D_BN_layer_topology(),
+    pytest.param(rattle(boron_nitride()), boron_nitride_topology(),
                  id='single 2D layer of BN'),
-    pytest.param(single_2D_MoS2_layer_atoms(), single_2D_MoS2_layer_topology(),
+    pytest.param(rattle(mos2()), mos2_topology(),
                  id='single 2D layer of MoS2'),
-    pytest.param(stacked_C_BN_2D_layers()[0], stacked_C_BN_2D_layers()[1],
-                 id='stacked layer of BN and C')
+    pytest.param(rattle(
+        stack(
+            graphene(),
+            boron_nitride()
+        )),
+        stacked_graphene_boron_nitride_topology(),
+        id='stacked layer of BN and C'
+    )
 ])
-def test_surface_2D_topology(surface, ref_topologies):
+def test_2D_topology(surface, ref_topologies):
+
+    def compare_section(real, ref):
+        """Used to compare two metainfo sections."""
+        for name in ref.m_def.all_quantities.keys():
+            compare_quantity(name, real, ref)
+
+    def compare_quantity(name, value, ref):
+        """Used to compare two metainfo quantities."""
+        real_value = getattr(value, name)
+        ref_value = getattr(ref, name)
+        if ref_value is None:
+            assert real_value is None
+        elif isinstance(ref_value, ureg.Quantity):
+            assert real_value.magnitude == pytest.approx(ref_value.magnitude, rel=0.01, abs=0)
+        elif isinstance(ref_value, (np.ndarray, list)):
+            real_array = np.array(real_value)
+            ref_array = np.array(ref_value)
+            if ref_array.dtype == bool:
+                assert np.array_equal(real_array, ref_array)
+            else:
+                assert np.isclose(real_array, ref_array, rtol=0.01, atol=0)
+        else:
+            raise ValueError("Could not compare values.")
+
     entry_archive = get_template_for_structure(surface)
     topology = entry_archive.results.material.topology
     assert_topology(topology)
@@ -209,12 +247,7 @@ def test_surface_2D_topology(surface, ref_topologies):
 
         if subsystem_topology.label == 'conventional cell':
             # Cell
-            ref_cell = ref_topologies[ref_index].cell
-            cell = subsystem_topology.cell
-            if ref_structural_type == '2D':
-                assert np.allclose(list(cell.values())[:4], list(ref_cell.values()), rtol=1e-05, atol=1e-9)
-            else:
-                assert np.allclose(list(cell.values())[:6], list(ref_cell.values()), rtol=1e-05, atol=1e-9)
+            compare_section(subsystem_topology.cell, ref_topologies[ref_index].cell)
 
             # Symmetry
             if ref_topologies[ref_index].symmetry:
@@ -264,7 +297,7 @@ def test_surface_2D_topology(surface, ref_topologies):
                     assert ref_atoms_property == atoms_property
 
         elif subsystem_topology.label == 'subsystem':
-            # Indices: passes if the index overlapp is large enough
+            # Indices: passes if the index overlap is large enough
             ref_indices = ref_topologies[ref_index].indices
             indices = subsystem_topology.indices[0]
             indices_overlap = set(ref_indices).intersection(set(indices))
@@ -290,7 +323,6 @@ def test_topology_projection(projection):
     assert len(topology) == 2
     assert topology[0].label == 'original'
     assert topology[1].label == system.atoms_group[-1].label
-    assert topology[0].structural_type == 'bulk'
     assert topology[1].structural_type == 'group'
     assert len(topology[0].child_systems) == 1
     assert topology[0].child_systems[-1] == topology[1].system_id

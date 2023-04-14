@@ -16,21 +16,16 @@
 # limitations under the License.
 #
 
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from collections import defaultdict
 
 from ase import Atoms
 from ase.data import chemical_symbols
-from ase.geometry.cell import complete_cell
 import numpy as np
-import matid.geometry  # pylint: disable=import-error
-from matid.classification.structureclusterer import StructureClusterer  # pylint: disable=import-error
-from matid import Classifier  # pylint: disable=import-error
-from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D, Class2D, Unknown  # pylint: disable=import-error
+from matid.clustering import Clusterer, Cluster, Classification  # pylint: disable=import-error
 from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer  # pylint: disable=import-error
 
 from nomad import atomutils
-from nomad.units import ureg
 from nomad.atomutils import Formula
 from nomad.datamodel.results import Symmetry, Material, System, Relation, Prototype
 from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
@@ -65,11 +60,6 @@ def get_topology_original(material: Material, atoms: NOMADAtoms = None) -> Syste
         method='parser',
         label='original',
         description='A representative system chosen from the original simulation.',
-        material_id=material.material_id,
-        material_name=material.material_name,
-        structural_type=material.structural_type,
-        functional_type=material.functional_type,
-        compound_type=material.compound_type,
         chemical_formula_hill=material.chemical_formula_hill,
         chemical_formula_iupac=material.chemical_formula_iupac,
         chemical_formula_anonymous=material.chemical_formula_anonymous,
@@ -250,11 +240,13 @@ class TopologyNormalizer():
             atoms = ase_atoms_from_nomad_atoms(nomad_atoms)
         except Exception:
             return None
-        # TODO: MatID does not currently support non-periodic structures
-        if not any(atoms.pbc):
+        # TODO: MatID does not currently support non-periodic structures or
+        # structures with zero-sized cell
+        cell = atoms.get_cell()
+        if not any(atoms.pbc) or cell is None or cell.volume == 0:
             return None
-        # TODO: Currently the topology creation is skipped completely. Needs to
-        # be re-enabled once we work out performance problems.
+        # TODO: The matid processing is currently completely skipped. Should be
+        # enabled after more testing.
         n_atoms = len(atoms)
         if n_atoms > 0:
             return None
@@ -266,22 +258,25 @@ class TopologyNormalizer():
 
         # Add all meaningful clusters to the topology
         clusters = self._perform_matid_clustering(atoms)
-        cluster_indices_list, cluster_symmetries = self._filter_clusters(clusters)
-        for indices, symm in zip(cluster_indices_list, cluster_symmetries):
-            subsystem_atoms = atoms[indices]
-            subsystem = self._create_subsystem(subsystem_atoms, indices)
+        filtered_clusters = self._filter_clusters(clusters)
+        for cluster in filtered_clusters:
+            subsystem = self._create_subsystem(cluster)
             structural_type = subsystem.structural_type
-            # TODO: Currently only 2D and surface subsystems are included
+            # Currently only 2D and surface subsystems are included
             if structural_type in {'surface', '2D'}:
                 add_system(subsystem, topology, original)
                 add_system_info(subsystem, topology)
-                conventional_cell = self._create_conv_cell_system(symm, structural_type)
-                add_system(conventional_cell, topology, subsystem)
-                add_system_info(conventional_cell, topology)
+                try:
+                    conventional_cell = self._create_conv_cell_system(cluster, structural_type)
+                except Exception as e:
+                    raise ValueError("conventional cell infomation could not be created") from e
+                else:
+                    add_system(conventional_cell, topology, subsystem)
+                    add_system_info(conventional_cell, topology)
 
         return list(topology.values())
 
-    def _create_subsystem(self, atoms: Atoms, indices: List[int]) -> System:
+    def _create_subsystem(self, cluster: Cluster) -> System:
         '''
         Creates a new subsystem as detected by MatID.
         '''
@@ -290,13 +285,31 @@ class TopologyNormalizer():
             label='subsystem',
             description='Automatically detected subsystem.',
             system_relation=Relation(type='subsystem'),
-            indices=[indices]
+            indices=[list(cluster.indices)]
         )
-        subsystem.structural_type = self._system_type_analysis(atoms)
+
+        classification = 'unavailable'
+        try:
+            classification = cluster.classification()
+        except Exception as e:
+            self.logger.error(
+                'matid project system classification failed', exc_info=e, error=str(e)
+            )
+        type_map = {
+            Classification.Class3D: 'bulk',
+            Classification.Atom: 'atom',
+            Classification.Class0D: 'molecule / cluster',
+            Classification.Class1D: '1D',
+            Classification.Class2D: '2D',
+            Classification.Surface: 'surface',
+            Classification.Material2D: '2D',
+            Classification.Unknown: 'unavailable'
+        }
+        subsystem.structural_type = type_map.get(classification, 'unavailable')
 
         return subsystem
 
-    def _create_conv_cell_system(self, symm, structural_type: str):
+    def _create_conv_cell_system(self, cluster: Cluster, structural_type: str):
         '''
         Creates a new topology item for a conventional cell.
         '''
@@ -305,27 +318,18 @@ class TopologyNormalizer():
             label='conventional cell',
             system_relation=Relation(type='subsystem'),
         )
-        conv_system = symm.get_conventional_system()
         if structural_type == 'surface':
-            symmsystem.description = 'The conventional cell of the bulk material from which the surface is constructed from.'
-            symmsystem.structural_type = 'bulk'
-            symmsystem.atoms = nomad_atoms_from_ase_atoms(conv_system)
+            self._add_conventional_surface(cluster, symmsystem)
         elif structural_type == '2D':
-            symmsystem.description = 'The conventional cell of the 2D material.'
-            symmsystem.structural_type = '2D'
-            symmsystem.atoms = nomad_atoms_from_ase_atoms(conv_system)
+            self._add_conventional_2d(cluster, symmsystem)
 
-        if structural_type == 'surface':
-            symmsystem = self._create_symmsystem_surface(symm, symmsystem)
-        elif structural_type == '2D':
-            symmsystem = self._create_symmsystem_2D(symm, symmsystem)
         return symmsystem
 
     def _perform_matid_clustering(self, atoms: Atoms) -> List:
         '''
         Performs the clustering with MatID
         '''
-        clusterer = StructureClusterer()
+        clusterer = Clusterer()
         clusters = clusterer.get_clusters(
             atoms,
             max_cell_size=6,
@@ -336,10 +340,9 @@ class TopologyNormalizer():
         )
         return clusters
 
-    def _filter_clusters(self, clusters: StructureClusterer) -> Tuple[List[List[int]], List[Symmetry]]:
+    def _filter_clusters(self, clusters: List[Cluster]) -> List[Cluster]:
         '''
-        Filters all clusters < 2 atoms and creates a cluster indices list of the remaining
-        clusters
+        Filter out clusters that do not have a meaningful representation in NOMAD.
         '''
         # TODO: Add proper decision mechanism for identifying when the detected
         # cluster are OK. For now, we filter out cluster that have very small
@@ -350,63 +353,18 @@ class TopologyNormalizer():
         # only on the number of atoms in the cluster. Maybe the cluster given
         # out by MatID could already be grouped a bit better, e.g. all outliers
         # would be grouped into one cluster?
-        filtered_cluster = filter(lambda x: len(x.indices) > 1, clusters)
-        cluster_indices_list: List[List[int]] = []
-        cluster_symmetries: List[Symmetry] = []
-        for cluster in filtered_cluster:
-            indices = list(cluster.indices)
-            cluster_indices_list += [indices]
-            regions = cluster.regions
-            number_of_atoms: List[int] = []
-            for region in regions:
-                if region:
-                    number_of_atoms.append(region.cell.get_number_of_atoms())
-                else:
-                    number_of_atoms.append(-1)
+        return list(filter(lambda x: len(x.indices) > 1, clusters))
 
-            # If there are 2 regions with the same size, the one with the smaller index is selected
-            largest_region_index = number_of_atoms.index(max(number_of_atoms))
-            largest_region_system = regions[largest_region_index].cell
-
-            # TODO: only SymmetryAnalyzer for 2D and surface
-            symm = SymmetryAnalyzer(largest_region_system)
-            cluster_symmetries += [symm]
-        return cluster_indices_list, cluster_symmetries
-
-    def _system_type_analysis(self, atoms: Atoms) -> matid.classifications:
-        '''
-        Classifies ase.atoms and returns the MatID system type as a string.
-        '''
-        system_types = {Class3D: 'bulk',
-                        Atom: 'atom',
-                        Class0D: 'molecule / cluster',
-                        Class1D: '1D',
-                        Class2D: 'unavailable',
-                        Surface: 'surface',
-                        Material2D: '2D',
-                        Unknown: 'unavailable'}
-        try:
-            classifier = Classifier(radii='covalent', cluster_threshold=1)
-            cls = classifier.classify(atoms)
-        except Exception as e:
-            self.logger.error(
-                'matid project system classification failed', exc_info=e, error=str(e))
-            return 'unavailable'
-        else:
-            classification = type(cls)
-            try:
-                system_type = system_types[classification]
-            except Exception as e:
-                self.logger.error(
-                    'matid project system classification unavailable', exc_info=e, error=str(e))
-                system_type = 'unavailable'
-        return system_type
-
-    def _create_symmsystem_surface(self, symm: SymmetryAnalyzer, subsystem: System) -> System:
+    def _add_conventional_surface(self, cluster: Cluster, subsystem: System) -> None:
         '''
         Creates the subsystem with the symmetry information of the conventional cell
         '''
+        cell = cluster.cell()
+        symm = SymmetryAnalyzer(cell)
+        subsystem.description = 'The conventional cell of the bulk material from which the surface is constructed from.'
+        subsystem.structural_type = 'bulk'
         conv_system = symm.get_conventional_system()
+        subsystem.atoms = nomad_atoms_from_ase_atoms(conv_system)
         prototype = self._create_prototype(symm, conv_system)
         spg_number = symm.get_space_group_number()
         subsystem.prototype = prototype
@@ -416,36 +374,35 @@ class TopologyNormalizer():
         material_id = material_id_bulk(spg_number, wyckoff_sets)
         subsystem.material_id = material_id
         subsystem.symmetry = symmetry
-        return subsystem
 
-    def _create_symmsystem_2D(self, symm: SymmetryAnalyzer, subsystem: System) -> System:
+    def _add_conventional_2d(self, cluster: Cluster, subsystem: System) -> None:
         '''
         Creates the subsystem with the symmetry information of the conventional cell
         '''
-        subsystem_atoms = Atoms(
-            symbols=subsystem.atoms.labels,
-            positions=subsystem.atoms.positions.to(ureg.angstrom),
-            cell=complete_cell(subsystem.atoms.lattice_vectors.to(ureg.angstrom)),
-            pbc=np.array(subsystem.atoms.periodic, dtype=bool)
-        )
-        conv_atoms, __, wyckoff_sets, spg_number = structures_2d(subsystem_atoms)
+        cell = cluster.cell()
+        subsystem.description = 'The conventional cell of the 2D material.'
+        subsystem.structural_type = '2D'
+        conv_atoms, _, wyckoff_sets, spg_number = structures_2d(cell)
+
         subsystem.cell = cell_from_ase_atoms(conv_atoms)
+        subsystem.atoms = nomad_atoms_from_ase_atoms(conv_atoms)
 
         # Here we zero out the irrelevant lattice parameters to correctly handle
         # 2D systems with nonzero thickness (e.g. MoS2).
-        if subsystem.cell.c:
-            subsystem.cell.c = 0.0
-        if subsystem.cell.alpha:
+        if subsystem.cell.c is not None:
+            subsystem.cell.c = None
+        if subsystem.cell.alpha is not None:
             subsystem.cell.alpha = None
-        if subsystem.cell.beta:
+        if subsystem.cell.beta is not None:
             subsystem.cell.beta = None
+        if subsystem.cell.atomic_density is not None:
+            subsystem.cell.atomic_density = None
+        if subsystem.cell.mass_density is not None:
+            subsystem.cell.mass_density = None
+        if subsystem.cell.volume is not None:
+            subsystem.cell.volume = None
 
-        prototype = self._create_prototype(symm, conv_atoms)
-        subsystem.prototype = prototype
         subsystem.material_id = material_id_2d(spg_number, wyckoff_sets)
-        symmetry = None
-        subsystem.symmetry = symmetry
-        return subsystem
 
     def _create_symmetry(self, symm: SymmetryAnalyzer) -> Symmetry:
         international_short = symm.get_space_group_international_short()

@@ -1848,6 +1848,18 @@
     "unit": "kilogram / meter ** 3",
     "aggregatable": false
   },
+  "results.material.topology.cell.pbc": {
+    "name": "pbc",
+    "description": "Periodic boundary conditions of the cell lattice vectors, given in order a, b, c.",
+    "type": {
+      "type_kind": "python",
+      "type_data": "bool"
+    },
+    "shape": [
+      3
+    ],
+    "aggregatable": true
+  },
   "results.material.topology.symmetry.bravais_lattice": {
     "name": "bravais_lattice",
     "description": "Identifier for the Bravais lattice in Pearson notation. The first lowercase letter\nidentifies the crystal family and can be one of the following: a (triclinic), b\n(monoclinic), o (orthorhombic), t (tetragonal), h (hexagonal) or c (cubic). The\nsecond uppercase letter identifies the centring and can be one of the following: P\n(primitive), S (face centred), I (body centred), R (rhombohedral centring) or F\n(all faces centred).",

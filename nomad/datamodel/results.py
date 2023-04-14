@@ -206,14 +206,14 @@ class BandGap(MSection):
         '''
     )
     index = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         description='''
         Index of the data, e.g. spin channel index.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     value = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='joule',
         description='''
@@ -242,7 +242,7 @@ class BandGapElectronic(BandGap):
     )
 
     energy_highest_occupied = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='joule',
         shape=[],
         description='''
@@ -250,7 +250,7 @@ class BandGapElectronic(BandGap):
         ''',
     )
     energy_lowest_unoccupied = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='joule',
         shape=[],
         description='''
@@ -266,7 +266,7 @@ class LatticeParameters(MSection):
         ''',
     )
     a = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='m',
         description='''
         Length of the first basis vector.
@@ -274,7 +274,7 @@ class LatticeParameters(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     b = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='m',
         description='''
         Length of the second basis vector.
@@ -282,7 +282,7 @@ class LatticeParameters(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     c = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='m',
         description='''
         Length of the third basis vector.
@@ -290,7 +290,7 @@ class LatticeParameters(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     alpha = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='radian',
         description='''
         Angle between second and third basis vector.
@@ -298,7 +298,7 @@ class LatticeParameters(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     beta = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='radian',
         description='''
         Angle between first and third basis vector.
@@ -306,7 +306,7 @@ class LatticeParameters(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     gamma = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='radian',
         description='''
         Angle between first and second basis vector.
@@ -342,19 +342,19 @@ class WyckoffSet(MSection):
         '''
     )
     x = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         description='''
         The free parameter x if present.
         '''
     )
     y = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         description='''
         The free parameter y if present.
         '''
     )
     z = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         description='''
         The free parameter z if present.
         '''
@@ -391,7 +391,7 @@ class Structure(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     lattice_vectors = Quantity(
-        type=np.dtype('float64'),
+        type=np.float64,
         shape=[3, 3],
         unit='m',
         description='''
@@ -399,7 +399,7 @@ class Structure(MSection):
         '''
     )
     cartesian_site_positions = Quantity(
-        type=np.dtype('float64'),
+        type=np.float64,
         shape=['n_sites', 3],
         unit='m',
         description='''
@@ -427,7 +427,7 @@ class Structure(MSection):
         '''
     )
     cell_volume = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='m ** 3',
         description='''
         Volume of the cell.
@@ -435,14 +435,14 @@ class Structure(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     atomic_density = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='1 / m ** 3',
         description='''
         Atomic density of the material (atoms/volume).'
         '''
     )
     mass_density = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='kg / m ** 3',
         description='''
         Mass density of the material.
@@ -526,7 +526,7 @@ class Symmetry(MSection):
         ],
     )
     hall_number = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         The Hall number for this system.
@@ -556,7 +556,7 @@ class Symmetry(MSection):
         ],
     )
     space_group_number = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Specifies the International Union of Crystallography (IUC) number of the 3D space
@@ -627,7 +627,7 @@ class Cell(MSection):
         ''',
     )
     a = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='m',
         description='''
         Length of the first basis vector.
@@ -635,7 +635,7 @@ class Cell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     b = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='m',
         description='''
         Length of the second basis vector.
@@ -643,7 +643,7 @@ class Cell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     c = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='m',
         description='''
         Length of the third basis vector.
@@ -651,7 +651,7 @@ class Cell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     alpha = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='radian',
         description='''
         Angle between second and third basis vector.
@@ -659,7 +659,7 @@ class Cell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     beta = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='radian',
         description='''
         Angle between first and third basis vector.
@@ -667,7 +667,7 @@ class Cell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     gamma = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='radian',
         description='''
         Angle between first and second basis vector.
@@ -675,7 +675,7 @@ class Cell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     volume = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='m ** 3',
         description='''
         Volume of the cell.
@@ -683,7 +683,7 @@ class Cell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     atomic_density = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='1 / m ** 3',
         description='''
         Atomic density of the material (atoms/volume).'
@@ -691,10 +691,18 @@ class Cell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     mass_density = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='kg / m ** 3',
         description='''
         Mass density of the material.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    pbc = Quantity(
+        type=bool,
+        shape=[3],
+        description='''
+        Periodic boundary conditions of the cell lattice vectors, given in order a, b, c.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
@@ -789,7 +797,7 @@ class SymmetryNew(MSection):
         ],
     )
     hall_number = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         The Hall number for this system.
@@ -819,7 +827,7 @@ class SymmetryNew(MSection):
         ],
     )
     space_group_number = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Specifies the International Union of Crystallography (IUC) number of the 3D space
@@ -868,7 +876,7 @@ class SymmetryNew(MSection):
         '''
     )
     origin_shift = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3],
         description='''
         Vector $\\mathbf{p}$ from the origin of the standardized system to the origin of
@@ -879,7 +887,7 @@ class SymmetryNew(MSection):
         '''
     )
     transformation_matrix = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3, 3],
         description='''
         Matrix $\\mathbf{P}$ that is used to transform the standardized coordinates to the
@@ -914,8 +922,8 @@ class Relation(MSection):
 
 
 class System(MSection):
-    '''Describes a physical structure as identified in an entry. Can be a part
-    of a larger structural hierarchy, i.e. the topology.
+    '''Describes a physical system as identified in an entry. Can be a part of a
+    larger structural hierarchy.
     '''
     m_def = Section(
         description='''
@@ -1146,7 +1154,7 @@ class System(MSection):
         a_elasticsearch=Elasticsearch(material_type)
     )
     indices = Quantity(
-        type=np.dtype(np.int64),
+        type=np.int64,
         shape=['*', '*'],
         description='''
         Indices of the atoms belonging to this group. These indices refer to
@@ -1427,7 +1435,7 @@ class DFT(MSection):
         ]
     )
     exact_exchange_mixing_factor = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         description='Amount of exact exchange mixed in with the XC functional (value range = [0,1]).',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
@@ -1566,7 +1574,7 @@ class Precision(MSection):
         '''
     )
     k_line_density = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='m',
         description='''
@@ -1751,7 +1759,7 @@ class DOSElectronic(DOS):
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
     energy_fermi = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='joule',
         shape=[],
         description='''
@@ -1827,7 +1835,7 @@ class BandStructureElectronic(BandStructure):
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
     energy_fermi = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='joule',
         shape=[],
         description='''
@@ -1976,7 +1984,7 @@ class BulkModulus(MSection):
         ],
     )
     value = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         description='Bulk modulus value.',
         unit='pascal',
         a_elasticsearch=Elasticsearch(material_entry_type),
@@ -2002,7 +2010,7 @@ class ShearModulus(MSection):
         ],
     )
     value = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         description='Shear modulus value.',
         unit='pascal',
         a_elasticsearch=Elasticsearch(material_entry_type),
@@ -2087,7 +2095,7 @@ class QuantityDynamic(MSection):
         """
     )
     time = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='second',
         description="""
@@ -2096,7 +2104,7 @@ class QuantityDynamic(MSection):
         """,
     )
     time_step = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='second',
         description="""
         The time step between successive evaluations. Provide either
@@ -2104,7 +2112,7 @@ class QuantityDynamic(MSection):
         """,
     )
     time_start = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='second',
         description="""
         The time at which the evaluation started. Provide either this and
@@ -2120,7 +2128,7 @@ class VolumeDynamic(QuantityDynamic):
         """
     )
     value = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit="m ** 3",
         description="""
@@ -2136,7 +2144,7 @@ class PressureDynamic(QuantityDynamic):
         """
     )
     value = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit="pascal",
         description="""
@@ -2152,7 +2160,7 @@ class TemperatureDynamic(QuantityDynamic):
         """
     )
     value = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit="kelvin",
         description="""
@@ -2168,7 +2176,7 @@ class EnergyDynamic(QuantityDynamic):
         """
     )
     value = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit="joule",
         description="""
@@ -2322,7 +2330,7 @@ class SolarCell(MSection):
         '''
     )
     efficiency = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description='''
         Power conversion effciency of a solar cell in percentage %.
@@ -2330,7 +2338,7 @@ class SolarCell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
     fill_factor = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description='''
         Fill factor of a solar cell in absolute values (from 0 to 1).
@@ -2338,7 +2346,7 @@ class SolarCell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
     open_circuit_voltage = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='V',
         shape=[],
         description='''
@@ -2347,7 +2355,7 @@ class SolarCell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
     short_circuit_current_density = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit='A / m**2',
         shape=[],
         description='''
@@ -2356,7 +2364,7 @@ class SolarCell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
     illumination_intensity = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit=('W/m**2'),
         shape=[],
         description='''
@@ -2365,7 +2373,7 @@ class SolarCell(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type)
     )
     device_area = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit=('m**2'),
         shape=[],
         description='''
