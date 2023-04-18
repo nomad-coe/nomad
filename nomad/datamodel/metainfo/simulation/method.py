@@ -30,87 +30,193 @@ from ..common import FastAccess
 m_package = Package()
 
 
-class KMesh(MSection):
+class Mesh(MSection):
     '''
-    Contains the settings for a uniformly spaced k-point grid (if employed).
+    Contains the settings for a sampling mesh.
+    Supports uniformly-spaced meshes and symmetry-reduced representations.
     '''
 
     m_def = Section(validate=False)
+
+    dimensionality = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Dimensionality of the mesh.
+        ''')
+
+    sampling_method = Quantity(
+        type=MEnum(
+            'Gamma-centered', 'Monkhorst-Pack', 'Gamma-offcenter', 'Line-path',
+            'Equidistant', 'Logarithmic', 'Gauss-Legendre', 'Gauss-Laguerre'
+            'Clenshaw-Curtis', 'Newton-Cotes', 'Gauss-Hermite'
+        ),
+        shape=[],
+        description='''
+        Method used to generate the mesh:
+
+        | Name      | Description                      | Reference             |
+
+        | --------- | -------------------------------- | --------------------- |
+
+        | `'Gamma-centered'` | Regular mesh is centered around Gamma. No offset. |
+
+        | `'Monkhorst-Pack'` | Regular mesh with an offset of half the reciprocal lattice vector. |
+
+        | `'Gamma-offcenter'` | Regular mesh with an offset that is neither `'Gamma-centered'`, nor `'Monkhorst-Pack'`. |
+
+        | `'Line-path'` | Line path along high-symmetry points. Typically employed for simualting band structures. |
+
+        | `'Equidistant'`  | Equidistant 1D grid (also known as 'Newton-Cotes')                      |
+
+        | `'Logarithmic'`  | log distance 1D grid               |
+
+        | `'Gauss-Legendre'` | Quadrature rule for integration using Legendre polynomials |
+
+        | `'Gauss-Laguerre'` | Quadrature rule for integration using Laguerre polynomials |
+
+        | `'Clenshaw-Curtis'`  | Quadrature rule for integration using Chebyshev polynomials using discrete cosine transformations |
+
+        | `'Gauss-Hermite'`  | Quadrature rule for integration using Hermite polynomials |
+        ''')
 
     n_points = Quantity(
         type=np.int32,
         shape=[],
         description='''
-        Number of k points in the mesh (i.e. the k points used to evaluate energy_total).
+        Total number of points in the mesh, accounting for the multiplicities.
         ''')
 
     grid = Quantity(
         type=np.int32,
-        shape=[3],
+        shape=['dimensionality'],
         description='''
-        k-point grid used in notation [nx, ny, nz] in fractional coordinates.
-        ''')
-
-    generation_method = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Method used to generate the k points.
+        Amount of mesh point sampling along each axis, i.e. [nx, ny, nz].
         ''')
 
     points = Quantity(
-        type=np.float64,
-        shape=['n_points', 3],
+        type=np.complex128,
+        shape=['*', 'dimensionality'],
         description='''
-        List of all the k points in the $k$-point mesh. These are the k point used to
-        evaluate energy_total, and are in fractional coordinates (in the basis of the
-        reciprocal-lattice vectors).
+        List of all the points in the mesh.
+        ''')
+
+    multiplicities = Quantity(
+        type=np.float64,
+        shape=['*'],
+        description='''
+        The amount of times the same point reappears. These are accounted for in `n_points`.
+        A value larger than 1, typically indicates a symmtery operation that was applied to the mesh.
         ''')
 
     weights = Quantity(
         type=np.float64,
-        shape=['n_points'],
+        shape=['*'],
         description='''
-        Weights of all the k points in the $k$-point mesh. These are the weights for
-        k_mesh_points (i.e. the k point used to evaluate energy_total).
+        The frequency of times the same point reappears.
+        A value larger than 1, typically indicates a symmtery operation that was applied to the mesh.
         ''')
 
 
-class FrequencyMesh(MSection):
+class LinePathSegment(MSection):
     '''
-    Contains the settings for a uniformly spaced frequency-point grid.
+    Contains the settings for a single line path segment in a mesh.
     '''
 
     m_def = Section(validate=False)
 
-    type = Quantity(
+    start_point = Quantity(
         type=str,
         shape=[],
         description='''
-        Grid type.
+        Name of the hihg-symmetry starting point of the line path segment.
+        ''')
+
+    end_point = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of the high-symmetry end point of the line path segment.
         ''')
 
     n_points = Quantity(
         type=np.int32,
         shape=[],
         description='''
-        Number of frequency points in the mesh.
+        Number of points in the line path segment.
         ''')
 
-    values = Quantity(
+    points = Quantity(
+        type=np.float64,
+        shape=['*', 3],
+        description='''
+        List of all the points in the line path segment.
+        ''')
+
+
+class KMesh(Mesh):
+    '''
+    Contains the settings for a sampling mesh in 3D reciprocal space.
+    Supports uniformly-spaced meshes, line paths along high-symmetry points,
+    as well as symmetry-reduced and full representations.
+    '''
+
+    m_def = Section(validate=False)
+
+    offset = Quantity(
+        type=np.float64,
+        shape=[3],
+        description='''
+        Offset vector shifting the mesh with respect to a Gamma-centered case.
+        '''
+    )
+
+    all_points = Quantity(
+        type=np.dtype(np.float64),
+        shape=['*', 3],
+        description='''
+        Full list of the mesh points without any symmetry operations.
+        ''')
+
+    high_symmetry_points = Quantity(
+        type=str,
+        shape=['*'],
+        description='''
+        Named high symmetry points in the mesh.
+        ''')
+
+    line_path_segments = SubSection(sub_section=LinePathSegment.m_def, repeats=True)
+
+
+class FrequencyMesh(Mesh):
+    '''
+    Contains the settings for a sampling mesh in 1D frequency space, either real or imaginary.
+    '''
+
+    m_def = Section(validate=False)
+
+    points = Quantity(
         type=np.complex128,
-        shape=['n_points'],
+        shape=['n_points', 'dimensionality'],
         unit='joule',
         description='''
-        List of all the real+imag frequencies.
+        List of all the points in the mesh in joules.
         ''')
 
-    weights = Quantity(
+    smearing = Quantity(
         type=np.float64,
-        shape=['n_points'],
+        shape=[],
         description='''
-        Weights of all the frequencies.
+        Numerical smearing parameter used for convolutions.
         ''')
+
+
+class TimeMesh(Mesh):
+    '''
+    Contains the settings for a sampling mesh in 1D time space, either real or imaginary.
+    '''
+
+    m_def = Section(validate=False)
 
     smearing = Quantity(
         type=np.float64,
@@ -810,8 +916,6 @@ class Wannier(MSection):
 
     m_def = Section(validate=False)
 
-    k_mesh = SubSection(sub_section=KMesh.m_def, repeats=False)
-
     n_projected_orbitals = Quantity(
         type=np.int32,
         description='''
@@ -1023,7 +1127,7 @@ class ExcitedStateMethodology(MSection):
         Lifetime broadening applied to the spectra in full-width at half maximum.
         ''')
 
-    # Used to define the k_mesh of sub_sections that are not base classes yet, e.g., screening
+    # Used to define the meshes of sub_sections that are not base classes yet, e.g., screening
     k_mesh = SubSection(sub_section=KMesh.m_def)
 
     q_mesh = SubSection(sub_section=KMesh.m_def)
@@ -1182,20 +1286,6 @@ class DMFT(MSection):
         | `'ferromagnetic'`     | ferromagnetic state     |
 
         | `'antiferromagnetic'` | antiferromagnetic state |
-        ''')
-
-    n_matsubara_freq = Quantity(
-        type=np.int32,
-        shape=[],
-        description='''
-        Number of Matsubara frequencies (imaginary frequencies).
-        ''')
-
-    n_tau = Quantity(
-        type=np.int32,
-        shape=[],
-        description='''
-        Number of tau (imaginary times).
         ''')
 
     impurity_solver = Quantity(
@@ -1589,6 +1679,10 @@ class Method(ArchiveSection):
     force_field = SubSection(sub_section=ForceField.m_def)
 
     k_mesh = SubSection(sub_section=KMesh.m_def)
+
+    frequency_mesh = SubSection(sub_section=FrequencyMesh.m_def)
+
+    time_mesh = SubSection(sub_section=TimeMesh.m_def)
 
     electronic = SubSection(sub_section=Electronic.m_def)
 
