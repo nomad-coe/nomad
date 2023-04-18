@@ -639,7 +639,8 @@ parsers = [
         metadata_path=f'{prefix_electronic}/w2dynamics/metadata.yaml',
         mainfile_name_re=(r'^.*\.(h5|hdf5)$'),
         mainfile_mime_re=r'(application/x-hdf)',
-        mainfile_binary_header_re=br'^\x89HDF[\s\S]*general.nat'
+        mainfile_binary_header_re=br'^\x89HDF',
+        mainfile_contents_dict={'__has_all_keys': ['.axes', '.config', '.quantities']}
     ),
     MatchingParserInterface(
         'electronicparsers.SolidDMFTParser',

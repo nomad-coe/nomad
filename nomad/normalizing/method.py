@@ -20,7 +20,7 @@ from ase.dft.kpoints import monkhorst_pack, get_monkhorst_pack_size_and_offset
 from collections import OrderedDict
 import re
 import numpy as np
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union
 
 from nomad.units import ureg
 from nomad.metainfo import Section
@@ -274,31 +274,41 @@ class MethodNormalizer():
         elif method_name == 'BSE':
             method.method_name = 'BSE'
 
-        # Fill k_mesh section
-        k_mesh = self.run.m_xpath('method[-1].k_mesh')
-        points = self.run.m_xpath('calculation[-1].eigenvalues[-1].kpoints')
-        if k_mesh is None:
-            k_mesh = KMesh()
-            if points is not None:
-                k_mesh.points = points
+        # Fill meshes
+        if self.run.m_xpath('method[-1].frequency_mesh'):
+            freq_mesh = self.run.method[-1].frequency_mesh
+            freq_mesh.dimensionality = 1 if freq_mesh.dimensionality is None else freq_mesh.dimensionality
+
+        if self.run.m_xpath('method[-1].time_mesh'):
+            time_mesh = self.run.method[-1].time_mesh
+            time_mesh.dimensionality = 1 if time_mesh.dimensionality is None else time_mesh.dimensionality
+
+        if self.run.m_xpath('method[-1].k_mesh'):
+            k_mesh = self.run.method[-1].k_mesh
+            k_mesh.dimensionality = 3 if not k_mesh.dimensionality else k_mesh.dimensionality
+            # Normalize k mesh from grid sampling
+            if k_mesh.grid is not None:
+                k_mesh.n_points = np.prod(k_mesh.grid) if not k_mesh.n_points else k_mesh.n_points
+                if k_mesh.sampling_method == 'Gamma-centered':
+                    k_mesh.points = np.meshgrid(*[np.linspace(0, 1, n) for n in k_mesh.grid])  # this assumes a gamma-centered grid: we really need the `sampling_method` to be sure
+                elif k_mesh.sampling_method == 'Monkhorst-Pack':
+                    try:
+                        k_mesh.points += monkhorst_pack(k_mesh.grid)
+                    except ValueError:
+                        pass  # this is a quick workaround: k_mesh.grid should be symmetry reduced
+        else:
+            if self.run.m_xpath('calculation[-1].eigenvalues[-1].kpoints') is not None:
+                k_mesh = self.run.method[-1].m_create(KMesh)
+                k_mesh.points = self.run.calculation[-1].eigenvalues[-1].kpoints
                 k_mesh.n_points = len(k_mesh.points) if not k_mesh.n_points else k_mesh.n_points
                 k_mesh.grid = [len(set(k_mesh.points[:, i])) for i in range(3)]
-                if not k_mesh.generation_method:
+                if not k_mesh.sampling_method:
                     try:  # TODO doublecheck
                         _, k_grid_offset = get_monkhorst_pack_size_and_offset(k_mesh.points)
                         if not k_grid_offset.all():
-                            k_mesh.generation_method = 'Monkhorst-Pack'
+                            k_mesh.sampling_method = 'Monkhorst-Pack'
                     except ValueError:
-                        k_mesh.generation_method = 'Gamma-centered'
-            elif k_mesh.grid is not None:
-                k_mesh.n_points = np.prod(k_mesh.grid) if not k_mesh.n_points else k_mesh.n_points
-                if k_mesh.generation_method == 'Gamma-centered':
-                    k_mesh.points = np.meshgrid(*[np.linspace(0, 1, n) for n in k_mesh.grid])  # this assumes a gamma-centered grid: we really need the `generation_method` to be sure
-                elif k_mesh.generation_method == 'Monkhorst-Pack':
-                    k_mesh.points += monkhorst_pack(k_mesh.grid)
-                # TODO allow shift to be specified in k_mesh
-            if self.run.method and self.run.m_xpath('method[-1].k_mesh') is None:  # save the KMesh object only if it was not already present
-                self.run.method[-1].k_mesh = k_mesh
+                        k_mesh.sampling_method = 'Gamma-centered'
 
         # Fill the presicion section
         k_lattices = self.run.m_xpath('system[-1].atoms.lattice_vectors_reciprocal')
@@ -316,15 +326,22 @@ class MethodNormalizer():
         method.simulation = simulation
         return method
 
-    def calc_k_line_density(self, k_lattices: List[List[float]], nks: List[int]) -> Optional[float]:
+    def calc_k_line_density(self, k_lattices: List[List[float]],
+                            nks: List[int]) -> Union[float, None]:
         '''
         Compute the lowest k_line_density value:
         k_line_density (for a uniformly spaced grid) is the number of k-points per reciprocal length unit
         '''
-        struc_type = self.material.structural_type
-        if k_lattices is None or nks is None:
+        # Check consistency of input
+        try:
+            if len(k_lattices) != 3 or len(nks) != 3:
+                return None
+        except (TypeError, ValueError):
             return None
-        elif struc_type == 'bulk':
+
+        # Compute k_line_density
+        struc_type = self.material.structural_type
+        if struc_type == 'bulk':
             return min([nk / (np.linalg.norm(k_lattice))
                         for k_lattice, nk in zip(k_lattices, nks)])
         else:
