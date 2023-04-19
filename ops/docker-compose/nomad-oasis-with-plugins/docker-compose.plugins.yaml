@@ -1,0 +1,11 @@
+services:
+  worker:
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:1008-plugin-mechanism
+    volumes:
+      - ./nomad-schema-plugin-example/nomadschemaexample:/app/plugins/nomadschemaexample
+      - ./nomad-parser-plugin-example/nomadparserexample:/app/plugins/nomadparserexample
+  app:
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:1008-plugin-mechanism
+    volumes:
+      - ./nomad-schema-plugin-example/nomadschemaexample:/app/plugins/nomadschemaexample
+      - ./nomad-parser-plugin-example/nomadparserexample:/app/plugins/nomadparserexample

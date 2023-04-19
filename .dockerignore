@@ -36,6 +36,7 @@ gui/public/env.js
 !gui/tests/nomad.yaml
 !ops/docker-compose/nomad-oasis/configs/nomad.yaml
 !ops/docker-compose/nomad-oasis-with-keycloak/configs/nomad.yaml
+!ops/docker-compose/nomad-oasis-with-plugins/nomad.yaml
 !examples/plugins/schema/nomad.yaml
 !examples/plugins/parser/nomad.yaml
 

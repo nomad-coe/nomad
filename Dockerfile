@@ -221,4 +221,6 @@ USER nomad
 EXPOSE 8000
 EXPOSE 9000
 
+ENV PYTHONPATH=/app/plugins
+
 VOLUME /app/.volumes/fs
