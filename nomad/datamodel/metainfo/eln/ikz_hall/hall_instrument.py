@@ -27,6 +27,9 @@ class MeasurementStateMachine(MSection):
     system_model = Quantity(
         type=str,
         description='What is the Model number of your used Hall Measurement system? 0=[75XX-LVWR(-HS)] 1=[75XX-LVWR-SWT(-HS), 77XX-LVWR] 2=[75XX-HVWR(-HS), 77XX-HVWR] 3=[76XX] 4=[95XX-LVWR(-HS)] 5=[95XX-LVWR-SWT(-HS), 97XX-LVWR] 6=[95XX-HVWR(-HS), 97XX-HVWR] 7=[77XXA] 8=[97XXA]')
+    # switch_matrix = Quantity(
+    #    type=str,
+    #    description='What is the Model number of your used Hall matrix? 0=[Lake Shore 775] 1=[Lake Shore 776]')
     wiring = Quantity(
         type=str,
         description='What is the wiring setup,either 0=[van der Pauw] or 1=[Hall Bar]?')
@@ -87,7 +90,7 @@ class Keithley6485(MSection):
         type=str,
         description='If the digital filter is turned on, what is its mode? 0=[Repeat] 1=[Moving]')
     digital_filter_count = Quantity(
-        type=np.dtype(np.float64),
+        type=int,
         description='If the digital filter is turned on, what is its count? Value must be between 1 and 100.')
     advanced_filter = Quantity(
         type=bool,
@@ -100,94 +103,95 @@ class Keithley6485(MSection):
 class Keithley220(MSection):
     '''Representation of an instrument'''
     compliance_voltage = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=np.dtype(np.float64),
+        description='What is the voltage compliance for your current source? in V. (default = 100 V)',
+        unit="volt")
 
 
 class Keithley2000(MSection):
     '''Representation of an instrument'''
     reading_rate = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=str,
+        description='What is the set reading rate for the Keithley2000? 0=[Slow] 1=[Medium(default)] 2=[Fast]')
     digital_filter = Quantity(
         type=bool,
-        description='FILL THE DESCRIPTION')
+        description='Is a digitial filter turned on? True=[on (default)]')
     digital_filter_type = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=str,
+        description='If the digital filter is turned on, what is its mode? 0=[Repeat] 1=[Moving]')
     digital_filter_count = Quantity(
         type=int,
-        description='FILL THE DESCRIPTION')
+        description='If the digital filter is turned on, what is its count? Value must be between 1 and 100.')
 
 
 class Keithley2182(MSection):
     '''Representation of an instrument'''
     line_synchronization = Quantity(
         type=bool,
-        description='FILL THE DESCRIPTION')
+        description='Is line synchronization turned on? True=[on (default)]')
     reading_rate = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=str,
+        description='What is the set reading rate for the Keithley2182? 0=[Slow(default)] 1=[Medium] 2=[Fast]')
     analog_filter = Quantity(
         type=bool,
-        description='FILL THE DESCRIPTION')
+        description='Is the analog filter turned on? False=[off (default)]')
     digital_filter = Quantity(
         type=bool,
-        description='FILL THE DESCRIPTION')
+        description='Is a digitial filter turned on? True=[on (default)]')
     digital_filter_type = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=str,
+        description='If the digital filter is turned on, what is its mode? 0=[Repeat] 1=[Moving]')
     digital_filter_window = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=str,
+        description='If the digital filter is turned on, what is its window? 0=[None] 1=[0.01%] 2=[0.1%] 3=[1%] 4=[10%]')
     digital_filter_count = Quantity(
         type=int,
-        description='FILL THE DESCRIPTION')
+        description='If the digital filter is turned on, what is its count? Value must be between 1 and 100.')
 
 
 class Keithley182(MSection):
     '''Representation of an instrument'''
     integration_time = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=str,
+        description='What is the set integration time for the Keithley182? 0=[1 line cycle (default)] 1=[3 ms] 2=[100 ms]')
     analog_filter = Quantity(
         type=bool,
-        description='FILL THE DESCRIPTION')
+        description='Is the analog filter turned on? False=[off (default)]')
     digital_filter = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=str,
+        description='Is the digital filter turned on, what is it set on? 0=[Off] 1=[Fast] 2=[Medium (default)] 3=[Slow]')
 
 
 class Keithley2700(MSection):
     '''Representation of an instrument'''
     line_synchronization = Quantity(
         type=bool,
-        description='FILL THE DESCRIPTION')
+        description='Is line synchronization turned on? True=[on (default)]')
     reading_rate = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
-    reading_rate = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=str,
+        description='What is the set reading rate for the Keithley2700? 0=[Slow] 1=[Medium (default)] 2=[Fast]')
+    resting_state = Quantity(
+        type=str,
+        description='Are all relays in the switch matrix 0=[closed (defalut)] or 1=[open] in resting state?')
     digital_filter = Quantity(
         type=bool,
-        description='FILL THE DESCRIPTION')
+        description='Is a digitial filter turned on? True=[on (default)]')
     digital_filter_type = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=str,
+        description='If the digital filter is turned on, what is its mode? 0=[Repeat] 1=[Moving]')
     digital_filter_window = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=str,
+        description='If the digital filter is turned on, what is its window? 0=[None] 1=[0.01%] 2=[0.1%] 3=[1%] 4=[10%]')
     digital_filter_count = Quantity(
         type=int,
-        description='FILL THE DESCRIPTION')
+        description='If the digital filter is turned on, what is its count? Value must be between 1 and 100.')
 
 
 class Keithley2400(MSection):
     '''Representation of an instrument'''
     compliance_voltage = Quantity(
-        type=int,
-        description='FILL THE DESCRIPTION')
+        type=np.dtype(np.float64),
+        description='What is the voltage compliance for your current source? in V? Must be a value between 0 V and 210 V. (default = 20 V) Value of 20 V and lower will set current compliance to 1 A. Value of larger than 20 V will set current compliance to 100 mA.')
 
 
 class FieldController(MSection):
@@ -308,7 +312,7 @@ class TemperatureDomain(MSection):
         type=str,
         description='What is the heater range for this temperature domain? 0=[heater off] 1=[4.9mW] 2=[49mW] 3=[490mW] 4=[4.9W] 5=[49.0W]')
     loop_2_heater = Quantity(
-        type=np.dtype(np.float64),
+        type=str,
         # unit="celsius",
         description='Is the heater for the loop 2 controller turned on? 0=[off] 1=[on]')
     loop_1_setpoint_offset = Quantity(

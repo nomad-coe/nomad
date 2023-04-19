@@ -17,6 +17,7 @@
 #
 from __future__ import annotations
 import base64
+from copy import deepcopy
 import importlib
 import inspect
 import itertools
@@ -1627,13 +1628,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         '''
         self.__set_attribute(None, name, value)
 
-    def m_set_quantity_attribute(self, quantity_def: Union[str, Quantity], name: str, value: Any) -> None:
+    def m_set_quantity_attribute(self, quantity_def: Union[str, Quantity], name: str, value: Any, quantity: Quantity = None) -> None:
         '''
         Set attribute for the given quantity.
         '''
-        self.__set_attribute(quantity_def, name, value)
+        self.__set_attribute(quantity_def, name, value, quantity=quantity)
 
-    def __set_attribute(self, tgt_property: Union[Optional[str], Definition], attr_name: str, attr_value: Any):
+    def __set_attribute(self, tgt_property: Union[Optional[str], Definition], attr_name: str, attr_value: Any, quantity: Quantity = None):
         '''
         Set attribute for current section for a quantity of the current section.
 
@@ -1649,7 +1650,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         '''
         tgt_name: Optional[str] = tgt_property.name if isinstance(tgt_property, Definition) else tgt_property
 
-        tgt_def, tgt_attr = retrieve_attribute(self.m_def, tgt_name, attr_name)
+        tgt_def, tgt_attr = retrieve_attribute(self.m_def, tgt_property, attr_name)
 
         if tgt_attr.type in MTypes.numpy:
             attr_value = to_numpy(tgt_attr.type, [], None, tgt_attr, attr_value)
@@ -1673,7 +1674,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         if isinstance(tgt_def, Quantity) and tgt_def.use_full_storage:
             m_storage: Optional[dict] = self.__dict__.get(tgt_def.name, None)
-            m_quantity: Optional[MQuantity] = m_storage.get(tgt_property, None) if m_storage else None
+            m_quantity: Optional[MQuantity] = m_storage.get(tgt_property if quantity is None else quantity.name, None) if m_storage else None
             if m_quantity is None:
                 m_quantity = MQuantity(tgt_name, None)
                 self.m_set(tgt_def, m_quantity)
@@ -2657,6 +2658,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         copy.m_context = self.m_context
 
         if deep:
+            if isinstance(copy, Definition):
+                copy.more = deepcopy(self.more)
             for sub_section_def in self.m_def.all_sub_sections.values():
                 sub_sections_copy = [
                     sub_section.m_copy(deep=True, parent=copy)

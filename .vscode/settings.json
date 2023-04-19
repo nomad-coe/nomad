@@ -88,6 +88,18 @@
                 ]
             },
             {
+                "name": "nomad gui generate",
+                "type": "python",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "module": "nomad.cli",
+                "justMyCode": false,
+                "args": [
+                    "dev",
+                    "gui-artifacts"
+                ]
+            },
+            {
                 "name": "Python: Current File",
                 "type": "python",
                 "request": "launch",
@@ -116,7 +128,7 @@
             "directory": "gui"
         }
     ],
-    "python.testing.pytestPath": ".pyenv/bin/pytest",
+    "python.testing.pytestPath": "pytest",
     "python.testing.pytestArgs": [
         "tests"
     ],

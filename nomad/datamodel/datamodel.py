@@ -839,7 +839,8 @@ class EntryMetadata(MSection):
 
             collect_references(section, property_def, quantity_path)
 
-            if section_path.startswith('data') and isinstance(property_def, Quantity):
+            if section_path.startswith(('data', 'nexus')) and \
+                    isinstance(property_def, Quantity):
                 searchable_quantity = create_searchable_quantity(section, property_def, quantity_path)
                 if searchable_quantity:
                     searchable_quantities.append(searchable_quantity)
