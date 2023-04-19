@@ -65,14 +65,6 @@ def traverse_to_target_data_file(section, path_list: List[str]):
             raise MetainfoError(f'The path {temp} in path_to_data_file does not exist')
 
 
-def to_camel_case(snake_str: str):
-    '''Take as input a snake case variable and return a camel case one'''
-
-    components = snake_str.split('_')
-
-    return ''.join(f'{x[0].upper()}{x[1:].lower()}' for x in components)
-
-
 def extract_tabular_parser_annotation(archive):
     for quantity_def in archive.m_def.all_quantities.values():
         annotation = quantity_def.m_get_annotations('tabular_parser')
@@ -181,7 +173,7 @@ class TableData(ArchiveSection):
             for section_name in section_names:
                 section_name_list = section_name.split('/')
                 section_name_str = section_name_list[0]
-                section_def = getattr(self, to_camel_case(section_name_str)).m_def
+                section_def = self.m_def.all_properties[section_name_str].sub_section
 
                 if not list_of_visited_sections.count(section_name_str):
                     list_of_visited_sections.append(section_name_str)

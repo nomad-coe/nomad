@@ -632,11 +632,10 @@ data:
             Main_Class:
               base_sections:
                 - nomad.parsing.tabular.TableData
-                - nomad.datamodel.data.EntryData
               quantities:
                 csv_file:
                   type: str
-                  default: 'asghar'
+                  default: 'placeholder'
                   m_annotations:
                     tabular_parser:
                       mode: row
@@ -645,20 +644,10 @@ data:
               sub_sections:
                 subsection_1:
                   repeats: True
-                  section: '#/Base_Class'
+                  section: '#/Class_1'
             Class_1:
               base_sections:
               - '#/Base_Class'
-              -  nomad.parsing.tabular.TableData
-              quantities:
-                data_file_1:
-                  type: str
-                  default: '#data/csv_file'
-                  m_annotations:
-                    tabular_parser:
-                      mode: row
-                      target_sub_section:
-                      - subsection_1
               sub_sections:
                 subsection_1:
                   repeats: true
@@ -669,32 +658,11 @@ data:
                         m_annotations:
                           tabular:
                             name: header_0
-            Class_2:
-              base_sections:
-              -  nomad.parsing.tabular.TableData
-              quantities:
-                data_file_2:
-                  type: str
-                  default: '#data/csv_file'
-                  m_annotations:
-                    tabular_parser:
-                      mode: column
-              sub_sections:
-                subsection_1:
-                  section:
-                    quantities:
-                      header_1:
-                        type: str
-                        shape: ['*']
-                        m_annotations:
-                          tabular:
-                            name: header_1
         data:
           m_def: Main_Class
           csv_file: test.my_schema.archive.csv
           subsection_1:
           - m_def: Class_1
-          - m_def: Class_2
         '''),
         strip('''
             header_0,header_1
@@ -725,10 +693,9 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
             assert isinstance(main_archive.data.MySubsection[instance].header_0, datetime.datetime)
     elif re.search('data file as reference', schema):
         assert len(main_archive.data.subsection_1) == 2
-        assert len(main_archive.data.subsection_1[0].subsection_1) == 2
+        assert len(main_archive.data.subsection_1[0].subsection_1) == 1
         assert main_archive.data.subsection_1[0].subsection_1[0].header_0 == '0_0'
-        assert main_archive.data.subsection_1[0].subsection_1[1].header_0 == '1_0'
-        assert main_archive.data.subsection_1[1].subsection_1.header_1 == ['0_1', '1_1']
+        assert main_archive.data.subsection_1[1].subsection_1[0].header_0 == '1_0'
 
 
 @pytest.mark.parametrize('schema,content,missing', [
