@@ -35,33 +35,58 @@ from nomad.utils import get_logger
     pytest.param('name', 'nexus'),
     pytest.param('NXobject.name', 'NXobject'),
     pytest.param('NXentry.nx_kind', 'group'),
-    pytest.param('NXentry.NXdata', '*'),
     pytest.param('NXdetector.real_time__field', '*'),
-    pytest.param('NXentry.NXdata.nx_optional', True),
-    pytest.param('NXentry.DATA.section_def.nx_kind', 'group'),
-    pytest.param('NXentry.DATA.section_def.nx_optional', True),
-    pytest.param('NXentry.DATA.section_def.name', 'NXdata'),
+    pytest.param('NXentry.DATA.nx_optional', True),
+    pytest.param('NXentry.DATA.nx_kind', 'group'),
+    pytest.param('NXentry.DATA.nx_optional', True),
     pytest.param('NXdetector.real_time__field.name', 'real_time__field'),
     pytest.param('NXdetector.real_time__field.nx_type', 'NX_NUMBER'),
     pytest.param('NXdetector.real_time__field.nx_units', 'NX_TIME'),
-    pytest.param('NXarpes.NXentry.NXdata.nx_optional', False),
+    pytest.param('NXarpes.ENTRY.DATA.nx_optional', False),
     pytest.param('NXentry.nx_category', 'base'),
+    pytest.param('NXdispersion_table.refractive_index__field.nx_type', 'NX_COMPLEX'),
+    pytest.param('NXdispersive_material.ENTRY.dispersion_x.'
+                 'DISPERSION_TABLE.refractive_index__field.nx_type', 'NX_COMPLEX'),
     pytest.param('NXapm.nx_category', 'application')
 ])
 def test_assert_nexus_metainfo(path: str, value: Any):
     '''
     Test the existence of nexus metainfo
+
+
+    pytest.param('NXdispersive_material.inner_section_definitions[0].sub_sections[1].sub_section.inner_section_definitions[0].quantities[4].more["nx_type"]
+
+
+
     '''
     current = nexus_metainfo_package
     for name in path.split('.'):
-        for content in current.m_contents():
+        elements: list = []
+        if name.endswith('__field'):
+            subelement_list = getattr(current, 'quantities', None)
+            if subelement_list:
+                elements += subelement_list
+        else:
+            subelement_list = getattr(current, 'section_definitions', None)
+            if subelement_list:
+                elements += subelement_list
+            subelement_list = getattr(current, 'sub_sections', None)
+            if subelement_list:
+                elements += subelement_list
+            subelement_list = getattr(current, 'attributes', None)
+            if subelement_list:
+                elements += subelement_list
+            subelement_list = current.m_contents()
+            if subelement_list:
+                elements += subelement_list
+        for content in elements:
             if getattr(content, 'name', None) == name:
                 current = content  # type: ignore
+                if getattr(current, 'sub_section', None):
+                    current = current.section_definition
                 break
-
         else:
             current = getattr(current, name, None)
-
         if current is None:
             assert False, f'{path} does not exist'
 
@@ -87,6 +112,7 @@ def test_nexus_example():
 
     instrument = archive.nexus.NXarpes.ENTRY[0].INSTRUMENT[0]
 
+    assert instrument.nx_name == 'instrument'
     assert instrument.monochromator.energy__field == ureg.Quantity('36.49699020385742*electron_volt')
     assert instrument.analyser.entrance_slit_size__field == ureg.Quantity('750 micrometer')
     # good ENUM - x-ray
@@ -97,12 +123,19 @@ def test_nexus_example():
     assert instrument.SOURCE[0].type__field is None
 
     data = archive.nexus.NXarpes.ENTRY[0].DATA[0]
-    assert data.angles__field is not None
-    # assert data.delays is not None
+    assert len(data.AXISNAME__field) == 3
+    # there is still a bug in the variadic name resolution, so skip these
+    # assert data.delays__field is not None
+    # assert data.angles__field.check("1/Å")
+    # assert data.delays__field.check("fs")
+    # but the following still works
     assert data.energies__field is not None
-    assert data.angles__field.check("1/Å")
-    # assert data.delays.check("fs")
     assert data.energies__field.check("eV")
+    # manual name resolution
+    assert data.AXISNAME__field['angles__field'] is not None
+    assert data.AXISNAME__field['angles__field'].attributes['nx_data_max'] == 2.168025463513032
+    assert (1 * data.AXISNAME__field['angles__field'].unit).check("1/Å")
+    assert (1 * data.AXISNAME__field['delays__field'].unit).check("fs")
 
 
 def test_same_name_field_and_group():

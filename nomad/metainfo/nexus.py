@@ -328,6 +328,31 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Propert
 
             definition.attributes.append(m_attribute)
 
+    m_nx_data_path_exists = False
+    for attrib in definition.attributes:
+        if attrib.name == "m_nx_data_path":
+            m_nx_data_path_exists = True
+            break
+
+        # TODO: Add call to __add_common for description of attribs
+
+    if not m_nx_data_path_exists:
+        definition.attributes.append(Attribute(
+            name="m_nx_data_path", variable=False, shape=[], type=str,
+            description="This is a nexus template property. "
+            "This attribute holds the actual path of the value in the nexus data."))
+
+    if isinstance(definition, Quantity):
+        for nx_array_attr in ['nx_data_mean', 'nx_data_var', 'nx_data_min', 'nx_data_max']:
+            for attrib in definition.attributes:
+                if attrib.name == nx_array_attr:
+                    break
+            else:
+                definition.attributes.append(Attribute(
+                    name=nx_array_attr, variable=False, shape=[], type=np.float64,
+                    description="This is a nexus template property. "
+                    "This attribute holds specific  statistics on the nexus data array."))
+
 
 def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
     '''
@@ -358,16 +383,12 @@ def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
 
     # shape
     shape: list = []
+    nx_shape: list = []
     dimensions = xml_node.find('nx:dimensions', __XML_NAMESPACES)
     if dimensions is not None:
         for dimension in dimensions.findall('nx:dim', __XML_NAMESPACES):
             dimension_value: str = dimension.attrib.get('value', '0..*')
-            if dimension_value.isdigit():
-                shape.append(int(dimension_value))
-            elif dimension_value == 'n':
-                shape.append('0..*')
-            else:
-                shape.append(dimension_value)
+            nx_shape.append(dimension_value)
 
     value_quantity: Quantity = None  # type: ignore
 
@@ -394,7 +415,7 @@ def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
 
     value_quantity.dimensionality = dimensionality
     value_quantity.shape = shape
-    value_quantity.more.update(dict(nx_kind='field', nx_type=nx_type))
+    value_quantity.more.update(dict(nx_kind='field', nx_type=nx_type, nx_shape=nx_shape))
 
     __add_common_properties(xml_node, value_quantity)
     __create_attributes(xml_node, value_quantity)

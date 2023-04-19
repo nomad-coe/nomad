@@ -24,10 +24,12 @@ import numpy as np
 from nexusutils.nexus import nexus as read_nexus  # pylint: disable=import-error
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import MSection, nexus
-from nomad.metainfo.util import MQuantity, resolve_variadic_name
+from nomad.metainfo.util import MQuantity, MSubSectionList, resolve_variadic_name
 from nomad.parsing import MatchingParser
 from nomad.units import ureg
 from nomad.utils import get_logger
+from nomad.datamodel.results import Material
+from nomad.datamodel.results import Results
 
 
 def _to_group_name(nx_node: ET.Element):
@@ -98,15 +100,12 @@ def _get_value(hdf_node):
 
     hdf_value = hdf_node[...]
     if str(hdf_value.dtype) == 'bool':
-        val = bool(hdf_value)
-    elif hdf_value.dtype.kind in 'iufc':
-        val = hdf_value
-    else:
-        try:
-            val = str(hdf_value.astype(str))
-        except UnicodeDecodeError:
-            val = str(hdf_node[()].decode())
-    return val
+        return bool(hdf_value)
+    if hdf_value.dtype.kind in 'iufc':
+        return hdf_value
+    if len(hdf_value.shape) > 0:
+        return hdf_value.astype(str)
+    return hdf_node[()].decode()
 
 
 class NexusParser(MatchingParser):
@@ -139,14 +138,13 @@ class NexusParser(MatchingParser):
                 if nx_attr != 'units':
                     # no need to handle units here
                     # as all quantities have flexible units
-                    print(nx_attr)
+                    # print(nx_attr)
+                    pass
             else:
                 # get the name of parent (either field or group)
                 # which will be used to set attribute
                 # this is required by the syntax of metainfo mechanism
                 # due to variadic/template quantity names
-                parent_type = nx_parent.get('type').replace('NX', '').upper()
-                parent_name = nx_parent.get('name', parent_type)  # type: ignore
 
                 attr_name = nx_attr.get('name')
                 # It could be 1D array, float or int
@@ -164,20 +162,39 @@ class NexusParser(MatchingParser):
                     if nx_parent.tag.endswith('group'):
                         current.m_set_section_attribute(attr_name, attr_value)
                     else:
-                        current.m_set_quantity_attribute(parent_name + "__field", attr_name, attr_value)
+                        parent_html_name = nx_path[-2].get('name')
+                        parent_instance_name = hdf_node.name.split('/')[-1] + '__field'
+                        parent_field_name = parent_html_name + "__field"
+                        metainfo_def = resolve_variadic_name(current.m_def.all_properties, parent_field_name)
+                        if parent_field_name in current.__dict__:
+                            quantity = current.__dict__[parent_field_name]
+                            if isinstance(quantity, dict):
+                                quantity = quantity[parent_instance_name]
+                        else:
+                            quantity = None
+                        current.m_set_quantity_attribute(metainfo_def, attr_name, attr_value, quantity=quantity)
                 except Exception as e:
                     self._logger.warning('Error while setting attribute.', target_name=attr_name, exe_info=str(e))
         else:
             # it is a field
             field = _get_value(hdf_node)
 
-            # need to remove
-            if hdf_node[...].dtype.kind in 'iufc' and isinstance(field, np.ndarray) and field.size > 1:
-                field = np.array([np.mean(field), np.var(field), np.min(field), np.max(field)])
-
             # get the corresponding field name
-            field_name = nx_path[-1].get('name') + "__field"
+            html_name = nx_path[-1].get('name')
+            data_instance_name = hdf_node.name.split('/')[-1] + '__field'
+            field_name = html_name + "__field"
             metainfo_def = resolve_variadic_name(current.m_def.all_properties, field_name)
+
+            # do not pull data arrays, but only statistics if not NaN
+            field_stats = None
+            if hdf_node[...].dtype.kind in 'iufc':
+                if isinstance(field, np.ndarray) and field.size > 1:
+                    field_stats = np.array([np.nanmean(field), np.nanvar(field), np.nanmin(field), np.nanmax(field)])
+                    field = field_stats[0]
+                if np.isnan(field):
+                    self._logger.warning('NaN value is not set for field ',
+                                         target_name=field_name + "[" + data_instance_name + "]")
+                    return
 
             # check if unit is given
             unit = hdf_node.attrs.get('units', None)
@@ -195,7 +212,7 @@ class NexusParser(MatchingParser):
                     pass
 
             if metainfo_def.use_full_storage:
-                field = MQuantity.wrap(field, hdf_node.name.split('/')[-1] + '__field')
+                field = MQuantity.wrap(field, data_instance_name)
             elif metainfo_def.unit is None and pint_unit is not None:
                 metainfo_def.unit = pint_unit
 
@@ -203,6 +220,12 @@ class NexusParser(MatchingParser):
 
             try:
                 current.m_set(metainfo_def, field)
+                current.m_set_quantity_attribute(metainfo_def, "m_nx_data_path", hdf_node.name, quantity=field)
+                if field_stats is not None:
+                    current.m_set_quantity_attribute(metainfo_def, "nx_data_mean", field_stats[0], quantity=field)
+                    current.m_set_quantity_attribute(metainfo_def, "nx_data_var", field_stats[1], quantity=field)
+                    current.m_set_quantity_attribute(metainfo_def, "nx_data_min", field_stats[2], quantity=field)
+                    current.m_set_quantity_attribute(metainfo_def, "nx_data_max", field_stats[3], quantity=field)
             except Exception as e:
                 self._logger.warning('Error while setting field.', target_name=field_name, exe_info=str(e))
 
@@ -224,12 +247,43 @@ class NexusParser(MatchingParser):
 
         current: MSection = _to_section(None, nx_def, None, self.nx_root)
         depth: int = 1
+        current_hdf_path = ""
         for name in hdf_path.split('/')[1:]:
             nx_node = nx_path[depth] if depth < len(nx_path) else name
             current = _to_section(name, nx_def, nx_node, current)
             depth += 1
+            current_hdf_path = current_hdf_path + ("/" + name if depth < len(nx_path) else "")
+            current.m_set_section_attribute("m_nx_data_path", current_hdf_path)
 
         self._populate_data(depth, nx_path, nx_def, hdf_node, current)
+
+    def get_sub_element_names(self, elem: MSection):
+        return elem.m_def.all_aliases.keys()
+
+    def get_sub_elements(self, elem: MSection, type_filter: str = None):
+        e_list = self.get_sub_element_names(elem)
+        filtered = []
+        for elem_name in e_list:
+            subelem = getattr(elem, elem_name, None)
+            if subelem is None:
+                continue
+            if type_filter:
+                if not (isinstance(subelem, MSection) or isinstance(subelem, MSubSectionList)):
+                    continue
+                if isinstance(subelem, list):
+                    if len(subelem) > 0:
+                        nx_type = subelem[0].m_def.nx_type
+                    else:
+                        continue
+                else:
+                    nx_type = subelem.m_def.nx_type
+                if nx_type != type_filter:
+                    continue
+            if not isinstance(subelem, list):
+                subelem = [subelem]
+            for individual in subelem:
+                filtered.append(individual)
+        return filtered
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
         self.archive = archive
@@ -243,9 +297,55 @@ class NexusParser(MatchingParser):
         if archive.metadata is None:
             return
 
+        # Normalise experiment type
         app_def: str = ''
         for var in dir(archive.nexus):
             if getattr(archive.nexus, var, None) is not None:
                 app_def = var
-
+                break
         archive.metadata.entry_type = app_def
+        # TODO: domain éxperimemt could also be registered
+
+        # Normalise element info
+        if archive.results is None:
+            archive.results = Results()
+        results = archive.results
+
+        if results.material is None:
+            results.material = Material()
+        # results.material.elements = sample.elements
+        # results.material.chemical_formula_descriptive = sample.chemical_formula
+
+        from ase import Atoms
+        from pymatgen.core import Composition
+
+        for appdef in self.get_sub_elements(archive.nexus):
+            for entry in self.get_sub_elements(appdef, 'NXentry'):
+                for sample in self.get_sub_elements(entry, 'NXsample'):
+                    subelements = self.get_sub_element_names(sample)
+                    if 'atom_types__field' in subelements and sample.atom_types__field is not None:
+                        if isinstance(sample.atom_types__field, list):
+                            atomlist = sample.atom_types__field
+                        else:
+                            atomlist = ''.join(sample.atom_types__field.split()).split(',')
+                        archive.results.material.elements = list(set(archive.results.material.elements) | set(atomlist))
+                    if 'chemical_formula__field' in subelements and sample.chemical_formula__field is not None:
+                        if not archive.results.material.chemical_formula_hill:
+                            archive.results.material.chemical_formula_hill = ""
+                        archive.results.material.chemical_formula_hill += sample.chemical_formula__field
+                    for component in self.get_sub_elements(sample, 'NXsample_component'):
+                        if 'chemical_formula__field' in self.get_sub_element_names(component) and component.chemical_formula__field is not None:
+                            if not archive.results.material.chemical_formula_hill:
+                                archive.results.material.chemical_formula_hill = ""
+                            archive.results.material.chemical_formula_hill += component.chemical_formula__field
+        try:
+            if archive.results.material.chemical_formula_hill:
+                pycom = Composition(archive.results.material.chemical_formula_hill).get_integer_formula_and_factor()[0]
+                atoms = Atoms(pycom)
+                archive.results.material.elements = list(set(archive.results.material.elements) | set(atoms.get_chemical_symbols()))
+                # material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
+                archive.results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
+                # material.chemical_formula_descriptive = self.chemical_formula
+        except Exception as e:
+            self._logger.warn('could not analyse chemical formula', exc_info=e)
+        self._logger.info("atoms : " + str(archive.results.material.elements))

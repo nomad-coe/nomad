@@ -81,7 +81,7 @@ infrastructure = [
     'filelock==3.3.1',
     'pyjwt[crypto]==2.6.0',
     'cryptography',
-    'jsonschema[format]==4.1.2',
+    'jsonschema[format]==4.17.3',
     'runstats==2.0.0',
     'tabulate==0.8.9',
     'bs4==0.0.1',
