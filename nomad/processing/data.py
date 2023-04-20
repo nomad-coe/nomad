@@ -501,17 +501,14 @@ class MetadataEditRequestHandler:
                 else:
                     # New user reference encountered, try to fetch it
                     user_id = None
-                    try:
-                        user_id = datamodel.User.get(user_id=value).user_id
-                    except KeyError:
+                    for key in ('user_id', 'username', 'email'):
                         try:
-                            user_id = datamodel.User.get(username=value).user_id
+                            if (user := datamodel.User.get(**{key: value})) is None:
+                                raise KeyError
+                            user_id = user.user_id
+                            break
                         except KeyError:
-                            if '@' in value:
-                                try:
-                                    user_id = datamodel.User.get(email=value).user_id
-                                except KeyError:
-                                    pass
+                            pass
                     self.encountered_users[value] = user_id
                 assert user_id is not None, f'User reference not found: `{value}`'
                 return user_id
