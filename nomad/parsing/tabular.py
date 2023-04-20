@@ -441,8 +441,9 @@ def parse_table(pd_dataframe, section_def: Section, logger):
                 sections.append(section)
             else:
                 try:
-                    section_name = path_quantities_to_top_subsection.pop().split('/')[1:]
-                    _append_subsections_from_section(section_name, sections[row_index], section)
+                    for item in path_quantities_to_top_subsection:
+                        section_name: List[str] = item.split('/')[1:]
+                        _append_subsections_from_section(section_name, sections[row_index], section)
                 except Exception as e:
                     logger.error(
                         'could not append repeating columns to the subsection',
