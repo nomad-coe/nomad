@@ -2,11 +2,70 @@ import pytest
 import numpy as np
 import pint
 from nomad.units import ureg
-
 from nomad.parsing.file_parser import TextParser, Quantity, ParsePattern,\
-    XMLParser, BasicParser
+    XMLParser, BasicParser, FileParser
 from nomad.datamodel.metainfo.simulation.system import Atoms
 from nomad.datamodel import EntryArchive
+from nomad.datamodel.metainfo.simulation.run import Run
+from nomad.datamodel.metainfo.simulation.calculation import Calculation
+
+
+class TestFileParser:
+
+    @pytest.fixture(scope='class')
+    def calculation_parser(self):
+        class Parser(FileParser):
+            def parse(self, key):
+                self._results = {'time_calculation': 2.0}
+
+        return Parser()
+
+    @pytest.fixture(scope='class')
+    def run_parser(self, calculation_parser):
+        class Parser(FileParser):
+            def parse(self, key):
+                self._results = {'clean_end': True, 'calculation': [calculation_parser]}
+
+        return Parser()
+
+    @pytest.fixture(scope='function')
+    def text_parser(self):
+        return TextParser()
+
+    @pytest.fixture(scope='class')
+    def parser(self, run_parser):
+        class Parser(FileParser):
+            def parse(self, key):
+                self._results = {'run': [run_parser]}
+
+        return Parser()
+
+    @pytest.mark.parametrize('mainfile', [
+        'tests/data/parsers/vasp/vasp.xml',
+        'tests/data/parsers/vasp_compressed/vasp.xml.gz'])
+    def test_open(self, text_parser, mainfile):
+        text_parser.quantities = [
+            Quantity('program', r'name="program" type="string">(.+?) *<')
+        ]
+        text_parser.mainfile = mainfile
+        assert text_parser.program == 'vasp'
+
+    def test_get(self, text_parser):
+        text_parser.quantities = [
+            Quantity('energy', r'free +energy +TOTEN += +(\S+) +eV', dtype=np.float64, repeats=True),
+        ]
+        text_parser.mainfile = 'tests/data/parsers/vasp_outcar/OUTCAR'
+        assert text_parser.energy[1] == 1.70437998
+        assert text_parser.get('energy', unit='eV')[1].magnitude == 1.70437998
+
+    def test_write_to_archive(self, parser):
+        for create_section in [True, False]:
+            archive = EntryArchive()
+            if create_section:
+                archive.m_create(Run).m_create(Calculation)
+            archive = parser.write_to_archive(archive)
+            assert archive.run[0].clean_end
+            assert archive.run[0].calculation[0].time_calculation.magnitude == 2.0
 
 
 class TestTextParser:
