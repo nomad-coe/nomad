@@ -81,13 +81,6 @@ class ElnBaseSection(ArchiveSection):
         description='Any information that cannot be captured in the other fields.',
         a_eln=dict(component='RichTextEditQuantity'))
 
-    users = SubSection(
-        description='''
-        The responsible person for this archive entry.
-        ''',
-        section_def=User,
-        repeats=True)
-
     def normalize(self, archive, logger):
         super(ElnBaseSection, self).normalize(archive, logger)
 
