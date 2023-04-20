@@ -22,6 +22,8 @@ import bz2
 import lzma
 import tarfile
 
+from nomad.metainfo import MSection
+
 
 class FileParser:
     '''
@@ -32,6 +34,7 @@ class FileParser:
     Arguments:
         mainfile: the file to be parsed
         logger: optional logger
+        open: function to open file
     '''
     def __init__(self, mainfile=None, logger=None, open=None):
         self._mainfile: Any = None
@@ -152,8 +155,31 @@ class FileParser:
     def __getattr__(self, key):
         if self._results is None:
             self._results = dict()
+            self.parse()
 
         return self._results.get(key, None)
+
+    def to_dict(self):
+        '''
+        Recursively converts the the parser results into a dictionary.
+        '''
+        results = {}
+        for key, val in self.results.items():
+            if isinstance(val, FileParser):
+                val = val.to_dict()
+            elif isinstance(val, list) and val and isinstance(val[0], FileParser):
+                for n, val_n in enumerate(val):
+                    val[n] = val_n.to_dict()
+
+            results[key] = val
+        return results
+
+    def write_to_archive(self, section: MSection):
+        '''
+        Wrapper for the m_from_dict functionality of msection to write the parser
+        results to an archive section.
+        '''
+        return section.m_from_dict(self.to_dict())
 
     def parse(self, quantity_key: str = None, **kwargs):
         pass
