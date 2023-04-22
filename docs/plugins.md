@@ -94,7 +94,7 @@ code. This also means that the package has to be in your `PYTHONPATH` (see below
 
 
 {{pydantic_model('nomad.config.plugins.Schema', heading='### Parser plugin metadata')}}
-{{pydantic_model('nomad.config.plugins.Parser', heading='### Schema plugin metadata')}}
+{{pydantic_model('nomad.config.plugins.Parser', heading='### Schema plugin metadata', hide=['code_name','code_category','code_homepage','metadata'])}}
 
 Now follow the instructions for one of our examples and try for yourself:
 

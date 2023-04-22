@@ -33,8 +33,8 @@ class PluginBase(BaseModel):
     This should not be used. Plugins should instantiate concrete Plugin models like
     Parser or Schema.
     '''
-    name: str
-    description: Optional[str]
+    name: str = Field(description='A short descriptive human readable name for the plugin.')
+    description: Optional[str] = Field(description='A human readable description of the plugin.')
 
 
 class PythonPluginBase(PluginBase):
@@ -42,8 +42,8 @@ class PythonPluginBase(PluginBase):
     A base model for NOMAD plugins that are implemented in Python.
     '''
     python_package: str = Field(description='''
-        Name of the python package that contains the plugin code and an optional
-        plugin metadata file `nomad_plugin.yaml`.
+        Name of the python package that contains the plugin code and a
+        plugin metadata file called `nomad_plugin.yaml`.
     ''')
 
     @classmethod
@@ -89,7 +89,9 @@ class Schema(PythonPluginBase):
     '''
     A Schema describes a NOMAD Python schema that can be loaded as a plugin.
     '''
-    plugin_type: Literal['schema'] = 'schema'
+    plugin_type: Literal['schema'] = Field('schema', description='''
+        The type of the plugin. This has to be the string `schema` for schema plugins.
+    ''')
 
 
 class Parser(PythonPluginBase):
@@ -113,23 +115,14 @@ class Parser(PythonPluginBase):
     #      abstract is_mainfile, which does not allow to separate parser implementation and plugin
     #      definition.
 
-    plugin_type: Literal['parser'] = 'parser'
+    plugin_type: Literal['parser'] = Field('parser', description='''
+        The type of the plugin. This has to be the string `parser` for parser plugins.
+    ''')
 
-    code_name: Optional[str]
-    code_homepage: Optional[str]
-    code_category: Optional[str]
-    mainfile_contents_re: Optional[str]
-    mainfile_binary_header: Optional[bytes]
-    mainfile_binary_header_re: Optional[bytes]
-    mainfile_mime_re: str = Field(r'text/.*')
-    mainfile_name_re: str = Field(r'.*')
-    mainfile_alternative: bool = False
-    mainfile_contents_dict: Optional[dict]
-    domain: str = Field('dft')
-    supported_compressions: List[str] = Field([])
-    metadata: Optional[dict] = Field(description='''
-        Metadata passed to the UI. Deprecated. ''')
-    parser_class_name: str
+    parser_class_name: str = Field(description='''
+        The fully qualified name of the Python class that implements the parser.
+        This class must have a function `def parse(self, mainfile, archive, logger)`.
+    ''')
     parser_as_interface: bool = Field(False, description='''
         By default the parser metadata from this config (and the loaded nomad_plugin.yaml)
         is used to instantiate a parser interface that is lazy loading the actual parser
@@ -138,6 +131,49 @@ class Parser(PythonPluginBase):
         is_mainfile parser method, this setting can be used to use the given
         parser class directly for parsing and matching.
     ''')
+
+    mainfile_contents_re: Optional[str] = Field(description='''
+        A regular expression that is applied the content of a potential mainfile.
+        If this expression is given, the parser is only considered for a file, if the
+        expression matches.
+    ''')
+    mainfile_name_re: str = Field(r'.*', description='''
+        A regular expression that is applied the name of a potential mainfile.
+        If this expression is given, the parser is only considered for a file, if the
+        expression matches.
+    ''')
+    mainfile_mime_re: str = Field(r'text/.*', description='''
+        A regular expression that is applied the mime type of a potential mainfile.
+        If this expression is given, the parser is only considered for a file, if the
+        expression matches.
+    ''')
+    mainfile_binary_header: Optional[bytes] = Field(description='''
+        Matches a binary file if the given bytes are included in the file.
+    ''')
+    mainfile_binary_header_re: Optional[bytes] = Field(description='''
+        Matches a binary file if the given binary regular expression bytes matches the
+        file contents.
+    ''')
+    mainfile_alternative: bool = Field(False, description='''
+        If True, the parser only matches a file, if no other file in the same directory
+        matches a parser.
+    ''')
+    mainfile_contents_dict: Optional[dict] = Field(description='''
+        Is used to match structured data files like JSON or HDF5.
+    ''')
+    supported_compressions: List[str] = Field([], description='''
+        Files compressed with the given formats (e.g. xz, gz) are uncompressed and
+        matched like normal files.
+    ''')
+    domain: str = Field('dft', description='''
+        The domain value `dft` will apply all normalizers for atomistic codes. Deprecated.
+    ''')
+
+    code_name: Optional[str]
+    code_homepage: Optional[str]
+    code_category: Optional[str]
+    metadata: Optional[dict] = Field(description='''
+        Metadata passed to the UI. Deprecated. ''')
 
     def create_matching_parser_interface(self):
         if self.parser_as_interface:
