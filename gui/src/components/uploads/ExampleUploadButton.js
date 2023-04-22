@@ -20,10 +20,9 @@ import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import exampleUploads from '../../exampleUploads.json'
 import Markdown from '../Markdown'
 import { useHistory } from 'react-router-dom'
-import { ui } from '../../config'
+import { ui, exampleUploads } from '../../config'
 
 const ExampleUploadDialog = React.memo(function ExampleUploadDialog(props) {
   const { onSelect, ...dialogProps } = props

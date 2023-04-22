@@ -1,0 +1,11 @@
+
+
+plugins:
+  include:
+    - 'schemas/example'
+    - 'parsers/example'
+  options:
+    schemas/example:
+      python_package: nomadschemaexample
+    parsers/example:
+      python_package: nomadparserexample

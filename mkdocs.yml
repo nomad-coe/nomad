@@ -17,6 +17,7 @@ nav:
     - schema/elns.md
     - schema/workflows.md
     - schema/hdf5.md
+  - Plugins: plugins.md
   # - Using the AI Toolkit and other remote tools: aitoolkit.md
   - Developing NOMAD:
     - develop/setup.md

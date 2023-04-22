@@ -24,13 +24,12 @@ import {
 } from 'recoil'
 import PropTypes from 'prop-types'
 import Cookies from 'universal-cookie'
-import { apiBase, globalLoginRequired, appBase } from '../config'
+import { apiBase, globalLoginRequired, appBase, searchQuantities } from '../config'
 import { Box, makeStyles, Typography } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { useKeycloak } from '@react-keycloak/web'
 import axios from 'axios'
 import { useErrors } from './errors'
-import * as searchQuantities from '../searchQuantities.json'
 
 export class DoesNotExist extends Error {
   constructor(msg) {

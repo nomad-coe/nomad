@@ -112,8 +112,8 @@ async def get_info():
             key[key.index('/') + 1:]
             for key in parsers.parser_dict.keys()]),
         'codes': [
-            {'code_name': x['codeLabel'], 'code_homepage': x['codeUrl']}
-            for x in sorted(code_metadata.values(), key=lambda info: info['codeLabel'].lower())
+            {'code_name': x.get('codeLabel', 'unknown code'), 'code_homepage': x.get('codeUrl')}
+            for x in sorted(code_metadata.values(), key=lambda info: info.get('codeLabel', 'unknown code').lower())
         ],
         'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
         'statistics': statistics(),

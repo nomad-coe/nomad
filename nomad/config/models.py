@@ -25,6 +25,8 @@ from typing import TypeVar, List, Dict, Any, Union, Optional, cast
 from typing_extensions import Literal, Annotated  # type: ignore
 from pydantic import BaseModel, Field, validator, Extra  # pylint: disable=unused-import
 from pkg_resources import get_distribution, DistributionNotFound
+from collections.abc import Iterator
+
 try:
     __version__ = get_distribution('nomad-lab').version
 except DistributionNotFound:
@@ -65,6 +67,52 @@ class NomadSettings(BaseModel):
                         raise AssertionError(f'Invalid setting: ({key}: {value})')
 
         return cast(NomadSettingsBound, rv)
+
+
+class StrictSettings(NomadSettings, extra=Extra.forbid):
+    '''Extra fields are not allowed in these models'''
+
+
+class OptionsBase(StrictSettings):
+    '''The most basic model for defining the availability of different
+    options.
+    '''
+    include: Optional[List[str]] = Field(description='''
+        List of included options. If not explicitly defined, all of the options will
+        be included by default.
+    ''')
+    exclude: Optional[List[str]] = Field(description='''
+        List of excluded options. Has higher precedence than include.
+    ''')
+
+    def filter(self, value: str) -> bool:
+        ''' Determines is a value fitting this specification. '''
+        included = not self.include or value in self.include or '*' in self.include
+        excluded = self.exclude and value in self.exclude
+
+        return included and not excluded
+
+
+class Options(OptionsBase):
+    '''Common configuration class used for enabling/disabling certain
+    elements and defining the configuration of each element.
+    '''
+    options: Dict[str, Any] = Field({}, description='Contains the available options.')
+
+    def filtered(self) -> Iterator[Any]:
+        for key, value in self.options.items():
+            if self.filter(key):
+                yield value
+
+
+class OptionsSingle(Options):
+    '''Represents options where one value can be selected.'''
+    selected: str = Field(description='Selected option.')
+
+
+class OptionsMulti(Options):
+    '''Represents options where multiple values can be selected.'''
+    selected: List[str] = Field(description='Selected options.')
 
 
 class Services(NomadSettings):
@@ -210,12 +258,12 @@ class NORTHTool(BaseModel):
     description: str = None
     short_description: str = None
     cmd: str = None
-    privileged: bool = None
     path_prefix: str = None
     mount_path: str = None
     icon: str = None
     file_extensions: List[str] = []
     maintainer: List[NORTHToolMaintainer] = []
+    privileged: bool = False
 
 
 class NORTH(NomadSettings):
@@ -269,8 +317,11 @@ class NORTH(NomadSettings):
             root_path = os.path.join(os.path.dirname(__file__), '../..')
             path = os.path.join(root_path, v)
 
-        with open(path, 'rt') as f:
-            return json.load(f)
+        if os.path.exists(path):
+            with open(path, 'rt') as f:
+                return json.load(f)
+
+        return []
 
 
 class RabbitMQ(NomadSettings):
@@ -364,6 +415,18 @@ class Mail(NomadSettings):
 
 
 class Normalize(NomadSettings):
+    normalizers: Options = Field(Options(
+        options=dict(
+            SystemNormalizer='nomad.normalizing.system.SystemNormalizer',
+            OptimadeNormalizer='nomad.normalizing.optimade.OptimadeNormalizer',
+            DosNormalizer='nomad.normalizing.dos.DosNormalizer',
+            BandStructureNormalizer='nomad.normalizing.band_structure.BandStructureNormalizer',
+            WorkflowNormalizer='nomad.normalizing.workflow.WorkflowNormalizer',
+            Workflow2Normalizer='nomad.normalizing.workflow2.WorkflowNormalizer',
+            ResultsNormalizer='nomad.normalizing.results.ResultsNormalizer',
+            MetainfoNormalizer='nomad.normalizing.metainfo.MetainfoNormalizer'
+        )
+    ))
     system_classification_with_clusters_threshold = Field(
         64, description='''
             The system size limit for running the dimensionality analysis. For very
@@ -607,57 +670,23 @@ class Archive(NomadSettings):
         20, description='Minimum number of entries per process.')
 
 
-class UISetting(NomadSettings, extra=Extra.forbid):
-    '''Extra fields are not allowed in the UI models'''
-
-
-class OptionsBase(UISetting):
-    '''The most basic model for defining the availability of different UI
-    options.
-    '''
-    include: Optional[List[str]] = Field(description='''
-        List of included options. If not explicitly defined, all of the options will
-        be included by default.
-    ''')
-    exclude: Optional[List[str]] = Field(description='''
-        List of excluded options. Has higher precedence than include.
-    ''')
-
-
-class Options(OptionsBase):
-    '''Common configuration class used for enabling/disabling certain UI
-    elements and defining the configuration of each element.
-    '''
-    options: Dict[str, Any] = Field(description='Contains the available options.')
-
-
-class OptionsSingle(Options):
-    '''Represents options where one value can be selected.'''
-    selected: str = Field(description='Selected option.')
-
-
-class OptionsMulti(Options):
-    '''Represents options where multiple values can be selected.'''
-    selected: List[str] = Field(description='Selected options.')
-
-
 class UnitSystemEnum(str, Enum):
     CUSTOM = 'Custom'
     SI = 'SI'
     AU = 'AU'
 
 
-class UnitSystems(UISetting):
+class UnitSystems(StrictSettings):
     '''Controls the used unit system.'''
     selected: UnitSystemEnum = Field(description='Controls the default unit system.')
 
 
-class Theme(UISetting):
+class Theme(StrictSettings):
     '''Theme and identity settings.'''
     title: str = Field(description='Site name in the browser tab.')
 
 
-class NORTHUI(UISetting):
+class NORTHUI(StrictSettings):
     '''NORTH (NOMAD Remote Tools Hub) UI configuration.'''
     enabled: bool = Field(True, description='''
         Whether the NORTH tools are available in the UI.
@@ -665,7 +694,7 @@ class NORTHUI(UISetting):
     ''')
 
 
-class Card(UISetting):
+class Card(StrictSettings):
     '''Definition for a card shown in the entry overview page.'''
     error: str = Field(description='The error message to show if an error is encountered within the card.')
 
@@ -675,18 +704,18 @@ class Cards(Options):
     options: Dict[str, Card] = Field(description='Contains the available card options.')
 
 
-class Entry(UISetting):
+class Entry(StrictSettings):
     '''Controls the entry visualization.'''
     cards: Cards = Field(description='Controls the cards that are displayed on the entry overview page.')
 
 
-class Help(UISetting):
+class Help(StrictSettings):
     '''Help dialog contents.'''
     title: str = Field(description='Title of the help dialog.')
     content: str = Field(description='Text contents of the help dialog. Supports markdown.')
 
 
-class Pagination(UISetting):
+class Pagination(StrictSettings):
     order_by: str = Field('upload_create_time', description='Field used for sorting.')
     order: str = Field('desc', description='Sorting order.')
     page_size: int = Field(20, description='Number of results on each page.')
@@ -698,7 +727,7 @@ class ModeEnum(str, Enum):
     SEPARATORS = 'separators'
 
 
-class Format(UISetting):
+class Format(StrictSettings):
     '''Value formatting options.'''
     decimals: int = Field(3, description='Number of decimals to show for numbers.')
     mode: ModeEnum = Field('standard', description='Display mode for numbers.')
@@ -710,7 +739,7 @@ class AlignEnum(str, Enum):
     CENTER = 'center'
 
 
-class Column(UISetting):
+class Column(StrictSettings):
     '''Option for a column show in the search results.'''
     label: Optional[str] = Field(description='Label shown in the header. Defaults to the quantity name.')
     align: AlignEnum = Field(AlignEnum.LEFT, description='Alignment in the table.')
@@ -732,12 +761,12 @@ class Columns(OptionsMulti):
     ''')
 
 
-class RowActions(UISetting):
+class RowActions(StrictSettings):
     '''Controls the visualization of row actions that are shown at the end of each row.'''
     enabled: bool = Field(True, description='Whether to enable row actions. ')
 
 
-class RowDetails(UISetting):
+class RowDetails(StrictSettings):
     '''
     Controls the visualization of row details that are shown upon pressing the row and
     contain basic details about the entry.
@@ -745,7 +774,7 @@ class RowDetails(UISetting):
     enabled: bool = Field(True, description='Whether to show row details.')
 
 
-class RowSelection(UISetting):
+class RowSelection(StrictSettings):
     '''
     Controls the selection of rows. If enabled, rows can be selected and additional
     actions performed on them.
@@ -753,7 +782,7 @@ class RowSelection(UISetting):
     enabled: bool = Field(True, description='Whether to show the row selection.')
 
 
-class Rows(UISetting):
+class Rows(StrictSettings):
     '''Controls the visualization of rows in the search results.'''
     actions: RowActions
     details: RowDetails
@@ -764,7 +793,7 @@ class FilterMenuActionEnum(str, Enum):
     CHECKBOX = 'checkbox'
 
 
-class FilterMenuAction(UISetting):
+class FilterMenuAction(StrictSettings):
     '''Contains definition for an action in the filter menu.'''
     type: FilterMenuActionEnum = Field(description='Action type.')
     label: str = Field(description='Label to show.')
@@ -789,7 +818,7 @@ class FilterMenuSizeEnum(str, Enum):
     XL = 'xl'
 
 
-class FilterMenu(UISetting):
+class FilterMenu(StrictSettings):
     '''Defines the layout and functionality for a filter menu.'''
     label: Optional[str] = Field(description='Menu label to show in the UI.')
     level: Optional[int] = Field(0, description='Indentation level of the menu.')
@@ -806,7 +835,7 @@ class Filters(OptionsBase):
     '''Controls the availability of filters.'''
 
 
-class Layout(UISetting):
+class Layout(StrictSettings):
     '''Defines widget size and grid positioning for different breakpoints.'''
     minH: int = Field(description='Minimum height in grid units.')
     minW: int = Field(description='Minimum width in grid units.')
@@ -831,7 +860,7 @@ class BreakpointEnum(str, Enum):
     XXL = 'xxl'
 
 
-class Widget(UISetting):
+class Widget(StrictSettings):
     '''Common configuration for all widgets.'''
     type: str = Field(description='Used to identify the widget type.')
     layout: Dict[BreakpointEnum, Layout] = Field(description='''
@@ -899,7 +928,7 @@ WidgetAnnotated = Annotated[
     Field(discriminator="type")]
 
 
-class Dashboard(UISetting):
+class Dashboard(StrictSettings):
     '''Dashboard configuration.'''
     widgets: List[WidgetAnnotated] = Field(description='List of widgets contained in the dashboard.')  # type: ignore
 
@@ -909,7 +938,7 @@ class ResourceEnum(str, Enum):
     MATERIALS = 'materials'
 
 
-class App(UISetting):
+class App(StrictSettings):
     '''Defines the layout and functionality for an App.'''
     label: str = Field(description='Name of the App.')
     path: str = Field(description='Path used in the browser address bar.')
@@ -942,8 +971,10 @@ class ExampleUploads(OptionsBase):
     '''Controls the availability of example uploads.'''
 
 
-class UI(UISetting):
+class UI(StrictSettings):
     '''Used to customize the user interface.'''
+    app_base: str = Field(None, description='This is automatically set from the nomad.yaml')
+    north_base: str = Field(None, description='This is automatically set from the nomad.yaml')
     theme: Theme = Field(
         Theme(**{
             'title': 'NOMAD'

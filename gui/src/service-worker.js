@@ -79,6 +79,17 @@ registerRoute(
   })
 )
 
+// A route that caches the API generated artifacts.js which contains all the configuration dependent gui artifacts.
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && url.pathname.endsWith('/artifacts.js'),
+  new StaleWhileRevalidate({
+    cacheName: 'artifacts',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 1 })
+    ]
+  })
+)
+
 // This allows the web app to trigger skipWaiting via
 // registration.waiting.postMessage({type: 'SKIP_WAITING'})
 self.addEventListener('message', (event) => {

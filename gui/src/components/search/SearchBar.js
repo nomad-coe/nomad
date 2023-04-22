@@ -35,7 +35,7 @@ import { useUnits } from '../../units'
 import { DType, getDatatype } from '../../utils'
 import { useSuggestions } from '../../hooks'
 import { useSearchContext, toGUIFilterSingle } from './SearchContext'
-import searchQuantities from '../../searchQuantities'
+import { searchQuantities } from '../../config'
 import { filterFullnames, quantityNameSearch } from './FilterRegistry'
 
 const opMap = {

@@ -110,51 +110,63 @@ for Intel, and install and use an Intel based Python. The second answer in this
 describes how to use both the Apple and Intel homebrew simultaneously.
 
 ### Install nomad
-The following command can be used to install all dependencies of all submodules and nomad
-itself. If successful you can skip the rest of this *Install nomad* section.
+The following command can be used to install all dependencies of all submodules
+and nomad itself.
 ```
 ./scripts/setup_dev_env.sh
 ```
 
-Install all the requirements needed for development (including submodul requirements):
+??? note "Installation details"
 
-```sh
-pip install --prefer-binary -r requirements-dev.txt
-```
+    Here is more detailed rundown of the installation steps.
 
-Finally, you can add nomad to the environment itself (including all extras).
-The `-e` option will install the NOMAD with symbolic links allowing you
-to change the code without having to reinstall after each change.
-```sh
-pip install -e .[parsing,infrastructure,dev]
-```
+    First we ensure that all submodules are up-to-date:
 
-If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
+    ```sh
+    git submodule update --init --recursive
+    ```
 
-```sh
-pip install -e .[parsing,infrastructure,dev] --prefer-binary
-```
+    Previous build is cleaned:
 
+    ```sh
+    rm -rf nomad/app/static/docs
+    rm -rf nomad/app/static/gui
+    rm -rf site
+    ```
 
-### Update GUI artifacts
+    All the requirements needed for development (including submodule requirements) are installed:
 
-The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
-```sh
-python -m nomad.cli dev gui-artifacts --output-directory gui/src
-python -m nomad.cli dev gui-config >gui/public/env.js
-```
+    ```sh
+    pip install --prefer-binary -r requirements-dev.txt
+    ```
 
-Or simply run
-```sh
-./scripts/generate_gui_artifacts.sh
-```
+    Next we install the `nomad` package itself (including all extras). The `-e`
+    option will install the NOMAD with symbolic links allowing you to change
+    the code without having to reinstall after each change.
 
-The generated files are stored in GIT. The GUI code might not match the expected data in
-outdated files. If there are changes to units, metainfo, new parsers, new toolkit notebooks it
-might be necessary to regenerate these gui artifacts.
+    ```sh
+    pip install -e .[parsing,infrastructure,dev]
+    ```
 
-In addition, you have to do some more steps to prepare your working copy to run all
-the tests. See below.
+    If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
+
+    ```sh
+    pip install -e .[parsing,infrastructure,dev] --prefer-binary
+    ```
+
+    The NOMAD GUI requires a static .env file that can be generated with:
+
+    ```sh
+    python -m nomad.cli dev gui-env > gui/.env.development
+    ```
+
+    This file includes some of the server details that are needed so that the
+    GUI can make the initial connection properly. If you e.g. change the server
+    address in your NOMAD configuration file, it will be necessary to regenerate
+    this .env file. In production this file will be overridden.
+
+In addition, you have to do some more steps to prepare your working copy to run
+all the tests. See below.
 
 ## Run the infrastructure
 
@@ -212,13 +224,26 @@ via your preferred tools. Just make sure to use the right ports.
 
 ## Run NOMAD
 
+### nomad.yaml
+
 Before you run NOMAD for development purposes, you should configure it to use the `test`
 realm of our user management system. By default, NOMAD will use the `fairdi_nomad_prod` realm.
 Create a `nomad.yaml` file in the root folder:
 
-```
+```yaml
 keycloak:
   realm_name: fairdi_nomad_test
+```
+
+You might also want to exclude some of the default plugins, or only include the plugins
+you'll need. Especially plugins that slower start-up and import times due to instantiation
+of large schemas (e.g. nexus create couple thousand definitions for 70+ applications) can
+often be excluded.
+
+```yaml
+plugins:
+  exclude:
+    - parsers/nexus
 ```
 
 ### App and Worker
@@ -249,14 +274,9 @@ To run the worker directly with celery, do (from the root)
 celery -A nomad.processing worker -l info
 ```
 
-Before you can run the gui, make sure that generated artifacts are up-to-date:
+Before you can run the gui, make sure that generated the GUI artifacts:
 ```sh
 ./scripts/generate_gui_artifacts.sh
-```
-
-Also, make sure that the config file (`gui/public/env.js`) have been properly created:
-```sh
-./scripts/generate_gui_config.sh
 ```
 
 If you run the gui on its own (e.g. with react dev server below), you also have to have
@@ -366,6 +386,8 @@ of testing.
     to using an actual browser (does not support e.g. WebGL), but in practice
     is realistic enough for the majority of the test.
 
+#### Test structure
+
 We have adopted a `pytest`-like structure for organizing the test utilities:
 each source code folder may contain a `conftest.js` file that contains
 utilities that are relevant for testing the code in that particular folder.
@@ -446,44 +468,54 @@ def search():
     )
     data.save()
 ```
-When running in the `test-integration` or `test-record` mode (see below), this
-function will be executed in order to prepare the application backend. The
-`closeAPI` function will handle cleaning the test state between successive
-`startAPI` calls: it will completely wipe out MongoDB, ElasticSearch and the
-upload files.
 
-!!! note
+When running in the online mode (see below), this function will be executed in
+order to prepare the application backend. The `closeAPI` function will handle
+cleaning the test state between successive `startAPI` calls: it will completely
+wipe out MongoDB, ElasticSearch and the upload files.
 
-    The tests are using the configuration specified in `gui/tests/nomad.yaml`, that
-    specifies a separate database/filesystem config in order to prevent interacting with
-    any other instances of NOMAD.
+#### Running tests
+The tests can be run in two different modes. _Offline testing_ uses
+pre-recorded files to mock the API traffic during testing. This allows one to
+run tests more quickly without a server. During _online testing_, the tests
+perform calls to a running server where a test state has been prepared. This
+mode can be used to perform integration tests, but also to record the snapshot
+files needed by the offline testing.
 
-In order to control how the API traffic is handled, there are three main ways
-for running the test suite, as configured in `package.json`:
+##### Offline testing
+This is the way our CI pipeline runs the tests and should be used locally
+whenever you wish to e.g. reproduce pipeline errors or when your tests do not
+involve any API traffic.
 
- - `yarn test [<filename>]`: Runs the tests parallelly in an 'offline'
-   mode: `startAPI` will use pre-recorded API snapshot files that are found in
-   gui/tests.
- - `yarn test-integration filename>]`: Runs the tests serially and `startAPI`
-   will forward any API traffic to a live API that is running locally.
- - `yarn test-record [<filename>]`: Runs the tests serially and `startAPI` will
-   forward traffic to a live API that is running locally, additionally
-   recording the traffic to the specified snapshot file.
+1. Ensure that the gui artifacts are up-to-date:
+    ```sh
+    ./scripts/generate_gui_test_artifacts.sh
+    ```
+    As snapshot tests do not connect to the server, the artifacts cannot be
+    fetched dynamically from the server and static files need to be used
+    instead.
 
-!!! note
+2. Run `yarn test` to run the whole suite or `yarn test [<filename>]` to run a
+   specific test.
 
-    Before running against a live API (`yarn test-integration` and `yarn
-    test-record`), you need to boot up the infrastructure and ensure that the
-    nomad package is available with the correct test configuration:
+##### Online testing
+When you wish to record API traffic for offline testing, or to perform
+integration tests, you will need to have a server running with the correct
+configuration. To do this, follow these steps:
 
-    1. Have the docker infrastructure running: `docker compose up`
+1. Have the docker infrastructure running: `docker compose up`
 
-    2. Have the `nomad appworker` running with the config found in
-       `gui/tests/nomad.yaml`. This can be achieved e.g. with the command: `export
-       NOMAD_CONFIG=gui/tests/nomad.yaml; nomad admin run appworker`
+2. Have the `nomad appworker` running with the config found in
+    `gui/tests/nomad.yaml`. This can be achieved e.g. with the command: `export
+    NOMAD_CONFIG=gui/tests/nomad.yaml; nomad admin run appworker`
 
-    3. Activate the correct python virtual environment before running the tests
-       with yarn (yarn will run the python functions that prepare the state).
+3. Activate the correct python virtual environment before running the tests
+    with yarn (yarn will run the python functions that prepare the state).
+
+4. Run the tests with `yarn test-record [<filename>]` if you wish to record a
+   snapshot file or `yarn test-integration [<filename>]` if you want the
+   perform the test without any recording.
+
 
 ## Build the docker image
 

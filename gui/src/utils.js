@@ -18,9 +18,7 @@
 import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, isPlainObject, startCase } from 'lodash'
 import { Quantity } from './units'
 import { format } from 'date-fns'
-import { dateFormat, guiBase, apiBase } from './config'
-import searchQuantities from './searchQuantities.json'
-import parserMetadata from './parserMetadata.json'
+import { dateFormat, guiBase, apiBase, searchQuantities, parserMetadata } from './config'
 const crypto = require('crypto')
 
 const parserLabels = Object.keys(parserMetadata).reduce((result, key) => {
@@ -483,7 +481,7 @@ export function formatTimestamp(value) {
  * Determines the data type of the given metainfo.
  *
  * @param {string} quantity The metainfo name (full path). Must exist in
- * searchQuantities.json.
+ * window.nomadArtifacts.searchQuantities.
  *
  * @return {string} The data type of the metainfo. Can be one of the following:
  *   - number
@@ -529,7 +527,7 @@ export function getDatatype(quantity) {
  * Returns the unit of the given metainfo if any specified.
  *
  * @param {string} quantity The metainfo name (full path). Must exist in
- * searchQuantities.json.
+ * window.nomadArtifacts.searchQuantities.
  *
  * @return {string} The unit of the metainfo or undefined if no unit definition
  * found.

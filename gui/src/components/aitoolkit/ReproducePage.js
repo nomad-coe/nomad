@@ -27,7 +27,6 @@ import {
   IconButton
 } from '@material-ui/core'
 import { Link } from 'react-router-dom'
-import tutorials from '../../toolkitMetadata'
 import { StringParam, useQueryParams } from 'use-query-params'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import TutorialsIcon from '../../images/AIT_ico_bb_tutorial.svg'
@@ -35,7 +34,7 @@ import ArrowIcon from '../../images/AIT_ico_bd_link_go_to.svg'
 import ReproduceIcon from '../../images/AIT_ico_bp_replicate.svg'
 import AccordionsList from './AccordionsList'
 import FigureAI from '../../images/AIT_illu_AIT.svg'
-import { aitoolkitEnabled } from '../../config'
+import { aitoolkitEnabled, toolkitMetadata as tutorials } from '../../config'
 
 export default function ReproducePage() {
   const styles = useStyles()

@@ -6,12 +6,14 @@ window.nomadEnv = {
   "keycloakClientId": "nomad_public",
   "debug": false,
   "encyclopediaBase": "https://nomad-lab.eu/prod/rae/encyclopedia/#",
-  "aitoolkitEnabled": false,
+  "aitoolkitEnabled": true,
   "oasis": false,
   "version": {},
   "globalLoginRequired": false,
   "servicesUploadLimit": 10,
   "ui": {
+    "app_base": "http://localhost:8000/fairdi/nomad/latest",
+    "north_base": "http://localhost:9000/fairdi/nomad/latest/north",
     "theme": {
       "title": "NOMAD"
     },

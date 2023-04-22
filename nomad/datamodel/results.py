@@ -23,8 +23,6 @@ from elasticsearch_dsl import Text
 from ase.data import chemical_symbols
 
 from nomad import config
-from nomad.utils import traverse_reversed
-from nomad.atomutils import Formula
 from nomad.datamodel.metainfo.measurements import Spectrum
 from nomad.datamodel.metainfo.simulation.system import Atoms
 from nomad.datamodel.metainfo.workflow import (
@@ -176,6 +174,7 @@ def get_formula_hill(formula: str) -> str:
     Returns:
         Chemical formula in the Hill format.
     '''
+    from nomad.atomutils import Formula
     return None if formula is None else Formula(formula).format('hill')
 
 
@@ -189,6 +188,7 @@ def get_formula_iupac(formula: str) -> str:
     Returns:
         Chemical formula in the IUPAC format.
     '''
+    from nomad.atomutils import Formula
     return None if formula is None else Formula(formula).format('iupac')
 
 
@@ -201,6 +201,7 @@ def available_properties(root: MSection) -> List[str]:
     Returns:
         List of property names that are present
     '''
+    from nomad.utils import traverse_reversed
     available_property_names = {
         'electronic.band_structure_electronic.band_gap': 'electronic.band_structure_electronic.band_gap',
         'electronic.band_structure_electronic': 'band_structure_electronic',

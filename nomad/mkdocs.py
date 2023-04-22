@@ -221,6 +221,11 @@ def define_env(env):
             in the web-interface.''')
 
     @env.macro
+    def file_contents(path):  # pylint: disable=unused-variable
+        with open(path, 'r') as f:
+            return f.read()
+
+    @env.macro
     def yaml_snippet(path, indent, filter=None):  # pylint: disable=unused-variable
         '''
         Produces a yaml string from a (partial) .json or .yaml file.

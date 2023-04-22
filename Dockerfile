@@ -48,8 +48,9 @@ RUN yarn --network-timeout 1200000
 # Artifact for running the tests
 COPY tests/states/archives/dft.json  /app/tests/states/archives/dft.json
 
-# Copy and build the appticaion itself
+# Copy and build the applicaion itself
 COPY gui .
+RUN echo "REACT_APP_BACKEND_URL=/fairdi/nomad/latest" > .env
 
 RUN yarn run build
 
@@ -111,17 +112,9 @@ COPY .pylintrc \
 # Files requiered for artifact generation/testing
 COPY ops/docker-compose ./ops/docker-compose
 
-COPY gui/src/metainfo.json ./gui/src/metainfo.json
-COPY gui/src/searchQuantities.json ./gui/src/searchQuantities.json
-COPY gui/src/toolkitMetadata.json ./gui/src/toolkitMetadata.json
-COPY gui/src/unitsData.js ./gui/src/unitsData.js
-COPY gui/src/parserMetadata.json ./gui/src/parserMetadata.json
-COPY dependencies/nomad-remote-tools-hub/tools.json ./dependencies/nomad-remote-tools-hub/tools.json
-COPY gui/src/northTools.json ./gui/src/northTools.json
-COPY gui/src/exampleUploads.json ./gui/src/exampleUploads.json
-
 COPY gui/tests/nomad.yaml ./gui/tests/nomad.yaml
 COPY gui/tests/env.js ./gui/tests/env.js
+COPY gui/tests/artifacts.js ./gui/tests/artifacts.js
 
 # build the example upload files
 RUN ./scripts/generate_example_uploads.sh
@@ -227,5 +220,7 @@ USER nomad
 # The application ports
 EXPOSE 8000
 EXPOSE 9000
+
+ENV PYTHONPATH=/app/plugins
 
 VOLUME /app/.volumes/fs

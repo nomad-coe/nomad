@@ -38,19 +38,62 @@ def worker():
 
 
 @run.command(help='Run the nomad development app with all apis.')
-@click.option('--debug', help='Does run app in debug.', is_flag=True)
-def app(debug: bool):
-    run_app(debug=debug)
+@click.option('--with-gui', help='The app will configure the gui for production and service it.', is_flag=True)
+@click.option('--host', type=str, help='Passed to uvicorn host parameter.')
+@click.option('--port', type=int, help='Passed to uvicorn host parameter.')
+@click.option('--log-config', type=str, help='Passed to uvicorn log-config parameter.')
+@click.option('--workers', type=int, help='Passed to uvicorn workers parameter.')
+def app(with_gui: bool, **kwargs):
+    run_app(with_gui=with_gui, **kwargs)
 
 
-def run_app(**kwargs):
+def run_app(with_gui: bool = False, **kwargs):
     config.meta.service = 'app'
+
+    if with_gui:
+        import os.path
+        import glob
+        import shutil
+
+        gui_folder = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '../../app/static/gui'))
+        run_gui_folder = os.path.join(gui_folder, '../.gui_configured')
+
+        # copy
+        shutil.rmtree(run_gui_folder, ignore_errors=True)
+        shutil.copytree(gui_folder, run_gui_folder)
+
+        # replace base path in all GUI files
+        source_file_globs = [
+            '**/*.json',
+            '**/*.html',
+            '**/*.js',
+            '**/*.js.map',
+            '**/*.css']
+        for source_file_glob in source_file_globs:
+            source_files = glob.glob(os.path.join(run_gui_folder, source_file_glob), recursive=True)
+            for source_file in source_files:
+                with open(source_file, 'rt') as f:
+                    file_data = f.read()
+                file_data = file_data.replace('/fairdi/nomad/latest', config.services.api_base_path)
+                with open(source_file, 'wt') as f:
+                    f.write(file_data)
+
+        # App and gui are served from the same server, same port. Replace the base urls with
+        # relative paths
+        config.ui.app_base = f'{config.services.api_base_path.rstrip("/")}'
+        config.ui.north_base = f'{config.services.api_base_path.rstrip("/")}/north'
+
     from uvicorn import Server, Config
+    from nomad.utils import get_logger
 
     uv_config = Config(
-        'nomad.app.main:app', host='127.0.0.1',
-        port=config.services.api_port, log_level='info')
+        'nomad.app.main:app',
+        log_level='info',
+        **{k: v for k, v in kwargs.items() if v is not None})
+
     server = Server(config=uv_config)
+    get_logger(__name__).info('created uvicorn server', data=uv_config.__dict__)
     server.run()
 
 

@@ -27,7 +27,7 @@ import { isNil } from 'lodash'
 import { useSearchContext } from '../SearchContext'
 import { guiState } from '../../GUIMenu'
 import { useSuggestions } from '../../../hooks'
-import searchQuantities from '../../../searchQuantities'
+import { searchQuantities } from '../../../config'
 import Placeholder from '../../visualization/Placeholder'
 
 /*

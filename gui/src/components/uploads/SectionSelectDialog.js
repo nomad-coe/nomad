@@ -24,8 +24,7 @@ import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
 import PropTypes from 'prop-types'
 import {SearchContext, useSearchContext} from "../search/SearchContext"
-import searchQuantities from '../../searchQuantities'
-import {apiBase, ui} from "../../config"
+import {ui, searchQuantities, apiBase} from "../../config"
 import SearchBar from '../search/SearchBar'
 import {useApi} from '../api'
 import {useUploadPageContext} from './UploadPageContext'

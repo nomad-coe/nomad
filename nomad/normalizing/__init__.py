@@ -36,25 +36,20 @@ There is one ABC for all normalizer:
     :members:
 '''
 
-from typing import List, Any, Iterable, Type
+from typing import List, Type
+import importlib
 
-from .system import SystemNormalizer
-from .optimade import OptimadeNormalizer
-from .dos import DosNormalizer
+from nomad import config
+
 from .normalizer import Normalizer
-from .band_structure import BandStructureNormalizer
-from .workflow import WorkflowNormalizer
-from .results import ResultsNormalizer
-from .metainfo import MetainfoNormalizer
-from .workflow2 import WorkflowNormalizer as Workflow2Normalizer
 
-normalizers: Iterable[Type[Normalizer]] = [
-    SystemNormalizer,
-    OptimadeNormalizer,
-    DosNormalizer,
-    BandStructureNormalizer,
-    WorkflowNormalizer,
-    Workflow2Normalizer,
-    ResultsNormalizer,
-    MetainfoNormalizer
-]
+
+normalizers: List[Type[Normalizer]] = []
+
+for normalizer in config.normalize.normalizers.filtered():
+    try:
+        package, cls = normalizer.rsplit('.', 1)
+        normalizer = getattr(importlib.import_module(package), cls)
+        normalizers.append(normalizer)
+    except Exception as e:
+        raise ImportError(f'Cannot import normalizer {normalizer}', e)

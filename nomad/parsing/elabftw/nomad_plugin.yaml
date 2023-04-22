@@ -1,0 +1,21 @@
+code_category: ELN
+code_homepage: https://www.elabftw.net/
+code_name: eLabFTW
+metadata:
+  codeCategory: ELN
+  codeLabel: eLabFTW
+  codeLabelStyle: 'capitals: L, F, T, W.'
+  codeName: elabftw
+  codeUrl: https://www.elabftw.net/
+  parserDirName: nomad/parsing/elabftw
+  parserGitUrl: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git
+  preabmle: ""
+  status: production
+  tableOfFiles: |
+    |Input Filename| Description|
+    |--- | --- |
+    |`*.ro-crate-metadata.json` | **Mainfile** as part of the .eln eLabFTW export |
+    |`*` | Files in .eln eLabFTW export that are potentially references by the mainfile |
+name: parsers/elabftw
+parser_class_name: nomad.parsing.elabftw.ELabFTWParser
+python_package: nomad.parsing.elabftw

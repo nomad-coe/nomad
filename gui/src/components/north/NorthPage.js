@@ -31,12 +31,11 @@ import {
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import Page from '../Page'
 import { withLoginRequired } from '../api'
-import * as _tools from '../../northTools.json'
 import Markdown from '../Markdown'
 import DefaultIcon from '@material-ui/icons/Assessment'
 import Icon from '@material-ui/core/Icon'
 import NorthTool, { NorthToolButtons, useNorthTool } from './NorthTool'
-import { ui } from '../../config'
+import { ui, northTools as _tools } from '../../config'
 
 export const help = `
 The NOMAD Remote Tools Hub (NORTH) provides access to tools which you can use to
@@ -129,7 +128,7 @@ const NorthToolAccordion = React.memo(function NorthToolAccordion({...props}) {
                   }
                 </Typography>
               )}
-              {file_extensions && (
+              {file_extensions && file_extensions.length > 0 && (
                 <Typography>
                   <b>File extensions: </b>{file_extensions
                     .map((extension, index) => <span key={index}>{extension}</span>)

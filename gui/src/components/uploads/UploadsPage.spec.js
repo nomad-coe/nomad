@@ -23,7 +23,7 @@ import {
   startAPI,
   closeAPI
 } from '../conftest.spec'
-import exampleUploadsJSON from '../../exampleUploads.json'
+import {exampleUploads as exampleUploadsJSON} from '../../config'
 import {UploadsPage} from './UploadsPage'
 import {withLoginRequired} from '../api'
 import {within} from '@testing-library/dom'

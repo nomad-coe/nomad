@@ -19,17 +19,15 @@
 import os.path
 from typing import Tuple, List, Dict
 from collections.abc import Iterable
-import pkgutil
-from pathlib import Path
 
 from nomad import config
+from nomad.config import Parser as ParserPlugin
 from nomad.datamodel import EntryArchive, EntryMetadata, results
 from nomad.datamodel.context import Context, ClientContext
 
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 from .tabular import TabularDataParser
-from nomad.datamodel.metainfo.eln.elabftw_parser import ELabFTWParser
 
 
 try:
@@ -204,470 +202,16 @@ def run_parser(
     return entry_archives
 
 
-# Here we resolve the path of the installation directories of various parsers.
-# Note that this should be done in a way that does not yet import the modules
-# themselves (this takes a while). The parser modules are imported lazily later.
-prefix_electronic = f'{Path(pkgutil.get_loader("electronicparsers").path).parent.absolute()}'  # type: ignore
-prefix_atomistic = f'{Path(pkgutil.get_loader("atomisticparsers").path).parent.absolute()}'  # type: ignore
-prefix_workflow = f'{Path(pkgutil.get_loader("workflowparsers").path).parent.absolute()}'  # type: ignore
-prefix_database = f'{Path(pkgutil.get_loader("databaseparsers").path).parent.absolute()}'  # type: ignore
-prefix_eels = f'{Path(pkgutil.get_loader("eelsdbparser").path).parent.absolute()}'  # type: ignore
+parsers = [GenerateRandomParser(), TemplateParser(), ChaosParser()]
+parsers.extend([
+    plugin.create_matching_parser_interface() for plugin_name, plugin in config.plugins.options.items()
+    if config.plugins.filter(plugin_name) and isinstance(plugin, ParserPlugin)
+])
+parsers.extend([TabularDataParser(), ArchiveParser()])
 
-parsers = [
-    GenerateRandomParser(),
-    TemplateParser(),
-    ChaosParser(),
-    MatchingParserInterface(
-        'electronicparsers.AbinitParser',
-        metadata_path=f'{prefix_electronic}/abinit/metadata.yaml',
-        mainfile_contents_re=(r'^\n*\.Version\s*[0-9.]*\s*of ABINIT\s*')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.AMSParser',
-        metadata_path=f'{prefix_electronic}/ams/metadata.yaml',
-        mainfile_contents_re=r'\* +\| +A M S +\| +\*'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.ATKParser',
-        metadata_path=f'{prefix_electronic}/atk/metadata.yaml',
-        mainfile_name_re=r'^.*\.nc', mainfile_mime_re=r'application/octet-stream'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.BigDFTParser',
-        metadata_path=f'{prefix_electronic}/bigdft/metadata.yaml',
-        mainfile_contents_re=(
-            # r'__________________________________ A fast and precise DFT wavelet code\s*'
-            # r'\|     \|     \|     \|     \|     \|\s*'
-            # r'\|     \|     \|     \|     \|     \|      BBBB         i       gggggg\s*'
-            # r'\|_____\|_____\|_____\|_____\|_____\|     B    B               g\s*'
-            # r'\|     \|  :  \|  :  \|     \|     \|    B     B        i     g\s*'
-            # r'\|     \|-0\+--\|-0\+--\|     \|     \|    B    B         i     g        g\s*'
-            r'\|_____\|__:__\|__:__\|_____\|_____\|___ BBBBB          i     g         g\s*'
-            # r'\|  :  \|     \|     \|  :  \|     \|    B    B         i     g         g\s*'
-            # r'\|--\+0-\|     \|     \|-0\+--\|     \|    B     B     iiii     g         g\s*'
-            # r'\|__:__\|_____\|_____\|__:__\|_____\|    B     B        i      g        g\s*'
-            # r'\|     \|  :  \|  :  \|     \|     \|    B BBBB        i        g      g\s*'
-            # r'\|     \|-0\+--\|-0\+--\|     \|     \|    B        iiiii          gggggg\s*'
-            # r'\|_____\|__:__\|__:__\|_____\|_____\|__BBBBB\s*'
-            # r'\|     \|     \|     \|  :  \|     \|                           TTTTTTTTT\s*'
-            # r'\|     \|     \|     \|--\+0-\|     \|  DDDDDD          FFFFF        T\s*'
-            # r'\|_____\|_____\|_____\|__:__\|_____\| D      D        F        TTTT T\s*'
-            # r'\|     \|     \|     \|  :  \|     \|D        D      F        T     T\s*'
-            # r'\|     \|     \|     \|--\+0-\|     \|D         D     FFFF     T     T\s*'
-            # r'\|_____\|_____\|_____\|__:__\|_____\|D___      D     F         T    T\s*'
-            # r'\|     \|     \|  :  \|     \|     \|D         D     F          TTTTT\s*'
-            # r'\|     \|     \|--\+0-\|     \|     \| D        D     F         T    T\s*'
-            # r'\|_____\|_____\|__:__\|_____\|_____\|          D     F        T     T\s*'
-            # r'\|     \|     \|     \|     \|     \|         D               T    T\s*'
-            # r'\|     \|     \|     \|     \|     \|   DDDDDD       F         TTTT\s*'
-            # r'\|_____\|_____\|_____\|_____\|_____\|______                    www\.bigdft\.org'
-        )
-    ),
-    MatchingParserInterface(
-        'electronicparsers.CastepParser',
-        metadata_path=f'{prefix_electronic}/castep/metadata.yaml',
-        mainfile_contents_re=(r'\s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.CharmmParser',
-        metadata_path=f'{prefix_electronic}/charmm/metadata.yaml',
-        mainfile_contents_re=r'\s*Chemistry\s*at\s*HARvard\s*Macromolecular\s*Mechanics\s*',
-        mainfile_mime_re=r'text/.*'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.CP2KParser',
-        metadata_path=f'{prefix_electronic}/cp2k/metadata.yaml',
-        mainfile_contents_re=(
-            r'\*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s.*\n'
-            r' \*\*\*\*\* \*\* \*\*\*  \*\*\* \*\*   PROGRAM STARTED ON\s*.*\n'
-            r' \*\*    \*\*\*\*   \*\*\*\*\*\*    PROGRAM STARTED BY .*\n'
-            r' \*\*\*\*\* \*\*    \*\* \*\* \*\*   PROGRAM PROCESS ID .*\n'
-            r'  \*\*\*\* \*\*  \*\*\*\*\*\*\*  \*\*  PROGRAM STARTED IN .*\n')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.CPMDParser',
-        metadata_path=f'{prefix_electronic}/cpmd/metadata.yaml',
-        mainfile_contents_re=(r'\*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.CrystalParser',
-        metadata_path=f'{prefix_electronic}/crystal/metadata.yaml',
-        mainfile_contents_re=(
-            fr'(\r?\n \*\s+CRYSTAL[\d]+\s+\*\r?\n \*\s*[a-zA-Z]+ : \d+[\.\d+]*)')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.Dmol3Parser',
-        metadata_path=f'{prefix_electronic}/dmol3/metadata.yaml',
-        mainfile_name_re=r'.*\.outmol',
-        mainfile_contents_re=r'Materials Studio DMol\^3'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.ElkParser',
-        metadata_path=f'{prefix_electronic}/elk/metadata.yaml',
-        mainfile_contents_re=r'\| Elk version [0-9.a-zA-Z]+ started \|'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.ExcitingParser',
-        metadata_path=f'{prefix_electronic}/exciting/metadata.yaml',
-        mainfile_name_re=r'^.*.OUT(\.[^/]*)?$',
-        mainfile_contents_re=(r'EXCITING.*started[\s\S]+?All units are atomic ')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.FHIAimsParser',
-        metadata_path=f'{prefix_electronic}/fhiaims/metadata.yaml',
-        mainfile_contents_re=(
-            r'^(.*\n)*'
-            r'?\s*Invoking FHI-aims \.\.\.')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.FleurParser',
-        metadata_path=f'{prefix_electronic}/fleur/metadata.yaml',
-        mainfile_contents_re=r'This output is generated by fleur.|\<fleurOutput',
-        mainfile_name_re=r'.*[^/]*\.xml[^/]*',  # only the alternative mainfile name should match
-        mainfile_mime_re=r'(application/.*)|(text/.*)',
-        mainfile_alternative=True
-    ),
-    MatchingParserInterface(
-        'electronicparsers.FploParser',
-        metadata_path=f'{prefix_electronic}/fplo/metadata.yaml',
-        mainfile_contents_re=r'\s*\|\s*FULL-POTENTIAL LOCAL-ORBITAL MINIMUM BASIS BANDSTRUCTURE CODE\s*\|\s*',
-        mainfile_mime_re=r'text/.*'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.GamessParser',
-        metadata_path=f'{prefix_electronic}/gamess/metadata.yaml',
-        mainfile_contents_re=(
-            r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-            r'\s*\*\s*GAMESS VERSION =\s*(.*)\*\s*'
-            r'\s*\*\s*FROM IOWA STATE UNIVERSITY\s*\*\s*')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.GaussianParser',
-        metadata_path=f'{prefix_electronic}/gaussian/metadata.yaml',
-        mainfile_mime_re=r'.*',
-        mainfile_contents_re=(
-            r'\s*Cite this work as:'
-            r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.GPAWParser',
-        metadata_path=f'{prefix_electronic}/gpaw/metadata.yaml',
-        mainfile_name_re=(r'^.*\.(gpw2|gpw)$'),
-        mainfile_mime_re=r'application/(x-tar|octet-stream)'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.MolcasParser',
-        metadata_path=f'{prefix_electronic}/molcas/metadata.yaml',
-        mainfile_contents_re=r'M O L C A S'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.MopacParser',
-        metadata_path=f'{prefix_electronic}/mopac/metadata.yaml',
-        mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
-        mainfile_mime_re=r'text/.*',
-    ),
-    MatchingParserInterface(
-        'electronicparsers.NWChemParser',
-        metadata_path=f'{prefix_electronic}/nwchem/metadata.yaml',
-        mainfile_contents_re=(
-            r'Northwest Computational Chemistry Package \(NWChem\) (\d+\.)+\d+')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.OctopusParser',
-        metadata_path=f'{prefix_electronic}/octopus/metadata.yaml',
-        mainfile_contents_re=(r'\|0\) ~ \(0\) \|')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.OnetepParser',
-        metadata_path=f'{prefix_electronic}/onetep/metadata.yaml',
-        mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.OpenmxParser',
-        metadata_path=f'{prefix_electronic}/openmx/metadata.yaml',
-        mainfile_mime_re=r'(text/.*)',
-        mainfile_name_re=r'.*\.out$',
-        mainfile_contents_re=(r'^\*{59}\s+\*{59}\s+This calculation was performed by OpenMX'),
-    ),
-    MatchingParserInterface(
-        'electronicparsers.OrcaParser',
-        metadata_path=f'{prefix_electronic}/orca/metadata.yaml',
-        mainfile_contents_re=(
-            r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-            r'\s+\* O   R   C   A \*\s*'
-            r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-            r'\s*')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.Psi4Parser',
-        metadata_path=f'{prefix_electronic}/psi4/metadata.yaml',
-        mainfile_contents_re=(r'Psi4: An Open-Source Ab Initio Electronic Structure Package')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.QBallParser',
-        metadata_path=f'{prefix_electronic}/qball/metadata.yaml',
-        mainfile_contents_re='qball',
-        supported_compressions=["gz", "bz2", "xz"]
-    ),
-    MatchingParserInterface(
-        'electronicparsers.QboxParser',
-        metadata_path=f'{prefix_electronic}/qbox/metadata.yaml',
-        mainfile_mime_re=r'(application/xml)|(text/.*)',
-        mainfile_contents_re=(r'http://qboxcode.org')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.QuantumEspressoParser',
-        metadata_path=f'{prefix_electronic}/quantumespresso/metadata.yaml',
-        mainfile_contents_re=(r'(Program PWSCF.*starts)|(Current dimensions of program PWSCF are)')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.SiestaParser',
-        metadata_path=f'{prefix_electronic}/siesta/metadata.yaml',
-        mainfile_contents_re=(
-            r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])|'
-            r'(\*\s*WELCOME TO SIESTA\s*\*)')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.TurbomoleParser',
-        metadata_path=f'{prefix_electronic}/turbomole/metadata.yaml',
-        mainfile_contents_re=(r'Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.VASPParser',
-        metadata_path=f'{prefix_electronic}/vasp/metadata.yaml',
-        mainfile_mime_re=r'(application/.*)|(text/.*)',
-        mainfile_name_re=r'.*[^/]*xml[^/]*',  # only the alternative mainfile name should match
-        mainfile_contents_re=(
-            r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
-            r'?\s*<modeling>'
-            r'?\s*<generator>'
-            r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
-            r'?|^\svasp[\.\d]+.+?(?:\(build|complex)[\s\S]+?executed on'),
-        supported_compressions=['gz', 'bz2', 'xz'], mainfile_alternative=True
-    ),
-    MatchingParserInterface(
-        'electronicparsers.Wien2kParser',
-        metadata_path=f'{prefix_electronic}/wien2k/metadata.yaml',
-        mainfile_name_re=r'.*\.scf$',
-        mainfile_alternative=True,
-        mainfile_contents_re=r'\s*---------\s*:ITE[0-9]+:\s*[0-9]+\.\s*ITERATION\s*---------'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.YamboParser',
-        metadata_path=f'{prefix_electronic}/yambo/metadata.yaml',
-        mainfile_contents_re=(r'Build.+\s+http://www\.yambo-code\.org')
-    ),
-    MatchingParserInterface(
-        'electronicparsers.ABACUSParser',
-        metadata_path=f'{prefix_electronic}/abacus/metadata.yaml',
-        mainfile_contents_re=(r'\s*\n\s*WELCOME TO ABACUS')
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.AmberParser',
-        metadata_path=f'{prefix_atomistic}/amber/metadata.yaml',
-        mainfile_contents_re=r'\s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+'
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.AsapParser',
-        metadata_path=f'{prefix_atomistic}/asap/metadata.yaml',
-        mainfile_name_re=r'.*.traj$', mainfile_mime_re=r'application/octet-stream',
-        mainfile_binary_header_re=br'AFFormatASE\-Trajectory'
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.BOPfoxParser',
-        metadata_path=f'{prefix_atomistic}/bopfox/metadata.yaml',
-        mainfile_contents_re=r'\-+\s+BOPfox \(v'
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.DFTBPlusParser',
-        metadata_path=f'{prefix_atomistic}/dftbplus/metadata.yaml',
-        mainfile_contents_re=r'\|  DFTB\+',
-        mainfile_mime_re=r'text/.*'
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.DLPolyParser',
-        metadata_path=f'{prefix_atomistic}/dlpoly/metadata.yaml',
-        mainfile_contents_re=(r'\*\*\s+DL_POLY.+\*\*'),
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.GromacsParser',
-        metadata_path=f'{prefix_atomistic}/gromacs/metadata.yaml',
-        mainfile_contents_re=r'gmx mdrun, (VERSION|version)[\s\S]*Input Parameters:'
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.GromosParser',
-        metadata_path=f'{prefix_atomistic}/gromos/metadata.yaml',
-        mainfile_contents_re=r'Bugreports to http://www.gromos.net'
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.GulpParser',
-        metadata_path=f'{prefix_atomistic}/gulp/metadata.yaml',
-        mainfile_contents_re=(
-            r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*'
-            r'\*\*\*\*\*\*\*\*\*\*\*\*\*\s*'
-            r'\s*\*\s*GENERAL UTILITY LATTICE PROGRAM\s*\*\s*'),
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.LammpsParser',
-        metadata_path=f'{prefix_atomistic}/lammps/metadata.yaml',
-        mainfile_contents_re=r'^LAMMPS\s+\(.+\)'
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.LibAtomsParser',
-        metadata_path=f'{prefix_atomistic}/libatoms/metadata.yaml',
-        mainfile_contents_re=(r'\s*<GAP_params\s'),
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.NAMDParser',
-        metadata_path=f'{prefix_atomistic}/namd/metadata.yaml',
-        mainfile_contents_re=r'\s*Info:\s*NAMD\s*[0-9.]+\s*for\s*',
-        mainfile_mime_re=r'text/.*',
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.TinkerParser',
-        metadata_path=f'{prefix_atomistic}/tinker/metadata.yaml',
-        mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design'
-    ),
-    MatchingParserInterface(
-        'atomisticparsers.XTBParser',
-        metadata_path=f'{prefix_atomistic}/xtb/metadata.yaml',
-        mainfile_contents_re=r'x T B\s+\|\s+\|\s+='
-    ),
-    MatchingParserInterface(
-        'workflowparsers.AFLOWParser',
-        metadata_path=f'{prefix_workflow}/aflow/metadata.yaml',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_name_re=r'.*aflowlib\.json.*',  # only the alternative mainfile name should match
-        mainfile_contents_re=(
-            r"^\s*\[AFLOW\] \*+"
-            r"\s*\[AFLOW\]"
-            r"\s*\[AFLOW\]                     .o.        .o88o. oooo"
-            r"\s*\[AFLOW\]                    .888.       888 `` `888"
-            r"\s*\[AFLOW\]                   .8'888.     o888oo   888   .ooooo.  oooo oooo    ooo"
-            r"\s*\[AFLOW\]                  .8' `888.     888     888  d88' `88b  `88. `88.  .8'"
-            r"\s*\[AFLOW\]                 .88ooo8888.    888     888  888   888   `88..]88..8'"
-            r"\s*\[AFLOW\]                .8'     `888.   888     888  888   888    `888'`888'"
-            r"\s*\[AFLOW\]               o88o     o8888o o888o   o888o `Y8bod8P'     `8'  `8'  .in"
-            r"|^\s*\{\"aurl\"\:\"aflowlib\.duke\.edu\:AFLOWDATA"),
-        supported_compressions=['gz', 'bz2', 'xz'], mainfile_alternative=True
-    ),
-    MatchingParserInterface(
-        'workflowparsers.ASRParser',
-        metadata_path=f'{prefix_workflow}/asr/metadata.yaml',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_name_re=r'.*archive_.*\.json',
-        mainfile_contents_re=(r'"name": "ASR"')
-    ),
-    MatchingParserInterface(
-        'workflowparsers.ElasticParser',
-        metadata_path=f'{prefix_workflow}/elastic/metadata.yaml',
-        mainfile_contents_re=r'\s*Order of elastic constants\s*=\s*[0-9]+\s*',
-        mainfile_name_re=(r'.*/INFO_ElaStic')
-    ),
-    MatchingParserInterface(
-        'workflowparsers.FHIVibesParser',
-        metadata_path=f'{prefix_workflow}/fhivibes/metadata.yaml',
-        mainfile_name_re=(r'^.*\.(nc)$'),
-        mainfile_mime_re=r'(application/x-hdf)',
-        mainfile_binary_header_re=br'^\x89HDF',
-        mainfile_contents_dict={'__has_all_keys': ['I', 'a', 'b']}
-    ),
-    MatchingParserInterface(
-        'workflowparsers.LobsterParser',
-        metadata_path=f'{prefix_workflow}/lobster/metadata.yaml',
-        mainfile_name_re=r'.*lobsterout$',
-        mainfile_contents_re=(r'^LOBSTER\s*v[\d\.]+.*'),
-    ),
-    MatchingParserInterface(
-        'workflowparsers.AtomateParser',
-        metadata_path=f'{prefix_workflow}/atomate/metadata.yaml',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_name_re=r'.*mp.+materials\.json',
-        mainfile_contents_re=(r'"pymatgen_version":')
-    ),
-    MatchingParserInterface(
-        'workflowparsers.PhonopyParser',
-        metadata_path=f'{prefix_workflow}/phonopy/metadata.yaml',
-        mainfile_name_re=(r'(.*/phonopy-FHI-aims-displacement-0*1/control.in$)|(.*/phon[^/]+yaml)')
-    ),
-    MatchingParserInterface(
-        'eelsdbparser.EELSDBParser',
-        metadata_path=f'{prefix_eels}/metadata.yaml',
-        mainfile_mime_re=r'application/json',
-        mainfile_contents_re=(r'https://eelsdb.eu/spectra')
-    ),
-    MatchingParserInterface(
-        'workflowparsers.MOFStructuresParser',
-        metadata_path=f'{prefix_workflow}/mofstructures/metadata.yaml',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_name_re=r'.*mof_.*\.json',
-        mainfile_contents_re=r'MOF Structures'
-    ),
-    MatchingParserInterface(
-        'workflowparsers.QuantumEspressoPhononParser',
-        metadata_path=f'{prefix_workflow}/quantum_espresso_phonon/metadata.yaml',
-        mainfile_contents_re=(
-            r'Program PHONON.+\s*'
-            r'This program is part of the open-source Quantum ESPRESSO suite')
-    ),
-    MatchingParserInterface(
-        'workflowparsers.QuantumEspressoEPWParser',
-        metadata_path=f'{prefix_workflow}/quantum_espresso_epw/metadata.yaml',
-        mainfile_contents_re=(
-            r'Program EPW.+\s*'
-            r'This program is part of the open-source Quantum ESPRESSO suite')
-    ),
-    MatchingParserInterface(
-        'workflowparsers.QuantumEspressoXSpectraParser',
-        metadata_path=f'{prefix_workflow}/quantum_espresso_xspectra/metadata.yaml',
-        mainfile_mime_re=r'(application/.*)|(text/.*)',
-        mainfile_contents_re=r'\s*Program XSpectra\s*'
-    ),
-    MatchingParserInterface(
-        'databaseparsers.OpenKIMParser',
-        metadata_path=f'{prefix_database}/openkim/metadata.yaml',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_contents_re=r'openkim|OPENKIM|OpenKIM'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.Wannier90Parser',
-        metadata_path=f'{prefix_electronic}/wannier90/metadata.yaml',
-        mainfile_contents_re=r'\|\s*WANNIER90\s*\|'
-    ),
-    MatchingParserInterface(
-        'electronicparsers.W2DynamicsParser',
-        metadata_path=f'{prefix_electronic}/w2dynamics/metadata.yaml',
-        mainfile_name_re=(r'^.*\.(h5|hdf5)$'),
-        mainfile_mime_re=r'(application/x-hdf)',
-        mainfile_binary_header_re=br'^\x89HDF',
-        mainfile_contents_dict={'__has_all_keys': ['.axes', '.config', '.quantities']}
-    ),
-    MatchingParserInterface(
-        'electronicparsers.SolidDMFTParser',
-        metadata_path=f'{prefix_electronic}/soliddmft/metadata.yaml',
-        mainfile_name_re=(r'^.*\.(h5|hdf5)$'),
-        mainfile_mime_re=r'(application/x-hdf)',
-        mainfile_binary_header_re=br'^\x89HDF',
-        mainfile_contents_dict={'__has_all_keys': ['dft_input', 'DMFT_input', 'DMFT_results']}
-    ),
-    MatchingParserInterface(
-        'electronicparsers.OceanParser',
-        metadata_path=f'{prefix_electronic}/ocean/metadata.yaml',
-        mainfile_mime_re=r'(application/.*)|(text/.*)',
-        mainfile_contents_dict={'__has_all_keys': ['bse', 'structure', 'screen', 'calc']}
-    ),
-    MatchingParserInterface(
-        'nomad.parsing.nexus.NexusParser',
-        metadata_path=os.path.join(os.path.dirname(__file__), 'metadata.yaml'),
-        mainfile_mime_re=r'(application/.*)|(text/.*)',
-        mainfile_name_re=r'.*\.nxs',
-        supported_compressions=['gz', 'bz2', 'xz']),
-
-    TabularDataParser(),
-    ELabFTWParser(),
-    ArchiveParser()
-]
-
+# There are some entries with PIDs that have mainfiles which do not match what
+# the actual parsers expect. We use the EmptyParser to produce placeholder entries
+# to keep the PIDs. These parsers will not match for new, non migrated data.
 empty_parsers = [
     EmptyParser(
         name='missing/octopus', code_name='Octopus', code_homepage='https://octopus-code.org/',
@@ -688,38 +232,41 @@ empty_parsers = [
 ]
 
 if config.process.use_empty_parsers:
-    # There are some entries with PIDs that have mainfiles which do not match what
-    # the actual parsers expect. We use the EmptyParser to produce placeholder entries
-    # to keep the PIDs. These parsers will not match for new, non migrated data.
     parsers.extend(empty_parsers)
 
 parsers.append(BrokenParser())
 
-''' Instantiation and constructor based config of all parsers. '''
 
 parser_dict: Dict[str, Parser] = {parser.name: parser for parser in parsers + empty_parsers}  # type: ignore
 ''' A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. '''
 
+
 # renamed parsers
-parser_dict['parsers/vaspoutcar'] = parser_dict['parsers/vasp']
-parser_dict['parser/broken'] = parser_dict['parsers/broken']
-parser_dict['parser/fleur'] = parser_dict['parsers/fleur']
-parser_dict['parser/molcas'] = parser_dict['parsers/molcas']
-parser_dict['parser/octopus'] = parser_dict['parsers/octopus']
-parser_dict['parser/onetep'] = parser_dict['parsers/onetep']
+_renames = {
+    'parsers/vaspoutcar': 'parsers/vasp',
+    'parser/broken': 'parsers/broken',
+    'parser/fleur': 'parsers/fleur',
+    'parser/molcas': 'parsers/molcas',
+    'parser/octopus': 'parsers/octopus',
+    'parser/onetep': 'parsers/onetep',
+}
+
+for old_name, new_name in _renames.items():
+    if new_name in parser_dict:
+        parser_dict[old_name] = parser_dict[new_name]
 
 # register code names as possible statistic value to the dft datamodel
 code_names = []
 code_metadata = {}
 for parser in parsers:
     code_name = getattr(parser, 'code_name', None)
-    if parser.domain == 'dft' and \
+    if getattr(parser, 'domain', None) == 'dft' and \
             code_name is not None and \
             code_name != 'currupted mainfile' and \
             code_name != 'Template':
         code_names.append(code_name)
         if parser.metadata:
-            code_metadata[code_name] = parser.metadata.dict()
+            code_metadata[code_name] = parser.metadata if parser.metadata else {}
         else:
             code_metadata[code_name] = {}
 code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
@@ -733,4 +280,4 @@ def import_all_parsers():
     '''
     for parser in parsers:
         if isinstance(parser, MatchingParserInterface):
-            parser.import_parser_class()
+            parser.import_parser_class()  # pylint: disable=no-member

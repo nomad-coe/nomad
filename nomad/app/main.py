@@ -24,6 +24,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import PlainTextResponse
 
 from nomad import config, infrastructure
 from .dcat.main import app as dcat_app
@@ -80,7 +81,26 @@ if os.path.exists(configured_gui_folder):
 
 app.mount(f'{app_base}/dist', StaticFiles(directory=dist_folder, check_dir=False), name='dist', )
 app.mount(f'{app_base}/docs', StaticFiles(directory=docs_folder, check_dir=False), name='docs')
-app.mount(f'{app_base}/gui', StaticFiles(directory=gui_folder, check_dir=False), name='gui')
+
+
+class GuiFiles(StaticFiles):
+
+    gui_artifacts_data = None
+    gui_env_data = None
+
+    async def get_response(self, path: str, scope) -> Response:
+        if path == 'env.js':
+            return PlainTextResponse(
+                GuiFiles.gui_env_data, status_code=200, media_type='application/javascript')
+
+        if path == 'artifacts.js':
+            return PlainTextResponse(
+                GuiFiles.gui_artifacts_data, status_code=200, media_type='application/javascript')
+
+        return await super().get_response(path, scope)
+
+
+app.mount(f'{app_base}/gui', GuiFiles(directory=gui_folder, check_dir=False), name='gui')
 
 
 @app.on_event('startup')
@@ -96,6 +116,12 @@ async def startup_event():
         disconnect()
     except Exception:
         pass
+
+    from nomad.cli.dev import get_gui_artifacts_js
+    GuiFiles.gui_artifacts_data = get_gui_artifacts_js()
+
+    from nomad.cli.dev import get_gui_config
+    GuiFiles.gui_env_data = get_gui_config()
 
     infrastructure.setup()
 

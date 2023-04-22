@@ -23,7 +23,7 @@ import { useSearchContext } from "../SearchContext"
 import AutoComplete from "@material-ui/lab/Autocomplete"
 import { useApi } from '../../api'
 import { debounce, isArray, isEmpty } from 'lodash'
-import searchQuantities from '../../../searchQuantities'
+import { searchQuantities } from '../../../config'
 
 // List of optimade identifiers. We get these from the metainfo.
 const prefix = 'optimade.'

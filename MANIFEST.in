@@ -1,27 +1,28 @@
 prune *
 exclude *
 
-recursive-include nomad *.py *.json *.j2 *.md *.txt metadata.yaml
+recursive-include nomad *.py *.json *.j2 *.md *.txt nomad_plugin.yaml
 include pyproject.toml setup.py AUTHORS LICENSE README.md README.parsers.md requirements.txt requirements-dev.txt
 
 graft nomad/app/static
 exclude nomad/app/static/gui/env.js
+exclude nomad/app/static/gui/artifact.js
 
 include dependencies/matid/README.md
 recursive-include dependencies/matid/matid *.py
 include dependencies/nomad-dos-fingerprints/README.md
 recursive-include dependencies/nomad-dos-fingerprints/nomad_dos_fingerprints *.py
 include dependencies/parsers/atomistic/README.md
-recursive-include dependencies/parsers/atomistic/atomisticparsers *.py metadata.yaml
+recursive-include dependencies/parsers/atomistic/atomisticparsers *.py nomad_plugin.yaml
 include dependencies/parsers/database/README.md
-recursive-include dependencies/parsers/database/databaseparsers *.py metadata.yaml
+recursive-include dependencies/parsers/database/databaseparsers *.py nomad_plugin.yaml
 include dependencies/parsers/eelsdb/README.md
-recursive-include dependencies/parsers/eelsdb/eelsdbparser *.py metadata.yaml
+recursive-include dependencies/parsers/eelsdb/eelsdbparser *.py nomad_plugin.yaml
 include dependencies/parsers/electronic/README.md
-recursive-include dependencies/parsers/electronic/electronicparsers *.py metadata.yaml
+recursive-include dependencies/parsers/electronic/electronicparsers *.py nomad_plugin.yaml
 include dependencies/parsers/nexus/README.md
 recursive-include dependencies/parsers/nexus/nexusutils *.py
 include dependencies/parsers/nexus/nexusutils/dataconverter/readers/hall/enum_map.json
 recursive-include dependencies/parsers/nexus/nexusutils/definitions *.xml *.xsd
 include dependencies/parsers/workflow/README.md
-recursive-include dependencies/parsers/workflow/workflowparsers *.py metadata.yaml
+recursive-include dependencies/parsers/workflow/workflowparsers *.py nomad_plugin.yaml

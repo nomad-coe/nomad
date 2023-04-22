@@ -20,7 +20,7 @@ import { ReactComponent as AboutSvg } from '../images/about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
 import { isNil } from 'lodash'
-import { appBase, debug, aitoolkitEnabled, encyclopediaBase } from '../config'
+import { appBase, debug, aitoolkitEnabled, encyclopediaBase, parserMetadata, toolkitMetadata as tutorials } from '../config'
 import {
   Button,
   Card,
@@ -35,8 +35,6 @@ import {
   Typography
 } from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
-import tutorials from '../toolkitMetadata'
-import parserMetadata from '../parserMetadata'
 import { useInfo } from './api'
 import { pluralize } from '../utils'
 
@@ -255,7 +253,7 @@ export default function About() {
 
   useEffect(() => {
     const statistics = (info && {...info.statistics}) || {}
-    statistics.n_tutorials = tutorials.tutorials.length
+    statistics.n_tutorials = tutorials?.tutorials?.length || 25
     const value = (key, unit) => {
       const nominal = statistics[key]
       let stringValue = null
@@ -286,7 +284,7 @@ export default function About() {
       value('n_materials', 'materials')
     ])
     setText('toolkitStats', [
-      value('n_tutorials', 'notebooks')
+      `${statistics.n_tutorials} notebooks`
     ])
   }, [svg, info, setText])
 

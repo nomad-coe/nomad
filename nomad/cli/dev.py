@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+from typing import Tuple, Any
 import sys
 import json
 from collections import defaultdict
@@ -66,45 +67,31 @@ def gui_qa(skip_tests: bool):
     sys.exit(ret_code)
 
 
-@dev.command(help=(
-    'Generates all python-based GUI artifacts: metainfo.json, searchQuantities.json, '
-    'unitsData.js, parserMetadata.json, toolkitMetadata.json, exampleUploads.json, '
-    'and northTools.json.'))
-@click.option(
-    '--output-directory', type=str, default='gui/src',
-    help='The output directory for generated files. Default is gui/src')
-def gui_artifacts(output_directory):
+def get_gui_artifacts_js() -> str:
+    from nomad.parsing.parsers import code_metadata
+
     all_metainfo_packages = _all_metainfo_packages()
+    unit_list_json, prefixes_json = _generate_units_json(all_metainfo_packages)
+    code_metadata = json.loads(json.dumps(code_metadata, sort_keys=True))
 
-    with open(os.path.join(output_directory, 'searchQuantities.json'), 'wt') as f:
-        json.dump(_generate_search_quantities(), f, indent=2)
-        f.write('\n')
+    artifactsDict = {
+        'searchQuantities': _generate_search_quantities(),
+        'metainfo': _generate_metainfo(all_metainfo_packages),
+        'parserMetadata': code_metadata,
+        'toolkitMetadata': _generate_toolkit_metadata(),
+        'exampleUploads': _generate_example_upload_metadata(),
+        'northTools': config.north.dict()['tools'],
+        'unitList': unit_list_json,
+        'unitPrefixes': prefixes_json
+    }
 
-    with open(os.path.join(output_directory, 'metainfo.json'), 'wt') as f:
-        json.dump(_generate_metainfo(all_metainfo_packages), f, indent=2)
-        f.write('\n')
+    return f'window.nomadArtifacts = {json.dumps(artifactsDict, indent=2)};\n'
 
-    with open(os.path.join(output_directory, 'parserMetadata.json'), 'wt') as f:
-        from nomad.parsing.parsers import code_metadata
-        json.dump(code_metadata, f, indent=2, sort_keys=True)
-        f.write('\n')
 
-    with open(os.path.join(output_directory, 'toolkitMetadata.json'), 'wt') as f:
-        json.dump(_generate_toolkit_metadata(), f, indent=2)
-        f.write('\n')
-
-    with open(os.path.join(output_directory, 'unitsData.js'), 'wt') as f:
-        f.write(_generate_units(all_metainfo_packages))
-        f.write('\n')
-
-    with open(os.path.join(output_directory, 'exampleUploads.json'), 'wt') as f:
-        json.dump(_generate_example_upload_metadata(), f, indent=2)
-        f.write('\n')
-
-    import shutil
-    shutil.copyfile(
-        'dependencies/nomad-remote-tools-hub/tools.json',
-        os.path.join(output_directory, 'northTools.json'))
+@dev.command(help=(
+    'Generates all python-based GUI artifacts into javascript code.'))
+def gui_artifacts():
+    print(get_gui_artifacts_js())
 
 
 def _generate_metainfo(all_metainfo_packages):
@@ -115,6 +102,9 @@ def _generate_metainfo(all_metainfo_packages):
 def metainfo():
     export = _all_metainfo_packages()
     print(json.dumps(_generate_metainfo(export), indent=2))
+
+
+_all_metainfo_environment = None
 
 
 def _all_metainfo_packages():
@@ -128,7 +118,8 @@ def _all_metainfo_packages():
 
     # Create the ES mapping to populate ES annoations with search keys.
     from nomad.search import entry_type
-    entry_type.create_mapping(EntryArchive.m_def)
+    if not entry_type.mapping:
+        entry_type.create_mapping(EntryArchive.m_def)
 
     # TODO we call __init_metainfo__() for all packages where this has been forgotten
     # by the package author. Ideally this would not be necessary and we fix the
@@ -139,10 +130,12 @@ def _all_metainfo_packages():
             if (pkg.name not in Package.registry):
                 pkg.__init_metainfo__()
 
-    export = Environment()
-    for package in Package.registry.values():
-        export.m_add_sub_section(Environment.packages, package)
-    return export
+    global _all_metainfo_environment
+    if not _all_metainfo_environment:
+        _all_metainfo_environment = Environment()
+        for package in Package.registry.values():
+            _all_metainfo_environment.m_add_sub_section(Environment.packages, package)
+    return _all_metainfo_environment
 
 
 def _generate_search_quantities():
@@ -212,7 +205,7 @@ def parser_metadata():
     print(json.dumps(code_metadata, indent=2, sort_keys=True))
 
 
-def get_gui_config(proxy: bool = False) -> str:
+def get_gui_config() -> str:
     '''Create a simplified and strippped version of the nomad.yaml contents that
     is used by the GUI.
 
@@ -223,16 +216,9 @@ def get_gui_config(proxy: bool = False) -> str:
     '''
     from nomad import config
 
-    if proxy:
-        appBase = f'{config.services.api_base_path.rstrip("/")}'
-        northBase = f'{config.services.api_base_path.rstrip("/")}/north'
-    else:
-        appBase = f'{"https" if config.services.https else "http"}://{config.services.api_host}:{config.services.api_port}{config.services.api_base_path.rstrip("/")}'
-        northBase = f'{"https" if config.services.https else "http"}://{config.north.hub_host}:{config.north.hub_port}{config.services.api_base_path.rstrip("/")}/north'
-
     data = {
-        'appBase': appBase,
-        'northBase': northBase,
+        'appBase': config.ui.app_base,
+        'northBase': config.ui.north_base,
         'keycloakBase': config.keycloak.public_server_url,
         'keycloakRealm': config.keycloak.realm_name,
         'keycloakClientId': config.keycloak.client_id,
@@ -247,6 +233,12 @@ def get_gui_config(proxy: bool = False) -> str:
     }
 
     return f'window.nomadEnv = {json.dumps(data, indent=2)}'
+
+
+@dev.command(help='Generates the GUI development .env file based on NOMAD config.')
+def gui_env():
+    from nomad import config
+    print(f'REACT_APP_BACKEND_URL={config.ui.app_base}')
 
 
 @dev.command(help='Generates the GUI development config JS file based on NOMAD config.')
@@ -265,7 +257,10 @@ def example_upload_metadata():
     print(json.dumps(_generate_example_upload_metadata(), indent=2))
 
 
-def _generate_toolkit_metadata():
+def _generate_toolkit_metadata() -> dict:
+    if not config.services.aitoolkit_enabled:
+        return {}
+
     import requests
     import re
     modules = requests.get(
@@ -423,10 +418,8 @@ def example_data(username: str):
     return data
 
 
-def _generate_units(all_metainfo):
-    import re
+def _generate_units_json(all_metainfo) -> Tuple[Any, Any]:
     from nomad.units import ureg
-    from nomad import utils
 
     # TODO: Check that all units are unambiguously defined, and that there are
     # no clashes. Pint will issue a warning if something is wrong with the
@@ -444,7 +437,7 @@ def _generate_units(all_metainfo):
         prefixes[name] = {'name': name, 'value': scale, 'scientific': True}
 
     # Get all aliases
-    aliases = defaultdict(list)
+    aliases: dict = defaultdict(list)
     for unit in ureg._units:
         unit_name = str(unit)
         unit_long_name = ureg.get_name(unit_name)
@@ -559,15 +552,12 @@ def _generate_units(all_metainfo):
             unit_names.add(alias)
 
     units = set()
-    packages = all_metainfo.m_to_dict(with_meta=True)['packages']
-    for package in packages:
-        sections = package.get('section_definitions', [])
-        for section in sections:
-            quantities = section.get('quantities', [])
-            for quantity in quantities:
-                unit = quantity.get('unit')
+    for package in all_metainfo.packages:
+        for section in package.section_definitions:
+            for quantity in section.quantities:
+                unit = quantity.unit
                 if unit is not None:
-                    parts = unit.split()
+                    parts = str(unit).split()
                     for part in parts:
                         is_operator = part in {'/', '**', '*'}
                         is_number = True
@@ -588,39 +578,4 @@ def _generate_units(all_metainfo):
             'with no offset, but MathJS does not have support for these units.'
         )
 
-    # Print unit conversion table and unit systems as a Javascript source file
-    def to_json(value):
-        json_str = json.dumps(value, indent=2)
-        json_str = re.sub(r'(?<!: )"(\S+)":', '\\1:', json_str)
-        return json_str.replace("\"", "'")
-
-    preamble = utils.strip('''
-        /*
-         * Copyright The NOMAD Authors.
-         *
-         * This file is part of NOMAD. See https://nomad-lab.eu for further info.
-         *
-         * Licensed under the Apache License, Version 2.0 (the "License");
-         * you may not use this file except in compliance with the License.
-         * You may obtain a copy of the License at
-         *
-         *     http://www.apache.org/licenses/LICENSE-2.0
-         *
-         * Unless required by applicable law or agreed to in writing, software
-         * distributed under the License is distributed on an "AS IS" BASIS,
-         * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-         * See the License for the specific language governing permissions and
-         * limitations under the License.
-         */
-
-        // Generated by NOMAD CLI. Do not edit manually.''')
-
-    return (
-        f'{preamble}\n\n'
-        f'export const unitList = {to_json(unit_list)}\n'
-        f'export const prefixes = {to_json(prefixes)}')
-
-
-@dev.command(help='Creates a Javascript source file containing the required unit conversion factors.')
-def units():
-    print(_generate_units(_all_metainfo_packages()))
+    return unit_list, prefixes

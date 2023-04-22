@@ -19,7 +19,7 @@
 import pytest
 
 from nomad import config
-from nomad.datamodel.metainfo.eln.elabftw_parser import ELabFTWParser
+from nomad.parsing.elabftw.elabftw import ELabFTWParser
 from nomad.datamodel import EntryArchive, EntryMetadata, Context
 from nomad.files import StagingUploadFiles, UploadFiles
 from tests.processing.test_data import run_processing

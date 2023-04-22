@@ -21,7 +21,6 @@ import click
 
 from nomad import config
 from nomad.cli.cli import cli
-from nomad.cli.dev import get_gui_config
 
 
 @cli.group(help='''The nomad admin commands to do nasty stuff directly on the databases.
@@ -227,45 +226,6 @@ def springer_update(max_n_query, retry_time):
 # def ingest(input_path, batch_size, verbose):
 #     from nomad.cli.admin import similarity
 #     similarity.ingest(input_path, batch_size, verbose)
-
-
-@ops.command(help='Configures the GUI for production based on NOMAD config.')
-def gui_config():
-    import os.path
-    from nomad import config
-    import glob
-    import shutil
-
-    gui_folder = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), '../../app/static/gui'))
-    run_gui_folder = os.path.join(gui_folder, '../.gui_configured')
-
-    # copy
-    shutil.rmtree(run_gui_folder, ignore_errors=True)
-    shutil.copytree(gui_folder, run_gui_folder)
-
-    # setup the env
-    env_js_file = os.path.join(run_gui_folder, 'env.js')
-    if not os.path.exists(env_js_file):
-        with open(env_js_file, 'wt') as f:
-            conf = get_gui_config(proxy=True)
-            f.write(conf)
-
-    # replace base path in all GUI files
-    source_file_globs = [
-        '**/*.json',
-        '**/*.html',
-        '**/*.js',
-        '**/*.js.map',
-        '**/*.css']
-    for source_file_glob in source_file_globs:
-        source_files = glob.glob(os.path.join(run_gui_folder, source_file_glob), recursive=True)
-        for source_file in source_files:
-            with open(source_file, 'rt') as f:
-                file_data = f.read()
-            file_data = file_data.replace('/fairdi/nomad/latest', config.services.api_base_path)
-            with open(source_file, 'wt') as f:
-                f.write(file_data)
 
 
 @admin.group(help='Commands for upgrading to a newer NOMAD version')
