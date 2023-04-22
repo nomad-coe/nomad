@@ -28,7 +28,7 @@ from fastapi import HTTPException
 from mongoengine import Q
 
 from nomad import utils
-from nomad.app.v1.models import Direction, WithQuery, MetadataPagination, Pagination
+from nomad.app.v1.models import Direction, WithQuery, MetadataPagination, Pagination, PaginationResponse
 from nomad.app.v1.routers.datasets import DatasetPagination
 from nomad.app.v1.routers.entries import perform_search
 from nomad.app.v1.routers.uploads import (
@@ -829,15 +829,24 @@ class MongoReader(GeneralReader):
         return self.datasets.filter(mongo_query)
 
     @staticmethod
-    def _normalise_mongo(mongo_result, config: RequestConfig, transformer: Callable) -> dict:
+    def _normalise_mongo(
+            mongo_result, config: RequestConfig, transformer: Callable
+    ) -> tuple[dict, PaginationResponse | None]:
         '''
         Apply pagination and transform to the mongo search results.
         '''
+        pagination_response: PaginationResponse | None = None
+        if isinstance(config.pagination, Pagination):
+            pagination_response = PaginationResponse(
+                total=mongo_result.count() if mongo_result else 0,
+                **config.pagination.dict()
+            )
+
         if transformer is None:
-            return mongo_result
+            return mongo_result, pagination_response
 
         if mongo_result is None:
-            return {}
+            return {}, pagination_response
 
         # for uploads and datasets, apply pagination when config.pagination is present
         # for entries, apply pagination when config.query is NOT present
@@ -859,6 +868,13 @@ class MongoReader(GeneralReader):
 
                 mongo_result = mongo_result.order_by(*order_list)
 
+            def _pick_id(_item):
+                if transformer == upload_to_pydantic:
+                    return _item.upload_id
+                if transformer == dataset_to_pydantic:
+                    return _item.dataset_id
+                return _item.entry_id
+
             if config.pagination.page is not None:
                 start = (config.pagination.page - 1) * config.pagination.page_size
                 end = start + config.pagination.page_size
@@ -868,25 +884,31 @@ class MongoReader(GeneralReader):
             elif config.pagination.page_after_value is not None:
                 start = 0
                 for index, entry in enumerate(mongo_result):
-                    if entry.entry_id == config.pagination.page_after_value:
+                    if _pick_id(entry) == config.pagination.page_after_value:
                         start = index + 1
                         break
                 end = start + config.pagination.page_size
             else:
-                start = 0
-                end = config.pagination.page_size
+                start, end = 0, config.pagination.page_size
+
             total_size = mongo_result.count()
-            if total_size == 0:
-                return {}
-            mongo_result = mongo_result[min(start, total_size - 1):min(end, total_size)]
+            first, last = min(start, total_size), min(end, total_size)
+            if first == last:
+                return {}, pagination_response
+
+            mongo_result = mongo_result[first:last]
+
+            if (size := last - first - 1) >= 0:
+                pagination_response.next_page_after_value = _pick_id(mongo_result[size])
 
         if transformer == upload_to_pydantic:
-            return {v['upload_id']: v for v in [orjson.loads(transformer(item).json()) for item in mongo_result]}
+            mongo_dict = {v['upload_id']: v for v in [orjson.loads(transformer(item).json()) for item in mongo_result]}
+        elif transformer == dataset_to_pydantic:
+            mongo_dict = {v['dataset_id']: v for v in [orjson.loads(transformer(item)) for item in mongo_result]}
+        else:
+            mongo_dict = {v['entry_id']: v for v in [orjson.loads(transformer(item).json()) for item in mongo_result]}
 
-        if transformer == dataset_to_pydantic:
-            return {v['dataset_id']: v for v in [orjson.loads(transformer(item)) for item in mongo_result]}
-
-        return {v['entry_id']: v for v in [orjson.loads(transformer(item).json()) for item in mongo_result]}
+        return mongo_dict, pagination_response
 
     def read(self):
         '''
@@ -1023,7 +1045,9 @@ class MongoReader(GeneralReader):
                 if query_set is None:
                     return
 
-                mongo_result: dict = self._normalise_mongo(query_set, __get_child_setting(), transformer)
+                mongo_result, mongo_pagination = self._normalise_mongo(query_set, __get_child_setting(), transformer)
+                if mongo_pagination:
+                    _populate_result(node.result_root, node.current_path + ['pagination'], mongo_pagination)
                 self._walk(node.replace(
                     archive={k: k for k in mongo_result} if isinstance(value, RequestConfig) else mongo_result,
                     current_path=node.current_path + [key]), value, current_config)

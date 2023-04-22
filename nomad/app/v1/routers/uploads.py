@@ -137,7 +137,7 @@ class EntryProcData(ProcData):
 
 
 class UploadProcDataPagination(Pagination):
-    @validator('order_by')
+    @validator('order_by', always=True)
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'upload_create_time'  # Default value
