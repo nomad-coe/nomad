@@ -24,6 +24,7 @@ import extend from '@babel/runtime/helpers/extends'
 import ReactMarkdown from 'react-markdown'
 import MathJax from 'react-mathjax'
 import RemarkMathPlugin from 'remark-math'
+import remarkGfm from 'remark-gfm'
 import { useGlobalMetainfo } from './archive/metainfo'
 import { appBase } from '../config'
 
@@ -302,7 +303,8 @@ function Markdown(props) {
     ...moreProps,
     children: content,
     remarkPlugins: [
-      RemarkMathPlugin
+      RemarkMathPlugin,
+      remarkGfm
     ],
     components: {
       ...moreProps.components,
