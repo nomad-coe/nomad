@@ -1970,7 +1970,17 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 serialize_before_reference_resolution = serialize
 
                 def serialize_reference_v2(value: Any):
-                    value = getattr(value.m_resolved(), quantity_type.target_quantity_def.name)
+                    resolved = value.m_resolved()
+                    target_name = quantity_type.target_quantity_def.name
+                    try:
+                        # should not use the following line alone
+                        # to account for derived quantities
+                        value = resolved.__dict__[target_name]
+                    except KeyError:
+                        # should not use the following line directly as
+                        # it returns `pint.Quantity` for quantities with units
+                        # here we want to get the value of the quantity stored in memory
+                        value = getattr(resolved, target_name)
 
                     return serialize_before_reference_resolution(value)
 
