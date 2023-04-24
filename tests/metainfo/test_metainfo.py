@@ -137,7 +137,7 @@ class TestM2:
 
     def test_unset_sub_section(self):
         run = Run()
-        assert run.systems == []
+        assert run.systems == []  # pylint: disable=use-implicit-booleaness-not-comparison
         assert run.parsing is None
 
     def test_properties(self):
@@ -426,6 +426,14 @@ class TestM2:
         assert 'this_does_not_exist_in_metainfo' not in serialized
 
 
+existing_repeating = Run()
+existing_repeating.systems.append(System())
+existing_nonrepeating = Run()
+existing_nonrepeating.parsing = Parsing()
+existing_multiple = Run()
+existing_multiple.systems = [System(), System()]
+
+
 class TestM1:
     ''' Test for meta-info instances. '''
 
@@ -488,7 +496,7 @@ class TestM1:
 
     def test_sub_section_lst(self):
         run = Run()
-        assert run.systems == []
+        assert run.systems == []  # pylint: disable=use-implicit-booleaness-not-comparison
         run.systems.append(System())
 
         assert len(run.systems) == 1
@@ -816,6 +824,24 @@ class TestM1:
         assert parent.quantity == 'Hello'
         assert parent.single_sub_section is not None
         assert len(parent.many_sub_section) == 2
+
+    @pytest.mark.parametrize('root,path,exception', [
+        pytest.param(Run(), 'parsing', None, id="non-existing non-repeating section"),
+        pytest.param(Run(), 'systems', None, id="non-existing repeating section"),
+        pytest.param(existing_nonrepeating, 'parsing', None, id="existing non-repeating section"),
+        pytest.param(existing_repeating, 'systems', None, id="existing repeating section"),
+        pytest.param(Run(), 'code_name', 'Could not find section definition for path "code_name"', id="cannot target quantity"),
+        pytest.param(Run(), 'missing', 'Could not find section definition for path "missing"', id="invalid path"),
+        pytest.param(existing_multiple, 'systems', 'Cannot resolve "systems" as several instances were found', id="ambiguous path"),
+    ])
+    def test_m_setdefault(self, root, path, exception):
+        if not exception:
+            system = root.m_setdefault(path)
+            assert system
+        else:
+            with pytest.raises(Exception) as exc_info:
+                system = root.m_setdefault(path)
+            assert exception in str(exc_info.value)
 
 
 class TestEnvironment:

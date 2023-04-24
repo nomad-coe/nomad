@@ -1782,6 +1782,47 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             else:
                 self.m_set(prop, value)
 
+    def m_setdefault(self, path):
+        '''Given a root section and a path, looks if a unique section can be found
+        under that path and returns it. Will create the sections along the path if
+        no instances are found.
+        '''
+        parts = path.split(".")
+        root = self
+        for part in parts:
+            error = AttributeError(f'Could not find section definition for path "{part}"')
+            try:
+                child = getattr(root, part)
+            except Exception as e:
+                raise error from e
+            sub_sections = root.m_def.all_sub_sections
+            try:
+                child_section = sub_sections[part]
+            except Exception as e:
+                raise error from e
+            repeats = child_section.repeats
+
+            # See if child exists. Repeating subsection is accepted only if
+            # there is one instance.
+            if child:
+                if repeats:
+                    if len(child) != 1:
+                        raise ValueError(f'Cannot resolve "{part}" as several instances were found')
+                    root = child[0]
+                else:
+                    root = child
+            # Otherwise create child
+            else:
+                child_cls = child_section.sub_section.section_cls
+                child_instance = child_cls()
+                if repeats:
+                    root.m_add_sub_section(child_section, child_instance)
+                else:
+                    setattr(root, part, child_instance)
+                root = child_instance
+
+        return root
+
     def m_as(self, section_cls: Type[MSectionBound]) -> MSectionBound:
         ''' 'Casts' this section to the given extending sections. '''
         return cast(MSectionBound, self)
