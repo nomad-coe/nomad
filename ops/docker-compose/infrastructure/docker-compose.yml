@@ -65,10 +65,12 @@ services:
       - 27017:27017
     volumes:
       - nomad_mongo:/data/db
+      - nomad_mongo_config:/data/configdb
     command: mongod
     # --logpath=/dev/null # --quiet
 
 volumes:
   nomad_mongo:
+  nomad_mongo_config:
   nomad_elastic:
   nomad_rabbitmq:
