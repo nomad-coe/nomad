@@ -348,8 +348,9 @@ plugins = Plugins(options={
         mainfile_contents_dict={'__has_all_keys': ['I', 'a', 'b']}),
     'parsers/lobster': Parser(
         python_package='workflowparsers.lobster',
-        mainfile_name_re=r'.*lobsterout$',
-        mainfile_contents_re=(r'^LOBSTER\s*v[\d\.]+.*'),),
+        mainfile_name_re=r'.*lobsterout.*',
+        mainfile_contents_re=(r'^LOBSTER\s*v[\d\.]+.*'),
+        supported_compressions=['gz', 'bz2', 'xz'],),
     'parsers/atomate': Parser(
         python_package='workflowparsers.atomate',
         mainfile_mime_re=r'(application/json)|(text/.*)',
