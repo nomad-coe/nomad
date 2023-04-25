@@ -22,18 +22,12 @@ import WidgetHeader from './WidgetHeader'
 test.each([
   [
     'label without unit',
-    {
-      quantity: 'results.material.n_elements'
-    },
-    {
-      quantity: 'results.material.n_elements'
-    }
+    { quantity: 'results.material.n_elements' },
+    { quantity: 'results.material.n_elements' }
   ],
   [
     'label with unit',
-    {
-      quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective'
-    },
+    { quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective'},
     {
       quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
       unit: 'eV'
@@ -41,9 +35,7 @@ test.each([
   ],
   [
     'full label',
-    {
-      quantity: 'results.properties.electronic.band_structure_electronic.band_gap.value'
-    },
+    {quantity: 'results.properties.electronic.band_structure_electronic.band_gap.value'},
     {
       quantity: 'results.properties.electronic.band_structure_electronic.band_gap.value',
       label: 'Band Gap Value',

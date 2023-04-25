@@ -36,13 +36,13 @@ test.each([
 })
 
 test.each([
-  ['no methodology', undefined],
-  ['valid methodology', {molecular_dynamics: {time_step: 2e-15, ensemble_type: 'NVT'}}]
-])('methodology is displayed correctly: %s', async (state, methodology) => {
-  render(<Trajectory methodology={methodology}/>)
+  ['no provenance', undefined],
+  ['valid provenance', {molecular_dynamics: {time_step: 2e-15, ensemble_type: 'NVT'}}]
+])('provenance is displayed correctly: %s', async (state, provenance) => {
+  render(<Trajectory provenance={provenance}/>)
   expectMethodologyItem(
     'Molecular dynamics',
-    methodology,
-    `${trajectoryPath.join('.')}.methodology`
+    provenance,
+    `${trajectoryPath.join('.')}.provenance`
   )
 })

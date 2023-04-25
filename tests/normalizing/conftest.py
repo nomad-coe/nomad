@@ -246,30 +246,28 @@ def get_section_system(atoms: Atoms):
     return system
 
 
-def get_template_dos(
+def add_template_dos(
+        template: EntryArchive,
         fill: List = [[[0, 1], [2, 3]]],
         energy_reference_fermi: Union[float, None] = None,
         energy_reference_highest_occupied: Union[float, None] = None,
         energy_reference_lowest_unoccupied: Union[float, None] = None,
         n_values: int = 101,
-        type: str = 'electronic',
-        normalize: bool = True) -> EntryArchive:
+        type: str = 'electronic') -> EntryArchive:
     '''Used to create a test data for DOS.
 
     Args:
         fill: List containing the energy ranges (eV) that should be filled with
-            non-zero values, e.g. [[[0, 1], [2, 5]]. Defaults to single channel DOS
+            non-zero values, e.g. [[[0, 1], [2, 3]]]. Defaults to single channel DOS
             with a gap.
         energy_fermi: Fermi energy (eV)
         energy_reference_highest_occupied: Highest occupied energy (eV) as given by a parser.
         energy_reference_lowest_unoccupied: Lowest unoccupied energy (eV) as given by a parser.
         type: 'electronic' or 'vibrational'
         has_references: Whether the DOS has energy references or not.
-        normalize: Whether the returned value is already normalized or not.
     '''
     if len(fill) > 1 and type != 'electronic':
         raise ValueError('Cannot create spin polarized DOS for non-electronic data.')
-    template = get_template_dft()
     scc = template.run[0].calculation[0]
     dos_type = Calculation.dos_electronic if type == 'electronic' else Calculation.dos_phonon
     dos = scc.m_create(Dos, dos_type)
@@ -295,24 +293,33 @@ def get_template_dos(
         fermi=energy_reference_fermi,
         highest_occupied=energy_reference_highest_occupied,
         lowest_unoccupied=energy_reference_lowest_unoccupied)
-    # import matplotlib.pyplot as mpl
-    # if n_channels == 2:
-    #     mpl.plot(energies, dos.dos_values[0, :])
-    #     mpl.plot(energies, dos.dos_values[1, :])
-    # else:
-    #     mpl.plot(energies, dos.dos_values[0, :])
-    # mpl.show()
-
-    if normalize:
-        template = run_normalize(template)
     return template
 
 
-def get_template_band_structure(
+def get_template_dos(
+        fill: List = [[[0, 1], [2, 3]]],
+        energy_reference_fermi: Union[float, None] = None,
+        energy_reference_highest_occupied: Union[float, None] = None,
+        energy_reference_lowest_unoccupied: Union[float, None] = None,
+        n_values: int = 101,
+        type: str = 'electronic',
+        normalize: bool = True) -> EntryArchive:
+
+    archive = get_template_dft()
+    archive = add_template_dos(archive, fill, energy_reference_fermi,
+                               energy_reference_highest_occupied,
+                               energy_reference_lowest_unoccupied,
+                               n_values, type)
+    if normalize:
+        archive = run_normalize(archive)
+    return archive
+
+
+def add_template_band_structure(
+        template: EntryArchive,
         band_gaps: List = None,
         type: str = 'electronic',
         has_references: bool = True,
-        normalize: bool = True,
         has_reciprocal_cell: bool = True) -> EntryArchive:
     '''Used to create a test data for band structures.
 
@@ -323,12 +330,10 @@ def get_template_band_structure(
             channel.
         type: 'electronic' or 'vibrational'
         has_references: Whether the band structure has energy references or not.
-        normalize: Whether the returned value is already normalized or not.
-        has_reciprocal_cell: Whether the reciprocal cell is available or not
+        has_reciprocal_cell: Whether the reciprocal cell is available or not.
     '''
     if band_gaps is None:
         band_gaps = [None]
-    template = get_template_dft()
     if not has_reciprocal_cell:
         template.run[0].system[0].atoms = None
     scc = template.run[0].calculation[0]
@@ -386,22 +391,22 @@ def get_template_band_structure(
             energies[0, :, 1] = np.cos(krange)
         seg.energies = energies * 1.60218e-19
         seg.kpoints = k_points
-
-    # For plotting
-    # e = []
-    # for i_seg in range(n_segments):
-        # seg = bs.section_k_band_segment[i_seg]
-        # e.append(seg.band_energies)
-    # e = np.concatenate(e, axis=1)
-    # import matplotlib.pyplot as mpl
-    # mpl.plot(e[0], color='blue')
-    # if n_spin_channels == 2:
-        # mpl.plot(e[1], color='orange')
-    # mpl.show()
-
-    if normalize:
-        template = run_normalize(template)
     return template
+
+
+def get_template_band_structure(
+        band_gaps: List = None,
+        type: str = 'electronic',
+        has_references: bool = True,
+        has_reciprocal_cell: bool = True,
+        normalize: bool = True) -> EntryArchive:
+
+    archive = get_template_dft()
+    archive = add_template_band_structure(archive, band_gaps, type,
+                                          has_references, has_reciprocal_cell)
+    if normalize:
+        archive = run_normalize(archive)
+    return archive
 
 
 def set_dft_values(xc_functional_names: list) -> EntryArchive:

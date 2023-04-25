@@ -22,7 +22,10 @@ from nomad.units import ureg
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, Datetime, Section)
 from nomad.datamodel.data import EntryData, UseCaseElnCategory
-from nomad.datamodel.results import (BandGap, BandStructureElectronic, ElectronicProperties, Material, OptoelectronicProperties, Properties, Results, SolarCell, Symmetry)
+from nomad.datamodel.results import (BandGapDeprecated, BandGap, BandStructureElectronic,
+                                     ElectronicProperties, Material, OptoelectronicProperties,
+                                     Properties, Results, SolarCell, Symmetry)
+from nomad.datamodel.metainfo.common import ProvenanceTracker
 
 
 m_package = Package(name='perovskite_database')
@@ -33,9 +36,12 @@ def add_band_gap(archive, band_gap):
     cell data.eV=
     '''
     if band_gap is not None:
-        band_gap = BandGap(value=np.float64(band_gap) * ureg('eV'))
-        band_structure = BandStructureElectronic(band_gap=[band_gap])
-        electronic = ElectronicProperties(band_structure_electronic=[band_structure])
+        bg = BandGapDeprecated(value=np.float64(band_gap) * ureg('eV'))
+        band_gap = BandGap(value=np.float64(band_gap) * ureg('eV'),
+                           provenance=ProvenanceTracker(label='solar_cell_database'))  # TODO: check label
+        band_structure = BandStructureElectronic(band_gap=[bg])  # TODO: to be removed after reparsing
+        electronic = ElectronicProperties(band_structure_electronic=[band_structure],
+                                          band_gap=[band_gap])
         archive.results.properties.electronic = electronic
 
 

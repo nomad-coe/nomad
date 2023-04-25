@@ -488,7 +488,7 @@
               "temperature",
               "volume"
             ],
-            "methodology": {
+            "provenance": {
               "molecular_dynamics": {
                 "time_step": 1e-15,
                 "ensemble_type": "NVT"

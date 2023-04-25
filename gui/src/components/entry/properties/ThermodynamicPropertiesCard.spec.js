@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render, screen, readArchive } from '../../conftest.spec'
+import { screen, readArchive, renderNoAPI } from '../../conftest.spec'
 import { expectTrajectory } from '../conftest.spec'
 import ThermodynamicPropertiesCard from './ThermodynamicPropertiesCard'
 
@@ -29,7 +29,7 @@ beforeAll(async () => {
 })
 
 test('correctly renders entry with a trajectory', async () => {
-  render(<ThermodynamicPropertiesCard index={index} properties={properties} archive={archive}/>)
+  renderNoAPI(<ThermodynamicPropertiesCard index={index} properties={properties} archive={archive}/>)
   expect(screen.queryByText('Thermodynamic properties')).toBeInTheDocument()
   expectTrajectory(index)
 })

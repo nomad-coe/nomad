@@ -23,8 +23,8 @@ import { Box } from '@material-ui/core'
 import Plot from '../plotting/Plot'
 import { mergeObjects, getLocation } from '../../utils'
 import {
-  PropertyMethodologyItem,
-  PropertyMethodologyList
+  PropertyProvenanceItem,
+  PropertyProvenanceList
 } from '../entry/properties/PropertyCard'
 import { Quantity, Unit, useUnits } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
@@ -47,7 +47,7 @@ const Trajectory = React.memo(({
   temperature,
   pressure,
   energyPotential,
-  methodology,
+  provenance,
   layout,
   className,
   classes,
@@ -123,14 +123,14 @@ const Trajectory = React.memo(({
         {...other}
       />
     </Box>
-    {methodology && <Box flex="0 0 auto">
-      <PropertyMethodologyList xs={12}>
-        <PropertyMethodologyItem
+    {provenance && <Box flex="0 0 auto">
+      <PropertyProvenanceList xs={12}>
+        <PropertyProvenanceItem
           title="Molecular dynamics"
-          data={methodology.molecular_dynamics}
-          path={([...trajectoryPath, 'methodology', 'molecular_dynamics']).join('.')}
+          data={provenance.molecular_dynamics}
+          path={([...trajectoryPath, 'provenance', 'molecular_dynamics']).join('.')}
         />
-      </PropertyMethodologyList>
+      </PropertyProvenanceList>
     </Box>}
   </Box>
 })
@@ -147,7 +147,7 @@ Trajectory.propTypes = {
   temperature: dynamicShape,
   pressure: dynamicShape,
   energyPotential: dynamicShape,
-  methodology: PropTypes.object,
+  provenance: PropTypes.object,
   layout: PropTypes.object,
   className: PropTypes.string,
   classes: PropTypes.object,
@@ -179,14 +179,14 @@ const TrajectoriesRaw = React.memo(({index, archive}) => {
     const temperature = hasTemperature ? trajArchive?.temperature : false
     const hasEnergyPotential = trajProperties.has('energy_potential')
     const energyPotential = hasEnergyPotential ? trajArchive?.energy_potential : false
-    const methodology = trajIndex?.methodology || false
+    const provenance = trajIndex?.provenance || false
 
     return <Trajectory
       key={i}
       pressure={pressure}
       temperature={temperature}
       energyPotential={energyPotential}
-      methodology={methodology}
+      provenance={provenance}
       classes={{trajectory: styles.trajectory}}
       archiveURL={`${urlPrefix}/${trajectoryPath.join('/')}:${i}`}
     />

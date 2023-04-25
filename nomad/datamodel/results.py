@@ -23,6 +23,7 @@ from elasticsearch_dsl import Text
 from ase.data import chemical_symbols
 
 from nomad import config
+from nomad.datamodel.metainfo.common import ProvenanceTracker, PropertySection
 from nomad.datamodel.metainfo.measurements import Spectrum
 from nomad.datamodel.metainfo.simulation.system import Atoms
 from nomad.datamodel.metainfo.workflow import (
@@ -63,6 +64,8 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     GreensFunctions as GreensFunctionsCalculation,
     BandEnergies,
     DosValues,
+    BandGapDeprecated as CalcBandGapDeprecated,
+    BandGap as CalcBandGap,
     Calculation
 )  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
@@ -233,70 +236,37 @@ def available_properties(root: MSection) -> List[str]:
 tokenizer_formula = get_tokenizer(r'[A-Z][a-z]?\d*')
 
 
-class BandGap(MSection):
-    m_def = Section(
-        description='''
-        Band gap information.
-        '''
-    )
+class BandGapDeprecated(CalcBandGapDeprecated):
     label = Quantity(
         type=str,
         description='''
         Label to identify the band gap data, e.g. method employed.
         '''
     )
-    index = Quantity(
-        type=np.int32,
-        description='''
-        Index of the data, e.g. spin channel index.
-        ''',
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-    value = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='joule',
-        description='''
-        Band gap value. Value of zero corresponds to not having a band gap.
-        ''',
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-    type = Quantity(
-        type=MEnum('direct', 'indirect'),
+    index = CalcBandGapDeprecated.index.m_copy()
+    index.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    value = CalcBandGapDeprecated.value.m_copy()
+    value.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    type = CalcBandGapDeprecated.type.m_copy()
+    type.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+
+    label = Quantity(
+        type=str,
         shape=[],
         description='''
-        Band gap type.
-        ''',
-        a_elasticsearch=[
-            Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion='simple')
-        ],
-    )
-
-
-class BandGapElectronic(BandGap):
-    m_def = Section(
-        description='''
-        Band gap information for electronic structure.
+        Temporary label for GUI generating GUI artifacts.
+        Can be left unpopulated.
         '''
     )
 
-    energy_highest_occupied = Quantity(
-        type=np.float64,
-        unit='joule',
-        shape=[],
-        description='''
-        The highest occupied energy.
-        ''',
-    )
-    energy_lowest_unoccupied = Quantity(
-        type=np.float64,
-        unit='joule',
-        shape=[],
-        description='''
-        The lowest unoccupied energy.
-        ''',
-    )
+
+class BandGap(CalcBandGap):
+    index = CalcBandGap.index.m_copy()
+    index.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    value = CalcBandGap.value.m_copy()
+    value.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    type = CalcBandGap.type.m_copy()
+    type.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
 
 
 class LatticeParameters(MSection):
@@ -1723,24 +1693,23 @@ class MolecularDynamics(MSection):
     ensemble_type.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
 
 
-class Methodology(MSection):
+class MDProvenance(ProvenanceTracker):
     m_def = Section(
         description="""
-        Contains methodological information and can be attached to any physical
-        property.
+        Contains provenance information for properties derived from molecular
+        dynamics simulations.
         """,
     )
     molecular_dynamics = SubSection(sub_section=MolecularDynamics.m_def, repeats=False)
 
 
-class PropertySection(MSection):
+class MDPropertySection(PropertySection):
     m_def = Section(
         description="""
-        Base class for that can be used to attach a specific methodology to a
-        physical property.
+        Base class for referring to molecular dynamics properties.
         """,
     )
-    methodology = SubSection(sub_section=Methodology.m_def, repeats=False)
+    provenance = SubSection(sub_section=MDProvenance.m_def)
 
 
 class DOS(MSection):
@@ -1794,7 +1763,7 @@ class DOSElectronic(DOS):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     band_gap = SubSection(
-        sub_section=BandGapElectronic.m_def,
+        sub_section=BandGapDeprecated.m_def,
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
@@ -1870,7 +1839,7 @@ class BandStructureElectronic(BandStructure):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     band_gap = SubSection(
-        sub_section=BandGapElectronic.m_def,
+        sub_section=BandGapDeprecated.m_def,
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
@@ -2123,8 +2092,13 @@ class ElectronicProperties(MSection):
         Electronic properties.
         ''',
     )
-    band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=True)
+    band_gap = SubSection(
+        sub_section=BandGap.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
     dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=True)
+    band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=True)
     greens_functions_electronic = SubSection(sub_section=GreensFunctionsElectronic.m_def, repeats=True)
 
 
@@ -2225,7 +2199,7 @@ class EnergyDynamic(QuantityDynamic):
     )
 
 
-class Trajectory(PropertySection):
+class Trajectory(MDPropertySection):
     m_def = Section(
         description='''
         Thermodynamic properties reported for an ensemble evolving in time.
@@ -2261,7 +2235,7 @@ class ThermodynamicProperties(MSection):
     )
 
 
-class RadiusOfGyration(QuantityDynamic, PropertySection):
+class RadiusOfGyration(QuantityDynamic, MDPropertySection):
     m_def = Section(
         description='''
         Contains Radius of Gyration values as a trajectory.
@@ -2281,7 +2255,7 @@ class RadiusOfGyration(QuantityDynamic, PropertySection):
     value = RadiusOfGyrationValues.value.m_copy()
 
 
-class RadialDistributionFunction(PropertySection):
+class RadialDistributionFunction(MDPropertySection):
     m_def = Section(
         description='''
         Radial distribution function.
@@ -2322,7 +2296,7 @@ class StructuralProperties(MSection):
     )
 
 
-class MeanSquaredDisplacement(PropertySection):
+class MeanSquaredDisplacement(MDPropertySection):
     m_def = Section(
         description='''
         Mean Squared Displacements.

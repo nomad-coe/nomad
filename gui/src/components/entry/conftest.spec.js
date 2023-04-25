@@ -88,8 +88,8 @@ export function expectNoStructure(index, root = screen) {
 
 export function expectTrajectory(index, root = screen) {
   expect(root.queryByText('Trajectory')).toBeInTheDocument()
-  expectQuantity('results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step', '1 fs')
-  expectQuantity('results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type', 'NVT')
+  expectQuantity('results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.time_step', '1 fs')
+  expectQuantity('results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.ensemble_type', 'NVT')
   const trajectoryPlot = screen.getByTestId('trajectory')
   expectPlotButtons(trajectoryPlot)
 }

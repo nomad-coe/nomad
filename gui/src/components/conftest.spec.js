@@ -30,6 +30,7 @@ import {
   within as originalWithin,
   buildQueries,
   queryAllByText,
+  queryAllByTitle,
   queryAllByRole,
   queries
 } from '@testing-library/react'
@@ -183,6 +184,32 @@ const byMenuItem = {
 }
 
 /**
+ * Query for finding a MUI Tooltip by content.
+ */
+const queryAllByTooltip = (c, value) =>
+  queryAllByTitle(c, value, {normalizer: getDefaultNormalizer({collapseWhitespace: false})}
+)
+const multipleErrorTooltip = (c, value) =>
+  `Found multiple tooltips with text: ${value}`
+const missingErrorTooltip = (c, value) =>
+  `Unable to find a tooltip with text: ${value}`
+const [
+  queryByTooltip,
+  getAllByTooltip,
+  getByTooltip,
+  findAllByTooltip,
+  findByTooltip
+] = buildQueries(queryAllByTooltip, multipleErrorTooltip, missingErrorTooltip)
+const byTooltip = {
+  queryAllByTooltip,
+  queryByTooltip,
+  getAllByTooltip,
+  getByTooltip,
+  findAllByTooltip,
+  findByTooltip
+}
+
+/**
  * Query for finding a DOM element with a certain role that is "associated" with a certain text.
  * The text must either be found as title or text ...
  *  - *on* the returned element itself
@@ -278,7 +305,7 @@ const byButtonText = {
 }
 
 // Override default screen method by adding custom queries into it
-const customQueries = {...byMenuItem, ...byRoleAndText, ...byButtonText}
+const customQueries = {...byMenuItem, ...byRoleAndText, ...byButtonText, ...byTooltip}
 const defaultAndCustomQueries = {...queries, ...customQueries}
 
 const boundCustomQueries = Object.entries(customQueries).reduce(
@@ -310,11 +337,11 @@ export function within(element, queriesToBind = defaultAndCustomQueries) {
  * metainfo name.
  * @param {object} root The container to work on.
 */
-export function expectQuantity(name, data, label = undefined, description = undefined, root = screen) {
+export function expectQuantity(name, data, label = undefined, description = undefined, root = customScreen) {
   description = description || searchQuantities[name].description
   label = label || filterData?.[name]?.label?.toLowerCase() || searchQuantities[name].name.replace(/_/g, ' ')
   const value = isPlainObject(data) ? get(data, name) : data
-  const element = root.getByTitle(description, {normalizer: getDefaultNormalizer({trim: false, collapseWhitespace: false})})
+  const element = root.getByTooltip(description)
   expect(root.getByText(label)).toBeInTheDocument()
   expect(within(element).getByText(value)).toBeInTheDocument()
 }

@@ -75,7 +75,7 @@ export async function expectFilterTitle(quantity, label, description, unit, disa
     if (finalUnit) finalLabel = `${finalLabel} (${finalUnit})`
   }
   await root.findByText(finalLabel)
-  expect(root.getByTitle(finalDescription)).toBeInTheDocument()
+  expect(root.getByTooltip(finalDescription)).toBeInTheDocument()
 }
 
 /**

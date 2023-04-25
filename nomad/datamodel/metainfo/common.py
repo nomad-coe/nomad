@@ -17,6 +17,8 @@
 #
 
 from nomad.metainfo import MCategory, Category
+from nomad.metainfo import MSection, Section, SubSection, Quantity
+from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 
 
 class FastAccess(MCategory):
@@ -32,3 +34,32 @@ class FastAccess(MCategory):
     '''
 
     m_def = Category()
+
+
+class ProvenanceTracker(MSection):
+    m_def = Section(
+        description="""
+        Contains semantically labelled provenance information.
+        To be stored under PropertySection.provenance or children.
+        """,
+    )
+
+    label = Quantity(
+        type=str,
+        shape=[],
+        description="""
+        Class or type of the provenance.
+        Can be used to add further description to the provenance.
+        """,
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+
+class PropertySection(MSection):
+    m_def = Section(
+        description="""
+        Base class for that can be used to attach a specific methodology to a
+        physical property.
+        """,
+    )
+
+    provenance = SubSection(sub_section=ProvenanceTracker.m_def, repeats=False)

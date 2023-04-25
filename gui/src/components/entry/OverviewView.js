@@ -108,7 +108,12 @@ const required = {
       structural: '*',
       structures: '*',
       dynamical: '*',
-      electronic: 'include-resolved',
+      electronic: {
+        greens_functions_electronic: 'include-resolved',
+        dos_electronic: 'include-resolved',
+        band_structure_electronic: 'include-resolved',
+        band_gap: '*'
+      },
       mechanical: 'include-resolved',
       spectroscopy: 'include-resolved',
       vibrational: 'include-resolved',

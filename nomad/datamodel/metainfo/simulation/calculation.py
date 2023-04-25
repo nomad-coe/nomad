@@ -17,10 +17,10 @@
 #
 
 import numpy as np            # pylint: disable=unused-import
-import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived, HDF5Reference)
+from nomad.datamodel.metainfo.common import ProvenanceTracker, PropertySection
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import Method, HoppingMatrix
 from nomad.datamodel.data import ArchiveSection
@@ -766,28 +766,27 @@ class Charges(Atomic):
     orbital_projected = SubSection(sub_section=ChargesValue.m_def, repeats=True)
 
 
-class BandGap(MSection):
+class BandGapDeprecated(PropertySection):
     '''
-    Band gap information for each spin channel.
+    Base class for breaking up circular dependencies between BandGap, Dos, and
+    BandStructure.
     '''
-    m_def = Section(
-        description="""
-        Contains information for each present spin channel.
-        """)
+
+    m_def = Section(validate=False)
 
     index = Quantity(
-        type=np.dtype(np.int64),
-        description="""
+        type=np.int32,
+        description='''
         The spin channel index.
-        """)
+        ''')
 
     value = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='joule',
         description='''
-        Band gap value. Value of zero corresponds to not having a band gap.
-        ''')
+        The actual value of the band gap. Value of zero indicates a vanishing band gap and
+        is distinct from sources lacking any band gap measurement or calculation.''')
 
     type = Quantity(
         type=MEnum('direct', 'indirect'),
@@ -797,35 +796,19 @@ class BandGap(MSection):
         ''')
 
     energy_highest_occupied = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=[],
-        description="""
-        The highest occupied energy.
-        """)
-
-    energy_lowest_unoccupied = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=[],
-        description="""
-        The lowest unoccupied energy.
-        """)
-
-    value_fundamental = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
+        type=np.float64,
         unit='joule',
+        shape=[],
         description='''
-        GW fundamental band gap
+        The highest occupied energy.
         ''')
 
-    value_optical = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
+    energy_lowest_unoccupied = Quantity(
+        type=np.float64,
         unit='joule',
+        shape=[],
         description='''
-        GW optical band gap
+        The lowest unoccupied energy.
         ''')
 
 
@@ -976,7 +959,7 @@ class BandEnergies(MSection):
         Diagonal matrix elements of the Kohn-Sham exchange-correlation energy.
         ''')
 
-    band_gap = SubSection(sub_section=BandGap.m_def, repeats=True)
+    band_gap = SubSection(sub_section=BandGapDeprecated.m_def, repeats=True)  # TODO: check if this can be removed
 
 
 class BandStructure(MSection):
@@ -1005,7 +988,7 @@ class BandStructure(MSection):
         The reciprocal cell within which the band structure is calculated.
         ''')
 
-    band_gap = SubSection(sub_section=BandGap.m_def, repeats=True)
+    band_gap = SubSection(sub_section=BandGapDeprecated.m_def, repeats=True)
 
     energy_fermi = Quantity(
         type=np.dtype(np.float64),
@@ -1137,7 +1120,7 @@ class Dos(Atomic):
         the highest occupied energy level.
         ''')
 
-    band_gap = SubSection(sub_section=BandGap.m_def, repeats=True)
+    band_gap = SubSection(sub_section=BandGapDeprecated.m_def, repeats=True)
 
     energy_fermi = Quantity(
         type=np.dtype(np.float64),
@@ -1156,6 +1139,40 @@ class Dos(Atomic):
     orbital_projected = SubSection(sub_section=DosValues.m_def, repeats=True)
 
     fingerprint = SubSection(sub_section=DosFingerprint.m_def, repeats=False)
+
+
+class ElectronicStructureProvenance(ProvenanceTracker):
+    '''
+    Provenance information for electronic structure calculations.
+    '''
+    m_def = Section(description='''
+    ''')
+
+    dos = Quantity(
+        type=Reference(DosValues.m_def),
+        shape=[],
+        description='''
+        '''
+    )
+    band_structure = Quantity(
+        type=Reference(BandEnergies.m_def),
+        shape=[],
+        description='''
+        '''
+    )
+
+
+class BandGap(BandGapDeprecated):
+    '''
+    Band gap information for each spin channel.
+    '''
+
+    m_def = Section(
+        description="""
+        Contains information for each present spin channel.
+        """)
+
+    provenance = SubSection(sub_section=ElectronicStructureProvenance.m_def)
 
 
 class MultipolesValues(AtomicValues):
@@ -1810,6 +1827,8 @@ class BaseCalculation(ArchiveSection):
     forces = SubSection(sub_section=Forces.m_def)
 
     stress = SubSection(sub_section=Stress.m_def)
+
+    band_gap = SubSection(sub_section=BandGap.m_def, repeats=True)
 
     dos_electronic = SubSection(sub_section=Dos.m_def, repeats=True)
 

@@ -23,7 +23,10 @@ from nomad.units import ureg
 
 from .test_material import assert_structure
 from .conftest import (
+    get_template_dft,
+    add_template_dos,
     get_template_dos,
+    add_template_band_structure,
     get_template_band_structure,
     run_normalize
 )
@@ -73,6 +76,18 @@ def test_energy_volume_curve(mechanical):
     assert ev_murhagnan.type == 'murnaghan'
     assert ev_murhagnan.energies_fit.shape == (10,)
     assert ev_murhagnan.volumes.shape == (10,)
+
+
+def test_band_gap():
+    archive = get_template_dft()
+    archive = add_template_dos(archive, fill=[[[0., 1.], [2., 3.]], [[0., 1.], [1.5, 3.]]])  # Keep the Fermi level at 1.
+    archive = add_template_band_structure(archive, band_gaps=[(1.7, 'direct')])
+    archive = run_normalize(archive)
+
+    band_gaps = archive.results.properties.electronic.band_gap
+    assert band_gaps[0].value.to('eV').magnitude == pytest.approx(1., abs=.1)
+    assert band_gaps[1].value.to('eV').magnitude == pytest.approx(.5, abs=.1)
+    assert band_gaps[2].value.to('eV').magnitude == pytest.approx(1.7, abs=.1)
 
 
 def test_dos_electronic():
@@ -322,8 +337,8 @@ def test_trajectory(molecular_dynamics):
     assert trajectory.volume.value.size == trajectory.volume.time.size == n_steps
     assert trajectory.temperature.value.size == trajectory.temperature.time.size == n_steps
     assert trajectory.energy_potential.value.size == trajectory.energy_potential.time.size == n_steps
-    assert trajectory.methodology.molecular_dynamics.time_step == 0.5 * ureg('fs')
-    assert trajectory.methodology.molecular_dynamics.ensemble_type == 'NVT'
+    assert trajectory.provenance.molecular_dynamics.time_step == 0.5 * ureg('fs')
+    assert trajectory.provenance.molecular_dynamics.ensemble_type == 'NVT'
     assert set(trajectory.available_properties) == set(['pressure', 'volume', 'temperature', 'energy_potential'])
 
 
