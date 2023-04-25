@@ -294,7 +294,7 @@ def define_env(env):
 
         return results
 
-    def pydantic_model_from_model(model, name=None, heading=None):
+    def pydantic_model_from_model(model, name=None, heading=None, hide=[]):
         fields = model.__fields__
         required_models = set()
         if not name:
@@ -340,7 +340,7 @@ def define_env(env):
 
         result += '|name|type| |\n'
         result += '|----|----|-|\n'
-        result += ''.join([field_row(field) for field in fields.values()])
+        result += ''.join([field_row(field) for field in fields.values() if field.name not in hide])
 
         for required_model in required_models:
             if required_model.__name__ not in exported_config_models:
@@ -350,7 +350,7 @@ def define_env(env):
         return result
 
     @env.macro
-    def pydantic_model(path, heading=None):  # pylint: disable=unused-variable
+    def pydantic_model(path, heading=None, hide=[]):  # pylint: disable=unused-variable
         '''
         Produces markdown code for the given pydantic model.
 
@@ -363,4 +363,4 @@ def define_env(env):
         module = importlib.import_module(module_name)
         model = getattr(module, name)
 
-        return pydantic_model_from_model(model, heading=heading)
+        return pydantic_model_from_model(model, heading=heading, hide=hide)
