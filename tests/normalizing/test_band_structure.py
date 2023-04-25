@@ -29,7 +29,7 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
 from nomad.units import ureg
 
 
-@pytest.mark.parametrize('gaps,has_reciprocal_cell', [
+@pytest.mark.parametrize('gaps, has_reciprocal_cell', [
     pytest.param([None], True, id="unpolarized, no gap"),
     pytest.param([(1, 'indirect')], True, id="unpolarized, finite gap"),
     pytest.param([None, None], True, id="polarized, no gap"),
@@ -39,7 +39,8 @@ from nomad.units import ureg
 def test_band_gaps(gaps, has_reciprocal_cell):
     """Tests that band gaps are correctly identified for different cases.
     """
-    bs = get_template_band_structure(gaps, has_reciprocal_cell=has_reciprocal_cell).run[0].calculation[0].band_structure_electronic[0]
+    bs = get_template_band_structure(gaps, has_reciprocal_cell=has_reciprocal_cell)
+    bs = bs.run[0].calculation[0].band_structure_electronic[0]
     if has_reciprocal_cell:
         assert bs.reciprocal_cell.shape == (3, 3)
     else:

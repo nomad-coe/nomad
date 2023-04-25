@@ -58,7 +58,7 @@ const ElectronicProperties = React.memo(({
   classes
 }) => {
   // We resolve the DMFT methodology from results.method
-  const dmftmethodology = index?.results?.method?.simulation?.dmft || []
+  const dmftprovenance = index?.results?.method?.simulation?.dmft || []
 
   const units = useUnits()
   const range = useMemo(() => new Quantity(electronicRange, 'electron_volt').toSystem(units).value(), [units])
@@ -123,7 +123,7 @@ const ElectronicProperties = React.memo(({
       <PropertyItem title="Green's functions" xs={12} height="auto">
         <GreensFunctions
           data={gf}
-          methodology={dmftmethodology}
+          provenance={dmftprovenance}
           classes={{regtau: styles.regtau, imsiw: styles.imsiw}}
         />
       </PropertyItem>
@@ -168,7 +168,7 @@ const ElectronicProperties = React.memo(({
         <PropertyItem title="Green's functions" xs={12} height="auto">
           <GreensFunctions
             data={gf}
-            methodology={dmftmethodology}
+            provenance={dmftprovenance}
             classes={{regtau: styles.regtau, imsiw: styles.imsiw}}
           />
         </PropertyItem>

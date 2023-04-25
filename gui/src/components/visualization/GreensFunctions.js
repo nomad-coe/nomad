@@ -21,15 +21,15 @@ import { useTheme, makeStyles } from '@material-ui/core/styles'
 import { Box } from '@material-ui/core'
 import Plot from '../plotting/Plot'
 import {
-    PropertyMethodologyItem,
-    PropertyMethodologyList
+    PropertyProvenanceItem,
+    PropertyProvenanceList
 } from '../entry/properties/PropertyCard'
 import { withErrorHandler } from '../ErrorHandler'
 import { mergeObjects, alphabet } from '../../utils'
 
 /**
  * Displays Greens functions data as two plots (real + imag) together with the
- * methodology information.
+ * provenance information.
  */
 export const gfError = 'Could not load Greens functions.'
 const types = ['regtau', 'imsiw']
@@ -41,9 +41,9 @@ const useStyles = makeStyles((theme) => ({
  * Plots data in atom, orbital and spin space, taking into account degeneracies for the
  * labeling and titles.
  */
-function plotDegeneracy(data, methodology, axisData) {
+function plotDegeneracy(data, provenance, axisData) {
   const oneSpecies = data.length === 1
-  const oneSpin = methodology.magnetic_state === 'paramagnetic'
+  const oneSpin = provenance.magnetic_state === 'paramagnetic'
   const atomLabels = alphabet
   let legendTitle = ''
   let legendWidth = 30
@@ -82,7 +82,7 @@ function plotDegeneracy(data, methodology, axisData) {
 }
 const GreensFunctions = React.memo(({
   data,
-  methodology,
+  provenance,
   className,
   classes,
   'data-testid': testID,
@@ -139,7 +139,7 @@ const GreensFunctions = React.memo(({
       }
 
       // Defining the plot
-      const plotting = plotDegeneracy(gfData, methodology, axisData)
+      const plotting = plotDegeneracy(gfData, provenance, axisData)
       tracesAll[type] = plotting.plotData
 
       // Setting finalLayout: title for the legend
@@ -162,7 +162,7 @@ const GreensFunctions = React.memo(({
     }
     setFinalLayout(layoutAll)
     setFinalData(tracesAll)
-  }, [data, methodology, theme])
+  }, [data, provenance, theme])
 
   return <Box display="flex" flexDirection="column" height="100%" width="100%">
     <Box flex="1 1 auto">
@@ -176,14 +176,14 @@ const GreensFunctions = React.memo(({
         {...other}
       />)}
     </Box>
-    {methodology && <Box flex="0 0 auto">
-      <PropertyMethodologyList xs={12}>
-        <PropertyMethodologyItem
+    {provenance && <Box flex="0 0 auto">
+      <PropertyProvenanceList xs={12}>
+        <PropertyProvenanceItem
           title="DMFT"
-          data={methodology}
+          data={provenance}
           path={"results.method.simulation.dmft"}
         />
-      </PropertyMethodologyList>
+      </PropertyProvenanceList>
     </Box>}
   </Box>
 })
@@ -197,7 +197,7 @@ GreensFunctions.propTypes = {
       imsiw: PropTypes.array // Array of imag_self_energy_iw
     })
   ]),
-  methodology: PropTypes.object, // DMFT methodology
+  provenance: PropTypes.object, // DMFT provenance
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string

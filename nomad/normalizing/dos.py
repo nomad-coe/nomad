@@ -22,7 +22,8 @@ from nptyping import NDArray
 from nomad import config
 from nomad_dos_fingerprints import DOSFingerprint  # pylint: disable=import-error
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Dos, DosFingerprint, BandGap)
+    BandGap, BandGapDeprecated, Calculation, Dos, DosFingerprint,
+    ElectronicStructureProvenance)
 
 from .normalizer import Normalizer
 
@@ -64,11 +65,11 @@ class DosNormalizer(Normalizer):
 
                     # Add energy references
                     dos_values = [dos_total.value.magnitude for dos_total in dos.total]
-                    self.add_energy_references(dos, energy_fermi, energy_highest, energy_lowest, dos_values)
+                    self.add_energy_references(calc, dos, energy_fermi, energy_highest, energy_lowest, dos_values)
 
                     # Calculate the DOS fingerprint for successfully normalized DOS
                     normalization_reference = None
-                    for info in dos.band_gap:
+                    for info in calc.band_gap:
                         energy_highest = info.energy_highest_occupied
                         if energy_highest is not None:
                             if normalization_reference is None:
@@ -133,12 +134,13 @@ class DosNormalizer(Normalizer):
 
     def add_energy_references(
             self,
+            calc: Calculation,
             dos: Dos,
             energy_fermi: float,
             energy_highest: float,
             energy_lowest: float,
             dos_values: NDArray) -> None:
-        """Given the band structure and information about energy references,
+        """Given the DOS and information about energy references,
         determines the energy references separately for all spin channels.
         """
         dos.energy_fermi = energy_fermi
@@ -148,18 +150,6 @@ class DosNormalizer(Normalizer):
             self.logger.info("could not resolve energy references for dos")
             return
 
-        # Create channel information for each spin channel and populate with
-        # initial values.
-        dos_total = dos.total
-        n_channels = len(dos_total)
-        for i_channel in range(n_channels):
-            info = dos.band_gap[i_channel] if len(dos.band_gap) > i_channel else dos.m_create(BandGap)
-            info.index = i_channel
-            if energy_highest is not None:
-                info.energy_highest_occupied = energy_highest
-            if energy_lowest is not None:
-                info.energy_lowest_unoccupied = energy_lowest
-
         # Use a reference energy (fermi or highest occupied) to determine the
         # energy references from the DOS (discretization will affect the exact
         # location).
@@ -167,14 +157,23 @@ class DosNormalizer(Normalizer):
         value_threshold = 1e-8  # The DOS value that is considered to be zero
         dos_energies = dos.energies
 
+        # Create channel information for each spin channel and populate with
+        # initial values.
+        dos_total = dos.total
+        n_channels = len(dos_total)
         for i_channel in range(n_channels):
-            dos_channel = dos_values[i_channel]
-            info = dos.band_gap[i_channel]
-            fermi_idx = (np.abs(dos.energies - eref)).argmin()
+            info = BandGapDeprecated()
+            info.index = i_channel
+            if energy_highest is not None:
+                info.energy_highest_occupied = energy_highest
+            if energy_lowest is not None:
+                info.energy_lowest_unoccupied = energy_lowest
 
             # First check that the closest dos energy to energy reference
             # is not too far away. If it is very far away, the
             # normalization may be very inaccurate and we do not report it.
+            dos_channel = dos_values[i_channel]
+            fermi_idx = (np.abs(dos_energies - eref)).argmin()
             fermi_energy_closest = dos_energies[fermi_idx]
             distance = np.abs(fermi_energy_closest - eref)
             if distance.magnitude <= energy_threshold:
@@ -243,3 +242,15 @@ class DosNormalizer(Normalizer):
                         info.energy_lowest_unoccupied = dos_energies[idx]
                         break
                     idx += 1
+
+            # save band gap value
+            gap_value = info.energy_lowest_unoccupied - info.energy_highest_occupied
+            gap_value = gap_value if gap_value > 0. else 0.
+            info.value = gap_value
+
+            if info.value is not None:
+                proper_info = BandGap().m_from_dict(info.m_to_dict())
+                proper_info.provenance = ElectronicStructureProvenance(
+                    dos=dos.total[i_channel], label='dos')
+                calc.m_add_sub_section(Calculation.band_gap, proper_info)
+                dos.m_add_sub_section(Dos.band_gap, info)

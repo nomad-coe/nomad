@@ -39,7 +39,8 @@ from nomad.normalizing.common import (
     structures_2d
 )
 from nomad.datamodel.results import (
-    BandGapElectronic,
+    BandGap,
+    BandGapDeprecated,
     RadialDistributionFunction,
     RadiusOfGyration,
     MeanSquaredDisplacement,
@@ -49,7 +50,7 @@ from nomad.datamodel.results import (
     GeometryOptimization,
     Trajectory,
     MolecularDynamics,
-    Methodology,
+    MDProvenance,
     TemperatureDynamic,
     VolumeDynamic,
     PressureDynamic,
@@ -223,6 +224,26 @@ class ResultsNormalizer(Normalizer):
                     i_species.chemical_symbols = [symbol]
                 i_species.concentration = [1.0]
 
+    def resolve_band_gap(self, path) -> Union[List[BandGap], None]:
+        """
+        Extract all band gaps from the given path
+        and return them in a list along with their provenance.
+        """
+        band_gaps = traverse_reversed(self.entry_archive, path)
+        if not band_gaps:
+            return None
+        bg_root: List[BandGap] = []
+        for bg in band_gaps:
+            bg_new = BandGap()
+            bg_new.index = bg.index
+            bg_new.value = bg.value
+            bg_new.type = bg.type
+            bg_new.energy_highest_occupied = bg.energy_highest_occupied
+            bg_new.energy_lowest_unoccupied = bg.energy_lowest_unoccupied
+            bg_new.provenance = bg.provenance
+            bg_root.insert(0, bg_new)
+        return bg_root
+
     def band_structure_electronic(self) -> Union[List[BandStructureElectronic], None]:
         """Returns a new section containing an electronic band structure. In
         the case of multiple valid band structures, only the latest one is
@@ -250,13 +271,10 @@ class ResultsNormalizer(Normalizer):
                     bs_new.segment = bs.segment
                     bs_new.spin_polarized = bs_new.segment[0].energies.shape[0] > 1
                     bs_new.energy_fermi = bs.energy_fermi
+
                     for info in bs.band_gap:
-                        info_new = bs_new.m_create(BandGapElectronic)
-                        info_new.index = info.index
-                        info_new.value = info.value
-                        info_new.type = info.type
-                        info_new.energy_highest_occupied = info.energy_highest_occupied
-                        info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
+                        info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
+                        bs_new.m_add_sub_section(BandStructureElectronic.band_gap, info_new)
                     return bs_new
             return None
 
@@ -303,10 +321,8 @@ class ResultsNormalizer(Normalizer):
                     dos_new.spin_polarized = n_channels > 1
                     dos_new.energy_fermi = dos.energy_fermi
                     for info in dos.band_gap:
-                        info_new = dos_new.m_create(BandGapElectronic)
-                        info_new.index = info.index
-                        info_new.energy_highest_occupied = info.energy_highest_occupied
-                        info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
+                        info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
+                        dos_new.m_add_sub_section(DOSElectronic.band_gap, info_new)
                     return dos_new
             return None
 
@@ -483,8 +499,8 @@ class ResultsNormalizer(Normalizer):
 
         return None
 
-    def get_md_methodology(self, workflow: Workflow) -> Optional[MolecularDynamics]:
-        """Retrieves the MD methodology from the given workflow.
+    def get_md_provenance(self, workflow: Workflow) -> Optional[MolecularDynamics]:
+        """Retrieves the MD provenance from the given workflow.
         """
         md_wf = workflow.molecular_dynamics
         md = None
@@ -506,9 +522,9 @@ class ResultsNormalizer(Normalizer):
             # Check validity
             if workflow.type == "molecular_dynamics":
                 traj = Trajectory()
-                md = self.get_md_methodology(workflow)
+                md = self.get_md_provenance(workflow)
                 if md:
-                    traj.methodology = Methodology(molecular_dynamics=md)
+                    traj.provenance = MDProvenance(molecular_dynamics=md)
 
                 # Loop through calculations, gather thermodynamics directly
                 # from each step in the workflow.
@@ -576,9 +592,9 @@ class ResultsNormalizer(Normalizer):
                         rdf.frame_start = rdf_value.frame_start
                         rdf.frame_end = rdf_value.frame_end
                         rdf.type = rdf_workflow.type
-                        md = self.get_md_methodology(rdf_workflow.m_parent.m_parent.m_parent)
+                        md = self.get_md_provenance(rdf_workflow.m_parent.m_parent.m_parent)
                         if md:
-                            rdf.methodology = Methodology(
+                            rdf.provenance = MDProvenance(
                                 molecular_dynamics=md
                             )
                     except Exception as e:
@@ -597,7 +613,7 @@ class ResultsNormalizer(Normalizer):
 
             # Check validity
             if workflow.type == "molecular_dynamics":
-                md = self.get_md_methodology(workflow)
+                md = self.get_md_provenance(workflow)
                 if workflow.calculations_ref and workflow.calculations_ref[0].radius_of_gyration:
                     for rg_index, rg in enumerate(workflow.calculations_ref[0].radius_of_gyration):
                         for rg_values_index, __ in enumerate(rg.radius_of_gyration_values):
@@ -605,7 +621,7 @@ class ResultsNormalizer(Normalizer):
                             rg_value = []
                             rg_time = []
                             if md:
-                                rg_results.methodology = Methodology(molecular_dynamics=md)
+                                rg_results.provenance = MDProvenance(molecular_dynamics=md)
                             for calc in workflow.calculations_ref:
                                 sec_rg = calc.radius_of_gyration[rg_index]
                                 rg_results.kind = sec_rg.kind
@@ -647,9 +663,9 @@ class ResultsNormalizer(Normalizer):
                             msd.diffusion_constant_error_type = diffusion_constant.error_type
                             msd.diffusion_constant_errors = diffusion_constant.errors
 
-                        md = self.get_md_methodology(msd_workflow.m_parent.m_parent.m_parent)
+                        md = self.get_md_provenance(msd_workflow.m_parent.m_parent.m_parent)
                         if md:
-                            msd.methodology = Methodology(
+                            msd.provenance = MDProvenance(
                                 molecular_dynamics=md
                             )
                     except Exception as e:
@@ -701,11 +717,14 @@ class ResultsNormalizer(Normalizer):
             properties.structures = structures
 
         # Electronic
+        bg_electronic = self.resolve_band_gap(["run", "calculation", "band_gap"])
         bs_electronic = self.band_structure_electronic()
         dos_electronic = self.dos_electronic()
         gfs_electronic = self.greens_functions_electronic()
-        if bs_electronic or dos_electronic or gfs_electronic:
+        if bg_electronic or bs_electronic or dos_electronic or gfs_electronic:
             electronic = ElectronicProperties()
+            if bg_electronic:
+                electronic.band_gap = bg_electronic
             if bs_electronic:
                 electronic.band_structure_electronic = bs_electronic
             if dos_electronic:

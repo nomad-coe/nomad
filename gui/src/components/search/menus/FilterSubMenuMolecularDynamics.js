@@ -45,12 +45,12 @@ const FilterSubMenuMolecularDynamics = React.memo(({
             formatLabels
           />
           <InputField
-            quantity="results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type"
+            quantity="results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.ensemble_type"
             disableSearch
             visible={visible}
           />
           <InputRange
-            quantity="results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step"
+            quantity="results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.time_step"
             visible={visible}
           />
         </InputSection>

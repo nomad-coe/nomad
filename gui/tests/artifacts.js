@@ -2494,7 +2494,17 @@ window.nomadArtifacts = {
       "aggregatable": true,
       "suggestion": true
     },
-    "results.properties.structural.radial_distribution_function.methodology.molecular_dynamics.time_step": {
+    "results.properties.structural.radial_distribution_function.provenance.label": {
+      "name": "label",
+      "description": "Class or type of the provenance.\nCan be used to add further description to the provenance.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [],
+      "aggregatable": true
+    },
+    "results.properties.structural.radial_distribution_function.provenance.molecular_dynamics.time_step": {
       "name": "time_step",
       "description": "The timestep at which the numerical integration is performed.",
       "type": {
@@ -2505,7 +2515,7 @@ window.nomadArtifacts = {
       "shape": [],
       "aggregatable": false
     },
-    "results.properties.structural.radial_distribution_function.methodology.molecular_dynamics.ensemble_type": {
+    "results.properties.structural.radial_distribution_function.provenance.molecular_dynamics.ensemble_type": {
       "name": "ensemble_type",
       "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
       "type": {
@@ -2542,7 +2552,17 @@ window.nomadArtifacts = {
       "aggregatable": true,
       "suggestion": true
     },
-    "results.properties.structural.radius_of_gyration.methodology.molecular_dynamics.time_step": {
+    "results.properties.structural.radius_of_gyration.provenance.label": {
+      "name": "label",
+      "description": "Class or type of the provenance.\nCan be used to add further description to the provenance.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [],
+      "aggregatable": true
+    },
+    "results.properties.structural.radius_of_gyration.provenance.molecular_dynamics.time_step": {
       "name": "time_step",
       "description": "The timestep at which the numerical integration is performed.",
       "type": {
@@ -2553,7 +2573,7 @@ window.nomadArtifacts = {
       "shape": [],
       "aggregatable": false
     },
-    "results.properties.structural.radius_of_gyration.methodology.molecular_dynamics.ensemble_type": {
+    "results.properties.structural.radius_of_gyration.provenance.molecular_dynamics.ensemble_type": {
       "name": "ensemble_type",
       "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
       "type": {
@@ -2593,7 +2613,17 @@ window.nomadArtifacts = {
       "aggregatable": true,
       "suggestion": true
     },
-    "results.properties.dynamical.mean_squared_displacement.methodology.molecular_dynamics.time_step": {
+    "results.properties.dynamical.mean_squared_displacement.provenance.label": {
+      "name": "label",
+      "description": "Class or type of the provenance.\nCan be used to add further description to the provenance.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [],
+      "aggregatable": true
+    },
+    "results.properties.dynamical.mean_squared_displacement.provenance.molecular_dynamics.time_step": {
       "name": "time_step",
       "description": "The timestep at which the numerical integration is performed.",
       "type": {
@@ -2604,7 +2634,7 @@ window.nomadArtifacts = {
       "shape": [],
       "aggregatable": false
     },
-    "results.properties.dynamical.mean_squared_displacement.methodology.molecular_dynamics.ensemble_type": {
+    "results.properties.dynamical.mean_squared_displacement.provenance.molecular_dynamics.ensemble_type": {
       "name": "ensemble_type",
       "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
       "type": {
@@ -2883,27 +2913,18 @@ window.nomadArtifacts = {
       "unit": "radian",
       "aggregatable": false
     },
-    "results.properties.electronic.band_structure_electronic.spin_polarized": {
-      "name": "spin_polarized",
-      "description": "Whether the band structure is spin-polarized, i.e. is contains channels\nfor both spin values.",
-      "type": {
-        "type_kind": "python",
-        "type_data": "bool"
-      },
-      "aggregatable": true
-    },
-    "results.properties.electronic.band_structure_electronic.band_gap.index": {
+    "results.properties.electronic.band_gap.index": {
       "name": "index",
-      "description": "Index of the data, e.g. spin channel index.",
+      "description": "The spin channel index.",
       "type": {
         "type_kind": "numpy",
         "type_data": "int32"
       },
       "aggregatable": false
     },
-    "results.properties.electronic.band_structure_electronic.band_gap.value": {
+    "results.properties.electronic.band_gap.value": {
       "name": "value",
-      "description": "Band gap value. Value of zero corresponds to not having a band gap.",
+      "description": "The actual value of the band gap. Value of zero indicates a vanishing band gap and\nis distinct from sources lacking any band gap measurement or calculation.",
       "type": {
         "type_kind": "numpy",
         "type_data": "float64"
@@ -2912,7 +2933,7 @@ window.nomadArtifacts = {
       "shape": [],
       "aggregatable": false
     },
-    "results.properties.electronic.band_structure_electronic.band_gap.type": {
+    "results.properties.electronic.band_gap.type": {
       "name": "type",
       "description": "Band gap type.",
       "type": {
@@ -2923,8 +2944,17 @@ window.nomadArtifacts = {
         ]
       },
       "shape": [],
-      "aggregatable": true,
-      "suggestion": true
+      "aggregatable": true
+    },
+    "results.properties.electronic.band_gap.provenance.label": {
+      "name": "label",
+      "description": "Class or type of the provenance.\nCan be used to add further description to the provenance.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [],
+      "aggregatable": true
     },
     "results.properties.electronic.dos_electronic.spin_polarized": {
       "name": "spin_polarized",
@@ -2937,7 +2967,7 @@ window.nomadArtifacts = {
     },
     "results.properties.electronic.dos_electronic.band_gap.index": {
       "name": "index",
-      "description": "Index of the data, e.g. spin channel index.",
+      "description": "The spin channel index.",
       "type": {
         "type_kind": "numpy",
         "type_data": "int32"
@@ -2946,7 +2976,7 @@ window.nomadArtifacts = {
     },
     "results.properties.electronic.dos_electronic.band_gap.value": {
       "name": "value",
-      "description": "Band gap value. Value of zero corresponds to not having a band gap.",
+      "description": "The actual value of the band gap. Value of zero indicates a vanishing band gap and\nis distinct from sources lacking any band gap measurement or calculation.",
       "type": {
         "type_kind": "numpy",
         "type_data": "float64"
@@ -2966,8 +2996,69 @@ window.nomadArtifacts = {
         ]
       },
       "shape": [],
-      "aggregatable": true,
-      "suggestion": true
+      "aggregatable": true
+    },
+    "results.properties.electronic.dos_electronic.band_gap.provenance.label": {
+      "name": "label",
+      "description": "Class or type of the provenance.\nCan be used to add further description to the provenance.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [],
+      "aggregatable": true
+    },
+    "results.properties.electronic.band_structure_electronic.spin_polarized": {
+      "name": "spin_polarized",
+      "description": "Whether the band structure is spin-polarized, i.e. is contains channels\nfor both spin values.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "bool"
+      },
+      "aggregatable": true
+    },
+    "results.properties.electronic.band_structure_electronic.band_gap.index": {
+      "name": "index",
+      "description": "The spin channel index.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "int32"
+      },
+      "aggregatable": false
+    },
+    "results.properties.electronic.band_structure_electronic.band_gap.value": {
+      "name": "value",
+      "description": "The actual value of the band gap. Value of zero indicates a vanishing band gap and\nis distinct from sources lacking any band gap measurement or calculation.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "joule",
+      "shape": [],
+      "aggregatable": false
+    },
+    "results.properties.electronic.band_structure_electronic.band_gap.type": {
+      "name": "type",
+      "description": "Band gap type.",
+      "type": {
+        "type_kind": "Enum",
+        "type_data": [
+          "direct",
+          "indirect"
+        ]
+      },
+      "shape": [],
+      "aggregatable": true
+    },
+    "results.properties.electronic.band_structure_electronic.band_gap.provenance.label": {
+      "name": "label",
+      "description": "Class or type of the provenance.\nCan be used to add further description to the provenance.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [],
+      "aggregatable": true
     },
     "results.properties.optoelectronic.solar_cell.efficiency": {
       "name": "efficiency",
@@ -3228,7 +3319,17 @@ window.nomadArtifacts = {
       ],
       "aggregatable": true
     },
-    "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step": {
+    "results.properties.thermodynamic.trajectory.provenance.label": {
+      "name": "label",
+      "description": "Class or type of the provenance.\nCan be used to add further description to the provenance.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [],
+      "aggregatable": true
+    },
+    "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.time_step": {
       "name": "time_step",
       "description": "The timestep at which the numerical integration is performed.",
       "type": {
@@ -3239,7 +3340,7 @@ window.nomadArtifacts = {
       "shape": [],
       "aggregatable": false
     },
-    "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type": {
+    "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.ensemble_type": {
       "name": "ensemble_type",
       "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
       "type": {
@@ -3605,13 +3706,13 @@ window.nomadArtifacts = {
       "nested": true,
       "repeats": true
     },
-    "results.properties.structural.radial_distribution_function.methodology": {
-      "name": "methodology",
-      "description": "\n        Contains methodological information and can be attached to any physical\n        property.\n        ",
+    "results.properties.structural.radial_distribution_function.provenance": {
+      "name": "provenance",
+      "description": "\n        Contains provenance information for properties derived from molecular\n        dynamics simulations.\n        ",
       "nested": false,
       "repeats": true
     },
-    "results.properties.structural.radial_distribution_function.methodology.molecular_dynamics": {
+    "results.properties.structural.radial_distribution_function.provenance.molecular_dynamics": {
       "name": "molecular_dynamics",
       "description": "\n        Methodology for molecular dynamics.\n        ",
       "nested": false,
@@ -3623,13 +3724,13 @@ window.nomadArtifacts = {
       "nested": true,
       "repeats": true
     },
-    "results.properties.structural.radius_of_gyration.methodology": {
-      "name": "methodology",
-      "description": "\n        Contains methodological information and can be attached to any physical\n        property.\n        ",
+    "results.properties.structural.radius_of_gyration.provenance": {
+      "name": "provenance",
+      "description": "\n        Contains provenance information for properties derived from molecular\n        dynamics simulations.\n        ",
       "nested": false,
       "repeats": true
     },
-    "results.properties.structural.radius_of_gyration.methodology.molecular_dynamics": {
+    "results.properties.structural.radius_of_gyration.provenance.molecular_dynamics": {
       "name": "molecular_dynamics",
       "description": "\n        Methodology for molecular dynamics.\n        ",
       "nested": false,
@@ -3647,13 +3748,13 @@ window.nomadArtifacts = {
       "nested": true,
       "repeats": true
     },
-    "results.properties.dynamical.mean_squared_displacement.methodology": {
-      "name": "methodology",
-      "description": "\n        Contains methodological information and can be attached to any physical\n        property.\n        ",
+    "results.properties.dynamical.mean_squared_displacement.provenance": {
+      "name": "provenance",
+      "description": "\n        Contains provenance information for properties derived from molecular\n        dynamics simulations.\n        ",
       "nested": false,
       "repeats": true
     },
-    "results.properties.dynamical.mean_squared_displacement.methodology.molecular_dynamics": {
+    "results.properties.dynamical.mean_squared_displacement.provenance.molecular_dynamics": {
       "name": "molecular_dynamics",
       "description": "\n        Methodology for molecular dynamics.\n        ",
       "nested": false,
@@ -3770,16 +3871,15 @@ window.nomadArtifacts = {
       "nested": false,
       "repeats": false
     },
-    "results.properties.electronic.band_structure_electronic": {
-      "name": "band_structure_electronic",
-      "description": "\n        This section stores information on a electonic band structure\n        evaluation along one-dimensional pathways in the reciprocal space.\n        ",
-      "nested": false,
+    "results.properties.electronic.band_gap": {
+      "name": "band_gap",
+      "nested": true,
       "repeats": true
     },
-    "results.properties.electronic.band_structure_electronic.band_gap": {
-      "name": "band_gap",
-      "description": "\n        Band gap information for electronic structure.\n        ",
-      "nested": true,
+    "results.properties.electronic.band_gap.provenance": {
+      "name": "provenance",
+      "description": "\n    ",
+      "nested": false,
       "repeats": true
     },
     "results.properties.electronic.dos_electronic": {
@@ -3790,8 +3890,30 @@ window.nomadArtifacts = {
     },
     "results.properties.electronic.dos_electronic.band_gap": {
       "name": "band_gap",
-      "description": "\n        Band gap information for electronic structure.\n        ",
       "nested": true,
+      "repeats": true
+    },
+    "results.properties.electronic.dos_electronic.band_gap.provenance": {
+      "name": "provenance",
+      "description": "\n        Contains semantically labelled provenance information.\n        To be stored under PropertySection.provenance or children.\n        ",
+      "nested": false,
+      "repeats": true
+    },
+    "results.properties.electronic.band_structure_electronic": {
+      "name": "band_structure_electronic",
+      "description": "\n        This section stores information on a electonic band structure\n        evaluation along one-dimensional pathways in the reciprocal space.\n        ",
+      "nested": false,
+      "repeats": true
+    },
+    "results.properties.electronic.band_structure_electronic.band_gap": {
+      "name": "band_gap",
+      "nested": true,
+      "repeats": true
+    },
+    "results.properties.electronic.band_structure_electronic.band_gap.provenance": {
+      "name": "provenance",
+      "description": "\n        Contains semantically labelled provenance information.\n        To be stored under PropertySection.provenance or children.\n        ",
+      "nested": false,
       "repeats": true
     },
     "results.properties.electronic.greens_functions_electronic": {
@@ -3848,13 +3970,13 @@ window.nomadArtifacts = {
       "nested": true,
       "repeats": true
     },
-    "results.properties.thermodynamic.trajectory.methodology": {
-      "name": "methodology",
-      "description": "\n        Contains methodological information and can be attached to any physical\n        property.\n        ",
+    "results.properties.thermodynamic.trajectory.provenance": {
+      "name": "provenance",
+      "description": "\n        Contains provenance information for properties derived from molecular\n        dynamics simulations.\n        ",
       "nested": false,
       "repeats": true
     },
-    "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics": {
+    "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics": {
       "name": "molecular_dynamics",
       "description": "\n        Methodology for molecular dynamics.\n        ",
       "nested": false,
@@ -8402,26 +8524,39 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 12,
             "m_parent_sub_section": "section_definitions",
-            "name": "BandGap",
-            "description": "\n        Contains information for each present spin channel.\n        ",
+            "name": "BandGapDeprecated",
+            "description": "Base class for breaking up circular dependencies between BandGap, Dos, and BandStructure.",
+            "base_sections": [
+              "/packages/17/section_definitions/1"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.electronic.band_structure_electronic.band_gap.index"
+                  ]
+                },
                 "name": "index",
                 "description": "The spin channel index.",
                 "type": {
                   "type_kind": "numpy",
-                  "type_data": "int64"
+                  "type_data": "int32"
                 }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.electronic.band_structure_electronic.band_gap.value"
+                  ]
+                },
                 "name": "value",
-                "description": "Band gap value. Value of zero corresponds to not having a band gap.",
+                "description": "The actual value of the band gap. Value of zero indicates a vanishing band gap and\nis distinct from sources lacking any band gap measurement or calculation.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -8433,6 +8568,11 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.electronic.band_structure_electronic.band_gap.type"
+                  ]
+                },
                 "name": "type",
                 "description": "Band gap type.",
                 "type": {
@@ -8463,32 +8603,6 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "name": "energy_lowest_unoccupied",
                 "description": "The lowest unoccupied energy.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "joule"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "quantities",
-                "name": "value_fundamental",
-                "description": "GW fundamental band gap",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "joule"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
-                "m_parent_sub_section": "quantities",
-                "name": "value_optical",
-                "description": "GW optical band gap",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -9115,6 +9229,62 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 18,
             "m_parent_sub_section": "section_definitions",
+            "name": "ElectronicStructureProvenance",
+            "description": "\n    ",
+            "base_sections": [
+              "/packages/17/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "dos",
+                "description": "",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/16"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "band_structure",
+                "description": "",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/13"
+                },
+                "shape": []
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 19,
+            "m_parent_sub_section": "section_definitions",
+            "name": "BandGap",
+            "description": "\n        Contains information for each present spin channel.\n        ",
+            "base_sections": [
+              "/packages/2/section_definitions/12"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "provenance",
+                "sub_section": "/packages/2/section_definitions/18",
+                "repeats": false
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 20,
+            "m_parent_sub_section": "section_definitions",
             "name": "MultipolesValues",
             "description": "Section containing the values of the multipoles projected unto an atom or orbital.",
             "base_sections": [
@@ -9137,7 +9307,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 19,
+            "m_parent_index": 21,
             "m_parent_sub_section": "section_definitions",
             "name": "MultipolesEntry",
             "description": "Section describing a multipole term. The unit of the values are given by C * m ^ n, where n = 1 for dipole, 2 for quadrupole, etc.",
@@ -9208,14 +9378,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "orbital_projected",
-                "sub_section": "/packages/2/section_definitions/18",
+                "sub_section": "/packages/2/section_definitions/20",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 20,
+            "m_parent_index": 22,
             "m_parent_sub_section": "section_definitions",
             "name": "Multipoles",
             "description": "Section containing the multipoles (dipoles, quadrupoles, ...) for each atom.",
@@ -9239,7 +9409,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dipole",
-                "sub_section": "/packages/2/section_definitions/19",
+                "sub_section": "/packages/2/section_definitions/21",
                 "repeats": false
               },
               {
@@ -9247,7 +9417,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "quadrupole",
-                "sub_section": "/packages/2/section_definitions/19",
+                "sub_section": "/packages/2/section_definitions/21",
                 "repeats": false
               },
               {
@@ -9255,7 +9425,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "octupole",
-                "sub_section": "/packages/2/section_definitions/19",
+                "sub_section": "/packages/2/section_definitions/21",
                 "repeats": false
               },
               {
@@ -9263,14 +9433,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "higher_order",
-                "sub_section": "/packages/2/section_definitions/19",
+                "sub_section": "/packages/2/section_definitions/21",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 21,
+            "m_parent_index": 23,
             "m_parent_sub_section": "section_definitions",
             "name": "Thermodynamics",
             "description": "Section containing results related to a thermodynamics calculation.",
@@ -9447,7 +9617,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 22,
+            "m_parent_index": 24,
             "m_parent_sub_section": "section_definitions",
             "name": "Volumetric",
             "description": "Section defining a set of volumetric data on a uniform real-space grid. Kind should be specified if the data is not explicitly defined by a metainfo class.",
@@ -9564,12 +9734,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 23,
+            "m_parent_index": 25,
             "m_parent_sub_section": "section_definitions",
             "name": "PotentialValue",
             "description": "Section containing the values of the potential evaluated on a uniform real-space grid.",
             "base_sections": [
-              "/packages/2/section_definitions/22"
+              "/packages/2/section_definitions/24"
             ],
             "quantities": [
               {
@@ -9594,12 +9764,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 24,
+            "m_parent_index": 26,
             "m_parent_sub_section": "section_definitions",
             "name": "Potential",
             "description": "Section containing all potential types.",
             "base_sections": [
-              "/packages/2/section_definitions/22"
+              "/packages/2/section_definitions/24"
             ],
             "sub_sections": [
               {
@@ -9607,7 +9777,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "effective",
-                "sub_section": "/packages/2/section_definitions/23",
+                "sub_section": "/packages/2/section_definitions/25",
                 "repeats": true
               },
               {
@@ -9615,19 +9785,19 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hartree",
-                "sub_section": "/packages/2/section_definitions/23",
+                "sub_section": "/packages/2/section_definitions/25",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 25,
+            "m_parent_index": 27,
             "m_parent_sub_section": "section_definitions",
             "name": "Density",
             "description": "Section containing the values of the density evaluated on a uniform real-space grid.",
             "base_sections": [
-              "/packages/2/section_definitions/22"
+              "/packages/2/section_definitions/24"
             ],
             "quantities": [
               {
@@ -9664,7 +9834,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 26,
+            "m_parent_index": 28,
             "m_parent_sub_section": "section_definitions",
             "name": "Spectra",
             "description": "Excited states properties.",
@@ -9758,7 +9928,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 27,
+            "m_parent_index": 29,
             "m_parent_sub_section": "section_definitions",
             "name": "GreensFunctions",
             "description": "Green's functions properties in different time/frequency basis.",
@@ -9901,7 +10071,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 28,
+            "m_parent_index": 30,
             "m_parent_sub_section": "section_definitions",
             "name": "VibrationalFrequenciesValues",
             "description": "Section describing a vibrational spectrum.",
@@ -9974,7 +10144,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 29,
+            "m_parent_index": 31,
             "m_parent_sub_section": "section_definitions",
             "name": "VibrationalFrequencies",
             "description": "Section containing results related to vibrational frequencies.",
@@ -10013,7 +10183,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "raman",
-                "sub_section": "/packages/2/section_definitions/28",
+                "sub_section": "/packages/2/section_definitions/30",
                 "repeats": false
               },
               {
@@ -10021,14 +10191,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "infrared",
-                "sub_section": "/packages/2/section_definitions/28",
+                "sub_section": "/packages/2/section_definitions/30",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 30,
+            "m_parent_index": 32,
             "m_parent_sub_section": "section_definitions",
             "name": "RadiusOfGyrationValues",
             "description": "Section containing information regarding the values of radius of gyration (Rg).",
@@ -10053,7 +10223,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 31,
+            "m_parent_index": 33,
             "m_parent_sub_section": "section_definitions",
             "name": "RadiusOfGyration",
             "description": "Section containing information about the calculation of radius of gyration (Rg).",
@@ -10066,14 +10236,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radius_of_gyration_values",
-                "sub_section": "/packages/2/section_definitions/30",
+                "sub_section": "/packages/2/section_definitions/32",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 32,
+            "m_parent_index": 34,
             "m_parent_sub_section": "section_definitions",
             "name": "BaseCalculation",
             "description": "Contains computed properties of a configuration as defined by the corresponding section system and with the simulation method defined by section method. The\nreferences to the system and method sections are given by system_ref and method_ref,\nrespectively.\n\nProperties derived from a group of configurations are not included in this section but\ncan be accessed in section workflow.",
@@ -10122,7 +10292,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/34"
+                  "type_data": "/packages/2/section_definitions/36"
                 },
                 "shape": []
               },
@@ -10149,7 +10319,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/34"
+                  "type_data": "/packages/2/section_definitions/36"
                 },
                 "shape": [
                   "n_references"
@@ -10334,15 +10504,15 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
-                "name": "dos_electronic",
-                "sub_section": "/packages/2/section_definitions/17",
+                "name": "band_gap",
+                "sub_section": "/packages/2/section_definitions/19",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
-                "name": "dos_phonon",
+                "name": "dos_electronic",
                 "sub_section": "/packages/2/section_definitions/17",
                 "repeats": true
               },
@@ -10350,13 +10520,21 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
+                "name": "dos_phonon",
+                "sub_section": "/packages/2/section_definitions/17",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "sub_sections",
                 "name": "eigenvalues",
                 "sub_section": "/packages/2/section_definitions/13",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 6,
+                "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_structure_electronic",
                 "sub_section": "/packages/2/section_definitions/14",
@@ -10364,7 +10542,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 7,
+                "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_structure_phonon",
                 "sub_section": "/packages/2/section_definitions/14",
@@ -10372,15 +10550,15 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 8,
+                "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "thermodynamics",
-                "sub_section": "/packages/2/section_definitions/21",
+                "sub_section": "/packages/2/section_definitions/23",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 9,
+                "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hopping_matrix",
                 "sub_section": "/packages/0/section_definitions/21",
@@ -10388,25 +10566,17 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 10,
-                "m_parent_sub_section": "sub_sections",
-                "name": "spectra",
-                "sub_section": "/packages/2/section_definitions/26",
-                "repeats": true
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 11,
                 "m_parent_sub_section": "sub_sections",
-                "name": "greens_functions",
-                "sub_section": "/packages/2/section_definitions/27",
+                "name": "spectra",
+                "sub_section": "/packages/2/section_definitions/28",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 12,
                 "m_parent_sub_section": "sub_sections",
-                "name": "vibrational_frequencies",
+                "name": "greens_functions",
                 "sub_section": "/packages/2/section_definitions/29",
                 "repeats": true
               },
@@ -10414,21 +10584,29 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 13,
                 "m_parent_sub_section": "sub_sections",
-                "name": "potential",
-                "sub_section": "/packages/2/section_definitions/24",
+                "name": "vibrational_frequencies",
+                "sub_section": "/packages/2/section_definitions/31",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 14,
                 "m_parent_sub_section": "sub_sections",
-                "name": "multipoles",
-                "sub_section": "/packages/2/section_definitions/20",
+                "name": "potential",
+                "sub_section": "/packages/2/section_definitions/26",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 15,
+                "m_parent_sub_section": "sub_sections",
+                "name": "multipoles",
+                "sub_section": "/packages/2/section_definitions/22",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 16,
                 "m_parent_sub_section": "sub_sections",
                 "name": "charges",
                 "sub_section": "/packages/2/section_definitions/11",
@@ -10436,40 +10614,40 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 16,
+                "m_parent_index": 17,
                 "m_parent_sub_section": "sub_sections",
                 "name": "density_charge",
-                "sub_section": "/packages/2/section_definitions/25",
+                "sub_section": "/packages/2/section_definitions/27",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 17,
+                "m_parent_index": 18,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radius_of_gyration",
-                "sub_section": "/packages/2/section_definitions/31",
+                "sub_section": "/packages/2/section_definitions/33",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 33,
+            "m_parent_index": 35,
             "m_parent_sub_section": "section_definitions",
             "name": "ScfIteration",
             "description": "Every scf_iteration section represents a self-consistent field (SCF) iteration, and gives detailed information on the SCF procedure of the specified quantities.",
             "base_sections": [
-              "/packages/2/section_definitions/32"
+              "/packages/2/section_definitions/34"
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 34,
+            "m_parent_index": 36,
             "m_parent_sub_section": "section_definitions",
             "name": "Calculation",
             "description": "Every calculation section contains the values computed during a *single configuration calculation*, i.e. a calculation performed on a given\nconfiguration of the system (as defined in section_system) and a given computational\nmethod (e.g., exchange-correlation method, basis sets, as defined in section_method).\n\nThe link between the current section calculation and the related\nsystem and method sections is established by the values stored in system_ref and\nmethod_ref, respectively.\n\nThe reason why information on the system configuration and computational method is\nstored separately is that several *single configuration calculations* can be performed\non the same system configuration, viz. several system configurations can be evaluated\nwith the same computational method. This storage strategy avoids redundancies.",
             "base_sections": [
-              "/packages/2/section_definitions/32"
+              "/packages/2/section_definitions/34"
             ],
             "quantities": [
               {
@@ -10494,7 +10672,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "scf_iteration",
-                "sub_section": "/packages/2/section_definitions/33",
+                "sub_section": "/packages/2/section_definitions/35",
                 "repeats": true
               }
             ]
@@ -10885,7 +11063,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "calculation",
-                "sub_section": "/packages/2/section_definitions/34",
+                "sub_section": "/packages/2/section_definitions/36",
                 "repeats": true
               }
             ]
@@ -11428,19 +11606,22 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 0,
             "m_parent_sub_section": "section_definitions",
-            "name": "BandGap",
-            "description": "\n        Band gap information.\n        ",
+            "name": "BandGapDeprecated",
+            "base_sections": [
+              "/packages/2/section_definitions/12"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "label",
-                "description": "Label to identify the band gap data, e.g. method employed.",
+                "description": "Temporary label for GUI generating GUI artifacts.\nCan be left unpopulated.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
-                }
+                },
+                "shape": []
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -11448,11 +11629,11 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.electronic.dos_electronic.band_gap.index"
+                    "results.properties.electronic.band_structure_electronic.band_gap.index"
                   ]
                 },
                 "name": "index",
-                "description": "Index of the data, e.g. spin channel index.",
+                "description": "The spin channel index.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "int32"
@@ -11464,11 +11645,11 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.electronic.dos_electronic.band_gap.value"
+                    "results.properties.electronic.band_structure_electronic.band_gap.value"
                   ]
                 },
                 "name": "value",
-                "description": "Band gap value. Value of zero corresponds to not having a band gap.",
+                "description": "The actual value of the band gap. Value of zero indicates a vanishing band gap and\nis distinct from sources lacking any band gap measurement or calculation.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -11482,8 +11663,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.electronic.dos_electronic.band_gap.type",
-                    "results.properties.electronic.dos_electronic.band_gap.type__suggestion.suggestion"
+                    "results.properties.electronic.band_structure_electronic.band_gap.type"
                   ]
                 },
                 "name": "type",
@@ -11503,18 +11683,38 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 1,
             "m_parent_sub_section": "section_definitions",
-            "name": "BandGapElectronic",
-            "description": "\n        Band gap information for electronic structure.\n        ",
+            "name": "BandGap",
             "base_sections": [
-              "/packages/5/section_definitions/0"
+              "/packages/2/section_definitions/19"
             ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
-                "name": "energy_highest_occupied",
-                "description": "The highest occupied energy.",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.electronic.band_structure_electronic.band_gap.index"
+                  ]
+                },
+                "name": "index",
+                "description": "The spin channel index.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.electronic.band_structure_electronic.band_gap.value"
+                  ]
+                },
+                "name": "value",
+                "description": "The actual value of the band gap. Value of zero indicates a vanishing band gap and\nis distinct from sources lacking any band gap measurement or calculation.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -11524,16 +11724,23 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
-                "name": "energy_lowest_unoccupied",
-                "description": "The lowest unoccupied energy.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.electronic.band_structure_electronic.band_gap.type"
+                  ]
                 },
-                "shape": [],
-                "unit": "joule"
+                "name": "type",
+                "description": "Band gap type.",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "direct",
+                    "indirect"
+                  ]
+                },
+                "shape": []
               }
             ]
           },
@@ -14739,7 +14946,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step"
+                    "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.time_step"
                   ]
                 },
                 "name": "time_step",
@@ -14757,7 +14964,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type"
+                    "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.ensemble_type"
                   ]
                 },
                 "name": "ensemble_type",
@@ -14779,8 +14986,11 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 24,
             "m_parent_sub_section": "section_definitions",
-            "name": "Methodology",
-            "description": "\n        Contains methodological information and can be attached to any physical\n        property.\n        ",
+            "name": "MDProvenance",
+            "description": "\n        Contains provenance information for properties derived from molecular\n        dynamics simulations.\n        ",
+            "base_sections": [
+              "/packages/17/section_definitions/0"
+            ],
             "sub_sections": [
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -14796,14 +15006,17 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 25,
             "m_parent_sub_section": "section_definitions",
-            "name": "PropertySection",
-            "description": "\n        Base class for that can be used to attach a specific methodology to a\n        physical property.\n        ",
+            "name": "MDPropertySection",
+            "description": "\n        Base class for referring to molecular dynamics properties.\n        ",
+            "base_sections": [
+              "/packages/17/section_definitions/1"
+            ],
             "sub_sections": [
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
-                "name": "methodology",
+                "name": "provenance",
                 "sub_section": "/packages/5/section_definitions/24",
                 "repeats": false
               }
@@ -14915,7 +15128,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "band_gap",
-                "sub_section": "/packages/5/section_definitions/1",
+                "sub_section": "/packages/5/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -15038,7 +15251,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "band_gap",
-                "sub_section": "/packages/5/section_definitions/1",
+                "sub_section": "/packages/5/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -15447,7 +15660,7 @@ window.nomadArtifacts = {
                 "description": "List of references to each section_single_configuration_calculation in\nthe optimization trajectory.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/34"
+                  "type_data": "/packages/2/section_definitions/36"
                 },
                 "shape": [
                   "0..*"
@@ -15638,8 +15851,13 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
-                "name": "band_structure_electronic",
-                "sub_section": "/packages/5/section_definitions/31",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "band_gap"
+                  ]
+                },
+                "name": "band_gap",
+                "sub_section": "/packages/5/section_definitions/1",
                 "repeats": true
               },
               {
@@ -15653,6 +15871,14 @@ window.nomadArtifacts = {
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
+                "m_parent_sub_section": "sub_sections",
+                "name": "band_structure_electronic",
+                "sub_section": "/packages/5/section_definitions/31",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "greens_functions_electronic",
                 "sub_section": "/packages/5/section_definitions/32",
@@ -61400,6 +61626,51 @@ window.nomadArtifacts = {
         "m_parent_index": 17,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.common",
+        "section_definitions": [
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 0,
+            "m_parent_sub_section": "section_definitions",
+            "name": "ProvenanceTracker",
+            "description": "\n        Contains semantically labelled provenance information.\n        To be stored under PropertySection.provenance or children.\n        ",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.thermodynamic.trajectory.provenance.label"
+                  ]
+                },
+                "name": "label",
+                "description": "Class or type of the provenance.\nCan be used to add further description to the provenance.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 1,
+            "m_parent_sub_section": "section_definitions",
+            "name": "PropertySection",
+            "description": "\n        Base class for that can be used to attach a specific methodology to a\n        physical property.\n        ",
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "provenance",
+                "sub_section": "/packages/17/section_definitions/0",
+                "repeats": false
+              }
+            ]
+          }
+        ],
         "category_definitions": [
           {
             "m_def": "nomad.metainfo.metainfo.Category",
@@ -63842,7 +64113,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/34"
+                  "type_data": "/packages/2/section_definitions/36"
                 },
                 "shape": []
               }
@@ -64371,7 +64642,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the potential data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/24"
+                  "type_data": "/packages/2/section_definitions/26"
                 },
                 "shape": [
                   "n_data"
@@ -64385,7 +64656,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the charge density data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/25"
+                  "type_data": "/packages/2/section_definitions/27"
                 },
                 "shape": [
                   "n_data"
@@ -64399,7 +64670,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the spectral data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/26"
+                  "type_data": "/packages/2/section_definitions/28"
                 },
                 "shape": [
                   "n_data"
@@ -66708,7 +66979,7 @@ window.nomadArtifacts = {
                 "description": "Spectrum for a given polarization of the photon.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/26"
+                  "type_data": "/packages/2/section_definitions/28"
                 },
                 "shape": [
                   "n_polarizations"
@@ -69414,7 +69685,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.time_step"
+                    "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.time_step"
                   ]
                 },
                 "name": "integration_timestep",
@@ -69544,7 +69815,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.thermodynamic.trajectory.methodology.molecular_dynamics.ensemble_type"
+                    "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.ensemble_type"
                   ]
                 },
                 "name": "thermodynamic_ensemble",
@@ -70327,7 +70598,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the input calculation.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/34"
+                  "type_data": "/packages/2/section_definitions/36"
                 },
                 "shape": []
               },
@@ -70339,7 +70610,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the output calculation.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/34"
+                  "type_data": "/packages/2/section_definitions/36"
                 },
                 "shape": []
               },
@@ -70433,7 +70704,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/34"
+                  "type_data": "/packages/2/section_definitions/36"
                 },
                 "shape": []
               },
@@ -70457,7 +70728,7 @@ window.nomadArtifacts = {
                 "description": "List of references to each section single_configuration_calculation in the\nsimulation.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/34"
+                  "type_data": "/packages/2/section_definitions/36"
                 },
                 "shape": [
                   "n_calculations"

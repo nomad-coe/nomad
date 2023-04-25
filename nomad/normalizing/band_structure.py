@@ -21,12 +21,14 @@ import numpy as np
 import ase
 
 from nomad.datamodel.metainfo.simulation.calculation import (
-    BandStructure, BandGap
+    BandStructure, BandGap, BandGapDeprecated, Calculation,
+    ElectronicStructureProvenance
 )
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.normalizing.normalizer import Normalizer
 from nomad import config, atomutils
 from nomad.constants import pi
+from typing import List
 
 
 class BandStructureNormalizer(Normalizer):
@@ -62,6 +64,7 @@ class BandStructureNormalizer(Normalizer):
                 if valid_band:
                     self.add_reciprocal_cell(band, system)
                     self.add_band_gap(
+                        scc,
                         band,
                         energy_fermi,
                         energy_highest,
@@ -139,6 +142,7 @@ class BandStructureNormalizer(Normalizer):
 
     def add_band_gap(
             self,
+            calc: Calculation,
             band: BandStructure,
             energy_fermi: NDArray,
             energy_highest: NDArray,
@@ -148,26 +152,6 @@ class BandStructureNormalizer(Normalizer):
         channels.
         """
         band.energy_fermi = energy_fermi
-
-        # No reference data available
-        eref = energy_highest if energy_fermi is None else energy_fermi
-        if eref is None:
-            self.logger.info("could not resolve energy references or band gaps for band structure")
-            return
-        eref = eref.magnitude
-
-        # Create energy reference sections for each spin channel, add fermi
-        # energy if present
-        n_channels = band.segment[0].energies.shape[0]
-        for i_channel in range(n_channels):
-            info = band.band_gap[i_channel] if len(band.band_gap) > i_channel else band.m_create(BandGap)
-            info.index = i_channel
-            if energy_highest is not None:
-                info.energy_highest_occupied = energy_highest
-            if energy_lowest is not None:
-                info.energy_lowest_unoccupied = energy_lowest
-
-        # Gather the energies and k points from each segment into one big array
         path: NDArray = []
         energies: NDArray = []
         for segment in band.segment:
@@ -181,12 +165,24 @@ class BandStructureNormalizer(Normalizer):
         path = np.concatenate(path, axis=0)
         energies = np.concatenate(energies, axis=2)
 
-        # Use a reference energy (fermi or highest occupied) to determine the
-        # energy references from the band structure (discretization will affect
-        # the exact location).
+        # No reference data available
+        eref = energy_highest if energy_fermi is None else energy_fermi
+        if eref is None:
+            self.logger.info("could not resolve energy references or band gaps for band structure")
+            return
+        eref = eref.magnitude
+
+        # Create energy reference sections for each spin channel, add fermi
+        # energy if present
+        infos: List[BandGapDeprecated] = []
+        n_channels = band.segment[0].energies.shape[0]
         for i_channel in range(n_channels):
-            i_energy_highest = None
-            i_energy_lowest = None
+            info = BandGapDeprecated()
+            info.index = i_channel
+
+            # Use a reference energy (fermi or highest occupied) to determine the
+            # energy references from the band structure (discretization will affect
+            # the exact location).
             channel_energies = energies[i_channel, :, :]
             num_bands = channel_energies.shape[0]
             band_indices = np.arange(num_bands)
@@ -199,15 +195,19 @@ class BandStructureNormalizer(Normalizer):
             band_minima_tol = band_minima + config.normalize.band_structure_energy_tolerance
             band_maxima_tol = band_maxima - config.normalize.band_structure_energy_tolerance
 
+            i_energy_highest = None
+            i_energy_lowest = None
             for band_idx in range(num_bands):
                 band_min = band_minima[band_idx]
                 band_max = band_maxima[band_idx]
                 band_min_tol = band_minima_tol[band_idx]
                 band_max_tol = band_maxima_tol[band_idx]
 
-                # If any of the bands band crosses the Fermi level, there is no
+                # If any of the bands crosses the Fermi level, there is no
                 # band gap
                 if band_min_tol <= eref and band_max_tol >= eref:
+                    i_energy_highest = eref  # the eref value is necessary for the band structure alignment in the GUI
+                    i_energy_lowest = eref
                     break
                 # Whole band below Fermi level, save the current highest
                 # occupied band point
@@ -219,34 +219,38 @@ class BandStructureNormalizer(Normalizer):
                 elif band_min_tol >= eref:
                     i_energy_lowest = band_min
                     gap_upper_idx = band_minima_idx[band_idx]
-                    break
-
-            # Save the found energy references
-            if i_energy_highest is not None:
-                band.band_gap[i_channel].energy_highest_occupied = i_energy_highest
-            if i_energy_lowest is not None:
-                band.band_gap[i_channel].energy_lowest_unoccupied = i_energy_lowest
+                    break  # TODO: check if safe
 
             # If highest occupied energy and a lowest unoccupied energy are
             # found, and the difference between them is positive, save
             # information about the band gap.
-            gap_value = 0.0
-            info = band.band_gap[i_channel]
-            if i_energy_lowest is not None and i_energy_highest is not None:
-                gap_value = float(i_energy_lowest - i_energy_highest)
-                if gap_value > 0:
-                    # See if the gap is direct or indirect by comparing the k-point
-                    # locations with some tolerance
-                    k_point_lower = path[gap_lower_idx]
-                    k_point_upper = path[gap_upper_idx]
-                    reciprocal_cell = band.reciprocal_cell
-                    if reciprocal_cell is not None:
-                        reciprocal_cell = reciprocal_cell.magnitude
-                        k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
-                        is_direct_gap = k_point_distance <= config.normalize.k_space_precision
-                        band_gap_type = "direct" if is_direct_gap else "indirect"
-                        info.type = band_gap_type
-            info.value = gap_value
+            info.energy_highest_occupied = i_energy_highest
+            info.energy_lowest_unoccupied = i_energy_lowest
+            try:
+                gap_value = i_energy_lowest - i_energy_highest
+            except TypeError:
+                return
+            info.value = 0. if gap_value < 0. else gap_value
+
+            if info.value > 0:
+                # See if the gap is direct or indirect by comparing the k-point
+                # locations with some tolerance
+                k_point_lower = path[gap_lower_idx]
+                k_point_upper = path[gap_upper_idx]
+                reciprocal_cell = band.reciprocal_cell
+                if reciprocal_cell is not None:
+                    reciprocal_cell = reciprocal_cell.magnitude
+                    k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
+                    is_direct_gap = k_point_distance <= config.normalize.k_space_precision
+                    info.type = "direct" if is_direct_gap else "indirect"
+
+            if info.value is not None:
+                proper_info = BandGap().m_from_dict(info.m_to_dict())
+                proper_info.provenance = ElectronicStructureProvenance(
+                    band_structure=band.segment[i_channel], label='band_structure')
+                calc.m_add_sub_section(Calculation.band_gap, proper_info)
+                infos.append(info)
+        band.band_gap = infos
 
     def add_path_labels(self, band: BandStructure, system: System) -> None:
         """Adds special high symmmetry point labels to the band path. Only k

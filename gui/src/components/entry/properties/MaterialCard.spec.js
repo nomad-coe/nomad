@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render, readArchive } from '../../conftest.spec'
+import { readArchive, renderNoAPI } from '../../conftest.spec'
 import {
   expectComposition,
   expectLatticeParameters,
@@ -38,7 +38,7 @@ beforeAll(async () => {
 })
 
 test('correctly renders entry with all material information', async () => {
-  render(<MaterialCard index={index} properties={properties} archive={archive}/>)
+  renderNoAPI(<MaterialCard index={index} properties={properties} archive={archive}/>)
   expectComposition(index)
   expectSymmetry(index)
   expectLatticeParameters(index)
@@ -48,7 +48,7 @@ test('correctly renders entry with all material information', async () => {
 test('correctly renders material without symmetry information', async () => {
   const indexNew = cloneDeep(index)
   delete indexNew.results.material.symmetry
-  render(<MaterialCard index={indexNew} properties={properties} archive={archive}/>)
+  renderNoAPI(<MaterialCard index={indexNew} properties={properties} archive={archive}/>)
   expectComposition(indexNew)
   expectNoSymmetry(indexNew)
   expectLatticeParameters(indexNew)
@@ -60,7 +60,7 @@ test('correctly renders material without lattice information', async () => {
   delete indexNew.results.properties.structures.structure_original.lattice_parameters
   delete indexNew.results.properties.structures.structure_conventional.lattice_parameters
   delete indexNew.results.properties.structures.structure_primitive.lattice_parameters
-  render(<MaterialCard index={indexNew} properties={properties} archive={archive}/>)
+  renderNoAPI(<MaterialCard index={indexNew} properties={properties} archive={archive}/>)
   expectComposition(indexNew)
   expectSymmetry(indexNew)
   expectNoLatticeParameters(indexNew)
@@ -70,7 +70,7 @@ test('correctly renders material without lattice information', async () => {
 test('correctly renders material without any structure information', async () => {
   const indexNew = cloneDeep(index)
   delete indexNew.results.properties.structures
-  render(<MaterialCard index={indexNew} properties={properties} archive={archive}/>)
+  renderNoAPI(<MaterialCard index={indexNew} properties={properties} archive={archive}/>)
   expectComposition(indexNew)
   expectSymmetry(indexNew)
   expectNoLatticeParameters(indexNew)

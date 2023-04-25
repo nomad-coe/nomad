@@ -239,9 +239,9 @@ PropertyItem.defaultProps = {
 }
 
 /**
- * For displaying the methodology steps for a property.
+ * For displaying the provenance for a property.
  */
-const usePropertyMethodologyListStyle = makeStyles(theme => ({
+const usePropertyProvenanceListStyle = makeStyles(theme => ({
   column: {
     width: '100%',
     height: '100%',
@@ -253,8 +253,8 @@ const usePropertyMethodologyListStyle = makeStyles(theme => ({
     minHeight: 0 // min-height: 0 to allow the item to shrink to fit inside the container.
   }
 }))
-export function PropertyMethodologyList({className, classes, children, ...other}) {
-  const styles = usePropertyMethodologyListStyle({classes: classes})
+export function PropertyProvenanceList({className, classes, children, ...other}) {
+  const styles = usePropertyProvenanceListStyle({classes: classes})
   return <Grid item {...other} className={className}>
     <div className={styles.column}>
       <div className={styles.content}>
@@ -264,7 +264,7 @@ export function PropertyMethodologyList({className, classes, children, ...other}
   </Grid>
 }
 
-PropertyMethodologyList.propTypes = {
+PropertyProvenanceList.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
   children: PropTypes.any
@@ -301,9 +301,9 @@ const AccordionDetails = withStyles((theme) => ({
 }))(MuiAccordionDetails)
 
 /**
- * For displaying methodology steps.
+ * For displaying provenance steps.
  */
-export const PropertyMethodologyItem = React.memo(({title, data, path, columns}) => {
+export const PropertyProvenanceItem = React.memo(({title, data, path, columns}) => {
   // Recursively extract items from the data and split the items into equal sized rows
   const rows = useMemo(() => {
     if (!data) return undefined
@@ -342,13 +342,13 @@ export const PropertyMethodologyItem = React.memo(({title, data, path, columns})
   </Accordion>
 })
 
-PropertyMethodologyItem.propTypes = {
+PropertyProvenanceItem.propTypes = {
   title: PropTypes.string,
   data: PropTypes.object,
   path: PropTypes.string,
   columns: PropTypes.number
 }
 
-PropertyMethodologyItem.defaultProps = {
+PropertyProvenanceItem.defaultProps = {
   columns: 4
 }
