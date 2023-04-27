@@ -41,6 +41,7 @@ const idStructure = 'structure'
 const idMethod = 'method'
 const idDFT = 'dft'
 const idGW = 'gw'
+const idBSE = 'bse'
 const idProjection = 'projection'
 const idDMFT = 'dmft'
 const idPrecision = 'precision'
@@ -380,6 +381,21 @@ registerFilter('results.method.simulation.gw.starting_point_type', idGW, {
   }
 })
 registerFilter('results.method.simulation.gw.basis_set_type', idGW, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.simulation.bse.type', idBSE, termQuantity)
+registerFilter('results.method.simulation.bse.solver', idBSE, termQuantity)
+registerFilter('results.method.simulation.bse.starting_point_type', idBSE, {
+  ...termQuantity,
+  scale: '1/2',
+  options: {
+    'LDA': {label: 'LDA'},
+    GGA: {label: 'GGA'},
+    'meta-GGA': {label: 'Meta-GGA'},
+    hybrid: {label: 'Hybrids'},
+    'HF': {label: 'HF'}
+  }
+})
+registerFilter('results.method.simulation.bse.basis_set_type', idBSE, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.simulation.bse.gw_type', idBSE, {...termQuantity, scale: '1/4', label: `GW Type`})
 registerFilter('results.method.simulation.projection.type', idProjection, {...termQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.projection.localization_type', idProjection, {...termQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dmft.impurity_solver_type', idDMFT, {...termQuantity})

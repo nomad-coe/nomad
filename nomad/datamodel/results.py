@@ -33,9 +33,9 @@ from nomad.datamodel.metainfo.workflow import (
     RadialDistributionFunctionValues,
     MeanSquaredDisplacement as MSDWorkflow,
     MeanSquaredDisplacementValues,
-    DiffusionConstantValues,
-    Workflow
+    DiffusionConstantValues
 )
+from nomad.datamodel.metainfo.workflow2 import Workflow as WorkflowNew
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
     material_type,
@@ -69,8 +69,8 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation
 )  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
-    BasisSet, Scf, Electronic, Smearing,
-    GW as GWMethod, HubbardKanamoriModel as HubbardKanamori, AtomParameters,
+    BasisSet, Scf, Electronic, Smearing, ExcitedStateMethodology as XSMethod,
+    GW as GWMethod, BSE as BSEMethod, HubbardKanamoriModel as HubbardKanamori, AtomParameters,
     DMFT as DMFTMethod
 )  # noqa
 from nomad.datamodel.metainfo.workflow import (
@@ -1483,17 +1483,18 @@ class Projection(MSection):
     )
 
 
-class GW(MSection):
+class ExcitedStateMethodology(MSection):
     m_def = Section(
         description='''
-        Methodology for a GW calculation.
+        Methodology for a Excited-State calculation.
         '''
     )
-    type = GWMethod.type.m_copy()
-    type.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default')
-    ]
+    type = XSMethod.type.m_copy(
+        es_annotation=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ]
+    )
     basis_set_type = Quantity(
         type=MEnum(basis_set_types),
         description='The used basis set functions.',
@@ -1502,11 +1503,12 @@ class GW(MSection):
             Elasticsearch(suggestion='default')
         ],
     )
-    basis_set_name = BasisSet.name.m_copy()
-    basis_set_name.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default')
-    ]
+    basis_set_name = BasisSet.name.m_copy(
+        es_annotation=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ]
+    )
     starting_point_type = Quantity(
         type=MEnum(list(xc_treatments.values()) + [unavailable, not_processed]),
         description='The libXC based xc functional classification used in the starting point DFT simulation.',
@@ -1523,17 +1525,60 @@ class GW(MSection):
     )
 
 
+class GW(ExcitedStateMethodology):
+    m_def = Section(
+        description='''
+        Methodology for a GW calculation.
+        '''
+    )
+    type = GWMethod.type.m_copy(
+        es_annotation=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ]
+    )
+
+
+class BSE(ExcitedStateMethodology):
+    m_def = Section(
+        description='''
+        Methodology for a BSE calculation.
+        '''
+    )
+    type = BSEMethod.type.m_copy(
+        es_annotation=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ]
+    )
+    solver = BSEMethod.solver.m_copy(
+        es_annotation=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ]
+    )
+    gw_type = Quantity(
+        type=MEnum(GWMethod.type.type._list),  # TODO solve conflict between BSE.gw_type and GW.type when using GWMethod.type.m_copy()
+        description=GWMethod.type.description,
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ]
+    )
+
+
 class DMFT(MSection):
     m_def = Section(
         description='''
         Methodology for a DMFT calculation.
         '''
     )
-    impurity_solver_type = DMFTMethod.impurity_solver.m_copy()
-    impurity_solver_type.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default')
-    ]
+    impurity_solver_type = DMFTMethod.impurity_solver.m_copy(
+        es_annotation=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ]
+    )
     total_filling = Quantity(
         type=np.float64,
         description='''
@@ -1542,16 +1587,22 @@ class DMFT(MSection):
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    inverse_temperature = DMFTMethod.inverse_temperature.m_copy()
-    inverse_temperature.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    inverse_temperature = DMFTMethod.inverse_temperature.m_copy(
+        es_annotation=[
+            Elasticsearch(material_entry_type)
+        ]
+    )
     magnetic_state = DMFTMethod.magnetic_state.m_copy()
     magnetic_state.description = 'Magnetic state in which the DMFT calculation is done.'
     magnetic_state.m_annotations['elasticsearch'] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion='default')
     ]
-    u = HubbardKanamori.u.m_copy()
-    u.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+    u = HubbardKanamori.u.m_copy(
+        es_annotation=[
+            Elasticsearch(material_entry_type)
+        ]
+    )
     hunds_hubbard_ratio = Quantity(
         type=np.float64,
         description='''
@@ -1622,6 +1673,7 @@ class Simulation(MSection):
     dft = SubSection(sub_section=DFT.m_def, repeats=False)
     projection = SubSection(sub_section=Projection.m_def, repeats=False)
     gw = SubSection(sub_section=GW.m_def, repeats=False)
+    bse = SubSection(sub_section=BSE.m_def, repeats=False)
     dmft = SubSection(sub_section=DMFT.m_def, repeats=False)
     quantum_cms = SubSection(sub_section=QuantumCMS.m_def, repeats=False)
     precision = SubSection(sub_section=Precision.m_def, repeats=False)
@@ -1673,7 +1725,7 @@ class Method(MSection):
         ],
     )
 
-    workflow_name = Workflow.type.m_copy()
+    workflow_name = WorkflowNew.name.m_copy()
     workflow_name.m_annotations['elasticsearch'] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion='default')

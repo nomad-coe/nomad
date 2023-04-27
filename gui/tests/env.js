@@ -249,6 +249,11 @@ window.nomadEnv = {
                 "level": 1,
                 "size": "s"
               },
+              "bse": {
+                "label": "BSE",
+                "level": 1,
+                "size": "s"
+              },
               "projection": {
                 "label": "Projection",
                 "level": 1,
@@ -496,6 +501,11 @@ window.nomadEnv = {
                 "level": 1,
                 "size": "s"
               },
+              "bse": {
+                "label": "BSE",
+                "level": 1,
+                "size": "s"
+              },
               "projection": {
                 "label": "Projection",
                 "level": 1,
@@ -664,6 +674,11 @@ window.nomadEnv = {
               },
               "gw": {
                 "label": "GW",
+                "level": 1,
+                "size": "s"
+              },
+              "bse": {
+                "label": "BSE",
                 "level": 1,
                 "size": "s"
               },

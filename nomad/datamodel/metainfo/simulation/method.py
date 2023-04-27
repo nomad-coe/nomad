@@ -1230,6 +1230,56 @@ class BSE(ExcitedStateMethodology):
 
     m_def = Section(validate=False)
 
+    type = Quantity(
+        type=MEnum('Singlet', 'Triplet', 'IP', 'RPA'),
+        shape=[],
+        description='''
+        Type of BSE hamiltonian solved:
+
+            H_BSE = H_diagonal + 2 * gx * Hx - gc * Hc
+
+        where gx, gc specifies the type.
+
+        Online resources for the theory:
+        - http://exciting.wikidot.com/carbon-excited-states-from-bse#toc1
+        - https://www.vasp.at/wiki/index.php/Bethe-Salpeter-equations_calculations
+        - https://docs.abinit.org/theory/bse/
+        - https://www.yambo-code.eu/wiki/index.php/Bethe-Salpeter_kernel
+
+        | Name | Description |
+
+        | --------- | ----------------------- |
+
+        | `'Singlet'` | gx = 1, gc = 1 |
+
+        | `'Triplet'` | gx = 0, gc = 1 |
+
+        | `'IP'` | Independent-particle approach |
+
+        | `'RPA'` | Random Phase Approximation |
+        ''')
+
+    solver = Quantity(
+        type=MEnum('Full-diagonalization', 'Lanczos-Haydock', 'GMRES', 'SLEPc', 'TDA'),
+        shape=[],
+        description='''
+        Solver algotithm used to diagonalize the BSE Hamiltonian.
+
+        | Name | Description | Reference |
+
+        | --------- | ----------------------- | ----------- |
+
+        | `'Full-diagonalization'` | Full diagonalization of the BSE Hamiltonian | - |
+
+        | `'Lanczos-Haydock'` | Subspace iterative Lanczos-Haydock algorithm | https://doi.org/10.1103/PhysRevB.59.5441 |
+
+        | `'GMRES'` | Generalized minimal residual method | https://doi.org/10.1137/0907058 |
+
+        | `'SLEPc'` | Scalable Library for Eigenvalue Problem Computations | https://slepc.upv.es/ |
+
+        | `'TDA'` | Tamm-Dancoff approximation | https://doi.org/10.1016/S0009-2614(99)01149-5 |
+        ''')
+
     screening = SubSection(sub_section=Screening.m_def)
 
     core_hole = SubSection(sub_section=CoreHole.m_def)
