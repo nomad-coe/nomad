@@ -394,7 +394,7 @@ function RawDirectoryContent({deploymentUrl, uploadId, path, title, highlightedI
                           <TextField
                             autoFocus
                             inputRef={createDirName}
-                            onKeyPress={(event) => {
+                            onKeyDown={(event) => {
                               if (event.key === 'Enter') {
                                 handleCreateDir()
                               }
@@ -555,11 +555,14 @@ function RawFileContent({deploymentUrl, uploadId, path, data, editable}) {
   const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?ignore_mime_type=true` // TODO: deploymentUrl need to be considered for external uploads
   const allNorthTools = useTools()
   const applicableNorthTools = useMemo(() => {
+    if (!allNorthTools || typeof allNorthTools !== 'object' || Object.keys(allNorthTools).length < 1) {
+      return []
+    }
     const fileExtension = path.split('.').pop().toLowerCase()
     return Object.keys(allNorthTools)
       .filter(key => {
         const tool = allNorthTools[key]
-        return tool.file_extensions && tool.file_extensions.includes(fileExtension)
+        return tool?.file_extensions && tool.file_extensions.includes(fileExtension)
       })
   }, [allNorthTools, path])
 

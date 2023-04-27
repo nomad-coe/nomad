@@ -205,7 +205,7 @@ export default withLoginRequired(NorthPage)
 */
 export function useTools() {
   if (!ui?.north?.enabled) {
-    return []
+    return {}
   }
   return _tools.default
 }
