@@ -41,7 +41,7 @@ from nomad.normalizing.common import cell_from_ase_atoms, nomad_atoms_from_ase_a
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, BasisSet, Electronic, DFT, XCFunctional, Functional,
-    Electronic, Smearing, Scf, GW, DMFT, AtomParameters, Projection, Wannier,
+    Electronic, Smearing, Scf, GW, BSE, DMFT, AtomParameters, Projection, Wannier,
     LatticeModelHamiltonian, HubbardKanamoriModel)
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup, System, Atoms as NOMADAtoms)
@@ -62,6 +62,12 @@ from nomad.datamodel.metainfo.workflow import (
     MolecularDynamics,
     EquationOfState,
     EOSFit
+)
+from nomad.datamodel.metainfo.workflow2 import (
+    Workflow as WorkflowNew, Link, TaskReference
+)
+from nomad.datamodel.metainfo.simulation.workflow import (
+    GWMethod, GW as GWworkflow
 )
 
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
@@ -151,8 +157,8 @@ def get_template_dft() -> EntryArchive:
     return template
 
 
-def get_template_gw() -> EntryArchive:
-    '''Returns a basic archive template for a GW calculation.
+def get_template_excited() -> EntryArchive:
+    '''Returns a basic archive template for a ExcitedState calculation.
     '''
     template = EntryArchive()
     run = template.m_create(Run)
@@ -180,8 +186,6 @@ def get_template_gw() -> EntryArchive:
         free=EnergyEntry(value=-1.5936767191492225e-18),
         total=EnergyEntry(value=-1.5935696296699573e-18),
         total_t0=EnergyEntry(value=-3.2126683561907e-22))
-    workflow = template.m_create(Workflow)
-    workflow.type = 'single_point'
     return template
 
 
@@ -593,19 +597,67 @@ def projection() -> EntryArchive:
     scc = run.m_create(Calculation)
     scc.system_ref = system
     scc.method_ref = method
-    workflow = template.m_create(Workflow)
-    workflow.type = 'single_point'
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def gw() -> EntryArchive:
     '''GW calculation.'''
-    template = get_template_gw()
+    template = get_template_excited()
     template.run[0].method = None
     run = template.run[0]
     method_gw = run.m_create(Method)
     method_gw.gw = GW(type='G0W0')
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def gw_workflow() -> EntryArchive:
+    '''GW workflow EntryArchive.'''
+    # DFT entry normalization
+    template_dft = get_template_dft()
+    run_normalize(template_dft)
+    task_dft = TaskReference(task=template_dft.workflow2)
+    task_dft.name = 'DFT'
+    task_dft.inputs = [Link(name='Input structure', section=template_dft.run[-1].system[-1])]
+    task_dft.outputs = [Link(name='Output DFT calculation', section=template_dft.run[-1].calculation[-1])]
+    # GW entry normalization
+    template_gw = get_template_excited()
+    template_gw.run[0].method = None
+    run = template_gw.run[0]
+    method_gw = run.m_create(Method)
+    method_gw.gw = GW(type='G0W0')
+    run_normalize(template_gw)
+    task_gw = TaskReference(task=template_gw.workflow2)
+    task_gw.name = 'GW'
+    task_gw.inputs = [Link(name='Output DFT calculation', section=template_dft.run[-1].calculation[-1])]
+    task_gw.outputs = [Link(name='Output GW calculation', section=template_gw.run[-1].calculation[-1])]
+    # Workflow entry (no need of creating Method nor Calculation)
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = template_dft.run[-1].program
+    run.system = template_dft.run[-1].system
+    workflow = template.m_create(WorkflowNew)
+    workflow.name = 'GW'
+    workflow.method = GWMethod(
+        gw_method_ref=template_gw.run[-1].method[-1].gw,
+        starting_point=template_dft.run[-1].method[-1].dft.xc_functional,
+        basis_set=template_dft.run[-1].method[-1].basis_set[0])
+    workflow.m_add_sub_section(GWworkflow.inputs, Link(name='Input structure', section=template_dft.run[-1].system[-1]))
+    workflow.m_add_sub_section(GWworkflow.outputs, Link(name='Output GW calculation', section=template_gw.run[-1].calculation[-1]))
+    workflow.m_add_sub_section(GWworkflow.tasks, task_dft)
+    workflow.m_add_sub_section(GWworkflow.tasks, task_gw)
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def bse() -> EntryArchive:
+    '''BSE calculation.'''
+    template = get_template_excited()
+    template.run[0].method = None
+    run = template.run[0]
+    method_bse = run.m_create(Method)
+    method_bse.bse = BSE(type='Singlet', solver='Lanczos-Haydock')
     return run_normalize(template)
 
 

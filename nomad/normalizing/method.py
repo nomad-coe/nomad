@@ -22,6 +22,8 @@ import re
 import numpy as np
 from typing import List, Tuple, Union
 
+from nomad.datamodel import EntryArchive
+from nomad.metainfo import MSection
 from nomad.units import ureg
 from nomad.metainfo import Section
 from nomad.metainfo.util import MTypes
@@ -29,56 +31,45 @@ from nomad.utils import RestrictedDict
 from nomad import config
 from nomad.datamodel.metainfo.simulation.method import KMesh
 from nomad.datamodel.results import (
-    Method,
-    Electronic,
-    Simulation,
-    HubbardKanamoriModel,
-    DFT,
-    Projection,
-    GW,
-    DMFT,
-    Precision,
-    xc_treatments,
-)
+    Method, Electronic, Simulation, HubbardKanamoriModel, DFT, Projection, GW, BSE, DMFT,
+    Precision, xc_treatments, Material)
 
 
 class MethodNormalizer():
-    def __init__(self, entry_archive, repr_system, material, logger):
+    def __init__(self, entry_archive: EntryArchive, repr_system: MSection, material: Material, logger):
         self.entry_archive = entry_archive
         self.repr_system = repr_system
         self.repr_method = None
         self.material = material
-        self.method_name = None
+        self.method_name = config.services.unavailable_value
         self.run = self.entry_archive.run[0]
         self.logger = logger
 
     def method(self) -> Method:
         '''Returns the populated results.method section.'''
         method = Method()
-        simulation = Simulation()
         repr_method = None
         method_name = config.services.unavailable_value
-        workflow_name = None
         methods = self.run.method
         n_methods = len(methods)
+        functional_long_name = ''
+        settings_basis_set = RestrictedDict(mandatory_keys=[None], optional_keys=[None], forbidden_values=[None])
+        gs_method = None
+        xs_method = None
+        method_def = {value.sub_section.name: value for _, value in Simulation.m_def.all_sub_sections.items()}
 
         def get_method_name(section_method):
             method_name = config.services.unavailable_value
-            if section_method.m_xpath('electronic') and section_method.electronic.m_xpath('method'):
+            if section_method.electronic and section_method.electronic.method:
                 method_name = section_method.electronic.method
-            elif section_method.m_xpath('gw') is not None:
-                method_name = 'GW'
-            elif section_method.m_xpath('projection') is not None:
-                method_name = 'Projection'
-            elif section_method.m_xpath('dmft') is not None:
-                method_name = 'DMFT'
-            elif section_method.m_xpath('core_hole') is not None:
-                method_name = 'CoreHole'
-            elif section_method.m_xpath('bse') is not None:
-                method_name = 'BSE'
+            else:
+                for method in ['gw', 'projection', 'dmft', 'core_hole', 'bse']:
+                    if section_method.m_xpath(method):
+                        method_name = getattr(section_method, method).m_def.name
+                        break
             return method_name
 
-        def functional_long_name_from_method(methods):
+        def functional_long_name_from_method():
             '''
             Long form of exchange-correlation functional, list of components and parameters
             as a string: see https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
@@ -140,26 +131,30 @@ class MethodNormalizer():
             return settings.to_dict()
 
         # workflow_name
-        if self.entry_archive.workflow:
-            workflow_name = list(filter(lambda x: x, map(lambda x: x.type, self.entry_archive.workflow)))[0]
-        method.workflow_name = workflow_name
-
-        # repr_method and method_name
-        #   If workflow_name is 'GW', set repr_method as the corresponding method_ref
-        if method.workflow_name and method.workflow_name == 'GW':
+        method.workflow_name = self.entry_archive.workflow2.name
+        # if the entry is a GW or ParticleHoleExcitations workflow, keep method_name as DFT+XS
+        if method.workflow_name in ['GW', 'ParticleHoleExcitations']:
             try:
-                dft_method = self.entry_archive.workflow[0].workflows_ref[0].calculations_ref[-1].method_ref
-                gw_method = self.entry_archive.workflow[0].workflows_ref[1].calculations_ref[-1].method_ref
-                repr_method = dft_method
-                method_name = f'{get_method_name(repr_method)}+GW'
+                gs_method = self.entry_archive.workflow2.tasks[0].task.tasks[-1].inputs[1].section  # Ground-state method
+                repr_method = gs_method
+
+                if len(self.entry_archive.workflow2.tasks[-1].task.inputs) > 1:
+                    xs_method = self.entry_archive.workflow2.tasks[-1].task.inputs[1].section  # Excited-state method
+                else:
+                    xs_method = self.entry_archive.workflow2.tasks[-1].task.tasks[-1].inputs[1].section
+
+                if xs_method.gw:
+                    method_name = f'{get_method_name(repr_method)}+GW'
+                elif xs_method.bse:
+                    method_name = f'{get_method_name(repr_method)}+BSE'
             except Exception:
-                self.logger.warning('Error finding the DFT and GW method sections from workflow refs.')
+                self.logger.warning('Error finding the DFT and ExcitedState (GW, BSE) method sections from workflow refs.')
                 return method
-        #   If only one method is specified, use it directly
+        # if only one method is specified, use it directly
         elif n_methods == 1:
             repr_method = methods[0]
             method_name = get_method_name(repr_method)
-        #   If several methods have been declared, we need to find the "topmost" method and report it.
+        # if several methods have been declared, we need to find the "topmost" method and report it.
         elif n_methods > 1:
             # Method referencing another as "core_method". If core method was
             # given, create new merged method containing all the information.
@@ -191,88 +186,34 @@ class MethodNormalizer():
 
         self.repr_method = repr_method
         self.method_name = method_name
+        # if DFT is present in the entry, we resolve the xc functional and the basis set
         if 'DFT' in self.method_name:
-            functional_long_name = functional_long_name_from_method(self.run.method)
+            functional_long_name = functional_long_name_from_method()
             settings_basis_set = get_basis_set()
 
-        # Populating method metainfo
+        # Fill electronic method metainfo
         if self.method_name in ['DFT', 'DFT+U']:
-            method.method_name = 'DFT'
-            dft = DFT()
-            dft.basis_set_type = self.basis_set_type()
-            dft.basis_set_name = self.basis_set_name()
-            method.method_id = self.method_id_dft(settings_basis_set, functional_long_name)
-            method.parameter_variation_id = self.parameter_variation_id_dft(settings_basis_set, functional_long_name)
-            dft.core_electron_treatment = self.core_electron_treatment()
-            if repr_method.electronic is not None:
-                if repr_method.electronic.smearing is not None:
-                    dft.smearing_kind = repr_method.electronic.smearing.kind
-                    dft.smearing_width = repr_method.electronic.smearing.width
-                if repr_method.electronic.n_spin_channels:
-                    dft.spin_polarized = repr_method.electronic.n_spin_channels > 1
-                dft.van_der_Waals_method = repr_method.electronic.van_der_waals_method
-                dft.relativity_method = repr_method.electronic.relativity_method
-            try:
-                dft.xc_functional_names = self.xc_functional_names(self.repr_method.dft.xc_functional)
-                dft.xc_functional_type = self.xc_functional_type(dft.xc_functional_names)
-                dft.exact_exchange_mixing_factor = self.exact_exchange_mixing_factor(dft.xc_functional_names)
-            except Exception:
-                self.logger.warning('Error extracting the DFT XC functional names.')
-            if repr_method.scf is not None:
-                dft.scf_threshold_energy_change = repr_method.scf.threshold_energy_change
-            simulation.dft = dft
-            hubbard_kanamori_models = self.hubbard_kanamori_model(methods)
-            simulation.dft.hubbard_kanamori_model = hubbard_kanamori_models if len(hubbard_kanamori_models) else None
-        elif method_name == 'GW':
-            method.method_name = 'GW'
-            gw = GW()
-            gw.type = self.repr_method.gw.type
-            simulation.gw = gw
-        elif method_name == 'DFT+GW':
-            method.method_name = 'GW'
-            gw = GW()
-            gw.type = gw_method.gw.type
-            try:
-                gw.starting_point_names = self.xc_functional_names(dft_method.dft.xc_functional)
-                gw.starting_point_type = self.xc_functional_type(gw.starting_point_names)
-            except Exception:
-                self.logger.warning('Error extracting the GW starting point names.')
-            gw.basis_set_type = self.basis_set_type()
-            gw.basis_set_name = self.basis_set_name()
-            simulation.gw = gw
-        elif method_name == 'Projection':
-            method.method_name = 'Projection'
-            projection = Projection()
-            if hasattr(self.repr_method.projection, 'wannier'):
-                projection.type = 'wannier'
-                if self.repr_method.projection.wannier.is_maximally_localized:
-                    projection.localization_type = 'maximally_localized'
-                else:
-                    projection.localization_type = 'single_shot'
-            elif hasattr(self.repr_method.projection, 'slater_koster'):
-                projection.type = 'slater_koster'
-            else:
-                projection.type = 'custom'
-            simulation.projection = projection
-        elif method_name == 'DMFT':
-            method.method_name = 'DMFT'
-            dmft = DMFT()
-            dmft.impurity_solver_type = self.repr_method.dmft.impurity_solver
-            dmft.total_filling = 0.5 * np.sum(self.repr_method.dmft.n_correlated_electrons) / np.sum(repr_method.dmft.n_correlated_orbitals)
-            dmft.inverse_temperature = self.repr_method.dmft.inverse_temperature
-            dmft.magnetic_state = self.repr_method.dmft.magnetic_state
-            # TODO update U to be U/W when linking between DFT>Projection>DMFT (@ should
-            # be extracted from the bands obtained by Projection).
-            model_hamiltonian = self.repr_method.starting_method_ref.lattice_model_hamiltonian
-            if model_hamiltonian is not None:
-                dmft.u = model_hamiltonian[0].hubbard_kanamori_model[0].u  # taking U,JH values from the first atom
-                if dmft.u.magnitude != 0.0:
-                    dmft.hunds_hubbard_ratio = model_hamiltonian[0].hubbard_kanamori_model[0].jh.magnitude / dmft.u.magnitude
-            simulation.dmft = dmft
-        elif method_name == 'CoreHole':
+            simulation = DFTMethod(
+                self.logger, entry_archive=self.entry_archive, methods=methods, repr_method=self.repr_method,
+                repr_system=self.repr_system, method=method, method_name=self.method_name,
+                settings_basis_set=settings_basis_set, functional_long_name=functional_long_name).simulation()
+        elif self.method_name in ['GW', 'BSE', 'DFT+GW', 'DFT+BSE']:  # TODO extend for 'DFT+GW+BSE'
+            simulation = ExcitedStateMethod(
+                self.logger, entry_archive=self.entry_archive, methods=methods, repr_method=self.repr_method,
+                repr_system=self.repr_system, method=method, method_def=method_def, method_name=self.method_name,
+                settings_basis_set=settings_basis_set, functional_long_name=functional_long_name,
+                xs_method=xs_method).simulation()
+        elif self.method_name == 'CoreHole':  # TODO check if this is going to be normalized to results
+            simulation = Simulation()
             method.method_name = 'CoreHole'
-        elif method_name == 'BSE':
-            method.method_name = 'BSE'
+        elif self.method_name in ['Projection']:  # TODO extend for 'DFT+Projection'
+            simulation = ProjectionMethod(
+                self.logger, repr_method=self.repr_method, method=method, method_name=self.method_name).simulation()
+        elif self.method_name in ['DMFT']:  # TODO extend for 'DFT+DMFT', 'DFT+Projection+DMFT'
+            simulation = DMFTMethod(
+                self.logger, repr_method=self.repr_method, method=method, method_name=self.method_name).simulation()
+        else:
+            simulation = Simulation()
 
         # Fill meshes
         if self.run.m_xpath('method[-1].frequency_mesh'):
@@ -326,124 +267,6 @@ class MethodNormalizer():
         method.simulation = simulation
         return method
 
-    def calc_k_line_density(self, k_lattices: List[List[float]],
-                            nks: List[int]) -> Union[float, None]:
-        '''
-        Compute the lowest k_line_density value:
-        k_line_density (for a uniformly spaced grid) is the number of k-points per reciprocal length unit
-        '''
-        # Check consistency of input
-        try:
-            if len(k_lattices) != 3 or len(nks) != 3:
-                return None
-        except (TypeError, ValueError):
-            return None
-
-        # Compute k_line_density
-        struc_type = self.material.structural_type
-        if struc_type == 'bulk':
-            return min([nk / (np.linalg.norm(k_lattice))
-                        for k_lattice, nk in zip(k_lattices, nks)])
-        else:
-            return None
-
-    def hubbard_kanamori_model(self, methods) -> List[HubbardKanamoriModel]:
-        '''Generate a list of normalized HubbardKanamoriModel for `results.method`'''
-        hubbard_kanamori_models = []
-        for sec_method in methods:
-            for param in sec_method.atom_parameters:
-                if param.hubbard_kanamori_model is not None:
-                    hubb_run = param.hubbard_kanamori_model
-                    if all([hubb_run.orbital, hubb_run.double_counting_correction]):
-                        hubb_results = HubbardKanamoriModel()
-                        hubb_results.atom_label = param.label
-                        valid = False
-                        for quant in hubb_run.m_def.quantities:
-                            quant_value = getattr(hubb_run, quant.name)
-                            # all false values, including zero are ignored
-                            if quant_value:
-                                setattr(hubb_results, quant.name, quant_value)
-                                if quant.type in MTypes.num:
-                                    valid = True
-                        # do not save if all parameters are set at 0
-                        if not valid: continue
-                        # U_effective technically only makes sense for Dudarev
-                        # but it is computed anyhow to act as a trigger for DFT+U
-                        if hubb_results.u_effective is None and hubb_results.u is not None:
-                            hubb_results.u_effective = hubb_results.u
-                            if hubb_results.j is not None:
-                                hubb_results.u_effective -= hubb_results.j
-                        hubbard_kanamori_models.append(hubb_results)
-        return hubbard_kanamori_models
-
-    def method_id_dft(self, settings_basis_set, functional_long_name: str):
-        '''Creates a method id for DFT calculations if all required data is
-        present.
-        '''
-        method_dict = RestrictedDict(
-            mandatory_keys=[
-                'program_name',
-                'functional_long_name',
-                'settings_basis_set',
-                'scf_threshold_energy_change',
-            ],
-            optional_keys=(
-                'smearing_kind',
-                'smearing_width',
-                'number_of_eigenvalues_kpoints',
-            ),
-            forbidden_values=[None]
-        )
-        method_dict['program_name'] = self.run.program.name
-
-        # Functional settings
-        method_dict['functional_long_name'] = functional_long_name
-
-        # Basis set settings
-        method_dict['settings_basis_set'] = settings_basis_set
-
-        # k-point sampling settings if present. Add number of kpoints as
-        # detected from eigenvalues. TODO: we would like to have info on the
-        # _reducible_ k-point-mesh:
-        #    - or list of reducible k-points
-        try:
-            smearing_kind = self.repr_method.electronic.smearing.kind
-            if smearing_kind is not None:
-                method_dict['smearing_kind'] = smearing_kind
-            smearing_width = self.repr_method.electronic.smearing.width
-            if smearing_width is not None:
-                smearing_width = '%.4f' % (smearing_width)
-                method_dict['smearing_width'] = smearing_width
-        except Exception:
-            pass
-
-        try:
-            scc = self.run.calculation[-1]
-            eigenvalues = scc.eigenvalues
-            kpt = eigenvalues[-1].kpoints
-        except (KeyError, IndexError):
-            pass
-        else:
-            if kpt is not None:
-                method_dict['number_of_eigenvalues_kpoints'] = str(len(kpt))
-
-        # SCF convergence settings
-        try:
-            conv_thr = self.repr_method.scf.threshold_energy_change
-            if conv_thr is not None:
-                conv_thr = '%.13f' % (conv_thr.to(ureg.rydberg).magnitude)
-                method_dict['scf_threshold_energy_change'] = conv_thr
-        except Exception:
-            pass
-
-        # If all required information is present, safe the hash
-        try:
-            method_dict.check(recursive=True)
-        except (KeyError, ValueError):
-            pass
-        else:
-            return method_dict.hash()
-
     def equation_of_state_id(self, method_id: str, formula: str):
         '''Creates an ID that can be used to group an equation of state
         calculation found within the same upload.
@@ -475,7 +298,213 @@ class MethodNormalizer():
         else:
             return eos_dict.hash()
 
-    def parameter_variation_id_dft(self, settings_basis_set, functional_long_name: str):
+    def calc_k_line_density(self, k_lattices: List[List[float]],
+                            nks: List[int]) -> Union[float, None]:
+        '''
+        Compute the lowest k_line_density value:
+        k_line_density (for a uniformly spaced grid) is the number of k-points per reciprocal length unit
+        '''
+        # Check consistency of input
+        try:
+            if len(k_lattices) != 3 or len(nks) != 3:
+                return None
+        except (TypeError, ValueError):
+            return None
+
+        # Compute k_line_density
+        struc_type = self.material.structural_type
+        if struc_type == 'bulk':
+            return min([nk / (np.linalg.norm(k_lattice))
+                        for k_lattice, nk in zip(k_lattices, nks)])
+        else:
+            return None
+
+
+class ElectronicMethod(ABC):
+    """Abstract base class for all the specific electronic structure methods (DFT, GW, BSE...).
+    """
+    def __init__(
+            self, logger,
+            entry_archive: EntryArchive = None,
+            methods: List[Method] = [None],
+            repr_method: Method = None,
+            repr_system: MSection = None,
+            method: Method = None,
+            method_def: dict = {},
+            method_name: str = config.services.unavailable_value,
+            settings_basis_set: RestrictedDict = RestrictedDict(mandatory_keys=[None], optional_keys=[None], forbidden_values=[None]),
+            functional_long_name: str = '',
+            xs_method: Method = None) -> None:
+        self._logger = logger
+        self._entry_archive = entry_archive
+        self._methods = methods
+        self._repr_method = repr_method
+        self._repr_system = repr_system
+        self._method = method
+        self._method_def = method_def
+        self._method_name = method_name
+        self._settings_basis_set = settings_basis_set
+        self._functional_long_name = functional_long_name
+        self._xs_method = xs_method
+
+    @abstractmethod
+    def simulation(self) -> Simulation:
+        pass
+
+
+class DFTMethod(ElectronicMethod):
+    """DFT Method normalized into results.simulation
+    """
+    def simulation(self) -> Simulation:
+        simulation = Simulation()
+        self._method.method_name = 'DFT'
+        dft = DFT()
+        dft.basis_set_type = self.basis_set_type()
+        dft.basis_set_name = self.basis_set_name()
+        self._method.method_id = self.method_id_dft(self._settings_basis_set, self._functional_long_name)
+        self._method.parameter_variation_id = self.parameter_variation_id_dft(self._settings_basis_set, self._functional_long_name)
+        dft.core_electron_treatment = self.core_electron_treatment()
+        if self._repr_method.electronic is not None:
+            if self._repr_method.electronic.smearing is not None:
+                dft.smearing_kind = self._repr_method.electronic.smearing.kind
+                dft.smearing_width = self._repr_method.electronic.smearing.width
+            if self._repr_method.electronic.n_spin_channels:
+                dft.spin_polarized = self._repr_method.electronic.n_spin_channels > 1
+            dft.van_der_Waals_method = self._repr_method.electronic.van_der_waals_method
+            dft.relativity_method = self._repr_method.electronic.relativity_method
+        try:
+            dft.xc_functional_names = self.xc_functional_names(self._repr_method.dft.xc_functional)
+            dft.xc_functional_type = self.xc_functional_type(dft.xc_functional_names)
+            dft.exact_exchange_mixing_factor = self.exact_exchange_mixing_factor(dft.xc_functional_names)
+        except Exception:
+            self._logger.warning('Error extracting the DFT XC functional names.')
+        if self._repr_method.scf is not None:
+            dft.scf_threshold_energy_change = self._repr_method.scf.threshold_energy_change
+        simulation.dft = dft
+        hubbard_kanamori_models = self.hubbard_kanamori_model(self._methods)
+        simulation.dft.hubbard_kanamori_model = hubbard_kanamori_models if len(hubbard_kanamori_models) else None
+        return simulation
+
+    def basis_set_type(self) -> str:
+        try:
+            name = self._repr_method.basis_set[0].type
+        except Exception:
+            name = None
+        if name:
+            key = name.replace('_', '').replace('-', '').replace(' ', '').lower()
+            name_mapping = {
+                'gaussians': 'gaussians',
+                'realspacegrid': 'real-space grid',
+                'planewaves': 'plane waves'
+            }
+            name = name_mapping.get(key, name)
+        return name
+
+    def basis_set_name(self) -> Union[str, None]:
+        try:
+            name = self._repr_method.basis_set[0].name
+        except Exception:
+            name = None
+        return name
+
+    def hubbard_kanamori_model(self, methods: List[Method]) -> List[HubbardKanamoriModel]:
+        '''Generate a list of normalized HubbardKanamoriModel for `results.method`'''
+        hubbard_kanamori_models = []
+        for sec_method in methods:
+            for param in sec_method.atom_parameters:
+                if param.hubbard_kanamori_model is not None:
+                    hubb_run = param.hubbard_kanamori_model
+                    if all([hubb_run.orbital, hubb_run.double_counting_correction]):
+                        hubb_results = HubbardKanamoriModel()
+                        hubb_results.atom_label = param.label
+                        valid = False
+                        for quant in hubb_run.m_def.quantities:
+                            quant_value = getattr(hubb_run, quant.name)
+                            # all false values, including zero are ignored
+                            if quant_value:
+                                setattr(hubb_results, quant.name, quant_value)
+                                if quant.type in MTypes.num:
+                                    valid = True
+                        # do not save if all parameters are set at 0
+                        if not valid: continue
+                        # U_effective technically only makes sense for Dudarev
+                        # but it is computed anyhow to act as a trigger for DFT+U
+                        if hubb_results.u_effective is None and hubb_results.u is not None:
+                            hubb_results.u_effective = hubb_results.u
+                            if hubb_results.j is not None:
+                                hubb_results.u_effective -= hubb_results.j
+                        hubbard_kanamori_models.append(hubb_results)
+        return hubbard_kanamori_models
+
+    def method_id_dft(self, settings_basis_set: RestrictedDict, functional_long_name: str):
+        '''Creates a method id for DFT calculations if all required data is
+        present.
+        '''
+        method_dict = RestrictedDict(
+            mandatory_keys=[
+                'program_name',
+                'functional_long_name',
+                'settings_basis_set',
+                'scf_threshold_energy_change',
+            ],
+            optional_keys=(
+                'smearing_kind',
+                'smearing_width',
+                'number_of_eigenvalues_kpoints',
+            ),
+            forbidden_values=[None]
+        )
+        method_dict['program_name'] = self._entry_archive.run[0].program.name
+
+        # Functional settings
+        method_dict['functional_long_name'] = functional_long_name
+
+        # Basis set settings
+        method_dict['settings_basis_set'] = settings_basis_set
+
+        # k-point sampling settings if present. Add number of kpoints as
+        # detected from eigenvalues. TODO: we would like to have info on the
+        # _reducible_ k-point-mesh:
+        #    - or list of reducible k-points
+        try:
+            smearing_kind = self._repr_method.electronic.smearing.kind
+            if smearing_kind is not None:
+                method_dict['smearing_kind'] = smearing_kind
+            smearing_width = self._repr_method.electronic.smearing.width
+            if smearing_width is not None:
+                smearing_width = '%.4f' % (smearing_width)
+                method_dict['smearing_width'] = smearing_width
+        except Exception:
+            pass
+
+        try:
+            scc = self._entry_archive.run[0].calculation[-1]
+            eigenvalues = scc.eigenvalues
+            kpt = eigenvalues[-1].kpoints
+        except (KeyError, IndexError):
+            pass
+        else:
+            if kpt is not None:
+                method_dict['number_of_eigenvalues_kpoints'] = str(len(kpt))
+
+        # SCF convergence settings
+        try:
+            conv_thr = self._repr_method.scf.threshold_energy_change
+            if conv_thr is not None:
+                conv_thr = '%.13f' % (conv_thr.to(ureg.rydberg).magnitude)
+                method_dict['scf_threshold_energy_change'] = conv_thr
+        except Exception:
+            pass
+
+        # If all required information is present, safe the hash
+        try:
+            method_dict.check(recursive=True)
+        except (KeyError, ValueError):
+            pass
+        else:
+            return method_dict.hash()
+
+    def parameter_variation_id_dft(self, settings_basis_set: RestrictedDict, functional_long_name: str):
         '''Creates an ID that can be used to group calculations that differ
         only by the used DFT parameters within the same upload.
         '''
@@ -496,11 +525,11 @@ class MethodNormalizer():
         )
 
         # Only calculations from the same upload are grouped
-        param_dict['upload_id'] = self.entry_archive.metadata.upload_id
+        param_dict['upload_id'] = self._entry_archive.metadata.upload_id
 
         # The same code and functional type is required
-        param_dict['program_name'] = self.run.program.name
-        param_dict['program_version'] = self.run.program.version
+        param_dict['program_name'] = self._entry_archive.run[0].program.name
+        param_dict['program_version'] = self._entry_archive.run[0].program.version
 
         # Get a string representation of the geometry. It is included as the
         # geometry should remain the same during parameter variation. By simply
@@ -508,7 +537,7 @@ class MethodNormalizer():
         # order/translation/rotation does not change.
         geom_dict: OrderedDict = OrderedDict()
         try:
-            atoms = self.repr_system.atoms
+            atoms = self._repr_system.atoms
             atom_labels = atoms.labels
             geom_dict['atom_labels'] = ', '.join(sorted(atom_labels))
             atom_positions = atoms['positions']
@@ -532,7 +561,7 @@ class MethodNormalizer():
         #   - basis set parameters
         # convergence threshold should be kept constant during convtest
         param_dict['functional_long_name'] = functional_long_name
-        conv_thr = self.repr_method.scf.threshold_energy_change if self.repr_method.scf is not None else None
+        conv_thr = self._repr_method.scf.threshold_energy_change if self._repr_method.scf is not None else None
         if conv_thr is not None:
             conv_thr = '%.13f' % (conv_thr.to(ureg.rydberg).magnitude)
         param_dict['scf_threshold_energy_change'] = conv_thr
@@ -551,31 +580,9 @@ class MethodNormalizer():
         else:
             return param_dict.hash()
 
-    def basis_set_type(self) -> str:
-        try:
-            name = self.repr_method.basis_set[0].type
-        except Exception:
-            name = None
-        if name:
-            key = name.replace('_', '').replace('-', '').replace(' ', '').lower()
-            name_mapping = {
-                'gaussians': 'gaussians',
-                'realspacegrid': 'real-space grid',
-                'planewaves': 'plane waves'
-            }
-            name = name_mapping.get(key, name)
-        return name
-
-    def basis_set_name(self) -> Union[str, None]:
-        try:
-            name = self.repr_method.basis_set[0].name
-        except Exception:
-            name = None
-        return name
-
     def core_electron_treatment(self) -> str:
         treatment = config.services.unavailable_value
-        code_name = self.run.program.name
+        code_name = self._entry_archive.run[0].program.name
         if code_name is not None:
             core_electron_treatments = {
                 'VASP': 'pseudopotential',
@@ -587,7 +594,7 @@ class MethodNormalizer():
         return treatment
 
     def xc_functional_names(self, method_xc_functional: Section) -> Union[List[str], None]:
-        if self.repr_method:
+        if self._repr_method:
             functionals = set()
             try:
                 for functional_type in ['exchange', 'correlation', 'hybrid', 'contributions']:
@@ -598,21 +605,21 @@ class MethodNormalizer():
                 return sorted(functionals)
         return None
 
-    def xc_functional_type(self, xc_functionals) -> str:
+    def xc_functional_type(self, xc_functionals: List[str]) -> str:
         if xc_functionals:
             name = xc_functionals[0]
             return xc_treatments.get(name[:3].lower(), config.services.unavailable_value)
         else:
             return config.services.unavailable_value
 
-    def exact_exchange_mixing_factor(self, xc_functional_names):
+    def exact_exchange_mixing_factor(self, xc_functional_names: List[str]):
         '''Assign the exact exachange mixing factor to `results` section when explicitly stated.
         Else, fall back on XC functional default.'''
         def scan_patterns(patterns, xc_name) -> bool:
             return any(x for x in patterns if re.search('_' + x + '$', xc_name))
 
-        if self.repr_method.dft:
-            xc_functional = self.repr_method.dft.xc_functional
+        if self._repr_method.dft:
+            xc_functional = self._repr_method.dft.xc_functional
             for hybrid in xc_functional.hybrid:
                 if hybrid.parameters:
                     if 'exact_exchange_mixing_factor' in hybrid.parameters.keys():
@@ -627,6 +634,88 @@ class MethodNormalizer():
             elif re.search('_PBE50$', xc_name): return .5
             elif re.search('_M06_2X$', xc_name): return .54
             elif scan_patterns(['M05_2X', 'PBE_2X'], xc_name): return .56
+
+
+class ExcitedStateMethod(ElectronicMethod):
+    """ExcitedState (GW, BSE, or DFT+GW, DFT+BSE) Method normalized into results.simulation
+    """
+    def simulation(self) -> Simulation:
+        xs: Union[None, GW, BSE] = None
+        simulation = Simulation()
+        if 'GW' in self._method_name:
+            self._method.method_name = 'GW'
+            xs = GW()
+        elif 'BSE' in self._method_name:
+            self._method.method_name = 'BSE'
+            xs = BSE()
+        if 'DFT' in self._method_name:
+            xs_type = getattr(self._xs_method, f'{self._method.method_name.lower()}').type
+            if self._method.method_name == 'BSE':
+                xs_solver = getattr(self._xs_method, f'{self._method.method_name.lower()}').solver
+            dft = DFTMethod(
+                self._logger, entry_archive=self._entry_archive, methods=self._methods,
+                repr_method=self._repr_method, repr_system=self._repr_system, method=self._method,
+                method_name=self._method_name, settings_basis_set=self._settings_basis_set,
+                functional_long_name=self._functional_long_name)
+            try:
+                xs.starting_point_names = dft.xc_functional_names(self._repr_method.dft.xc_functional)
+                xs.starting_point_type = dft.xc_functional_type(xs.starting_point_names)
+            except Exception:
+                self._logger.warning('Error extracting the DFT XC functional names.')
+            xs.basis_set_type = dft.basis_set_type()
+            xs.basis_set_name = dft.basis_set_name()
+        else:
+            xs_type = getattr(self._repr_method, f'{self._method.method_name.lower()}').type
+            if self._method.method_name == 'BSE':
+                xs_solver = getattr(self._repr_method, f'{self._method.method_name.lower()}').solver
+        xs.type = xs_type
+        if self._method.method_name == 'BSE':
+            xs.solver = xs_solver
+        simulation.m_add_sub_section(self._method_def[self._method.method_name], xs)
+        return simulation
+
+
+class ProjectionMethod(ElectronicMethod):
+    """Projection (Wannier, SlaterKoster) Method normalized into results.simulation
+    """
+    def simulation(self) -> Simulation:
+        simulation = Simulation()
+        self._method.method_name = 'Projection'
+        projection = Projection()
+        if self._repr_method.projection.wannier:
+            projection.type = 'wannier'
+            if self._repr_method.projection.wannier.is_maximally_localized:
+                projection.localization_type = 'maximally_localized'
+            else:
+                projection.localization_type = 'single_shot'
+        elif self._repr_method.projection.slater_koster:
+            projection.type = 'slater_koster'
+        else:
+            projection.type = 'custom'
+        simulation.projection = projection
+        return simulation
+
+
+class DMFTMethod(ElectronicMethod):
+    """DMFT Method normalized into results.simulation
+    """
+    def simulation(self) -> Simulation:
+        simulation = Simulation()
+        self._method.method_name = 'DMFT'
+        dmft = DMFT()
+        dmft.impurity_solver_type = self._repr_method.dmft.impurity_solver
+        dmft.total_filling = 0.5 * np.sum(self._repr_method.dmft.n_correlated_electrons) / np.sum(self._repr_method.dmft.n_correlated_orbitals)
+        dmft.inverse_temperature = self._repr_method.dmft.inverse_temperature
+        dmft.magnetic_state = self._repr_method.dmft.magnetic_state
+        # TODO update U to be U/W when linking between DFT>Projection>DMFT (@ should
+        # be extracted from the bands obtained by Projection).
+        model_hamiltonian = self._repr_method.starting_method_ref.lattice_model_hamiltonian
+        if model_hamiltonian is not None:
+            dmft.u = model_hamiltonian[0].hubbard_kanamori_model[0].u  # taking U,JH values from the first atom
+            if dmft.u.magnitude != 0.0:
+                dmft.hunds_hubbard_ratio = model_hamiltonian[0].hubbard_kanamori_model[0].jh.magnitude / dmft.u.magnitude
+        simulation.dmft = dmft
+        return simulation
 
 
 class BasisSet(ABC):

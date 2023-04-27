@@ -130,7 +130,7 @@ def test_method_projection(projection):
 
 
 def test_method_gw(gw):
-    """Methodology from a GW calculation."""
+    """Methodology from a SinglePoint GW calculation."""
     method = gw.results.method
     assert method.method_name == "GW"
     assert method.simulation.program_name == "VASP"
@@ -138,8 +138,31 @@ def test_method_gw(gw):
     assert method.simulation.gw.type == "G0W0"
 
 
+def test_method_gw_workflow(gw_workflow):
+    """Methodology of a GW workflow entry."""
+    method = gw_workflow.results.method
+    assert method.method_name == "GW"
+    assert method.workflow_name == "GW"
+    assert method.simulation.program_name == "VASP"
+    assert method.simulation.program_version == "4.6.35"
+    assert method.simulation.gw.type == "G0W0"
+    assert method.simulation.gw.starting_point_type == "GGA"
+    assert method.simulation.gw.starting_point_names == ["GGA_X_PBE"]
+    assert method.simulation.gw.basis_set_type == "plane waves"
+
+
+def test_method_bse(bse):
+    """Methodology from a SinglePoint GW calculation."""
+    method = bse.results.method
+    assert method.method_name == "BSE"
+    assert method.simulation.program_name == "VASP"
+    assert method.simulation.program_version == "4.6.35"
+    assert method.simulation.bse.type == "Singlet"
+    assert method.simulation.bse.solver == "Lanczos-Haydock"
+
+
 def test_method_dmft(dmft):
-    """Methodology from a DMFT calculation"""
+    """Methodology from a SinglePoint DMFT calculation"""
     method = dmft.results.method
     assert method.method_name == "DMFT"
     assert method.simulation.program_name == "w2dynamics"

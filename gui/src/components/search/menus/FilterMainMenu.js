@@ -31,6 +31,7 @@ import FilterSubMenuStructure from './FilterSubMenuStructure'
 import FilterSubMenuMethod from './FilterSubMenuMethod'
 import FilterSubMenuDFT from './FilterSubMenuDFT'
 import FilterSubMenuGW from './FilterSubMenuGW'
+import FilterSubMenuBSE from './FilterSubMenuBSE'
 import FilterSubMenuProjection from './FilterSubMenuProjection'
 import FilterSubMenuDMFT from './FilterSubMenuDMFT'
 import FilterSubMenuEELS from './FilterSubMenuEELS'
@@ -55,6 +56,7 @@ export const menuMap = {
   method: FilterSubMenuMethod,
   dft: FilterSubMenuDFT,
   gw: FilterSubMenuGW,
+  bse: FilterSubMenuBSE,
   projection: FilterSubMenuProjection,
   dmft: FilterSubMenuDMFT,
   eels: FilterSubMenuEELS,
