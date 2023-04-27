@@ -159,7 +159,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     }
     computingForUrl.current = url
     const rootPath = url.endsWith('/') ? url.substring(0, url.length - 1) : url
-    const path = pathname?.replace(/\/(\d)/g, ":$1")
+    const path = pathname?.replace(/\/(\d*)(\/|$)/g, ":$1/").replace(/\/$/, "")
     const segments = ['root'].concat(path.substring(url.length).split('/').filter(segment => segment))
     const oldLanes = lanes.current
     const newLanes = []
