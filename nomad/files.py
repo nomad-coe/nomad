@@ -44,7 +44,7 @@ original mainfile, and vice versa.
 '''
 
 from abc import ABCMeta
-from typing import IO, Set, Dict, Iterable, Iterator, List, Tuple, Any, NamedTuple
+from typing import IO, Set, Dict, Iterable, Iterator, List, Tuple, Any, NamedTuple, Callable
 from functools import lru_cache
 from pydantic import BaseModel
 from datetime import datetime
@@ -531,6 +531,37 @@ def create_zipstream(
     return iter(zip_stream)
 
 
+def _versioned_archive_file_object(
+    target_dir: DirectoryObject, file_name: Callable[[str], str], fallback: bool
+) -> PathObject:
+    '''
+    Creates a file object for an archive file depending on the directory it is or
+    will be created in, the recipe to construct the name from a version suffix, and
+    a bool that denotes if alternative version suffixes should be considered.
+    '''
+    version_suffixes = config.fs.archive_version_suffix
+
+    if not isinstance(version_suffixes, list):
+        version_suffixes = [version_suffixes]
+
+    if len(version_suffixes) <= 1:
+        version_suffix = version_suffixes[0]
+        if not version_suffix or version_suffix == '':
+            return target_dir.join_file(file_name(''))
+        else:
+            return target_dir.join_file(file_name(f'-{version_suffix}'))
+
+    if not fallback:
+        return target_dir.join_file(file_name(f'-{version_suffixes[0]}'))
+
+    for version_suffix in version_suffixes:
+        current_file = target_dir.join_file(file_name(f'-{version_suffix}'))
+        if os.path.exists(current_file.os_path):
+            return current_file
+
+    return target_dir.join_file(file_name(f'-{version_suffixes[0]}'))
+
+
 class UploadFiles(DirectoryObject, metaclass=ABCMeta):
     ''' Abstract base class for upload files. '''
     def __init__(self, upload_id: str, create: bool = False):
@@ -794,7 +825,7 @@ class StagingUploadFiles(UploadFiles):
 
     def write_archive(self, entry_id: str, data: Any) -> int:
         ''' Writes the data as archive file and returns the archive file size. '''
-        archive_file_object = self.archive_file_object(entry_id)
+        archive_file_object = self._archive_file_object(entry_id)
         try:
             write_archive(archive_file_object.os_path, 1, data=[(entry_id, data)])
         except Exception as e:
@@ -804,18 +835,20 @@ class StagingUploadFiles(UploadFiles):
 
             raise e
 
-        return self.archive_file_object(entry_id).size
+        return archive_file_object.size
 
     def read_archive(self, entry_id: str, use_blocked_toc: bool = True) -> ArchiveReader:
         try:
-            return read_archive(self.archive_file_object(entry_id).os_path, use_blocked_toc=use_blocked_toc)
+            return read_archive(self._archive_file_object(entry_id, True).os_path, use_blocked_toc=use_blocked_toc)
 
         except FileNotFoundError:
             raise KeyError(entry_id)
 
-    def archive_file_object(self, entry_id: str) -> PathObject:
-        version_suffix = '-' + config.fs.archive_version_suffix if config.fs.archive_version_suffix else ''
-        return self._archive_dir.join_file(f'{entry_id}{version_suffix}.msg')
+    def _archive_file_object(self, entry_id: str, fallback: bool = False) -> PathObject:
+        def versioned_file_name(version_suffix):
+            return f'{entry_id}{version_suffix}.msg'
+
+        return _versioned_archive_file_object(self._archive_dir, versioned_file_name, fallback=fallback)
 
     def add_rawfiles(
             self, path: str, target_dir: str = '', cleanup_source_file_and_dir: bool = False,
@@ -1072,7 +1105,7 @@ class StagingUploadFiles(UploadFiles):
 
         def create_iterator():
             for entry in entries:
-                archive_file = self.archive_file_object(entry.entry_id)
+                archive_file = self._archive_file_object(entry.entry_id)
                 if archive_file.exists():
                     data = read_archive(archive_file.os_path)[entry.entry_id].to_dict()
                     yield (entry.entry_id, data)
@@ -1285,25 +1318,18 @@ class PublicUploadFiles(UploadFiles):
         return self._missing_raw_files
 
     @staticmethod
-    def _create_msg_file_object(target_dir: DirectoryObject, access: str) -> PathObject:
-        version_suffix = '-' + config.fs.archive_version_suffix if config.fs.archive_version_suffix else ''
-        return target_dir.join_file(f'archive-{access}{version_suffix}.msg.msg')
+    def _create_msg_file_object(target_dir: DirectoryObject, access: str, fallback: bool = False) -> PathObject:
+        def versioned_file_name(version_suffix):
+            return f'archive-{access}{version_suffix}.msg.msg'
 
-    def msg_file_object(self) -> PathObject:
-        '''
-        Gets the msg file, either public or restricted, depending on which one is used.
-        If both public and restricted files exist, or if none of them exist, a KeyError will
-        be thrown.
-        '''
-        self.access  # Invoke to initialize
-        return self._archive_msg_file_object
+        return _versioned_archive_file_object(target_dir, versioned_file_name, fallback)
 
     def _open_msg_file(self, use_blocked_toc: bool = True) -> ArchiveReader:
         if self._archive_msg_file is not None:
             if not self._archive_msg_file.is_closed():
                 return self._archive_msg_file
 
-        msg_file_object = self.msg_file_object()
+        msg_file_object = PublicUploadFiles._create_msg_file_object(self, self.access, fallback=True)
 
         if not msg_file_object.exists():
             raise FileNotFoundError()
@@ -1500,7 +1526,7 @@ class PublicUploadFiles(UploadFiles):
             return  # Nothing to do
         self.close()
         new_access = 'restricted' if with_embargo else 'public'
-        msg_file_object = self.msg_file_object()
+        msg_file_object = PublicUploadFiles._create_msg_file_object(self, self.access)
         msg_file_object_new = PublicUploadFiles._create_msg_file_object(self, new_access)
         if msg_file_object.exists():
             if msg_file_object_new.exists():
