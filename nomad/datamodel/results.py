@@ -119,15 +119,14 @@ crystal_systems = [
 ]
 orbitals = ['s', 'p', 'd', 'f']
 orbitals += ['{}{}'.format(n, orbital) for n in range(1, 10) for orbital in orbitals]
-xc_treatments = {
-    'gga': 'GGA',
-    'hf_': 'HF',
-    'oep': 'OEP',
-    'hyb': 'hybrid',
-    'mgg': 'meta-GGA',
-    'vdw': 'vdW',
+xc_treatments = {  # Note: respect the ordering (Python3.7+), is used in DFTMethod.xc_functional_type()
     'lda': 'LDA',
+    'gga': 'GGA',
+    'mgg': 'meta-GGA',
+    'hyb_mgg': 'hyper-GGA',
+    'hyb': 'hybrid',
 }
+xc_treatments_extended = {**xc_treatments, 'hf_': 'HF'}
 basis_set_types = [
     '(L)APW+lo',
     'gaussians',
@@ -1428,11 +1427,21 @@ class DFT(MSection):
 
     smearing_width = Smearing.width.m_copy()
     smearing_width.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-    xc_functional_type = Quantity(
+
+    jacobs_ladder = Quantity(
         type=MEnum(list(xc_treatments.values()) + [unavailable, not_processed]),
         default=not_processed,
-        description='The libXC based xc functional classification used in the simulation.',
-        a_elasticsearch=Elasticsearch(material_entry_type, default_aggregation_size=100)
+        description='''Functional classification in line with Jacob\'s Ladder.
+        For more information, see https://doi.org/10.1063/1.1390175 (original paper);
+        https://doi.org/10.1103/PhysRevLett.91.146401 (meta-GGA);
+        and https://doi.org/10.1063/1.1904565 (hyper-GGA).''',
+        a_elasticsearch=Elasticsearch(material_entry_type, default_aggregation_size=100),
+    )
+    xc_functional_type = Quantity(
+        type=jacobs_ladder.type,
+        default=jacobs_ladder.default,
+        description=jacobs_ladder.description,
+        a_elasticsearch=Elasticsearch(material_entry_type, default_aggregation_size=100),
     )
     xc_functional_names = Quantity(
         type=str,
@@ -1510,7 +1519,7 @@ class ExcitedStateMethodology(MSection):
         ]
     )
     starting_point_type = Quantity(
-        type=MEnum(list(xc_treatments.values()) + [unavailable, not_processed]),
+        type=MEnum(list(xc_treatments_extended.values()) + [unavailable, not_processed]),
         description='The libXC based xc functional classification used in the starting point DFT simulation.',
         a_elasticsearch=Elasticsearch(material_entry_type)
     )

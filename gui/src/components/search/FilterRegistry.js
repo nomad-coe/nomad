@@ -353,15 +353,17 @@ registerFilter('results.method.simulation.program_name', idMethod, {...termQuant
 registerFilter('results.method.simulation.program_version', idMethod, termQuantity)
 registerFilter('results.method.simulation.dft.basis_set_type', idDFT, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.dft.core_electron_treatment', idDFT, termQuantity)
+registerFilter('results.method.simulation.dft.jacobs_ladder', idDFT, {...termQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {
   ...termQuantity,
   scale: '1/2',
   label: 'Jacob\'s ladder',
   options: {
     'LDA': {label: 'LDA'},
-    GGA: {label: 'GGA'},
+    'GGA': {label: 'GGA'},
     'meta-GGA': {label: 'Meta-GGA'},
-    hybrid: {label: 'Hybrids'}
+    'hyper-GGA': {label: 'Hyper-GGA'},
+    'hybrid': {label: 'Hybrid'}
   }
 })
 registerFilter('results.method.simulation.dft.xc_functional_names', idDFT, {...termQuantityNonExclusive, scale: '1/2', label: 'XC Functional Names'})
@@ -374,9 +376,10 @@ registerFilter('results.method.simulation.gw.starting_point_type', idGW, {
   scale: '1/2',
   options: {
     'LDA': {label: 'LDA'},
-    GGA: {label: 'GGA'},
+    'GGA': {label: 'GGA'},
     'meta-GGA': {label: 'Meta-GGA'},
-    hybrid: {label: 'Hybrids'},
+    'hyper-GGA': {label: 'Hyper-GGA'},
+    'hybrid': {label: 'Hybrid'},
     'HF': {label: 'HF'}
   }
 })
@@ -388,9 +391,10 @@ registerFilter('results.method.simulation.bse.starting_point_type', idBSE, {
   scale: '1/2',
   options: {
     'LDA': {label: 'LDA'},
-    GGA: {label: 'GGA'},
+    'GGA': {label: 'GGA'},
     'meta-GGA': {label: 'Meta-GGA'},
-    hybrid: {label: 'Hybrids'},
+    'hyper-GGA': {label: 'Hyper-GGA'},
+    'hybrid': {label: 'Hybrid'},
     'HF': {label: 'HF'}
   }
 })

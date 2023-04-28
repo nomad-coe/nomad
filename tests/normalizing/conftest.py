@@ -475,7 +475,7 @@ def dft_method_referenced() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def dft_exact_exchange() -> EntryArchive:
-    ''''''
+    '''Add exact exchange explicitely to a PBE calculation.'''
     template = set_dft_values(['GGA_C_PBE', 'GGA_X_PBE'])
     template.run[0].method[0].dft.xc_functional.hybrid.append(Functional())
     template.run[0].method[0].dft.xc_functional.hybrid[0].parameters = {'exact_exchange_mixing_factor': .25}
@@ -484,57 +484,73 @@ def dft_exact_exchange() -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
+def dft_empty() -> EntryArchive:
+    template = set_dft_values([])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_wrong() -> EntryArchive:
+    template = set_dft_values(['FOO_X_FIGHTERS', 'BAR_C_EXAM'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_pw() -> EntryArchive:
+    template = set_dft_values(['LDA_X', 'LDA_C_PW'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_m06() -> EntryArchive:
+    template = set_dft_values(['MGGA_X_M06', 'MGGA_C_M06'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
 def dft_b3lyp() -> EntryArchive:
-    ''''''
     template = set_dft_values(['HYB_GGA_XC_B3LYP'])
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft_pbeh() -> EntryArchive:
-    ''''''
     template = set_dft_values(['HYB_GGA_XC_PBEH'])
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft_m05() -> EntryArchive:
-    ''''''
     template = set_dft_values(['MGGA_C_M05', 'HYB_MGGA_X_M05'])
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft_pbe0_13() -> EntryArchive:
-    ''''''
     template = set_dft_values(['HYB_GGA_XC_PBE0_13'])
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft_pbe38() -> EntryArchive:
-    ''''''
     template = set_dft_values(['HYB_GGA_XC_PBE38'])
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft_pbe50() -> EntryArchive:
-    ''''''
     template = set_dft_values(['HYB_GGA_XC_PBE50'])
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft_m06_2x() -> EntryArchive:
-    ''''''
     template = set_dft_values(['HYB_MGGA_X_M06_2X'])
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft_m05_2x() -> EntryArchive:
-    ''''''
     template = set_dft_values(['MGGA_C_M05_2X', 'HYB_MGGA_X_M05_2X'])
     return run_normalize(template)
 
