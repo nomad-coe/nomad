@@ -207,5 +207,5 @@ export function useTools() {
   if (!ui?.north?.enabled) {
     return {}
   }
-  return _tools.default
+  return _tools
 }
