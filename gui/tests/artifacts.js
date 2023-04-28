@@ -2170,19 +2170,34 @@ window.nomadArtifacts = {
       "shape": [],
       "aggregatable": false
     },
-    "results.method.simulation.dft.xc_functional_type": {
-      "name": "xc_functional_type",
-      "description": "The libXC based xc functional classification used in the simulation.",
+    "results.method.simulation.dft.jacobs_ladder": {
+      "name": "jacobs_ladder",
+      "description": "Functional classification in line with Jacob's Ladder.\nFor more information, see https://doi.org/10.1063/1.1390175 (original paper);\nhttps://doi.org/10.1103/PhysRevLett.91.146401 (meta-GGA);\nand https://doi.org/10.1063/1.1904565 (hyper-GGA).",
       "type": {
         "type_kind": "Enum",
         "type_data": [
-          "GGA",
-          "HF",
-          "OEP",
-          "hybrid",
-          "meta-GGA",
-          "vdW",
           "LDA",
+          "GGA",
+          "meta-GGA",
+          "hyper-GGA",
+          "hybrid",
+          "unavailable",
+          "not processed"
+        ]
+      },
+      "aggregatable": true
+    },
+    "results.method.simulation.dft.xc_functional_type": {
+      "name": "xc_functional_type",
+      "description": "Functional classification in line with Jacob's Ladder.\nFor more information, see https://doi.org/10.1063/1.1390175 (original paper);\nhttps://doi.org/10.1103/PhysRevLett.91.146401 (meta-GGA);\nand https://doi.org/10.1063/1.1904565 (hyper-GGA).",
+      "type": {
+        "type_kind": "Enum",
+        "type_data": [
+          "LDA",
+          "GGA",
+          "meta-GGA",
+          "hyper-GGA",
+          "hybrid",
           "unavailable",
           "not processed"
         ]
@@ -2327,13 +2342,12 @@ window.nomadArtifacts = {
       "type": {
         "type_kind": "Enum",
         "type_data": [
-          "GGA",
-          "HF",
-          "OEP",
-          "hybrid",
-          "meta-GGA",
-          "vdW",
           "LDA",
+          "GGA",
+          "meta-GGA",
+          "hyper-GGA",
+          "hybrid",
+          "HF",
           "unavailable",
           "not processed"
         ]
@@ -2405,13 +2419,12 @@ window.nomadArtifacts = {
       "type": {
         "type_kind": "Enum",
         "type_data": [
-          "GGA",
-          "HF",
-          "OEP",
-          "hybrid",
-          "meta-GGA",
-          "vdW",
           "LDA",
+          "GGA",
+          "meta-GGA",
+          "hyper-GGA",
+          "hybrid",
+          "HF",
           "unavailable",
           "not processed"
         ]
@@ -14355,21 +14368,19 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.method.simulation.dft.xc_functional_type"
+                    "results.method.simulation.dft.jacobs_ladder"
                   ]
                 },
-                "name": "xc_functional_type",
-                "description": "The libXC based xc functional classification used in the simulation.",
+                "name": "jacobs_ladder",
+                "description": "Functional classification in line with Jacob's Ladder.\nFor more information, see https://doi.org/10.1063/1.1390175 (original paper);\nhttps://doi.org/10.1103/PhysRevLett.91.146401 (meta-GGA);\nand https://doi.org/10.1063/1.1904565 (hyper-GGA).",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
-                    "GGA",
-                    "HF",
-                    "OEP",
-                    "hybrid",
-                    "meta-GGA",
-                    "vdW",
                     "LDA",
+                    "GGA",
+                    "meta-GGA",
+                    "hyper-GGA",
+                    "hybrid",
                     "unavailable",
                     "not processed"
                   ]
@@ -14379,6 +14390,31 @@ window.nomadArtifacts = {
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 10,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.method.simulation.dft.xc_functional_type"
+                  ]
+                },
+                "name": "xc_functional_type",
+                "description": "Functional classification in line with Jacob's Ladder.\nFor more information, see https://doi.org/10.1063/1.1390175 (original paper);\nhttps://doi.org/10.1103/PhysRevLett.91.146401 (meta-GGA);\nand https://doi.org/10.1063/1.1904565 (hyper-GGA).",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "LDA",
+                    "GGA",
+                    "meta-GGA",
+                    "hyper-GGA",
+                    "hybrid",
+                    "unavailable",
+                    "not processed"
+                  ]
+                },
+                "default": "not processed"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 11,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -14399,7 +14435,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 11,
+                "m_parent_index": 12,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -14563,13 +14599,12 @@ window.nomadArtifacts = {
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
-                    "GGA",
-                    "HF",
-                    "OEP",
-                    "hybrid",
-                    "meta-GGA",
-                    "vdW",
                     "LDA",
+                    "GGA",
+                    "meta-GGA",
+                    "hyper-GGA",
+                    "hybrid",
+                    "HF",
                     "unavailable",
                     "not processed"
                   ]

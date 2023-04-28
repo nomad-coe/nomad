@@ -32,7 +32,7 @@ from nomad import config
 from nomad.datamodel.metainfo.simulation.method import KMesh
 from nomad.datamodel.results import (
     Method, Electronic, Simulation, HubbardKanamoriModel, DFT, Projection, GW, BSE, DMFT,
-    Precision, xc_treatments, Material)
+    Precision, Material, xc_treatments, xc_treatments_extended)
 
 
 class MethodNormalizer():
@@ -374,7 +374,8 @@ class DFTMethod(ElectronicMethod):
             dft.relativity_method = self._repr_method.electronic.relativity_method
         try:
             dft.xc_functional_names = self.xc_functional_names(self._repr_method.dft.xc_functional)
-            dft.xc_functional_type = self.xc_functional_type(dft.xc_functional_names)
+            dft.jacobs_ladder = self.xc_functional_type(dft.xc_functional_names)
+            dft.xc_functional_type = dft.jacobs_ladder
             dft.exact_exchange_mixing_factor = self.exact_exchange_mixing_factor(dft.xc_functional_names)
         except Exception:
             self._logger.warning('Error extracting the DFT XC functional names.')
@@ -605,12 +606,31 @@ class DFTMethod(ElectronicMethod):
                 return sorted(functionals)
         return None
 
-    def xc_functional_type(self, xc_functionals: List[str]) -> str:
-        if xc_functionals:
-            name = xc_functionals[0]
-            return xc_treatments.get(name[:3].lower(), config.services.unavailable_value)
-        else:
+    def xc_functional_type(self, xc_functionals: Union[list[str], None],
+                           abbrev_mapping: dict[str, str] = xc_treatments) -> str:
+        '''Assign the rung on Jacob\'s Ladder based on a set of libxc names.
+        The exact name mapping (libxc -> NOMAD) is set in `abbrev_mapping`.'''
+        # sanity check
+        if not xc_functionals:
             return config.services.unavailable_value
+        # local variables
+        rung_order = {x: i for i, x in enumerate(abbrev_mapping.keys())}
+        re_abbrev = re.compile(r'((HYB_)?[A-Z]{3})')
+        # extraction rungs
+        abbrevs = []
+        for functional in xc_functionals:
+            try:
+                abbrev = re_abbrev.match(functional).group(1)
+                abbrev = abbrev.lower() if abbrev == 'HYB_MGG' else abbrev[:3].lower()
+                abbrevs.append(abbrev)
+            except AttributeError:
+                pass
+        # return highest rung
+        try:
+            highest_rung_abbrev = max(abbrevs, key=lambda x: rung_order[x])
+        except KeyError:
+            return config.services.unavailable_value
+        return abbrev_mapping[highest_rung_abbrev]
 
     def exact_exchange_mixing_factor(self, xc_functional_names: List[str]):
         '''Assign the exact exachange mixing factor to `results` section when explicitly stated.
@@ -659,7 +679,8 @@ class ExcitedStateMethod(ElectronicMethod):
                 functional_long_name=self._functional_long_name)
             try:
                 xs.starting_point_names = dft.xc_functional_names(self._repr_method.dft.xc_functional)
-                xs.starting_point_type = dft.xc_functional_type(xs.starting_point_names)
+                xs.starting_point_type = dft.xc_functional_type(xs.starting_point_names,
+                                                                abbrev_mapping=xc_treatments_extended)
             except Exception:
                 self._logger.warning('Error extracting the DFT XC functional names.')
             xs.basis_set_type = dft.basis_set_type()

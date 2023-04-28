@@ -87,12 +87,30 @@ def test_method_referenced(dft_method_referenced):
     ('dft_pbe38', 3 / 8),
     ('dft_pbe50', .5),
     ('dft_m06_2x', .54),
-    ('dft_m05_2x', .56)
+    ('dft_m05_2x', .56),
 ])
 def test_exact_exchange_mixing_factor(entry, expected, request):
     """Exact exchange mixing factor in hybrid functionals"""
     entry = request.getfixturevalue(entry)
     assert entry.results.method.simulation.dft.exact_exchange_mixing_factor == expected
+
+
+@pytest.mark.parametrize('entry, expected', [
+    pytest.param('dft_empty', 'unavailable',
+                 id='DFT with no XC functional specification'),
+    pytest.param('dft_wrong', 'unavailable',
+                 id='DFT with non-sensical XC functional specification'),
+    pytest.param('dft_pw', 'LDA', id='PW functional'),
+    pytest.param('dft', 'GGA', id='PBE functional'),
+    pytest.param('dft_m06', 'meta-GGA', id='M06 functional'),
+    pytest.param('dft_m05', 'hyper-GGA', id='M05 functional'),
+    pytest.param('dft_b3lyp', 'hybrid', id='B3LYP functional'),
+])
+def test_jacobs_ladder_value(entry, expected, request):
+    """Test assignment of the rung on Jacob's ladder."""
+    entry = request.getfixturevalue(entry)
+    assert entry.results.method.simulation.dft.jacobs_ladder == expected
+    assert entry.results.method.simulation.dft.xc_functional_type == expected
 
 
 def test_method_dft_plus_u(dft_plus_u):
