@@ -15,15 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-from typing import Tuple, List
+from typing import Tuple
 import math
 import pytest
 import logging
 from collections import namedtuple
-from smtpd import SMTPServer
-from threading import Lock, Thread
-import asyncore
 import time
 from datetime import datetime
 import shutil
@@ -33,6 +29,8 @@ from typing import List
 import json
 import logging
 import warnings
+
+from aiosmtpd.controller import Controller
 from fastapi.testclient import TestClient
 
 from nomad import config, infrastructure, processing, utils, datamodel, bundles
@@ -467,94 +465,76 @@ def with_warn(caplog):
     assert count > 0
 
 
-'''
-Fixture for mocked SMTP server for testing.
-Based on https://gist.github.com/akheron/cf3863cdc424f08929e4cb7dc365ef23.
-'''
-
 RecordedMessage = namedtuple(
     'RecordedMessage',
     'peer envelope_from envelope_recipients data',
 )
 
 
-class ThreadSafeList:
-    def __init__(self, *args, **kwds):
-        self._items = []
-        self._lock = Lock()
+class Handler:
+    def __init__(self):
+        self.messages = []
 
-    def clear(self):
-        with self._lock:
-            self._items = []
+    async def handle_exception(self, exc):
+        return '250 Dummy'
 
-    def add(self, item):
-        with self._lock:
-            self._items.append(item)
-
-    def copy(self):
-        with self._lock:
-            return self._items[:]
+    async def handle_DATA(self, server, session, envelope):
+        peer = session.peer
+        mailfrom = envelope.mail_from
+        rcpttos = envelope.rcpt_tos
+        data = envelope.content
+        msg = RecordedMessage(peer, mailfrom, rcpttos, data)
+        self.messages.append(msg)
 
 
-class SMTPServerThread(Thread):
-    def __init__(self, messages):
-        super().__init__()
-        self.messages = messages
+class SMTPServer:
+    def __init__(self):
         self.host_port = None
         self.smtp = None
+        self.handler = None
 
     def run(self):
-        _messages = self.messages
-
-        class _SMTPServer(SMTPServer):
-            def process_message(self, peer, mailfrom, rcpttos, data, **kwargs):
-                msg = RecordedMessage(peer, mailfrom, rcpttos, data)
-                _messages.add(msg)
-
-        self.smtp = _SMTPServer(('127.0.0.1', config.mail.port), None)
-        self.host_port = self.smtp.socket.getsockname()
-        try:
-            asyncore.loop(1)
-        except Exception:
-            pass
+        self.handler = Handler()
+        self.smtp = Controller(self.handler, hostname='127.0.0.1', port=config.mail.port)
+        self.smtp.start()
+        self.host_port = self.smtp.hostname, self.smtp.port
 
     def close(self):
         if self.smtp is not None:
-            self.smtp.close()
+            self.smtp.stop()
 
 
 class SMTPServerFixture:
     def __init__(self):
-        self._messages = ThreadSafeList()
-        self._thread = SMTPServerThread(self._messages)
-        self._thread.start()
+        self.server = SMTPServer()
+        self.server.run()
+        _ = self.host_port
 
     @property
     def host_port(self):
         '''SMTP server's listening address as a (host, port) tuple'''
-        while self._thread.host_port is None:
+        while self.server.host_port is None:
             time.sleep(0.1)
-        return self._thread.host_port
+        return self.server.host_port
 
     @property
     def host(self):
-        return self.host_port[0]
+        return self.server.host_port[0]
 
     @property
     def port(self):
-        return self.host_port[1]
+        return self.server.host_port[1]
 
     @property
     def messages(self):
         '''A list of RecordedMessage objects'''
-        return self._messages.copy()
+        return self.server.handler.messages[:]
 
     def clear(self):
-        self._messages.clear()
+        self.server.handler.messages = []
 
     def close(self):
-        self._thread.close()
-        self._thread.join(1)
+        self.server.close()
 
 
 @pytest.fixture(scope='session')
