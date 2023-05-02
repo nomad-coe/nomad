@@ -18,6 +18,8 @@
 
 from typing import Dict, List, Optional
 from collections import defaultdict
+import pathlib
+import json
 
 from ase import Atoms
 from ase.data import chemical_symbols
@@ -25,6 +27,8 @@ import numpy as np
 from matid.clustering import Clusterer, Cluster, Classification  # pylint: disable=import-error
 from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer  # pylint: disable=import-error
 
+from nomad import utils
+from nomad import config
 from nomad import atomutils
 from nomad.atomutils import Formula
 from nomad.datamodel.results import Symmetry, Material, System, Relation, Prototype
@@ -39,6 +43,8 @@ from nomad.normalizing.common import (
 )
 
 SYMBOLS = np.array(chemical_symbols)
+with open(pathlib.Path(__file__).parent / 'data/top_50k_material_ids.json', "r") as fin:
+    TOP_50K_MATERIAL_IDS = json.load(fin)
 
 
 def get_topology_id(index: int) -> str:
@@ -143,7 +149,8 @@ class TopologyNormalizer():
         topology_calc = self.topology_calculation(material)
         if topology_calc:
             return topology_calc
-        topology_matid = self.topology_matid(material)
+        with utils.timer(self.logger, 'calculating topology with matid'):
+            topology_matid = self.topology_matid(material)
         if topology_matid:
             return topology_matid
 
@@ -225,14 +232,14 @@ class TopologyNormalizer():
         return list(topology.values())
 
     def topology_matid(self, material: Material) -> Optional[List[System]]:
-        # Topology is currently created only for systems that are classified as 2D
-        # or surface. TODO: Also other entries should get a topology: all of
-        # the symmetry analysis and additional system partitioning through MatID
-        # should be stored in the topology.
         '''
         Returns a list of the identified systems with topological relations and
-        classification of subsystems
+        classification of subsystems.
         '''
+        # TODO: Currently we only try to analyze 2D, surface and unavailable.
+        # This makes sure that e.g. most bulk DFT calculations are untouched.
+        # Later we should process them similarly once we know what kind of
+        # subsystems they get and we fully replace results.material with a list.
         if material.structural_type not in {'2D', 'surface', 'unavailable'}:
             return None
         try:
@@ -240,15 +247,13 @@ class TopologyNormalizer():
             atoms = ase_atoms_from_nomad_atoms(nomad_atoms)
         except Exception:
             return None
-        # TODO: MatID does not currently support non-periodic structures or
-        # structures with zero-sized cell
+        # TODO: Ignore systems with zero-sized cell
         cell = atoms.get_cell()
-        if not any(atoms.pbc) or cell is None or cell.volume == 0:
+        if cell.volume == 0:
             return None
-        # TODO: The matid processing is currently completely skipped. Should be
-        # enabled after more testing.
+        # In order to limit the processing time, a maximum system size is checked.
         n_atoms = len(atoms)
-        if n_atoms > 0:
+        if n_atoms > config.normalize.clustering_size_limit:
             return None
 
         topology: Dict[str, System] = {}
@@ -257,22 +262,42 @@ class TopologyNormalizer():
         add_system_info(original, topology)
 
         # Add all meaningful clusters to the topology
-        clusters = self._perform_matid_clustering(atoms)
-        filtered_clusters = self._filter_clusters(clusters)
-        for cluster in filtered_clusters:
+        clusterer = Clusterer()
+        clusters = clusterer.get_clusters(atoms, pos_tol=0.8)
+        for cluster in clusters:
             subsystem = self._create_subsystem(cluster)
             structural_type = subsystem.structural_type
-            # Currently only 2D and surface subsystems are included
-            if structural_type in {'surface', '2D'}:
+            # If the found cell has many basis atoms, it is more likely that
+            # some of the symmetries were not correctly found than the cell
+            # actually being very complicated. Thus we ignore these clusters to
+            # minimize false-positive and to limit the time spent on symmetry
+            # calculation.
+            cell = cluster.cell()
+            if len(cell) > 6:
+                self.logger.info(f"cell with many atoms ({len(cell)}) was ignored")
+                continue
+            try:
+                conventional_cell = self._create_conv_cell_system(cluster, structural_type)
+            except Exception as e:
+                self.logger.error(
+                    "conventional cell information could not be created",
+                    exc_info=e,
+                    error=str(e)
+                )
+                continue
+            # We only accept the subsystem if the material id exists in the top
+            # 50k materials with most entries attached to them. This ensures
+            # that the material_id link points to valid materials and that we
+            # don't report anything too weird. The top 50k materials are
+            # pre-stored in a pickle file that has been created by using ES
+            # terms aggregation.
+            if conventional_cell.material_id in TOP_50K_MATERIAL_IDS:
                 add_system(subsystem, topology, original)
                 add_system_info(subsystem, topology)
-                try:
-                    conventional_cell = self._create_conv_cell_system(cluster, structural_type)
-                except Exception as e:
-                    raise ValueError("conventional cell infomation could not be created") from e
-                else:
-                    add_system(conventional_cell, topology, subsystem)
-                    add_system_info(conventional_cell, topology)
+                add_system(conventional_cell, topology, subsystem)
+                add_system_info(conventional_cell, topology)
+            else:
+                self.logger.info(f"material_id {conventional_cell.material_id} could not be verified")
 
         return list(topology.values())
 
@@ -318,51 +343,20 @@ class TopologyNormalizer():
             label='conventional cell',
             system_relation=Relation(type='subsystem'),
         )
-        if structural_type == 'surface':
-            self._add_conventional_surface(cluster, symmsystem)
-        elif structural_type == '2D':
+        if structural_type == '2D':
             self._add_conventional_2d(cluster, symmsystem)
+        else:
+            self._add_conventional_bulk(cluster, symmsystem)
+        symmsystem.description = 'The conventional cell of the material from which the subsystem is constructed from.'
 
         return symmsystem
 
-    def _perform_matid_clustering(self, atoms: Atoms) -> List:
-        '''
-        Performs the clustering with MatID
-        '''
-        clusterer = Clusterer()
-        clusters = clusterer.get_clusters(
-            atoms,
-            max_cell_size=6,
-            pos_tol=0.70,
-            angle_tol=20,
-            merge_threshold=0.3,
-            merge_radius=5
-        )
-        return clusters
-
-    def _filter_clusters(self, clusters: List[Cluster]) -> List[Cluster]:
-        '''
-        Filter out clusters that do not have a meaningful representation in NOMAD.
-        '''
-        # TODO: Add proper decision mechanism for identifying when the detected
-        # cluster are OK. For now, we filter out cluster that have very small
-        # number of atoms: we do not want to show e.g. random outlier atoms in
-        # the topology. This will in general not work e.g. for periodic systems
-        # where the cluster size is not indicative of the actual physical size
-        # due to periodic boundaries. TODO: Improve this, it is currently based
-        # only on the number of atoms in the cluster. Maybe the cluster given
-        # out by MatID could already be grouped a bit better, e.g. all outliers
-        # would be grouped into one cluster?
-        return list(filter(lambda x: len(x.indices) > 1, clusters))
-
-    def _add_conventional_surface(self, cluster: Cluster, subsystem: System) -> None:
+    def _add_conventional_bulk(self, cluster: Cluster, subsystem: System) -> None:
         '''
         Creates the subsystem with the symmetry information of the conventional cell
         '''
         cell = cluster.cell()
         symm = SymmetryAnalyzer(cell)
-        subsystem.description = 'The conventional cell of the bulk material from which the surface is constructed from.'
-        subsystem.structural_type = 'bulk'
         conv_system = symm.get_conventional_system()
         subsystem.atoms = nomad_atoms_from_ase_atoms(conv_system)
         prototype = self._create_prototype(symm, conv_system)
@@ -372,18 +366,16 @@ class TopologyNormalizer():
         symmetry = self._create_symmetry(symm)
         wyckoff_sets = symm.get_wyckoff_sets_conventional()
         material_id = material_id_bulk(spg_number, wyckoff_sets)
+        subsystem.structural_type = 'bulk'
         subsystem.material_id = material_id
         subsystem.symmetry = symmetry
 
     def _add_conventional_2d(self, cluster: Cluster, subsystem: System) -> None:
         '''
-        Creates the subsystem with the symmetry information of the conventional cell
+        Creates the subsystem with the symmetry information of the conventional cell.
         '''
         cell = cluster.cell()
-        subsystem.description = 'The conventional cell of the 2D material.'
-        subsystem.structural_type = '2D'
         conv_atoms, _, wyckoff_sets, spg_number = structures_2d(cell)
-
         subsystem.cell = cell_from_ase_atoms(conv_atoms)
         subsystem.atoms = nomad_atoms_from_ase_atoms(conv_atoms)
 
@@ -402,6 +394,7 @@ class TopologyNormalizer():
         if subsystem.cell.volume is not None:
             subsystem.cell.volume = None
 
+        subsystem.structural_type = '2D'
         subsystem.material_id = material_id_2d(spg_number, wyckoff_sets)
 
     def _create_symmetry(self, symm: SymmetryAnalyzer) -> Symmetry:

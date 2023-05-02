@@ -440,6 +440,11 @@ class Normalize(NomadSettings):
             The system size limit for running the dimensionality analysis. For very
             large systems the dimensionality analysis will get too expensive.
         ''')
+    clustering_size_limit = Field(
+        300, description='''
+            The system size limit for running the system clustering. For very
+            large systems the clustering will get too expensive.
+        ''')
     symmetry_tolerance = Field(
         0.1, description='''
             Symmetry tolerance controls the precision used by spglib in order to find
@@ -475,7 +480,6 @@ class Normalize(NomadSettings):
             determining if a 2D structure is purely 2-dimensional to allow extra rigid
             transformations that are improper in 3D but proper in 2D.
         ''')
-
     k_space_precision = Field(
         150e6, description='''
             The threshold for point equality in k-space. Unit: 1/m.

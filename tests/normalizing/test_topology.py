@@ -166,7 +166,6 @@ def test_no_topology(fixture, request):
     assert not entry.results.material.topology
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize('surface, ref_topologies', [
     pytest.param(rattle(surf(conv_fcc('Cu'), [1, 0, 0])), single_cu_surface_topology(),
                  id='single surface Cu FCC 100'),
