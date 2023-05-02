@@ -496,8 +496,13 @@ class TestPublicUploadFiles(UploadFilesContract):
         with pytest.raises(KeyError):
             StagingUploadFiles(upload_files.upload_id)
 
-    def test_archive_version_suffix(self, monkeypatch, test_upload_id):
-        monkeypatch.setattr('nomad.config.fs.archive_version_suffix', 'test_suffix')
+    @pytest.mark.parametrize('suffixes,suffix', [
+        pytest.param(None, '', id='none'),
+        pytest.param('v1', '-v1', id='single'),
+        pytest.param(['v2', 'v1'], '-v2', id='fallback'),
+    ])
+    def test_archive_version_suffix(self, monkeypatch, test_upload_id, suffixes, suffix):
+        monkeypatch.setattr('nomad.config.fs.archive_version_suffix', suffixes)
         _, entries, upload_files = create_staging_upload(test_upload_id, entry_specs='p')
         upload_files.pack(entries, with_embargo=False)
         upload_files.delete()
@@ -505,13 +510,35 @@ class TestPublicUploadFiles(UploadFilesContract):
         public_upload_files = PublicUploadFiles(test_upload_id)
 
         assert os.path.exists(public_upload_files.join_file('raw-public.plain.zip').os_path)
-        assert not os.path.exists(public_upload_files.join_file('raw-public-test_suffix.plain.zip').os_path)
-        assert not os.path.exists(public_upload_files.join_file('raw-restricted-test_suffix.plain.zip').os_path)
-        assert os.path.exists(public_upload_files.join_file('archive-public-test_suffix.msg.msg').os_path)
-        assert not os.path.exists(public_upload_files.join_file('archive-public.msg.msg').os_path)
-        assert not os.path.exists(public_upload_files.join_file('archive-restricted.msg.msg').os_path)
+        assert os.path.exists(public_upload_files.join_file(f'archive-public{suffix}.msg.msg').os_path)
 
         assert_upload_files(test_upload_id, entries, PublicUploadFiles)
+
+    def test_archive_version_suffix_fallback(self, monkeypatch, test_upload_id):
+        monkeypatch.setattr('nomad.config.fs.archive_version_suffix', ['v1'])
+        _, entries, upload_files = create_staging_upload(test_upload_id, entry_specs='p')
+        upload_files.pack(entries, with_embargo=False)
+
+        monkeypatch.setattr('nomad.config.fs.archive_version_suffix', ['v2', 'v1'])
+        v1_file = upload_files._archive_file_object(0, fallback=True)
+        v2_file = upload_files._archive_file_object(0, fallback=False)
+        assert os.path.basename(v1_file.os_path) == '0-v1.msg'
+        assert os.path.basename(v2_file.os_path) == '0-v2.msg'
+
+        upload_files.write_archive('0', {})
+        assert v1_file.exists()
+        assert v2_file.exists()
+        assert os.path.basename(upload_files._archive_file_object(0, fallback=True).os_path) == '0-v2.msg'
+
+        upload_files.delete()
+
+        public_upload_files = PublicUploadFiles(test_upload_id)
+        v2_file = PublicUploadFiles._create_msg_file_object(
+            public_upload_files, public_upload_files.access, fallback=False)
+        v1_file = PublicUploadFiles._create_msg_file_object(
+            public_upload_files, public_upload_files.access, fallback=True)
+        assert not v2_file.exists()
+        assert os.path.basename(v1_file.os_path) == 'archive-public-v1.msg.msg'
 
 
 def assert_upload_files(

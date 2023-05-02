@@ -4,6 +4,7 @@
 #
 #    pip-compile --annotation-style=line --extra=dev --extra=infrastructure --extra=parsing --output-file=requirements-dev.txt dependencies/matid/pyproject.toml dependencies/nomad-dos-fingerprints/pyproject.toml dependencies/parsers/atomistic/pyproject.toml dependencies/parsers/database/pyproject.toml dependencies/parsers/eelsdb/pyproject.toml dependencies/parsers/electronic/pyproject.toml dependencies/parsers/nexus/pyproject.toml dependencies/parsers/workflow/pyproject.toml pyproject.toml requirements.txt
 #
+aiosmtpd==1.4.4.post2     # via -r requirements.txt, nomad-lab (pyproject.toml)
 alabaster==0.7.12         # via -r requirements.txt, sphinx
 alembic==1.9.1            # via -r requirements.txt, jupyterhub
 amqp==5.1.1               # via -r requirements.txt, kombu
@@ -23,7 +24,8 @@ astunparse==1.6.3         # via -r requirements.txt, mdtraj
 async-generator==1.10     # via -r requirements.txt, jupyterhub
 async-timeout==4.0.2      # via -r requirements.txt, redis
 atomicwrites==1.4.1       # via pytest
-attrs==22.2.0             # via -r requirements.txt, cattrs, jsonschema, pytest, requests-cache
+atpublic==3.1.1           # via -r requirements.txt, aiosmtpd
+attrs==22.2.0             # via -r requirements.txt, aiosmtpd, cattrs, jsonschema, pytest, requests-cache
 babel==2.11.0             # via -r requirements.txt, jupyterlab-server, sphinx
 backcall==0.2.0           # via -r requirements.txt, ipython
 bagit==1.8.1              # via -r requirements.txt, nomad-lab (pyproject.toml)

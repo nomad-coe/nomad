@@ -359,7 +359,15 @@ class FS(NomadSettings):
     north_home_external: str = None
     local_tmp = '/tmp'
     prefix_size = 2
-    archive_version_suffix = 'v1'
+    archive_version_suffix: Union[str, List[str]] = Field('v1', description='''
+        This allows to add an additional segment to the names of archive files and
+        thereby allows different NOMAD installations to work with the same storage
+        directories and raw files, but with separate archives.
+
+        If this is a list, the first string is used. If the file with the first
+        string does not exist on read, the system will look for the file with the
+        next string, etc.
+    ''')
     working_directory = os.getcwd()
     external_working_directory: str = None
 
