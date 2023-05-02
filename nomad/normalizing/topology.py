@@ -109,6 +109,8 @@ def add_system_info(system: System, topologies: Dict[str, System]) -> None:
                 system.chemical_formula_reduced = formula.format('reduced')
             if system.chemical_formula_anonymous is None:
                 system.chemical_formula_anonymous = formula.format('anonymous')
+            if system.chemical_formula_descriptive is None:
+                system.chemical_formula_descriptive = formula.format('descriptive')
             if not system.elements:
                 system.elements = formula.elements()
 
