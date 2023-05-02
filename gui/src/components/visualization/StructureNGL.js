@@ -272,18 +272,19 @@ const StructureNGL = React.memo(({
    */
   const loadComponent = useCallback(async (entryId, data, topologyMap) => {
     // Load the structure if not already cached
+    const format = 'pdb'
     let component = componentsRef.current[data]
     if (!component) {
       const system = await api.get(
         `systems/${entryId}`,
-        {path: data, format: 'pdb'},
+        {path: data, format},
         {responseType: 'blob'}
       )
 
       // Load file
       component = await stageRef.current.loadFile(
         system,
-        {ext: 'pdb', defaultRepresentation: false}
+        {ext: format, defaultRepresentation: false}
       )
 
       // Find the root topology item for this data.
@@ -329,6 +330,13 @@ const StructureNGL = React.memo(({
         }
       }
       addRepresentation(topologyMap[root])
+
+      // The file formats supported by NGL don't include the true lattice
+      // vectors, only the shape of the cell. If the lattive vectors aren't
+      // aligned with the cartesian coordinates, the visualization will be
+      // incorrect. This is why we need to fetch the true lattice vectors from
+      // the archive. Also none of the file formats store the full periodicity
+      // of the system, which is also needed for correct wrapping.
 
       // Add a completely custom unit cell and lattice parameter visualization.
       // The objects are added to a dummy 'unitcell' representation that is

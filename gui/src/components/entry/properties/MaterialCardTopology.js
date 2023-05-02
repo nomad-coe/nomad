@@ -122,7 +122,7 @@ const MaterialCardTopology = React.memo(({index, archive}) => {
               </Box>
             </Box>
           </Box>
-          <Box flex="0 0 auto" minHeight={0}>
+          <Box flex="0 0 164.81px" minHeight={0}>
             <MaterialTabs value={tab} onChange={handleTabChange} node={topologyMap[selected]} />
           </Box>
         </Box>

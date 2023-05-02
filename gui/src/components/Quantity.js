@@ -428,7 +428,7 @@ const quantityPresets = {
     withClipboard: true,
     render: (data) => {
       return data?.results?.material?.material_id
-        ? <Box flexGrow={1}>
+        ? <Box flexGrow={1} minWidth={0}>
           <Typography noWrap>
             <MaterialLink materialId={data.results.material.material_id}>{data.results.material.material_id}</MaterialLink>
           </Typography>
@@ -443,7 +443,7 @@ const quantityPresets = {
     withClipboard: true,
     renderValue: (value) => {
       return value
-        ? <Box flexGrow={1}>
+        ? <Box flexGrow={1} minWidth={0}>
           <Typography noWrap>
             <MaterialLink materialId={value}>{value}</MaterialLink>
           </Typography>
