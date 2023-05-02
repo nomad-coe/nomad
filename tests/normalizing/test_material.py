@@ -94,6 +94,21 @@ def assert_structure(structure, has_cell=True, has_wyckoff=False):
             assert wset.element
 
 
+@pytest.mark.parametrize('fixture, formula_descriptive', [
+    pytest.param('dft', 'KSi2Br', id='Inorganic with IUPAC formula'),
+    pytest.param('organic_formula', 'CHCl3', id='Organic with Hill formula'),
+    pytest.param('organic_carbonyl_formula', 'CAgO', id='Organic carbonyl with Hill formula'),
+    pytest.param('inorganic_carbonyl_formula', 'FeC5O5', id='Inorganic carbonyl with IUPAC formula'),
+    pytest.param('inorganic_special_formula', 'KHCO3', id='Inorganic carbonyl with specially-ordered IUPAC formula'),
+    pytest.param('predefined_formula_descriptive', 'BaFe2As2', id='Pre-defined chemical_formula in measurement.sample.chemical_formula'),
+])
+def test_chemical_formula_descriptive(fixture, formula_descriptive, request):
+    """Tests if chemical_formula is properly defined.
+    """
+    archive = request.getfixturevalue(fixture)
+    assert archive.results.material.chemical_formula_descriptive == formula_descriptive
+
+
 def test_material_atom(atom):
     material = atom.results.material
     assert_material(material)
@@ -201,7 +216,7 @@ def test_material_bulk(bulk):
     assert material.material_name == 'Silicon'
     assert material.chemical_formula_hill == 'Si8'
     assert material.chemical_formula_iupac == 'Si'
-    assert material.chemical_formula_descriptive == 'Si8'
+    assert material.chemical_formula_descriptive == 'Si'
     assert material.chemical_formula_reduced == 'Si'
     assert material.chemical_formula_anonymous == 'A'
     assert material.elements == ['Si']
@@ -235,7 +250,7 @@ def test_material_eels(eels):
     assert material.chemical_formula_hill == 'OSi'
     assert material.chemical_formula_iupac == 'SiO'
     assert material.chemical_formula_reduced == 'OSi'
-    assert material.chemical_formula_descriptive == 'OSi'
+    assert material.chemical_formula_descriptive == 'SiO'
 
 
 def test_1d_material_identification():

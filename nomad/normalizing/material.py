@@ -65,7 +65,7 @@ class MaterialNormalizer():
                 material.chemical_formula_iupac = formula.format('iupac')
                 material.chemical_formula_reduced = formula.format('reduced')
                 material.chemical_formula_anonymous = formula.format('anonymous')
-                material.chemical_formula_descriptive = material.chemical_formula_hill
+                material.chemical_formula_descriptive = formula.format('descriptive')
                 self.structural_type = self.repr_system.type
                 material.structural_type = self.repr_system.type
                 labels = self.repr_system.atoms.labels

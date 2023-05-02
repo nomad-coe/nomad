@@ -246,18 +246,5 @@ class Run(ArchiveSection):
     def normalize(self, archive, logger):
         super(Run, self).normalize(archive, logger)
 
-        if archive.metadata.entry_type:
-            return
-
-        archive.metadata.entry_type = 'simulation'
-        if not archive.metadata.entry_name:
-            archive.metadata.entry_name = ''
-            try:
-                archive.metadata.entry_name = archive.results.material.chemical_formula_hill
-                archive.metadata.entry_name += f' {self.program.name} simulation'
-                archive.metadata.entry_type = self.program.name
-            except Exception:
-                pass
-
 
 m_package.__init_metainfo__()

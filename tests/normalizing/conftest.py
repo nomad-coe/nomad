@@ -69,15 +69,16 @@ from nomad.datamodel.metainfo.workflow2 import (
 from nomad.datamodel.metainfo.simulation.workflow import (
     GWMethod, GW as GWworkflow
 )
+from nomad.datamodel.metainfo.measurements import Measurement, Sample
 
-from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
-from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
-from tests.parsing.test_parsing import parsed_example  # pylint: disable=unused-import
-from tests.parsing.test_parsing import parse_file
 from nomad.datamodel.context import ServerContext
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
 from nomad.parsing.parser import ArchiveParser
 from nomad.processing.data import Upload
+from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parsed_example  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parse_file
 from tests.test_files import create_test_upload_files
 
 
@@ -802,6 +803,65 @@ def atom() -> EntryArchive:
 def one_d() -> EntryArchive:
     atoms = ase.build.graphene_nanoribbon(1, 1, type='zigzag', vacuum=10, saturated=True)
     return get_template_for_structure(atoms)
+
+
+@pytest.fixture(scope='session')
+def organic_formula() -> EntryArchive:
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = Program(name='VASP', version='4.6.35')
+    system = run.m_create(System)
+    system.atoms = NOMADAtoms(labels=['C', 'H', 'Cl', 'Cl', 'Cl'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def organic_carbonyl_formula() -> EntryArchive:
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = Program(name='VASP', version='4.6.35')
+    system = run.m_create(System)
+    system.atoms = NOMADAtoms(labels=['C', 'Ag', 'O'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def inorganic_carbonyl_formula() -> EntryArchive:
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = Program(name='VASP', version='4.6.35')
+    system = run.m_create(System)
+    system.atoms = NOMADAtoms(labels=['Fe', 'C', 'C', 'C', 'C', 'C', 'O', 'O', 'O', 'O', 'O'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def inorganic_special_formula() -> EntryArchive:
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = Program(name='VASP', version='4.6.35')
+    system = run.m_create(System)
+    system.atoms = NOMADAtoms(labels=['C', 'H', 'K', 'O', 'O', 'O'])
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def predefined_formula_descriptive() -> EntryArchive:
+    template = EntryArchive()
+    sample = Sample(chemical_formula='BaFe2As2')
+    measurement = Measurement(sample=[sample])
+    template.m_add_sub_section(EntryArchive.measurement, measurement)
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def unknown_program() -> EntryArchive:
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = Program(version='4.6.35')
+    system = run.m_create(System)
+    system.atoms = NOMADAtoms(labels=['Si'])
+    return run_normalize(template)
 
 
 @pytest.fixture(scope='session')

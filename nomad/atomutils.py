@@ -747,18 +747,21 @@ class Formula():
             - hill: Formula in Hill notation (see chemical_formula_hill)
             - iupac: The IUPAC formula (see chemical_formula_iupac)
             - reduced: Reduced formula (see chemical_formula_reduced)
+            - descriptive: Descriptive formula (see chemical_formula_descriptive)
             - anonymous: Anonymized formula (see chemical_formula_anonymous)
             - original: The originally supplied formula format
         '''
         if fmt == 'hill':
             return self._formula_hill()
-        if fmt == 'iupac':
+        elif fmt == 'iupac':
             return self._formula_iupac()
-        if fmt == 'reduced':
+        elif fmt == 'reduced':
             return self._formula_reduced()
-        if fmt == 'anonymous':
+        elif fmt == 'descriptive':
+            return self._formula_descriptive()
+        elif fmt == 'anonymous':
             return self._formula_anonymous()
-        if fmt == 'original':
+        elif fmt == 'original':
             return self._original_formula
         else:
             raise ValueError(f'Invalid format option "{fmt}"')
@@ -857,6 +860,41 @@ class Formula():
         count_reduced = {key: int(value / gcd) for key, value in sorted(count.items())}
 
         return self._dict2str(count_reduced)
+
+    def _formula_descriptive(self) -> str:
+        '''Returns the descriptive formula. This is a formula ordered using IUPAC for
+        inorganic materials and Hill for organic compounds.
+
+        The check is done if 'C' is present in self.count(), except for exceptions of
+        carbon-based materials that are still inorganic. Furthermore, some formulas show a
+        special ordering which is also considered.
+
+        Ref:
+            https://en.wikipedia.org/wiki/List_of_inorganic_compounds
+        '''
+        # List of carbon inorganic compounds in IUPAC notation (ordered in alphabetical order)
+        carbon_inorganic_iupac = [
+            'Al4C3', 'B4C', 'BaCO3', 'BeCO3', 'CNH5O3', 'CaC2', 'CaCO3', 'Ce2C3O9',
+            'Cf2C3O9', 'CoCO3', 'Cs2CO3', 'CsHCO3', 'CuCO3', 'Es2C3O9', 'Fe2C9O9',
+            'Fe3C12O12', 'FeC5O5', 'Fr2CO3', 'Gd2C3O9', 'Ho2C3O9', 'La2C3O9', 'Li2CO3',
+            'MgC2', 'MgCO3', 'MoC', 'MoC6O6', 'Na2C2', 'Na2CO3', 'Na2CO4', 'NiCO3',
+            'PbC3O3', 'Pm2C3O9', 'Pr2C3O9', 'RaCO3', 'Rh6C16O16', 'SiC', 'Sm2C3O9',
+            'SrC2TaC', 'SrCO3', 'SrCO3', 'Tb2C3O9', 'Ti3SiC2', 'TiC', 'Tl2CO3', 'VC',
+            'WC', 'WC6O6', 'Yb2C3O9HfC', 'ZnCO3', 'ZrC']
+        # Mapping of special formula ordering different than Hill or IUPAC
+        hill_to_special_map = {
+            'KCHO3': 'KHCO3',
+            'NaCHO3': 'NaHCO3',
+            'SrC2H2O6': 'SrH2C2O6',
+        }
+        formula_iupac = self._formula_iupac()
+        formula_descriptive = formula_iupac
+        if 'C' in self.count().keys():
+            if formula_iupac not in carbon_inorganic_iupac:
+                formula_descriptive = self._formula_hill()
+            if formula_iupac in hill_to_special_map.keys():
+                formula_descriptive = hill_to_special_map[formula_iupac]
+        return formula_descriptive
 
     def _formula_anonymous(self) -> str:
         '''Returns the anonymous formula.

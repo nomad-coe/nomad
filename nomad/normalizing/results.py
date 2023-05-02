@@ -144,7 +144,7 @@ class ResultsNormalizer(Normalizer):
                 material.chemical_formula_hill = formula.format('hill')
                 material.chemical_formula_reduced = formula.format('reduced')
                 material.chemical_formula_iupac = formula.format('iupac')
-                material.chemical_formula_descriptive = results.material.chemical_formula_hill
+                material.chemical_formula_descriptive = formula.format('descriptive')
                 if not material.elements:
                     material.elements = formula.elements()
         except Exception as e:

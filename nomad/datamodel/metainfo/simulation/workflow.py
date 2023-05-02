@@ -105,6 +105,36 @@ class SimulationWorkflow(Workflow):
             logger.warning('System, method and calculation required for normalization.')
             pass
 
+        # Metadata entry_type and entry_name normalization for simulations
+        if archive.metadata.entry_type is None:
+            workflow = archive.workflow2
+            workflow_name = workflow.name
+            if workflow_name is None:
+                workflow_name = workflow.m_def.name
+
+            tag = ''
+            if archive.results.method.simulation:
+                tag = 'simulation'
+
+            # Populate entry_type
+            try:
+                method_name = archive.results.method.method_name
+                program_name = archive.results.method.simulation.program_name
+                if workflow_name == 'SinglePoint' and method_name:
+                    archive.metadata.entry_type = f'{program_name} {method_name} {workflow_name}'
+                else:
+                    archive.metadata.entry_type = f'{program_name} {workflow_name}'
+            except Exception:
+                archive.metadata.entry_type = workflow_name
+            type_tag = f'{archive.metadata.entry_type} {tag}'
+
+            # Populate entry_name
+            material = archive.results.material
+            if material and material.chemical_formula_descriptive:
+                archive.metadata.entry_name = f'{material.chemical_formula_descriptive} {type_tag}'
+            else:
+                archive.metadata.entry_name = f'{type_tag}'
+
         if not self._calculations or not self._systems:
             return
 
