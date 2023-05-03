@@ -61,7 +61,7 @@ export const PropertyPreview = React.memo(({quantityDef, section}) => {
   if (shape.length === 0) {
     if (quantityDef.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
       return <QuantityCell >
-        <Quantity data={section} quantity={quantityDef}>
+        <Quantity data={section} quantity={quantityDef} maxWidth={'100%'}>
           <Editor
             init={{
               height: '600px',
