@@ -17,948 +17,1217 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, Tooltip, IconButton } from '@material-ui/core'
+import * as d3 from 'd3'
+import { makeStyles, Tooltip, IconButton, TextField, FormControl } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
+import blueGrey from '@material-ui/core/colors/blueGrey'
 import red from '@material-ui/core/colors/red'
+import { Replay, Undo, Label, LabelOff, PlayArrowSharp, StopSharp, Clear } from '@material-ui/icons'
+import { useHistory } from 'react-router-dom'
+import { isPlainObject } from 'lodash'
 import { PropertyCard, PropertyGrid } from './PropertyCard'
 import { resolveNomadUrl, resolveInternalRef, createEntryUrl } from '../../../utils'
 import { useApi } from '../../api'
-import { useHistory } from 'react-router-dom'
-import * as d3 from 'd3'
 import { getUrl } from '../../nav/Routes'
-import { nomadFontFamily, nomadPrimaryColor, nomadSecondaryColor, apiBase } from '../../../config'
-import { Replay, Undo, Redo } from '@material-ui/icons'
+import { nomadFontFamily, apiBase } from '../../../config'
+import { useAsyncError } from '../../../hooks'
 
 const useWorkflowGraphStyles = makeStyles(theme => ({
   root: {
     width: '100%',
     minWidth: 1000,
     '& .link': {
-      strokeWidth: 3,
       fill: 'none',
-      stroke: grey[500],
-      strokeOpacity: 0.5
-    },
-    '& .crosslink': {
-      fill: 'none',
-      stroke: red[500],
       strokeOpacity: 0.5,
-      strokeWidth: 3
+      fillOpacity: 0.5,
+      strokeWidth: 2.5
     },
     '& .text': {
       fontFamily: nomadFontFamily,
       fontSize: 12,
-      fontWeight: 'bold',
       dy: '0.35em',
-      fill: grey[800]
+      textAnchor: 'middle'
     },
-    '& .circle': {
-      stroke: grey[500],
+    '& .icon': {
       strokeWidth: 2,
       strokeOpacity: 0.5
     }
   }
 }))
 
-function addMarkers(svg, nodes, offset) {
-  const markerWidth = 5
+let archives = {}
 
-  const markerIds = []
+const resolveSection = async (source, query) => {
+  if (isPlainObject(source.section)) {
+    // already resolved
+    return source
+  }
 
-  const addIds = (node) => {
-    const nodeLinks = node.data.crossLinks || []
-    nodeLinks.forEach(link => {
-      const nodeTarget = nodes.filter(node => node.data.key === link[0])
-      nodeTarget.forEach(target => {
-        markerIds.push(`${node.id}-${target.id}`)
-      })
-    })
-    if (node._children) {
-      node._children.forEach(child => addIds(child))
+  let path = source.path
+  if (typeof path !== 'string') path = source.section || '/'
+  const pathSegments = path.split('#').filter(p => p)
+
+  let archive = source.archive
+  let baseUrl = createEntryUrl(apiBase, archive?.metadata?.upload_id, archive?.metadata?.entry_id)
+  let section
+  if (pathSegments.length === 1) {
+    // internal reference
+    path = pathSegments[0]
+    try {
+      section = source.section ? source.path : resolveInternalRef(path, archive)
+    } catch (error) {
+      console.error(`Cannot resolve section ${path}`)
+      return
+    }
+  } else {
+    // external reference
+    const url = resolveNomadUrl(path, baseUrl)
+    const {api, required} = query
+    try {
+      archive = archives[url.entryId]
+      if (!archive) {
+        const response = await api.post(`/entries/${url.entryId}/archive/query`, {required: required})
+        archive = response.data.archive
+        archives[url.entryId] = archive
+      }
+      path = pathSegments[1]
+      if (!path.startsWith('/')) path = `/${path}`
+      section = source.section ? source.path : resolveInternalRef(path, archive)
+    } catch (error) {
+      console.error(`Cannot resolve entry ${url.entryId}: ${error}`)
+      return
     }
   }
 
-  nodes.forEach(node => {
-    addIds(node)
-  })
+  if (!section) return
 
-  svg.append('defs').selectAll('marker')
-    .data(markerIds)
-    .enter()
-    .append('marker')
-    .attr('class', d => `marker-${d}`)
-    .attr('id', String)
-    .attr('viewBox', '0 -5 10 10')
-    .attr('refX', offset || 0)
-    .attr('refY', 0)
-    .attr('markerWidth', markerWidth)
-    .attr('markerHeight', markerWidth)
-    .attr('xoverflow', 'visible')
-    .attr('orient', 'auto')
-    .style('fill', red[500])
-    .style('fill-opacity', 0.5)
-    .append('path')
-    .attr('d', 'M0,-5L10,0L0,5')
+  baseUrl = createEntryUrl(apiBase, archive?.metadata?.upload_id, archive?.metadata?.entry_id)
+  const match = path.match('.*/([^/]+)/(\\d+)$')
+
+  const sectionKeys = query.sectionKeys || []
+  const nChildren = (section) => (sectionKeys.map(key => (section[key] || []).length)).reduce((a, b) => a + b)
+  if (section.task) {
+    const task = await resolveSection({path: section.task, archive: archive}, query)
+    if (!task) return
+    task.section.inputs = section.inputs || task.section.inputs
+    task.section.outputs = section.outputs || task.section.outputs
+    task.nChildren = nChildren(task.section)
+    return task
+  }
+
+  return {
+    name: section.name,
+    section: section,
+    sectionType: match ? match[1] : path.split('/').pop(),
+    path: path,
+    archive: source.section ? null : archive,
+    url: [baseUrl, path].join('#'),
+    entryId: archive?.metadata?.entry_id,
+    color: section.color,
+    nChildren: nChildren(section)
+  }
 }
 
-const ForceDirected = React.memo(({data, layout, setTooltipContent}) => {
+const range = (start, stop) => Array.from(Array(stop - start).fill(start).map((n, i) => n + i))
+
+const getNodes = async (source, query) => {
+  let {resolveIndices, maxNodes} = query
+  const {sectionKeys} = query
+
+  let nodes = source.nodes || []
+  if (nodes.length && !resolveIndices) return nodes
+
+  if (!maxNodes) maxNodes = 7
+
+  const resolved = await resolveSection(source, query)
+  if (!resolved) return nodes
+  const parent = resolved.section
+  if (!parent) return nodes
+
+  nodes = []
+  const archive = resolved.archive
+  for (const key of sectionKeys) {
+    let children = parent[key] || []
+    const nChildren = children.length
+    if (!Array.isArray(children)) children = [children]
+
+    let sectionIndices = range(0, nChildren)
+    if (resolveIndices && resolveIndices[key]) {
+      sectionIndices = resolveIndices[key] || sectionIndices
+    } else if (maxNodes < nChildren) {
+      const mid = Math.floor(maxNodes / 2)
+      // show first and last few nodes
+      sectionIndices = [...range(0, mid), ...range(nChildren - mid, nChildren)]
+    }
+
+    for (const index of sectionIndices) {
+      const child = children[index]
+      if (!child) continue
+
+      let path = child
+      if (!child.section) path = `${source.path}/${key}/${index}`
+      const section = await resolveSection({section: child.section, path: path, archive: archive}, query)
+      if (!section) continue
+
+      section.name = child.name
+      section.type = key
+      section.index = index
+      section.parent = source
+      section.total = nChildren
+      nodes.push(section)
+    }
+  }
+
+  return nodes
+}
+
+const getLinks = async (source, query) => {
+  if (source.links) return source.links
+
+  const nodes = source.nodes
+  if (!source.nodes) return
+
+  const links = []
+  for (const node of nodes) {
+    if (node.type === 'tasks') {
+      node.nodes = await getNodes(node, query)
+    }
+  }
+
+  const isLinked = (source, target) => {
+    if (source.url === target.url) return false
+
+    const outputs = []
+    if (source.type === 'tasks' && source.nodes) {
+      outputs.push(...source.nodes.filter(node => node.type === 'outputs').map(node => node.url))
+    } else {
+      outputs.push(source.url)
+    }
+
+    const inputs = []
+    if (target.type === 'tasks' && target.nodes) {
+      inputs.push(...target.nodes.filter(node => node.type && node.type.startsWith('inputs')).map(node => node.url))
+    } else {
+      inputs.push(target.url)
+    }
+
+    let linked = false
+    for (const output of outputs) {
+      if (!output) continue
+      if (inputs.includes(output)) {
+        linked = true
+        break
+      }
+    }
+    return linked
+  }
+
+  // links from inputs to source
+  const inputs = nodes.filter(node => node.type && node.type.startsWith('inputs') && node.url)
+  inputs.forEach(input => {
+    links.push({source: input, target: source, label: 'Input'})
+  })
+  // links from source to outputs
+  const outputs = nodes.filter(node => node.type === 'outputs' && node.url)
+  outputs.forEach(output => {
+    links.push({source: source, target: output, label: 'Output'})
+  })
+
+  // source and target are linked if any of the outputs of source or source itself is any of the
+  // inputs of target or target itself
+  for (const source of ['inputs', 'tasks']) {
+    for (const target of ['outputs', 'tasks']) {
+      const sourceNodes = nodes.filter(node => node.type && node.type.startsWith(source) && node.url)
+      const targetNodes = nodes.filter(node => node.type === target && node.url)
+      sourceNodes.forEach(sourceNode => {
+        targetNodes.forEach(targetNode => {
+          if (isLinked(sourceNode, targetNode)) {
+            let label = ''
+            if (source === 'inputs') {
+              label = 'Input'
+            } else if (target === 'outputs') {
+              label = 'Output'
+            } else {
+              label = 'Click to see how tasks are linked'
+            }
+            links.push({source: sourceNode, target: targetNode, label: label})
+          }
+        })
+      })
+    }
+  }
+
+  return links
+}
+
+const Graph = React.memo(({
+  source,
+  query,
+  layout,
+  setTooltipContent,
+  setCurrentNode,
+  setShowLegend,
+  setEnableForce
+  }) => {
   const classes = useWorkflowGraphStyles()
   const svgRef = useRef()
   const history = useHistory()
+  const asyncError = useAsyncError()
   const finalLayout = useMemo(() => {
     const defaultLayout = {
-     width: 600,
-     margin: {top: 40, bottom: 40, left: 20, right: 20},
-     circleRadius: 17,
-     linkDistance: 40
+      width: 700,
+      margin: {top: 60, bottom: 60, left: 40, right: 40},
+      circleRadius: 20,
+      markerWidth: 4,
+      scaling: 0.35,
+      color: {
+        text: grey[800],
+        link: red[800],
+        outline: blueGrey[800],
+        workflow: '#192E86',
+        task: '#00AC7C',
+        input: '#A59FFF',
+        output: '#005A35'
+      },
+      shape: {
+        input: 'circle',
+        workflow: 'rect',
+        task: 'rect',
+        output: 'circle'
+      }
     }
     return {...defaultLayout, ...layout}
   }, [layout])
+  archives = {}
 
   useEffect(() => {
+    const {width, markerWidth, scaling, color} = finalLayout
+    const nodeShape = finalLayout.shape
+    const whRatio = 1.6
+    const legendSize = 12
+    const height = width / whRatio
+
     const svg = d3.select(svgRef.current)
+
+    const inOutColor = d3.interpolateRgb(color.input, color.output)(0.5)
+
+    let nodes, node, line
+    let id = 0
+    let view
+    let focus
+    let previousNode = 'root'
+    let root
+    const dquery = {...query, resolveIndices: {}}
+    let currentNode = root
+    let hasError = false
+    let enableForce = false
+    let dragged = false
+    let zoomTransform = d3.zoomIdentity
+
+    const isWorkflow = (d) => {
+      if (d.sectionType && d.sectionType.startsWith('workflow')) return true
+      const tasks = (d.nodes || []).filter(n => n.type === 'tasks')
+      return tasks.length > 0
+    }
+
+    const nodeColor = (d) => {
+      if (d.color) return d.color
+      if (d.type === 'link') return '#ffffff'
+      if (isWorkflow(d)) return color.workflow
+      if (d.type === 'tasks') return color.task
+      if (d.type === 'inputs-outputs') return inOutColor
+      return d.type === 'inputs' ? color.input : color.output
+    }
+
+    const trimName = (name) => name && name.length > 25 ? `${name.substring(0, 22)}...` : name
+
     svg.selectAll('g').remove()
-    const { width, circleRadius, linkDistance, margin } = finalLayout
-    svg
-      .attr('width', width)
-      .attr('height', width)
+    svg.attr('width', width)
+      .attr('height', height)
 
     const svgGroup = svg.append('g')
 
-    const gCrossLink = svgGroup.append('g')
-      .attr('class', 'crosslink')
+    const defs = svg.append('defs')
 
-    const gLink = svgGroup.append('g')
-      .attr('class', 'link')
+    const addLinkMarkers = (links) => {
+      defs.selectAll('marker')
+        .exit().remove()
+        .data(links.map(link => link.id))
+        .enter()
+        .append('marker')
+        .attr('class', d => `marker-${d}`)
+        .attr('id', String)
+        .attr('viewBox', '0 -5 10 10')
+        .attr('refX', 0)
+        .attr('refY', 0)
+        .attr('markerWidth', markerWidth)
+        .attr('markerHeight', markerWidth)
+        .attr('xoverflow', 'visible')
+        .attr('orient', 'auto')
+        .style('fill', color.link)
+        .attr('fill-opacity', 0.5)
+        .append('path')
+        .attr('d', 'M0,-5L10,0L0,5')
+    }
+
+    const legend = svg.append('g')
+      .attr('class', 'legend')
+      .attr('visibility', 'visible')
+
+    const addLegend = (label, index) => {
+      const gLegend = legend.append('g')
+        .attr('cursor', 'pointer')
+        .attr('pointer-events', 'all')
+      const shape = nodeShape[label]
+      const icon = gLegend.append(shape)
+      const dx = width / 8
+      const x = width / 2 + dx * index - dx * 1.5
+      const y = height - legendSize * 2
+
+      if (shape === 'rect') {
+        icon.attr('width', legendSize * whRatio)
+          .attr('height', legendSize)
+          .attr('rx', legendSize * 0.1)
+          .attr('x', x - legendSize * whRatio / 2)
+          .attr('y', y - legendSize / 2)
+      } else {
+        icon.attr('r', legendSize / 2)
+          .attr('cx', x)
+          .attr('cy', y)
+        }
+      icon
+        .attr('fill', nodeColor({type: label + 's', sectionType: label + 's'}))
+
+      gLegend.append('text')
+        .attr('class', 'text')
+        .text(label)
+        .style('text-anchor', 'middle')
+        .attr('x', x)
+        .attr('y', y + legendSize * 1.2)
+        .style('alignment-baseline', 'middle')
+
+      gLegend
+        .on('mouseover', () => {
+          let tooltip = ''
+          if (label === 'input') {
+            tooltip = <p>
+              Input to a task or workflow.
+            </p>
+          } else if (label === 'output') {
+            tooltip = <p>
+              Output from a task or workflow.
+            </p>
+          } else if (label === 'workflow') {
+            tooltip = <p>
+              Task containing further sub-tasks.
+            </p>
+          } else if (label === 'task') {
+            tooltip = <p>
+              Elementary task with inputs and outputs.
+            </p>
+          }
+          setTooltipContent(tooltip)
+        })
+        .on('mouseout', () => {
+          setTooltipContent('')
+        })
+    }
+
+    // add legend
+    legend.append('path')
+      .attr('d', () => {
+        const line = d3.line().x(d => d[0]).y(d => d[1])
+        return line([
+          [width / 4 + 70, height - legendSize * 3],
+          [3 * width / 4, height - legendSize * 3],
+          [3 * width / 4, height],
+          [width / 4, height],
+          [width / 4, height - legendSize * 3],
+          [width / 4 + 10, height - legendSize * 3]
+        ])
+      })
+      .attr('stroke', grey[900])
+      .attr('stroke-width', 0.5)
+      .attr('fill', 'none')
+    legend.append('text')
+      .text('Legend')
+      .attr('class', 'text')
+      .attr('font-weight', 'bold')
+      .attr('x', width / 4 + 40)
+      .attr('y', height - legendSize * 2.8)
+
+    const legendLabels = Object.keys(nodeShape)
+    legendLabels.forEach((label, index) => addLegend(label, index))
+
+    // add zoom
+    const zoomBehaviors = d3.zoom()
+      .on('zoom', () => {
+        zoomTransform = d3.event.transform
+        svgGroup.attr('transform', zoomTransform)
+      })
+
+    svg.call(zoomBehaviors)
+
+    // set zoom factor to <1 inorder to see the inputs and outputs
+    const zoomF = (r) => width * scaling / r
+
+    // add force directed behavior for tasks inside box
+    const simulation = d3.forceSimulation()
+      .force('link', d3.forceLink().id(d => d.id))
+      .force('charge', d3.forceManyBody())
+      .velocityDecay(0.2)
+      .alphaDecay(0.2)
+
+    // add drag
+    const dragBehaviors = d3.drag()
+      .on('drag', d => {
+        if (!d.parent || d.url === nodes[0].url) return
+        const event = d3.event.sourceEvent
+        const k = zoomF(view[2])
+        const x = ((event.offsetX - zoomTransform.x) / zoomTransform.k - width / 2) / k + view[0]
+        const y = ((event.offsetY - zoomTransform.y) / zoomTransform.k - height / 2) / k + view[1]
+        setTooltipContent('')
+        if (enableForce) {
+          d.fx = x
+          d.fy = y
+        } else {
+          d.x = x
+          d.y = y
+          zoomTo(view)
+        }
+      })
+      .on('start', d => {
+        if (!enableForce) return
+        simulation.alphaTarget(0.7).restart()
+      })
+      .on('end', d => {
+        dragged = true
+        if (!enableForce) return
+        simulation.alphaTarget(0)
+        d.fx = null
+        d.fy = null
+      })
 
     const gNode = svgGroup.append('g')
       .attr('class', 'node')
       .attr('cursor', 'pointer')
       .attr('pointer-events', 'all')
 
-    // fix inputs and outputs to edge of frame
-    const mid = width / 2
-    const dy = circleRadius * 10
+    const gLink = svgGroup.append('g')
+      .attr('class', 'link')
+      .attr('cursor', 'default')
+      .attr('pointer-events', 'all')
+      .attr('stroke', color.link)
 
-    if (!data.children) data.children = []
+    const setNodesPosition = (root) => {
+      // layout root and its nodes horizontally from inputs (left) root and tasks (middle)
+      // and outputs (right)
+      if (!root.nodes || root.children) return
 
-    const inputChildren = data.children.filter(d => d.intent && d.intent.startsWith('input'))
-    let offset = inputChildren.length * dy / 2
-    let fixPoints = inputChildren.map((child, index) => mid + index * dy - offset)
-    for (const [index, child] of inputChildren.entries()) {
-      // vertical configuration, switch fixX and fixY for vertical
-      child.fixX = fixPoints[index]
-      child.fixY = margin.top
-    }
-    const outputChildren = data.children.filter(d => d.intent && d.intent.startsWith('output'))
-    offset = outputChildren.length * dy / 2
-    fixPoints = outputChildren.map((child, index) => mid + index * dy - offset)
-    for (const [index, child] of outputChildren.entries()) {
-      // vertical configuration, switch fixX and fixY for vertical
-      child.fixX = fixPoints[index]
-      child.fixY = width - margin.bottom
-    }
-
-    let nodes = []
-    function flatten(node) {
-      node.children = node.children || []
-      node.children.forEach(child => flatten(child))
-      nodes.push(node)
-    }
-
-    flatten(data)
-
-    // add crosslinks between nodes
-    function addCrossLinksData(data) {
-      const workflows = []
-      const tasks = []
-      const inputs = []
-      const outputs = []
-      data.children.forEach(child => {
-        if (child.type.startsWith('workflow')) workflows.push(child)
-        else if (child.type.startsWith('task')) tasks.push(child)
-        else if (child.intent && child.intent.startsWith('input')) inputs.push(child)
-        else if (child.intent && child.intent.startsWith('output')) outputs.push(child)
+      const circleRadius = root.r / 12
+      const dx = circleRadius * 4
+      const fx = 1.4
+      const tasks = root.nodes.filter(node => node.type === 'tasks')
+      root.children = tasks
+      // tasks are arranged in a circle inside the parent workflow
+      tasks.forEach((node, index) => {
+        const theta = (2 * Math.PI * index / tasks.length) - Math.PI / 4
+        node.r = Math.sqrt(node.size || 1) * circleRadius * 1.5
+        const r = root.r - node.r
+        node.x = -r * 0.95 * Math.cos(theta) * whRatio + root.x
+        node.y = -r * (theta < 0 || theta > Math.PI ? 0.95 : 0.85) * Math.sin(theta) + root.y
       })
 
-      data.children = [...inputs, ...outputs, ...workflows, ...tasks]
+      // inputs left
+      const inputs = root.nodes.filter(node => node.type === 'inputs')
+      let offsetX = (inputs.length - 1) * dx / 2
+      inputs.forEach((node, index) => {
+        node.y = index * dx - offsetX + root.y
+        node.x = -root.r * fx * whRatio + root.x
+        node.r = circleRadius
+      })
 
-      const addLink = (link, node, dash = '3,3') => {
-        link.push(dash)
-        nodes.forEach(d => {
-          d.crossLinks = d.crossLinks || []
-          if (d.key === node.key) {
-            // apply link to duplicate nodes
-            const links = d.crossLinks.map(l => l[0])
-            if (link[0] && !links.includes(link[0])) d.crossLinks.push(link)
-          }
-          if (d.key === link[0]) {
-            node.crossLinks = node.crossLinks || []
-            const links = node.crossLinks.map(l => l[0])
-            if (link[0] && !links.includes(link[0])) node.crossLinks.push(link)
-          }
-        })
+      // inputs-outputs top
+      const inouts = root.nodes.filter(node => node.type === 'inputs-outputs')
+      offsetX = (inouts.length - 1) * dx
+      inouts.forEach((node, index) => {
+        node.x = index * dx * 2 - offsetX + root.x
+        node.y = -root.r * fx + root.y
+        node.r = circleRadius
+      })
+
+      // outputs right
+      const outputs = root.nodes.filter(node => node.type === 'outputs')
+      offsetX = (outputs.length - 1) * dx / 2
+      outputs.forEach((node, index) => {
+        node.y = index * dx - offsetX + root.y
+        node.x = root.r * whRatio * fx + root.x
+        node.r = circleRadius
+      })
+      root.nodes = [...inputs, ...inouts, ...root.children, ...outputs]
+    }
+
+    const fLink = (source, target) => {
+      let vx = target.x - source.x
+      let vy = target.y - source.y
+      const vr = Math.sqrt(vx * vx + vy * vy)
+      const sin = vy / vr
+      const cos = vx / vr
+      const sx = vy ? Math.max(-1, Math.min(cos / sin, 1)) * Math.sign(sin) : Math.sign(vx)
+      const sy = vx ? Math.max(-1, Math.min(sin / cos, 1)) * Math.sign(cos) : Math.sign(vy)
+      const targetR = (f) => Math.abs(target.r) * f
+      let offsetxt, offsetyt, offsetxs, offsetys
+      if (source.r > 0) {
+        // offset from edge of circle
+        offsetxs = cos * source.r
+        offsetys = sin * source.r
+      } else {
+        // offset from edge of square
+        offsetxs = -sx * source.r * whRatio
+        offsetys = -sy * source.r
       }
-
-      const allTasks = [...workflows, ...tasks]
-
-      // add link from inputs to workflow
-      inputs.forEach(input => addLink([data.key, 'Input'], input))
-      // add link from workflow to outputs
-      outputs.forEach(output => addLink([output.key, 'Output'], data))
-      // add link from from input to first task
-      if (tasks.length > 0) {
-        // add link from input to first task
-        inputs.forEach(input => {
-          addLink([tasks[0].key, 'Input'], input)
-        })
-        // add link from last task to output
-        outputs.forEach(output => {
-          // add link only if no task is connected to output
-          let linked = false
-          for (const node of allTasks) {
-            const links = node.crossLinks.map(l => l[0])
-            if (links.includes(output.key)) {
-              linked = true
-              break
-            }
-          }
-          if (!linked) addLink([output.key, 'Output'], tasks[tasks.length - 1])
-        })
+      if (target.r > 0) {
+        // offset to edge of circle
+        offsetxt = cos * targetR(1)
+        offsetyt = sin * targetR(1)
+      } else {
+        // offset to edge of square
+        offsetxt = sx * targetR(whRatio)
+        offsetyt = sy * targetR(1)
       }
-
-      // add links between tasks if inputs/outputs are connected
-      allTasks.forEach(task1 => {
-        allTasks.forEach(task2 => {
-          if (task1.key !== task2.key) {
-            const outputs = task1.children
-              .filter(child => child.intent && child.intent.startsWith('output'))
-              .map(child => child.key)
-            const inputs = task2.children
-              .filter(child => child.intent && child.intent.startsWith('input'))
-              .map(child => child.key)
-            let linked = false
-            for (const input of inputs) {
-              if (outputs.includes(input)) {
-                linked = true
-                break
-              }
-            }
-            if (linked) addLink([task2.key, 'Sequential tasks'], task1)
-          }
-        })
-      })
-
-      // iterate over all tasks
-      workflows.forEach(workflow => addCrossLinksData(workflow))
-      tasks.forEach(task => addCrossLinksData(task))
+      source = {x: source.x + offsetxs, y: source.y + offsetys}
+      target = {x: target.x - offsetxt, y: target.y - offsetyt}
+      vx = target.x - source.x
+      vy = target.y - source.y
+      const line = d3.line().x(d => d[0]).y(d => d[1])
+        .curve(d3.curveBasis)
+      const points = [[source.x, source.y]]
+      if (Math.abs(vx) > Math.abs(vy)) {
+        target.x = target.x - markerWidth * 2 * Math.sign(vx)
+        // points.push([source.x + vx / 2, source.y])
+        // points.push([source.x + vx / 2, target.y])
+      } else {
+        target.y = target.y - markerWidth * 2 * Math.sign(vy)
+        // points.push([source.x, source.y + vy / 2])
+        // points.push([target.x, source.y + vy / 2])
+      }
+      points.push([target.x, target.y])
+      return line(points)
     }
 
-    addCrossLinksData(data)
-
-    // pack layout for the task quantities
-    const pack = d3.pack()
-      .size([circleRadius * 2, circleRadius * 2])
-      .padding(5)
-
-    // define transition of nodes
-    // const transition = svg.transition()
-    //   .duration(250)
-
-    function addSubGraph(node) {
-      if (!node._children || !node._children.length) return
-
-      const d = {...node.data}
-      d.children = (node._children || []).map(child => {
-        return {...child.data, crossLinks: []}
-      })
-      d.crossLinks = []
-      d.children.forEach(child => {
-        if (child.intent === 'output') d.crossLinks.push([`${child.key}_subgraph`, ''])
-        if (child.intent === 'input') child.crossLinks.push([`${d.key}_subgraph`, ''])
-      })
-
-      const dRoot = d3.hierarchy(d)
-      dRoot.sum(d => d.size).sort((a, b) => a.data.index - b.data.index)
-      dRoot.descendants().forEach((node, i) => {
-        node.data.key = `${node.data.key}_subgraph`
-        node.id = i + nodes.length + subGraphNodes.length
-      })
-      pack(dRoot)
-
-      const crossLinks = []
-      dRoot.children = dRoot.children || []
-      dRoot.children.forEach(child => {
-        let label = ''
-        if (child.data.intent === 'output') {
-          for (const link of node.data.crossLinks) {
-            if (child.data.key.startsWith(link[0])) {
-              label = link[1]
-              break
-            }
-          }
-          crossLinks.push({source: dRoot, target: child, id: `${dRoot.id}-${child.id}`, label: label})
+    const zoomTo = (v) => {
+      // for elementary tasks, set radius to 1/6
+      const k = zoomF(v[2])
+      const rk = (node) => {
+        return node.url === focus.url && !isWorkflow(node) ? 1 / 6 : 1
+      }
+      const bound = (d) => {
+        let x = (d.x - v[0]) * k + width / 2
+        let y = (d.y - v[1]) * k + height / 2
+        const s = 0.8 * scaling
+        if (d.type === 'tasks' && d.url !== source.url) {
+          x = Math.min(Math.max(x, s * width), (1 - s) * width)
+          y = Math.min(Math.max(y, s * height), (1 - s) * height)
         }
-        if (child.data.intent === 'input') {
-          let label = ''
-          for (const nodeChild of node._children) {
-            for (const link of nodeChild.data.crossLinks) {
-              if (dRoot.data.key.startsWith(link[0])) {
-                label = link[1]
-                break
-              }
-            }
-            if (label) break
+        return [x, y]
+      }
+
+      view = v
+      node
+        .attr('transform', d => {
+          const [x, y] = bound(d)
+          return `translate(${x},${y})`
+        })
+      node.selectAll('circle').attr('r', d => d.r * rk(d) * k)
+      node.selectAll('rect')
+        .attr('x', d => -d.r * rk(d) * k * whRatio)
+        .attr('y', d => -d.r * rk(d) * k)
+        .attr('rx', d => d.r * rk(d) * k * 0.05)
+        .attr('width', d => d.r * 2 * rk(d) * k * whRatio)
+        .attr('height', d => d.r * 2 * rk(d) * k)
+      line.attr('d', d => {
+        const translate = (node) => {
+          const isCircle = ['inputs', 'outputs', 'inputs-outputs'].includes(node.type)
+          const dr = node.r * rk(node) * k
+          const [x, y] = bound(node)
+          return {
+            x: x,
+            y: y,
+            r: isCircle ? dr : -dr
           }
-          crossLinks.push({source: child, target: dRoot, id: `${child.id}-${dRoot.id}`, label: label})
         }
+        return fLink(translate(d.source), translate(d.target))
       })
-      dRoot._children = dRoot.children
-      node.subGraph = {root: dRoot, crossLinks: crossLinks}
-      subGraphNodes.push(...dRoot.descendants())
+      node.selectAll('text').attr('y', d => -1.2 * d.r * rk(d) * k)
     }
 
-    // TODO using hierarchy is not required
-    const root = d3.hierarchy(data)
-    nodes = root.descendants()
+    const zoom = (d) => {
+      focus = d
+      if (!focus) return
+      const transition = svg.transition()
+        .duration(500)
+        .tween('zoom', d => {
+          const i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2])
+          return t => zoomTo(i(t))
+        })
 
-    const subGraphNodes = []
-
-    const crossLinkMap = {}
-
-    nodes.forEach((d, i) => {
-      // initialize all nodes at the center
-      d.x = width / 2
-      d.y = width / 2
-      d.id = i
-      d._children = d.children
-      if (d.depth) d.children = null
-      if (d.id) if (!crossLinkMap[d.data.key]) crossLinkMap[d.data.key] = d
-      if (d.data.type && d.data.type.startsWith('task')) addSubGraph(d)
-    })
-    addMarkers(svg, nodes, circleRadius)
-
-    addMarkers(svg, subGraphNodes)
-
-    // add zoom
-    const zoomBehaviors = d3.zoom()
-    .on('zoom', () => {
-      svgGroup.attr('transform', d3.event.transform)
-    })
-
-    svg.call(zoomBehaviors)
-
-    const simulation = d3.forceSimulation()
-      .force('crosslink', d3.forceLink().id(d => d.id).distance(linkDistance).strength(1.0))
-      .force('link', d3.forceLink().id(d => d.id).distance(linkDistance).strength(0.5))
-      .force('charge', d3.forceManyBody().strength(-50.0))
-      .velocityDecay(0.2)
-      .alphaDecay(0.2)
-      .force('x', d3.forceX(d => d.data.fixX || 0).strength(d => d.data.fixX === undefined ? 0 : 3))
-      .force('y', d3.forceY(d => d.data.fixY || 0).strength(d => d.data.fixY === undefined ? 0 : 3))
-      .force('collision', d3.forceCollide().radius(circleRadius * 2))
-
-    function drag(simulation) {
-      function dragStart(d) {
-        if (!d3.event.active) simulation.alphaTarget(0.7).restart()
-        d.fx = d.x
-        d.fy = d.y
-      }
-
-      function dragged(d) {
-        d.fx = d3.event.x
-        d.fy = d3.event.y
-      }
-
-      function dragEnd(d) {
-        if (!d3.event.active) simulation.alphaTarget(0)
-        d.fx = null
-        d.fy = null
-      }
-
-      return d3.drag()
-        .on('start', dragStart)
-        .on('drag', dragged)
-        .on('end', dragEnd)
+      node.selectAll('text')
+        .transition(transition)
     }
 
-    let node, link, crossLink
+    const update = (source) => {
+      if (!source) return
 
-    function ticked() {
-      link
-        .attr('x1', d => d.source.x)
-        .attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x)
-        .attr('y2', d => d.target.y)
+      if (!source.nodes || !source.nodes.length) return
 
-      crossLink
-        .attr('x1', d => d.source.x)
-        .attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x)
-        .attr('y2', d => d.target.y)
+      dragged = false
+
+      const setShowNodes = (inputValue) => {
+        const value = []
+        if (hasError) setCurrentNode(currentNode)
+        let sourceNode = currentNode
+        if (['inputs', 'outputs'].includes(currentNode.type)) {
+          sourceNode = currentNode.parent
+        }
+        if (!sourceNode) return
+        let total = 1
+        const nodes = sourceNode.nodes.filter(node => node.type === (currentNode.type || 'tasks'))
+        if (nodes.length) total = nodes[0].total
+        const toNumber = (value) => {
+          if (value.includes('%')) return Math.floor(parseFloat(value.replace('%')) * total / 100)
+          if (value.includes('.')) return Math.floor(parseFloat(value.replace('%')) * total)
+          value = parseInt(value)
+          if (value < 0) value = total + value
+          return value
+        }
+        for (const query of inputValue.split(',')) {
+          try {
+            const q = query.split(':')
+            if (q.length === 2) {
+              value.push(...range(...q.map((qi, n) => qi ? toNumber(qi) : n === 0 ? 0 : total)))
+            } else {
+              value.push(toNumber(q[0]))
+            }
+          } catch (error) {
+            console.error(error)
+            hasError = true
+            setCurrentNode(null)
+            break
+          }
+        }
+        if (!value.length) return
+        dquery['resolveIndices'][currentNode.type || 'tasks'] = [...new Set(value)]
+        source.nodes = source.nodes.filter(node => node.url !== currentNode.url)
+        // set children and links to recalculate node positions and links
+        const d = source
+        d.children = undefined
+        d.links = undefined
+        d.parent = source.parent
+        resolveSection(d, query).then(d => {
+          if (!d) return
+          getNodes(d, dquery).then(nodes => {
+            d.nodes = nodes
+            getLinks(d, query).then(links => {
+              d.links = links
+              update(d)
+              zoom(d)
+            }).catch(asyncError)
+          }).catch(asyncError)
+          .catch(asyncError)
+        })
+      }
+
+      d3.select('#nodes-filter-clear')
+        .on('click', () => {
+          const mid = (query.maxNodes || 6) / 2
+          setShowNodes(`:${mid},${-mid}:`)
+      })
+
+      d3.select('#nodes-filter-enter')
+        .on('keydown', () => {
+          const inputValue = d3.event.target.value
+          if (d3.event.key === 'Enter' && inputValue) setShowNodes(inputValue)
+        })
+
+      d3.select('#backbutton')
+        .on('click', () => {
+          previousNode = source.parent
+          handleClickIcon(source)
+        })
+
+      d3.select('#resetbutton')
+        .on('click', () => {
+          previousNode = 'root'
+          root.nodes = null
+          root.links = null
+          root.children = null
+          dquery.resolveIndices = {}
+          resolveSection(root, query).then(d => {
+            if (!d) return
+            getNodes(d, query).then(nodes => {
+              d.nodes = nodes
+              getLinks(d, query).then(links => {
+                d.links = links
+                update(d)
+                zoom(d)
+              }).catch(asyncError)
+            }).catch(asyncError)
+            .catch(asyncError)
+          })
+          svg.call(zoomBehaviors.transform, d3.zoomIdentity)
+          if (enableForce) simulation.alphaTarget(0)
+        })
+
+      d3.select('#legendtogglebutton')
+        .on('click', () => {
+          const visibility = legend.attr('visibility') === 'visible' ? 'hidden' : 'visible'
+          legend.attr('visibility', visibility)
+          setShowLegend(visibility === 'visible')
+        })
+
+      d3.select('#forcetogglebutton')
+        .on('click', () => {
+          enableForce = !enableForce
+          setEnableForce(enableForce)
+          update(source)
+          zoom(source)
+          if (enableForce) {
+            simulation.alphaTarget(0.7).restart()
+          } else {
+            simulation.alphaTarget(0)
+          }
+        })
+
+      // set ids and size
+      const maxLength = Math.max(...source.nodes
+        .filter(node => node.type === 'tasks').map(node => node.nChildren || 0))
+      source.size = source.nChildren / maxLength
+      source.id = id
+      id = id + 1
+      source.nodes.forEach((node) => {
+        node.size = isWorkflow(node) ? node.nChildren / maxLength : 1
+        // put a lower limit on size so node will not get too small
+        node.size = Math.max(node.size, 0.1)
+        node.id = id
+        id = id + 1
+      })
+
+      setNodesPosition(source)
+
+      nodes = [source, ...source.nodes]
+      const links = source.links
+
+      links.forEach((link) => {
+        link.id = `${link.source.id}-${link.target.id}`
+      })
+
+      addLinkMarkers(links)
+
+      if (enableForce) {
+        const k = zoomF(source.r * 2)
+        simulation
+          .nodes(source.nodes.filter(node => node.type === 'tasks'))
+          .on('tick', () => zoomTo(view))
+
+        simulation
+          .force('charge')
+          .strength(-10 / k ** 2)
+
+        simulation
+          .force('link')
+          .strength(0.005 / k)
+          .distance(source.r)
+          .links(source.links.filter(link => link.source.type === 'tasks' && link.target.type === 'tasks'))
+
+        simulation
+          .force('center', d3.forceCenter(source.x, source.y))
+
+        simulation
+          .force('collide', d3.forceCollide(source.r / 3).strength(2))
+      }
+
+      const handleMouseOverIcon = (d) => {
+        d3.select(`#icon-${d.id}`).style('stroke-opacity', 1)
+        if (d.url === source.url) {
+          if (!previousNode || previousNode === 'root') return
+          setTooltipContent(<p>Click to go back up</p>)
+          return
+        }
+        if (['inputs', 'outputs'].includes(d.type)) {
+          setTooltipContent(<p>Click to switch {d.type} filter</p>)
+        }
+        const sectionType = d.sectionType === 'tasks' ? 'task' : 'workflow'
+        if (d.type === 'tasks') setTooltipContent(<p>Click to expand {sectionType}</p>)
+      }
+
+      const handleMouseOutIcon = (d) => {
+        setTooltipContent('')
+        d3.select(`#icon-${d.id}`).style('stroke-opacity', 0.5)
+      }
+
+      const handleClickIcon = (d) => {
+        if (dragged) d.children = null
+        d3.event.stopPropagation()
+        setCurrentNode(d)
+        dquery['resolveIndices'][d.type || 'tasks'] = null
+        currentNode = d
+        if (!d.nodes || !d.nodes.length) {
+          return
+        }
+        if (d.url === source.url) {
+          if (!previousNode || previousNode === 'root') return
+          setCurrentNode(previousNode)
+          currentNode = previousNode
+          update(previousNode)
+          zoom(previousNode)
+          previousNode = previousNode.parent
+          return
+        }
+        d.parent = source
+        previousNode = d.parent
+        resolveSection(d, query).then(d => {
+          if (!d) return
+          getNodes(d, query).then(nodes => {
+            d.nodes = nodes
+            getLinks(d, query).then(links => {
+              d.links = links
+              update(d)
+              zoom(d)
+            }).catch(asyncError)
+          }).catch(asyncError)
+          .catch(asyncError)
+        })
+      }
+
+      node = gNode.selectAll('g')
+        .attr('visibility', 'hidden')
+        .attr('pointer-events', 'none')
+        .exit().remove()
+        .data(nodes, d => d.id)
+        .attr('cursor', d => d.nodes ? null : 'pointer')
+        .join('g')
+        .call(dragBehaviors)
 
       node
-        .attr('transform', d => `translate(${d.x},${d.y})`)
-    }
-
-    let nodesHistory = []
-    let currentNodesIndex = 0
-    const nodesMap = {}
-    nodes.forEach(node => {
-      nodesMap[node.id] = node
-    })
-
-    const pushNodes = (nodes) => {
-      nodesHistory.push(nodes.map(node => node.id))
-      currentNodesIndex = currentNodesIndex + 1
-    }
-
-    const rootNodes = root.leaves()
-    pushNodes(rootNodes)
-
-    d3.select('#backbutton')
-      .on('click', () => {
-        currentNodesIndex = currentNodesIndex - 1
-        currentNodesIndex = Math.max(currentNodesIndex, 0)
-        update(nodesHistory[currentNodesIndex].map(id => nodesMap[id]))
-        simulation.restart()
-      })
-
-    d3.select('#forwardbutton')
-      .on('click', () => {
-        currentNodesIndex = currentNodesIndex + 1
-        currentNodesIndex = Math.min(currentNodesIndex, nodesHistory.length - 1)
-        update(nodesHistory[currentNodesIndex].map(id => nodesMap[id]))
-        simulation.restart()
-      })
-
-    d3.select('#resetbutton')
-      .on('click', () => {
-      currentNodesIndex = 0
-      nodesHistory = []
-      pushNodes(rootNodes)
-      update(rootNodes)
-      simulation.restart()
-    })
-
-    function update(nodes) {
-      const links = []
-      const crossLinks = []
-      nodes.forEach(node => {
-        const nodeLinks = node.data.crossLinks || []
-        nodeLinks.forEach(link => {
-          const nodeTarget = crossLinkMap[link[0]]
-          if (node && nodes.includes(nodeTarget)) {
-            crossLinks.push({
-              source: node.id,
-              target: nodeTarget.id,
-              label: link[1],
-              id: `${node.id}-${nodeTarget.id}`,
-              dash: link[2],
-              marker: link[3] === undefined
-            })
-          }
+        .filter(d => d.type === 'tasks' || d.url === nodes[0].url)
+        .append('rect')
+        .attr('class', 'icon')
+        .attr('id', d => `icon-${d.id}`)
+        .attr('stroke', color.outline)
+        .attr('fill', d => nodeColor(d))
+        .attr('fill-opacity', d => {
+          if (d.type === 'link') return 0
+          if (!d.nodes || !d.nodes.filter(node => node.type === 'tasks').length) return 1
+          if (d.url === source.url) return 0.2
+          return 1
         })
-      })
+        .on('mouseover', handleMouseOverIcon)
+        .on('mouseout', handleMouseOutIcon)
+        .on('click', handleClickIcon)
 
-      //  update nodes
-      node = gNode.selectAll('g')
-        .data(nodes, d => d.id)
+      node
+        .filter(d => d.type === 'inputs' || d.type === 'outputs' || d.type === 'inputs-outputs')
+        .append('circle')
+        .attr('class', 'icon')
+        .attr('id', d => `icon-${d.id}`)
+        .attr('stroke', color.outline)
+        .attr('fill', d => nodeColor(d))
+        .on('mouseover', handleMouseOverIcon)
+        .on('mouseout', handleMouseOutIcon)
+        .on('click', handleClickIcon)
 
-      node.exit().remove()
-
-      const handleMouseOverText = d => {
-        d3.select(`#text-${d.id}`).style('fill', red[800])
-        const text = d.data.type.includes('workflow') ? 'overview page' : 'archive section'
-        if (d.data.entryId) {
-          setTooltipContent(`Go to ${text} for entry ${d.data.entryId}`)
-        }
-      }
-
-      const handleMouseOutText = d => {
-        setTooltipContent('')
-        d3.select(`#text-${d.id}`).style('fill', grey[800])
-      }
-
-      const handleClickText = d => {
-        if (d.id !== 0) {
-          let path = `entry/id/${d.data.entryId}`
-          const sectionPath = d.data.path ? d.data.path.replace(/\/(?=\d)/g, ':') : null
-          path = d.data.type.startsWith('workflow') ? path : sectionPath ? `${path}/data${sectionPath}` : path
+      node.append('text')
+        .attr('class', 'text')
+        .attr('fill', color.text)
+        .attr('font-weight', d => d.url === source.url ? 'bold' : 'none')
+        .attr('id', d => `text-${d.id}`)
+        .text(d => trimName(d.name))
+        .style('font-size', d => d.url === nodes[0].url ? 18 : 14)
+        .on('click', d => {
+          d3.event.stopPropagation()
+          if (!d.entryId || !d.parent) return
+          let path = `entry/id/${d.entryId}`
+          const sectionPath = d.path ? d.path.replace(/\/(?=\d)/g, ':') : null
+          path = d.sectionType.startsWith('workflow') ? path : sectionPath ? `${path}/data${sectionPath}` : path
           const url = getUrl(path)
           history.push(url)
-        }
-      }
-
-      const handleMouseOverCircle = d => {
-        d3.select(`#circle-${d.id}`).style('stroke-opacity', 1)
-        const children = d.children || []
-        children.forEach(child => {
-          d3.select(`#link-${d.id}-${child.id}`).style('stroke-opacity', 1)
-          d3.select(`#circle-${child.id}`).style('stroke-opacity', 1)
         })
-      }
-
-      const handleMouseOutCircle = d => {
-        d3.select(`#circle-${d.id}`).style('stroke-opacity', 0.5)
-        const children = d.children || []
-        children.forEach(child => {
-          d3.select(`#link-${d.id}-${child.id}`).style('stroke-opacity', 0.5)
-          d3.select(`#circle-${child.id}`).style('stroke-opacity', 0.5)
-        })
-      }
-
-      const handleMouseOverCrossLink = d => {
-        d3.select(`#crosslink-${d.id}`).style('stroke-opacity', 1.0)
-        d3.select(`.marker-${d.id}`).style('fill-opacity', 1.0)
-        d3.select(`#circle-${d.source.id}`).style('stroke', red[500]).style('stroke-opacity', 1.0)
-        d3.select(`#circle-${d.target.id}`).style('stroke', red[500]).style('stroke-opacity', 1.0)
-        setTooltipContent(d.label)
-      }
-      const handleMouseOutCrossLink = d => {
-        d3.select(`#crosslink-${d.id}`).style('stroke-opacity', 0.5)
-        d3.select(`.marker-${d.id}`).style('fill-opacity', 0.5)
-        d3.select(`#circle-${d.source.id}`).style('stroke', grey[500]).style('stroke-opacity', 0.5)
-        d3.select(`#circle-${d.target.id}`).style('stroke', grey[500]).style('stroke-opacity', 0.5)
-        setTooltipContent('')
-      }
-
-      const nodeEnter = node.enter().append('g')
-        .attr('id', d => `node-${d.id}`)
-        .on('click', d => {
-          if (d3.event.defaultPrevented) return
-
-          if (d.data.type.startsWith('task') && d.subGraph) {
-            const k = width / (circleRadius * 4)
-            const dNodes = d.subGraph.root.descendants()
-
-            gNode.selectAll('g').selectAll('.subgraph')
-              .attr('visibility', g => g.id === d.id ? 'visible' : 'hidden')
-
-            const node = d3.select(`#node-${d.id}`)
-              .raise()
-
-            node.select('.subgraph')
-              .attr('visibility', 'visible')
-
-            const dNode = node.select('.subgraph')
-              .raise()
-
-            const subNode = dNode.selectAll('circle')
-              .data(d.subGraph.root.children ? dNodes : [], d => d.id)
-
-            const subNodeEnter = subNode.enter()
-              .append('circle')
-              .attr('class', 'circle')
-              .attr('id', d => `circle-${d.id}`)
-              .attr('r', di => di.r * k)
-              .attr('fill', d => d.depth ? nomadPrimaryColor.light : nomadSecondaryColor.dark)
-              .attr('transform', di => `translate(${(di.x - dNodes[0].x) * k},${(di.y - dNodes[0].y) * k})`)
-              .on('mouseover', handleMouseOverCircle)
-              .on('mouseout', handleMouseOutCircle)
-
-            subNode.exit().remove()
-
-            subNodeEnter.merge(subNode)
-
-            const dCrossLinks = d.subGraph.root.children ? d.subGraph.crossLinks : []
-            const subCrossLink = dNode.select('.crosslink').raise().selectAll('path')
-              .data(dCrossLinks, d => d.id)
-
-            const subCrossLinkEnter = subCrossLink.enter()
-              .append('path')
-              .attr('class', 'crosslink')
-              .attr('id', d => `crosslink-${d.id}`)
-              .attr('marker-end', d => `url(#${d.id})`)
-              .attr('d', d => {
-                  const fcrossLink = (source, target) => {
-                    const path = d3.path()
-                    path.moveTo(source.x, source.y)
-                    path.lineTo(target.x, target.y)
-                    return path
-                  }
-                  const translate = (node) => {
-                    return {x: (node.x - dNodes[0].x) * k, y: (node.y - dNodes[0].y) * k}
-                  }
-                  return fcrossLink(translate(d.source), translate(d.target))
-              })
-              .on('mouseover', handleMouseOverCrossLink)
-              .on('mouseout', handleMouseOutCrossLink)
-
-            subCrossLink.exit().remove()
-
-            subCrossLinkEnter.merge(subCrossLink)
-
-            const subLabel = dNode.selectAll('text')
-              .data(d.subGraph.root.children ? dNodes : [], d => d.id)
-
-            const subLabelEnter = subLabel.enter()
-              .append('text')
-              .attr('class', 'text')
-              .attr('id', d => `text-${d.id}`)
-              .style('font-size', d => d.parent ? 12 : 18)
-              .attr('y', d => d.parent ? -10 : -d.r * k * 0.8)
-              .attr('text-anchor', 'middle')
-              .text(d => d.data.name)
-              .attr('transform', di => `translate(${(di.x - dNodes[0].x) * k},${(di.y - dNodes[0].y) * k})`)
-              .on('mouseover', handleMouseOverText)
-              .on('mouseout', handleMouseOutText)
-              .on('click', handleClickText)
-
-            subLabel.exit().remove()
-
-            subLabelEnter.merge(subLabel)
-
-            d.subGraph.root.children = d.subGraph.root.children ? null : d.subGraph.root._children
-          } else if (d._children) {
-            if (d.children) {
-              d.children = null
-            } else {
-              const tasks = d._children.filter(child => {
-                return child.data.type && (child.data.type.startsWith('workflow') || child.data.type.startsWith('task'))
-              })
-              if (tasks.length > 0) nodes = nodes.filter(node => node.id !== d.id)
-              const keys = nodes.map(node => node.data.key)
-              d._children.forEach(child => {
-                if (!keys.includes(child.data.key)) nodes.push(child)
-              })
-              d.children = d._children
-            }
-            // save snapshots of nodes
-            pushNodes(nodes)
-            update(nodes)
+        .on('mouseover', d => {
+          if (!d.type || !d.parent) return
+          if (!d.sectionType) return
+          d3.select(`#text-${d.id}`).style('font-weight', 'bold')
+            .text(d.name)
+          const text = d.sectionType.includes('workflow') ? 'overview page' : 'archive section'
+          if (d.entryId) {
+            setTooltipContent(<p>Click to go to {text} for entry<br/>{d.entryId}</p>)
           }
         })
-        .call(drag(simulation))
-
-      const subGraph = nodeEnter.append('g')
-        .attr('class', 'subgraph')
-
-      subGraph.append('g')
-        .attr('class', 'crosslink')
-
-      nodeEnter.append('circle')
-        .attr('class', 'circle')
-        .attr('id', d => `circle-${d.id}`)
-        .attr('r', circleRadius)
-        .attr('fill', d => {
-          if (d.data.type.startsWith('workflow')) return nomadPrimaryColor.dark
-          if (d.data.type.startsWith('task')) return nomadSecondaryColor.dark
-          return nomadPrimaryColor.light
+        .on('mouseout', d => {
+          setTooltipContent('')
+          d3.select(`#text-${d.id}`).style('font-weight', null)
+            .text(d => trimName(d.name))
         })
-        .on('mouseover', handleMouseOverCircle)
-        .on('mouseout', handleMouseOutCircle)
 
-      nodeEnter.append('text')
-        .attr('class', 'text')
-        .attr('id', d => `text-${d.id}`)
-        .text(d => d.data.name)
-        .style('font-size', d => d.depth ? 12 : 18)
-        .attr('text-anchor', 'middle')
-        .attr('y', -circleRadius - 5)
-        .on('click', handleClickText)
-        .on('mouseover', handleMouseOverText)
-        .on('mouseout', handleMouseOutText)
+      const link = gLink.selectAll('path')
+        .attr('visibility', 'hidden')
+        .attr('pointer-events', 'none')
+        .exit().remove()
+        .data(links)
 
-      // update the text
-      node.selectAll('text')
-        .text(d => d.data.name)
+      line = link.enter()
+        .append('path')
+        .attr('pointer-events', 'all')
+        .attr('id', d => `link-${d.id}`)
+        .attr('marker-end', d => `url(#${d.id})`)
+        .attr('visibility', 'visible')
+        .on('click', d => {
+          d3.event.stopPropagation()
+          const parent = d.source.parent || d.target.parent
+          if (!parent) return
+          // use the parent node to containt source and target nodes
+          const linkNode = parent
+          const sourceNode = d.source
+          const targetNode = d.target
+          if (sourceNode.type !== 'tasks' || targetNode.type !== 'tasks') return
 
-      node = nodeEnter.merge(node)
+          const store = (node, recursive) => {
+            if (typeof node !== 'object') return
+            node._name = node.name
+            node._type = node.type
+            node.children = null
+            if (node.links) {
+              node._links = [...node.links]
+              node.links = null
+            }
+            if (node.nodes) {
+              node._nodes = [...node.nodes]
+              if (recursive) {
+                node.nodes.forEach(n => {
+                  store(n)
+                })
+              }
+            }
+          }
 
-      link = gLink.selectAll('line')
-        .data(links, d => d.target.id)
+          const restore = (node) => {
+            if (typeof node !== 'object' || !node._nodes) return
+            node.nodes = node._nodes
+            node.links = node._links
+            node.children = null
+            node.name = node._name || node.name
+            node.type = node._type || node.type
+          }
 
-      link.exit().remove()
+          // store the original nodes info
+          store(linkNode)
+          store(sourceNode)
+          store(targetNode)
 
-      const linkEnter = link.enter().append('line')
-        .attr('id', d => `link-${d.source.id}-${d.target.id}`)
+          // include into sourceNode the tagetNode inputs
+          const inputs = [...targetNode.nodes.filter(node => node.type === 'inputs')]
+          let url = {}
+          sourceNode.nodes.forEach(node => {
+            url[node.url] = node.name
+          })
+          inputs.forEach(input => {
+            if (Object.keys(url).includes(input.url)) {
+              sourceNode.nodes.push(input)
+              input._name = input.name
+              const sourceName = url[input.url]
+              if (sourceName !== input.name) input.name = `${input.name}/${url[input.url]}`
+              input._type = input.type
+              input.type = 'inputs-outputs'
+            }
+          })
 
-      link = linkEnter.merge(link)
+          linkNode.type = 'link'
+          // parent nodes should contain the source, target
+          linkNode.nodes = [sourceNode, targetNode]
+          // and the targetNode inputs
+          linkNode.nodes.push(...inputs)
 
-      crossLink = gCrossLink.selectAll('line')
-        .data(crossLinks, d => d.id)
+          // and the sourceNode outputs
+          url = inputs.map(node => node.url)
+          const outputs = sourceNode.nodes.filter(node => node.type === 'outputs' && !url.includes(node.url))
+          linkNode.nodes.push(...outputs)
 
-      crossLink.exit().remove()
+          // and the tagetNode outputs
+          linkNode.nodes.push(...targetNode.nodes.filter(node => node.type === 'outputs'))
 
-      const crossLinkEnter = crossLink.enter().append('line')
-        .attr('class', 'crosslink')
-        .style('stroke-dasharray', d => d.dash)
-        .attr('marker-end', d => d.marker ? `url(#${d.id})` : null)
-        .attr('id', d => `crosslink-${d.id}`)
-        .on('mouseover', handleMouseOverCrossLink)
-        .on('mouseout', handleMouseOutCrossLink)
-
-      crossLink = crossLinkEnter.merge(crossLink)
-
-      simulation
-        .nodes(nodes)
-        .on('tick', ticked)
-
-      // disabled links links
-      // simulation
-      //   .force('link')
-      //   .links(links)
-
-      simulation
-        .force('crosslink')
-        .links(crossLinks)
+          // generate links for this configuration
+          getLinks(linkNode, query).then(links => {
+            for (const [index, link] of links.entries()) {
+              if (link.target.url === sourceNode.url) {
+                // flip source and target since node is output of sourceNode
+                links[index] = {source: link.target, target: link.source, id: link.id, label: 'Output'}
+              } else if (link.target.url === linkNode.url || link.source.url === linkNode.url) {
+                // remove link to and from rootNode
+                links[index] = null
+              } else if (link.source.url === sourceNode.url && link.target.url === targetNode.url) {
+                // remove link from sourceNode to targetNode, unnecessary
+                links[index] = null
+              }
+            }
+            linkNode.links = links.filter(link => link)
+            linkNode.name = null
+            // linkNode.type = 'link'
+            update(linkNode)
+            zoom(linkNode)
+            previousNode = linkNode
+            // reset original nodes info
+            inputs.forEach(input => {
+              input.type = 'inputs'
+              input.name = input._name || input.name
+              input.children = null
+            })
+            linkNode.type = linkNode._type
+            restore(linkNode)
+            restore(sourceNode)
+            restore(targetNode)
+            setNodesPosition(linkNode)
+        })
+        })
+        .on('mouseover', d => {
+          d3.select(`#link-${d.id}`).style('stroke-opacity', 1.0)
+          svg.select(`.marker-${d.id}`).attr('fill-opacity', 1.0)
+          d3.select(`#icon-${d.source.id}`).style('stroke', color.link).style('stroke-opacity', 1.0)
+          d3.select(`#icon-${d.target.id}`).style('stroke', color.link).style('stroke-opacity', 1.0)
+          setTooltipContent(<p>{d.label}</p>)
+        })
+        .on('mouseout', d => {
+          d3.select(`#link-${d.id}`).style('stroke-opacity', 0.5)
+          svg.select(`.marker-${d.id}`).attr('fill-opacity', 0.5)
+          d3.select(`#icon-${d.source.id}`).style('stroke', color.outline).style('stroke-opacity', 0.5)
+          d3.select(`#icon-${d.target.id}`).style('stroke', color.outline).style('stroke-opacity', 0.5)
+          setTooltipContent('')
+        })
     }
 
-    update(rootNodes)
-  }, [data, svgRef, history, finalLayout, setTooltipContent])
+    resolveSection(source, query).then(source => {
+      if (!source) return
+      getNodes(source, query).then(nodes => {
+        source.nodes = nodes
+        source.x = 0
+        source.y = 0
+        source.r = width / 2
+        getLinks(source, query).then(links => {
+          source.links = links
+          focus = source
+          root = source
+          setCurrentNode(source)
+          currentNode = source
+          update(source)
+          zoomTo([source.x, source.y, source.r * 2])
+        }).catch(asyncError)
+      }).catch(asyncError)
+      .catch(asyncError)
+    })
+  }, [
+    history,
+    setTooltipContent,
+    setCurrentNode,
+    setShowLegend,
+    setEnableForce,
+    query,
+    source,
+    svgRef,
+    finalLayout,
+    asyncError
+  ])
+
   return <svg className={classes.root} ref={svgRef}></svg>
 })
 
-ForceDirected.propTypes = {
-  data: PropTypes.object.isRequired,
+Graph.propTypes = {
+  source: PropTypes.object.isRequired,
+  query: PropTypes.object.isRequired,
   layout: PropTypes.object,
-  setTooltipContent: PropTypes.any
+  setTooltipContent: PropTypes.any,
+  setCurrentNode: PropTypes.any,
+  setShowLegend: PropTypes.any,
+  setEnableForce: PropTypes.any
 }
 
 const WorkflowCard = React.memo(({archive}) => {
-  const [data, setData] = useState()
   const {api} = useApi()
   const [tooltipContent, setTooltipContent] = useState('')
   const [tooltipPosition, setTooltipPosition] = useState({x: undefined, y: undefined})
-
-  useEffect(() => {
-    const crossLinks = {}
-
-    const addCrossLink = (key, link) => {
-      if (key in crossLinks) {
-        crossLinks[key].push(link)
-      } else {
-        crossLinks[key] = [link]
-      }
-    }
-
-    const createHierarchy = async function(section, archive, name, type, index, reference) {
-      const baseUrl = createEntryUrl(apiBase, archive?.metadata?.upload_id, archive?.metadata?.entry_id)
-
-      if (typeof section === 'string') {
-        const match = section.match('.*/(\\w+)/(\\d+)$')
-        if (match) {
-          type = type || match[1]
-          index = match.length > 2 ? parseInt(match[2]) : 0
-        } else {
-          type = type || section.split('/').pop()
-        }
-        reference = section
-      }
-
-      // resolve section from reference path
-      const resolved = await (async (path) => {
-        if (!(typeof path === 'string')) {
-          return [section, archive, path, baseUrl]
-        }
-        if (path.startsWith('#')) path = path.slice(1)
-        if (!path.includes('#/')) {
-          try {
-            return [resolveInternalRef(path, archive), archive, path, baseUrl]
-          } catch (error) {
-            return [null, archive, path, baseUrl]
-          }
-        }
-        const url = resolveNomadUrl(path, baseUrl)
-        const query = {'workflow2': '*', 'metadata': '*'}
-        try {
-          const response = await api.post(`/entries/${url.entryId}/archive/query`, {required: query})
-          let sectionPath = path.split('#').pop()
-          if (!sectionPath.startsWith('/')) sectionPath = `/${sectionPath}`
-          const archive = response.data.archive
-          const section = type !== 'section' ? resolveInternalRef(sectionPath, archive) : sectionPath
-          const baseUrl = createEntryUrl(apiBase, archive?.metadata?.upload_id, archive?.metadata?.entry_id)
-          return [section, archive, sectionPath, baseUrl]
-        } catch (error) {
-          console.error(`Cannot resolve entry ${url.entryId}: ${error}`)
-          return [null, archive, path, baseUrl]
-        }
-      })(reference)
-
-      // get data for the current section
-      const sectionData = await (async (section, archive, path, baseUrl) => {
-        const sectionKey = [baseUrl, path].join('#')
-        const children = []
-        const maxNodes = 6
-        const start = Math.floor(maxNodes / 2)
-        if (typeof section === 'string' || !section) {
-          return {
-            name: name,
-            key: sectionKey,
-            type: type,
-            size: 20,
-            children: null,
-            path: path.split('#').pop(),
-            entryId: archive?.metadata?.entry_id,
-            index: index
-          }
-        }
-        if (Array.isArray(section)) {
-          for (const [index, ref] of section.entries()) {
-            const child = await createHierarchy(ref, archive, ref.name, type, index, `${path}/${index}`)
-            children.push(child)
-          }
-        } else {
-          const taskInputs = []
-          const taskOutputs = []
-          if (section.section) {
-            const child = await createHierarchy(section.section, archive, section.name, 'section')
-            children.push(child)
-          }
-          if (section.inputs) {
-            let parent
-            const end = section.inputs.length - start
-            for (const [index, ref] of section.inputs.entries()) {
-              if (index < start || index >= end || start + 1 === end) {
-                parent = await createHierarchy(ref, archive, ref.name || 'input', 'inputs', index, `${path}/inputs/${index}`)
-                if (!parent) continue
-                const child = parent.children ? parent.children[0] : null
-                if (child) {
-                  addCrossLink(child.key, [sectionKey, ref.name || ''])
-                  child.intent = 'input'
-                  taskInputs.push(child)
-                }
-              }
-            }
-            if (section.inputs.length > maxNodes + 1) {
-              const otherInputs = {
-                name: `Inputs ${start + 1} - ${end} not shown`,
-                type: taskInputs[start - 1].type,
-                path: taskInputs[start - 1].path,
-                entryId: taskInputs[start - 1].entryId,
-                key: `${taskInputs[start - 1].key}.invisible.input`,
-                intent: 'input',
-                size: 20
-              }
-              taskInputs.splice(start, 0, otherInputs)
-              addCrossLink(taskInputs[start - 1].key, [otherInputs.key, '', null, false])
-              addCrossLink(taskInputs[start + 1].key, [otherInputs.key, '', null, false])
-            }
-            children.push(...taskInputs)
-          }
-          if (section.outputs) {
-            const end = section.outputs.length - start
-            for (const [index, ref] of section.outputs.entries()) {
-              if (index < start || index >= end || start + 1 === end) {
-                const parent = await createHierarchy(ref, archive, ref.name || 'output', 'outputs', index, `${path}/outputs/${index}`)
-                if (!parent) continue
-                const child = parent.children ? parent.children[0] : null
-                if (child) {
-                  addCrossLink(sectionKey, [child.key, ref.name || ''])
-                  child.intent = 'output'
-                  taskOutputs.push(child)
-                }
-              }
-            }
-            if (section.outputs.length > maxNodes + 1) {
-              const otherOutputs = {
-                name: `Outputs ${start + 1} - ${end} not shown`,
-                type: taskOutputs[start - 1].type,
-                path: taskOutputs[start - 1].path,
-                entryId: taskOutputs[start - 1].entryId,
-                key: `${taskOutputs[start - 1].key}.invisible.output`,
-                intent: 'output',
-                size: 20
-              }
-              taskOutputs.splice(start, 0, otherOutputs)
-              addCrossLink(taskOutputs[start - 1].key, [otherOutputs.key, '', null, false])
-              addCrossLink(taskOutputs[start + 1].key, [otherOutputs.key, '', null, false])
-            }
-            children.push(...taskOutputs)
-          }
-          if (section.task) {
-            const task = await createHierarchy(section.task, archive)
-            task.name = section.name || task.name
-            task.children = task.children || []
-            const taskKeys = task.children.map(child => child.key)
-            taskInputs.forEach(child => {
-              if (!taskKeys.includes(child.key)) task.children.push(child)
-            })
-            taskOutputs.forEach(child => {
-              if (!taskKeys.includes(child.key)) task.children.push(child)
-            })
-            children.push(task)
-            return task
-          }
-          if (section.tasks) {
-            type = 'workflow'
-            // resolve only several first and last tasks
-            const end = section.tasks.length - start
-            const sectionChildren = []
-            for (const [index, ref] of section.tasks.entries()) {
-              if (index < start || index >= end || start + 1 === end) {
-                const task = await createHierarchy(ref, archive, ref.name || 'task', 'tasks', index, `${path}/tasks/${index}`)
-                if (task) sectionChildren.push(task)
-              }
-            }
-            if (section.tasks.length > maxNodes + 1) {
-              const otherTasks = {
-                name: `Tasks ${start + 1} - ${end} not shown`,
-                type: sectionChildren[start - 1].type,
-                path: sectionChildren[start - 1].path,
-                entryId: sectionChildren[start - 1].entryId,
-                key: `${sectionChildren[start - 1].key}.invisible.task`,
-                size: 20
-              }
-              sectionChildren.splice(start, 0, otherTasks)
-              addCrossLink(sectionChildren[start - 1].key, [otherTasks.key, '', null, false])
-              addCrossLink(sectionChildren[start + 1].key, [otherTasks.key, '', null, false])
-            }
-            children.push(...sectionChildren)
-          }
-        }
-
-        return {
-          name: section.name || name || type,
-          key: sectionKey,
-          type: type,
-          size: 20,
-          children: children.length === 0 ? null : children,
-          path: path,
-          entryId: archive?.metadata?.entry_id,
-          index: index
-        }
-      })(resolved[0], resolved[1], resolved[2], resolved[3])
-
-      return sectionData
-    }
-
-    const workflow = archive?.workflow2
-    if (workflow) {
-      createHierarchy('/workflow2', archive, 'Workflow').then(result => {
-        // save the cross links to each section
-        function getLinks(section) {
-          section.crossLinks = crossLinks[section.key]
-          if (section.children) {
-            section.children.forEach(child => {
-            getLinks(child)
-            })
-          }
-        }
-        getLinks(result)
-        setData(result)
-      })
-    }
-  }, [archive, api])
+  const [showLegend, setShowLegend] = useState(true)
+  const [enableForce, setEnableForce] = useState(false)
+  const [currentNode, setCurrentNode] = useState({type: 'tasks'})
+  const [inputValue, setInputValue] = useState('')
+  const query = useMemo(() => ({
+    api: api,
+    required: { 'workflow2': '*', 'metadata': '*' },
+    sectionKeys: ['inputs', 'tasks', 'outputs'],
+    maxNodes: 6
+  }), [api])
 
   const graph = useMemo(() => {
-    if (!data) {
-      return ''
+    if (!archive || !archive.workflow2) return ''
+
+    const source = {
+      path: '/workflow2',
+      archive: archive
     }
 
-    return <ForceDirected data={data} setTooltipContent={setTooltipContent}></ForceDirected>
-  }, [data])
+    return <Graph
+      source={source}
+      query={query}
+      setTooltipContent={setTooltipContent}
+      setCurrentNode={setCurrentNode}
+      setShowLegend={setShowLegend}
+      setEnableForce={setEnableForce}
+    ></Graph>
+  }, [archive, query])
+
+  let nodeType = 'tasks'
+  let nodesCount = 0
+  if (currentNode) {
+    nodeType = currentNode.type || 'tasks'
+    let sourceNode = currentNode
+    if (['inputs', 'outputs'].includes(nodeType)) sourceNode = currentNode.parent || currentNode
+    const nodes = sourceNode.nodes ? sourceNode.nodes.filter(node => node.type === nodeType) : []
+    if (nodes.length) nodesCount = nodes[0].total
+  }
+
+  let label = `No ${nodeType.slice(0, -1)} to show`
+  if (nodesCount) label = `Filter ${nodeType} (N=${nodesCount})`
 
   const actions = <div>
+    <FormControl margin='none'>
+      <TextField
+        error={!currentNode}
+        size='medium'
+        id='nodes-filter-enter'
+        label={currentNode ? label : 'Invalid input'}
+        disabled={!nodesCount || !currentNode}
+        placeholder={'Enter range: 5, 4:-1, :50%'}
+        variant='outlined'
+        value={inputValue}
+        onChange={(event) => setInputValue(event.target.value)}
+        InputProps={{
+          endAdornment: (
+            <IconButton id='nodes-filter-clear' onClick={() => setInputValue('')} size='medium'>
+              <Clear />
+            </IconButton>
+          )
+        }}
+      ></TextField>
+    </FormControl>
+    <IconButton id='forcetogglebutton'>
+      <Tooltip title={`${enableForce ? 'Disable' : 'Enable'} force simulation`}>
+        {enableForce ? <StopSharp /> : <PlayArrowSharp />}
+      </Tooltip>
+    </IconButton>
+    <IconButton id='legendtogglebutton'>
+      <Tooltip title={showLegend ? 'Hide legend' : 'Show legend'}>
+        {showLegend ? <LabelOff /> : <Label />}
+      </Tooltip>
+    </IconButton>
     <IconButton id='backbutton'>
       <Tooltip title="Back">
         <Undo />
-      </Tooltip>
-    </IconButton>
-    <IconButton id='forwardbutton'>
-      <Tooltip title="Forward">
-        <Redo />
       </Tooltip>
     </IconButton>
     <IconButton id='resetbutton'>
@@ -972,9 +1241,6 @@ const WorkflowCard = React.memo(({archive}) => {
     <PropertyGrid>
       <Tooltip title={tooltipContent}
         onMouseMove={event => setTooltipPosition({x: event.pageX, y: event.pageY})}
-        enterNextDelay={700}
-        leaveDelay={700}
-        arrow
         PopperProps={
           {anchorEl: {
             clientHeight: 0,
@@ -990,10 +1256,10 @@ const WorkflowCard = React.memo(({archive}) => {
           }}
         }
         >
-          <div>
-            {graph}
-          </div>
-        </Tooltip>
+        <div>
+          {graph}
+        </div>
+      </Tooltip>
     </PropertyGrid>
   </PropertyCard>
 })
