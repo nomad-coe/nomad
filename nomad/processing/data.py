@@ -145,7 +145,7 @@ def get_rfc3161_token(
                     params['certificate'] = f.read()
             else:
                 # a network location
-                params['certificate'] = requests.get(cert).content
+                params['certificate'] = requests.get(cert, timeout=10).content
         stamper = rfc3161ng.RemoteTimestamper(server, **params)
         return stamper(data=hash_string.encode('utf-8'))
     except Exception:
@@ -786,27 +786,35 @@ class Entry(Proc):
         entry_metadata.nomad_commit = ''
         entry_metadata.entry_hash = self.upload_files.entry_hash(self.mainfile, self.mainfile_key)
 
+        get_timestamp: bool = True  # do we need to get a new timestamp?
+        if config.process.rfc3161_skip_published and self.upload.published:
+            get_timestamp = False
+
         try:
             with self.upload_files.read_archive(self.entry_id) as archive:
                 entry_timestamp = archive[self.entry_id]['metadata']['entry_timestamp']
                 stored_seed = entry_timestamp['token_seed']
                 stored_token = base64.b64decode(entry_timestamp['token'])
                 stored_server = entry_timestamp['tsa_server']
+            has_existing_timestamp: bool = True
         except KeyError:
             stored_seed = None
             stored_token = None
             stored_server = None
-        if stored_seed != entry_metadata.entry_hash:
+            has_existing_timestamp = False
+
+        if stored_seed == entry_metadata.entry_hash:
+            get_timestamp = False
+
+        if get_timestamp:
             # entry is new or has changed
-            token = get_rfc3161_token(entry_metadata.entry_hash)
-            if token:
-                # 1. save to entry metadata
+            if token := get_rfc3161_token(entry_metadata.entry_hash):
                 entry_metadata.entry_timestamp = RFC3161Timestamp(
                     token_seed=entry_metadata.entry_hash,
                     token=token,
                     tsa_server=config.rfc3161_timestamp.server,
                     timestamp=rfc3161ng.get_timestamp(token))
-        else:
+        elif has_existing_timestamp:
             # entry is unchanged
             entry_metadata.entry_timestamp = RFC3161Timestamp(
                 token_seed=stored_seed,
@@ -1715,7 +1723,7 @@ class Upload(Proc):
             self.set_last_status_message('Refreshing staging files')
             self._cleanup_staging_files()
             with utils.timer(logger, 'upload extracted'):
-                self.upload_files.to_staging_upload_files(create=True)
+                self.upload_files.to_staging_upload_files(create=True, include_archive=True)
         elif not StagingUploadFiles.exists_for(self.upload_id):
             # Create staging files
             self.set_last_status_message('Creating staging files')

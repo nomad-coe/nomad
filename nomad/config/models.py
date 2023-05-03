@@ -547,6 +547,7 @@ class Process(NomadSettings):
         True will redirect lines to stdout (e.g. print output) that occur during
         processing (e.g. created by parsers or normalizers) as log entries.
     ''')
+    rfc3161_skip_published = False  # skip published entries, regardless of timestamp
 
 
 class Reprocess(NomadSettings):

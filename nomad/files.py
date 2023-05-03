@@ -1356,10 +1356,13 @@ class PublicUploadFiles(UploadFiles):
             staging_upload_files.add_rawfiles(raw_zip_file.os_path)
 
         if include_archive:
-            with self._open_msg_file() as archive:
-                for entry_id, data in archive.items():
-                    entry_id = entry_id.strip()
-                    staging_upload_files.write_archive(entry_id, data.to_dict())
+            try:
+                with self._open_msg_file() as archive:
+                    for entry_id, data in archive.items():
+                        entry_id = entry_id.strip()
+                        staging_upload_files.write_archive(entry_id, data.to_dict())
+            except FileNotFoundError:
+                pass
 
         return staging_upload_files
 
