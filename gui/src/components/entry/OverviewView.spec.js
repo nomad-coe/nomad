@@ -320,9 +320,9 @@ test.each([
 test.each([
   [
     'an author',
-    'tests.states.entry.eln',
+    'tests.states.entry.references',
     'tests/data/entry/eln-concurrent',
-    'bC7byHvWJp62Sn9uiuJUB38MT5j-',
+    'MOP2x0BEo4BrUikcqz591jmqI7sW',
     'test',
     'password'
   ]
@@ -331,7 +331,9 @@ test.each([
   const screen1 = render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
 
   // Wait until the initial load is done by checking one of the card titles
-  await screen1.findByText('HotplateAnnealing')
+  await screen1.findByText('Sample')
+  await screen1.findByTitle('Save entry')
+  await screen1.findByTitle('Delete entry')
 
   const saveButton1 = screen1.getByTitle('Save entry').closest('button')
   expect(saveButton1).toBeInTheDocument()
@@ -345,11 +347,9 @@ test.each([
   const screen2 = render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
 
   // Wait until the initial load is done by checking one of the card titles
-  await screen2.findByText('HotplateAnnealing')
+  await screen2.findByTitle('Save entry')
 
-  // Weird jest problem: sometimes we find multiple hits for 'Save entry'.
-  // Workaround: take the first one in the list.
-  const saveButton2 = screen2.queryAllByTitle('Save entry')[0].closest('button')
+  const saveButton2 = screen2.getByTitle('Save entry').closest('button')
   expect(saveButton2).toBeInTheDocument()
   expect(saveButton2).toBeDisabled()
 
@@ -365,7 +365,7 @@ test.each([
   await screen2.findByText('The changes cannot be saved. The content has been modified by someone else.')
 
   // Wait for the last API calls (e.g. reference card) to finish being recorded.
-  await waitForGUI(5000)
+  await waitForGUI(1000)
 
   closeAPI()
 })
