@@ -17,13 +17,15 @@
 #
 
 import datetime
+import os
 
 import httpx
 import pytest
 import rfc3161ng
 
+from nomad.archive import write_archive, read_archive
 from nomad.datamodel.datamodel import RFC3161Timestamp
-from nomad.processing.data import get_rfc3161_token
+from nomad.processing.data import get_rfc3161_token, Entry
 
 
 @pytest.mark.parametrize('server,cert,result', [
@@ -57,3 +59,41 @@ def test_rfc3161ng_timestamp(server, cert, result, monkeysession):
         new_metadata = RFC3161Timestamp.m_from_dict(metadata.m_to_dict())
         assert new_metadata.token == token
         assert rfc3161ng.get_timestamp(new_metadata.token) == rfc3161ng_time
+
+
+def test_rfc3161ng_processing(published, monkeypatch):
+    entry_id = Entry.objects(upload_id=published.upload_id).first().entry_id
+    file_path = published.upload_files._create_msg_file_object(
+        published.upload_files, published.upload_files.access, fallback=True).os_path
+
+    archive = read_archive(file_path)[entry_id].to_dict()
+    assert 'entry_timestamp' in archive['metadata']
+
+    original_timestamp = archive['metadata']['entry_timestamp']
+
+    def _re_process():
+        published.process_upload()
+        published.publish_upload(embargo_length=12)
+        try:
+            published.block_until_complete(interval=.01)
+        except Exception:
+            pass
+        return read_archive(file_path)[entry_id].to_dict()
+
+    # 0. assert reprocessing does not change timestamp
+    archive = _re_process()
+    assert 'entry_timestamp' in archive['metadata']
+    assert archive['metadata']['entry_timestamp'] == original_timestamp
+
+    # 1. old timestamp deleted, published, skip published, expect no timestamp
+    os.remove(file_path)
+    del archive['metadata']['entry_timestamp']
+    write_archive(file_path, 1, data=[(entry_id, archive)])
+    monkeypatch.setattr('nomad.config.process.rfc3161_skip_published', True)
+    archive = _re_process()
+    assert 'entry_timestamp' not in archive['metadata']
+
+    # 2. published, NOT skip published, expect timestamp
+    monkeypatch.setattr('nomad.config.process.rfc3161_skip_published', False)
+    archive = _re_process()
+    assert 'entry_timestamp' in archive['metadata']

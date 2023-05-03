@@ -419,8 +419,8 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
 
     if with_failure != 'not-matched':
         for archive_file in old_archive_files:
-            with open(published.upload_files.join_file(archive_file).os_path, 'wt') as f:
-                f.write('')
+            # delete all archive files
+            os.remove(published.upload_files.join_file(archive_file).os_path)
 
     if with_failure == 'after':
         raw_files = create_template_upload_file(tmp, 'tests/data/proc/templates/unparsable/template.json')
