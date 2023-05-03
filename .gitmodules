@@ -13,7 +13,7 @@
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub.git
 [submodule "dependencies/parsers/nexus"]
 	path = dependencies/parsers/nexus
-	url = https://github.com/nomad-coe/nomad-parser-nexus.git
+	url = https://github.com/FAIRmat-NFDI/pynxtools.git
 	branch = master
 [submodule "gui/crystcif-parse"]
 	path = gui/crystcif-parse
