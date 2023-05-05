@@ -218,11 +218,8 @@ class SystemNormalizer(SystemBasedNormalizer):
         # reciprocal lattice vectors
         lattice_vectors_reciprocal = get_value(
             Atoms.lattice_vectors_reciprocal, numpy=True, source=system.atoms)
-        if lattice_vectors_reciprocal is None:
-            if lattice_vectors is None:
-                self.logger.error('no lattice vectors, so no reciprocal lattice vectors')
-            else:
-                system.atoms.lattice_vectors_reciprocal = 2 * np.pi * atomutils.reciprocal_cell(lattice_vectors.magnitude)  # there is also a get_reciprocal_cell method in ase
+        if lattice_vectors_reciprocal is None and lattice_vectors is not None:
+            system.atoms.lattice_vectors_reciprocal = 2 * np.pi * atomutils.reciprocal_cell(lattice_vectors.magnitude)  # there is also a get_reciprocal_cell method in ase
 
         # configuration
         configuration = [
