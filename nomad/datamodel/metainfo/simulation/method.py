@@ -1728,6 +1728,8 @@ class Method(ArchiveSection):
 
     force_field = SubSection(sub_section=ForceField.m_def)
 
+    core_hole = SubSection(sub_section=CoreHole.m_def)
+
     k_mesh = SubSection(sub_section=KMesh.m_def)
 
     frequency_mesh = SubSection(sub_section=FrequencyMesh.m_def)
@@ -1745,8 +1747,6 @@ class Method(ArchiveSection):
     basis_set = SubSection(sub_section=BasisSet.m_def, repeats=True, label_quantity='type')
 
     photon = SubSection(sub_section=Photon.m_def, repeats=True)
-
-    core_hole = SubSection(sub_section=CoreHole.m_def, repeats=True)
 
 
 m_package.__init_metainfo__()
