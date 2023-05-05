@@ -327,7 +327,6 @@ class TopologyNormalizer():
             Classification.Atom: 'atom',
             Classification.Class0D: 'molecule / cluster',
             Classification.Class1D: '1D',
-            Classification.Class2D: '2D',
             Classification.Surface: 'surface',
             Classification.Material2D: '2D',
             Classification.Unknown: 'unavailable'
