@@ -64,7 +64,7 @@ from nomad.datamodel.metainfo.workflow import (
     EOSFit
 )
 from nomad.datamodel.metainfo.workflow2 import (
-    Workflow as WorkflowNew, Link, TaskReference
+    Link, TaskReference
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
     GWMethod, GW as GWworkflow
@@ -414,6 +414,65 @@ def get_template_band_structure(
     return archive
 
 
+def get_template_gw_workflow() -> EntryArchive:
+    # Defining DFT and GW SinglePoint archives and adding band_structure and dos to them.
+    archive_dft = get_template_dft()
+    archive_gw = get_template_excited()
+    band_gaps: List = None
+    type: str = 'electronic'
+    has_references: bool = True
+    has_reciprocal_cell: bool = True
+    archive_dft = add_template_band_structure(
+        archive_dft, band_gaps, type, has_references, has_reciprocal_cell)
+    archive_gw = add_template_band_structure(
+        archive_gw, band_gaps, type, has_references, has_reciprocal_cell)
+    fill: List = [[[0, 1], [2, 3]]]
+    energy_reference_fermi: Union[float, None] = None
+    energy_reference_highest_occupied: Union[float, None] = None
+    energy_reference_lowest_unoccupied: Union[float, None] = None
+    n_values: int = 101
+    archive_dft = add_template_dos(
+        archive_dft, fill, energy_reference_fermi, energy_reference_highest_occupied,
+        energy_reference_lowest_unoccupied, n_values, type)
+    archive_gw = add_template_dos(
+        archive_gw, fill, energy_reference_fermi, energy_reference_highest_occupied,
+        energy_reference_lowest_unoccupied, n_values, type)
+    archive_gw.run[0].method = None
+    run = archive_gw.run[0]
+    method_gw = run.m_create(Method)
+    method_gw.gw = GW(type='G0W0')
+    # Normalizing SinglePoint archives
+    run_normalize(archive_dft)
+    run_normalize(archive_gw)
+    # Defining DFT and GW tasks for later the GW workflow
+    task_dft = TaskReference(task=archive_dft.workflow2)
+    task_dft.name = 'DFT'
+    task_dft.inputs = [Link(name='Input structure', section=archive_dft.run[-1].system[-1])]
+    task_dft.outputs = [Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])]
+    task_gw = TaskReference(task=archive_gw.workflow2)
+    task_gw.name = 'GW'
+    task_gw.inputs = [Link(name='Output DFT calculation', section=archive_gw.run[-1].calculation[-1])]
+    task_gw.outputs = [Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1])]
+    # GW workflow entry (no need of creating Method nor Calculation)
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = archive_dft.run[-1].program
+    run.system = archive_dft.run[-1].system
+    workflow = GWworkflow()
+    workflow.name = 'GW'
+    workflow_method = GWMethod(
+        gw_method_ref=archive_gw.run[-1].method[-1].gw,
+        starting_point=archive_dft.run[-1].method[-1].dft.xc_functional,
+        basis_set=archive_dft.run[-1].method[-1].basis_set[0])
+    workflow.m_add_sub_section(GWworkflow.method, workflow_method)
+    workflow.m_add_sub_section(GWworkflow.inputs, Link(name='Input structure', section=archive_dft.run[-1].system[-1]))
+    workflow.m_add_sub_section(GWworkflow.outputs, Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1]))
+    workflow.m_add_sub_section(GWworkflow.tasks, task_dft)
+    workflow.m_add_sub_section(GWworkflow.tasks, task_gw)
+    template.workflow2 = workflow
+    return template
+
+
 def set_dft_values(xc_functional_names: list) -> EntryArchive:
     ''''''
     template = get_template_dft()
@@ -629,45 +688,6 @@ def gw() -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
-def gw_workflow() -> EntryArchive:
-    '''GW workflow EntryArchive.'''
-    # DFT entry normalization
-    template_dft = get_template_dft()
-    run_normalize(template_dft)
-    task_dft = TaskReference(task=template_dft.workflow2)
-    task_dft.name = 'DFT'
-    task_dft.inputs = [Link(name='Input structure', section=template_dft.run[-1].system[-1])]
-    task_dft.outputs = [Link(name='Output DFT calculation', section=template_dft.run[-1].calculation[-1])]
-    # GW entry normalization
-    template_gw = get_template_excited()
-    template_gw.run[0].method = None
-    run = template_gw.run[0]
-    method_gw = run.m_create(Method)
-    method_gw.gw = GW(type='G0W0')
-    run_normalize(template_gw)
-    task_gw = TaskReference(task=template_gw.workflow2)
-    task_gw.name = 'GW'
-    task_gw.inputs = [Link(name='Output DFT calculation', section=template_dft.run[-1].calculation[-1])]
-    task_gw.outputs = [Link(name='Output GW calculation', section=template_gw.run[-1].calculation[-1])]
-    # Workflow entry (no need of creating Method nor Calculation)
-    template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = template_dft.run[-1].program
-    run.system = template_dft.run[-1].system
-    workflow = template.m_create(WorkflowNew)
-    workflow.name = 'GW'
-    workflow.method = GWMethod(
-        gw_method_ref=template_gw.run[-1].method[-1].gw,
-        starting_point=template_dft.run[-1].method[-1].dft.xc_functional,
-        basis_set=template_dft.run[-1].method[-1].basis_set[0])
-    workflow.m_add_sub_section(GWworkflow.inputs, Link(name='Input structure', section=template_dft.run[-1].system[-1]))
-    workflow.m_add_sub_section(GWworkflow.outputs, Link(name='Output GW calculation', section=template_gw.run[-1].calculation[-1]))
-    workflow.m_add_sub_section(GWworkflow.tasks, task_dft)
-    workflow.m_add_sub_section(GWworkflow.tasks, task_gw)
-    return run_normalize(template)
-
-
-@pytest.fixture(scope='session')
 def bse() -> EntryArchive:
     '''BSE calculation.'''
     template = get_template_excited()
@@ -869,6 +889,13 @@ def single_point() -> EntryArchive:
     '''Single point calculation.'''
     template = get_template_dft()
 
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def gw_workflow() -> EntryArchive:
+    '''GW workflow EntryArchive.'''
+    template = get_template_gw_workflow()
     return run_normalize(template)
 
 

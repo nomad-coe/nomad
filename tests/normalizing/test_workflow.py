@@ -69,6 +69,30 @@ def test_single_point_workflow(workflow_archive):
     assert sec_workflow2.results.is_converged
 
 
+def test_gw_workflow(gw_workflow):
+    """Testing GW workflow entry"""
+    workflow = gw_workflow.workflow2
+    assert workflow.name == 'GW'
+    assert workflow.method.gw_method_ref.type == 'G0W0'
+    assert workflow.method.basis_set.type == 'plane waves'
+    assert workflow.method.starting_point.name == 'GGA_X_PBE'
+    results = gw_workflow.results
+    assert results.method.method_name == 'GW'
+    assert results.method.workflow_name == 'GW'
+    assert results.method.simulation.program_name == 'VASP'
+    assert results.method.simulation.program_version == '4.6.35'
+    assert results.method.simulation.gw.type == 'G0W0'
+    assert results.method.simulation.gw.starting_point_type == 'GGA'
+    assert results.method.simulation.gw.starting_point_names == ['GGA_X_PBE']
+    assert results.method.simulation.gw.basis_set_type == 'plane waves'
+    assert not results.properties.electronic.band_gap
+    assert not results.properties.electronic.greens_functions_electronic
+    assert len(results.properties.electronic.dos_electronic) == 2
+    assert len(results.properties.electronic.band_structure_electronic) == 2
+    assert results.properties.electronic.dos_electronic[0].label == 'DFT'
+    assert results.properties.electronic.dos_electronic[1].label == 'GW'
+
+
 def test_geometry_optimization_workflow(workflow_archive):
     vasp_archive = workflow_archive(
         'parsers/vasp', 'tests/data/normalizers/workflow/vasp/vasprun.xml')

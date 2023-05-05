@@ -156,19 +156,6 @@ def test_method_gw(gw):
     assert method.simulation.gw.type == "G0W0"
 
 
-def test_method_gw_workflow(gw_workflow):
-    """Methodology of a GW workflow entry."""
-    method = gw_workflow.results.method
-    assert method.method_name == "GW"
-    assert method.workflow_name == "GW"
-    assert method.simulation.program_name == "VASP"
-    assert method.simulation.program_version == "4.6.35"
-    assert method.simulation.gw.type == "G0W0"
-    assert method.simulation.gw.starting_point_type == "GGA"
-    assert method.simulation.gw.starting_point_names == ["GGA_X_PBE"]
-    assert method.simulation.gw.basis_set_type == "plane waves"
-
-
 def test_method_bse(bse):
     """Methodology from a SinglePoint GW calculation."""
     method = bse.results.method
