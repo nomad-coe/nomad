@@ -6705,40 +6705,47 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
+                "name": "core_hole",
+                "sub_section": "/packages/0/section_definitions/23"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 9,
+                "m_parent_sub_section": "sub_sections",
                 "name": "k_mesh",
                 "sub_section": "/packages/0/section_definitions/2"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 9,
+                "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "frequency_mesh",
                 "sub_section": "/packages/0/section_definitions/3"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 10,
+                "m_parent_index": 11,
                 "m_parent_sub_section": "sub_sections",
                 "name": "time_mesh",
                 "sub_section": "/packages/0/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 11,
+                "m_parent_index": 12,
                 "m_parent_sub_section": "sub_sections",
                 "name": "electronic",
                 "sub_section": "/packages/0/section_definitions/35"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 12,
+                "m_parent_index": 13,
                 "m_parent_sub_section": "sub_sections",
                 "name": "scf",
                 "sub_section": "/packages/0/section_definitions/5"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 13,
+                "m_parent_index": 14,
                 "m_parent_sub_section": "sub_sections",
                 "name": "atom_parameters",
                 "more": {
@@ -6749,7 +6756,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 14,
+                "m_parent_index": 15,
                 "m_parent_sub_section": "sub_sections",
                 "name": "molecule_parameters",
                 "more": {
@@ -6760,7 +6767,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 15,
+                "m_parent_index": 16,
                 "m_parent_sub_section": "sub_sections",
                 "name": "basis_set",
                 "more": {
@@ -6771,18 +6778,10 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 16,
+                "m_parent_index": 17,
                 "m_parent_sub_section": "sub_sections",
                 "name": "photon",
                 "sub_section": "/packages/0/section_definitions/9",
-                "repeats": true
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 17,
-                "m_parent_sub_section": "sub_sections",
-                "name": "core_hole",
-                "sub_section": "/packages/0/section_definitions/23",
                 "repeats": true
               }
             ]
