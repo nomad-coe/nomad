@@ -18,7 +18,9 @@
 
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel.metainfo.simulation.workflow import (
-    SinglePoint, GeometryOptimization, MolecularDynamics, Phonon, Elastic)
+    SinglePoint, GeometryOptimization, MolecularDynamics, Phonon,
+    Elastic, GW, GWResults
+)
 from nomad.datamodel import EntryArchive
 
 
@@ -67,6 +69,30 @@ class WorkflowNormalizer(Normalizer):
 
         return workflow
 
+    def gw_workflow_results(self, workflow: GW):
+        """Populates the self.entry_archive.workflow2.results section in the GW workflow
+        EntryArchive with references to the normalized calculations in each of these
+        tasks: DFT SinglePoint and GW SinglePoint.
+        """
+        dft_task = workflow.tasks[0]
+        gw_task = workflow.tasks[1]
+
+        workflow_results = workflow.results
+        if workflow_results is None:  # TODO ask @ladinesa if this is necessary
+            workflow_results = workflow.m_create(GWResults)
+
+        for name, section in workflow_results.m_def.all_quantities.items():
+            calc_name = '_'.join(name.split('_')[:-1])
+            if calc_name in ['dos', 'band_structure']:
+                calc_name = f'{calc_name}_electronic'
+            calc_section = []
+            if 'dft' in name:
+                calc_section = getattr(dft_task.outputs[-1].section, calc_name)
+            elif 'gw' in name:
+                calc_section = getattr(gw_task.outputs[-1].section, calc_name)
+            if calc_section:
+                workflow_results.m_set(section, calc_section)
+
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
 
@@ -76,3 +102,10 @@ class WorkflowNormalizer(Normalizer):
 
         if not self.entry_archive.workflow2:
             self.entry_archive.workflow2 = self._resolve_workflow()
+
+        # Update workflow2.results with the normalized results for DFT and beyondDFT methods
+        # (their normalizers are applied first always)
+        workflow = self.entry_archive.workflow2
+        workflow_name = workflow.m_def.name
+        if workflow_name == 'GW':
+            self.gw_workflow_results(workflow)

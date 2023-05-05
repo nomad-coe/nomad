@@ -29,7 +29,7 @@ from nomad.datamodel.metainfo.simulation.method import (
     Method, XCFunctional, BasisSet, GW as GWMethodology
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Dos, BandStructure, BandEnergies, Density, Potential, Spectra,
+    Calculation, BandGap, Dos, BandStructure, BandEnergies, Density, Potential, Spectra,
     RadiusOfGyration as RadiusOfGyrationCalculation,
     RadiusOfGyrationValues as RadiusOfGyrationValuesCalculation)
 from nomad.atomutils import archive_to_universe
@@ -2356,26 +2356,44 @@ class Thermodynamics(SerialSimulation):
 
 class GWResults(SimulationWorkflowResults):
 
+    band_gap_dft = Quantity(
+        type=Reference(BandGap),
+        shape=['*'],
+        description='''
+        DFT band gap
+        ''')
+
+    band_gap_gw = Quantity(
+        type=Reference(BandGap),
+        shape=['*'],
+        description='''
+        GW band gap
+        ''')
+
     dos_dft = Quantity(
         type=Reference(Dos),
+        shape=['*'],
         description='''
         DFT density of states
         ''')
 
     dos_gw = Quantity(
         type=Reference(Dos),
+        shape=['*'],
         description='''
         GW density of states
         ''')
 
     band_structure_dft = Quantity(
         type=Reference(BandStructure),
+        shape=['*'],
         description='''
         DFT density of states
         ''')
 
     band_structure_gw = Quantity(
         type=Reference(BandStructure),
+        shape=['*'],
         description='''
         DFT density of states
         ''')

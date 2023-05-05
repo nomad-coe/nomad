@@ -17,9 +17,8 @@
 #
 
 import re
-from nomad.datamodel.metainfo.workflow import Workflow
 import numpy as np
-from typing import List, Union, Any, Set, Optional
+from typing import List, Union, Any, Set, Optional, Iterable
 import ase.data
 from matid import SymmetryAnalyzer  # pylint: disable=import-error
 import matid.geometry  # pylint: disable=import-error
@@ -31,6 +30,7 @@ from nomad.atomutils import Formula
 from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
+from nomad.datamodel.metainfo.workflow import Workflow
 from nomad.datamodel.optimade import Species
 from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
 from nomad.normalizing.common import (
@@ -224,10 +224,9 @@ class ResultsNormalizer(Normalizer):
                     i_species.chemical_symbols = [symbol]
                 i_species.concentration = [1.0]
 
-    def resolve_band_gap(self, path) -> Union[List[BandGap], None]:
-        """
-        Extract all band gaps from the given path
-        and return them in a list along with their provenance.
+    def resolve_band_gap(self, path: list[str]) -> Union[List[BandGap], None]:
+        """Extract all band gaps from the given `path` and return them in a list along
+        with their provenance.
         """
         band_gaps = traverse_reversed(self.entry_archive, path)
         if not band_gaps:
@@ -244,143 +243,128 @@ class ResultsNormalizer(Normalizer):
             bg_root.insert(0, bg_new)
         return bg_root
 
-    def band_structure_electronic(self) -> Union[List[BandStructureElectronic], None]:
+    def resolve_band_structure(self, path: list[str]) -> Union[List[BandStructureElectronic], None]:
         """Returns a new section containing an electronic band structure. In
         the case of multiple valid band structures, only the latest one is
         considered.
 
-       Band structure is reported only under the following conditions:
-          - There is a non-empty array of kpoints.
-          - There is a non-empty array of energies.
+        Band structure is reported only under the following conditions:
+            - There is a non-empty array of kpoints.
+            - There is a non-empty array of energies.
         """
-        def resolve_band_structure(path):
-            for bs in traverse_reversed(self.entry_archive, path):
-                if not bs.segment:
-                    continue
-                valid = True
-                for segment in bs.segment:
-                    energies = segment.energies
-                    k_points = segment.kpoints
-                    if not valid_array(energies) or not valid_array(k_points):
-                        valid = False
-                        break
-                if valid:
-                    # Fill band structure data to the newer, improved data layout
-                    bs_new = BandStructureElectronic()
-                    bs_new.reciprocal_cell = bs
-                    bs_new.segment = bs.segment
-                    bs_new.spin_polarized = bs_new.segment[0].energies.shape[0] > 1
-                    bs_new.energy_fermi = bs.energy_fermi
-
-                    for info in bs.band_gap:
-                        info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
-                        bs_new.m_add_sub_section(BandStructureElectronic.band_gap, info_new)
-                    return bs_new
+        band_structures = traverse_reversed(self.entry_archive, path)
+        if not band_structures:
             return None
+        bs_root: List[BandStructureElectronic] = []
+        for bs in band_structures:
+            if not bs.segment:
+                continue
+            valid = True
+            for segment in bs.segment:
+                energies = segment.energies
+                k_points = segment.kpoints
+                if not valid_array(energies) or not valid_array(k_points):
+                    valid = False
+                    break
+            if valid:
+                # Fill band structure data to the newer, improved data layout
+                bs_new = BandStructureElectronic()
+                bs_new.reciprocal_cell = bs
+                bs_new.segment = bs.segment
+                bs_new.spin_polarized = bs_new.segment[0].energies.shape[0] > 1
+                bs_new.energy_fermi = bs.energy_fermi
 
-        try:
-            workflow_type = self.entry_archive.workflow[-1].type
-        except Exception:
-            workflow_type = None
+                for info in bs.band_gap:
+                    info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
+                    bs_new.m_add_sub_section(BandStructureElectronic.band_gap, info_new)
+                bs_root.insert(0, bs_new)
+        return bs_root
 
-        if workflow_type == 'GW':
-            band_structures = []
-            for method in ['gw', 'dft']:
-                band_structure = resolve_band_structure(["workflow", "gw", f"band_structure_{method}"])
-                if band_structure:
-                    name = method.upper()
-                    band_structure.label = name
-                    for band_gap in band_structure.band_gap:
-                        band_gap.label = name
-                    band_structures.append(band_structure)
-            return band_structures
-        else:
-            band_structure = resolve_band_structure(["run", "calculation", "band_structure_electronic"])
-            if band_structure:
-                return [band_structure]
-        return None
-
-    def dos_electronic(self) -> Union[List[DOSElectronic], None]:
+    def resolve_dos(self, path: list[str]) -> Union[List[DOSElectronic], None]:
         """Returns a reference to the section containing an electronic dos. In
         the case of multiple valid DOSes, only the latest one is reported.
 
-       DOS is reported only under the following conditions:
-          - There is a non-empty array of dos_values_normalized.
-          - There is a non-empty array of dos_energies.
+        DOS is reported only under the following conditions:
+            - There is a non-empty array of dos_values_normalized.
+            - There is a non-empty array of dos_energies.
         """
-
-        def resolve_dos(path):
-            for dos in traverse_reversed(self.entry_archive, path):
-                energies = dos.energies
-                values = np.array([d.value.magnitude for d in dos.total])
-                if valid_array(energies) and valid_array(values):
-                    dos_new = DOSElectronic()
-                    dos_new.energies = dos
-                    dos_new.total = dos.total
-                    n_channels = values.shape[0]
-                    dos_new.spin_polarized = n_channels > 1
-                    dos_new.energy_fermi = dos.energy_fermi
-                    for info in dos.band_gap:
-                        info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
-                        dos_new.m_add_sub_section(DOSElectronic.band_gap, info_new)
-                    return dos_new
+        doss = traverse_reversed(self.entry_archive, path)
+        if not doss:
             return None
+        dos_root: List[DOSElectronic] = []
+        for dos in doss:
+            energies = dos.energies
+            values = np.array([d.value.magnitude for d in dos.total])
+            if valid_array(energies) and valid_array(values):
+                dos_new = DOSElectronic()
+                dos_new.energies = dos
+                dos_new.total = dos.total
+                n_channels = values.shape[0]
+                dos_new.spin_polarized = n_channels > 1
+                dos_new.energy_fermi = dos.energy_fermi
+                for info in dos.band_gap:
+                    info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
+                    dos_new.m_add_sub_section(DOSElectronic.band_gap, info_new)
+                dos_root.insert(0, dos_new)
+        return dos_root
 
-        try:
-            workflow_type = self.entry_archive.workflow[-1].type
-        except Exception:
-            workflow_type = None
-
-        if workflow_type == 'GW':
-            doss = []
-            for method in ['gw', 'dft']:
-                dos = resolve_dos(["workflow", "gw", f"dos_{method}"])
-                if dos:
-                    dos.label = method.upper()
-                    doss.append(dos)
-            return doss
-        else:
-            dos = resolve_dos(["run", "calculation", "dos_electronic"])
-            if dos:
-                return [dos]
-        return None
-
-    def greens_functions_electronic(self) -> Union[List[GreensFunctionsElectronic], None]:
+    def resolve_greens_functions(self, path: list[str]) -> Union[List[GreensFunctionsElectronic], None]:
         """Returns a reference to the section containing the electronic Green's functions.
         In the case of multiple valid Green's functions sections, only the latest one is reported.
 
-       Green's functions are reported only under the following conditions:
-          - There is a non-empty array of greens_function_tau or self_energy_iw or occupancies.
-          - There is a non-empty array of tau or matsubara_freq.
+        Green's functions are reported only under the following conditions:
+            - There is a non-empty array of greens_function_tau or self_energy_iw or occupancies.
+            - There is a non-empty array of tau or matsubara_freq.
         """
-
-        def resolve_greens_functions(path):
-            for gfs in traverse_reversed(self.entry_archive, path):
-                tau = gfs.tau
-                iw = gfs.matsubara_freq
-                values_gtau = np.array([np.absolute(gtau) for gtau in gfs.greens_function_tau.real])
-                values_siw = np.array([siw for siw in gfs.self_energy_iw.imag])
-                if (valid_array(tau) and valid_array(values_gtau)) or (valid_array(iw) and valid_array(values_siw)):
-                    gfs_new = GreensFunctionsElectronic()
-                    gfs_new.chemical_potential = gfs.chemical_potential
-                    if valid_array(tau) and valid_array(values_gtau):
-                        gfs_new.tau = tau
-                        gfs_new.real_greens_function_tau = values_gtau
-                    if valid_array(iw) and valid_array(values_siw):
-                        gfs_new.matsubara_freq = iw
-                        gfs_new.imag_self_energy_iw = values_siw
-                    if valid_array(gfs.orbital_occupations):
-                        gfs_new.orbital_occupations = gfs.orbital_occupations
-                    if valid_array(gfs.quasiparticle_weights):
-                        gfs_new.quasiparticle_weights = gfs.quasiparticle_weights
-
-                    return gfs_new
+        greens_functions = traverse_reversed(self.entry_archive, path)
+        if not greens_functions:
             return None
+        gfs_root: List[GreensFunctionsElectronic] = []
+        for gfs in greens_functions:
+            tau = gfs.tau
+            iw = gfs.matsubara_freq
+            values_gtau = np.array([np.absolute(gtau) for gtau in gfs.greens_function_tau.real])
+            values_siw = np.array([siw for siw in gfs.self_energy_iw.imag])
+            if (valid_array(tau) and valid_array(values_gtau)) or (valid_array(iw) and valid_array(values_siw)):
+                gfs_new = GreensFunctionsElectronic()
+                gfs_new.chemical_potential = gfs.chemical_potential
+                if valid_array(tau) and valid_array(values_gtau):
+                    gfs_new.tau = tau
+                    gfs_new.real_greens_function_tau = values_gtau
+                if valid_array(iw) and valid_array(values_siw):
+                    gfs_new.matsubara_freq = iw
+                    gfs_new.imag_self_energy_iw = values_siw
+                if valid_array(gfs.orbital_occupations):
+                    gfs_new.orbital_occupations = gfs.orbital_occupations
+                if valid_array(gfs.quasiparticle_weights):
+                    gfs_new.quasiparticle_weights = gfs.quasiparticle_weights
 
-        gfs = resolve_greens_functions(["run", "calculation", "greens_functions"])
-        if gfs:
-            return [gfs]
-        return None
+                gfs_root.insert(0, gfs_new)
+        return gfs_root
+
+    def gw_workflow_properties(self):
+        bg_electronic = self.electronic_properties[0]
+        bs_electronic = self.electronic_properties[1]
+        dos_electronic = self.electronic_properties[2]
+        for method in ['dft', 'gw']:
+            name = method.upper()
+            bgs = self.resolve_band_gap(["workflow2", "results", f"band_gap_{method}"])
+            bss = self.resolve_band_structure(["workflow2", "results", f"band_structure_{method}"])
+            doss = self.resolve_dos(["workflow2", "results", f"dos_{method}"])
+            for bg in bgs:
+                bg.label = name
+                bg_electronic.append(bg)
+            for bs in bss:
+                bs.label = name
+                for band_gap in bs.band_gap:
+                    band_gap.label = name
+                bs_electronic.append(bs)
+            for d in doss:
+                d.label = name
+                for band_gap in d.band_gap:
+                    band_gap.label = name
+                dos_electronic.append(d)
+        return [bg_electronic, bs_electronic, dos_electronic, []]
 
     def band_structure_phonon(self) -> Union[BandStructurePhonon, None]:
         """Returns a new section containing a phonon band structure. In
@@ -716,21 +700,28 @@ class ResultsNormalizer(Normalizer):
                 structures.structure_original = struct_orig
             properties.structures = structures
 
-        # Electronic
-        bg_electronic = self.resolve_band_gap(["run", "calculation", "band_gap"])
-        bs_electronic = self.band_structure_electronic()
-        dos_electronic = self.dos_electronic()
-        gfs_electronic = self.greens_functions_electronic()
-        if bg_electronic or bs_electronic or dos_electronic or gfs_electronic:
+        # Electronic properties
+        bg_electronic = self.resolve_band_gap(['run', 'calculation', 'band_gap'])
+        bs_electronic = self.resolve_band_structure(['run', 'calculation', 'band_structure_electronic'])
+        dos_electronic = self.resolve_dos(['run', 'calculation', 'dos_electronic'])
+        gfs_electronic = self.resolve_greens_functions(['run', 'calculation', 'greens_functions'])
+        self.electronic_properties = [bg_electronic, bs_electronic, dos_electronic, gfs_electronic]
+        workflow = self.entry_archive.workflow2
+        if workflow:
+            workflow_name = workflow.m_def.name
+            if workflow_name == 'GW':
+                self.electronic_properties = self.gw_workflow_properties()
+
+        method_def = {value.sub_section.name: value for _, value in ElectronicProperties.m_def.all_sub_sections.items()}
+        if any(self.electronic_properties):
             electronic = ElectronicProperties()
-            if bg_electronic:
-                electronic.band_gap = bg_electronic
-            if bs_electronic:
-                electronic.band_structure_electronic = bs_electronic
-            if dos_electronic:
-                electronic.dos_electronic = dos_electronic
-            if gfs_electronic:
-                electronic.greens_functions_electronic = gfs_electronic
+            for electronic_property in self.electronic_properties:
+                if electronic_property:
+                    if isinstance(electronic_property, Iterable):
+                        for prop in electronic_property:
+                            electronic.m_add_sub_section(method_def[prop.m_def.name], prop)
+                    else:
+                        continue
             properties.electronic = electronic
 
         # Vibrational

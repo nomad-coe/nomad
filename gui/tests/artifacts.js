@@ -11863,6 +11863,17 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "name": "label",
+                "description": "Label to identify the band gap data, e.g. the method employed.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
                     "results.properties.electronic.band_structure_electronic.band_gap.index"
@@ -11877,7 +11888,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -11895,7 +11906,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
+                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -15571,6 +15582,17 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "name": "label",
+                "description": "Label to identify the Greens functions data, e.g. the method employed.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
                 "name": "tau",
                 "description": "Imaginary times.",
                 "type": {
@@ -15583,7 +15605,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "real_greens_function_tau",
                 "description": "Real part (extraction done in normalizer) of the Green's function in tau (imaginary time).",
@@ -15600,7 +15622,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
+                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "matsubara_freq",
                 "description": "Matsubara frequencies (imaginary frequencies).",
@@ -15614,7 +15636,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "imag_self_energy_iw",
                 "description": "Imaginary part (extraction done in normalizer) of the Self energy in Matsubara (imaginary frequency).",
@@ -15631,7 +15653,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
+                "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
                 "name": "orbital_occupations",
                 "description": "Orbital occupation per correlated atom in the unit cell and per spin.",
@@ -15647,7 +15669,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
+                "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "name": "quasiparticle_weights",
                 "description": "Quasiparticle weights of each orbital per site and spin. Calculated from:\n    Z = inv(1.0 - d [Re Sigma] / dw at w=0)\nit takes values \u2208 [0.0, 1.0], being Z=1 non-correlated, and Z=0 in a Mott state.",
@@ -15663,7 +15685,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
                 "name": "chemical_potential",
                 "description": "Chemical potential.",
@@ -67144,45 +67166,85 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "name": "band_gap_dft",
+                "description": "DFT band gap",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/19"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "band_gap_gw",
+                "description": "GW band gap",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/19"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
                 "name": "dos_dft",
                 "description": "DFT density of states",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/17"
-                }
+                },
+                "shape": [
+                  "*"
+                ]
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
+                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "dos_gw",
                 "description": "GW density of states",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/17"
-                }
+                },
+                "shape": [
+                  "*"
+                ]
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
+                "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "band_structure_dft",
                 "description": "DFT density of states",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/14"
-                }
+                },
+                "shape": [
+                  "*"
+                ]
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
                 "name": "band_structure_gw",
                 "description": "DFT density of states",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/14"
-                }
+                },
+                "shape": [
+                  "*"
+                ]
               }
             ]
           },

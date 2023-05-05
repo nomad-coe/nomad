@@ -260,6 +260,11 @@ class BandGapDeprecated(CalcBandGapDeprecated):
 
 
 class BandGap(CalcBandGap):
+    label = Quantity(
+        type=str,
+        description='''
+        Label to identify the band gap data, e.g. the method employed.
+        ''')
     index = CalcBandGap.index.m_copy()
     index.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
     value = CalcBandGap.value.m_copy()
@@ -1920,6 +1925,11 @@ class GreensFunctionsElectronic(MSection):
         Base class for Green's functions information.
         ''',
     )
+    label = Quantity(
+        type=str,
+        description='''
+        Label to identify the Greens functions data, e.g. the method employed.
+        ''')
     tau = GreensFunctionsCalculation.tau.m_copy()
     real_greens_function_tau = Quantity(
         type=np.float64,
