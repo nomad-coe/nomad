@@ -55874,6 +55874,36 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 20,
             "m_parent_sub_section": "section_definitions",
+            "name": "ElnWithStructureFile",
+            "description": "A base section for for parsing crystal structure files, e.g. `.cif`, and populating the Material section in Results.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "FileEditQuantity"
+                    }
+                  ]
+                },
+                "name": "structure_file",
+                "description": "The structure file.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 21,
+            "m_parent_sub_section": "section_definitions",
             "name": "SolarCellDefinition",
             "base_sections": [
               "/packages/16/section_definitions/0"
@@ -55957,7 +55987,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 21,
+            "m_parent_index": 22,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellLayer",
             "base_sections": [
@@ -56044,7 +56074,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 22,
+            "m_parent_index": 23,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellBaseSectionWithOptoelectronicProperties",
             "base_sections": [
@@ -56075,7 +56105,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 23,
+            "m_parent_index": 24,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellJV",
             "more": {
@@ -56360,11 +56390,11 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 24,
+            "m_parent_index": 25,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellJVCurve",
             "base_sections": [
-              "/packages/8/section_definitions/23"
+              "/packages/8/section_definitions/24"
             ],
             "quantities": [
               {
@@ -56436,7 +56466,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 25,
+            "m_parent_index": 26,
             "m_parent_sub_section": "section_definitions",
             "m_annotations": {
               "eln": [

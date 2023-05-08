@@ -1,0 +1,10 @@
+definitions:
+  name: 'Schema with Structure File'
+  sections:
+    EntryWithStructureFile:
+      base_sections: 
+        - 'nomad.datamodel.metainfo.eln.ElnWithStructureFile'
+        - 'nomad.datamodel.data.EntryData' 
+      m_annotations:
+        eln: 
+          hide: ['name', 'lab_id'] # We want to hide some quantities defined in ElnBaseSection in our forms.
