@@ -131,7 +131,8 @@ class MethodNormalizer():
             return settings.to_dict()
 
         # workflow_name
-        method.workflow_name = self.entry_archive.workflow2.m_def.name
+        if self.entry_archive.workflow2:
+            method.workflow_name = self.entry_archive.workflow2.m_def.name
         # if the entry is a GW or ParticleHoleExcitations workflow, keep method_name as DFT+XS
         if method.workflow_name in ['GW', 'ParticleHoleExcitations']:
             try:
