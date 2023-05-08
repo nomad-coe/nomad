@@ -1333,6 +1333,8 @@ def fhiaims_surface_singlepoint() -> EntryArchive:
 
 def create_system(label: str,
                   structural_type: str,
+                  dimensionality: str,
+                  building_block: str,
                   elements: List[str],
                   formula_hill: str,
                   formula_reduced: str,
@@ -1347,6 +1349,8 @@ def create_system(label: str,
     system = ResultSystem()
     system.label = label
     system.structural_type = structural_type
+    system.dimensionality = dimensionality
+    system.building_block = building_block
     system.elements = elements
     system.chemical_formula_hill = formula_hill
     system.chemical_formula_reduced = formula_reduced
@@ -1402,7 +1406,7 @@ def rattle(atoms):
     return atoms
 
 
-def single_cu_surface_prototype():
+def prototype_fcc():
     prototype_Cu_fcc = Prototype()
     prototype_Cu_fcc.aflow_id = "A_cF4_225_a"
     prototype_Cu_fcc.assignment_method = "normalized-wyckoff"
@@ -1411,32 +1415,33 @@ def single_cu_surface_prototype():
     return prototype_Cu_fcc
 
 
+def prototype_bcc():
+    prototype_cr_bcc = Prototype()
+    prototype_cr_bcc.aflow_id = "A_cI2_229_a"
+    prototype_cr_bcc.assignment_method = "normalized-wyckoff"
+    prototype_cr_bcc.label = "229-W-cI2"
+    prototype_cr_bcc.formula = "W2"
+    return prototype_cr_bcc
+
+
 def single_cu_surface_topology() -> List[ResultSystem]:
     '''Copper surface topology'''
-    prototype_Cu_fcc = single_cu_surface_prototype()
     conv_cell = conv_fcc('Cu')
     surface = surf(conv_cell, (1, 0, 0))
 
-    label_Cu = 'subsystem'
     n_atoms = len(surface)
-    structural_type_Cu = 'surface'
-    elements_Cu = ['Cu']
-    formula_hill_Cu = f'Cu{n_atoms}'
-    formula_reduced_Cu = f'Cu{n_atoms}'
-    formula_anonymous_Cu = f'A{n_atoms}'
-    system_relation = Relation()
-    system_relation.type = "subsystem"
-    indices = list(range(n_atoms))
-
-    subsystem_Cu = create_system(label_Cu, structural_type_Cu, elements_Cu, formula_hill_Cu, formula_reduced_Cu, formula_anonymous_Cu, system_relation, indices=indices)
-    topologies_Cu = [subsystem_Cu]
-
-    label_Cu_conv = 'conventional cell'
-    structural_type_Cu_conv = 'bulk'
-    formula_hill_Cu_conv = 'Cu4'
-    formula_reduced_Cu_conv = 'Cu4'
-    formula_anonymous_Cu_conv = 'A4'
-    material_id_Cu_conv = "3M6onRRrQbutydx916-Y15I79Z_X"
+    subsystem = create_system(
+        label='subsystem',
+        structural_type='surface',
+        dimensionality='2D',
+        building_block='surface',
+        elements=['Cu'],
+        formula_hill=f'Cu{n_atoms}',
+        formula_reduced=f'Cu{n_atoms}',
+        formula_anonymous=f'A{n_atoms}',
+        system_relation=Relation(type='subsystem'),
+        indices=list(range(n_atoms))
+    )
 
     species = Species()
     species.name = "Cu"
@@ -1449,43 +1454,44 @@ def single_cu_surface_topology() -> List[ResultSystem]:
 
     cell = cell_from_ase_atoms(conv_cell)
     atoms = nomad_atoms_from_ase_atoms(conv_cell)
-    Symmetry_fcc = crystal_structure_properties('fcc')
-    convsystem_Cu = create_system(label_Cu_conv, structural_type_Cu_conv, elements_Cu, formula_hill_Cu_conv, formula_reduced_Cu_conv, formula_anonymous_Cu_conv, system_relation, material_id=material_id_Cu_conv, atoms=atoms, cell=cell, symmetry=Symmetry_fcc, prototype=prototype_Cu_fcc)
-    topologies_Cu.append(convsystem_Cu)
-    return topologies_Cu
+    symmetry_fcc = crystal_structure_properties('fcc')
+    convsystem = create_system(
+        label='conventional cell',
+        structural_type='bulk',
+        dimensionality='3D',
+        building_block=None,
+        elements=['Cu'],
+        formula_hill='Cu4',
+        formula_reduced='Cu4',
+        formula_anonymous='A4',
+        system_relation=None,
+        material_id="3M6onRRrQbutydx916-Y15I79Z_X",
+        atoms=atoms,
+        cell=cell,
+        symmetry=symmetry_fcc,
+        prototype=prototype_fcc()
+    )
+    return [subsystem, convsystem]
 
 
 def single_cr_surface_topology() -> List[ResultSystem]:
     '''Cr surface topology'''
-    prototype_Cr_bcc = Prototype()
-    prototype_Cr_bcc.aflow_id = "A_cI2_229_a"
-    prototype_Cr_bcc.assignment_method = "normalized-wyckoff"
-    prototype_Cr_bcc.label = "229-W-cI2"
-    prototype_Cr_bcc.formula = "W2"
-
     conv_cell = conv_bcc('Cr')
     surface = surf(conv_cell, (1, 0, 0))
     n_atoms = len(surface)
-    label = 'subsystem'
-    structural_type = 'surface'
-    elements = ['Cr']
-    formula_hill = f'Cr{n_atoms}'
-    formula_reduced = f'Cr{n_atoms}'
-    formula_anonymous = f'A{n_atoms}'
-    system_relation = Relation()
-    system_relation.type = "subsystem"
-    indices = list(range(n_atoms))
+    subsystem = create_system(
+        label='subsystem',
+        structural_type='surface',
+        dimensionality='2D',
+        building_block='surface',
+        elements=['Cr'],
+        formula_hill=f'Cr{n_atoms}',
+        formula_reduced=f'Cr{n_atoms}',
+        formula_anonymous=f'A{n_atoms}',
+        system_relation=Relation(type='subsystem'),
+        indices=list(range(n_atoms))
+    )
 
-    subsystem_Cr = create_system(label, structural_type, elements, formula_hill, formula_reduced, formula_anonymous, system_relation, indices=indices)
-    topologies_Cr = [subsystem_Cr]
-
-    label = 'conventional cell'
-    structural_type = 'bulk'
-    elements = ['Cr']
-    formula_hill = 'Cr2'
-    formula_reduced = 'Cr2'
-    formula_anonymous = 'A2'
-    material_id = "MDlo8h4C2Ppy-kLY9fHRovgnTN9T"
     species = Species()
     species.name = "Cr"
     species.chemical_symbols = ["Cr"]
@@ -1497,10 +1503,24 @@ def single_cr_surface_topology() -> List[ResultSystem]:
 
     atoms = nomad_atoms_from_ase_atoms(conv_cell)
     cell = cell_from_ase_atoms(conv_cell)
-    Symmetry_bcc = crystal_structure_properties('bcc')
-    convsystem_Cr = create_system(label, structural_type, elements, formula_hill, formula_reduced, formula_anonymous, system_relation, material_id=material_id, atoms=atoms, cell=cell, symmetry=Symmetry_bcc, prototype=prototype_Cr_bcc)
-    topologies_Cr.append(convsystem_Cr)
-    return topologies_Cr
+    symmetry_bcc = crystal_structure_properties('bcc')
+    convsystem = create_system(
+        label='conventional cell',
+        structural_type='bulk',
+        dimensionality='3D',
+        building_block=None,
+        elements=['Cr'],
+        formula_hill='Cr2',
+        formula_reduced='Cr2',
+        formula_anonymous='A2',
+        system_relation=None,
+        material_id='MDlo8h4C2Ppy-kLY9fHRovgnTN9T',
+        atoms=atoms,
+        cell=cell,
+        symmetry=symmetry_bcc,
+        prototype=prototype_bcc()
+    )
+    return [subsystem, convsystem]
 
 
 def single_ni_surface_topology() -> List[ResultSystem]:
@@ -1509,26 +1529,19 @@ def single_ni_surface_topology() -> List[ResultSystem]:
     surface = surf(conv_cell, (1, 0, 0))
     n_atoms = len(surface)
 
-    label = 'subsystem'
-    structural_type = 'surface'
-    elements = ['Ni']
-    formula_hill = f'Ni{n_atoms}'
-    formula_reduced = f'Ni{n_atoms}'
-    formula_anonymous = f'A{n_atoms}'
-    system_relation = Relation()
-    system_relation.type = "subsystem"
-    indices = list(range(n_atoms))
+    subsystem = create_system(
+        label='subsystem',
+        structural_type='surface',
+        dimensionality='2D',
+        building_block='surface',
+        elements=['Ni'],
+        formula_hill=f'Ni{n_atoms}',
+        formula_reduced=f'Ni{n_atoms}',
+        formula_anonymous=f'A{n_atoms}',
+        system_relation=Relation(type='subsystem'),
+        indices=list(range(n_atoms))
+    )
 
-    subsystem_Ni = create_system(label, structural_type, elements, formula_hill, formula_reduced, formula_anonymous, system_relation, indices=indices)
-    topologies_Ni = [subsystem_Ni]
-
-    label = 'conventional cell'
-    structural_type = 'bulk'
-    elements = ['Ni']
-    formula_hill = 'Ni4'
-    formula_reduced = 'Ni4'
-    formula_anonymous = 'A4'
-    material_id = "NdIWxnQzlp-aeP1IM2d8YJ04h6T0"
     species = Species()
     species.name = "Ni"
     species.chemical_symbols = ["Ni"]
@@ -1539,11 +1552,25 @@ def single_ni_surface_topology() -> List[ResultSystem]:
     wyckoff_sets.element = "Ni"
     cell = cell_from_ase_atoms(conv_cell)
     atoms = nomad_atoms_from_ase_atoms(conv_cell)
-    Symmetry_fcc = crystal_structure_properties('fcc')
-    prototype_Cu_fcc = single_cu_surface_prototype()
-    convsystem_Ni = create_system(label, structural_type, elements, formula_hill, formula_reduced, formula_anonymous, system_relation, material_id=material_id, atoms=atoms, cell=cell, symmetry=Symmetry_fcc, prototype=prototype_Cu_fcc)
-    topologies_Ni.append(convsystem_Ni)
-    return topologies_Ni
+    symmetry_fcc = crystal_structure_properties('fcc')
+    prototype_cu_fcc = prototype_fcc()
+    convsystem = create_system(
+        label='conventional cell',
+        structural_type='bulk',
+        dimensionality='3D',
+        building_block=None,
+        elements=['Ni'],
+        formula_hill='Ni4',
+        formula_reduced='Ni4',
+        formula_anonymous='A4',
+        system_relation=None,
+        material_id='NdIWxnQzlp-aeP1IM2d8YJ04h6T0"',
+        atoms=atoms,
+        cell=cell,
+        symmetry=symmetry_fcc,
+        prototype=prototype_cu_fcc
+    )
+    return [subsystem, convsystem]
 
 
 def stacked_cu_ni_surface_topology() -> List[ResultSystem]:
@@ -1556,65 +1583,57 @@ def stacked_cu_ni_surface_topology() -> List[ResultSystem]:
     topologies_cu[0].indices = list(range(0, n_atoms_cu))
     topologies_ni[0].indices = list(range(n_atoms_cu, n_atoms_cu + n_atoms_ni))
 
-    topologies_cu_ni = topologies_cu + topologies_ni
-    return topologies_cu_ni
+    return topologies_cu + topologies_ni
 
 
 def graphene() -> Atoms:
     '''Graphene system'''
-    symbols_C = ['C', 'C']
-    positions_C = [
+    symbols_c = ['C', 'C']
+    positions_c = [
         [0.0, 0.0, 2.1712595],
         [1.2338620706831436, -0.712370598651782, 2.1712595]
     ] * ureg.angstrom
-    cell_C = [
+    cell_c = [
         [1.2338620706831436, -2.137111795955346, 0.0],
         [1.2338620706831436, 2.137111795955346, 0.0],
         [0.0, 0.0, 8.685038]
     ] * ureg.angstrom
-    system_C = Atoms(
-        symbols=symbols_C,
-        positions=positions_C,
-        cell=cell_C,
+    system_c = Atoms(
+        symbols=symbols_c,
+        positions=positions_c,
+        cell=cell_c,
         pbc=True
     ) * [4, 4, 1]
-    return system_C
+    return system_c
 
 
 def graphene_topology() -> List[ResultSystem]:
     '''Graphene topology'''
-    label_C = 'subsystem'
-    structural_type_C = '2D'
-    elements_C = ['C']
-    formula_hill_C = 'C32'
-    formula_reduced_C = 'C32'
-    formula_anonymous_C = 'A32'
-    system_relation = Relation()
-    system_relation.type = "subsystem"
-    indices_C = [i for i in range(32)]
+    subsystem = create_system(
+        label='subsystem',
+        structural_type='2D',
+        dimensionality='2D',
+        building_block='2D material',
+        elements=['C'],
+        formula_hill='C32',
+        formula_reduced='C32',
+        formula_anonymous='A32',
+        system_relation=Relation(type='subsystem'),
+        indices=[i for i in range(32)]
+    )
 
-    subsystem_C = create_system(label_C, structural_type_C, elements_C, formula_hill_C, formula_reduced_C, formula_anonymous_C, system_relation, indices=indices_C)
-    topologies_C = [subsystem_C]
-
-    label_C_conv = 'conventional cell'
-    structural_type_C_conv = '2D'
-    elements_C_conv = ['C']
-    formula_hill_C_conv = 'C2'
-    formula_reduced_C_conv = 'C2'
-    formula_anonymous_C_conv = 'A2'
-    material_id_C_conv = "jdP9AhZIFuYhubLWkm2FPtEV5IZA"
-    atoms_C_conv = NOMADAtoms()
-    atoms_C_conv.periodic = [True, True, False]
-    atoms_C_conv.lattice_vectors = [
+    atoms_c_conv = NOMADAtoms()
+    atoms_c_conv.periodic = [True, True, False]
+    atoms_c_conv.lattice_vectors = [
         [2.4677241413662866, 0.0, 0.0],
         [-1.2338620706831433, 2.1371117959553457, 0.0],
         [0.0, 0.0, 1]
     ] * ureg.angstrom
-    atoms_C_conv.positions = [
+    atoms_c_conv.positions = [
         [1.2338620706831433, 0.712370598651782, 0.5],
         [-2.7636130944313266e-16, 1.4247411973035641, 0.5]
     ] * ureg.angstrom
-    atoms_C_conv.labels = ["C", "C"]
+    atoms_c_conv.labels = ["C", "C"]
     species = Species()
     species.name = "C"
     species.chemical_symbols = ["C"]
@@ -1625,59 +1644,66 @@ def graphene_topology() -> List[ResultSystem]:
         gamma=2.0943951023931957 * ureg.rad,
         pbc=[True, True, False]
     )
-    convsystem_C = create_system(label_C_conv, structural_type_C_conv, elements_C_conv, formula_hill_C_conv, formula_reduced_C_conv, formula_anonymous_C_conv, system_relation, material_id=material_id_C_conv, atoms=atoms_C_conv, cell=cell, symmetry=None, prototype=None)
-    topologies_C.append(convsystem_C)
-    return topologies_C
+    convsystem = create_system(
+        label='conventional cell',
+        structural_type='2D',
+        dimensionality='2D',
+        building_block='2D material',
+        elements=['C'],
+        formula_hill='C2',
+        formula_reduced='C2',
+        formula_anonymous='A2',
+        system_relation=None,
+        material_id='jdP9AhZIFuYhubLWkm2FPtEV5IZA',
+        atoms=atoms_c_conv,
+        cell=cell,
+        symmetry=None,
+        prototype=None
+    )
+    return [subsystem, convsystem]
 
 
 def boron_nitride() -> Atoms:
     '''Boron nitride system'''
-    symbols_BN = ['B', 'N']
-    positions_BN = [
+    symbols_bn = ['B', 'N']
+    positions_bn = [
         [1.2557999125000436, -0.7250364175302085, 6.200847],
         [0.0, 0.0, 6.200847]
     ] * ureg.angstrom
-    cell_BN = [
+    cell_bn = [
         [1.2557999125000436, -2.1751092525906257, 0.0],
         [1.2557999125000436, 2.1751092525906257, 0.0],
         [0.0, 0.0, 8.267796]
     ] * ureg.angstrom
-    system_BN = Atoms(
-        symbols=symbols_BN,
-        positions=positions_BN,
-        cell=cell_BN,
+    system_bn = Atoms(
+        symbols=symbols_bn,
+        positions=positions_bn,
+        cell=cell_bn,
         pbc=True
     )
-    BN_2D = ase.build.surface(system_BN, (0, 0, 1), layers=1, periodic=True)
-    BN_2 = ase.build.stack(BN_2D, BN_2D, axis=0)
-    BN_4 = ase.build.stack(BN_2, BN_2, axis=1)
-    BN_8 = ase.build.stack(BN_4, BN_4, axis=0)
-    BN_16 = ase.build.stack(BN_8, BN_8, axis=1)
-    return BN_16
+    bn_2d = ase.build.surface(system_bn, (0, 0, 1), layers=1, periodic=True)
+    bn_2 = ase.build.stack(bn_2d, bn_2d, axis=0)
+    bn_4 = ase.build.stack(bn_2, bn_2, axis=1)
+    bn_8 = ase.build.stack(bn_4, bn_4, axis=0)
+    bn_16 = ase.build.stack(bn_8, bn_8, axis=1)
+    return bn_16
 
 
 def boron_nitride_topology() -> List[ResultSystem]:
     '''Boron nitride topology'''
-    label = 'subsystem'
-    structural_type = '2D'
-    elements = ['B', 'N']
-    formula_hill = 'B16N16'
-    formula_reduced = 'B16N16'
-    formula_anonymous = 'A16B16'
-    system_relation = Relation()
-    system_relation.type = "subsystem"
-    indices_BN = [i for i in range(32)]
+    subsystem = create_system(
+        label='subsystem',
+        structural_type='2D',
+        dimensionality='2D',
+        building_block='2D material',
+        elements=['B', 'N'],
+        formula_hill='B16N16',
+        formula_reduced='B16N16',
+        formula_anonymous='A16B16',
+        system_relation=Relation(type="subsystem"),
+        indices=[i for i in range(32)]
+    )
 
-    subsystem_BN = create_system(label, structural_type, elements, formula_hill, formula_reduced, formula_anonymous, system_relation, indices=indices_BN)
-    topologies_BN = [subsystem_BN]
-
-    label = 'conventional cell'
-    structural_type = '2D'
-    elements = ['B', 'N']
-    formula_hill = 'BN'
-    formula_reduced = 'BN'
-    formula_anonymous = 'AB'
-    material_id = "RxRsol0dp1vDkU7-pE3v2exglkpM"
     atoms = NOMADAtoms()
     atoms.periodic = [True, True, False]
     atoms.lattice_vectors = [
@@ -1701,55 +1727,64 @@ def boron_nitride_topology() -> List[ResultSystem]:
         gamma=2.0943951023931957 * ureg.rad,
         pbc=[True, True, False]
     )
-    convsystem_BN = create_system(label, structural_type, elements, formula_hill, formula_reduced, formula_anonymous, system_relation, material_id=material_id, atoms=atoms, cell=cell, symmetry=None, prototype=None)
-    topologies_BN.append(convsystem_BN)
-    return topologies_BN
+    convsystem = create_system(
+        label='conventional cell',
+        structural_type='2D',
+        dimensionality='2D',
+        building_block='2D material',
+        elements=['B', 'N'],
+        formula_hill='BN',
+        formula_reduced='BN',
+        formula_anonymous='AB',
+        system_relation=Relation(type="subsystem"),
+        material_id="RxRsol0dp1vDkU7-pE3v2exglkpM",
+        atoms=atoms,
+        cell=cell,
+        symmetry=None,
+        prototype=None
+    )
+    return [subsystem, convsystem]
 
 
 def mos2() -> Atoms:
-    symbols_MoS2 = ['Mo', 'S', 'S']
-    positions_MoS2 = [
+    symbols_mos2 = ['Mo', 'S', 'S']
+    positions_mos2 = [
         [0.0, 0.0, 9.063556323175761],
         [1.5920332323422965, 0.9191608152516547, 10.62711264635152],
         [1.5920332323422965, 0.9191608152516547, 7.5]
     ] * ureg.angstrom
-    cell_MoS2 = [
+    cell_mos2 = [
         [3.184066464684593, 0.0, 0.0],
         [-1.5920332323422965, 2.7574824457549643, 0.0],
         [0.0, 0.0, 18.127112646351521]
     ] * ureg.angstrom
-    system_MoS2 = Atoms(
-        symbols=symbols_MoS2,
-        positions=positions_MoS2,
-        cell=cell_MoS2,
+    system_mos2 = Atoms(
+        symbols=symbols_mos2,
+        positions=positions_mos2,
+        cell=cell_mos2,
         pbc=True
     )
-    MoS2_2D = ase.build.surface(system_MoS2, (1, 1, 0), layers=4, vacuum=None, periodic=True)
-    stacked_2D_MoS2 = ase.build.stack(MoS2_2D, MoS2_2D, axis=2, distance=2.5)
-    stacked_2D_MoS2_2 = ase.build.stack(stacked_2D_MoS2, stacked_2D_MoS2, axis=2)
-    return stacked_2D_MoS2_2
+    mos2_2d = ase.build.surface(system_mos2, (1, 1, 0), layers=4, vacuum=None, periodic=True)
+    stacked_2d_mos2 = ase.build.stack(mos2_2d, mos2_2d, axis=2, distance=2.5)
+    stacked_2d_mos2_2 = ase.build.stack(stacked_2d_mos2, stacked_2d_mos2, axis=2)
+    return stacked_2d_mos2_2
 
 
 def mos2_topology() -> List[ResultSystem]:
-    label = 'subsystem'
-    structural_type = '2D'
-    elements = ['Mo', 'S']
-    formula_hill = 'Mo16S32'
-    formula_reduced = 'Mo16S32'
-    formula_anonymous = 'A32B16'
-    system_relation = Relation()
-    system_relation.type = "subsystem"
-    indices_MoS2 = [i for i in range(48)]
-    subsystem_MoS2 = create_system(label, structural_type, elements, formula_hill, formula_reduced, formula_anonymous, system_relation, indices=indices_MoS2)
-    topologies_MoS2 = [subsystem_MoS2]
+    subsystem_MoS2 = create_system(
+        label='subsystem',
+        structural_type='2D',
+        dimensionality='2D',
+        building_block='2D material',
+        elements=['Mo', 'S'],
+        formula_hill='Mo16S32',
+        formula_reduced='Mo16S32',
+        formula_anonymous='A32B16',
+        system_relation=Relation(type="subsystem"),
+        indices=[i for i in range(48)]
+    )
+    topologies_mos2 = [subsystem_MoS2]
 
-    label = 'conventional cell'
-    structural_type = '2D'
-    elements = ['Mo', 'S']
-    formula_hill = 'MoS2'
-    formula_reduced = 'MoS2'
-    formula_anonymous = 'A2B'
-    material_id = "KV4aYm-S1VJOH-SKeXXuG8JkTiGF"
     atoms = NOMADAtoms()
     atoms.periodic = [True, True, False]
     atoms.lattice_vectors = [
@@ -1778,9 +1813,24 @@ def mos2_topology() -> List[ResultSystem]:
         gamma=2.0943951023931957 * ureg.rad,
         pbc=[True, True, False]
     )
-    convsystem_MoS2 = create_system(label, structural_type, elements, formula_hill, formula_reduced, formula_anonymous, system_relation, material_id=material_id, atoms=atoms, cell=cell, symmetry=None, prototype=None)
-    topologies_MoS2.append(convsystem_MoS2)
-    return topologies_MoS2
+    convsystem_mos2 = create_system(
+        label='conventional cell',
+        structural_type='2D',
+        dimensionality='2D',
+        building_block='2D material',
+        elements=['Mo', 'S'],
+        formula_hill='MoS2',
+        formula_reduced='MoS2',
+        formula_anonymous='A2B',
+        system_relation=Relation(type="subsystem"),
+        material_id="KV4aYm-S1VJOH-SKeXXuG8JkTiGF",
+        atoms=atoms,
+        cell=cell,
+        symmetry=None,
+        prototype=None,
+    )
+    topologies_mos2.append(convsystem_mos2)
+    return topologies_mos2
 
 
 def stacked_graphene_boron_nitride_topology() -> Atoms:

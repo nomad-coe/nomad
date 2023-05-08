@@ -347,6 +347,19 @@ registerFilter('results.material.symmetry.space_group_symbol', idStructure, {...
 registerFilter('results.material.symmetry.point_group', idStructure, {...termQuantity, placeholder: "E.g. 6mm, m-3m, 6/mmm"})
 registerFilter('results.material.symmetry.hall_symbol', idStructure, {...termQuantity, placeholder: "E.g. F 4d 2 3 -1d"})
 registerFilter('results.material.symmetry.prototype_aflow_id', idStructure, {...termQuantity, placeholder: "E.g. A_cF8_227_a"})
+registerFilter(
+  'results.material.topology',
+  idStructure,
+  nestedQuantity,
+  [
+    {name: 'label', ...termQuantity},
+    {name: 'method', ...termQuantity},
+    {name: 'dimensionality', ...termQuantity},
+    {name: 'building_block', ...termQuantity},
+    {name: 'material_id', ...termQuantity},
+    {name: 'n_atoms', ...numberHistogramQuantity}
+  ]
+)
 registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.workflow_name', idMethod, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.program_name', idMethod, {...termQuantity, scale: '1/4'})

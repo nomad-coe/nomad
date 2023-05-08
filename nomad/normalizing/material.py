@@ -20,6 +20,7 @@ from typing import Union, Dict, List
 from nptyping import NDArray
 
 import ase.data
+from matid.classifications import Class0D, Atom, Class1D, Class2D, Material2D, Surface, Class3D  # pylint: disable=import-error
 
 from nomad import atomutils
 from nomad.atomutils import Formula
@@ -68,6 +69,22 @@ class MaterialNormalizer():
                 material.chemical_formula_descriptive = formula.format('descriptive')
                 self.structural_type = self.repr_system.type
                 material.structural_type = self.repr_system.type
+                dimensionality_map = {
+                    Class3D: '3D',
+                    Atom: '0D',
+                    Class0D: '0D',
+                    Class1D: '1D',
+                    Class2D: '2D',
+                    Surface: '2D',
+                    Material2D: '2D',
+                }
+                classification = self.run.m_cache.get('classification')
+                material.dimensionality = dimensionality_map.get(classification)
+                building_block_map = {
+                    Surface: 'surface',
+                    Material2D: '2D material',
+                }
+                material.building_block = building_block_map.get(classification)
                 labels = self.repr_system.atoms.labels
                 symbols, reduced_counts = atomutils.get_hill_decomposition(labels, reduced=True)
                 material.chemical_formula_reduced_fragments = [
