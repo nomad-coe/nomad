@@ -1,0 +1,7 @@
+{
+    "data": {
+        "m_def": "../upload/raw/eln_with_structure.schema.archive.yaml#/definitions/section_definitions/0",
+        "structure_file": "SARSUC.cif"
+    },
+    "m_ref_archives": {}
+}

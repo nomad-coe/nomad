@@ -31,6 +31,8 @@ from nomad.datamodel.metainfo.eln.perovskite_solar_cell_database import (
     add_solar_cell, add_band_gap
 )
 
+from nomad.datamodel.metainfo.simulation.system import System as SystemTheory, Atoms
+from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.eln.nexus_data_converter import (
     NexusDataConverter,
     ElnYamlConverter
@@ -972,6 +974,67 @@ class Chemical(ElnWithFormulaBaseSection):
 class Sample(ElnWithFormulaBaseSection):
     ''' A ELN base section that can be used for samples.'''
     pass
+
+
+class ElnWithStructureFile(ArchiveSection):
+    '''
+    A base section for for parsing crystal structure files, e.g. `.cif`, and
+    populating the Material section in Results.
+    '''
+
+    structure_file = Quantity(
+        type=str,
+        description='The structure file.',
+        a_eln=dict(component='FileEditQuantity'))
+
+    def normalize(self, archive, logger):
+        super(ElnWithStructureFile, self).normalize(archive, logger)
+
+        if self.structure_file:
+            from ase.io import read
+            from nomad.normalizing.results import ResultsNormalizer
+            from nomad.normalizing.system import SystemNormalizer
+            from nomad.normalizing.optimade import OptimadeNormalizer
+            from nomad.datamodel.metainfo.simulation.run import Program
+
+            with archive.m_context.raw_file(self.structure_file) as f:
+                try:
+                    structure = read(f.name)
+                except Exception as e:
+                    raise ValueError('could not read structure file') from e
+
+                run = Run()
+                archive.run = [run]
+                system = SystemTheory()
+                system.atoms = Atoms()
+                try:
+                    system.atoms.lattice_vectors = structure.get_cell() * ureg.angstrom
+                except Exception as e:
+                    logger.warn('Could not parse lattice vectors from structure file.', exc_info=e)
+                system.atoms.labels = structure.get_chemical_symbols()
+                system.atoms.positions = structure.get_positions() * ureg.angstrom
+                try:
+                    system.atoms.periodic = structure.get_pbc()
+                except Exception as e:
+                    logger.warn('Could not parse periodicity from structure file.', exc_info=e)
+                    system.atoms.periodic = [True, True, True]
+                system.atoms.species = structure.get_atomic_numbers()
+                archive.run[0].system = [system]
+                program = Program()
+                archive.run[0].program = program
+                archive.run[0].program.name = 'Structure File Importer'
+                system_normalizer = SystemNormalizer(archive)
+                system_normalizer.normalize()
+                optimade_normalizer = OptimadeNormalizer(archive)
+                optimade_normalizer.normalize()
+                results_normalizer = ResultsNormalizer(archive)
+                results_normalizer.normalize()
+
+        # TODO: rewrite it in a way in which the run section is not needed and System is
+        # directly added to the archive.data
+        # set run to None if exist
+        if archive.run:
+            archive.run = None
 
 
 # Solar cell sections:
