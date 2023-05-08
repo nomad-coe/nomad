@@ -205,11 +205,13 @@ class TopologyNormalizer():
                         'projection': 'group',
                         'core_hole': 'group'
                     }
+                    structural_type = structural_type_map.get(group.type)
                     system = System(
                         method='parser',
-                        description=description_map.get(group.type, None),
+                        description=description_map.get(group.type),
                         label=group.label,
-                        structural_type=structural_type_map.get(group.type, None),
+                        structural_type=structural_type,
+                        building_block=structural_type,
                         system_relation=Relation(type='subsystem'),
                     )
                     add_system(system, topology, parent)
@@ -301,7 +303,12 @@ class TopologyNormalizer():
             else:
                 self.logger.info(f"material_id {conventional_cell.material_id} could not be verified")
 
-        return list(topology.values())
+        # Do not return topology if only original system is in it. TODO: This should
+        # change once we are certain that we want to put everything into topology.
+        if len(topology) > 1:
+            return list(topology.values())
+
+        return None
 
     def _create_subsystem(self, cluster: Cluster) -> System:
         '''
@@ -317,6 +324,7 @@ class TopologyNormalizer():
 
         classification = 'unavailable'
         try:
+            dimensionality = cluster.dimensionality()
             classification = cluster.classification()
         except Exception as e:
             self.logger.error(
@@ -332,7 +340,13 @@ class TopologyNormalizer():
             Classification.Material2D: '2D',
             Classification.Unknown: 'unavailable'
         }
+        building_block_map = {
+            Classification.Surface: 'surface',
+            Classification.Material2D: '2D material',
+        }
         subsystem.structural_type = type_map.get(classification, 'unavailable')
+        subsystem.dimensionality = f'{dimensionality}D'
+        subsystem.building_block = building_block_map.get(classification)
 
         return subsystem
 
@@ -369,6 +383,7 @@ class TopologyNormalizer():
         wyckoff_sets = symm.get_wyckoff_sets_conventional()
         material_id = material_id_bulk(spg_number, wyckoff_sets)
         subsystem.structural_type = 'bulk'
+        subsystem.dimensionality = '3D'
         subsystem.material_id = material_id
         subsystem.symmetry = symmetry
 
@@ -397,6 +412,8 @@ class TopologyNormalizer():
             subsystem.cell.volume = None
 
         subsystem.structural_type = '2D'
+        subsystem.dimensionality = '2D'
+        subsystem.building_block = '2D material'
         subsystem.material_id = material_id_2d(spg_number, wyckoff_sets)
 
     def _create_symmetry(self, symm: SymmetryAnalyzer) -> Symmetry:

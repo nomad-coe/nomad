@@ -258,6 +258,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             atoms: The structure to analyse
         '''
         system_type = config.services.unavailable_value
+        classification = None
         if len(atoms) <= config.normalize.system_classification_with_clusters_threshold:
             try:
                 classifier = Classifier(radii="covalent", cluster_threshold=config.normalize.cluster_threshold)
@@ -282,6 +283,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         else:
             self.logger.info("system type analysis not run due to large system size")
         idx = self.section_run.m_cache["representative_system_idx"]
+        self.section_run.m_cache["classification"] = classification
         self.section_run.system[idx].type = system_type
         self.section_run.system[-1].type = system_type
 

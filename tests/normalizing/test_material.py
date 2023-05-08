@@ -114,6 +114,8 @@ def test_material_atom(atom):
     assert_material(material)
     assert material.material_id is None
     assert material.structural_type == 'atom'
+    assert material.building_block is None
+    assert material.dimensionality == '0D'
     assert material.functional_type is None
     assert material.compound_type is None
     assert material.material_name is None
@@ -128,6 +130,8 @@ def test_material_molecule(molecule):
     assert_material(material)
     assert material.material_id is None
     assert material.structural_type == 'molecule / cluster'
+    assert material.building_block is None
+    assert material.dimensionality == '0D'
     assert material.functional_type is None
     assert material.compound_type is None
     assert material.material_name is None
@@ -143,6 +147,8 @@ def test_material_1d(one_d):
     assert_material(material)
     assert isinstance(material.material_id, str)
     assert material.structural_type == '1D'
+    assert material.building_block is None
+    assert material.dimensionality == '1D'
     assert material.functional_type is None
     assert material.compound_type is None
     assert material.material_name is None
@@ -181,6 +187,8 @@ def test_material_2d(two_d):
     assert_material(material)
     assert isinstance(material.material_id, str)
     assert material.structural_type == '2D'
+    assert material.building_block == '2D material'
+    assert material.dimensionality == '2D'
     assert material.functional_type is None
     assert material.compound_type is None
     assert material.material_name is None
@@ -199,6 +207,8 @@ def test_material_surface(surface):
     assert_material(material)
     assert material.material_id is None
     assert material.structural_type == 'surface'
+    assert material.building_block == 'surface'
+    assert material.dimensionality == '2D'
     assert material.functional_type is None
     assert material.compound_type is None
     assert material.material_name is None
@@ -211,6 +221,8 @@ def test_material_bulk(bulk):
     assert_material(material)
     assert isinstance(material.material_id, str)
     assert material.structural_type == 'bulk'
+    assert material.building_block is None
+    assert material.dimensionality == '3D'
     assert material.functional_type
     assert material.compound_type
     assert material.material_name == 'Silicon'

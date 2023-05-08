@@ -958,14 +958,20 @@ class System(MSection):
         description='''
         Descriptive label that identifies this structural part.
         ''',
-        a_elasticsearch=Elasticsearch(material_type)
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='default')
+        ]
     )
     method = Quantity(
         type=MEnum('parser', 'user', 'matid'),
         description='''
         The method used for identifying this system.
         ''',
-        a_elasticsearch=Elasticsearch(material_type)
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='default')
+        ]
     )
     description = Quantity(
         type=str,
@@ -996,6 +1002,44 @@ class System(MSection):
         type=MEnum(structure_classes + ['group', 'molecule', 'monomer']),
         description='''
         Structural class determined from the atomic structure.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    dimensionality = Quantity(
+        type=MEnum(['0D', '1D', '2D', '3D']),
+        description='''
+        Dimensionality of the system. For atomistic systems this is
+        automatically evaluated by using the topology-scaling algorithm:
+        https://doi.org/10.1103/PhysRevLett.118.106101.
+
+        | Value | Description |
+        | --------- | ----------------------- |
+        | `'0D'` | Not connected periodically |
+        | `'1D'` | Periodically connected in one dimension |
+        | `'2D'` | Periodically connected in two dimensions |
+        | `'3D'` | Periodically connected in three dimensions |
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    building_block = Quantity(
+        type=MEnum(['surface', '2D material', 'molecule', 'monomer', 'group']),
+        description='''
+        More exact classification for this system, i.e. the type of "building
+        block" it represents.
+
+        | Value | Description |
+        | --------- | ----------------------- |
+        | `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |
+        | `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |
+        | `'molecule'` | Molecule defined in the force-field topology |
+        | `'monomer'` | Monomer defined in the force-field topology |
+        | `'group'` | Generic group |
         ''',
         a_elasticsearch=[
             Elasticsearch(material_type),
@@ -1218,6 +1262,8 @@ class Material(MSection):
             Elasticsearch(suggestion='default')
         ],
     )
+    dimensionality = System.dimensionality.m_copy()
+    building_block = System.building_block.m_copy()
     functional_type = Quantity(
         type=str,
         shape=['0..*'],

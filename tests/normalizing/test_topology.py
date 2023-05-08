@@ -103,6 +103,8 @@ def test_topology_calculation(pbc):
     # Test molecule group
     mol_group = topology[1]
     assert mol_group.structural_type == 'group'
+    assert mol_group.dimensionality is None
+    assert mol_group.building_block == 'group'
     assert np.array_equal(mol_group.indices, [[0, 1, 2, 3, 4, 5]])
     assert original.chemical_formula_hill == 'H4O2'
     assert original.chemical_formula_reduced == 'H2O'
@@ -116,6 +118,8 @@ def test_topology_calculation(pbc):
     # Test molecule
     mol = topology[2]
     assert mol.structural_type == 'molecule'
+    assert mol_group.dimensionality is None
+    assert mol.building_block == 'molecule'
     assert np.array_equal(mol.indices, [[0, 1, 2], [3, 4, 5]])
     assert mol.chemical_formula_hill == 'H2O'
     assert mol.chemical_formula_reduced == 'H2O'
@@ -129,6 +133,8 @@ def test_topology_calculation(pbc):
     # Test monomer group
     mon_group = topology[3]
     assert mon_group.structural_type == 'group'
+    assert mol_group.dimensionality is None
+    assert mon_group.building_block == 'group'
     assert np.array_equal(mon_group.indices, [[1, 2]])
     assert mon_group.chemical_formula_hill == 'H2'
     assert mon_group.chemical_formula_reduced == 'H'
@@ -142,6 +148,8 @@ def test_topology_calculation(pbc):
     # Test monomer
     mon = topology[4]
     assert mon.structural_type == 'monomer'
+    assert mol_group.dimensionality is None
+    assert mon.building_block == 'monomer'
     assert np.array_equal(mon.indices, [[1, 2]])
     assert mon.chemical_formula_hill == 'H2'
     assert mon.chemical_formula_reduced == 'H'
@@ -228,48 +236,49 @@ def test_2D_topology(surface, ref_topologies):
     subsystem_topologies = topology[1:]
     # Compare topology with reference system topology. topology[0] is the original system
     assert len(subsystem_topologies) == len(ref_topologies)
-    for subsystem_topology in subsystem_topologies:
-        formula_hill = subsystem_topology.chemical_formula_hill
+    for res_system in subsystem_topologies:
+        formula_hill = res_system.chemical_formula_hill
         for ref_top_counter, ref_topology in enumerate(ref_topologies):
             if ref_topology.chemical_formula_hill == formula_hill:
                 ref_formula_hill = ref_topology.chemical_formula_hill
                 ref_index = ref_top_counter
                 break
         ref_elements = ref_topologies[ref_index].elements
-        elements = subsystem_topology.elements
+        elements = res_system.elements
         assert elements == ref_elements
         assert formula_hill == ref_formula_hill
 
-        ref_structural_type = ref_topologies[ref_index].structural_type
-        structural_type = subsystem_topology.structural_type
-        assert ref_structural_type == structural_type
+        ref_system = ref_topologies[ref_index]
+        assert res_system.structural_type == ref_system.structural_type
+        assert res_system.dimensionality == ref_system.dimensionality
+        assert res_system.building_block == ref_system.building_block
 
-        if subsystem_topology.label == 'conventional cell':
+        if res_system.label == 'conventional cell':
             # Cell
-            compare_section(subsystem_topology.cell, ref_topologies[ref_index].cell)
+            compare_section(res_system.cell, ref_topologies[ref_index].cell)
 
             # Symmetry
             if ref_topologies[ref_index].symmetry:
-                symmetry = subsystem_topology.symmetry.m_to_dict()
+                symmetry = res_system.symmetry.m_to_dict()
                 ref_symmetry = ref_topologies[ref_index].symmetry.m_to_dict()
                 for ref_symmetry_property_key, ref_symmetry_property in ref_symmetry.items():
                     symmetry_property = symmetry[ref_symmetry_property_key]
                     assert ref_symmetry_property == symmetry_property
             else:
-                assert subsystem_topology.symmetry == ref_topologies[ref_index].symmetry
+                assert res_system.symmetry == ref_topologies[ref_index].symmetry
 
             # Prototype
             if ref_topologies[ref_index].prototype:
-                prototype = subsystem_topology.prototype.m_to_dict()
+                prototype = res_system.prototype.m_to_dict()
                 ref_prototype = ref_topologies[ref_index].prototype.m_to_dict()
                 for ref_prototype_property_key, ref_prototype_property in ref_prototype.items():
                     prototype_property = prototype[ref_prototype_property_key]
                     assert ref_prototype_property == prototype_property
             else:
-                assert ref_topologies[ref_index].prototype == subsystem_topology.prototype
+                assert ref_topologies[ref_index].prototype == res_system.prototype
 
             # Atoms
-            atoms = subsystem_topology.atoms.m_to_dict()
+            atoms = res_system.atoms.m_to_dict()
             ref_atoms = ref_topologies[ref_index].atoms.m_to_dict()
             for ref_atoms_property_key, ref_atoms_property in ref_atoms.items():
                 if ref_atoms_property_key == 'm_def':
@@ -295,10 +304,10 @@ def test_2D_topology(surface, ref_topologies):
                 else:
                     assert ref_atoms_property == atoms_property
 
-        elif subsystem_topology.label == 'subsystem':
+        elif res_system.label == 'subsystem':
             # Indices: passes if the index overlap is large enough
             ref_indices = ref_topologies[ref_index].indices
-            indices = subsystem_topology.indices[0]
+            indices = res_system.indices[0]
             indices_overlap = set(ref_indices).intersection(set(indices))
             assert len(indices_overlap) / \
                 len(ref_indices) > 0.85
@@ -316,13 +325,14 @@ def test_topology_projection(projection):
     assert not system.atoms_group[-1].atoms_group
     material = projection.results.material
     assert material.structural_type == system.type
-    assert material.m_xpath('topology')
+    assert material.topology
     topology = material.topology
     assert_topology(topology)
     assert len(topology) == 2
     assert topology[0].label == 'original'
     assert topology[1].label == system.atoms_group[-1].label
     assert topology[1].structural_type == 'group'
+    assert topology[1].building_block == 'group'
     assert len(topology[0].child_systems) == 1
     assert topology[0].child_systems[-1] == topology[1].system_id
     assert topology[0].elements == ['Br', 'K', 'Si']

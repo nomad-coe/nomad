@@ -1588,8 +1588,10 @@ Ozone
                     archive.results.material.structural_type = 'not processed'
                 elif self.dimension_3D:
                     archive.results.material.structural_type = 'bulk'
+                    archive.results.material.dimensionality = '3D'
                 elif self.dimension_2D and self.dimension_3D is False:
                     archive.results.material.structural_type = '2D'
+                    archive.results.material.dimensionality = '2D'
 
             if self.composition_perovskite_ABC3_structure:
                 if not archive.results.material.symmetry:

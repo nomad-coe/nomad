@@ -1002,6 +1002,37 @@ window.nomadArtifacts = {
       "aggregatable": true,
       "suggestion": true
     },
+    "results.material.dimensionality": {
+      "name": "dimensionality",
+      "description": "Dimensionality of the system. For atomistic systems this is\nautomatically evaluated by using the topology-scaling algorithm:\nhttps://doi.org/10.1103/PhysRevLett.118.106101.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'0D'` | Not connected periodically |\n| `'1D'` | Periodically connected in one dimension |\n| `'2D'` | Periodically connected in two dimensions |\n| `'3D'` | Periodically connected in three dimensions |",
+      "type": {
+        "type_kind": "Enum",
+        "type_data": [
+          "0D",
+          "1D",
+          "2D",
+          "3D"
+        ]
+      },
+      "aggregatable": true,
+      "suggestion": true
+    },
+    "results.material.building_block": {
+      "name": "building_block",
+      "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |\n| `'group'` | Generic group |",
+      "type": {
+        "type_kind": "Enum",
+        "type_data": [
+          "surface",
+          "2D material",
+          "molecule",
+          "monomer",
+          "group"
+        ]
+      },
+      "aggregatable": true,
+      "suggestion": true
+    },
     "results.material.functional_type": {
       "name": "functional_type",
       "description": "Classification based on the functional properties.",
@@ -1412,7 +1443,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "suggestion": true
     },
     "results.material.topology.method": {
       "name": "method",
@@ -1425,7 +1457,8 @@ window.nomadArtifacts = {
           "matid"
         ]
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "suggestion": true
     },
     "results.material.topology.description": {
       "name": "description",
@@ -1472,6 +1505,37 @@ window.nomadArtifacts = {
           "group",
           "molecule",
           "monomer"
+        ]
+      },
+      "aggregatable": true,
+      "suggestion": true
+    },
+    "results.material.topology.dimensionality": {
+      "name": "dimensionality",
+      "description": "Dimensionality of the system. For atomistic systems this is\nautomatically evaluated by using the topology-scaling algorithm:\nhttps://doi.org/10.1103/PhysRevLett.118.106101.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'0D'` | Not connected periodically |\n| `'1D'` | Periodically connected in one dimension |\n| `'2D'` | Periodically connected in two dimensions |\n| `'3D'` | Periodically connected in three dimensions |",
+      "type": {
+        "type_kind": "Enum",
+        "type_data": [
+          "0D",
+          "1D",
+          "2D",
+          "3D"
+        ]
+      },
+      "aggregatable": true,
+      "suggestion": true
+    },
+    "results.material.topology.building_block": {
+      "name": "building_block",
+      "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |\n| `'group'` | Generic group |",
+      "type": {
+        "type_kind": "Enum",
+        "type_data": [
+          "surface",
+          "2D material",
+          "molecule",
+          "monomer",
+          "group"
         ]
       },
       "aggregatable": true,
@@ -13126,7 +13190,8 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.material.topology.label"
+                    "results.material.topology.label",
+                    "results.material.topology.label__suggestion"
                   ]
                 },
                 "name": "label",
@@ -13142,7 +13207,8 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.material.topology.method"
+                    "results.material.topology.method",
+                    "results.material.topology.method__suggestion"
                   ]
                 },
                 "name": "method",
@@ -13240,6 +13306,51 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
+                    "results.material.topology.dimensionality",
+                    "results.material.topology.dimensionality__suggestion"
+                  ]
+                },
+                "name": "dimensionality",
+                "description": "Dimensionality of the system. For atomistic systems this is\nautomatically evaluated by using the topology-scaling algorithm:\nhttps://doi.org/10.1103/PhysRevLett.118.106101.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'0D'` | Not connected periodically |\n| `'1D'` | Periodically connected in one dimension |\n| `'2D'` | Periodically connected in two dimensions |\n| `'3D'` | Periodically connected in three dimensions |",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "0D",
+                    "1D",
+                    "2D",
+                    "3D"
+                  ]
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.material.topology.building_block",
+                    "results.material.topology.building_block__suggestion"
+                  ]
+                },
+                "name": "building_block",
+                "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |\n| `'group'` | Generic group |",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "surface",
+                    "2D material",
+                    "molecule",
+                    "monomer",
+                    "group"
+                  ]
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 9,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
                     "results.material.topology.functional_type",
                     "results.material.topology.functional_type__suggestion"
                   ]
@@ -13256,7 +13367,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
+                "m_parent_index": 10,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13276,7 +13387,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 9,
+                "m_parent_index": 11,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13417,7 +13528,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 10,
+                "m_parent_index": 12,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13435,7 +13546,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 11,
+                "m_parent_index": 13,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13452,7 +13563,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 12,
+                "m_parent_index": 14,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13469,7 +13580,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 13,
+                "m_parent_index": 15,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13486,7 +13597,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 14,
+                "m_parent_index": 16,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13503,7 +13614,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 15,
+                "m_parent_index": 17,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13520,7 +13631,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 16,
+                "m_parent_index": 18,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13537,7 +13648,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 17,
+                "m_parent_index": 19,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13556,7 +13667,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 18,
+                "m_parent_index": 20,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13572,7 +13683,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 19,
+                "m_parent_index": 21,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13591,7 +13702,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 20,
+                "m_parent_index": 22,
                 "m_parent_sub_section": "quantities",
                 "name": "atoms_ref",
                 "description": "Reference to an atomistic structure that is associated with this\nsystem'.",
@@ -13602,7 +13713,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 21,
+                "m_parent_index": 23,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13619,7 +13730,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 22,
+                "m_parent_index": 24,
                 "m_parent_sub_section": "quantities",
                 "name": "indices",
                 "description": "Indices of the atoms belonging to this group. These indices refer to\nthe original system. Each row represents a new instance.",
@@ -13750,6 +13861,51 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
+                    "results.material.topology.dimensionality",
+                    "results.material.topology.dimensionality__suggestion"
+                  ]
+                },
+                "name": "dimensionality",
+                "description": "Dimensionality of the system. For atomistic systems this is\nautomatically evaluated by using the topology-scaling algorithm:\nhttps://doi.org/10.1103/PhysRevLett.118.106101.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'0D'` | Not connected periodically |\n| `'1D'` | Periodically connected in one dimension |\n| `'2D'` | Periodically connected in two dimensions |\n| `'3D'` | Periodically connected in three dimensions |",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "0D",
+                    "1D",
+                    "2D",
+                    "3D"
+                  ]
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.material.topology.building_block",
+                    "results.material.topology.building_block__suggestion"
+                  ]
+                },
+                "name": "building_block",
+                "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |\n| `'group'` | Generic group |",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "surface",
+                    "2D material",
+                    "molecule",
+                    "monomer",
+                    "group"
+                  ]
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
                     "results.material.functional_type",
                     "results.material.functional_type__suggestion"
                   ]
@@ -13766,7 +13922,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
+                "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13786,7 +13942,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
+                "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13927,7 +14083,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 8,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13945,7 +14101,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
+                "m_parent_index": 9,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13962,7 +14118,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
+                "m_parent_index": 10,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13979,7 +14135,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 9,
+                "m_parent_index": 11,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13996,7 +14152,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 10,
+                "m_parent_index": 12,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -14013,7 +14169,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 11,
+                "m_parent_index": 13,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -14030,7 +14186,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 12,
+                "m_parent_index": 14,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -14047,7 +14203,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 13,
+                "m_parent_index": 15,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
