@@ -155,7 +155,7 @@ class FileParser:
     def __getattr__(self, key):
         if self._results is None:
             self._results = dict()
-            self.parse()
+            self.parse(key)
 
         return self._results.get(key, None)
 
