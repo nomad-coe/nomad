@@ -180,10 +180,13 @@ class SystemNormalizer(SystemBasedNormalizer):
             return False
 
         # formulas
-        formula = Formula(atoms.get_chemical_formula())
-        system.chemical_composition = atoms.get_chemical_formula(mode='all')
-        system.chemical_composition_reduced = formula.format('reduced')
-        system.chemical_composition_hill = formula.format("hill")
+        try:
+            formula = Formula(atoms.get_chemical_formula())
+            system.chemical_composition = atoms.get_chemical_formula(mode='all')
+            system.chemical_composition_reduced = formula.format('reduced')
+            system.chemical_composition_hill = formula.format("hill")
+        except ValueError as e:
+            self.logger.error('could not extract chemical formula', exc_info=e, error=str(e))
 
         # positions
         atom_positions = get_value(Atoms.positions, numpy=True, source=system.atoms)
