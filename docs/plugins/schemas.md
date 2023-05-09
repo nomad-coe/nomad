@@ -1,16 +1,12 @@
----
-title: Python schemas
----
+## Getting started
 
-# Write NOMAD schemas in Python
+Fork and clone the [schema example project](https://github.com/nomad-coe/nomad-schema-plugin-example) as described in [before](plugins.md).
 
-Writing and uploading schemas in `.archive.yaml` format is a good way for NOMAD users
-to add schemas. But it has limitations. As a NOMAD developer or Oasis administrator
-you can add Python schemas to NOMAD. All build in NOMAD schemas (e.g. for electronic structure code data) are written an Python and are part of the NOMAD sources (`nomad.datamodel.metainfo.*`).
+## Writing schemas in Python compared to YAML schemas
 
-There is a 1-1 translation between Python schemas (written in classes) and YAML (or JSON)
-schemas (written in objects). Both use the same fundamental concepts, like
-*section*, *quantity*, or *sub-section*, introduced in [YAML schemas](basics.md).
+In this [guide](../schemas/basics.md), we explain how to write and upload schemas in the `.archive.yaml` format. Writing and uploading such YAML schemas is a good way for NOMAD users to add schemas. But it has limitations. As a NOMAD developer or Oasis administrator you can add Python schemas to NOMAD. All build in NOMAD schemas (e.g. for electronic structure code data) are written an Python and are part of the NOMAD sources (`nomad.datamodel.metainfo.*`).
+
+There is a 1-1 translation between Python schemas (written in classes) and YAML (or JSON) schemas (written in objects). Both use the same fundamental concepts, like *section*, *quantity*, or *sub-section*, introduced in [YAML schemas](../schemas/basics.md).
 
 
 ## Starting example
@@ -304,7 +300,7 @@ short handle of a code name or other special method prefix.
 
 ### Access structured data via API
 
-The [API section](../api.md#access-archives) demonstrates how to access an Archive, i.e.
+The [API section](../apis/api.md#access-archives) demonstrates how to access an Archive, i.e.
 retrieve the processed data from a NOAMD entry. This API will give you JSON data likes this:
 
 ```json title="https://nomad-lab.eu/prod/v1/api/v1/entries/--dLZstNvL_x05wDg2djQmlU_oKn/archive"
@@ -359,7 +355,7 @@ To learn what each key means, you need to look up its definition in the Metainfo
 
 In Python, JSON data is typically represented as nested combinations of dictionaries
 and lists. Of course, you could work with this right away. To make it easier for Python
-programmers the [NOMAD Python package](../pythonlib.md) allows you to use this
+programmers the [NOMAD Python package](../apis/pythonlib.md) allows you to use this
 JSON data with a higher level interface, which provides the following advantages:
 
 - code completion in dynamic coding environments like Jupyter notebooks
@@ -392,3 +388,45 @@ print(json.dumps(calc.m_to_dict(), indent=2))
 The NOMAD Python package provides utilities to [query large amounts of
 archive data](/archive_query.md). This uses the build-in Python schema classes as
 an interface to the data.
+
+## Custom normalizers
+
+For custom schemas, you might want to add custom normalizers. All files are parsed
+and normalized when they are uploaded or changed. The NOMAD metainfo Python interface
+allows you to add functions that are called when your data is normalized.
+
+Here is an example:
+
+```python
+--8<-- "examples/archive/custom_schema.py"
+```
+
+To add a `normalize` function, your section has to inherit from `ArchiveSection` which
+provides the base for this functionality. Now you can overwrite the `normalize` function
+and add you own behavior. Make sure to call the `super` implementation properly to
+support schemas with multiple inheritance.
+
+If we parse an archive like this:
+
+```yaml
+--8<-- "examples/archive/custom_data.archive.yaml"
+```
+
+we will get a final normalized archive that contains our data like this:
+
+```json
+{
+  "data": {
+    "m_def": "examples.archive.custom_schema.SampleDatabase",
+    "samples": [
+      {
+        "added_date": "2022-06-18T00:00:00+00:00",
+        "formula": "NaCl",
+        "sample_id": "2022-06-18 00:00:00+00:00--NaCl"
+      }
+    ]
+  }
+}
+```
+
+{{pydantic_model('nomad.config.plugins.Schema', heading='## Schema plugin metadata')}}

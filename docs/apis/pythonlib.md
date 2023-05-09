@@ -16,7 +16,7 @@ pip install nomad-lab
     The latest develop versions might still be considered beta and might not be published to
     pypi. If you require specific new features you might need to install `nomad-lab`
     from our GitLab package registry. To use features of a specific commit or
-    branch, consider to [clone and build the project](./develop/setup.md) yourself.
+    branch, consider to [clone and build the project](../develop/setup.md) yourself.
 
 
 To install the latest release developer releases from our GitLab use:
@@ -45,6 +45,7 @@ pip install nomad-lab[dev]
 The various extras have the following meaning:
 
 - *parsing*, run all parsers, incl. parsers based on HDF5, netCDF, or asr
-- *infrastructure*, everything to run NOMAD services, see also [Oasis documentation](oasis.md#base-linux-without-docker)
+- *infrastructure*, everything to run NOMAD services, see also
+[Oasis documentation](../oasis/install.md#base-linux-without-docker)
 - *dev*, necessary to run development and build tools, e.g. pytest, pylint, mypy
 

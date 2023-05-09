@@ -9,7 +9,7 @@ run the infrastructure in development mode, learn to run out test-suites, and se
 *Visual Studio Code* for NOMAD development.
 
 This is not about working with the NOMAD Python package. You can find the `nomad-lab`
-documentation [here](../pythonlib.md).
+documentation [here](../apis/pythonlib.md).
 
 ## Clone the sources
 If not already done, you should clone nomad. If you have a gitlab@MPCDF account, you can clone with git URL:

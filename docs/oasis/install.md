@@ -12,7 +12,7 @@ central NOMAD installation.
 - Make sure you have [docker](https://docs.docker.com/engine/install/) installed.
 Docker nowadays comes with `docker compose` build in. Prior, you needed to
 install the stand alone [docker-compose](https://docs.docker.com/compose/install/).
-- Download our basic configuration files [nomad-oasis.zip](assets/nomad-oasis.zip)
+- Download our basic configuration files [nomad-oasis.zip](../assets/nomad-oasis.zip)
 - Run the following commands (skip `chown` on MacOS and Windows computers)
 
 ```sh
@@ -106,7 +106,7 @@ compatible and you might chose to can replace `docker compose` with `docker-comp
 
 The following will run all necessary services with docker. These comprise: a **mongo**
 database, an **elasticsearch**, a **rabbitmq** distributed task queue, the NOMAD **app**,
-NOMAD **worker**, and NOMAD **gui**. In this [introduction](index.md#architecture),
+NOMAD **worker**, and NOMAD **gui**. In this [introduction](../index.md#architecture),
 you will learn what each service does and why it is necessary.
 
 ### Configuration
@@ -121,7 +121,7 @@ There are three files to configure:
 - `configs/nginx.conf`
 
 In this example, we have all files in the same directory (the directory we are also working in).
-You can download minimal example files [here](assets/nomad-oasis.zip).
+You can download minimal example files [here](../assets/nomad-oasis.zip).
 
 #### docker-compose.yaml
 
@@ -350,56 +350,6 @@ your own host.
 - We disabled the https requirement on the default realm for simplicity. You should change
 this for a production system.
 
-### Backups
-
-To backup your Oasis at least the file data and mongodb data needs to be saved. You determined the path to your file data (your uploads) during the installation. By
-default all data is stored in a directory called `.volumes` that is created in the
-current working directory of your installation/docker-compose. This directory can be backed up like any other file backup (e.g. rsync).
-
-To backup the mongodb, please refer to the official [mongodb documentation](https://docs.mongodb.com/manual/core/backups/). We suggest a simple mongodump export that is backed up alongside your files. The default configuration mounts `.volumes/mongo` into the mongodb container (as `/backup`) for this purpose. You can use this to export the NOMAD mongo database. Combine this with rsync on the `.volumes` directory and everything should be set. To create a new mongodump run:
-
-```sh
-docker exec nomad_oasis_mongo mongodump -d nomad_oasis_v1 -o /backup
-```
-
-The elasticsearch contents can be reproduced with the information in the files and the mongodb.
-
-To create a new oasis with the backup data, create the `.volumes` directory from your backup. Start the new oasis. Use mongorestore:
-
-```sh
-docker exec nomad_oasis_mongo mongorestore /backup
-```
-
-Now you still have to recreate the elasticsearch index:
-```sh
-docker exec nomad_oasis_app python -m nomad.cli admin uploads index
-```
-
-### A few useful NOMAD commands
-
-The NOMAD command line interface (CLI) provides a few useful administrative functions. To use the NOMAD CLI, open a shell into the app container and run it from there:
-
-```sh
-docker exec -ti nomad_oasis_app bash
-```
-
-For example you can ls or remove uploads:
-```sh
-nomad admin uploads ls
-nomad admin uploads rm -- <upload_id> <upload_id>
-```
-
-You can also reset the processing (of "stuck") uploads and reprocess:
-```sh
-nomad admin uploads reset -- <upload_id>
-nomad admin uploads process -- <upload_id>
-```
-
-You can also use the CLI to wipe the whole installation:
-```sh
-nomad admin reset --i-am-really-sure
-```
-
 ## Base Linux (without docker)
 
 ### Pre-requisites
@@ -514,190 +464,3 @@ This should give you a working OASIS at `http://<your-host>/<your-path-prefix>`.
 
 *This is not yet documented.*
 
-## Migrating from an older version (0.8.x to 1.x)
-
-Between versions 0.10.x and 1.x we needed to change how archive and metadata data is stored
-internally in files and databases. This means you cannot simply start a new version of
-NOMAD on top of the old data. But there is a strategy to adapt the data. This should
-work for data based on NOMAD >0.8.0 and <= 0.10.x.
-
-The overall strategy is to create a new mongo database, copy all information, and then
-reprocess all data for the new version.
-
-First, shutdown the OASIS and remove all old containers.
-```sh
-docker compose stop
-docker compose rm -f
-```
-
-Update your config files (`docker-compose.yaml`, `nomad.yaml`, `nginx.conf`) according
-to the latest documentation (see above). Make sure to use index and database names that
-are different. The default values contain a version number in those names, if you don't
-overwrite those defaults, you should be safe.
-
-Make sure you get the latest images and start the OASIS with the new version of NOMAD:
-```sh
-docker compose pull
-docker compose up -d
-```
-
-If you go to the GUI of your OASIS, it should now show the new version and appear empty,
-because we are using a different database and search index now.
-
-To migrate the data, we created a command that you can run within your OASIS' NOMAD
-application container. This command takes the old database name as an argument, it will copy
-all data from the old mongodb to the current one. The default v8.x database name
-was `nomad_fairdi`, but you might have changed this to `nomad_v0_8` as recommended by
-our old Oasis documentation.
-
-```sh
-docker exec -ti nomad_oasis_app bash -c 'nomad admin upgrade migrate-mongo --src-db-name nomad_v0_8'
-docker exec -ti nomad_oasis_app bash -c 'nomad admin uploads reprocess'
-```
-
-Now all your data should appear in your OASIS again. If you like, you can remove the
-old index and database:
-
-```sh
-docker exec nomad_oasis_elastic bash -c 'curl -X DELETE http://elastic:9200/nomad_fairdi'
-docker exec nomad_oasis_mongo bash -c 'mongo nomad_fairdi --eval "printjson(db.dropDatabase())"'
-```
-
-## Restricting access to your Oasis
-
-An Oasis works exactly the same way the official NOMAD works. It is open and everybody
-can access published data. Everybody with an account can upload data. This might not be
-what you want.
-
-Currently there are two ways to restrict access to your Oasis. First, you do not
-expose the Oasis to the public internet, e.g. you only make it available on an intra-net or
-through a VPN.
-
-Second, we offer a simple white-list mechanism. As the Oasis administrator you provide a
-list of accounts as part of your Oasis configuration. To use the Oasis, all users have to
-be logged in and be on your white list of allowed users. To enable white-listing, you
-can provide a list of NOMAD account email addresses in your `nomad.yaml` like this:
-
-```
-oasis:
-    allowed_users:
-        - user1@gmail.com
-        - user2@gmail.com
-```
-
-## Performance considerations
-
-If you run the OASIS on a single computer, like described here (either with docker or bare
-linux), you might run into problems with processing large uploads. If the NOMAD worker
-and app are run on the same computer, the app might become unresponsive, when the worker
-consumes all system resources.
-
-By default, the worker container might have as many worker processes as the system as CPU cores.
-In addition, each worker process might spawn additional threads and consume
-more than one CPU core.
-
-There are multiple ways to restrict the worker's resource consumption:
-
-- limit the number of worker processes and thereby lower the number of used cores
-- disable or restrict multithreading
-- limit available CPU utilization of the worker's docker container with docker
-
-#### Limit the number of worker processes
-
-The worker uses the Python package celery. Celery can be configured to use less than the
-default number of worker processes (which equals the number of available cores). To use only
-a single core only, you can alter the worker service command in the `docker-compose.yml` and
-add a `--concurrency` argument:
-
-```
-command: python -m celery -A nomad.processing worker -l info --concurrency=1 -Q celery
-```
-
-See also the [celery documentation](https://docs.celeryproject.org/en/stable/userguide/workers.html#id1).
-
-#### Limiting the use of threads
-
-You can also reduce the usable threads that Python packages based on OpenMP could use to
-reduce the threads that might be spawned by a single worker process. Simply set the `OMP_NUM_THREADS`
-environment variable in the worker container in your `docker-compose.yml`:
-
-```
-services:
-    worker:
-        ...
-        environment:
-            ...
-            OMP_NUM_THREADS: 1
-```
-
-#### Limit CPU with docker
-
-You can add a `deploy.resources.limits` section to the worker service in the `docker-compose.yml`:
-
-```
-services:
-    worker:
-        ...
-        deploy:
-            resources:
-                limits:
-                    cpus: '0.50'
-```
-
-The number refers to the percentage use of a single CPU core.
-See also the [docker-compose documentation](https://docs.docker.com/compose/compose-file/compose-file-v3/#resources).
-
-
-## NOMAD Oasis FAQ
-
-#### Why use an Oasis?
-There are three reasons:
-
-- You want to manage data in private,
-- you want local availability of public NOMAD data without network restrictions,
-- or you want to manage large amounts of low quality and preliminary data that is not intended for publication.
-
-#### How to organize data in NOMAD Oasis?
-
-##### How can I categorize or label my data?
-Currently, NOMAD supports the following mechanism to organize data:
-
-- Data always belongs to one upload, which has a main author, and is assigned various metadata, like the time the upload was created, a custom human friendly upload name, etc.
-- Data can be assigned to multiple independent datasets.
-- Data can hold a proprietary id called “external_id”.
-- Data can be assigned to multiple coauthors in addition to the main author.
-- Data can be filtered and searched in various ways.
-
-#####  Is there some rights-based visibility?
-An upload can be viewed at any time by the main author, the upload coauthors, and the
-upload reviewers. Other users will not be able to see the upload until it is published and
-the embargo (if requested) has been lifted. The main author decides which users to register as coauthors and reviewers, when to publish and if it should be published with an embargo.
-The main author and upload coauthors are the only users who can edit the upload while it is in staging.
-
-#### How to share data with the central NOMAD?
-
-Keep in mind, it is not entirely clear, how we will do this.
-
-##### How to designate Oasis data for publishing to NOMAD?
-Currently, you should use one of the organizational mechanism to designate data for being published to NOMAD. You can use a dedicated dataset for publishable data.
-
-##### How to upload?
-
-We will probably provide functionality in the API of the central NOMAD to upload data from an Oasis to the central NOMAD and provide the necessary scripts and detailed instructions. Most likely the data that is uploaded to the central NOMAD can be selected via a search query. Therefore, using a dedicated dataset, would be an easy to select criteria.
-
-#### How to maintain an Oasis installation?
-
-##### How to install a NOMAD Oasis?
-Follow our guide: https://nomad-lab.eu/prod/v1/docs/ops.html#operating-a-nomad-oasis
-
-##### How do version numbers work?
-There are still a lot of things in NOMAD that are subject to change. Currently, changes in the minor version number (0.x.0) designate major changes that require data migration. Changes in the patch version number (0.7.x) just contain minor changes and fixes and do not require data migration. Once we reach 1.0.0, NOMAD will use the regular semantic versioning conventions.
-
-##### How to upgrade a NOMAD Oasis?
-When we release a new version of the NOMAD software, it will be available as a new Docker image with an increased version number. You simply change the version number in your docker-compose.yaml and restart.
-
-##### What about major releases?
-Going from NOMAD 0.7.x to 0.8.x will require data migration. This means the layout of the data has changed and the new version cannot be used on top of the old data. This requires a separate installation of the new version and mirroring the data from the old version via NOMAD’s API. Detailed instructions will be made available with the new version.
-
-##### How to move data between installations?
-With the release of 0.8.x, we will clarify how to move data between installations. (See last question)

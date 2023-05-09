@@ -12,7 +12,7 @@ performed . This often is also referred to as *data provenance* or *provenance g
 The following shows the overall abstract schema for *worklows* that can be found
 in `nomad.datamodel.metainfo.workflow` (blue):
 
-![workflow schema](../assets/workflow-schema.png)
+![workflow schema](workflow-schema.png)
 
 The idea is that *workflows* are stored in a top-level archive section along-side other
 sections that contain the *inputs* and *outputs*. This way the *workflow* or *provenance graph*
@@ -27,7 +27,7 @@ top-level section.
 
 Here is a logical depiction of the workflow and all its tasks, inputs, and outputs.
 
-![example workflow](../assets/example-workflow.png)
+![example workflow](example-workflow.png)
 
 ### Simple workflow entry
 

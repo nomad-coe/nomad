@@ -1,13 +1,34 @@
-# Run NOMAD parser locally
+# How to run a parser
 
-If you install `nomad-lab`, you can use the NOMAD parsers locally on your computer.
-To use the NOMAD parsers from the command line, you can use the parse CLI command. The parse command will automatically
-match the right parser to your code output file and run the parser. There are two output formats, `--show-metadata` (a
-JSON representation of the basic metadata) and `--show-archive` (a JSON representation of the full parse results).
+You can find a [list of all parsers](../reference/parsers.md) and supported files in the reference.
 
-```sh
+First you need to have the `nomad-lab` pypi package installed. You find more detailed
+instructions [here](pythonlib.md):
+
+```
+pip install nomad-lab
+```
+
+## From the command line
+
+You can run NOMAD parsers from the [command line interface](../reference/cli.md) (CLI).
+The parse command will automatically match the right parser to your file and run the parser.
+There are two output formats:
+
+- `--show-metadata` a JSON representation of the basic metadata
+-  `--show-archive` a JSON representation of the full parse results
+
+```
 nomad parse --show-archive <path-to-your-mainfile-code-output-file>
 ```
+
+!!! note
+
+    If you run into missing dependency errors, you might want to install additional
+    dependencies via `pip install nomad-lab[parsing]`. Only a view parsers require
+    extra dependencies. Please refer to the parser projects for more details.
+
+## From a python program
 
 You can also use the NOMAD parsers within Python, as shown below.
 This will give you the parse results as metainfo objects to conveniently analyze the results in Python.
@@ -30,6 +51,8 @@ for archive in archives:
     # get the same data as JSON serializable Python dict
     python_dict = section_run.m_to_dict()
 ```
+
+## From cloned parser projects
 
 You can also clone a parser project to debug or fix a parser:
 

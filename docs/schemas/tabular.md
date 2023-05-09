@@ -1,62 +1,16 @@
-# Schemas for ELNs
-
-A schema defines all possible data structures. With small editions to our schemas,
-we can instruct NOMAD to provide respective editors for data. This allows us
-to build Electronic Lab Notebooks (ELNs) as tools to acquire data in a formal and
-structured way. For schemas with ELN annotations, users can create new entries
-in NOMAD GUI and edit the archive (structured data) of these entries directly in the GUI.
-
-## Annotations
-
-Definitions in a schema can have annotations. These annotations provide additional information that NOMAD can use to alter its behavior around these definitions. Annotations
-are named blocks of key-value pairs:
-
-```yaml
-definitions:
-  sections:
-    MyAnnotatedSection:
-      m_annotations:
-        annotation_name:
-          key1: value
-          key2: value
-```
-
-Many annotations control the representation of data in the GUI. This can be for plots
-or data entry/editing capabilities. There are three main categories of annotations
-relevant to ELNs.
-
-- `eln` annotations shape the data editor, i.e. allow you to control which type of forms to use to edit quantities.
-- With `tabular` annotation data from linked `.csv` or `Excel` files can be parsed and added
-to data.
-- `plot` annotation allows you to plot numerical data (e.g. added via tables) directly
-in the ELN (or)
-
-## Example ELN
-The is the commented ELN schema from our ELN example upload that can be created from
-NOMAD's upload page:
-```yaml
---8<-- "examples/data/eln/schema.archive.yaml"
-```
-
-{{ pydantic_model('nomad.datamodel.metainfo.annotations.ELNAnnotation', heading='## ELN Annotation') }}
-
-{{ pydantic_model('nomad.datamodel.metainfo.annotations.BrowserAnnotation', heading='## Browser Annotation') }}
-
-
-## Tabular Annotations
 In order to import your data from a `.csv` or `Excel` file, NOMAD provides three distinct (and separate) ways, that
 with each comes unique options for importing and interacting with your data. In order to better understand how to use
 NOMAD tabular parser to import your data, follow three sections below. In each section you
 can find a commented sample schema with a step-by-step guide on how to import your tabular data.
 
-Tabular parser, implicitly, parse the data into the same NOMAD entry where the datafile is loaded. Also, explicitly, 
+Tabular parser, implicitly, parse the data into the same NOMAD entry where the datafile is loaded. Also, explicitly,
 this can be defined by putting the corresponding annotations under `current_entry` (check the examples below).
-In addition, tabular parser can be set to parse the data into new entry (or entries). For this, the proper annotations 
+In addition, tabular parser can be set to parse the data into new entry (or entries). For this, the proper annotations
 should be appended to `new_entry` annotation in your schema file.
 
 Two main components of any tabular parser schema are:
 1) implementing the correct base-section(s), and
-2) providing a `data_file` `Quantity` with the correct `m_annotations`. 
+2) providing a `data_file` `Quantity` with the correct `m_annotations`.
 
 Please bear in mind that the schema files should 1) follow the NOMAD naming convention
 (i.e. `My_Name.archive.yaml`), and 2) be accompanied by your data file in order for NOMAD to parse them.
@@ -65,23 +19,23 @@ In the examples provided below, an `Excel` file is assumed to contain all the da
 should match the name of the `Excel` data file, which in case of using a `.csv` data file, it can be replaced by the
 `.csv` file name.
 
-`TableData` (and any other section(s) that is inheriting from `TableData`) has a customizable checkbox Quantity 
+`TableData` (and any other section(s) that is inheriting from `TableData`) has a customizable checkbox Quantity
 (i.e. `fill_archive_from_datafile`) to turn the tabular parser `on` or `off`.
 If you do not want to have the parser running everytime you make a change to your archive data, it is achievable then via
 unchecking the checkbox. It is customizable in the sense that if you do not wish to see this checkbox at all,
-you can configure the `hide` parameter of the section's `m_annotations` to hide the checkbox. This in turn sets 
-the parser to run everytime you save your archive. 
+you can configure the `hide` parameter of the section's `m_annotations` to hide the checkbox. This in turn sets
+the parser to run everytime you save your archive.
 
 Be cautious though! Turning on the tabular parser (or checking the box) on saving your data will cause
-losing/overwriting your manually-entered data by the parser! 
+losing/overwriting your manually-entered data by the parser!
 
-#### Column-mode Sample:
+## Column-mode
 The following sample schema creates one quantity off the entire column of an excel file (`column mode`).
 For example, suppose in an excel sheet, several rows contain information of a chemical product (e.g. `purity` in one
 column). In order to list all the purities under the column `purity` and import them into NOMAD, you can use the
 following schema by substituting `My_Quantity` with any name of your choice (e.g. `Purity`),
 `tabular-parser.data.xlsx` with the name of the `csv/excel` file where the data lies, and `My_Sheet/My_Column` with
-sheet_name/column_name of your targeted data. The `Tabular_Parser` can also be changed to any arbitrary name of your 
+sheet_name/column_name of your targeted data. The `Tabular_Parser` can also be changed to any arbitrary name of your
 choice.
 
 Important notes:
@@ -89,7 +43,7 @@ Important notes:
 - `shape: ['*']` under `My_Quantity` is essential to parse the entire column of the data file.
 - The `data_file` `Quantity` can have any arbitrary name (e.g. `xlsx_file`)
 - `My_Quantity` can also be defined within another subsection (see next sample schema)
-- Use `current_entry` and append `column_to_sections` to specify which sub_section(s) is to be filled in 
+- Use `current_entry` and append `column_to_sections` to specify which sub_section(s) is to be filled in
 this mode. `Leaving this field empty` causes the parser to parse the entire schema under column mode.
 
 ```yaml
@@ -166,7 +120,7 @@ your data is populated under the `data` sub_section.
 <b>Advanced options to use/set in tabular parser:</b>
 
 - If you want to populate your schema from multiple `excel/csv` files, you can
-define multiple data_file `Quantity`s annotated with `tabular_parser` in the root level of your schema 
+define multiple data_file `Quantity`s annotated with `tabular_parser` in the root level of your schema
 (root level of your schema is where you inherit from `TableData` class under `base_sections`).
 Each individual data_file quantity can now contain a list of sub_sections which are expected to be filled
 using one- or all of the modes mentioned above. Check the `MyOverallSchema` section in
@@ -248,7 +202,7 @@ we will get a final normalized archive that contains our data like this:
 
 NOMAD offers integration with third-party ELN providers, simplifying the process of connecting
 and interacting with external platforms. Three main external ELN solutions that are integrated into NOMAD
-are: [elabFTW](https://www.elabftw.net/), [Labfolder](https://labfolder.com/) and [chemotion](https://chemotion.net/). 
+are: [elabFTW](https://www.elabftw.net/), [Labfolder](https://labfolder.com/) and [chemotion](https://chemotion.net/).
 The process of data retrieval and data mapping onto NOMAD's schema
 varies for each of these third-party ELN provider as they inherently allow for certain ways of communicating with their
 database. Below you can find a <b>How-to</b> guide on importing your data from each of these external
@@ -267,17 +221,17 @@ your experiments.
 Go to your elabFTW experiment and export your project as `ELN Archive`. Save the file to your filesystem under
 your preferred name and location (keep the `.eln` extension intact).
 To parse your ebalFTW data into NOMAD,
-go to the upload page of NOMAD and create a new upload. In the `overview` page, upload your exported file (either by 
+go to the upload page of NOMAD and create a new upload. In the `overview` page, upload your exported file (either by
 drag-dropping it into the <i>click or drop files</i> box or by navigating to the path where you stored the file).
 This causes triggering NOMAD's parser to create as many new entries in this upload as there are experiments in your
 elabFTW project.
 
-You can inspect the parsed data of each of your entries (experiments) by going to the <b>DATA</b> 
-tab of each entry page. Under <i>Entry</i> column, click on <i>data</i> section. Now a new lane titled 
+You can inspect the parsed data of each of your entries (experiments) by going to the <b>DATA</b>
+tab of each entry page. Under <i>Entry</i> column, click on <i>data</i> section. Now a new lane titled
 `ElabFTW Project Import` should be visible. Under this section, (some of) the metadata of your project is listed.
 There two sub-sections: 1) <b>experiment_data</b>, and 2) <b>experiment_files</b>.
 
-<b>experiment_data</b> section contains detailed information of the given elabFTW experiment, such as 
+<b>experiment_data</b> section contains detailed information of the given elabFTW experiment, such as
 links to external resources and extra fields. <b>experiment_files</b> section is a list of sub-sections
 containing metadata and additional info of the files associated with the experiment.
 

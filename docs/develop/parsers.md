@@ -1,7 +1,4 @@
-# How to write a parser
-
-NOMAD uses parsers to convert raw code input and output files into NOMAD's common
-Archive format. This is the documentation on how to develop such a parser.
+NOMAD uses parsers to convert raw code input and output files into NOMAD's common Archive format. This is the documentation on how to develop such a parser.
 
 ## Getting started
 

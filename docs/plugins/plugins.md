@@ -5,8 +5,8 @@ plugins.
 
 We support different kinds of plugins:
 
-- Python **schema**, read also [Python schema documentation](schema/python.md).
-- **parser**, read also [parser development documentation](develop/parser.md).
+- Python **schema**
+- **parser**
 - **normalizer** (coming soon...)
 - additional custom **APIs** (coming soon...)
 
@@ -50,7 +50,7 @@ my-nomad-schema
 ### Plugin code
 
 The directory `nomadschemaexample` is our Python package *plugin code*. In this case,
-it contains a simple `schema.py`. Read the [Python schema documentation](schema/python.md)
+it contains a simple `schema.py`. Read the [Schema plugin documentation](schemas.md)
 for more details:
 
 ```python
@@ -72,7 +72,7 @@ metadata that is necessary to use them. See below for a reference of the *plugin
 models.
 
 The file `nomad.yaml` shows how to add the plugin to a nomad installation. As a plugin
-developer you have [installed our Python package](./pythonlib.md) and can run the `nomad parse`
+developer you have [installed our Python package](../apis/pythonlib.md) and can run the `nomad parse`
 command as your "installation" to try your schema:
 
 ```yaml
@@ -92,9 +92,6 @@ each `options` entry with `python_package` will be merged with the data in the p
 Please note that `python_package` is the name of a Python package and not a path to the
 code. This also means that the package has to be in your `PYTHONPATH` (see below).
 
-
-{{pydantic_model('nomad.config.plugins.Schema', heading='### Parser plugin metadata')}}
-{{pydantic_model('nomad.config.plugins.Parser', heading='### Schema plugin metadata', hide=['code_name','code_category','code_homepage','metadata'])}}
 
 Now follow the instructions for one of our examples and try for yourself:
 
@@ -145,7 +142,7 @@ export COMPOSE_FILE=docker-compose.yaml:docker-compose.plugins.yaml
 docker compose up -d
 ```
 
-Here is a complete Oasis setup [nomad-oasis-with-plugins.zip](assets/nomad-oasis-with-plugins.zip).
+Here is a complete Oasis setup [nomad-oasis-with-plugins.zip](../assets/nomad-oasis-with-plugins.zip).
 Simply download, extract, and start like any other Oasis:
 
 ```sh
@@ -158,7 +155,7 @@ docker compose up -d
 curl localhost/nomad-oasis/alive
 ```
 
-Read the [Oasis documentation](oasis.md) for more details.
+Read the [Oasis install guide](../oasis/install.md) for more details.
 
 ### Other means
 
