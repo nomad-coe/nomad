@@ -1019,15 +1019,14 @@ window.nomadArtifacts = {
     },
     "results.material.building_block": {
       "name": "building_block",
-      "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |\n| `'group'` | Generic group |",
+      "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |",
       "type": {
         "type_kind": "Enum",
         "type_data": [
           "surface",
           "2D material",
           "molecule",
-          "monomer",
-          "group"
+          "monomer"
         ]
       },
       "aggregatable": true,
@@ -1527,15 +1526,14 @@ window.nomadArtifacts = {
     },
     "results.material.topology.building_block": {
       "name": "building_block",
-      "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |\n| `'group'` | Generic group |",
+      "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |",
       "type": {
         "type_kind": "Enum",
         "type_data": [
           "surface",
           "2D material",
           "molecule",
-          "monomer",
-          "group"
+          "monomer"
         ]
       },
       "aggregatable": true,
@@ -1801,6 +1799,24 @@ window.nomadArtifacts = {
       ],
       "aggregatable": true
     },
+    "results.material.topology.atomic_fraction": {
+      "name": "atomic_fraction",
+      "description": "The atomic fraction of this system in the full structure it is contained in.\nPer definition a positive value less than or equal to 1.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "aggregatable": false
+    },
+    "results.material.topology.mass_fraction": {
+      "name": "mass_fraction",
+      "description": "The mass fraction of this system in the full structure it is contained within.\nPer definition a positive value less than or equal to 1.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "aggregatable": false
+    },
     "results.material.topology.n_atoms": {
       "name": "n_atoms",
       "description": "The total number of species (atoms, particles) in the system.",
@@ -1813,15 +1829,19 @@ window.nomadArtifacts = {
     },
     "results.material.topology.system_relation.type": {
       "name": "type",
-      "description": "The type of relation.",
+      "description": "The type of relation between a system and it's parent.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'root'` | System representing the entire structure, has no parent system. |\n| `'subsystem'` | A single logical entity extracted from the parent system. |\n| `'group'` | A logical group of subsystems within the parent, e.g. a group of molecules in MD. |\n| `'primitive_cell'` | The conventional cell from which the parent is constructed from. |\n| `'conventional_cell'` | The primitive cell from which the parent is constructed from. |",
       "type": {
         "type_kind": "Enum",
         "type_data": [
+          "root",
           "subsystem",
-          "idealization"
+          "group",
+          "primitive_cell",
+          "conventional_cell"
         ]
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "suggestion": true
     },
     "results.material.topology.cell.a": {
       "name": "a",
@@ -13146,16 +13166,20 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.material.topology.system_relation.type"
+                    "results.material.topology.system_relation.type",
+                    "results.material.topology.system_relation.type__suggestion"
                   ]
                 },
                 "name": "type",
-                "description": "The type of relation.",
+                "description": "The type of relation between a system and it's parent.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'root'` | System representing the entire structure, has no parent system. |\n| `'subsystem'` | A single logical entity extracted from the parent system. |\n| `'group'` | A logical group of subsystems within the parent, e.g. a group of molecules in MD. |\n| `'primitive_cell'` | The conventional cell from which the parent is constructed from. |\n| `'conventional_cell'` | The primitive cell from which the parent is constructed from. |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
+                    "root",
                     "subsystem",
-                    "idealization"
+                    "group",
+                    "primitive_cell",
+                    "conventional_cell"
                   ]
                 }
               }
@@ -13333,15 +13357,14 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "building_block",
-                "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |\n| `'group'` | Generic group |",
+                "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
                     "surface",
                     "2D material",
                     "molecule",
-                    "monomer",
-                    "group"
+                    "monomer"
                   ]
                 }
               },
@@ -13704,6 +13727,38 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 22,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.material.topology.atomic_fraction"
+                  ]
+                },
+                "name": "atomic_fraction",
+                "description": "The atomic fraction of this system in the full structure it is contained in.\nPer definition a positive value less than or equal to 1.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 23,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.material.topology.mass_fraction"
+                  ]
+                },
+                "name": "mass_fraction",
+                "description": "The mass fraction of this system in the full structure it is contained within.\nPer definition a positive value less than or equal to 1.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 24,
+                "m_parent_sub_section": "quantities",
                 "name": "atoms_ref",
                 "description": "Reference to an atomistic structure that is associated with this\nsystem'.",
                 "type": {
@@ -13713,7 +13768,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 23,
+                "m_parent_index": 25,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -13730,7 +13785,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 24,
+                "m_parent_index": 26,
                 "m_parent_sub_section": "quantities",
                 "name": "indices",
                 "description": "Indices of the atoms belonging to this group. These indices refer to\nthe original system. Each row represents a new instance.",
@@ -13888,15 +13943,14 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "building_block",
-                "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |\n| `'group'` | Generic group |",
+                "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
                     "surface",
                     "2D material",
                     "molecule",
-                    "monomer",
-                    "group"
+                    "monomer"
                   ]
                 }
               },

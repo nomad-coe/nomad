@@ -1464,7 +1464,7 @@ def single_cu_surface_topology() -> List[ResultSystem]:
         formula_hill='Cu4',
         formula_reduced='Cu4',
         formula_anonymous='A4',
-        system_relation=None,
+        system_relation=Relation(type='conventional_cell'),
         material_id="3M6onRRrQbutydx916-Y15I79Z_X",
         atoms=atoms,
         cell=cell,
@@ -1513,7 +1513,7 @@ def single_cr_surface_topology() -> List[ResultSystem]:
         formula_hill='Cr2',
         formula_reduced='Cr2',
         formula_anonymous='A2',
-        system_relation=None,
+        system_relation=Relation(type='conventional_cell'),
         material_id='MDlo8h4C2Ppy-kLY9fHRovgnTN9T',
         atoms=atoms,
         cell=cell,
@@ -1563,7 +1563,7 @@ def single_ni_surface_topology() -> List[ResultSystem]:
         formula_hill='Ni4',
         formula_reduced='Ni4',
         formula_anonymous='A4',
-        system_relation=None,
+        system_relation=Relation(type='conventional_cell'),
         material_id='NdIWxnQzlp-aeP1IM2d8YJ04h6T0"',
         atoms=atoms,
         cell=cell,
@@ -1653,7 +1653,7 @@ def graphene_topology() -> List[ResultSystem]:
         formula_hill='C2',
         formula_reduced='C2',
         formula_anonymous='A2',
-        system_relation=None,
+        system_relation=Relation(type='conventional_cell'),
         material_id='jdP9AhZIFuYhubLWkm2FPtEV5IZA',
         atoms=atoms_c_conv,
         cell=cell,
@@ -1736,7 +1736,7 @@ def boron_nitride_topology() -> List[ResultSystem]:
         formula_hill='BN',
         formula_reduced='BN',
         formula_anonymous='AB',
-        system_relation=Relation(type="subsystem"),
+        system_relation=Relation(type="conventional_cell"),
         material_id="RxRsol0dp1vDkU7-pE3v2exglkpM",
         atoms=atoms,
         cell=cell,
@@ -1771,7 +1771,7 @@ def mos2() -> Atoms:
 
 
 def mos2_topology() -> List[ResultSystem]:
-    subsystem_MoS2 = create_system(
+    subsystem = create_system(
         label='subsystem',
         structural_type='2D',
         dimensionality='2D',
@@ -1783,7 +1783,6 @@ def mos2_topology() -> List[ResultSystem]:
         system_relation=Relation(type="subsystem"),
         indices=[i for i in range(48)]
     )
-    topologies_mos2 = [subsystem_MoS2]
 
     atoms = NOMADAtoms()
     atoms.periodic = [True, True, False]
@@ -1813,7 +1812,7 @@ def mos2_topology() -> List[ResultSystem]:
         gamma=2.0943951023931957 * ureg.rad,
         pbc=[True, True, False]
     )
-    convsystem_mos2 = create_system(
+    convsystem = create_system(
         label='conventional cell',
         structural_type='2D',
         dimensionality='2D',
@@ -1822,15 +1821,14 @@ def mos2_topology() -> List[ResultSystem]:
         formula_hill='MoS2',
         formula_reduced='MoS2',
         formula_anonymous='A2B',
-        system_relation=Relation(type="subsystem"),
+        system_relation=Relation(type="conventional_cell"),
         material_id="KV4aYm-S1VJOH-SKeXXuG8JkTiGF",
         atoms=atoms,
         cell=cell,
         symmetry=None,
         prototype=None,
     )
-    topologies_mos2.append(convsystem_mos2)
-    return topologies_mos2
+    return [subsystem, convsystem]
 
 
 def stacked_graphene_boron_nitride_topology() -> Atoms:
