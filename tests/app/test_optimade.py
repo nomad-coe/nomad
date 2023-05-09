@@ -53,9 +53,9 @@ def test_no_optimade(mongo, elastic, raw_files, client, test_user):
 
 
 @pytest.fixture(scope='module')
-def example_structures(elastic_infra, mongo_infra, raw_files_infra, test_user):
+def example_structures(elastic_infra, mongo_module, raw_files_infra, test_user):
     clear_elastic(elastic_infra)
-    mongo_infra.drop_database('test_db')
+    mongo_module.drop_database('test_db')
 
     example_data = ExampleData(main_author=test_user)
     example_data.create_upload(

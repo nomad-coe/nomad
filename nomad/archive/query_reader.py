@@ -21,14 +21,16 @@ import copy
 import dataclasses
 import functools
 import re
-from typing import List, Any, Optional, Set, Dict, Tuple, Callable, Type
+from typing import Any, Callable, Type
 
 import orjson
 from fastapi import HTTPException
 from mongoengine import Q
 
 from nomad import utils
-from nomad.app.v1.models import Direction, WithQuery, MetadataPagination, Pagination, PaginationResponse
+from nomad.app.v1.models import (
+    Direction, WithQuery, MetadataPagination, Pagination, PaginationResponse, MetadataRequired
+)
 from nomad.app.v1.routers.datasets import DatasetPagination
 from nomad.app.v1.routers.entries import perform_search
 from nomad.app.v1.routers.uploads import (
@@ -99,13 +101,13 @@ class ConfigError(Exception):
 class ArchiveNode:
     upload_id: str  # the upload id of the current node
     entry_id: str  # the entry id of the current node
-    current_path: List[str]  # the path in the result container
+    current_path: list[str]  # the path in the result container
     result_root: dict  # the root of the result container
     ref_result_root: dict  # collection of referenced archives that should never change
     archive: Any  # current node in the archive
-    archive_root: Optional[ArchiveDict | dict]  # the root of the archive
+    archive_root: None | ArchiveDict | dict  # the root of the archive
     definition: Any  # definition of the current node
-    visited_path: Set[str]  # visited paths, for tracking circular references
+    visited_path: set[str]  # visited paths, for tracking circular references
     current_depth: int  # current depth, for tracking depth limit
     reader: Any  # the reader used to read the archive # pylint: disable=E0601
 
@@ -144,8 +146,7 @@ class ArchiveNode:
 
         path_stack: list = [v for v in reference_copy.split('/') if v]
 
-        reference_url: str = self.generate_reference(path_stack)
-        if reference_url in self.visited_path:
+        if (reference_url := self.generate_reference(path_stack)) in self.visited_path:
             raise ArchiveError(f'Circular reference detected: {reference_url}.')
 
         try:
@@ -163,8 +164,7 @@ class ArchiveNode:
         Go to a remote archive, which can be either in the same server or another installation.
         '''
         # this is a global reference, get the target archive first
-        parse_result = parse_path(reference, self.upload_id)
-        if parse_result is None:
+        if (parse_result := parse_path(reference, self.upload_id)) is None:
             raise ArchiveError(f'Invalid reference: {reference}.')
 
         installation, other_upload_id, id_or_file, kind, path = parse_result
@@ -189,8 +189,7 @@ class ArchiveNode:
         path_stack: list = [v for v in path.split('/') if v]
 
         other_prefix: str = f'../uploads/{other_upload_id}/archive/{other_entry_id}'
-        reference_url: str = f'{other_prefix}#/{"/".join(str(v) for v in path_stack)}'
-        if reference_url in self.visited_path:
+        if (reference_url := f'{other_prefix}#/{"/".join(str(v) for v in path_stack)}') in self.visited_path:
             raise ArchiveError(f'Circular reference detected: {reference_url}.')
 
         # get the archive
@@ -334,7 +333,7 @@ def _populate_result(container_root: dict, path: list, value):
 
     path_stack: list = list(reversed(path))
     target_container: dict | list = container_root
-    key_or_index: Optional[str | int] = None
+    key_or_index: None | str | int = None
 
     while len(path_stack) > 0:
         if key_or_index is not None:
@@ -371,7 +370,7 @@ def _populate_result(container_root: dict, path: list, value):
 
 
 @functools.lru_cache(maxsize=1024)
-def _parse_key(key: Optional[str]) -> tuple:
+def _parse_key(key: str | None) -> tuple:
     '''
     Parse the name and index from the given key.
     The actual length of the target list is not known at this moment.
@@ -466,7 +465,7 @@ def _normalise_required(required, config: RequestConfig, *, key: str = None, rea
 
 def _parse_required(
         required_query: dict | str,
-        reader_type: Type[GeneralReader]) -> Tuple[dict | RequestConfig, RequestConfig]:
+        reader_type: Type[GeneralReader]) -> tuple[dict | RequestConfig, RequestConfig]:
     # extract global config if present
     # do not modify the original dict as the same dict may be used elsewhere
     if isinstance(required_query, dict):
@@ -475,7 +474,7 @@ def _parse_required(
         global_dict: dict = {}
 
         # for backward compatibility
-        resolve_inplace: Optional[bool] = None
+        resolve_inplace: bool | None = None
         for key in ('resolve_inplace', 'resolve-inplace'):
             if resolve_inplace is None:
                 resolve_inplace = required_copy.pop(key, None)
@@ -551,7 +550,7 @@ class GeneralReader:
         # for cacheing
         # can only store uploads in the reader
         # due to limitations of upload class (open/close limitations)
-        self.upload_pool: Dict[str, UploadFiles] = {}
+        self.upload_pool: dict[str, UploadFiles] = {}
 
         self.required_query: dict | RequestConfig
         if not init:
@@ -577,7 +576,7 @@ class GeneralReader:
 
     @staticmethod
     @functools.lru_cache(maxsize=1024)
-    def _normalise_index(index: Optional[tuple], length: int) -> range:
+    def _normalise_index(index: tuple | None, length: int) -> range:
         '''
         Normalise the index to a [-length,length).
         '''
@@ -768,21 +767,28 @@ class MongoReader(GeneralReader):
         self.datasets = None
 
     def _query_entries(self, config: RequestConfig):
-        if not config.query:
-            return self.entries
-
-        assert isinstance(config.query, WithQuery)
-
         search_params: dict = {
-            'owner': config.query.owner,
-            'query': config.query.query,
-            'user_id': self.user.user_id
+            'owner': 'user',
+            'user_id': self.user.user_id,
+            'required': MetadataRequired(include=['entry_id'])
         }
+
+        if config.query:
+            assert isinstance(config.query, WithQuery)
+
+            if config.query.owner:
+                search_params['owner'] = config.query.owner
+            if config.query.query:
+                search_params['query'] = config.query.query
 
         if config.pagination:
             search_params['pagination'] = config.pagination
 
-        return self.entries.filter(entry_id__in=[v['entry_id'] for v in perform_search(**search_params).data])
+        search_response = perform_search(**search_params)
+        # overwrite the pagination to the new one from the search response
+        config.pagination = search_response.pagination
+
+        return self.entries.filter(entry_id__in=[v['entry_id'] for v in search_response.data])
 
     def _query_uploads(self, config: RequestConfig):
         if not config.query:
@@ -836,7 +842,11 @@ class MongoReader(GeneralReader):
         Apply pagination and transform to the mongo search results.
         '''
         pagination_response: PaginationResponse | None = None
-        if isinstance(config.pagination, Pagination):
+        # PaginationResponse comes from elastic search that has been processed
+        # later we skip applying pagination
+        if isinstance(config.pagination, PaginationResponse):
+            pagination_response = config.pagination
+        elif isinstance(config.pagination, Pagination):
             pagination_response = PaginationResponse(
                 total=mongo_result.count() if mongo_result else 0,
                 **config.pagination.dict()
@@ -848,14 +858,9 @@ class MongoReader(GeneralReader):
         if mongo_result is None:
             return {}, pagination_response
 
-        # for uploads and datasets, apply pagination when config.pagination is present
-        # for entries, apply pagination when config.query is NOT present
-        if_apply_pagination: bool = transformer == upload_to_pydantic
-        if_apply_pagination |= transformer == dataset_to_pydantic
-        if_apply_pagination |= config.query is None
-        if_apply_pagination &= config.pagination is not None
-
-        if if_apply_pagination:
+        # apply pagination when config.pagination is present
+        # if it is a PaginationResponse, it means the pagination has been applied in the search
+        if config.pagination is not None and not isinstance(config.pagination, PaginationResponse):
             assert isinstance(config.pagination, Pagination)
 
             if config.pagination.order_by is not None:
@@ -1047,7 +1052,7 @@ class MongoReader(GeneralReader):
 
                 mongo_result, mongo_pagination = self._normalise_mongo(query_set, __get_child_setting(), transformer)
                 if mongo_pagination:
-                    _populate_result(node.result_root, node.current_path + ['pagination'], mongo_pagination)
+                    _populate_result(node.result_root, node.current_path + ['pagination'], mongo_pagination.dict())
                 self._walk(node.replace(
                     archive={k: k for k in mongo_result} if isinstance(value, RequestConfig) else mongo_result,
                     current_path=node.current_path + [key]), value, current_config)
@@ -1091,12 +1096,14 @@ class MongoReader(GeneralReader):
                 # should never reach here in most cases
                 # most mongo data is a 1-level tree
                 # second level implies it's delegated to another reader
+                def __walk(__archive, __path):
+                    self._walk(node.replace(archive=__archive, current_path=__path), value, current_config)
+
                 if isinstance(child_archive, list):
                     for i in self._normalise_index(index, len(child_archive)):
-                        self._walk(node.replace(
-                            archive=child_archive[i], current_path=child_path + [str(i)]), value, current_config)
+                        __walk(child_archive[i], child_path + [str(i)])
                 else:
-                    self._walk(node.replace(archive=child_archive, current_path=child_path), value, current_config)
+                    __walk(child_archive, child_path)
             elif isinstance(value, list):
                 # optionally support alternative syntax
                 pass
@@ -1585,14 +1592,16 @@ class ArchiveReader(GeneralReader):
                 self._resolve(child(current_path=child_path, archive=child_archive), value)
             elif isinstance(value, dict):
                 # this is a nested query, keep walking down the tree
+                def __walk(__path, __archive):
+                    self._walk(child(current_path=__path, archive=__archive), value, current_config)
+
                 if is_list:
                     # field[start:end]: dict
                     for i in self._normalise_index(index, len(child_archive)):
-                        self._walk(child(
-                            current_path=child_path + [str(i)], archive=child_archive[i]), value, current_config)
+                        __walk(child_path + [str(i)], child_archive[i])
                 else:
                     # field: dict
-                    self._walk(child(current_path=child_path, archive=child_archive), value, current_config)
+                    __walk(child_path, child_archive)
             elif isinstance(value, list):
                 # optionally support alternative syntax
                 pass
@@ -1670,8 +1679,8 @@ class ArchiveReader(GeneralReader):
             return _if_exists(self.global_root, _convert_ref_to_path(
                 m_def.definition_reference(None, global_reference=True)))
 
-        custom_def: Optional[str] = node.archive.get('m_def', None)
-        custom_def_id: Optional[str] = node.archive.get('m_def_id', None)
+        custom_def: str | None = node.archive.get('m_def', None)
+        custom_def_id: str | None = node.archive.get('m_def_id', None)
         if custom_def is None and custom_def_id is None:
             if config.include_definition is DefinitionType.both:
                 definition = node.definition
@@ -1740,7 +1749,7 @@ class ArchiveReader(GeneralReader):
         return self._check_definition(resolved_node.replace(definition=target.m_resolved()), config)
 
     # noinspection PyUnusedLocal
-    def _retrieve_definition(self, m_def: Optional[str], m_def_id: Optional[str], node: ArchiveNode):
+    def _retrieve_definition(self, m_def: str | None, m_def_id: str | None, node: ArchiveNode):
         # todo: more flexible definition retrieval, accounting for definition id, mismatches, etc.
         context = ServerContext(get_upload_with_read_access(node.upload_id, self.user, include_others=True))
 
@@ -1844,28 +1853,31 @@ class DefinitionReader(GeneralReader):
 
             if isinstance(value, RequestConfig):
                 # this is a leaf, resolve it according to the config
+                def __resolve(__path, __archive):
+                    self._resolve(self._switch_root(node.replace(
+                        current_path=__path, archive=__archive), inplace=value.resolve_inplace), value)
+
                 if is_list:
                     for i in self._normalise_index(index, len(child_def)):
                         if child_def[i] is node.archive:
                             continue
-                        self._resolve(self._switch_root(node.replace(
-                            current_path=child_path + [str(i)], archive=child_def[i]),
-                            inplace=value.resolve_inplace), value)
+                        __resolve(child_path + [str(i)], child_def[i])
                 elif child_def is not node.archive:
-                    self._resolve(self._switch_root(node.replace(
-                        current_path=child_path, archive=child_def), inplace=value.resolve_inplace), value)
+                    __resolve(child_path, child_def)
             elif isinstance(value, dict):
                 # this is a nested query, keep walking down the tree
+                def __walk(__path, __archive):
+                    self._walk(node.replace(current_path=__path, archive=__archive), value, current_config)
+
                 if is_list:
                     # field[start:end]: dict
                     for i in self._normalise_index(index, len(child_def)):
                         if child_def[i] is node.archive:
                             continue
-                        self._walk(node.replace(
-                            current_path=child_path + [str(i)], archive=child_def[i]), value, current_config)
+                        __walk(child_path + [str(i)], child_def[i])
                 elif child_def is not node.archive:
                     # field: dict
-                    self._walk(node.replace(current_path=child_path, archive=child_def), value, current_config)
+                    __walk(child_path, child_def)
             elif isinstance(value, list):
                 # optionally support alternative syntax
                 pass

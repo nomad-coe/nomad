@@ -97,7 +97,7 @@ def test_m_from_dict(example):
         ]
     }, id='python')
 ])
-def test_from_dict(metainfo_data, monkeypatch, mongo_infra):
+def test_from_dict(metainfo_data, monkeypatch, mongo_module):
     assert MSection.from_dict(metainfo_data).m_to_dict(with_root_def=True, with_out_meta=True) == metainfo_data
 
     monkeypatch.setattr('nomad.config.process.add_definition_id_to_reference', True)
