@@ -49,7 +49,7 @@ def assert_topology(topology):
     child_map_determined = defaultdict(list)
     for top in topology:
         assert top.system_id is not None
-        assert top.parent_system is not None or top.label == 'original'
+        assert top.parent_system is not None or top.system_relation.type == 'root'
         assert top.atoms is not None or top.atoms_ref is not None or top.indices is not None
         assert top.n_atoms is not None
         assert top.elements is not None
@@ -61,6 +61,9 @@ def assert_topology(topology):
             child_map_determined[top.parent_system].append(top.system_id)
         if top.child_systems:
             child_map[top.system_id] = top.child_systems
+        if top.indices is not None:
+            assert top.mass_fraction is not None
+            assert top.atomic_fraction is not None
 
     assert len(child_map) == len(child_map_determined)
     for key in child_map.keys():
@@ -85,6 +88,7 @@ def test_topology_calculation(pbc):
 
     # Test the original structure
     original = topology[0]
+    assert original.system_relation.type == 'root'
     assert original.atoms_ref.positions.shape == (6, 3)
     assert len(original.atoms_ref.labels) == 6
     assert original.atoms_ref.lattice_vectors.shape == (3, 3)
@@ -104,7 +108,10 @@ def test_topology_calculation(pbc):
     mol_group = topology[1]
     assert mol_group.structural_type == 'group'
     assert mol_group.dimensionality is None
-    assert mol_group.building_block == 'group'
+    assert mol_group.building_block is None
+    assert mol_group.atomic_fraction == pytest.approx(1, abs=0, rel=1e-5)
+    assert mol_group.mass_fraction == pytest.approx(1, abs=0, rel=1e-5)
+    assert mol_group.system_relation.type == 'group'
     assert np.array_equal(mol_group.indices, [[0, 1, 2, 3, 4, 5]])
     assert original.chemical_formula_hill == 'H4O2'
     assert original.chemical_formula_reduced == 'H2O'
@@ -118,8 +125,11 @@ def test_topology_calculation(pbc):
     # Test molecule
     mol = topology[2]
     assert mol.structural_type == 'molecule'
-    assert mol_group.dimensionality is None
+    assert mol.dimensionality is None
     assert mol.building_block == 'molecule'
+    assert mol.atomic_fraction == pytest.approx(0.5, abs=0, rel=1e-5)
+    assert mol.mass_fraction == pytest.approx(0.5, abs=0, rel=1e-5)
+    assert mol.system_relation.type == 'subsystem'
     assert np.array_equal(mol.indices, [[0, 1, 2], [3, 4, 5]])
     assert mol.chemical_formula_hill == 'H2O'
     assert mol.chemical_formula_reduced == 'H2O'
@@ -133,8 +143,11 @@ def test_topology_calculation(pbc):
     # Test monomer group
     mon_group = topology[3]
     assert mon_group.structural_type == 'group'
-    assert mol_group.dimensionality is None
-    assert mon_group.building_block == 'group'
+    assert mon_group.dimensionality is None
+    assert mon_group.building_block is None
+    assert mon_group.atomic_fraction == pytest.approx(1 / 3, abs=0, rel=1e-5)
+    assert mon_group.mass_fraction == pytest.approx(0.055949, abs=0, rel=1e-5)
+    assert mon_group.system_relation.type == 'group'
     assert np.array_equal(mon_group.indices, [[1, 2]])
     assert mon_group.chemical_formula_hill == 'H2'
     assert mon_group.chemical_formula_reduced == 'H'
@@ -148,8 +161,11 @@ def test_topology_calculation(pbc):
     # Test monomer
     mon = topology[4]
     assert mon.structural_type == 'monomer'
-    assert mol_group.dimensionality is None
+    assert mon.dimensionality is None
     assert mon.building_block == 'monomer'
+    assert mon.atomic_fraction == pytest.approx(1 / 3, abs=0, rel=1e-5)
+    assert mon.mass_fraction == pytest.approx(0.055949, abs=0, rel=1e-5)
+    assert mon.system_relation.type == 'subsystem'
     assert np.array_equal(mon.indices, [[1, 2]])
     assert mon.chemical_formula_hill == 'H2'
     assert mon.chemical_formula_reduced == 'H'
@@ -213,7 +229,7 @@ def test_2D_topology(surface, ref_topologies):
             compare_quantity(name, real, ref)
 
     def compare_quantity(name, value, ref):
-        """Used to compare two metainfo quantities."""
+        '''Used to compare two metainfo quantities.'''
         real_value = getattr(value, name)
         ref_value = getattr(ref, name)
         if ref_value is None:
@@ -228,11 +244,12 @@ def test_2D_topology(surface, ref_topologies):
             else:
                 assert np.isclose(real_array, ref_array, rtol=0.01, atol=0)
         else:
-            raise ValueError("Could not compare values.")
+            raise ValueError('Could not compare values.')
 
     entry_archive = get_template_for_structure(surface)
     topology = entry_archive.results.material.topology
     assert_topology(topology)
+    assert topology[0].system_relation.type == 'root'
     subsystem_topologies = topology[1:]
     # Compare topology with reference system topology. topology[0] is the original system
     assert len(subsystem_topologies) == len(ref_topologies)
@@ -252,6 +269,7 @@ def test_2D_topology(surface, ref_topologies):
         assert res_system.structural_type == ref_system.structural_type
         assert res_system.dimensionality == ref_system.dimensionality
         assert res_system.building_block == ref_system.building_block
+        assert res_system.system_relation.type == ref_system.system_relation.type
 
         if res_system.label == 'conventional cell':
             # Cell
@@ -330,9 +348,11 @@ def test_topology_projection(projection):
     assert_topology(topology)
     assert len(topology) == 2
     assert topology[0].label == 'original'
+    assert topology[0].system_relation.type == 'root'
     assert topology[1].label == system.atoms_group[-1].label
     assert topology[1].structural_type == 'group'
-    assert topology[1].building_block == 'group'
+    assert topology[1].building_block is None
+    assert topology[1].system_relation.type == 'group'
     assert len(topology[0].child_systems) == 1
     assert topology[0].child_systems[-1] == topology[1].system_id
     assert topology[0].elements == ['Br', 'K', 'Si']

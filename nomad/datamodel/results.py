@@ -927,11 +927,22 @@ class Relation(MSection):
     '''
     m_def = Section(validate=False)
     type = Quantity(
-        type=MEnum('subsystem', 'idealization'),
+        type=MEnum('root', 'subsystem', 'group', 'primitive_cell', 'conventional_cell'),
         description='''
-        The type of relation.
+        The type of relation between a system and it's parent.
+
+        | Value | Description |
+        | --------- | ----------------------- |
+        | `'root'` | System representing the entire structure, has no parent system. |
+        | `'subsystem'` | A single logical entity extracted from the parent system. |
+        | `'group'` | A logical group of subsystems within the parent, e.g. a group of molecules in MD. |
+        | `'primitive_cell'` | The conventional cell from which the parent is constructed from. |
+        | `'conventional_cell'` | The primitive cell from which the parent is constructed from. |
         ''',
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='default')
+        ]
     )
 
 
@@ -1028,7 +1039,7 @@ class System(MSection):
         ],
     )
     building_block = Quantity(
-        type=MEnum(['surface', '2D material', 'molecule', 'monomer', 'group']),
+        type=MEnum(['surface', '2D material', 'molecule', 'monomer']),
         description='''
         More exact classification for this system, i.e. the type of "building
         block" it represents.
@@ -1039,7 +1050,6 @@ class System(MSection):
         | `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |
         | `'molecule'` | Molecule defined in the force-field topology |
         | `'monomer'` | Monomer defined in the force-field topology |
-        | `'group'` | Generic group |
         ''',
         a_elasticsearch=[
             Elasticsearch(material_type),
@@ -1187,6 +1197,22 @@ class System(MSection):
         References to the child systems.
         ''',
         a_elasticsearch=Elasticsearch(material_type)
+    )
+    atomic_fraction = Quantity(
+        type=np.float64,
+        description='''
+        The atomic fraction of this system in the full structure it is contained in.
+        Per definition a positive value less than or equal to 1.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+    mass_fraction = Quantity(
+        type=np.float64,
+        description='''
+        The mass fraction of this system in the full structure it is contained within.
+        Per definition a positive value less than or equal to 1.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
     )
     atoms = SubSection(
         description='''

@@ -357,7 +357,19 @@ registerFilter(
     {name: 'dimensionality', ...termQuantity},
     {name: 'building_block', ...termQuantity},
     {name: 'material_id', ...termQuantity},
-    {name: 'n_atoms', ...numberHistogramQuantity}
+    {name: 'n_atoms', ...numberHistogramQuantity},
+    {name: 'atomic_fraction', ...numberHistogramQuantity},
+    {name: 'mass_fraction', ...numberHistogramQuantity},
+    {name: 'system_relation.type', ...termQuantity},
+    {name: 'cell.a', ...numberHistogramQuantity},
+    {name: 'cell.b', ...numberHistogramQuantity},
+    {name: 'cell.c', ...numberHistogramQuantity},
+    {name: 'cell.alpha', ...numberHistogramQuantity},
+    {name: 'cell.beta', ...numberHistogramQuantity},
+    {name: 'cell.gamma', ...numberHistogramQuantity},
+    {name: 'cell.atomic_density', ...numberHistogramQuantity},
+    {name: 'cell.mass_density', ...numberHistogramQuantity},
+    {name: 'cell.volume', ...numberHistogramQuantity}
   ]
 )
 registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: '1/4'})

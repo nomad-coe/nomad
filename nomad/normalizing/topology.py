@@ -71,7 +71,8 @@ def get_topology_original(material: Material, atoms: NOMADAtoms = None) -> Syste
         chemical_formula_anonymous=material.chemical_formula_anonymous,
         chemical_formula_reduced=material.chemical_formula_reduced,
         elements=material.elements,
-        atoms_ref=atoms
+        atoms_ref=atoms,
+        system_relation=Relation(type='root'),
     )
 
     return original
@@ -96,9 +97,16 @@ def add_system_info(system: System, topologies: Dict[str, System]) -> None:
             if system.atoms or system.atoms_ref:
                 ase_atoms = ase_atoms_from_nomad_atoms(atoms)
                 system.cell = cell_from_ase_atoms(ase_atoms)
-        symbols = SYMBOLS[atoms.species if atoms.species is not None else atoms.atomic_numbers]
+        atomic_numbers = atoms.species if atoms.species is not None else atoms.atomic_numbers
+        symbols = SYMBOLS[atomic_numbers]
+
         if system.indices is not None:
+            total_mass = atomutils.get_summed_atomic_mass(atomic_numbers)
+            total_atoms = len(atomic_numbers)
             symbols = symbols[system.indices[0]]
+            system.atomic_fraction = len(symbols) / total_atoms
+            sub_mass = atomutils.get_summed_atomic_mass(atomic_numbers[system.indices[0]])
+            system.mass_fraction = sub_mass / total_mass
         n_atoms = len(symbols)
         if system.n_atoms is None:
             system.n_atoms = n_atoms
@@ -205,14 +213,25 @@ class TopologyNormalizer():
                         'projection': 'group',
                         'core_hole': 'group'
                     }
-                    structural_type = structural_type_map.get(group.type)
+                    building_block_map = {
+                        'molecule': 'molecule',
+                        'monomer': 'monomer',
+                    }
+                    relation_map = {
+                        'molecule': 'subsystem',
+                        'molecule_group': 'group',
+                        'monomer': 'subsystem',
+                        'monomer_group': 'group',
+                        'projection': 'group',
+                        'core_hole': 'group'
+                    }
                     system = System(
                         method='parser',
                         description=description_map.get(group.type),
                         label=group.label,
-                        structural_type=structural_type,
-                        building_block=structural_type,
-                        system_relation=Relation(type='subsystem'),
+                        structural_type=structural_type_map.get(group.type),
+                        building_block=building_block_map.get(group.type),
+                        system_relation=Relation(type=relation_map.get(group.type)),
                     )
                     add_system(system, topology, parent)
                     add_group(group.atoms_group, system)
@@ -356,7 +375,7 @@ class TopologyNormalizer():
         symmsystem = System(
             method='matid',
             label='conventional cell',
-            system_relation=Relation(type='subsystem'),
+            system_relation=Relation(type='conventional_cell'),
         )
         if structural_type == '2D':
             self._add_conventional_2d(cluster, symmsystem)
