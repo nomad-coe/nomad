@@ -900,23 +900,28 @@ class GeometryOptimization(SerialSimulation):
                         self.results.final_force_maximum = max_force * forces.units
 
         if not self.results.final_displacement_maximum:
-            def get_atoms(index):
+            def get_atoms_positions(index):
                 system = self._systems[index]
+                if system.atoms.positions is None:
+                    return
                 atoms = Atoms(
                     positions=system.atoms.positions.magnitude,
-                    cell=system.atoms.lattice_vectors.magnitude,
+                    cell=system.atoms.lattice_vectors.magnitude if system.atoms.lattice_vectors is not None else None,
                     pbc=system.atoms.periodic)
                 atoms.wrap()
-                return atoms
+                return atoms.get_positions()
 
             n_systems = len(self._systems)
-            a_pos = get_atoms(n_systems - 1).get_positions()
-            for i in range(n_systems - 2, -1, -1):
-                b_pos = get_atoms(i).get_positions()
-                displacement_maximum = np.max(np.abs(a_pos - b_pos))
-                if displacement_maximum > 0:
-                    self.results.final_displacement_maximum = displacement_maximum
-                    break
+            a_pos = get_atoms_positions(n_systems - 1)
+            if a_pos is not None:
+                for i in range(n_systems - 2, -1, -1):
+                    b_pos = get_atoms_positions(i)
+                    if b_pos is None:
+                        continue
+                    displacement_maximum = np.max(np.abs(a_pos - b_pos))
+                    if displacement_maximum > 0:
+                        self.results.final_displacement_maximum = displacement_maximum
+                        break
 
         if not self.results.is_converged_geometry:
             # we can have several criteria for convergence: energy, force, displacement
