@@ -1300,8 +1300,8 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
     # }, to_file=True)
 
 
-@pytest.fixture(scope='module')
-def example_data_with_reference(elastic_module, raw_files_module, mongo_module, test_user, json_dict):
+@pytest.fixture(scope='function')
+def example_data_with_reference(elastic_function, raw_files_module, mongo_function, test_user, json_dict):
     '''
     Provides a couple of entries with references.
 
@@ -1338,7 +1338,7 @@ def example_data_with_reference(elastic_module, raw_files_module, mongo_module, 
     data.delete()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def json_dict():
     return {
         "metadata": {

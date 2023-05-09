@@ -41,7 +41,7 @@ def create_dataset(**kwargs):
 
 
 @pytest.fixture(scope='module')
-def data(test_user, other_test_user, elastic_infra, mongo_infra):
+def data(test_user, other_test_user, elastic_infra, mongo_module):
     example_attrs = dict(
         entry_id='test-id',
         upload_id='upload-id',

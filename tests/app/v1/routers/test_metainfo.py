@@ -40,7 +40,7 @@ from tests.processing.test_data import run_processing
         ]
     }, id='python')
 ])
-def test_metainfo_section_id_endpoint(metainfo_data, mongo_infra, client):
+def test_metainfo_section_id_endpoint(metainfo_data, mongo_module, client):
     assert MSection.from_dict(metainfo_data).m_to_dict(with_root_def=True, with_out_meta=True) == metainfo_data
 
     package = MSection.from_dict(metainfo_data)
@@ -59,7 +59,7 @@ def test_metainfo_section_id_endpoint(metainfo_data, mongo_infra, client):
     assert response.status_code == 404
 
 
-def test_upload_and_download(client, test_user, proc_infra, mongo_infra, no_warn, monkeypatch, tmp):
+def test_upload_and_download(client, test_user, proc_infra, mongo_module, no_warn, monkeypatch, tmp):
     monkeypatch.setattr('nomad.config.process.store_package_definition_in_mongo', True)
     monkeypatch.setattr('nomad.config.process.add_definition_id_to_reference', True)
     monkeypatch.setattr('nomad.config.process.write_definition_id_to_archive', True)
@@ -263,7 +263,7 @@ def example_upload_two_schemas():
 
 
 def test_two_schemas(
-        example_upload_two_schemas, client, test_user, proc_infra, mongo_infra, no_warn, monkeypatch, raw_files_infra):
+        example_upload_two_schemas, client, test_user, proc_infra, no_warn, monkeypatch):
     monkeypatch.setattr('nomad.config.process.store_package_definition_in_mongo', True)
     monkeypatch.setattr('nomad.config.process.add_definition_id_to_reference', True)
     monkeypatch.setattr('nomad.config.process.write_definition_id_to_archive', True)
