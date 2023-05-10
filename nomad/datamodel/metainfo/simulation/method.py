@@ -367,6 +367,63 @@ class HubbardKanamoriModel(MSection):
         ''')
 
 
+class Pseudopotential(MSection):
+    ''''''
+
+    m_def = Section(validate=False)
+
+    name = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Native code name of the pseudopotential.
+        ''')
+
+    type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Pseudopotential classification.
+        ''')
+
+    norm_conserving = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Denotes whether the pseudopotential is norm-conserving.
+        ''')
+
+    cutoff = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='joule',
+        description='''
+        Minimum recommended spherical cutoff energy for any plane-wave basis set
+        using the pseudopotential.
+        ''')
+
+    xc_functional_name = Quantity(
+        type=str,
+        shape=['*'],
+        description='''
+        Name of the exchange-correlation functional used to generate the pseudopotential.
+        ''')
+
+    l_max = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Maximum angular momentum of the pseudopotential projectors.
+        ''')
+
+    lm_max = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Maximum magnetic momentum of the pseudopotential projectors.
+        ''')
+
+
 class AtomParameters(MSection):
     '''
     Contains method-related information about a kind of atom identified by label. This
@@ -413,12 +470,14 @@ class AtomParameters(MSection):
         Mass of the atom.
         ''')
 
-    pseudopotential_name = Quantity(
+    pseudopotential_name = Quantity(  # TODO: deprecate
         type=str,
         shape=[],
         description='''
         Name identifying the pseudopotential used.
         ''')
+
+    pseudopotential = SubSection(sub_section=Pseudopotential.m_def, repeats=False)
 
     n_orbitals = Quantity(
         type=np.dtype(np.int32),
