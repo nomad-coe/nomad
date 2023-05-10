@@ -644,11 +644,7 @@ const DataStore = React.memo(({children}) => {
     }
   }
 
-  /**
-   * Gets all the inheriting sections of the provided section definition. That is: all inheriting
-   * sections *currently known to the store*. The result is returned as a list of definitions.
-   */
-  function getAllInheritingSections(definition) {
+  function traversAllInheritingSections(definition) {
     const rv = []
     // Add subclasses (i.e. *directly* inheriting from this section)
     const url = getUrlFromDefinition(definition)
@@ -657,10 +653,22 @@ const DataStore = React.memo(({children}) => {
     // Add recursively (sub-sub classes, sub-sub-sub classes etc.)
     const recursive = []
     for (const inheritingSection of rv) {
-      recursive.push(...getAllInheritingSections(inheritingSection))
+      recursive.push(...traversAllInheritingSections(inheritingSection))
     }
     rv.push(...recursive)
     return rv
+  }
+
+  /**
+   * Gets all the inheriting sections of the provided section definition. That is: all inheriting
+   * sections *currently known to the store*. The result is returned as a list of definitions.
+   */
+  function getAllInheritingSections(definition) {
+    const inheritingSections = traversAllInheritingSections(definition)
+    // There may be duplicated section defs resulted from different parents.
+    return inheritingSections.filter((sectionDef, index, sectionDefs) => {
+      return sectionDefs.findIndex(def => (def._qualifiedName === sectionDef._qualifiedName)) === index
+    })
   }
 
   /**
