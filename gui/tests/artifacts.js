@@ -847,6 +847,24 @@ window.nomadArtifacts = {
       },
       "aggregatable": true
     },
+    "entry_references.target_mainfile": {
+      "name": "target_mainfile",
+      "description": "The mainfile of the entry containing the target.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true
+    },
+    "entry_references.target_upload_id": {
+      "name": "target_upload_id",
+      "description": "The id of the upload containing the target.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true
+    },
     "entry_references.target_name": {
       "name": "target_name",
       "description": "The name of the target quantity/section.",
@@ -61149,6 +61167,38 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
+                    "entry_references.target_mainfile"
+                  ]
+                },
+                "name": "target_mainfile",
+                "description": "The mainfile of the entry containing the target.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "entry_references.target_upload_id"
+                  ]
+                },
+                "name": "target_upload_id",
+                "description": "The id of the upload containing the target.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
                     "entry_references.target_name"
                   ]
                 },
@@ -61161,7 +61211,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -61177,7 +61227,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
+                "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -61193,7 +61243,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
+                "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -61209,7 +61259,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 8,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [

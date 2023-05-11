@@ -405,6 +405,7 @@ export function UploadsPage() {
                 <DeleteUploadsButton
                   isIcon
                   selectedCount={selectedCount}
+                  selectedUploads={selectedUploads}
                   onSubmitted={handleDeleteSubmitted}
                 />
               </DatatableToolbarActions>

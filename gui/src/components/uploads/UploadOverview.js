@@ -47,9 +47,10 @@ import CreateEntry from './CreateEntry'
 import { useUploadPageContext } from './UploadPageContext'
 import { useApi } from '../api'
 import ReloadIcon from '@material-ui/icons/Replay'
-import { formatTimestamp } from '../../utils'
+import {formatTimestamp} from '../../utils'
 import DialogLink from '../utils/DialogLink'
 import UploadName from './UploadName'
+import DeletingReferencesTable from './DeletingReferencesTable'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -284,6 +285,8 @@ function UploadOverview(props) {
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
   const [readme, setReadme] = useState(null)
+  const [entryReferences, setEntryReferences] = useState([])
+  const [brokenEntries, setBrokenEntries] = useState([])
 
   useEffect(() => {
     if (uploading) return
@@ -297,6 +300,27 @@ function UploadOverview(props) {
         }
       })
   }, [api, raiseError, uploadId, uploading, setReadme])
+
+  useEffect(() => {
+    if (!openDeleteConfirmDialog) {
+      return
+    }
+    const requestBody = {owner: 'visible', query: {entry_references: {'target_upload_id:any': uploadId ? [uploadId] : []}}}
+    api.post(`entries/query`, requestBody)
+      .then(results => {
+        const data = results?.data || []
+        if (data.length > 0) {
+          const brokenEntries = data.filter(entry => entry.upload_id !== uploadId)
+          setBrokenEntries(brokenEntries)
+          const allReferences = data.map(entry => entry.entry_references).flat()
+          const references = [...new Map(allReferences.map(entry => [entry.target_entry_id, entry])).values()]
+          setEntryReferences(references)
+        }
+      })
+      .catch(err =>
+        raiseError(err)
+      )
+  }, [api, openDeleteConfirmDialog, raiseError, uploadId])
 
   const handleDropFiles = useCallback(files => {
     if (!files[0]?.name) {
@@ -429,10 +453,11 @@ function UploadOverview(props) {
               <DialogContentText id="alert-dialog-description">
                 The upload is not empty. Are you sure you want to delete this upload?
               </DialogContentText>
+              <DeletingReferencesTable entryReferences={entryReferences} brokenEntries={brokenEntries}/>
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setOpenDeleteConfirmDialog(false)} autoFocus>Cancel</Button>
-              <Button onClick={handleDelete}>Delete</Button>
+              <Button onClick={handleDelete}>{brokenEntries.length > 0 ? 'Delete anyway' : 'Delete'}</Button>
             </DialogActions>
           </Dialog>
         </Grid>
