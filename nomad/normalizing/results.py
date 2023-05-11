@@ -117,11 +117,8 @@ class ResultsNormalizer(Normalizer):
             self.normalize_measurement(measurement)
 
     def normalize_sample(self, sample) -> None:
-        results = self.entry_archive.results
+        material = self.entry_archive.m_setdefault("results.material")
 
-        if results.material is None:
-            results.material = Material()
-        material = results.material
         if sample.elements and len(sample.elements) > 0:
             material.elements = sample.elements
         else:
@@ -141,12 +138,13 @@ class ResultsNormalizer(Normalizer):
         try:
             if material.chemical_formula_descriptive:
                 formula = Formula(material.chemical_formula_descriptive)
+                if not material.elements:
+                    material.elements = formula.elements()
+                material.elemental_composition = formula.elemental_composition()
                 material.chemical_formula_hill = formula.format('hill')
                 material.chemical_formula_reduced = formula.format('reduced')
                 material.chemical_formula_iupac = formula.format('iupac')
                 material.chemical_formula_descriptive = formula.format('descriptive')
-                if not material.elements:
-                    material.elements = formula.elements()
         except Exception as e:
             self.logger.warn('could not normalize material', exc_info=e)
 

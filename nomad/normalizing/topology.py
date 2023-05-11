@@ -58,7 +58,7 @@ def get_topology_id(index: int) -> str:
     return f'results/material/topology/{index}'
 
 
-def get_topology_original(material: Material, atoms: NOMADAtoms = None) -> System:
+def get_topology_original(atoms: NOMADAtoms = None) -> System:
     '''
     Creates a new topology item for the original structure.
     '''
@@ -66,13 +66,8 @@ def get_topology_original(material: Material, atoms: NOMADAtoms = None) -> Syste
         method='parser',
         label='original',
         description='A representative system chosen from the original simulation.',
-        chemical_formula_hill=material.chemical_formula_hill,
-        chemical_formula_iupac=material.chemical_formula_iupac,
-        chemical_formula_anonymous=material.chemical_formula_anonymous,
-        chemical_formula_reduced=material.chemical_formula_reduced,
-        elements=material.elements,
-        atoms_ref=atoms,
         system_relation=Relation(type='root'),
+        atoms_ref=atoms
     )
 
     return original
@@ -115,18 +110,7 @@ def add_system_info(system: System, topologies: Dict[str, System]) -> None:
         except Exception:
             pass
         else:
-            if system.chemical_formula_hill is None:
-                system.chemical_formula_hill = formula.format('hill')
-            if system.chemical_formula_iupac is None:
-                system.chemical_formula_iupac = formula.format('iupac')
-            if system.chemical_formula_reduced is None:
-                system.chemical_formula_reduced = formula.format('reduced')
-            if system.chemical_formula_anonymous is None:
-                system.chemical_formula_anonymous = formula.format('anonymous')
-            if system.chemical_formula_descriptive is None:
-                system.chemical_formula_descriptive = formula.format('descriptive')
-            if not system.elements:
-                system.elements = formula.elements()
+            formula.populate(system, descriptive_format='descriptive')
 
 
 def add_system(system: System, topologies: Dict[str, System], parent: Optional[System] = None) -> None:
@@ -156,7 +140,7 @@ class TopologyNormalizer():
         '''Returns a dictionary that contains all of the topologies mapped by
         topology id.'''
         # Use the calculation topology primarily
-        topology_calc = self.topology_calculation(material)
+        topology_calc = self.topology_calculation()
         if topology_calc:
             return topology_calc
         with utils.timer(self.logger, 'calculating topology with matid'):
@@ -166,7 +150,7 @@ class TopologyNormalizer():
 
         return None
 
-    def topology_calculation(self, material: Material) -> Optional[List[System]]:
+    def topology_calculation(self) -> Optional[List[System]]:
         '''Extracts the system topology as defined in the original calculation.
         This topology typically comes from e.g. classical force fields that
         define a topology for the system.
@@ -185,7 +169,7 @@ class TopologyNormalizer():
             return None
 
         topology: Dict[str, System] = {}
-        original = get_topology_original(material, atoms)
+        original = get_topology_original(atoms)
         add_system(original, topology)
         label_to_indices: Dict[str, list] = defaultdict(list)
 
@@ -280,7 +264,7 @@ class TopologyNormalizer():
             return None
 
         topology: Dict[str, System] = {}
-        original = get_topology_original(material, nomad_atoms)
+        original = get_topology_original(nomad_atoms)
         add_system(original, topology)
         add_system_info(original, topology)
 

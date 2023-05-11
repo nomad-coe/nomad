@@ -25,6 +25,7 @@ from nomad.units import ureg
 from nomad.datamodel.data import EntryData, ArchiveSection, author_reference, BasicElnCategory
 from nomad.metainfo.metainfo import MSection, MProxy, MEnum, Category, MCategory
 from nomad.datamodel.results import ELN, Results, Material
+from nomad.datamodel.results import ElementalComposition as ResultsElementalComposition
 from nomad.metainfo import Package, Quantity, Datetime, Reference, Section, SubSection
 from ase.data import chemical_symbols, atomic_numbers, atomic_masses
 from nomad.datamodel.metainfo.eln.perovskite_solar_cell_database import (
@@ -185,7 +186,7 @@ class Activity(ElnBaseSection):
             archive.results.eln.methods.append(self.m_def.name)
 
 
-class ElementalComposition(MSection):
+class ElementalComposition(ArchiveSection):
     '''A section for describing the elemental composition of a system, i.e. the element
     and its atomic fraction.
     '''
@@ -195,7 +196,7 @@ class ElementalComposition(MSection):
         description='''
         The symbol of the element, e.g. 'Pb'.
         ''',
-        a_eln=dict(component='EnumEditQuantity'))
+        a_eln=dict(component='AutocompleteEditQuantity'))
     atomic_fraction = Quantity(
         type=np.float64,
         description='''
@@ -204,6 +205,59 @@ class ElementalComposition(MSection):
         ''',
         a_eln=dict(component='NumberEditQuantity')
     )
+    mass_fraction = Quantity(
+        type=np.float64,
+        description='''
+        The mass fraction of the element in the system it is contained within.
+        Per definition a positive value less than or equal to 1.
+        ''',
+        a_eln=dict(component='NumberEditQuantity')
+    )
+
+    def normalize(self, archive, logger: Any) -> None:
+        '''
+        The normalizer for the `ElementalComposition` class. Will add a
+        results.material subsection if none exists. Will append the element to the
+        elements property of that subsection and a
+        nomad.datamodel.results.ElementalComposition instances to the
+        elemental_composition property  using the element and atomic fraction from this
+        section.
+
+        Args:
+            archive (EntryArchive): The archive containing the section that is being
+            normalized.
+            logger (Any): A structlog logger.
+        '''
+        super(ElementalComposition, self).normalize(archive, logger)
+
+        if self.element:
+            if not archive.results:
+                archive.results = Results()
+            if not archive.results.material:
+                archive.results.material = Material()
+
+            if self.element not in chemical_symbols:
+                logger.warn(
+                    f"'{self.element}' is not a valid element symbol and this "
+                    "elemental_composition section will be ignored.")
+            elif self.element not in archive.results.material.elements:
+                archive.results.material.elements += [self.element]
+            if self.atomic_fraction or self.mass_fraction:
+                comp_result_section = archive.results.material.elemental_composition
+                result_composition = ResultsElementalComposition(
+                    element=self.element,
+                    atomic_fraction=self.atomic_fraction,
+                    mass_fraction=self.mass_fraction,
+                    mass=atomic_masses[atomic_numbers[self.element]] * ureg.amu,
+                )
+                existing_elements = [comp.element for comp in comp_result_section]
+                if self.element in existing_elements:
+                    index = existing_elements.index(self.element)
+                    comp_result_section[index].atomic_fraction = self.atomic_fraction
+                    comp_result_section[index].mass_fraction = self.mass_fraction
+                    comp_result_section[index].mass = atomic_masses[atomic_numbers[self.element]] * ureg.amu
+                else:
+                    comp_result_section.append(result_composition)
 
 
 class System(Entity):
@@ -217,10 +271,68 @@ class System(Entity):
         section_def=ElementalComposition,
         repeats=True)
 
+    def _fill_fractions(self, archive, logger: Any) -> None:
+        '''
+        Private method for attempting to fill missing fractions (atomic or mass) in the
+        `ElementalComposition` objects listed in elemental_composition.
+        If a single fraction (of mass or atomic) is left blank it will be calculated from
+        the others. If after this check, all atomic fractions are filled and no mass
+        fractions are, the mass fractions will be calculated from the atomic fractions.
+        similarly, the atomic fractions are calculated from the mass ones if all mass and
+        no atomic fractions are filled.
+
+        Args:
+            archive (EntryArchive): The archive containing the section that is being
+            normalized.
+            logger (Any): A structlog logger.
+
+        Raises:
+            ValueError: If an unknown element is present.
+        '''
+        atomic_fractions = []
+        mass_fractions = []
+        element_masses = []
+        for comp in self.elemental_composition:
+            atomic_fractions.append(comp.atomic_fraction)
+            mass_fractions.append(comp.mass_fraction)
+            if comp.element is None:
+                return
+            elif comp.element not in atomic_numbers:
+                raise ValueError(f'Unknown element symbol: {comp.element}')
+            element_masses.append(atomic_masses[atomic_numbers[comp.element]])
+        atomic_blanks = atomic_fractions.count(None)
+        mass_blanks = mass_fractions.count(None)
+        if atomic_blanks == 1:
+            index = atomic_fractions.index(None)
+            balance = 1 - np.nansum(np.array(atomic_fractions, dtype=np.float64))
+            self.elemental_composition[index].atomic_fraction = balance
+            self.elemental_composition[index].normalize(archive, logger)
+            atomic_fractions[index] = balance
+            atomic_blanks = 0
+        if mass_blanks == 1:
+            index = mass_fractions.index(None)
+            balance = 1 - np.nansum(np.array(mass_fractions, dtype=np.float64))
+            self.elemental_composition[index].mass_fraction = balance
+            self.elemental_composition[index].normalize(archive, logger)
+            mass_fractions[index] = balance
+            mass_blanks = 0
+        if atomic_blanks == 0 and mass_blanks == len(mass_fractions):
+            masses = np.array(atomic_fractions) * np.array(element_masses)
+            mass_fractions = masses / masses.sum()
+            for index, mass_fraction in enumerate(mass_fractions):
+                self.elemental_composition[index].mass_fraction = mass_fraction
+                self.elemental_composition[index].normalize(archive, logger)
+        if mass_blanks == 0 and atomic_blanks == len(atomic_fractions):
+            atoms = np.array(mass_fractions) / np.array(element_masses)
+            atomic_fractions = atoms / atoms.sum()
+            for index, atomic_fraction in enumerate(atomic_fractions):
+                self.elemental_composition[index].atomic_fraction = atomic_fraction
+                self.elemental_composition[index].normalize(archive, logger)
+
     def normalize(self, archive, logger: Any) -> None:
-        '''The normalizer for the `System` class. Will add a results.material subsection
-        if none exists. Will populate the elements property of that subsection with a
-        uniques list of element symbols retrieved from the system elemental_composition.
+        '''
+        The normalizer for the `System` class. Will attempt to fill mass fractions or
+        atomic fractions if left blank.
 
         Args:
             archive (EntryArchive): The archive containing the section that is being
@@ -228,17 +340,9 @@ class System(Entity):
             logger (Any): A structlog logger.
         '''
         super(System, self).normalize(archive, logger)
-        if not archive.results.material:
-            archive.results.material = Material()
-        elements = set()
-        for comp in self.elemental_composition:
-            if comp.element not in chemical_symbols:
-                logger.warn(
-                    f"'{comp.element}' is not a valid element symbol and this "
-                    "elemental_composition section will be ignored.")
-            else:
-                elements.add(comp.element)
-        archive.results.material.elements = list(elements)
+
+        if len(self.elemental_composition) > 0:
+            self._fill_fractions(archive, logger)
 
 
 class Instrument(ElnBaseSection):
@@ -294,7 +398,8 @@ class Component(ArchiveSection):
 
 
 class Ensemble(System):
-    '''A base class for an ensemble of material systems. Each component of the ensemble is
+    '''
+    A base class for an ensemble of material systems. Each component of the ensemble is
     of a (sub)type of `System`.'''
     components = SubSection(
         description='''
@@ -306,7 +411,8 @@ class Ensemble(System):
 
     @staticmethod
     def _atomic_to_mass(composition: List[ElementalComposition], mass: float) -> Dict[str, float]:
-        '''Private static method for converting list of ElementalComposition objects to
+        '''
+        Private static method for converting list of ElementalComposition objects to
         dictionary of element masses with the element symbol as key and mass as value.
 
         Args:
@@ -342,7 +448,8 @@ class Ensemble(System):
 
     @staticmethod
     def _mass_to_atomic(mass_dict: Dict[str, float]) -> List[ElementalComposition]:
-        '''Private static method for converting ditctionary of elements with their masses
+        '''
+        Private static method for converting dictionary of elements with their masses
         to a list of ElementalComposition objects containing atomic fractions.
 
         Args:
@@ -370,7 +477,8 @@ class Ensemble(System):
                 for atomic_fraction, symbol in zip(atomic_fractions, elements)]
 
     def normalize(self, archive, logger: Any) -> None:
-        '''The normalizer for the `Ensemble` class. If the elemental composition list is
+        '''
+        The normalizer for the `Ensemble` class. If the elemental composition list is
         empty, the normalizer will iterate over the components and extract all the
         elements for populating the elemental composition list. If masses are provided for
         all components and the elemental composition of all components contain atomic
@@ -403,6 +511,8 @@ class Ensemble(System):
                     else:
                         mass_dict[element] = mass
             self.elemental_composition = self._mass_to_atomic(mass_dict)
+        for comp in self.elemental_composition:
+            comp.normalize(archive, logger)
 
         super(Ensemble, self).normalize(archive, logger)
 
@@ -708,11 +818,17 @@ class Substance(System):
 
             try:
                 formula = Formula(self.molecular_formula)
-                formula.populate_material(material=archive.results.material)
+                formula.populate(archive.results.material)
                 if not self.elemental_composition:
+                    mass_fractions = formula.mass_fractions()
                     for element, fraction in formula.atomic_fractions().items():
-                        self.elemental_composition.append(ElementalComposition.m_from_dict({
-                            "element": element, "atomic_fraction": fraction}))
+                        self.elemental_composition.append(
+                            ElementalComposition(
+                                element=element,
+                                atomic_fraction=fraction,
+                                mass_fraction=mass_fractions[element],
+                            )
+                        )
             except Exception as e:
                 logger.warn('Could not analyse chemical formula.', exc_info=e)
 
@@ -958,12 +1074,15 @@ class ElnWithFormulaBaseSection(ElnBaseSection):
                 archive.results = Results()
             if not archive.results.material:
                 archive.results.material = Material()
-
             try:
                 formula = Formula(self.chemical_formula)
-                formula.populate_material(material=archive.results.material)
             except Exception as e:
                 logger.warn('could not analyse chemical formula', exc_info=e)
+            else:
+                try:
+                    formula.populate(archive.results.material)
+                except ValueError as e:
+                    logger.info('composition information already defined, skipping populating it based on formula', exc_info=e)
 
 
 class Chemical(ElnWithFormulaBaseSection):
