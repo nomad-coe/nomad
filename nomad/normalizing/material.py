@@ -61,12 +61,7 @@ class MaterialNormalizer():
         if self.repr_system:
             try:
                 formula = Formula(self.repr_system.chemical_composition_hill)
-                material.elements = formula.elements()
-                material.chemical_formula_hill = formula.format('hill')
-                material.chemical_formula_iupac = formula.format('iupac')
-                material.chemical_formula_reduced = formula.format('reduced')
-                material.chemical_formula_anonymous = formula.format('anonymous')
-                material.chemical_formula_descriptive = formula.format('descriptive')
+                formula.populate(material, descriptive_format='descriptive')
                 self.structural_type = self.repr_system.type
                 material.structural_type = self.repr_system.type
                 dimensionality_map = {

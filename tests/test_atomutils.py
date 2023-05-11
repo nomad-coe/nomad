@@ -17,7 +17,7 @@
 #
 import pytest
 from nomad.atomutils import Formula
-from nomad.datamodel.results import Material
+from nomad.datamodel.results import Material, ElementalComposition
 
 
 @pytest.mark.parametrize('format, formula, expected_formula', [
@@ -76,10 +76,10 @@ def test_formula_atomic_fraction(formula, expected_fractions):
     pytest.param('I2Pb', 'original', 'I2Pb', ['Pb', 'I'], id='original descriptive formula'),
     pytest.param('I2Pb', None, None, ['Pb', 'I'], id='no descriptive formula'),
 ])
-def test_formula_material_population(formula, descriptive_format, expected_formula, elements):
+def test_formula_populate(formula, descriptive_format, expected_formula, elements):
     material = Material()
     formula_object = Formula(formula)
-    formula_object.populate_material(material=material, descriptive_format=descriptive_format)
+    formula_object.populate(material, descriptive_format=descriptive_format)
 
     assert material.chemical_formula_descriptive == expected_formula
     assert sorted(material.elements) == sorted(elements)
@@ -87,3 +87,17 @@ def test_formula_material_population(formula, descriptive_format, expected_formu
     assert material.chemical_formula_reduced is not None
     assert material.chemical_formula_iupac is not None
     assert material.chemical_formula_anonymous is not None
+
+
+@pytest.mark.parametrize('formula, material', [
+    pytest.param('Si', Material(elements=['Si']), id='elements'),
+    pytest.param('Si2', Material(elemental_composition=[ElementalComposition(element='Si')]), id='elemental_composition'),
+    pytest.param('Si2', Material(chemical_formula_hill='Si'), id='chemical_formula_hill'),
+    pytest.param('Si2', Material(chemical_formula_reduced='Si'), id='chemical_formula_reduced'),
+    pytest.param('Si2', Material(chemical_formula_iupac='Si'), id='chemical_formula_iupac'),
+    pytest.param('Si2', Material(chemical_formula_anonymous='Si'), id='chemical_formula_anonymous'),
+])
+def test_formula_populate_overwrite_exception(formula, material):
+    formula_object = Formula(formula)
+    with pytest.raises(ValueError):
+        formula_object.populate(material, descriptive_format='original')

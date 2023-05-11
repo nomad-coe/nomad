@@ -53,8 +53,15 @@ from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
 from nomad.units import ureg
 
+
+valid_elements = set(ase.data.chemical_symbols[1:])
+
 if TYPE_CHECKING:
-    from nomad.datamodel.results import Material
+    from nomad.datamodel.results import (
+        Material,
+        System,
+        ElementalComposition
+    )
 
 
 def get_summed_atomic_mass(atomic_numbers: NDArray[Any]) -> float:
@@ -772,7 +779,8 @@ class Formula():
         return sorted(self.count().keys())
 
     def atomic_fractions(self) -> Dict[str, float]:
-        '''Returns dictionary that maps chemical symbol to atomic fraction.
+        '''
+        Returns dictionary that maps chemical symbol to atomic fraction.
 
         Returns:
             Dict[str, float]: Dictionary with chemical symbol as key and the atomic
@@ -783,29 +791,87 @@ class Formula():
         atomic_fractions = {key: value / total_count for key, value in count.items()}
         return atomic_fractions
 
-    def populate_material(self, material: Material,
-                          descriptive_format: Union[str, None] = 'original') -> None:
-        '''Populates the supplied material object with the list of elements as well as the
-        formulae in the formats: hill, reduced, iupac, anonymous and descriptive.
+    def mass_fractions(self) -> Dict[str, float]:
+        '''
+        Returns a dictionary that maps chemical symbol to mass fraction.
+
+        Returns:
+            Dict[str, float]: Dictionary with chemical symbol as key and the mass
+            fraction as value.
+        '''
+        count = self.count()
+        masses = {
+            element: atomic_masses[ase.data.atomic_numbers[element]] * count
+            for element, count in count.items()
+        }
+        total_mass = sum(masses.values())
+        mass_fractions = {element: mass / total_mass for element, mass in masses.items()}
+        return mass_fractions
+
+    def elemental_composition(self) -> List[ElementalComposition]:
+        '''
+        Returns the atomic and mass fractions as a list of
+        `ElementalComposition` objects. Any unknown elements are ignored.
+
+        Returns:
+            List[ElementalComposition]: The list of `ElementalComposition` objects.
+        '''
+        from nomad.datamodel.results import ElementalComposition
+        atomic_fractions = self.atomic_fractions()
+        mass_fractions = self.mass_fractions()
+        elemental_composition = [
+            ElementalComposition(
+                element=element,
+                atomic_fraction=atomic_fraction,
+                mass_fraction=mass_fractions[element],
+                mass=atomic_masses[ase.data.atomic_numbers[element]],
+            )
+            for element, atomic_fraction in atomic_fractions.items() if element in valid_elements
+        ]
+        return elemental_composition
+
+    def populate(self, section: Union[Material, System],
+                 descriptive_format: Union[str, None] = 'original') -> None:
+        '''
+        Populates the supplied section with the list of elements and elemental
+        compositions as well as the formulae in the formats: hill, reduced, iupac,
+        anonymous and descriptive.
         The descriptive formula defaults to the originally supplied formula but can be
         changed to any other format by supplying the `descriptive_format` argument as:
-        'hill', 'reduced', 'iupac' or 'anonymous'. If descriptive_format is None, no
-        descriptive formula will be added to the material.
+        'hill', 'reduced', 'iupac', 'anonymous' or 'descriptive'. If descriptive_format is
+        None, no descriptive formula will be added to the section.
 
         Args:
-            material (Material): The material object to be populated with elements and
-            formulae.
-            descriptive_format (Union[str, None], optional): The format used for the
-            descriptive formula (see `format` method for details). If None, the materials
-            descriptive formula is not set. Defaults to 'original'.
+            section: The section to be populated with elements and formulae.
+            descriptive_format: The format used for the
+                descriptive formula (see `format` method for details). If None,
+                the materials descriptive formula is not set. Defaults to
+                'original'.
+
+        Raises:
+            ValueError if any of the populated metainfo already exist and would be
+            overwritten.
         '''
-        material.elements = self.elements()
-        material.chemical_formula_hill = self.format('hill')
-        material.chemical_formula_reduced = self.format('reduced')
-        material.chemical_formula_iupac = self.format('iupac')
-        material.chemical_formula_anonymous = self.format('anonymous')
+        for quantity in [
+            'elements',
+            'elemental_composition',
+            'chemical_formula_hill',
+            'chemical_formula_reduced',
+            'chemical_formula_iupac',
+            'chemical_formula_anonymous',
+            'chemical_formula_descriptive',
+        ]:
+            if getattr(section, quantity):
+                raise ValueError(f'Could not populate compositional data as "{quantity}" is already defined.')
+
+        section.elements = self.elements()
+        section.elemental_composition = self.elemental_composition()
+        section.chemical_formula_hill = self.format('hill')
+        section.chemical_formula_reduced = self.format('reduced')
+        section.chemical_formula_iupac = self.format('iupac')
+        section.chemical_formula_anonymous = self.format('anonymous')
         if descriptive_format:
-            material.chemical_formula_descriptive = self.format(descriptive_format)
+            section.chemical_formula_descriptive = self.format(descriptive_format)
 
     def _remove_parentheses(self, formula: str) -> str:
         '''Used to remove parentheses from a formula. E.g. C(2)O(1) becomes C2O1

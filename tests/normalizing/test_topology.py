@@ -57,6 +57,12 @@ def assert_topology(topology):
         assert top.chemical_formula_hill is not None
         assert top.chemical_formula_reduced is not None
         assert top.chemical_formula_anonymous is not None
+        assert top.elemental_composition
+        for comp in top.elemental_composition:
+            assert comp.element
+            assert comp.mass
+            assert comp.mass_fraction
+            assert comp.atomic_fraction
         if top.parent_system:
             child_map_determined[top.parent_system].append(top.system_id)
         if top.child_systems:

@@ -1607,16 +1607,13 @@ Ozone
 
             formula_cleaner = PerovskiteFormulaNormalizer(self.composition_long_form)
             final_formula = formula_cleaner.clean_formula()
-            chemical_formula_reduced = final_formula[0]
-            archive.results.material.elements = final_formula[1]
             try:
-                archive.results.material.chemical_formula_hill = Formula(chemical_formula_reduced).format('hill')
-                archive.results.material.chemical_formula_reduced = Formula(chemical_formula_reduced).format('reduced')
-                archive.results.material.chemical_formula_iupac = Formula(chemical_formula_reduced).format('iupac')
-                archive.results.material.chemical_formula_anonymous = Formula(chemical_formula_reduced).format('anonymous')
+                formula = Formula(final_formula[0])
+                formula.populate(archive.results.material)
                 archive.results.material.chemical_formula_descriptive = formula_cleaner.pre_process_formula()
             except Exception as e:
                 logger.warn('could not analyse chemical formula', exc_info=e)
+            archive.results.material.elements = final_formula[1]
 
 
 class PerovskiteDeposition(MSection):

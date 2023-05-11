@@ -273,6 +273,49 @@ class BandGap(CalcBandGap):
     type.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
 
 
+class ElementalComposition(MSection):
+    m_def = Section(
+        description='''
+        Section containing information about the concentration of an element,
+        given by its atomic and mass fraction within the system or material.
+        ''',
+        label_quantity='element',
+    )
+    element = Quantity(
+        type=MEnum(chemical_symbols[1:]),
+        description='''
+        The symbol of the element, e.g. 'Pb'.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='simple')
+        ],
+    )
+    mass = Quantity(
+        type=np.float64,
+        unit='kg',
+        description='''
+        The (average) mass of the element.
+        ''',
+    )
+    atomic_fraction = Quantity(
+        type=np.float64,
+        description='''
+        The atomic fraction of the element in the system it is contained within.
+        Per definition a positive value less than or equal to 1.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+    mass_fraction = Quantity(
+        type=np.float64,
+        description='''
+        The mass fraction of the element in the system it is contained within.
+        Per definition a positive value less than or equal to 1.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+
+
 class LatticeParameters(MSection):
     m_def = Section(
         description='''
@@ -1245,6 +1288,11 @@ class System(MSection):
         the original system. Each row represents a new instance.
         '''
     )
+    elemental_composition = SubSection(
+        sub_section=ElementalComposition.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_type, nested=True)
+    )
     system_relation = SubSection(sub_section=Relation.m_def, repeats=False)
     cell = SubSection(sub_section=Cell.m_def, repeats=False)
     symmetry = SubSection(sub_section=SymmetryNew.m_def, repeats=False)
@@ -1257,7 +1305,7 @@ class System(MSection):
 class Material(MSection):
     m_def = Section(
         description='''
-        Contains information that is specific to bulk crystalline materials.
+        Section containing information on the material composition and structure.
         '''
     )
     material_id = Quantity(
@@ -1416,6 +1464,11 @@ class Material(MSection):
             proportion numbers. The proportion number is omitted if it is 1.
         ''',
         a_elasticsearch=Elasticsearch(material_type, mapping=Text(multi=True)),
+    )
+    elemental_composition = SubSection(
+        sub_section=ElementalComposition.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_type, nested=True)
     )
     symmetry = SubSection(sub_section=Symmetry.m_def, repeats=False)
     topology = SubSection(

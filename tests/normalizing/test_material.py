@@ -26,6 +26,7 @@ from nomad.units import ureg
 from nomad import atomutils
 from nomad.utils import hash
 from nomad.normalizing.common import ase_atoms_from_nomad_atoms, ase_atoms_from_structure
+from nomad.datamodel.results import ElementalComposition
 from tests.normalizing.conftest import get_template_for_structure
 
 
@@ -571,3 +572,28 @@ def test_conventional_structure(atoms, expected, monkeypatch):
     assert np.allclose(conv.get_positions(), expected.get_positions())
     assert np.array_equal(conv.get_chemical_symbols(), expected.get_chemical_symbols())
     assert np.allclose(conv.get_cell(), expected.get_cell())
+
+
+@pytest.mark.parametrize(
+    'archive, expected',
+    [
+        pytest.param(
+            get_template_for_structure(ase.build.molecule("H2O")),
+            [
+                ElementalComposition(element='H', atomic_fraction=2 / 3, mass_fraction=0.111898, mass=1.00794 * ureg.amu),
+                ElementalComposition(element='O', atomic_fraction=1 / 3, mass_fraction=0.888101, mass=15.9994 * ureg.amu),
+            ],
+            id='simulation, molecule'
+        ),
+    ]
+)
+def test_elemental_composition(archive, expected):
+    result = archive.results.material.elemental_composition
+    assert len(expected) == len(result)
+    composition_map = {x.element: x for x in result}
+    for comp_expected in expected:
+        comp_result = composition_map[comp_expected.element]
+        assert comp_result.element == comp_expected.element
+        assert comp_result.mass.magnitude == pytest.approx(comp_expected.mass.magnitude, abs=0, rel=1e-5)
+        assert comp_result.mass_fraction == pytest.approx(comp_expected.mass_fraction, abs=0, rel=1e-5)
+        assert comp_result.atomic_fraction == pytest.approx(comp_expected.atomic_fraction, abs=0, rel=1e-5)
