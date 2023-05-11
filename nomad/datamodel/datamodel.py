@@ -255,6 +255,14 @@ class EntryArchiveReference(MSection):
         type=str,
         description='The id of the entry containing the target.',
         a_elasticsearch=Elasticsearch())
+    target_mainfile = Quantity(
+        type=str,
+        description='The mainfile of the entry containing the target.',
+        a_elasticsearch=Elasticsearch())
+    target_upload_id = Quantity(
+        type=str,
+        description='The id of the upload containing the target.',
+        a_elasticsearch=Elasticsearch())
     target_name = Quantity(
         type=str,
         description='The name of the target quantity/section.',
@@ -784,12 +792,18 @@ class EntryMetadata(MSection):
                     entry_id = None
             else:
                 entry_id = entry_id_or_mainfile
+
             ref_item.target_entry_id = entry_id
+            ref_item.target_upload_id = upload_id
             ref_item.target_name = target_name
             ref_item.target_path = path
             ref_item.source_name = current_def.name
             ref_item.source_path = quantity_path
             ref_item.source_quantity = current_def.definition_reference(archive, global_reference=True)
+
+            from ..processing import Entry
+            entry_objects = Entry.objects(entry_id=entry_id)
+            ref_item.target_mainfile = entry_objects.first().mainfile if entry_objects.count() == 1 else None
 
             return ref_item
 

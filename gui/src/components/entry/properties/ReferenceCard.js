@@ -43,6 +43,10 @@ const columns = [
     key: 'mainfile',
     align: 'left',
     render: entry => <Quantity quantity={'mainfile'} noLabel noWrap withClipboard data={entry}/>
+  },
+  {
+    key: 'upload_id',
+    render: upload => <Quantity quantity={'upload_id'} noLabel noWrap withClipboard data={upload}/>
   }
 ]
 
@@ -62,12 +66,12 @@ const baseQuery = {
   }
 }
 
-const ReferenceTable = memo(({refPool, defaultColumns}) => {
+export const ReferenceTable = memo(({refPool, defaultColumns, noAction}) => {
   return <Datatable
     columns={columns} shownColumns={defaultColumns}
     data={refPool.map(entry => ({...entry.entry_metadata, ...entry}))}
   >
-    <DatatableTable actions={EntryRowActions} details={EntryDetails}>
+    <DatatableTable actions={!noAction && EntryRowActions} details={EntryDetails}>
     </DatatableTable>
   </Datatable>
 })
@@ -77,7 +81,8 @@ ReferenceTable.propTypes = {
       entry_metadata: PropTypes.object
     })
   ),
-  defaultColumns: PropTypes.arrayOf(PropTypes.string)
+  defaultColumns: PropTypes.arrayOf(PropTypes.string),
+  noAction: PropTypes.bool
 }
 
 const ReferenceUsingCard = memo(({index}) => {

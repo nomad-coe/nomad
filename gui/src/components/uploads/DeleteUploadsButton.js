@@ -15,14 +15,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useState, useCallback} from 'react'
+import React, {useState, useCallback, useEffect} from 'react'
 import PropTypes from 'prop-types'
 import { Tooltip, IconButton, Dialog, DialogContent, DialogContentText, DialogActions, Button } from '@material-ui/core'
 import DeleteIcon from '@material-ui/icons/Delete'
 import {pluralize} from '../../utils'
+import {useApi} from '../api'
+import {useErrors} from '../errors'
+import DeletingReferencesTable from './DeletingReferencesTable'
 
-const DeleteUploadsButton = React.memo(({tooltip, disabled, buttonProps, dark, selectedCount, onSubmitted}) => {
+const DeleteUploadsButton = React.memo(({tooltip, disabled, buttonProps, dark, selectedUploads, selectedCount, onSubmitted}) => {
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
+  const {api} = useApi()
+  const {raiseError} = useErrors()
+  const [entryReferences, setEntryReferences] = useState([])
+  const [brokenEntries, setBrokenEntries] = useState([])
+
+  useEffect(() => {
+    if (!openDeleteConfirmDialog) {
+      return
+    }
+    const requestBody = {owner: 'visible', query: {entry_references: {'target_upload_id:any': selectedUploads || []}}}
+    api.post(`entries/query`, requestBody)
+      .then(results => {
+        const data = results?.data || []
+        if (data.length > 0) {
+          const brokenEntries = data.filter(entry => !selectedUploads.includes(entry.upload_id))
+          setBrokenEntries(brokenEntries)
+          const allReferences = data.map(entry => entry.entry_references).flat()
+          const references = [...new Map(allReferences.map(entry => [entry.target_entry_id, entry])).values()]
+          setEntryReferences(references)
+        }
+      })
+      .catch(err =>
+        raiseError(err)
+      )
+  }, [api, openDeleteConfirmDialog, raiseError, selectedUploads])
 
   const handleClick = useCallback(() => {
     setOpenDeleteConfirmDialog(true)
@@ -55,15 +83,17 @@ const DeleteUploadsButton = React.memo(({tooltip, disabled, buttonProps, dark, s
           <DialogContentText>
             {`You have selected ${pluralize('upload', selectedCount, true)}. Are you sure you want to delete the selected ${pluralize('upload', selectedCount, false)}?`}
           </DialogContentText>
+          <DeletingReferencesTable entryReferences={entryReferences} brokenEntries={brokenEntries}/>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteConfirmDialog(false)} autoFocus>Cancel</Button>
-          <Button onClick={() => handleDelete()}>Delete</Button>
+          <Button onClick={() => handleDelete()}>{brokenEntries.length > 0 ? 'Delete anyway' : 'Delete'}</Button>
         </DialogActions>
       </Dialog>
     </React.Fragment>)
 })
 DeleteUploadsButton.propTypes = {
+  selectedUploads: PropTypes.arrayOf(PropTypes.string).isRequired,
   selectedCount: PropTypes.number.isRequired,
   onSubmitted: PropTypes.func.isRequired,
   tooltip: PropTypes.string,
