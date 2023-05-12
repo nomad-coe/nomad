@@ -75070,7 +75070,7 @@ window.nomadArtifacts = {
   },
   "northTools": {
     "jupyter": {
-      "image": "jupyter/datascience-notebook",
+      "image": "jupyter/datascience-notebook:lab-3.6.2",
       "description": "### **Jupyter Notebook**: The Classic Notebook Interface\n\nThe Jupyter Notebook is the original web application for creating and sharing computational documents. It offers a simple, streamlined, document-centric experience.",
       "short_description": "Basic jupyter run with an empty notebook or on given notebook file.",
       "cmd": null,
