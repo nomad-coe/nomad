@@ -105,10 +105,14 @@ class DosNormalizer(Normalizer):
         The values are divided by integral(DOS, lowest state, Fermi energy), or likewise sum(<atomic numbers>)."""
         atoms = calc.system_ref.atoms
         if not len(dos.total):
-            self.logger.error('referenced system for dos calculation could not be found')
+            self.logger.warning(
+                'Could not resolve total DOS from calculation.dos.total, '
+                'thus electronic normalization factor not reported.')
             return
         elif not len(atoms.species):
-            self.logger.error('referenced system for atomic species could not be found')
+            self.logger.warning(
+                'Could not resolve atoms information from calculation.system_ref.atoms, '
+                'thus electronic normalization factor not reported.')
             return
         else:
             normalization_factor = 1 / sum(atoms.species)
@@ -121,10 +125,14 @@ class DosNormalizer(Normalizer):
         The values are divided by integral(DOS, 0, infinity), or likewise <no. degrees of freedom>"""
         atoms = calc.system_ref.atoms
         if not len(dos.total):
-            self.logger.error('referenced system for dos calculation could not be found')
+            self.logger.warning(
+                'Could not resolve total DOS from calculation.dos.total, '
+                'thus phononic normalization factor not reported.')
             return
         elif not len(atoms.species):
-            self.logger.error('referenced system for the number of atoms could not be found')
+            self.logger.warning(
+                'Could not resolve atoms information from calculation.system_ref.atoms, '
+                'thus phononic normalization factor not reported.')
             return
         else:
             normalization_factor = 1 / (3 * len(atoms.species))
