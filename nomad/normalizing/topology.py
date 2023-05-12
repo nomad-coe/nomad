@@ -273,6 +273,8 @@ class TopologyNormalizer():
         clusters = clusterer.get_clusters(atoms, pos_tol=0.8)
         for cluster in clusters:
             subsystem = self._create_subsystem(cluster)
+            if not subsystem:
+                continue
             structural_type = subsystem.structural_type
             # If the found cell has many basis atoms, it is more likely that
             # some of the symmetries were not correctly found than the cell
@@ -313,10 +315,30 @@ class TopologyNormalizer():
 
         return None
 
-    def _create_subsystem(self, cluster: Cluster) -> System:
+    def _create_subsystem(self, cluster: Cluster) -> Optional[System]:
         '''
         Creates a new subsystem as detected by MatID.
         '''
+        try:
+            dimensionality = cluster.dimensionality()
+            classification = cluster.classification()
+        except Exception as e:
+            self.logger.error(
+                'matid system classification failed', exc_info=e, error=str(e)
+            )
+            return None
+        structural_type_map = {
+            Classification.Class3D: 'bulk',
+            Classification.Surface: 'surface',
+            Classification.Material2D: '2D',
+        }
+        structural_type = structural_type_map.get(classification)
+        if not structural_type:
+            return None
+        building_block_map = {
+            Classification.Surface: 'surface',
+            Classification.Material2D: '2D material',
+        }
         subsystem = System(
             method='matid',
             label='subsystem',
@@ -324,29 +346,7 @@ class TopologyNormalizer():
             system_relation=Relation(type='subsystem'),
             indices=[list(cluster.indices)]
         )
-
-        classification = 'unavailable'
-        try:
-            dimensionality = cluster.dimensionality()
-            classification = cluster.classification()
-        except Exception as e:
-            self.logger.error(
-                'matid project system classification failed', exc_info=e, error=str(e)
-            )
-        type_map = {
-            Classification.Class3D: 'bulk',
-            Classification.Atom: 'atom',
-            Classification.Class0D: 'molecule / cluster',
-            Classification.Class1D: '1D',
-            Classification.Surface: 'surface',
-            Classification.Material2D: '2D',
-            Classification.Unknown: 'unavailable'
-        }
-        building_block_map = {
-            Classification.Surface: 'surface',
-            Classification.Material2D: '2D material',
-        }
-        subsystem.structural_type = type_map.get(classification, 'unavailable')
+        subsystem.structural_type = structural_type
         subsystem.dimensionality = f'{dimensionality}D'
         subsystem.building_block = building_block_map.get(classification)
 
