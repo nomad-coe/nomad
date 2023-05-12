@@ -838,7 +838,7 @@ class ResultsNormalizer(Normalizer):
             # If one axis is not periodic, return. This only happens if the vacuum
             # gap is not aligned with a cell vector.
             if sum(periodicity) != 1:
-                self.logger.error("could not detect the periodic dimensions in a 1D system")
+                self.logger.warning("could not detect the periodic dimensions in a 1D system")
                 return conv_atoms, prim_atoms
 
             # Translate to center of mass
