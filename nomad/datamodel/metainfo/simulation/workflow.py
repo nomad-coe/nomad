@@ -26,7 +26,7 @@ from nomad.datamodel.metainfo.common import FastAccess
 from nomad.datamodel.metainfo.workflow2 import Workflow, Link, Task
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import (
-    Method, XCFunctional, BasisSet, GW as GWMethodology
+    Method, XCFunctional, BasisSetContainer, GW as GWMethodology,
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, BandGap, Dos, BandStructure, BandEnergies, Density, Potential, Spectra,
@@ -2418,8 +2418,8 @@ class GWMethod(SimulationWorkflowMethod):
         Starting point (XC functional or HF) used.
         ''')
 
-    basis_set = Quantity(
-        type=Reference(BasisSet),
+    electrons_representation = Quantity(
+        type=Reference(BasisSetContainer),
         description='''
         Basis set used.
         ''')

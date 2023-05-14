@@ -1,0 +1,32 @@
+<!-- this file is manually generated based on Si.xml
+please replace with a more representative Ag.xml file -->
+<?xml version="1.0" encoding="UTF-8"?>
+<spdb xsi:noNamespaceSchemaLocation="../../xml/species.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <sp chemicalSymbol="Ag" name="silver" z="-47.0000">
+    <muffinTin rmin="0.100000E-04" radius="2.0000" rinf="24.9760" radialmeshPoints="300"/>
+    <atomicState n="1" l="0" kappa="1" occ="2.00000" core="true"/>
+    <atomicState n="2" l="0" kappa="1" occ="2.00000" core="true"/>
+    <!-- these two states are core states in the default species files
+    and have been customly set to be treated as valence states -->
+    <atomicState n="2" l="1" kappa="1" occ="2.00000" core="false"/>
+    <atomicState n="2" l="1" kappa="2" occ="4.00000" core="false"/>
+    <!-- -->
+    <atomicState n="3" l="0" kappa="1" occ="2.00000" core="false"/>
+    <atomicState n="3" l="1" kappa="1" occ="1.00000" core="false"/>
+    <atomicState n="3" l="1" kappa="2" occ="1.00000" core="false"/>
+    <basis>
+      <!-- use LAPW as default -->
+      <default type="lapw" trialEnergy="0.1500" searchE="false"/>
+      <!-- unless for l=0 and l=1, where we use APW+LO-->
+      <custom l="0" type="apw+lo" trialEnergy="0.1500" searchE="true"/>
+      <custom l="1" type="apw+lo" trialEnergy="0.1500" searchE="true"/>
+      <!-- these are custom LOs to account for the two states that have
+        been removed from the core. We set the second trialEnergy for
+        the semi-core state based on atoms.xml -->
+      <lo l="1">
+        <wf matchingOrder="0" trialEnergy="0.1500" searchE="true"/>
+        <wf matchingOrder="0" trialEnergy="-3.51" searchE="true"/>
+      </lo>
+    </basis>
+  </sp>
+</spdb>

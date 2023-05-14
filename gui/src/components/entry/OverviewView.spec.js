@@ -86,7 +86,6 @@ test('correctly renders metadata and all properties', async () => {
   expectQuantity('results.method.simulation.dft.xc_functional_type', 'GGA')
   expectQuantity('results.method.simulation.dft.xc_functional_names', 'GGA_C_PBE, GGA_X_PBE')
   expectQuantity('results.method.simulation.dft.basis_set_type', 'plane waves')
-  expectQuantity('results.method.simulation.dft.basis_set_name', 'STO-3G')
   expectQuantity('results.method.simulation.dft.van_der_Waals_method', 'G06')
   expectQuantity('results.method.simulation.dft.relativity_method', 'scalar_relativistic_atomic_ZORA')
 

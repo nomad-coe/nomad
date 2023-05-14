@@ -19,9 +19,20 @@
           "electronic": {
             "method": "DFT"
           },
-          "basis_set": [
+          "electrons_representation": [
             {
-              "type": "plane waves"
+              "type": "plane waves",
+              "scope": [
+                "wavefunction"
+              ],
+              "basis_set": [
+                {
+                  "type": "plane waves",
+                  "scope": [
+                    "valence"
+                  ]
+                }
+              ]
             }
           ]
         }

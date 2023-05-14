@@ -1,0 +1,30 @@
+<!-- this file is manually generated based on C.xml
+please replace with a more representative N.xml file -->
+<spdb>
+ 
+  <sp chemicalSymbol="N" name="nitrogen" z="-7.00000">
+ 
+    <muffinTin rmin="0.100000E-04" radius="1.4500" rinf="21.0932" radialmeshPoints="250"/>
+ 
+    <atomicState n="1" l="0" kappa="1" occ="2.00000" core="true"/>
+    <atomicState n="2" l="0" kappa="1" occ="2.00000" core="false"/>
+    <atomicState n="2" l="1" kappa="1" occ="1.00000" core="false"/>
+    <atomicState n="2" l="1" kappa="2" occ="1.00000" core="false"/>
+ 
+    <basis>
+      <default type="apw" trialEnergy="0.1500" searchE="false"/>
+      <custom l="0" type="apw+lo" trialEnergy="-0.20" searchE="true"/>
+      <custom l="1" type="apw+lo" trialEnergy="0.15" searchE="true"/>
+     <lo l="0">
+        <wf matchingOrder="0" trialEnergy="0.1500" searchE="true"/>
+        <wf matchingOrder="1" trialEnergy="0.1500" searchE="true"/>
+        <wf matchingOrder="0" trialEnergy="-1.8784" searchE="true"/>
+     </lo>
+     <lo l="1">
+        <wf matchingOrder="0" trialEnergy="0.1500" searchE="true"/>
+     </lo>
+    </basis>
+ 
+  </sp>
+ 
+</spdb>

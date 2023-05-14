@@ -2695,9 +2695,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             self: MSectionBound,
             deep=False,
             parent=None,
-            es_annotation: List[Elasticsearch] = None) -> MSectionBound:
+            a_elasticsearch: List[Elasticsearch] = None) -> MSectionBound:
         '''
-            es_annotation: Optional annotation for ElasticSearch. Will override
+            a_elasticsearch: Optional annotation for ElasticSearch. Will override
                 any existing annotation.
         '''
         # TODO this a shallow copy, but should be a deep copy
@@ -2724,8 +2724,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     else:
                         copy.__dict__[sub_section_def.name] = None
 
-        if es_annotation:
-            copy.m_annotations["elasticsearch"] = es_annotation
+        if a_elasticsearch:
+            copy.m_annotations["elasticsearch"] = a_elasticsearch
         return cast(MSectionBound, copy)
 
     def m_all_validate(self):

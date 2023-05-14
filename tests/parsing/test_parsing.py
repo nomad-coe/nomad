@@ -65,7 +65,7 @@ parser_examples = [
     ('parsers/turbomole', 'tests/data/parsers/turbomole/acrolein.out'),
     ('parsers/gamess', 'tests/data/parsers/gamess/exam01.out'),
     ('parsers/dmol', 'tests/data/parsers/dmol3/h2o.outmol'),
-    ('parser/fleur', 'tests/data/parsers/fleur/out'),
+    ('parser/fleur', 'tests/data/parsers/fleur/out'),  # double-check
     ('parser/molcas', 'tests/data/parsers/molcas/test000.input.out'),
     ('parsers/qbox', 'tests/data/parsers/qbox/01_h2ogs.r'),
     ('parser/onetep', 'tests/data/parsers/onetep/fluor/12-difluoroethane.out'),
@@ -78,7 +78,7 @@ parser_examples = [
     ('parsers/yambo', 'tests/data/parsers/yambo/hBN/r-10b_1Ry_HF_and_locXC_gw0_em1d_ppa'),
     ('parsers/archive', 'tests/data/parsers/archive.json'),
     ('parsers/nexus', 'tests/data/parsers/nexus/201805_WSe2_arpes.nxs'),
-    ('parsers/nexus', 'tests/data/parsers/nexus/SiO2onSi.ellips.nxs')
+    ('parsers/nexus', 'tests/data/parsers/nexus/SiO2onSi.ellips.nxs'),
 ]
 
 # We need to remove some cases with external mainfiles, which might not exist
