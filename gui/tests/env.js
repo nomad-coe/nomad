@@ -141,6 +141,22 @@ window.nomadEnv = {
                 "label": "XC Functional Type",
                 "align": "left"
               },
+              "results.method.simulation.precision.apw_cutoff": {
+                "label": "APW cutoff",
+                "align": "left"
+              },
+              "results.method.simulation.precision.basis_set": {
+                "label": "Basis set",
+                "align": "left"
+              },
+              "results.method.simulation.precision.k_line_density": {
+                "label": "K-line density",
+                "align": "left"
+              },
+              "results.method.simulation.precision.planewave_cutoff": {
+                "label": "Plane wave cutoff",
+                "align": "left"
+              },
               "results.material.structural_type": {
                 "label": "Dimensionality",
                 "align": "left"
@@ -237,6 +253,11 @@ window.nomadEnv = {
               "method": {
                 "label": "Method",
                 "level": 0,
+                "size": "s"
+              },
+              "precision": {
+                "label": "Precision",
+                "level": 1,
                 "size": "s"
               },
               "dft": {
@@ -385,6 +406,22 @@ window.nomadEnv = {
                 "label": "XC Functional Type",
                 "align": "left"
               },
+              "results.method.simulation.precision.apw_cutoff": {
+                "label": "APW cutoff",
+                "align": "left"
+              },
+              "results.method.simulation.precision.basis_set": {
+                "label": "Basis set",
+                "align": "left"
+              },
+              "results.method.simulation.precision.k_line_density": {
+                "label": "K-line density",
+                "align": "left"
+              },
+              "results.method.simulation.precision.planewave_cutoff": {
+                "label": "Plane wave cutoff",
+                "align": "left"
+              },
               "results.material.structural_type": {
                 "label": "Dimensionality",
                 "align": "left"
@@ -489,6 +526,11 @@ window.nomadEnv = {
               "method": {
                 "label": "Method",
                 "level": 0,
+                "size": "s"
+              },
+              "precision": {
+                "label": "Precision",
+                "level": 1,
                 "size": "s"
               },
               "dft": {

@@ -29,7 +29,7 @@ from nomad.metainfo import Section
 from nomad.metainfo.util import MTypes
 from nomad.utils import RestrictedDict
 from nomad import config
-from nomad.datamodel.metainfo.simulation.method import KMesh
+from nomad.datamodel.metainfo.simulation.method import (KMesh,)
 from nomad.datamodel.results import (
     Method, Electronic, Simulation, HubbardKanamoriModel, DFT, Projection, GW, BSE, DMFT,
     Precision, Material, xc_treatments, xc_treatments_extended)
@@ -117,10 +117,11 @@ class MethodNormalizer():
                 RestrictedDict. If no suitable basis set settings could be identified,
                 returns None.
             '''
-            settings: BasisSet = None
+            settings: MethodNormalizerBasisSet = None
             program_name = None
             if len(self.entry_archive.run) > 0 and self.run.program:
                 program_name = self.run.program.name
+
             if program_name == 'exciting':
                 settings = BasisSetExciting(self.entry_archive, self.repr_method, self.repr_system, self.logger)
             elif program_name == 'FHI-aims':
@@ -129,6 +130,14 @@ class MethodNormalizer():
                 return None
 
             return settings.to_dict()
+
+        def _patch_basis_set(program_name: str) -> str:
+            '''Patch basis set name for `Simulation.dft.basis_set` for well-defined
+            programs.
+            '''
+            if program_name in ('exciting', 'FHI-aims', 'WIEN2k', 'Elk'):
+                return '(L)APW+lo'
+            return ''
 
         # workflow_name
         if self.entry_archive.workflow2:
@@ -187,7 +196,37 @@ class MethodNormalizer():
 
         self.repr_method = repr_method
         self.method_name = method_name
-        # if DFT is present in the entry, we resolve the xc functional and the basis set
+
+        # Normalize in case of a APW basis set
+        try:
+            sec_method = self.run.method[-1]
+            compound_type: str = ''
+            em_index = 0
+            for electrons_representation in sec_method.electrons_representation or []:
+                if electrons_representation.type not in (None, 'unavailable'):
+                    continue
+                for basis_set in electrons_representation.basis_set or []:
+                    for orbital in basis_set.orbital or []:
+                        if orbital.type == 'APW' and not compound_type:
+                            compound_type = 'APW'
+                            small_compound_type = 'APW'
+                        elif orbital.type == 'LAPW' and not compound_type:
+                            compound_type = 'LAPW'
+                            small_compound_type = 'LAPW'
+                        elif orbital.type in ['APW', 'LAPW']\
+                                and compound_type in ['APW', 'LAPW']\
+                                and orbital.type != compound_type:
+                            compound_type = '(L)APW'
+                            small_compound_type = '(L)APW'
+                        elif orbital.type == 'LO' and 'lo' == compound_type[-2:]:
+                            compound_type += '+lo'
+                            small_compound_type += '+lo'
+                sec_method.electrons_representation[em_index].type = compound_type\
+                    if compound_type else None
+                em_index += 1
+        except (IndexError, AttributeError):
+            pass
+
         if 'DFT' in self.method_name:
             functional_long_name = functional_long_name_from_method()
             settings_basis_set = get_basis_set()
@@ -245,25 +284,38 @@ class MethodNormalizer():
                 k_mesh.n_points = len(k_mesh.points) if not k_mesh.n_points else k_mesh.n_points
                 k_mesh.grid = [len(set(k_mesh.points[:, i])) for i in range(3)]
                 if not k_mesh.sampling_method:
-                    try:  # TODO doublecheck
+                    try:  # TODO double-check
                         _, k_grid_offset = get_monkhorst_pack_size_and_offset(k_mesh.points)
                         if not k_grid_offset.all():
                             k_mesh.sampling_method = 'Monkhorst-Pack'
                     except ValueError:
                         k_mesh.sampling_method = 'Gamma-centered'
 
-        # Fill the presicion section
+        # Fill the precision section
+        simulation.precision = Precision()
         k_lattices = self.run.m_xpath('system[-1].atoms.lattice_vectors_reciprocal')
         grid = self.run.m_xpath('method[-1].k_mesh.grid')
-        k_line_density = self.calc_k_line_density(k_lattices, grid)
-        if k_line_density:
-            if not simulation.precision:
-                simulation.precision = Precision()
+        if k_line_density := self.calc_k_line_density(k_lattices, grid):
             if not simulation.precision.k_line_density:
                 simulation.precision.k_line_density = k_line_density
+        for em in self.run.m_xpath('method[-1].electrons_representation') or []:
+            try:
+                if 'wavefunction' in em['scope']:
+                    simulation.precision.basis_set = em['type']
+                    for bs in em['basis_set']:
+                        if 'cutoff' in bs.keys() and 'type' in bs.keys():
+                            simulation.precision.planewave_cutoff = bs['cutoff']
+                            break
+                        elif 'cutoff_fractional' in bs.keys() and 'type' in bs.keys():
+                            simulation.precision.apw_cutoff = bs['cutoff_fractional']
+                            break
+            except (TypeError, AttributeError, KeyError):
+                pass
 
         method.equation_of_state_id = self.equation_of_state_id(method.method_id, self.material.chemical_formula_hill)
         simulation.program_name = self.run.program.name
+        if basis_set_type_patched := _patch_basis_set(simulation.program_name):
+            simulation.dft.basis_set_type = basis_set_type_patched
         simulation.program_version = self.run.program.version
         method.simulation = simulation
         return method
@@ -350,6 +402,7 @@ class ElectronicMethod(ABC):
 
     @abstractmethod
     def simulation(self) -> Simulation:
+        '''Map `run.method` into `results.simulation`'''
         pass
 
 
@@ -360,10 +413,9 @@ class DFTMethod(ElectronicMethod):
         simulation = Simulation()
         self._method.method_name = 'DFT'
         dft = DFT()
-        dft.basis_set_type = self.basis_set_type()
-        dft.basis_set_name = self.basis_set_name()
+        dft.basis_set_type = self.basis_set_type(self._repr_method)
         self._method.method_id = self.method_id_dft(self._settings_basis_set, self._functional_long_name)
-        self._method.parameter_variation_id = self.parameter_variation_id_dft(self._settings_basis_set, self._functional_long_name)
+        self._method.parameter_variation_id = self.parameter_variation_id_dft(self._settings_basis_set, self._functional_long_name)  # TODO: check whether it can be decoupled like this
         dft.core_electron_treatment = self.core_electron_treatment()
         if self._repr_method.electronic is not None:
             if self._repr_method.electronic.smearing is not None:
@@ -387,15 +439,33 @@ class DFTMethod(ElectronicMethod):
         simulation.dft.hubbard_kanamori_model = hubbard_kanamori_models if len(hubbard_kanamori_models) else None
         return simulation
 
-    def basis_set_type(self) -> str:
-        try:
-            name = self._repr_method.basis_set[0].type
-        except Exception:
-            name = None
+    def basis_set_type(self, repr_method: Method) -> Union[str, None]:
+        name = None
+        for em in repr_method.electrons_representation or []:
+            if em.scope:
+                if 'wavefunction' in em.scope:
+                    name = em.type
+                    # Provide a mapping in case `em.type` and `basis_set_type` diverge
+                    if 'APW' in name:
+                        name = '(L)APW+lo'
+                    elif name in ('atom-centered orbitals', 'support functions'):
+                        full_stop = False
+                        type_options = ('gaussians', 'numeric AOs', 'psinc functions',
+                                        'pbeVaspFit2015', 'Koga', 'Bunge')
+                        for type_option in type_options:
+                            for bs in em.basis_set:
+                                if bs.type == type_option:
+                                    name = type_option
+                                    full_stop = True
+                                    break
+                            if full_stop:
+                                break
+                    elif name == 'gaussians + plane waves':
+                        name = 'plane waves'
+                    break
         if name:
             key = name.replace('_', '').replace('-', '').replace(' ', '').lower()
             name_mapping = {
-                'gaussians': 'gaussians',
                 'realspacegrid': 'real-space grid',
                 'planewaves': 'plane waves'
             }
@@ -439,9 +509,7 @@ class DFTMethod(ElectronicMethod):
         return hubbard_kanamori_models
 
     def method_id_dft(self, settings_basis_set: RestrictedDict, functional_long_name: str):
-        '''Creates a method id for DFT calculations if all required data is
-        present.
-        '''
+        '''Creates a method id for DFT calculations if all required data is present.'''
         method_dict = RestrictedDict(
             mandatory_keys=[
                 'program_name',
@@ -498,7 +566,7 @@ class DFTMethod(ElectronicMethod):
         except Exception:
             pass
 
-        # If all required information is present, safe the hash
+        # If all required information is present, save the hash
         try:
             method_dict.check(recursive=True)
         except (KeyError, ValueError):
@@ -634,7 +702,7 @@ class DFTMethod(ElectronicMethod):
         return abbrev_mapping[highest_rung_abbrev]
 
     def exact_exchange_mixing_factor(self, xc_functional_names: List[str]):
-        '''Assign the exact exachange mixing factor to `results` section when explicitly stated.
+        '''Assign the exact exchange mixing factor to `results` section when explicitly stated.
         Else, fall back on XC functional default.'''
         def scan_patterns(patterns, xc_name) -> bool:
             return any(x for x in patterns if re.search('_' + x + '$', xc_name))
@@ -684,7 +752,7 @@ class ExcitedStateMethod(ElectronicMethod):
                                                                 abbrev_mapping=xc_treatments_extended)
             except Exception:
                 self._logger.warning('Error extracting the DFT XC functional names.')
-            xs.basis_set_type = dft.basis_set_type()
+            xs.basis_set_type = dft.basis_set_type(self._repr_method)
             xs.basis_set_name = dft.basis_set_name()
         else:
             xs_type = getattr(self._repr_method, f'{self._method.method_name.lower()}').type
@@ -740,15 +808,15 @@ class DMFTMethod(ElectronicMethod):
         return simulation
 
 
-class BasisSet(ABC):
+class MethodNormalizerBasisSet(ABC):
     '''Abstract base class for basis set settings. The idea is to create
     subclasses that inherit this class and hierarchically add new mandatory and
     optional settings with the setup()-function.
     '''
     def __init__(self, entry_archive, repr_method, repr_system, logger):
         self._entry_archive = entry_archive
-        self._repr_method = repr_method
-        self._repr_system = repr_system
+        self._repr_method = repr_method  # only this is used in FHIaims
+        self._repr_system = repr_system  # only this is used in exciting
         self._logger = logger
         mandatory, optional = self.setup()
         self.settings = RestrictedDict(mandatory, optional, forbidden_values=[None])
@@ -774,7 +842,7 @@ class BasisSet(ABC):
         return mandatory, optional
 
 
-class BasisSetFHIAims(BasisSet):
+class BasisSetFHIAims(MethodNormalizerBasisSet):
     '''Basis set settings for FHI-Aims (code-dependent).
     '''
     def setup(self) -> Tuple:
@@ -844,7 +912,7 @@ class BasisSetFHIAims(BasisSet):
                 yield k
 
 
-class BasisSetExciting(BasisSet):
+class BasisSetExciting(MethodNormalizerBasisSet):
     '''Basis set settings for Exciting (code-dependent).
     '''
     def setup(self) -> Tuple:

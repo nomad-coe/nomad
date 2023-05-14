@@ -29,6 +29,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import FilterSubMenuElements from './FilterSubMenuElements'
 import FilterSubMenuStructure from './FilterSubMenuStructure'
 import FilterSubMenuMethod from './FilterSubMenuMethod'
+import FilterSubMenuPrecision from './FilterSubMenuPrecision'
 import FilterSubMenuDFT from './FilterSubMenuDFT'
 import FilterSubMenuGW from './FilterSubMenuGW'
 import FilterSubMenuBSE from './FilterSubMenuBSE'
@@ -54,6 +55,7 @@ export const menuMap = {
   elements: FilterSubMenuElements,
   structure: FilterSubMenuStructure,
   method: FilterSubMenuMethod,
+  precision: FilterSubMenuPrecision,
   dft: FilterSubMenuDFT,
   gw: FilterSubMenuGW,
   bse: FilterSubMenuBSE,

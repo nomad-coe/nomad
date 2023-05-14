@@ -40,7 +40,7 @@ from nomad.datamodel.optimade import Species
 from nomad.normalizing.common import cell_from_ase_atoms, nomad_atoms_from_ase_atoms
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
-    Method, BasisSet, Electronic, DFT, XCFunctional, Functional,
+    Method, BasisSetContainer, BasisSet, Electronic, DFT, XCFunctional, Functional,
     Electronic, Smearing, Scf, GW, BSE, DMFT, AtomParameters, Projection, Wannier,
     LatticeModelHamiltonian, HubbardKanamoriModel)
 from nomad.datamodel.metainfo.simulation.system import (
@@ -127,7 +127,14 @@ def get_template_dft() -> EntryArchive:
     run = template.m_create(Run)
     run.program = Program(name='VASP', version='4.6.35')
     method = run.m_create(Method)
-    method.basis_set.append(BasisSet(type='plane waves'))
+    method.electrons_representation = [BasisSetContainer(
+        type='plane waves',
+        scope=['wavefunction'],
+        basis_set=[BasisSet(
+            type='plane waves',
+            scope=['valence'],
+        )]
+    )]
     method.electronic = Electronic(method='DFT')
     xc_functional = XCFunctional(exchange=[Functional(name='GGA_X_PBE')])
     method.dft = DFT(xc_functional=xc_functional)
@@ -463,7 +470,7 @@ def get_template_gw_workflow() -> EntryArchive:
     workflow_method = GWMethod(
         gw_method_ref=archive_gw.run[-1].method[-1].gw,
         starting_point=archive_dft.run[-1].method[-1].dft.xc_functional,
-        basis_set=archive_dft.run[-1].method[-1].basis_set[0])
+        electrons_representation=archive_dft.run[-1].method[-1].electrons_representation[-1])
     workflow.m_add_sub_section(GWworkflow.method, workflow_method)
     workflow.m_add_sub_section(GWworkflow.inputs, Link(name='Input structure', section=archive_dft.run[-1].system[-1]))
     workflow.m_add_sub_section(GWworkflow.outputs, Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1]))
@@ -479,7 +486,15 @@ def set_dft_values(xc_functional_names: list) -> EntryArchive:
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.basis_set.append(BasisSet(type='plane waves'))
+    method_dft.electrons_representation = [BasisSetContainer(
+        type='plane waves',
+        scope=['wavefunction'],
+        basis_set=[BasisSet(
+            type='plane waves',
+            scope=['valence'],
+            cutoff=500,
+        )]
+    )]
     method_dft.dft = DFT()
     method_dft.electronic = Electronic(
         method='DFT',
@@ -516,7 +531,14 @@ def dft_method_referenced() -> EntryArchive:
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.basis_set.append(BasisSet(type='plane waves'))
+    method_dft.electrons_representation = [BasisSetContainer(
+        type='plane waves',
+        scope=['wavefunction'],
+        basis_set=[BasisSet(
+            type='plane waves',
+            scope=['valence'],
+        )]
+    )]
     method_dft.electronic = Electronic(
         smearing=Smearing(kind='gaussian', width=1e-20),
         n_spin_channels=2, van_der_waals_method='G06',
@@ -526,7 +548,14 @@ def dft_method_referenced() -> EntryArchive:
     method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
     method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
     method_ref = run.m_create(Method)
-    method_ref.basis_set.append(BasisSet(type='plane waves'))
+    method_ref.electrons_representation = [BasisSetContainer(
+        type='plane waves',
+        scope=['wavefunction'],
+        basis_set=[BasisSet(
+            type='plane waves',
+            scope=['valence'],
+        )]
+    )]
     method_ref.electronic = Electronic(method='DFT')
     method_ref.core_method_ref = method_dft
     run.calculation[0].method_ref = method_ref
@@ -622,7 +651,14 @@ def dft_plus_u() -> EntryArchive:
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.basis_set.append(BasisSet(type='plane waves'))
+    method_dft.electrons_representation = [BasisSetContainer(
+        type='plane waves',
+        scope=['wavefunction'],
+        basis_set=[BasisSet(
+            type='plane waves',
+            scope=['valence'],
+        )]
+    )]
     method_dft.electronic = Electronic(
         method='DFT+U',
         smearing=Smearing(kind='gaussian', width=1e-20),

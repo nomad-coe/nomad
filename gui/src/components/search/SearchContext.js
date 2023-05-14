@@ -1820,7 +1820,7 @@ function toGUIAgg(aggs, aggsToUpdate, resource) {
     const aggConfig = aggs[key]
     if (!isNil(aggConfig)) {
       for (const [type, agg] of Object.entries(aggConfig)) {
-        const aggGet = filterDataGlobal[filter_name]?.aggs?.[type].get
+        const aggGet = filterDataGlobal[filter_name]?.aggs?.[type]?.get
         const aggFinal = aggGet ? aggGet(agg) : agg
         // Add flag for if all terms have been returned, and the total number of
         // items. TODO: Could this total be given by the API directly?

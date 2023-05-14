@@ -1,0 +1,20 @@
+<spdb>
+ 
+  <sp chemicalSymbol="C" name="carbon" z="-6.00000" mass="21894.16673">
+ 
+    <muffinTin rmin="0.100000E-04" radius="1.4500" rinf="21.0932" radialmeshPoints="250"/>
+ 
+    <atomicState n="1" l="0" kappa="1" occ="2.00000" core="true"/>
+    <atomicState n="2" l="0" kappa="1" occ="2.00000" core="false"/>
+    <atomicState n="2" l="1" kappa="1" occ="1.00000" core="false"/>
+    <atomicState n="2" l="1" kappa="2" occ="1.00000" core="false"/>
+ 
+    <basis>
+      <default type="lapw" trialEnergy="0.15" searchE="false"/>
+      <custom l="0" type="lapw" trialEnergy="-0.20" searchE="true"/>
+      <custom l="1" type="lapw" trialEnergy="0.15" searchE="true"/>
+    </basis>
+ 
+  </sp>
+ 
+</spdb>

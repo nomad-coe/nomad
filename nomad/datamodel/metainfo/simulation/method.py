@@ -30,6 +30,10 @@ from ..common import FastAccess
 m_package = Package()
 
 
+unavailable = 'unavailable'
+not_processed = 'not processed'
+
+
 class Mesh(MSection):
     '''
     Contains the settings for a sampling mesh.
@@ -172,7 +176,7 @@ class KMesh(Mesh):
     )
 
     all_points = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=['*', 3],
         description='''
         Full list of the mesh points without any symmetry operations.
@@ -234,7 +238,7 @@ class Scf(MSection):
     m_def = Section(validate=False)
 
     n_max_iteration = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Specifies the maximum number of allowed self-consistent field (SCF) iterations in
@@ -242,7 +246,7 @@ class Scf(MSection):
         ''')
 
     threshold_energy_change = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='joule',
         description='''
@@ -253,7 +257,7 @@ class Scf(MSection):
         ''')
 
     threshold_density_change = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description='''
         Specifies the threshold for the average  charge density change between two
@@ -437,17 +441,24 @@ class AtomParameters(MSection):
     m_def = Section(validate=False)
 
     atom_number = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Atomic number (number of protons) of this atom kind, use 0 if not an atom.
         ''')
 
     n_valence_electrons = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description='''
         Number of valence electrons.
+        ''')
+
+    n_core_electrons = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Number of core electrons.
         ''')
 
     label = Quantity(
@@ -463,7 +474,7 @@ class AtomParameters(MSection):
         ''')
 
     mass = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='kg',
         description='''
@@ -480,7 +491,7 @@ class AtomParameters(MSection):
     pseudopotential = SubSection(sub_section=Pseudopotential.m_def, repeats=False)
 
     n_orbitals = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Number of active orbitals of the atom.
@@ -494,7 +505,7 @@ class AtomParameters(MSection):
         ''')
 
     onsite_energies = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=['n_orbitals'],
         unit='joule',
         description='''
@@ -502,7 +513,7 @@ class AtomParameters(MSection):
         ''')
 
     charge = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='coulomb',
         description='''
@@ -510,14 +521,21 @@ class AtomParameters(MSection):
         ''')
 
     charges = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=['n_orbitals'],
         unit='coulomb',
         description='''
         Values of the charge corresponding to each orbital.
         ''')
 
-    hubbard_kanamori_model = SubSection(sub_section=HubbardKanamoriModel.m_def, repeats=False)
+    pseudopotential_name = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name identifying the pseudopotential used.
+        ''')
+
+    hubbard_kanamori_model = SubSection(sub_section=HubbardKanamoriModel.m_def)
 
 
 class MoleculeParameters(MSection):
@@ -537,7 +555,7 @@ class MoleculeParameters(MSection):
         ''')
 
     n_atoms = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Number of atoms in the molecule.
@@ -617,7 +635,7 @@ class GaussianBasisGroup(MSection):
         ''')
 
     contractions = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=['n_contractions', 'n_exponents'],
         description='''
         contraction coefficients $c_{i j}$ defining the contracted basis functions with
@@ -626,7 +644,7 @@ class GaussianBasisGroup(MSection):
         ''')
 
     exponents = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=['n_exponents'],
         unit='1 / meter ** 2',
         description='''
@@ -635,7 +653,7 @@ class GaussianBasisGroup(MSection):
         ''')
 
     ls = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=['n_contractions'],
         description='''
         Azimuthal quantum number ($l$) values (of the angular part given by the spherical
@@ -660,8 +678,16 @@ class BasisSetAtomCentered(MSection):
         Code-specific, but explicative, base name for the basis set.
         ''')
 
+    formula = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Generalized representation of the basis set, e.g. 'STO-3G', '6-31G(d)', 'cc-pVDZ',
+        etc.
+        ''')
+
     atom_number = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Atomic number (i.e., number of protons) of the atom for which this basis set is
@@ -669,7 +695,7 @@ class BasisSetAtomCentered(MSection):
         ''')
 
     n_basis_functions = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Gives the number of different basis functions in a basis_set_atom_centered
@@ -680,58 +706,182 @@ class BasisSetAtomCentered(MSection):
     gaussian_basis_group = SubSection(sub_section=GaussianBasisGroup.m_def, repeats=True)
 
 
-class BasisSetCellDependent(MSection):
-    '''
-    Section describing a cell-dependent (atom-independent) basis set, e.g. plane waves.
-    The contained information is the type of basis set (in basis_set_cell_dependent_kind),
-    its parameters (e.g., for plane waves in basis_set_planewave_cutoff), and a name that
-    identifies the actually used basis set (a string combining the type and the
-    parameter(s), stored in name).
-    '''
+class OrbitalAPW(MSection):
+    '''Definiton of a APW wavefunction per orbital.'''
 
     m_def = Section(validate=False)
 
-    kind = Quantity(
-        type=str,
+    type = Quantity(
+        type=MEnum('APW', 'LAPW', 'LO', 'spherical Dirac'),
         shape=[],
         description='''
-        A string defining the type of the cell-dependent basis set (i.e., non atom
-        centered such as plane-waves). Can be one of plane_waves, realspace_grids or
-        wavelets.
+        State
         ''')
 
-    name = Quantity(
-        type=str,
+    n_quantum_number = Quantity(
+        type=np.int32,
         shape=[],
         description='''
-        A label identifying the cell-dependent basis set (i.e., non atom centered such as
-        plane-waves). The following convetion should be followed:
-        plane_waves ("PW_" + cutoff in Ry) realspace_grids ("GR_" + grid spacing in fm)
-        wavelets (WV_" + smallest wavelet spacing in fm).
+        Main quantum number $n$ specifying the orbital.
         ''')
 
-    planewave_cutoff = Quantity(
-        type=np.dtype(np.float64),
+    l_quantum_number = Quantity(
+        type=np.int32,
         shape=[],
+        description='''
+        Angular momentum / azimuthal quantum number $l$ specifying the orbital.
+        ''')
+
+    j_quantum_number = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Total angular momentum quantum number $j$ specifying the orbital,
+        where $j$ ranges from $l-s$ to $l+s$.
+        ''')
+
+    kappa_quantum_number = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Relativistic angular momentum quantum number specifying the orbital
+        $\\kappa = (l-j)(2j+1)$.
+        ''')
+
+    occupation = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Number of electrons populating the orbital.
+        ''')
+
+    core_level = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Boolean denoting whether the orbital is treated differently from valence orbitals.
+        ''')
+
+    energy_parameter = Quantity(
+        type=np.float64,
+        shape=['*'],
         unit='joule',
         description='''
-        Spherical cutoff  in reciprocal space for a plane-wave basis set. It is the energy
-        of the highest plan-ewave ($\\frac{\\hbar^2|k+G|^2}{2m_e}$) included in the basis
-        set. Note that normally this basis set is used for the wavefunctions, and the
-        density would have 4 times the cutoff, but this actually depends on the use of the
-        basis set by the method.
+        Reference energy parameter for the augmented plane wave (APW) basis set.
+        Is used to set the energy parameter for each state.
         ''')
 
-    grid_spacing = Quantity(
-        type=np.dtype(np.float64),
+    energy_parameter_n = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Reference number of radial nodes for the augmented plane wave (APW) basis set.
+        This is used to derive the `energy_parameter`.
+        ''')
+
+    order = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Derivative order of the radial wavefunction term.
+        ''')
+
+    boundary_condition_order = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Differential order to which the radial wavefunction is matched at the boundary.
+        ''')
+
+    update = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Allow the code to optimize the initial energy parameter.
+        ''')
+
+    updated = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Initial energy parameter after code optimization.
+        ''')
+
+
+class BasisSetMesh(MSection):
+    '''All geometry-related information of the basis set (mesh).'''
+
+    m_def = Section(validate=False)
+
+    shape = Quantity(
+        type=MEnum('cubic', 'rectangular', 'spherical', 'ellipsoidal', 'cylindrical'),
+        shape=[],
+        description='''
+        Geometry of the basis set mesh.
+        ''')
+
+    box_lengths = Quantity(
+        type=np.float64,
+        shape=[3],
+        unit='meter',
+        description='''
+        Dimensions of the box containing the basis set mesh.
+        ''')
+
+    radius = Quantity(
+        type=np.float64,
         shape=[],
         unit='meter',
         description='''
-        Grid spacing used for the realspace representation of the wave functions.
+        Radius of the sphere.
+        ''')
+
+    grid_spacing = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='meter',
+        description='''
+        Grid spacing of a Cartesian mesh.
+        ''')
+
+    radius_lin_spacing = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='meter',
+        description='''
+        The equidistant spacing of the radial grid.
+        ''')
+
+    radius_log_spacing = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        The logarithmic spacing of the radial grid.
+        ''')
+
+    n_grid_points = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Total number of grid points.
+        ''')
+
+    n_radial_grid_points = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Number of grid points on the radial grid.
+        ''')
+
+    n_spherical_grid_points = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Number of grid points on the spherical grid.
         ''')
 
 
-class BasisSet(MSection):
+class BasisSet(BasisSetMesh):
     '''
     This section contains all basis sets used to represent the wavefunction or electron
     density.
@@ -739,32 +889,127 @@ class BasisSet(MSection):
 
     m_def = Section(validate=False)
 
-    kind = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        String describing the use of the basis set, i.e, if it used for expanding a
-        wavefunction or an electron density.
-        ''')
-
     type = Quantity(
-        type=str,
+        type=MEnum('numeric AOs', 'gaussians', 'plane waves',
+                   'psinc functions', 'real-space grid', 'pbeVaspFit2015',
+                   'Koga', 'Bunge'),
         shape=[],
         description='''
-        The type of basis set used by the program. Valid values are: [`Numeric AOs`,
-        `Gaussians`, `(L)APW+lo`, `plane waves`, `psinc functions`, `real-space grid`].
+        The type of basis set used by the program.
+
+        | Value                          |                                            Description |
+        | ------------------------------ | ------------------------------------------------------ |
+        | `'numeric AOs'`                | Numerical atomic orbitals                              |
+        | `'gaussians'`                  | Gaussian basis set                                     |
+        | `'plane waves'`                | Plane waves                                            |
+        | `'psinc functions'`            | Pseudopotential sinc functions                         |
+        | `'real-space grid'`            | Real-space grid                                        |
+        | `'pbeVaspFit2015'`             | Lobster algorithm for projection plane waves onto LCAO |
+        | `'Koga'`                       | Lobster algorithm for projection plane waves onto LCAO |
+        | `'Bunge'`                      | Lobster algorithm for projection plane waves onto LCAO |
         ''')
 
-    name = Quantity(
+    scope = Quantity(
         type=str,
+        shape=['*'],
+        description='''
+        The extent of the electronic structure that the basis set encodes.
+        The partitions could be energetic (e.g. `core`, `valence`) in nature,
+        spatial (e.g. `muffin-tin`, `interstitial`), or cover
+        Hamiltonian components (e.g. `kinetic energy`,
+        `electron-electron interaction`), etc.
+        ''')
+
+    cutoff = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='joule',
+        description='''
+        Spherical cutoff in reciprocal space for a plane-wave basis set. It is the energy
+        of the highest plane-wave ($\\frac{\\hbar^2|k+G|^2}{2m_e}$) included in the basis
+        set.
+        ''')
+
+    cutoff_fractional = Quantity(
+        type=np.float64,
         shape=[],
         description='''
-        Identifies the basis set.
+        The spherical cutoff parameter for the interstitial plane waves in the LAPW family.
+        This cutoff is unitless, referring to the product of the smallest muffin-tin radius
+        and the length of the cutoff reciprocal vector ($r_{MT} * |K_{cut}|$).
         ''')
 
-    cell_dependent = SubSection(sub_section=BasisSetCellDependent.m_def, repeats=True)
+    frozen_core = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Boolean denoting whether the frozen-core approximation was applied.
+        ''')
 
     atom_centered = SubSection(sub_section=BasisSetAtomCentered.m_def, repeats=True)
+
+    spherical_harmonics_cutoff = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Maximum angular momentum $l$ for the spherical harmonics.
+        ''')
+
+    atom_parameters = Quantity(
+        type=Reference(SectionProxy('AtomParameters')),
+        shape=[],
+        description='''
+        Reference to a particular atom parameter setup further specifying the basis set.
+        ''')
+
+    orbital = SubSection(sub_section=OrbitalAPW, repeats=True)
+
+
+class BasisSetContainer(MSection):
+    '''Container class for `BasisSet`'''
+
+    m_def = Section(validate=False)
+
+    basis_sets = [
+        'atom-centered orbitals',
+        'APW',
+        'LAPW',
+        'APW+lo',
+        'LAPW+lo',
+        '(L)APW',
+        '(L)APW+lo',
+        'plane waves',
+        'gaussians + plane waves',
+        'real-space grid',
+        'support functions',
+        unavailable,
+        not_processed,
+    ]
+
+    type = Quantity(
+        type=MEnum(basis_sets),
+        default=unavailable,
+        description='''
+        The type of basis set used by the program.
+
+        | Value                          |                       Description |
+        | ------------------------------ | --------------------------------- |
+        | `'APW'`                        | Augmented plane waves             |
+        | `'LAPW'`                       | Linearized augmented plane waves  |
+        | `'APW+lo'`             | Augmented plane waves with local orbitals |
+        | `'LAPW+lo'` | Linearized augmented plane waves with local orbitals |
+        | `'(L)APW'`                     |     A combination of APW and LAPW |
+        | `'(L)APW+lo'`  | A combination of APW and LAPW with local orbitals |
+        | `'plane waves'`                | Plane waves                       |
+        | `'gaussians + plane waves'`    | Basis set of the Quickstep algorithm (DOI: 10.1016/j.cpc.2004.12.014) |
+        | `'real-space grid'`            | Real-space grid                   |
+        | `'suppport functions'`         | Support functions                 |
+        '''
+    )
+
+    scope = BasisSet.scope.m_copy()  # Change name to usage?
+
+    basis_set = SubSection(sub_section=BasisSet.m_def, repeats=True)
 
 
 class Interaction(MSection):
@@ -790,7 +1035,7 @@ class Interaction(MSection):
         ''')
 
     n_atoms = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Number of atoms included in the interaction
@@ -805,7 +1050,7 @@ class Interaction(MSection):
         ''')
 
     atom_indices = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=['n_atoms'],
         description='''
         Indices of the atoms in the system described by the interaction.
@@ -819,7 +1064,7 @@ class Interaction(MSection):
         ''')
 
     n_parameters = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Specifies the number of parameters in the interaction potential.
@@ -892,7 +1137,7 @@ class Functional(MSection):
         ''')
 
     weight = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description='''
         Provides the value of the weight for the functional.
@@ -1483,7 +1728,7 @@ class NeighborSearching(MSection):
         ''')
 
     neighbor_update_cutoff = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='m',
         description='''
@@ -1500,7 +1745,7 @@ class ForceCalculations(MSection):
     m_def = Section(validate=False)
 
     vdw_cutoff = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='m',
         description='''
@@ -1540,7 +1785,7 @@ class ForceCalculations(MSection):
         ''')
 
     coulomb_cutoff = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='m',
         description='''
@@ -1598,7 +1843,7 @@ class Smearing(MSection):
         ''')
 
     width = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         description='''
         Specifies the width of the smearing in energy for the electron occupation used to
@@ -1616,7 +1861,7 @@ class Electronic(MSection):
     m_def = Section(validate=False)
 
     spin_target = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Stores the target (user-imposed) value of the spin multiplicity $M=2S+1$, where
@@ -1626,7 +1871,7 @@ class Electronic(MSection):
         ''')
 
     charge = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         unit='coulomb',
         description='''
@@ -1648,7 +1893,7 @@ class Electronic(MSection):
         ''')
 
     n_electrons = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=['n_spin_channels'],
         description='''
         Number of electrons in system
@@ -1753,7 +1998,7 @@ class Method(ArchiveSection):
         categories=[FastAccess])
 
     n_references = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Number of references to the current method.
@@ -1803,7 +2048,7 @@ class Method(ArchiveSection):
 
     molecule_parameters = SubSection(sub_section=MoleculeParameters.m_def, repeats=True, label_quantity='label')
 
-    basis_set = SubSection(sub_section=BasisSet.m_def, repeats=True, label_quantity='type')
+    electrons_representation = SubSection(sub_section=BasisSetContainer.m_def, repeats=True, label_quantity='type')
 
     photon = SubSection(sub_section=Photon.m_def, repeats=True)
 

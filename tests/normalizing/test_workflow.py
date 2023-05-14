@@ -74,7 +74,7 @@ def test_gw_workflow(gw_workflow):
     workflow = gw_workflow.workflow2
     assert workflow.name == 'GW'
     assert workflow.method.gw_method_ref.type == 'G0W0'
-    assert workflow.method.basis_set.type == 'plane waves'
+    assert workflow.method.electrons_representation.type == 'plane waves'
     assert workflow.method.starting_point.name == 'GGA_X_PBE'
     results = gw_workflow.results
     assert results.method.method_name == 'GW'

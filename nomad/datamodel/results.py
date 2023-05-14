@@ -69,9 +69,9 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation
 )  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
-    BasisSet, Scf, Electronic, Smearing, ExcitedStateMethodology as XSMethod,
-    GW as GWMethod, BSE as BSEMethod, HubbardKanamoriModel as HubbardKanamori, AtomParameters,
-    DMFT as DMFTMethod
+    Scf, Electronic, Smearing, ExcitedStateMethodology as XSMethod,
+    GW as GWMethod, BSE as BSEMethod, HubbardKanamoriModel as HubbardKanamori,
+    AtomParameters, DMFT as DMFTMethod, BasisSet, BasisSetContainer,
 )  # noqa
 from nomad.datamodel.metainfo.workflow import (
     GeometryOptimization as MGeometryOptimization,
@@ -1502,7 +1502,7 @@ class DFT(MSection):
         Methodology for a DFT calculation.
         '''
     )
-    basis_set_type = Quantity(
+    basis_set_type = Quantity(  # TODO: deprecate after reaprsing
         type=MEnum(basis_set_types),
         default=unavailable,
         description='The used basis set functions.',
@@ -1511,11 +1511,6 @@ class DFT(MSection):
             Elasticsearch(suggestion='default')
         ],
     )
-    basis_set_name = BasisSet.name.m_copy()
-    basis_set_name.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default')
-    ]
     core_electron_treatment = Quantity(
         type=MEnum(core_electron_treatments),
         default=unavailable,
@@ -1629,7 +1624,7 @@ class ExcitedStateMethodology(MSection):
         '''
     )
     type = XSMethod.type.m_copy(
-        es_annotation=[
+        a_elasticsearch=[
             Elasticsearch(material_entry_type),
             Elasticsearch(suggestion='default')
         ]
@@ -1641,12 +1636,6 @@ class ExcitedStateMethodology(MSection):
             Elasticsearch(material_entry_type),
             Elasticsearch(suggestion='default')
         ],
-    )
-    basis_set_name = BasisSet.name.m_copy(
-        es_annotation=[
-            Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion='default')
-        ]
     )
     starting_point_type = Quantity(
         type=MEnum(list(xc_treatments_extended.values()) + [unavailable, not_processed]),
@@ -1671,7 +1660,7 @@ class GW(ExcitedStateMethodology):
         '''
     )
     type = GWMethod.type.m_copy(
-        es_annotation=[
+        a_elasticsearch=[
             Elasticsearch(material_entry_type),
             Elasticsearch(suggestion='default')
         ]
@@ -1685,13 +1674,13 @@ class BSE(ExcitedStateMethodology):
         '''
     )
     type = BSEMethod.type.m_copy(
-        es_annotation=[
+        a_elasticsearch=[
             Elasticsearch(material_entry_type),
             Elasticsearch(suggestion='default')
         ]
     )
     solver = BSEMethod.solver.m_copy(
-        es_annotation=[
+        a_elasticsearch=[
             Elasticsearch(material_entry_type),
             Elasticsearch(suggestion='default')
         ]
@@ -1713,7 +1702,7 @@ class DMFT(MSection):
         '''
     )
     impurity_solver_type = DMFTMethod.impurity_solver.m_copy(
-        es_annotation=[
+        a_elasticsearch=[
             Elasticsearch(material_entry_type),
             Elasticsearch(suggestion='default')
         ]
@@ -1727,7 +1716,7 @@ class DMFT(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     inverse_temperature = DMFTMethod.inverse_temperature.m_copy(
-        es_annotation=[
+        a_elasticsearch=[
             Elasticsearch(material_entry_type)
         ]
     )
@@ -1738,7 +1727,7 @@ class DMFT(MSection):
         Elasticsearch(suggestion='default')
     ]
     u = HubbardKanamori.u.m_copy(
-        es_annotation=[
+        a_elasticsearch=[
             Elasticsearch(material_entry_type)
         ]
     )
@@ -1781,8 +1770,19 @@ class Precision(MSection):
         Amount of sampled k-points per unit reciprocal length along each axis.
         Contains the least precise density out of all axes.
         Should only be compared between calulations of similar dimensionality.
-        '''
+        ''',
+        a_elasticsearch=[Elasticsearch(material_entry_type)],
     )
+    basis_set = BasisSetContainer.type.m_copy(a_elasticsearch=[
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default'),
+    ])
+    planewave_cutoff = BasisSet.cutoff.m_copy(a_elasticsearch=[  # TODO: set better names?
+        Elasticsearch(material_entry_type)
+    ])
+    apw_cutoff = BasisSet.cutoff_fractional.m_copy(a_elasticsearch=[  # TODO: set better names?
+        Elasticsearch(material_entry_type)
+    ])
 
 
 class Simulation(MSection):
