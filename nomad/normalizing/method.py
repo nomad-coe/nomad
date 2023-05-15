@@ -29,7 +29,8 @@ from nomad.metainfo import Section
 from nomad.metainfo.util import MTypes
 from nomad.utils import RestrictedDict
 from nomad import config
-from nomad.datamodel.metainfo.simulation.method import (KMesh,)
+from nomad.datamodel.metainfo.simulation.method import (
+    KMesh, Method as MethodRun)
 from nomad.datamodel.results import (
     Method, Electronic, Simulation, HubbardKanamoriModel, DFT, Projection, GW, BSE, DMFT,
     Precision, Material, xc_treatments, xc_treatments_extended)
@@ -237,6 +238,9 @@ class MethodNormalizer():
                 self.logger, entry_archive=self.entry_archive, methods=methods, repr_method=self.repr_method,
                 repr_system=self.repr_system, method=method, method_name=self.method_name,
                 settings_basis_set=settings_basis_set, functional_long_name=functional_long_name).simulation()
+            if self.run.program:
+                if basis_set_type_patched := _patch_basis_set(self.run.program.name):
+                    simulation.dft.basis_set_type = basis_set_type_patched
         elif self.method_name in ['GW', 'BSE', 'DFT+GW', 'DFT+BSE']:  # TODO extend for 'DFT+GW+BSE'
             simulation = ExcitedStateMethod(
                 self.logger, entry_archive=self.entry_archive, methods=methods, repr_method=self.repr_method,
@@ -314,8 +318,6 @@ class MethodNormalizer():
 
         method.equation_of_state_id = self.equation_of_state_id(method.method_id, self.material.chemical_formula_hill)
         simulation.program_name = self.run.program.name
-        if basis_set_type_patched := _patch_basis_set(simulation.program_name):
-            simulation.dft.basis_set_type = basis_set_type_patched
         simulation.program_version = self.run.program.version
         method.simulation = simulation
         return method
@@ -379,15 +381,15 @@ class ElectronicMethod(ABC):
     def __init__(
             self, logger,
             entry_archive: EntryArchive = None,
-            methods: List[Method] = [None],
-            repr_method: Method = None,
+            methods: List[MethodRun] = [None],
+            repr_method: MethodRun = None,
             repr_system: MSection = None,
             method: Method = None,
             method_def: dict = {},
             method_name: str = config.services.unavailable_value,
             settings_basis_set: RestrictedDict = RestrictedDict(mandatory_keys=[None], optional_keys=[None], forbidden_values=[None]),
             functional_long_name: str = '',
-            xs_method: Method = None) -> None:
+            xs_method: MethodRun = None) -> None:
         self._logger = logger
         self._entry_archive = entry_archive
         self._methods = methods
@@ -439,7 +441,7 @@ class DFTMethod(ElectronicMethod):
         simulation.dft.hubbard_kanamori_model = hubbard_kanamori_models if len(hubbard_kanamori_models) else None
         return simulation
 
-    def basis_set_type(self, repr_method: Method) -> Union[str, None]:
+    def basis_set_type(self, repr_method: MethodRun) -> Union[str, None]:
         name = None
         for em in repr_method.electrons_representation or []:
             if em.scope:
@@ -479,7 +481,7 @@ class DFTMethod(ElectronicMethod):
             name = None
         return name
 
-    def hubbard_kanamori_model(self, methods: List[Method]) -> List[HubbardKanamoriModel]:
+    def hubbard_kanamori_model(self, methods: List[MethodRun]) -> List[HubbardKanamoriModel]:
         '''Generate a list of normalized HubbardKanamoriModel for `results.method`'''
         hubbard_kanamori_models = []
         for sec_method in methods:
