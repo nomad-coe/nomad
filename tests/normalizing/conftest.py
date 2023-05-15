@@ -868,6 +868,7 @@ def organic_formula() -> EntryArchive:
     run.program = Program(name='VASP', version='4.6.35')
     system = run.m_create(System)
     system.atoms = NOMADAtoms(labels=['C', 'H', 'Cl', 'Cl', 'Cl'])
+    run.calculation.extend([Calculation(), Calculation()])
     return run_normalize(template)
 
 
@@ -878,6 +879,7 @@ def organic_carbonyl_formula() -> EntryArchive:
     run.program = Program(name='VASP', version='4.6.35')
     system = run.m_create(System)
     system.atoms = NOMADAtoms(labels=['C', 'Ag', 'O'])
+    run.calculation.extend([Calculation(), Calculation()])
     return run_normalize(template)
 
 
@@ -888,6 +890,7 @@ def inorganic_carbonyl_formula() -> EntryArchive:
     run.program = Program(name='VASP', version='4.6.35')
     system = run.m_create(System)
     system.atoms = NOMADAtoms(labels=['Fe', 'C', 'C', 'C', 'C', 'C', 'O', 'O', 'O', 'O', 'O'])
+    run.calculation.extend([Calculation(), Calculation()])
     return run_normalize(template)
 
 
@@ -898,6 +901,8 @@ def inorganic_special_formula() -> EntryArchive:
     run.program = Program(name='VASP', version='4.6.35')
     system = run.m_create(System)
     system.atoms = NOMADAtoms(labels=['C', 'H', 'K', 'O', 'O', 'O'])
+    calculation = run.m_create(Calculation)
+    calculation.system_ref = system
     return run_normalize(template)
 
 
@@ -917,6 +922,8 @@ def unknown_program() -> EntryArchive:
     run.program = Program(version='4.6.35')
     system = run.m_create(System)
     system.atoms = NOMADAtoms(labels=['Si'])
+    calculation = run.m_create(Calculation)
+    calculation.system_ref = system
     return run_normalize(template)
 
 

@@ -42,8 +42,8 @@ def unknown_workflow_archive():
     pytest.param('organic_formula', 'VASP GeometryOptimization', 'CHCl3 VASP GeometryOptimization simulation', id='Organic material'),
     pytest.param('organic_carbonyl_formula', 'VASP GeometryOptimization', 'CAgO VASP GeometryOptimization simulation', id='Organic carbonyl material'),
     pytest.param('inorganic_carbonyl_formula', 'VASP GeometryOptimization', 'FeC5O5 VASP GeometryOptimization simulation', id='Inorganic carbonyl material'),
-    pytest.param('inorganic_special_formula', 'VASP GeometryOptimization', 'KHCO3 VASP GeometryOptimization simulation', id='Inorganic material with special formula'),
-    pytest.param('unknown_program', 'not processed GeometryOptimization', 'Si not processed GeometryOptimization simulation', id='Unknown program name'),
+    pytest.param('inorganic_special_formula', 'VASP SinglePoint', 'KHCO3 VASP SinglePoint simulation', id='Inorganic material with special formula'),
+    pytest.param('unknown_program', 'not processed SinglePoint', 'Si not processed SinglePoint simulation', id='Unknown program name'),
     pytest.param('unknown_workflow_archive', 'PerovskiteSolarCell', None, id='Unknown workflow_name'),
 ])
 def test_entry_type_and_name(fixture, entry_type, entry_name, request):

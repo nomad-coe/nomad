@@ -59,7 +59,7 @@ class WorkflowNormalizer(Normalizer):
             workflow = Phonon()
 
         # resolve if from scc
-        if workflow is None:
+        if workflow is None and self.entry_archive.run[-1].calculation:
             # workflow references always to the last run
             # TODO decide if workflow should map to each run
             if len(self.entry_archive.run[-1].calculation) == 1:
@@ -102,6 +102,9 @@ class WorkflowNormalizer(Normalizer):
 
         if not self.entry_archive.workflow2:
             self.entry_archive.workflow2 = self._resolve_workflow()
+
+        if not self.entry_archive.workflow2:
+            return
 
         # Update workflow2.results with the normalized results for DFT and beyondDFT methods
         # (their normalizers are applied first always)
