@@ -1,0 +1,58 @@
+; Preprocessing
+include             = -I/gpfs/work/jfr148/pkg/gromacs-4.0.7/share/top/
+
+; Run Control
+integrator          =  md
+tinit               =  0.0
+dt                  =  0.002	; 1.0 fs
+nsteps              =  500	; 100 ps	
+nstcomm             =  1   	; no. steps between removing com motion
+comm-mode	    =  linear	; remove com translation
+
+; Output Control
+nstxout	            =  100	; no. steps between printing coords to trr file => 2ps
+nstvout             =  100     ; no. steps between printing veloc  to trr file => 2ps
+nstfout             =  100     ; no. steps between printing forces to trr file => 2ps
+nstlog              =  100     ; no. steps between printing energy to log file => 2ps
+nstenergy           =  100     ; no. steps between printing energy to edr file => 2ps
+nstxtcout           =  0        ; no. stpes between printing coords to xtc file
+energygrps          =  System   ; groups for writing energy file    
+
+; Neighbor searching
+nstlist             =  1	; update neighbor list every step
+ns_type             =  grid	; check neighbor list using grid
+rlist               =  1.2	; cutoff distance (nm) for short-range neighbor list
+
+; Electrostatics and VdW
+coulombtype         =  PME	; fast particle-mesh ewald electrostatics
+rcoulomb            =  1.2	; distance for the Coulomb cut-off
+vdwtype	            =  cutoff	; truncated LJ interactions
+rvdw		    =  1.2 	; distance for LJ cut-off
+DispCorr	    =  EnerPres	; apply long range disp. correct. for Energy/Pres
+fourierspacing	    =  0.08	; max grid spacing fr FFT grid in PME
+pme_order	    =  6 	; interpolation order for PME
+ewald_rtol	    =  1e-06	; relative strength of direct potential at cutoff
+optimize_fft	    =  yes	; optimize fft_grids
+
+; Temperature Coupling
+tcoupl	            =  v-rescale	; nose-hoover for correct ensemble
+tc-grps             = System   ; two coupling groups - more accurate
+tau_t               = 0.1                ; time constant, in ps
+ref_t               = 300                ; reference temperature, one for each group, in K
+
+
+; Pressure coupling
+pcoupl              =  No		 ; expon. relax. press. couopling
+pcoupltype          =  isotropic         ; isotropic press. coupling
+tau_p               =  2.0               ; time constant for coupling
+compressibility     =  4.5e-5            ; compressibility for water at 1 atm and 300 K
+ref_p               =  1.0               ; reference pressure for coupling (bar)
+
+; Velocity generation
+;gen_vel             =  yes              ; generate velocities with Max. dist.
+;gen_temp            =  300                ; temp. for Max. dist.
+;gen_seed            =  173529           ; for random number generator
+
+constraints         =   hbonds
+constraint_algorithm=   LINCS
+

@@ -258,7 +258,7 @@ def test_rdf_and_msd(workflow_archive):
 
 def test_radius_of_gyration(workflow_archive):
     archive = workflow_archive(
-        'parsers/gromacs', 'tests/data/parsers/gromacs/protein_fsfg/nvt.log')
+        'parsers/gromacs', 'tests/data/parsers/gromacs/protein_small_nowater/md.log')
 
     sec_calc = archive.run[0].calculation[4]
     sec_rg = sec_calc.radius_of_gyration[0]
@@ -266,17 +266,17 @@ def test_radius_of_gyration(workflow_archive):
 
     assert sec_rg.kind == 'molecular'
 
-    assert sec_rgvals.label == 'Protein-index_0'
-    assert sec_rgvals.value.magnitude == approx(5.464423436523278e-10)
+    assert sec_rgvals.label == 'Protein_chain_X-index_0'
+    assert sec_rgvals.value.magnitude == approx(5.081165959952965e-10)
     assert sec_rgvals.value.units == 'meter'
 
-    sec_calc = archive.run[0].calculation[7]
+    sec_calc = archive.run[0].calculation[1]
     sec_rg = sec_calc.radius_of_gyration[0]
-    sec_rgvals = sec_rg.radius_of_gyration_values[1]
+    sec_rgvals = sec_rg.radius_of_gyration_values[0]
 
     assert sec_rg.kind == 'molecular'
-    assert sec_rgvals.label == 'Protein-index_1'
-    assert sec_rgvals.value.magnitude == approx(7.326346215313874e-10)
+    assert sec_rgvals.label == 'Protein_chain_X-index_0'
+    assert sec_rgvals.value.magnitude == approx(5.036762961380965e-10)
     assert sec_rgvals.value.units == 'meter'
 
     sec_workflow2 = archive.workflow2
@@ -285,15 +285,15 @@ def test_radius_of_gyration(workflow_archive):
 
     assert sec_rg.type == 'molecular'
 
-    assert sec_rg.label == 'Protein-index_0'
-    assert sec_rg.value[frame].magnitude == approx(5.464423436523278e-10)
+    assert sec_rg.label == 'Protein_chain_X-index_0'
+    assert sec_rg.value[frame].magnitude == approx(5.081165959952965e-10)
     assert sec_rg.value[frame].units == 'meter'
 
-    frame = 7
-    sec_rg = sec_workflow2.results.radius_of_gyration[1]
-    sec_calc = archive.run[0].calculation[7]
+    frame = 1
+    sec_rg = sec_workflow2.results.radius_of_gyration[0]
+    sec_calc = archive.run[0].calculation[1]
 
     assert sec_rg.type == 'molecular'
-    assert sec_rg.label == 'Protein-index_1'
-    assert sec_rg.value[frame].magnitude == approx(7.326346215313874e-10)
+    assert sec_rg.label == 'Protein_chain_X-index_0'
+    assert sec_rg.value[frame].magnitude == approx(5.036762961380965e-10)
     assert sec_rg.value[frame].units == 'meter'
