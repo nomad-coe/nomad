@@ -19,20 +19,22 @@
 import os
 import requests
 
-from typing import List, Dict, cast, Optional
+from typing import List, Dict, Optional
 from enum import Enum
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, status, HTTPException
 from mongoengine.queryset.visitor import Q
 
 from nomad import config
-from nomad.config.models import NORTHTool
+from nomad.config.north import NORTHTool
 from nomad.utils import strip, get_logger, slugify
 from nomad.processing import Upload
 from .auth import create_user_dependency, oauth2_scheme
 from ..models import User, HTTPExceptionModel
 from ..utils import create_responses
 
+
+TOOLS = {k: v for k, v in config.north.tools.filtered_items()}
 
 default_tag = 'north'
 router = APIRouter()
@@ -103,19 +105,18 @@ def _get_status(tool: ToolModel, user: User) -> ToolModel:
 async def get_tools(user: User = Depends(create_user_dependency())):
     return ToolsResponseModel(
         data=[
-            _get_status(ToolModel(name=name, **tool.dict()), user)
-            for name, tool in cast(Dict[str, NORTHTool], config.north.tools).items()
+            _get_status(ToolModel(name=name, **tool.dict()), user) for name, tool in TOOLS.items()
         ]
     )
 
 
 async def tool(name: str) -> ToolModel:
-    if name not in config.north.tools:
+    if name not in TOOLS:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='The tools does not exist.')
 
-    tool = cast(Dict[str, NORTHTool], config.north.tools)[name]
+    tool = TOOLS[name]
     return ToolModel(name=name, **tool.dict())
 
 

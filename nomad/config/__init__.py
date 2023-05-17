@@ -41,12 +41,12 @@ from typing import List, Any, Union, get_type_hints
 from pydantic import parse_obj_as, BaseModel
 
 from .models import (
-    NomadSettings, Services, Meta, Oasis, NORTH, RabbitMQ, Celery, FS, Elastic, Keycloak,
+    NomadSettings, Services, Meta, Oasis, RabbitMQ, Celery, FS, Elastic, Keycloak,
     Mongo, Logstash, Tests, Mail, Normalize, Resources, Client, DataCite, GitLab, Process,
     Reprocess, RFC3161Timestamp, BundleExport, BundleImport, Archive, UI
 )
 from .plugins import Plugins, Plugin, Parser, Schema
-
+from .north import NORTH
 
 warnings.filterwarnings('ignore', message='numpy.dtype size changed')
 warnings.filterwarnings('ignore', message='numpy.ufunc size changed')

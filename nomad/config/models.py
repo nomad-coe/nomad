@@ -17,11 +17,10 @@
 #
 
 import os
-import json
 from enum import Enum
 import logging
 import inspect
-from typing import TypeVar, List, Dict, Any, Union, Optional, cast
+from typing import TypeVar, List, Dict, Tuple, Any, Union, Optional, cast
 from typing_extensions import Literal, Annotated  # type: ignore
 from pydantic import BaseModel, Field, validator, Extra  # pylint: disable=unused-import
 from pkg_resources import get_distribution, DistributionNotFound
@@ -103,6 +102,11 @@ class Options(OptionsBase):
         for key, value in self.options.items():
             if self.filter(key):
                 yield value
+
+    def filtered_items(self) -> Iterator[Tuple[str, Any]]:
+        for key, value in self.options.items():
+            if self.filter(key):
+                yield key, value
 
 
 class OptionsSingle(Options):
@@ -240,88 +244,6 @@ class Oasis(NomadSettings):
     central_nomad_deployment_url = Field('https://nomad-lab.eu/prod/v1/api', description='''
         The URL of the API of the NOMAD deployment that is considered the *central* NOMAD.
     ''')
-
-
-_jupyterhub_config_description = '''
-    This setting is forwarded to jupyterhub; refer to the jupyterhub
-    [documentation](https://jupyterhub.readthedocs.io/en/stable/api/app.html#).
-'''
-
-
-class NORTHToolMaintainer(BaseModel):
-    name: str
-    email: str
-
-
-class NORTHTool(BaseModel):
-    image: str
-    description: str = None
-    short_description: str = None
-    cmd: str = None
-    path_prefix: str = None
-    mount_path: str = None
-    icon: str = None
-    file_extensions: List[str] = []
-    maintainer: List[NORTHToolMaintainer] = []
-    privileged: bool = False
-
-
-class NORTH(NomadSettings):
-    '''
-    Settings related to the operation of the NOMAD remote tools hub service *north*.
-    '''
-    enabled: Optional[str] = Field(description='''
-        Enables or disables the NORTH API and UI views. This is independent of
-        whether you run a jupyter hub or not.
-    ''')
-    hub_connect_ip: str = Field(None, description='''
-        Overwrites the default hostname that can be used from within a north container
-        to reach the host system.
-
-        Typically has to be set for non Linux hosts. Set this to `host.docker.internal`
-        on windows/macos.
-    ''')
-    hub_connect_url: str = Field(None, description=_jupyterhub_config_description)
-    hub_ip = Field('0.0.0.0', description=_jupyterhub_config_description)
-    docker_network: str = Field(None, description=_jupyterhub_config_description)
-    hub_host = Field('localhost', description='''
-        The internal host name that NOMAD services use to connect to the jupyterhub API.
-    ''')
-    hub_port = Field(9000, description='''
-        The internal port that NOMAD services use to connect to the jupyterhub API.
-    ''')
-    jupyterhub_crypt_key: str = Field(None, description=_jupyterhub_config_description)
-
-    nomad_host: str = Field(
-        None, description='The NOMAD app host name that spawned containers use.')
-    windows = Field(
-        True, description='Enable windows OS hacks.')
-
-    tools: Union[str, Dict[str, NORTHTool]] = Field(
-        'dependencies/nomad-remote-tools-hub/tools.json',
-        description='The available north tools. Either the tools definitions as dict or a path to a .json file.')
-
-    hub_service_api_token: str = Field('secret-token', description='''
-        A secret token shared between NOMAD and the NORTH jupyterhub.
-        This needs to be the token of an admin service.''')
-
-    @validator('tools', pre=True, always=True)
-    def load_tools(cls, v):  # pylint: disable=no-self-argument
-        if not isinstance(v, str):
-            return v
-
-        # interpret v as file path
-        path = v
-        if not os.path.exists(path):
-            # try to interprete path as relative to project root
-            root_path = os.path.join(os.path.dirname(__file__), '../..')
-            path = os.path.join(root_path, v)
-
-        if os.path.exists(path):
-            with open(path, 'rt') as f:
-                return json.load(f)
-
-        return []
 
 
 class RabbitMQ(NomadSettings):
