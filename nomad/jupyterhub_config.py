@@ -125,7 +125,7 @@ c.DockerSpawner.image = 'jupyter/datascience-notebook'
 c.DockerSpawner.remove = True
 # Prefix for container names. See name_template for full container name for a particular
 # user's server. (Default: 'jupyter')
-c.DockerSpawner.prefix = 'noamd_oasis_north'
+c.DockerSpawner.prefix = 'nomad_oasis_north'
 
 if config.north.docker_network:
     c.DockerSpawner.network_name = config.north.docker_network
