@@ -80,7 +80,7 @@ def get_gui_artifacts_js() -> str:
         'parserMetadata': code_metadata,
         'toolkitMetadata': _generate_toolkit_metadata(),
         'exampleUploads': _generate_example_upload_metadata(),
-        'northTools': config.north.dict()['tools'],
+        'northTools': {k: v.dict() for k, v in config.north.tools.filtered_items()},
         'unitList': unit_list_json,
         'unitPrefixes': prefixes_json
     }
