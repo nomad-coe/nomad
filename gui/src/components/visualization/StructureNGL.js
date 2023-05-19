@@ -33,6 +33,7 @@ import * as THREE from 'three'
 import { withErrorHandler } from '../ErrorHandler'
 import { useAsyncError } from '../../hooks'
 import { useApi } from '../api'
+import { removePrefix } from '../../utils'
 
 const useStyles = makeStyles((theme) => ({
   canvas: {
@@ -275,11 +276,35 @@ const StructureNGL = React.memo(({
     const format = 'pdb'
     let component = componentsRef.current[data]
     if (!component) {
+      // Remove hashtag prefix: it is problematic when within query string as it
+      // typically denotes page fragments.
+      const path = removePrefix(data, '#/')
       const system = await api.get(
         `systems/${entryId}`,
-        {path: data, format},
+        {path, format},
         {responseType: 'blob'}
       )
+
+      // PDB files (or any other file formats supported by NGL) cannot contain
+      // both the full lattice vectors and the PBC. These are, however, needed
+      // for the proper visualization of the system. To work around this, they
+      // are stored as a REMARK and read here.
+      const header = await system.slice([0], [251]).text()
+      let pbc = [true, true, true]
+      let a, b, c
+      const regexFloat = /[+-]?\d+(\.\d+)?/g
+      for (const value of header.split('\n')) {
+        if (value.startsWith("REMARK      A:")) {
+          a = value.match(regexFloat).map((v) => parseFloat(v))
+        } else if (value.startsWith("REMARK      B:")) {
+          b = value.match(regexFloat).map((v) => parseFloat(v))
+        } else if (value.startsWith("REMARK      C:")) {
+          c = value.match(regexFloat).map((v) => parseFloat(v))
+        } else if (value.startsWith("REMARK     PBC")) {
+          const regex = /TRUE|FALSE/g
+          pbc = value.match(regex)?.map((v) => v === 'TRUE')
+        }
+      }
 
       // Load file
       component = await stageRef.current.loadFile(
@@ -341,19 +366,17 @@ const StructureNGL = React.memo(({
       // Add a completely custom unit cell and lattice parameter visualization.
       // The objects are added to a dummy 'unitcell' representation that is
       // supported by NGL.
-      const nglCell = component?.object?.unitcell
-      if (nglCell) {
-        const pbc = topologyMap[root]?.cell?.pbc || [true, true, true]
+      if (a && b && c) {
+        a = new THREE.Vector3().fromArray(a)
+        b = new THREE.Vector3().fromArray(b)
+        c = new THREE.Vector3().fromArray(c)
+        const metaCell = topologyMap[root]?.cell
         component.addRepresentation('unitcell', {opacity: 0})
-        const fracToCart = nglCell.fracToCart
-        fracToCart.elements = nglCell.fracToCart.elements.map((e) => isNaN(e) ? 0 : e)
-        const a = new THREE.Vector3(1, 0, 0).applyMatrix4(fracToCart)
-        const b = new THREE.Vector3(0, 1, 0).applyMatrix4(fracToCart)
-        const c = new THREE.Vector3(0, 0, 1).applyMatrix4(fracToCart)
 
         // If some of the basis vectors are collapsed, we need to create
         // artificial ones for the wrapping
-        const collapsed = [nglCell.a === 0, nglCell.b === 0, nglCell.c === 0]
+        const collapsed = [a.length() === 0, b.length() === 0, c.length() === 0]
+        const valid = [metaCell.a !== undefined, metaCell.b !== undefined, metaCell.c !== undefined]
         const basis = [a, b, c]
         const validBases = []
         const invalidBases = []
@@ -369,8 +392,8 @@ const StructureNGL = React.memo(({
           ).normalize()
           basis[invalidBases[0]] = newBasis
         }
-        const cartToFrac = new THREE.Matrix4().makeBasis(basis[0], basis[1], basis[2]).clone().invert()
-        nglCell.cartToFrac = cartToFrac
+        const fracToCart = new THREE.Matrix4().makeBasis(basis[0], basis[1], basis[2])
+        const cartToFrac = fracToCart.clone().invert()
 
         const cell = createCell(
           new THREE.Vector3(),
@@ -386,6 +409,7 @@ const StructureNGL = React.memo(({
           basis,
           pbc,
           collapsed,
+          valid,
           {
               font: 'Titillium Web,sans-serif',
               size: 0.7,
@@ -764,7 +788,7 @@ function createCell(origin, basis, collapsed, color, linewidth, dashSize, gapSiz
  * @param {number} options.gamma.stroke.width Font stroke width. Defaults to 0.06.
  * @param {string} options.gamma.stroke.color Font stroke color. Defaults to "#000".
  */
-function createLatticeConstants(basis, periodicity, collapsed, options) {
+function createLatticeConstants(basis, periodicity, collapsed, valid, options) {
   // Delete old instance
   const latticeConstants = new THREE.Group()
   const opt = options
@@ -853,15 +877,18 @@ function createLatticeConstants(basis, periodicity, collapsed, options) {
     const angleStrokeWidth = angleStrokeWidths[iBasis]
     const axisEnabled = axisEnableds[iBasis]
     const angleEnabled = angleEnableds[iBasis]
+
     const collapsed1 = collapsed[iTrueBasis]
     const collapsed2 = collapsed[(iTrueBasis + 1) % 3]
     const collapsed3 = collapsed[(iTrueBasis + 2) % 3]
+    const valid1 = valid[iTrueBasis]
+    const valid2 = valid[(iTrueBasis + 1) % 3]
     const basisVec1 = basis[iTrueBasis]
     const basisVec2 = basis[(iTrueBasis + 1) % 3].clone()
     const basisVec3 = basis[(iTrueBasis + 2) % 3].clone()
 
     // Basis and angle label selection, same for all systems
-    if (axisEnabled && !collapsed1) {
+    if (axisEnabled && !collapsed1 && valid1) {
       const origin = new THREE.Vector3(0, 0, 0)
       const dir = basisVec1.clone()
 
@@ -934,7 +961,7 @@ function createLatticeConstants(basis, periodicity, collapsed, options) {
     }
 
     // Add angle label and curve
-    if (angleEnabled && !collapsed1 && !collapsed2) {
+    if (angleEnabled && !collapsed1 && !collapsed2 && valid1 && valid2) {
       const arcMaterial = new THREE.LineDashedMaterial({
           color: infoColor,
           linewidth: 2,

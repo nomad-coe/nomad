@@ -25,7 +25,7 @@ from ase.data import chemical_symbols
 from nomad import config
 from nomad.datamodel.metainfo.common import ProvenanceTracker, PropertySection
 from nomad.datamodel.metainfo.measurements import Spectrum
-from nomad.datamodel.metainfo.simulation.system import Atoms
+from nomad.datamodel.metainfo.simulation.system import Atoms, System as SystemRun
 from nomad.datamodel.metainfo.workflow import (
     EquationOfState,
     EOSFit,
@@ -755,68 +755,6 @@ class Cell(MSection):
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    pbc = Quantity(
-        type=bool,
-        shape=[3],
-        description='''
-        Periodic boundary conditions of the cell lattice vectors, given in order a, b, c.
-        ''',
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-
-
-class Prototype(MSection):
-    '''
-    Information on the prototype corresponding to the current section.
-    '''
-    m_def = Section(validate=False)
-
-    aflow_id = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        AFLOW id of the prototype (see
-        http://aflowlib.org/CrystalDatabase/prototype_index.html) identified on the basis
-        of the space_group and normalized_wyckoff.
-        ''',
-        a_elasticsearch=[
-            Elasticsearch(material_type),
-            Elasticsearch(suggestion='simple')
-        ]
-    )
-    assignment_method = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Method used to identify the prototype.
-        '''
-    )
-    label = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Label of the prototype identified on the basis of the space_group and
-        normalized_wyckoff. The label is in the same format as in the read_prototypes
-        function: <space_group_number>-<prototype_name>-<Pearson's symbol>).
-        '''
-    )
-    name = Quantity(
-        type=str,
-        description='''
-        A common name for this prototypical structure, e.g. fcc, bcc.
-        ''',
-        a_elasticsearch=[
-            Elasticsearch(material_type),
-            Elasticsearch(suggestion='default')
-        ],
-    )
-    formula = Quantity(
-        type=str,
-        description='''
-        The formula of the prototypical material for this structure.
-        ''',
-        a_elasticsearch=Elasticsearch(material_type),
-    )
 
 
 class SymmetryNew(MSection):
@@ -962,6 +900,30 @@ class SymmetryNew(MSection):
         translations are zero.
         '''
     )
+    prototype_label_aflow = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        AFLOW label of the prototype (see
+        http://aflowlib.org/CrystalDatabase/prototype_index.html) identified on the basis
+        of the space_group and normalized_wyckoff.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='simple')
+        ]
+    )
+    prototype_name = Quantity(
+        type=MEnum(sorted(list(set(structure_name_map.values())))),
+        description='''
+        A common name for this prototypical structure, e.g. fcc, bcc.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
 
 
 class Relation(MSection):
@@ -1296,7 +1258,6 @@ class System(MSection):
     system_relation = SubSection(sub_section=Relation.m_def, repeats=False)
     cell = SubSection(sub_section=Cell.m_def, repeats=False)
     symmetry = SubSection(sub_section=SymmetryNew.m_def, repeats=False)
-    prototype = SubSection(sub_section=Prototype.m_def, repeats=False)
 
 
 # =============================================================================
@@ -2243,12 +2204,11 @@ class GeometryOptimization(MSection):
         calculations that are a part of the optimization trajectory.
         ''',
     )
-    structure_optimized = SubSection(
+    system_optimized = Quantity(
+        type=SystemRun,
         description='''
-        Contains a structure that is the result of a geometry optimization.
+        Contains the optimized geometry that is the result of a geometry optimization.
         ''',
-        sub_section=Structure.m_def,
-        repeats=False,
     )
     type = MGeometryOptimization.type.m_copy()
     convergence_tolerance_energy_difference = MGeometryOptimization.convergence_tolerance_energy_difference.m_copy()

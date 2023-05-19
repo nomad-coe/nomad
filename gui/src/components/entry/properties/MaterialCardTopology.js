@@ -54,7 +54,7 @@ const nElementMap = {
  */
 const useMaterialCardStyles = makeStyles((theme) => ({
   root: {
-    height: '650px'
+    height: '700px'
   },
   card: {
     height: '100%',
@@ -122,7 +122,7 @@ const MaterialCardTopology = React.memo(({index, archive}) => {
               </Box>
             </Box>
           </Box>
-          <Box flex="0 0 164.81px" minHeight={0}>
+          <Box flex="0 0 222.72px" minHeight={0}>
             <MaterialTabs value={tab} onChange={handleTabChange} node={topologyMap[selected]} />
           </Box>
         </Box>
@@ -320,7 +320,7 @@ TopologyItem.propTypes = {
  */
 const useMaterialTabsStyles = makeStyles(theme => ({
   noData: {
-    height: 116.81 // The height of two QuantityRows
+    height: 172.72 // The height of three QuantityRows
   }
 }))
 const MaterialTabs = React.memo(({value, onChange, node}) => {
@@ -331,16 +331,13 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
   const tabMap = useMemo(() => {
     const cellTab = {...(node?.cell || {})}
     const symmetryTab = {...(node?.symmetry || {})}
-    const prototypeTab = {...(node?.prototype || {})}
     const hasTopology = !isEmpty(node)
     const hasCell = !isEmpty(cellTab)
     const hasSymmetry = !isEmpty(symmetryTab)
-    const hasPrototype = !isEmpty(prototypeTab)
     return {
       0: {disabled: !hasTopology, label: 'Composition'},
       1: {disabled: !hasCell, label: 'Cell'},
-      2: {disabled: !hasSymmetry, label: 'Symmetry'},
-      3: {disabled: !hasPrototype, label: 'Prototype'}
+      2: {disabled: !hasSymmetry, label: 'Symmetry'}
     }
   }, [node])
 
@@ -359,14 +356,16 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
     <MaterialTab value={value} index={0}>
       {!tabMap[0].disabled
       ? <QuantityTable fixed>
-        <QuantityRow>
-          <QuantityCell value={node?.chemical_formula_hill} quantity="results.material.topology.chemical_formula_hill"/>
+        <QuantityRow separator>
+          <QuantityCell value={node?.chemical_formula_hill} span={2} quantity="results.material.topology.chemical_formula_hill"/>
           <QuantityCell value={node?.chemical_formula_iupac} quantity="results.material.topology.chemical_formula_iupac"/>
+        </QuantityRow>
+        <QuantityRow>
           <QuantityCell value={node?.structural_type} quantity="results.material.topology.structural_type"/>
+          <QuantityCell value={node?.label} quantity="results.material.topology.label"/>
           <QuantityCell value={node?.material_id} quantity="results.material.topology.material_id"/>
         </QuantityRow>
         <QuantityRow>
-          <QuantityCell value={node?.label} quantity="results.material.topology.label"/>
           <QuantityCell value={node?.elements} quantity="results.material.topology.elements"/>
           <QuantityCell
             label="number of elements"
@@ -381,11 +380,13 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
     </MaterialTab>
     <MaterialTab value={value} index={1}>
     {!tabMap[1].disabled
-      ? <QuantityTable>
+      ? <QuantityTable fixed>
         <QuantityRow>
           <QuantityCell value={node?.cell?.a} quantity="results.material.topology.cell.a"/>
           <QuantityCell value={node?.cell?.b} quantity="results.material.topology.cell.b"/>
           <QuantityCell value={node?.cell?.c} quantity="results.material.topology.cell.c"/>
+        </QuantityRow>
+        <QuantityRow>
           <QuantityCell value={node?.cell?.alpha} quantity="results.material.topology.cell.alpha"/>
           <QuantityCell value={node?.cell?.beta} quantity="results.material.topology.cell.beta"/>
           <QuantityCell value={node?.cell?.gamma} quantity="results.material.topology.cell.gamma"/>
@@ -413,20 +414,13 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
               <QuantityCell value={node?.symmetry?.hall_number} quantity="results.material.topology.symmetry.hall_number"/>
               <QuantityCell value={node?.symmetry?.hall_symbol} quantity="results.material.topology.symmetry.hall_symbol"/>
             </QuantityRow>
+            <QuantityRow>
+              <QuantityCell value={node?.symmetry?.prototype_name} quantity="results.material.topology.symmetry.prototype_name"/>
+              <QuantityCell value={node?.symmetry?.prototype_label_aflow} quantity="results.material.topology.symmetry.prototype_label_aflow"/>
+            </QuantityRow>
           </QuantityTable>
         : <NoData className={styles.noData}/>
       }
-    </MaterialTab>
-    <MaterialTab value={value} index={3}>
-    {!tabMap[3].disabled
-      ? <QuantityTable>
-          <QuantityRow>
-            <QuantityCell value={node?.prototype?.name} quantity="results.material.topology.prototype.name"/>
-            <QuantityCell value={node?.prototype?.aflow_id} quantity="results.material.topology.prototype.aflow_id"/>
-            <QuantityCell value={node?.prototype?.formula} quantity="results.material.topology.prototype.formula"/>
-          </QuantityRow>
-        </QuantityTable>
-      : <NoData className={styles.noData}/>}
     </MaterialTab>
   </>
 })

@@ -28,7 +28,7 @@ from nomad import atomutils
 from nomad import config
 from nomad.utils import hash
 from nomad.units import ureg
-from nomad.datamodel.metainfo.simulation.system import System, Atoms as NOMADAtoms
+from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
 from nomad.datamodel.optimade import Species
 from nomad.datamodel.results import (
     Cell,
@@ -152,7 +152,6 @@ def cell_from_ase_atoms(atoms: Atoms) -> Cell:
     cell.mass_density = None if volume == 0 else mass / volume
     number_of_atoms = atoms.get_number_of_atoms()
     cell.atomic_density = None if volume == 0 else number_of_atoms / volume
-    cell.pbc = np.zeros(3, bool)[:] = atoms.get_pbc()
 
     return cell
 
@@ -187,40 +186,6 @@ def structure_from_ase_atoms(system: Atoms, wyckoff_sets: List[WyckoffSetMatID] 
             struct.atomic_density = len(system) / cell_volume
         if wyckoff_sets:
             struct.wyckoff_sets = wyckoff_sets_from_matid(wyckoff_sets)
-        struct.lattice_parameters = lattice_parameters_from_array(lattice_vectors)
-    return struct
-
-
-def structure_from_nomad_system(system: System, logger=None) -> Structure:
-    '''Returns a populated NOMAD Structure instance from a NOMAD System.
-
-    Args:
-        system: The system to transform.
-        logger: Optional logger to use
-
-    Returns:
-        NOMAD Structure instance.
-    '''
-    if system is None:
-        return None
-    struct = Structure()
-    struct.cartesian_site_positions = system.atoms.positions
-    struct.species_at_sites = system.atoms.labels
-    labels = system.atoms.labels
-    atomic_numbers = system.atoms.species
-    struct.species = species(labels, atomic_numbers, logger)
-    lattice_vectors = system.atoms.lattice_vectors
-    if lattice_vectors is not None:
-        lattice_vectors = lattice_vectors.magnitude
-        struct.dimension_types = np.array(system.atoms.periodic).astype(int)
-        struct.lattice_vectors = lattice_vectors
-        cell_volume = atomutils.get_volume(lattice_vectors)
-        struct.cell_volume = cell_volume
-        if all(system.atoms.periodic) and cell_volume:
-            if system.atoms.species is not None:
-                mass = atomutils.get_summed_atomic_mass(atomic_numbers)
-                struct.mass_density = mass / cell_volume
-            struct.atomic_density = len(system.atoms.labels) / cell_volume
         struct.lattice_parameters = lattice_parameters_from_array(lattice_vectors)
     return struct
 

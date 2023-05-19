@@ -25,7 +25,9 @@ from fastapi.responses import StreamingResponse
 import ase.io
 import ase.build
 from MDAnalysis.lib.util import NamedStream
+from MDAnalysis.coordinates.PDB import PDBWriter
 
+from nomad.units import ureg
 from nomad.utils import strip, deep_get, query_list_to_dict
 from nomad.normalizing.common import ase_atoms_from_nomad_atoms, mda_universe_from_nomad_atoms
 from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
@@ -51,13 +53,6 @@ for fmt in format_list:
     format_map[fmt['label']] = fmt
 
 format_description = "\n".join([f' - `{format["label"]}`: {format["description"]}' for format in format_map.values()])
-
-ase_format_map = {
-    'pdb': 'proteindatabank'
-}
-mda_format_map = {
-    'pdb': 'pdb'
-}
 
 
 class TempFormatEnum(str, Enum):
@@ -96,10 +91,9 @@ async def get_entry_raw_file(
             `nomad.results.material.topology`. The following path types are
             supported:
 
-            - `run/0/system/0`: Path with explicit indexing
-            - `#/run/0/system/0`: Local path.
-            - `run/system`: Omitted indices will default to 0.
-            - `run/system/-1`: Negative indices are supported.''')
+            - `run/0/system/0`: Path to system in `run`
+            - `results/material/topology/0`: Path to system in `results`
+            - `run/0/system/-1`: Negative indices are supported.''')
         ),
         format: FormatEnum = Query(  # type: ignore
             default='pdb',
@@ -112,16 +106,30 @@ async def get_entry_raw_file(
     labels and the simulation cell together with periodicity if the file format
     supports them.
     '''
-    prefix = "#/"
-    if path.startswith(prefix):
-        path = path[len(prefix):]
-    query_list: List[Union[str, int]] = [int(x) if x.isdigit() else x for x in path.split('/')]
+    # Remove prefix
+    for prefix in ['#/']:
+        if path.startswith(prefix):
+            path = path[len(prefix):]
+
+    # Add indexing
+    query_list: List[Union[str, int]] = []
+    paths = [x for x in path.split('/') if x != '']
+    i = 0
+    while i < len(paths):
+        a = paths[i]
+        query_list.append(a)
+        try:
+            b = int(paths[i + 1])
+            i += 1
+            query_list.append(b)
+        except Exception:
+            pass
+        i += 1
     query_list.append('atoms')
 
+    # Fetch the specific part of the archive. If path not found, raise exception
     required = query_list_to_dict(query_list, '*')
     required['resolve-inplace'] = False
-
-    # Fetch the specific part of the archive. If path not found, raise exception
     query = {'entry_id': entry_id}
     archive = answer_entry_archive_request(query, required=required, user=user)['data']['archive']
     # The returned archive contains a single section when an index has been
@@ -137,19 +145,17 @@ async def get_entry_raw_file(
         atoms = NOMADAtoms.m_from_dict(result_dict)
         if format_info['reader'] == 'ase':
             atoms = ase_atoms_from_nomad_atoms(atoms)
+            ase_format_map = {
+                'pdb': 'proteindatabank'
+            }
             ase_format = ase_format_map[format]
             ase.io.write(stringio, atoms, ase_format)
         elif format_info['reader'] == 'mdanalysis':
-            universe = mda_universe_from_nomad_atoms(atoms)
-            mda_format = mda_format_map[format]
-            # For some reason NamedStream tries to close the stream: here we
-            # disable closing. The memory will be freed when stringio goes out
-            # of scope.
+            # For some reason NamedStream tries to close the stream: here we disable
+            # closing. The memory will be freed when stringio goes out of scope.
             stringio.close = lambda: None  # type: ignore[assignment]
-            namedstream = NamedStream(stringio, f'temp.{mda_format}', close=False, reset=False)
-            universe = mda_universe_from_nomad_atoms(atoms)
-            selection = universe.select_atoms("all")
-            selection.write(namedstream)
+            namedstream = NamedStream(stringio, f'temp.{format}', close=False, reset=False)
+            globals()[f'write_{format}'](atoms, namedstream)
         else:
             raise ValueError("No reader for filetype.")
     except Exception as e:
@@ -166,3 +172,29 @@ async def get_entry_raw_file(
         media_type=format_info['mime_type'],
         headers={'Content-Disposition': f'filename=system.{format_info["extension"]}'}
     )
+
+
+def write_pdb(atoms: NOMADAtoms, stream: Union[StringIO, NamedStream]) -> None:
+    '''For writing a PDB file.'''
+    writer = PDBWriter(stream)
+    writer.TITLE('')
+
+    # PDB files do not contain a field for the full lattice vectors and
+    # the PBC. To work around this, they are stored as REMARKs.
+    remarks = []
+    lattice_vectors = atoms.lattice_vectors
+    pbc = atoms.periodic
+    if lattice_vectors is not None:
+        cell = lattice_vectors.to(ureg.angstrom).magnitude
+        remarks.append('LATTICE VECTORS')
+        remarks.append(f' A: {cell[0, 0]:.3f}, {cell[0, 1]:.3f}, {cell[0, 2]:.3f}')
+        remarks.append(f' B: {cell[1, 0]:.3f}, {cell[1, 1]:.3f}, {cell[1, 2]:.3f}')
+        remarks.append(f' C: {cell[2, 0]:.3f}, {cell[2, 1]:.3f}, {cell[2, 2]:.3f}')
+    if pbc is not None:
+        pbc = ['TRUE' if x else 'FALSE' for x in pbc]
+        remarks.append(f'PBC (A, B, C): {pbc[0]}, {pbc[1]}, {pbc[2]}')
+    if remarks:
+        writer.REMARK(*remarks)
+
+    universe = mda_universe_from_nomad_atoms(atoms)
+    writer.write(universe)

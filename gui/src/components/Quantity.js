@@ -532,22 +532,26 @@ QuantityTable.propTypes = {
  */
 const useRowStyles = makeStyles(theme => ({
   root: {},
+  separator: {
+    borderBottom: `1px solid ${theme.palette.grey[300]}`
+  },
   wrap: {
     display: 'inline-flex',
     flexWrap: 'wrap',
     overflow: 'hidden'
   }
 }))
-export const QuantityRow = React.memo(({className, classes, children}) => {
+export const QuantityRow = React.memo(({className, classes, separator, children}) => {
   const styles = useRowStyles()
   const wrap = useContext(quantityTableContext)?.wrap
-  return <TableRow className={clsx(className, styles.root, wrap && styles.wrap)}>
+  return <TableRow className={clsx(className, styles.root, separator && styles.separator, wrap && styles.wrap)}>
     {children}
   </TableRow>
 })
 
 QuantityRow.propTypes = {
   className: PropTypes.string,
+  separator: PropTypes.bool, // Whether to show a bottom border for the row
   wrap: PropTypes.bool, // Whether to wrap the cells once they overflow
   classes: PropTypes.object,
   children: PropTypes.node

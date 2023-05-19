@@ -653,5 +653,14 @@ export function getTopology(index, archive) {
   }
   traverse(root)
 
+  // Simplify the view if there is only one subsystem that covers everything.
+  if (root?.child_systems?.length === 1) {
+    const child = root.child_systems[0]
+    if (child.atomic_fraction === 1 && child?.system_relation?.type === 'subsystem') {
+      child.parent_system = root
+      root.child_systems = child.child_systems
+    }
+  }
+
   return [root, topologyMap]
 }
