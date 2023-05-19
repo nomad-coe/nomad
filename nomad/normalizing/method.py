@@ -295,26 +295,27 @@ class MethodNormalizer():
                     except ValueError:
                         k_mesh.sampling_method = 'Gamma-centered'
 
-        # Fill the precision section
-        simulation.precision = Precision()
-        k_lattices = self.run.m_xpath('system[-1].atoms.lattice_vectors_reciprocal')
-        grid = self.run.m_xpath('method[-1].k_mesh.grid')
-        if k_line_density := self.calc_k_line_density(k_lattices, grid):
-            if not simulation.precision.k_line_density:
-                simulation.precision.k_line_density = k_line_density
-        for em in self.run.m_xpath('method[-1].electrons_representation') or []:
-            try:
-                if 'wavefunction' in em['scope']:
-                    simulation.precision.basis_set = em['type']
-                    for bs in em['basis_set']:
-                        if 'cutoff' in bs.keys() and 'type' in bs.keys():
-                            simulation.precision.planewave_cutoff = bs['cutoff']
-                            break
-                        elif 'cutoff_fractional' in bs.keys() and 'type' in bs.keys():
-                            simulation.precision.apw_cutoff = bs['cutoff_fractional']
-                            break
-            except (TypeError, AttributeError, KeyError):
-                pass
+        # Fill the precision section only if self.run.method exist.
+        if methods:
+            simulation.precision = Precision()
+            k_lattices = self.run.m_xpath('system[-1].atoms.lattice_vectors_reciprocal')
+            grid = self.run.m_xpath('method[-1].k_mesh.grid')
+            if k_line_density := self.calc_k_line_density(k_lattices, grid):
+                if not simulation.precision.k_line_density:
+                    simulation.precision.k_line_density = k_line_density
+            for em in self.run.m_xpath('method[-1].electrons_representation') or []:
+                try:
+                    if 'wavefunction' in em['scope']:
+                        simulation.precision.basis_set = em['type']
+                        for bs in em['basis_set']:
+                            if 'cutoff' in bs.keys() and 'type' in bs.keys():
+                                simulation.precision.planewave_cutoff = bs['cutoff']
+                                break
+                            elif 'cutoff_fractional' in bs.keys() and 'type' in bs.keys():
+                                simulation.precision.apw_cutoff = bs['cutoff_fractional']
+                                break
+                except (TypeError, AttributeError, KeyError):
+                    pass
 
         method.equation_of_state_id = self.equation_of_state_id(method.method_id, self.material.chemical_formula_hill)
         simulation.program_name = self.run.program.name

@@ -217,23 +217,23 @@ def test_basis_set(normalized_example):
         'Siesta': ['real-space grid', 'atom-centered orbitals'],
         'ONETEP': ['support functions'],
         'DL_POLY_4': [],
-        'libAtoms': [],
         'Phonopy': [],
         'ATK': [],
         'gulp': [],
         'elastic': [],
-        'MOLCAS': [],
         'qbox': [],
-        'ASR': [],
         'YAMBO': [],
     }
+    codes_withouth_methods = ['libAtoms', 'MOLCAS', 'ASR']
     try:
         base = normalized_example.results.method.simulation
     except AttributeError:
         return
     if base is not None:
         program_name = base.program_name
-        if program_name != 'not processed':
+        if program_name in codes_withouth_methods:
+            assert not base.precision  # precision is generated only if run.method exists
+        elif program_name != 'not processed':
             reference = ref_basis_sets[program_name]
             if basis_set := base.precision.basis_set:
                 assert basis_set in reference + ['unavailable']
