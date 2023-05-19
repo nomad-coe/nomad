@@ -44,7 +44,19 @@
                 "args": [
                     "admin",
                     "run",
-                    "api"
+                    "app"
+                ]
+            },
+            {
+                "name": "worker",
+                "type": "python",
+                "request": "launch",
+                "justMyCode": false,
+                "program": "${workspaceFolder}/.pyenv/bin/nomad",
+                "args": [
+                    "admin",
+                    "run",
+                    "worker"
                 ]
             },
             {
