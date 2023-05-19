@@ -81,20 +81,29 @@ const resolveSection = async (source, query) => {
     }
   } else {
     // external reference
-    const url = resolveNomadUrl(path, baseUrl)
+    // temporary fix for path following the format /entries/entry_id/archive
+    // TODO extend resolveNomadUrl for other reference formats
+    let entryId
+    const match = path.match('/entries/(.+?)/archive')
+    if (match) {
+      entryId = match[1]
+    } else {
+      const url = resolveNomadUrl(path, baseUrl)
+      entryId = url.entryId
+    }
     const {api, required} = query
     try {
-      archive = archives[url.entryId]
+      archive = archives[entryId]
       if (!archive) {
-        const response = await api.post(`/entries/${url.entryId}/archive/query`, {required: required})
+        const response = await api.post(`/entries/${entryId}/archive/query`, {required: required})
         archive = response.data.archive
-        archives[url.entryId] = archive
+        archives[entryId] = archive
       }
       path = pathSegments[1]
       if (!path.startsWith('/')) path = `/${path}`
       section = source.section ? source.path : resolveInternalRef(path, archive)
     } catch (error) {
-      console.error(`Cannot resolve entry ${url.entryId}: ${error}`)
+      console.error(`Cannot resolve entry ${entryId}: ${error}`)
       return
     }
   }
@@ -109,8 +118,8 @@ const resolveSection = async (source, query) => {
   if (section.task) {
     const task = await resolveSection({path: section.task, archive: archive}, query)
     if (!task) return
-    task.section.inputs = section.inputs || task.section.inputs
-    task.section.outputs = section.outputs || task.section.outputs
+    task.section.inputs = section.inputs && section.inputs.length ? section.inputs : task.section.inputs
+    task.section.outputs = section.outputs && section.outputs.length ? section.outputs : task.section.outputs
     task.nChildren = nChildren(task.section)
     return task
   }
@@ -481,7 +490,7 @@ const Graph = React.memo(({
     // add drag
     const dragBehaviors = d3.drag()
       .on('drag', d => {
-        if (!d.parent || d.url === nodes[0].url) return
+        if (!d.parent || d.id === nodes[0].id) return
         const event = d3.event.sourceEvent
         const k = zoomF(view[2])
         const x = ((event.offsetX - zoomTransform.x) / zoomTransform.k - width / 2) / k + view[0]
@@ -616,16 +625,18 @@ const Graph = React.memo(({
     }
 
     const zoomTo = (v) => {
+      if (!node) return
+
       // for elementary tasks, set radius to 1/6
       const k = zoomF(v[2])
       const rk = (node) => {
-        return node.url === focus.url && !isWorkflow(node) ? 1 / 6 : 1
+        return node.id === focus.id && !isWorkflow(node) ? 1 / 6 : 1
       }
       const bound = (d) => {
         let x = (d.x - v[0]) * k + width / 2
         let y = (d.y - v[1]) * k + height / 2
         const s = 0.8 * scaling
-        if (d.type === 'tasks' && d.url !== source.url) {
+        if (d.type === 'tasks' && d.id !== source.id) {
           x = Math.min(Math.max(x, s * width), (1 - s) * width)
           y = Math.min(Math.max(y, s * height), (1 - s) * height)
         }
@@ -717,7 +728,7 @@ const Graph = React.memo(({
         }
         if (!value.length) return
         dquery['resolveIndices'][currentNode.type || 'tasks'] = [...new Set(value)]
-        source.nodes = source.nodes.filter(node => node.url !== currentNode.url)
+        source.nodes = source.nodes.filter(node => node.id !== currentNode.id)
         // set children and links to recalculate node positions and links
         const d = source
         d.children = undefined
@@ -848,7 +859,7 @@ const Graph = React.memo(({
 
       const handleMouseOverIcon = (d) => {
         d3.select(`#icon-${d.id}`).style('stroke-opacity', 1)
-        if (d.url === source.url) {
+        if (d.id === source.id) {
           if (!previousNode || previousNode === 'root') return
           setTooltipContent(<p>Click to go back up</p>)
           return
@@ -874,7 +885,7 @@ const Graph = React.memo(({
         if (!d.nodes || !d.nodes.length) {
           return
         }
-        if (d.url === source.url) {
+        if (d.id === source.id) {
           if (!previousNode || previousNode === 'root') return
           setCurrentNode(previousNode)
           currentNode = previousNode
@@ -909,7 +920,7 @@ const Graph = React.memo(({
         .call(dragBehaviors)
 
       node
-        .filter(d => d.type === 'tasks' || d.url === nodes[0].url)
+        .filter(d => d.type === 'tasks' || d.id === source.id)
         .append('rect')
         .attr('class', 'icon')
         .attr('id', d => `icon-${d.id}`)
@@ -918,7 +929,7 @@ const Graph = React.memo(({
         .attr('fill-opacity', d => {
           if (d.type === 'link') return 0
           if (!d.nodes || !d.nodes.filter(node => node.type === 'tasks').length) return 1
-          if (d.url === source.url) return 0.2
+          if (d.id === source.id) return 0.2
           return 1
         })
         .on('mouseover', handleMouseOverIcon)
@@ -939,16 +950,16 @@ const Graph = React.memo(({
       node.append('text')
         .attr('class', 'text')
         .attr('fill', color.text)
-        .attr('font-weight', d => d.url === source.url ? 'bold' : 'none')
+        .attr('font-weight', d => d.id === source.id ? 'bold' : 'none')
         .attr('id', d => `text-${d.id}`)
         .text(d => trimName(d.name))
-        .style('font-size', d => d.url === nodes[0].url ? 18 : 14)
+        .style('font-size', d => d.id === nodes[0].id ? 18 : 14)
         .on('click', d => {
           d3.event.stopPropagation()
           if (!d.entryId || !d.parent) return
           let path = `entry/id/${d.entryId}`
           const sectionPath = d.path ? d.path.replace(/\/(?=\d)/g, ':') : null
-          path = d.sectionType.startsWith('workflow') ? path : sectionPath ? `${path}/data${sectionPath}` : path
+          path = isWorkflow(d) ? path : sectionPath ? `${path}/data${sectionPath}` : path
           const url = getUrl(path)
           history.push(url)
         })
@@ -957,7 +968,7 @@ const Graph = React.memo(({
           if (!d.sectionType) return
           d3.select(`#text-${d.id}`).style('font-weight', 'bold')
             .text(d.name)
-          const text = d.sectionType.includes('workflow') ? 'overview page' : 'archive section'
+          const text = isWorkflow(d) ? 'overview page' : 'archive section'
           if (d.entryId) {
             setTooltipContent(<p>Click to go to {text} for entry<br/>{d.entryId}</p>)
           }
@@ -1158,7 +1169,7 @@ const WorkflowCard = React.memo(({archive}) => {
   const [inputValue, setInputValue] = useState('')
   const query = useMemo(() => ({
     api: api,
-    required: { 'workflow2': '*', 'metadata': '*' },
+    required: { 'workflow2': '*', 'metadata': '*', 'data': '*' },
     sectionKeys: ['inputs', 'tasks', 'outputs'],
     maxNodes: 6
   }), [api])
