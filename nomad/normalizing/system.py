@@ -190,7 +190,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         # positions
         atom_positions = get_value(Atoms.positions, numpy=True, source=system.atoms)
-        if atom_positions is None:
+        if atom_positions is None or len(atom_positions) == 0:
             self.logger.warning('no atom positions, skip further system analysis')
             return False
         if len(atom_positions) != len(atoms):

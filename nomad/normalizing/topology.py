@@ -193,7 +193,11 @@ class TopologyNormalizer():
             atoms = self.repr_system.atoms
         except Exception:
             atoms = None
-        if not atoms:
+        if atoms is None:
+            return None
+        elif atoms.positions is None or len(atoms.positions) == 0:
+            return None
+        elif (atoms.species is None or len(atoms.species) == 0) and (atoms.atomic_numbers is None or len(atoms.atomic_numbers) == 0):
             return None
 
         topology: Dict[str, System] = {}
@@ -276,6 +280,8 @@ class TopologyNormalizer():
             nomad_atoms = self.repr_system.atoms
             atoms = ase_atoms_from_nomad_atoms(nomad_atoms)
         except Exception:
+            return None
+        if not atoms or len(atoms) == 0:
             return None
 
         # Create topology for the original system
