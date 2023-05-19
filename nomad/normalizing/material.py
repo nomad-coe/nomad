@@ -102,7 +102,7 @@ class MaterialNormalizer():
         elif self.structural_type == '1D':
             material.material_id = material_id_1d(self.conv_atoms)
 
-        topology = TopologyNormalizer(self.entry_archive, self.repr_system, self.logger).topology(material)
+        topology = TopologyNormalizer(self.entry_archive, self.repr_system, self.repr_symmetry, self.conv_atoms, self.logger).topology(material)
         if topology:
             material.topology.extend(topology)
 

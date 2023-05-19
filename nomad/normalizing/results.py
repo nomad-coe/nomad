@@ -18,7 +18,7 @@
 
 import re
 import numpy as np
-from typing import List, Union, Any, Set, Optional, Iterable
+from typing import List, Union, Any, Optional, Iterable
 import ase.data
 from matid import SymmetryAnalyzer  # pylint: disable=import-error
 import matid.geometry  # pylint: disable=import-error
@@ -31,13 +31,8 @@ from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
 from nomad.datamodel.metainfo.workflow import Workflow
-from nomad.datamodel.optimade import Species
 from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
-from nomad.normalizing.common import (
-    structure_from_ase_atoms,
-    structure_from_nomad_system,
-    structures_2d
-)
+from nomad.normalizing.common import structures_2d
 from nomad.datamodel.results import (
     BandGap,
     BandGapDeprecated,
@@ -58,8 +53,6 @@ from nomad.datamodel.results import (
     Properties,
     StructuralProperties,
     DynamicalProperties,
-    Structures,
-    Structure,
     EnergyVolumeCurve,
     BulkModulus,
     ShearModulus,
@@ -194,33 +187,7 @@ class ResultsNormalizer(Normalizer):
             logger
         ).material()
 
-        # If a topology exists, we no longer store the structures into results.structures.
-        # This will help with loading times as topology items are retrieved with a
-        # separate API call
-        if results.material.topology:
-            results.properties.structures = None
-
         results.method = MethodNormalizer(self.entry_archive, repr_system, results.material, logger).method()
-
-    def species(self, labels: List[str], atomic_numbers: List[int], struct: Structure) -> None:
-        """Given a list of species labels, creates the corresponding Species
-        sections in the given structure.
-        """
-        if labels is None or atomic_numbers is None:
-            return
-        species: Set[str] = set()
-        for label, atomic_number in zip(labels, atomic_numbers):
-            if label not in species:
-                species.add(label)
-                i_species = struct.m_create(Species)
-                i_species.name = label
-                try:
-                    symbol = atomutils.chemical_symbols([atomic_number])[0]
-                except ValueError:
-                    self.logger.info("could not identify chemical symbol for atomic number {}".format(atomic_number))
-                else:
-                    i_species.chemical_symbols = [symbol]
-                i_species.concentration = [1.0]
 
     def resolve_band_gap(self, path: list[str]) -> Union[List[BandGap], None]:
         """Extract all band gaps from the given `path` and return them in a list along
@@ -464,10 +431,7 @@ class ResultsNormalizer(Normalizer):
                 geo_opt = GeometryOptimization()
                 geo_opt_wf = workflow.geometry_optimization
                 geo_opt.trajectory = workflow.calculations_ref
-                system_ref = workflow.calculation_result_ref.system_ref
-                structure_optimized = structure_from_nomad_system(system_ref)
-                if structure_optimized:
-                    geo_opt.structure_optimized = structure_optimized
+                geo_opt.system_optimized = workflow.calculation_result_ref.system_ref
                 if geo_opt_wf is not None:
                     geo_opt.type = geo_opt_wf.type
                     geo_opt.convergence_tolerance_energy_difference = geo_opt_wf.convergence_tolerance_energy_difference
@@ -665,38 +629,19 @@ class ResultsNormalizer(Normalizer):
         properties = Properties()
 
         # Structures
-        struct_orig = None
-        struct_prim = None
-        struct_conv = None
         conv_atoms = None
         wyckoff_sets = None
         spg_number = None
         if repr_system:
             original_atoms = repr_system.m_cache.get("representative_atoms")
             if original_atoms:
-                prim_atoms = None
                 structural_type = repr_system.type
                 if structural_type == "bulk":
-                    conv_atoms, prim_atoms, wyckoff_sets, spg_number = self.structures_bulk(repr_symmetry)
+                    conv_atoms, _, wyckoff_sets, spg_number = self.structures_bulk(repr_symmetry)
                 elif structural_type == "2D":
-                    conv_atoms, prim_atoms, wyckoff_sets, spg_number = structures_2d(original_atoms)
+                    conv_atoms, _, wyckoff_sets, spg_number = structures_2d(original_atoms)
                 elif structural_type == "1D":
-                    conv_atoms, prim_atoms = self.structures_1d(original_atoms)
-
-                struct_orig = structure_from_ase_atoms(original_atoms, logger=self.logger)
-                struct_prim = structure_from_ase_atoms(prim_atoms, logger=self.logger)
-                wyckoff_sets_serialized = wyckoff_sets if structural_type == "bulk" else None
-                struct_conv = structure_from_ase_atoms(conv_atoms, wyckoff_sets_serialized, logger=self.logger)
-
-        if struct_orig or struct_prim or struct_conv:
-            structures = Structures()
-            if struct_conv:
-                structures.structure_conventional = struct_conv
-            if struct_prim:
-                structures.structure_primitive = struct_prim
-            if struct_orig:
-                structures.structure_original = struct_orig
-            properties.structures = structures
+                    conv_atoms, _ = self.structures_1d(original_atoms)
 
         # Electronic properties
         bg_electronic = self.resolve_band_gap(['run', 'calculation', 'band_gap'])

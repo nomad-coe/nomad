@@ -21,7 +21,6 @@ import pytest
 
 from nomad.units import ureg
 
-from .test_material import assert_structure
 from .conftest import (
     get_template_dft,
     add_template_dos,
@@ -316,9 +315,9 @@ def test_heat_capacity_constant_volume(phonon):
 
 def test_geometry_optimization(geometry_optimization):
     geo_opt_prop = geometry_optimization.results.properties.geometry_optimization
-    assert_structure(geo_opt_prop.structure_optimized)
     n_frames = len(geo_opt_prop.trajectory)
     n_energies = len(geo_opt_prop.energies)
+    assert geo_opt_prop.system_optimized is not None
     assert n_frames > 0
     assert n_frames == n_energies
     assert geo_opt_prop.final_energy_difference > 0

@@ -68,6 +68,7 @@ def assert_topology(topology):
         if top.child_systems:
             child_map[top.system_id] = top.child_systems
         if top.indices is not None:
+            assert len(top.indices.shape) == 2
             assert top.mass_fraction is not None
             assert top.atomic_fraction is not None
 
@@ -183,17 +184,57 @@ def test_topology_calculation(pbc):
     assert mon.child_systems is None
 
 
-@pytest.mark.parametrize('fixture', [
-    pytest.param('atom', id='atom'),
-    pytest.param('molecule', id='molecule'),
-    pytest.param('one_d', id='1D'),
-    pytest.param('bulk', id='bulk'),
+@pytest.mark.parametrize('fixture, dimensionality', [
+    pytest.param('atom', '0D', id='atom'),
+    pytest.param('molecule', '0D', id='molecule'),
 ])
-def test_no_topology(fixture, request):
-    # Test that some entries don't get a topology. This will changed later, but
-    # for now we only create topologies for a subset of systems.
+def test_topology_original(fixture, dimensionality, request):
+    # Test that some entries only get a topology for the original system.
     entry = request.getfixturevalue(fixture)
-    assert not entry.results.material.topology
+    topology = entry.results.material.topology
+    assert_topology(topology)
+    assert len(topology) == 1
+    assert topology[0].label == 'original'
+    assert topology[0].structural_type is None
+    assert topology[0].building_block is None
+    assert topology[0].dimensionality == dimensionality
+
+
+def test_topology_1d(one_d):
+    '''Test that typical 1D entries get a topology that contains one subsystem
+    and the conventional cell.
+    '''
+    topology = one_d.results.material.topology
+    assert_topology(topology)
+    assert len(topology) == 3
+    orig = topology[0]
+    assert orig.label == 'original'
+    assert orig.structural_type is None
+    assert orig.dimensionality == '1D'
+    assert orig.building_block is None
+    sub = topology[1]
+    assert sub.label == 'subsystem'
+    assert sub.system_relation.type == 'subsystem'
+    assert sub.structural_type == '1D'
+    assert sub.dimensionality == '1D'
+    assert sub.building_block is None
+    conv = topology[2]
+    assert conv.label == 'conventional cell'
+    assert conv.material_id is not None
+    assert conv.system_relation.type == 'conventional_cell'
+    assert conv.structural_type == '1D'
+    assert conv.dimensionality == '1D'
+    assert conv.building_block is None
+    assert conv.symmetry is None
+    assert conv.n_atoms == 4
+    assert conv.atoms.labels == ['C', 'C', 'H', 'H']
+    assert np.array_equal(conv.atoms.periodic, [True, False, False])
+    assert conv.cell.a.to(ureg.angstrom).magnitude == pytest.approx(2.459, abs=1e-3)
+    assert conv.cell.b is None
+    assert conv.cell.c is None
+    assert conv.cell.alpha is None
+    assert conv.cell.beta is None
+    assert conv.cell.gamma is None
 
 
 @pytest.mark.parametrize('surface, ref_topologies', [
@@ -227,7 +268,7 @@ def test_no_topology(fixture, request):
         id='stacked layer of BN and C'
     )
 ])
-def test_2D_topology(surface, ref_topologies):
+def test_topology_2d(surface, ref_topologies):
 
     def compare_section(real, ref):
         """Used to compare two metainfo sections."""
@@ -291,16 +332,6 @@ def test_2D_topology(surface, ref_topologies):
             else:
                 assert res_system.symmetry == ref_topologies[ref_index].symmetry
 
-            # Prototype
-            if ref_topologies[ref_index].prototype:
-                prototype = res_system.prototype.m_to_dict()
-                ref_prototype = ref_topologies[ref_index].prototype.m_to_dict()
-                for ref_prototype_property_key, ref_prototype_property in ref_prototype.items():
-                    prototype_property = prototype[ref_prototype_property_key]
-                    assert ref_prototype_property == prototype_property
-            else:
-                assert ref_topologies[ref_index].prototype == res_system.prototype
-
             # Atoms
             atoms = res_system.atoms.m_to_dict()
             ref_atoms = ref_topologies[ref_index].atoms.m_to_dict()
@@ -335,6 +366,56 @@ def test_2D_topology(surface, ref_topologies):
             indices_overlap = set(ref_indices).intersection(set(indices))
             assert len(indices_overlap) / \
                 len(ref_indices) > 0.85
+
+
+def test_topology_3d(bulk):
+    '''Test that typical bulk entries get a topology that contains one subsystem
+    and the conventional cell.
+    '''
+    topology = bulk.results.material.topology
+    assert_topology(topology)
+    assert len(topology) == 3
+    orig = topology[0]
+    assert orig.label == 'original'
+    assert orig.structural_type is None
+    assert orig.dimensionality == '3D'
+    assert orig.building_block is None
+    sub = topology[1]
+    assert sub.label == 'subsystem'
+    assert sub.system_relation.type == 'subsystem'
+    assert sub.structural_type == 'bulk'
+    assert sub.dimensionality == '3D'
+    assert sub.building_block is None
+    conv = topology[2]
+    assert conv.label == 'conventional cell'
+    assert conv.material_id is not None
+    assert conv.system_relation.type == 'conventional_cell'
+    assert conv.structural_type == 'bulk'
+    assert conv.dimensionality == '3D'
+    assert conv.building_block is None
+    assert conv.cell is not None
+
+    assert conv.n_atoms == 8
+    assert conv.atoms.labels == ['Si', 'Si', 'Si', 'Si', 'Si', 'Si', 'Si', 'Si']
+    assert np.array_equal(conv.atoms.periodic, [True, True, True])
+    assert conv.cell.a.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
+    assert conv.cell.b.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
+    assert conv.cell.c.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
+    assert conv.cell.alpha.magnitude == pytest.approx(np.pi / 2)
+    assert conv.cell.beta.magnitude == pytest.approx(np.pi / 2)
+    assert conv.cell.gamma.magnitude == pytest.approx(np.pi / 2)
+
+    assert conv.symmetry.crystal_system is not None
+    assert conv.symmetry.bravais_lattice is not None
+    assert conv.symmetry.space_group_symbol is not None
+    assert conv.symmetry.space_group_number is not None
+    assert conv.symmetry.point_group is not None
+    assert conv.symmetry.hall_number is not None
+    assert conv.symmetry.hall_symbol is not None
+    assert conv.symmetry.prototype_name is not None
+    assert conv.symmetry.prototype_label_aflow is not None
+    assert conv.symmetry.wyckoff_sets is not None
+    assert conv.atoms is not None
 
 
 def test_topology_projection(projection):

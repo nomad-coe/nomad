@@ -26,25 +26,31 @@ from ase.data import chemical_symbols
 import numpy as np
 from matid.clustering import Clusterer, Cluster, Classification  # pylint: disable=import-error
 from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer  # pylint: disable=import-error
+from matid.classifications import Class0D, Atom, Class1D, Class2D, Material2D, Surface, Class3D  # pylint: disable=import-error
 
 from nomad import utils
 from nomad import config
 from nomad import atomutils
 from nomad.atomutils import Formula
-from nomad.datamodel.results import Symmetry, Material, System, Relation, Prototype
+from nomad.datamodel.results import SymmetryNew as Symmetry, Material, System, Relation, structure_name_map
 from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
+from nomad.datamodel.datamodel import EntryArchive
 from nomad.normalizing.common import (
     cell_from_ase_atoms,
     ase_atoms_from_nomad_atoms,
     nomad_atoms_from_ase_atoms,
+    wyckoff_sets_from_matid,
     structures_2d,
     material_id_bulk,
     material_id_2d,
+    material_id_1d,
 )
 
-SYMBOLS = np.array(chemical_symbols)
+conventional_description = 'The conventional cell of the material from which the subsystem is constructed from.'
+subsystem_description = 'Automatically detected subsystem.',
+chemical_symbols = np.array(chemical_symbols)
 with open(pathlib.Path(__file__).parent / 'data/top_50k_material_ids.json', "r") as fin:
-    TOP_50K_MATERIAL_IDS = json.load(fin)
+    top_50k_material_ids = json.load(fin)
 
 
 def get_topology_id(index: int) -> str:
@@ -58,14 +64,34 @@ def get_topology_id(index: int) -> str:
     return f'results/material/topology/{index}'
 
 
-def get_topology_original(atoms: NOMADAtoms = None) -> System:
+def get_topology_original(archive: EntryArchive, atoms: NOMADAtoms = None) -> System:
     '''
     Creates a new topology item for the original structure.
     '''
+    dimensionality = None
+    try:
+        classification = archive.run[0].m_cache["classification"]
+    except Exception:
+        pass
+    else:
+        dimensionality_map = {
+            Class0D: 0,
+            Atom: 0,
+            Class1D: 1,
+            Class2D: 2,
+            Surface: 2,
+            Material2D: 2,
+            Class3D: 3,
+        }
+        dimension = dimensionality_map.get(classification)
+        if dimension is not None:
+            dimensionality = f'{dimension}D'
+
     original = System(
         method='parser',
         label='original',
         description='A representative system chosen from the original simulation.',
+        dimensionality=dimensionality,
         system_relation=Relation(type='root'),
         atoms_ref=atoms
     )
@@ -93,7 +119,7 @@ def add_system_info(system: System, topologies: Dict[str, System]) -> None:
                 ase_atoms = ase_atoms_from_nomad_atoms(atoms)
                 system.cell = cell_from_ase_atoms(ase_atoms)
         atomic_numbers = atoms.species if atoms.species is not None else atoms.atomic_numbers
-        symbols = SYMBOLS[atomic_numbers]
+        symbols = chemical_symbols[atomic_numbers]
 
         if system.indices is not None:
             total_mass = atomutils.get_summed_atomic_mass(atomic_numbers)
@@ -130,10 +156,12 @@ def add_system(system: System, topologies: Dict[str, System], parent: Optional[S
 class TopologyNormalizer():
     '''Handles the creation of topology information.
     '''
-    def __init__(self, entry_archive, repr_system, logger):
+    def __init__(self, entry_archive, repr_system, repr_symmetry, conv_atoms, logger):
         self.entry_archive = entry_archive
         self.repr_system = repr_system
+        self.repr_symmetry = repr_symmetry
         self.structural_type = None
+        self.conv_atoms = conv_atoms
         self.logger = logger
 
     def topology(self, material) -> Optional[List[System]]:
@@ -169,7 +197,7 @@ class TopologyNormalizer():
             return None
 
         topology: Dict[str, System] = {}
-        original = get_topology_original(atoms)
+        original = get_topology_original(self.entry_archive, atoms)
         add_system(original, topology)
         label_to_indices: Dict[str, list] = defaultdict(list)
 
@@ -243,77 +271,158 @@ class TopologyNormalizer():
         Returns a list of the identified systems with topological relations and
         classification of subsystems.
         '''
-        # TODO: Currently we only try to analyze 2D, surface and unavailable.
-        # This makes sure that e.g. most bulk DFT calculations are untouched.
-        # Later we should process them similarly once we know what kind of
-        # subsystems they get and we fully replace results.material with a list.
-        if material.structural_type not in {'2D', 'surface', 'unavailable'}:
-            return None
+        # See if a system is available
         try:
             nomad_atoms = self.repr_system.atoms
             atoms = ase_atoms_from_nomad_atoms(nomad_atoms)
         except Exception:
             return None
-        # TODO: Ignore systems with zero-sized cell
-        cell = atoms.get_cell()
-        if cell.volume == 0:
-            return None
-        # In order to limit the processing time, a maximum system size is checked.
-        n_atoms = len(atoms)
-        if n_atoms > config.normalize.clustering_size_limit:
-            return None
 
+        # Create topology for the original system
         topology: Dict[str, System] = {}
-        original = get_topology_original(nomad_atoms)
+        original = get_topology_original(self.entry_archive, nomad_atoms)
         add_system(original, topology)
         add_system_info(original, topology)
 
-        # Add all meaningful clusters to the topology
-        clusterer = Clusterer()
-        clusters = clusterer.get_clusters(atoms, pos_tol=0.8)
-        for cluster in clusters:
-            subsystem = self._create_subsystem(cluster)
-            if not subsystem:
-                continue
-            structural_type = subsystem.structural_type
-            # If the found cell has many basis atoms, it is more likely that
-            # some of the symmetries were not correctly found than the cell
-            # actually being very complicated. Thus we ignore these clusters to
-            # minimize false-positive and to limit the time spent on symmetry
-            # calculation.
-            cell = cluster.cell()
-            if len(cell) > 6:
-                self.logger.info(f"cell with many atoms ({len(cell)}) was ignored")
-                continue
-            try:
-                conventional_cell = self._create_conv_cell_system(cluster, structural_type)
-            except Exception as e:
-                self.logger.error(
-                    "conventional cell information could not be created",
-                    exc_info=e,
-                    error=str(e)
-                )
-                continue
-            # We only accept the subsystem if the material id exists in the top
-            # 50k materials with most entries attached to them. This ensures
-            # that the material_id link points to valid materials and that we
-            # don't report anything too weird. The top 50k materials are
-            # pre-stored in a pickle file that has been created by using ES
-            # terms aggregation.
-            if conventional_cell.material_id in TOP_50K_MATERIAL_IDS:
-                add_system(subsystem, topology, original)
-                add_system_info(subsystem, topology)
-                add_system(conventional_cell, topology, subsystem)
-                add_system_info(conventional_cell, topology)
-            else:
-                self.logger.info(f"material_id {conventional_cell.material_id} could not be verified")
+        # Since we still need to run the old classification code
+        # (matid.classification.classify), we use it's results to populate the
+        # topology for bulk and 1D systems. Also the new clustering cannot
+        # currently be run for systems without a cell. In other cases we run the
+        # new classification code (matid.clustering.clusterer).
+        n_atoms = len(atoms)
+        cell = atoms.get_cell()
+        if material.structural_type == 'bulk':
+            self._topology_bulk(original, topology)
+        elif material.structural_type == '1D':
+            self._topology_1d(original, topology)
+        elif cell is None or cell.volume == 0:
+            pass
+        # Continue creating topology if system size is not too large
+        elif n_atoms <= config.normalize.clustering_size_limit:
+            # Add all meaningful clusters to the topology
+            clusterer = Clusterer()
+            clusters = clusterer.get_clusters(atoms, pos_tol=0.8)
+            for cluster in clusters:
+                subsystem = self._create_subsystem(cluster)
+                if not subsystem:
+                    continue
+                structural_type = subsystem.structural_type
+                # If the found cell has many basis atoms, it is more likely that
+                # some of the symmetries were not correctly found than the cell
+                # actually being very complicated. Thus we ignore these clusters to
+                # minimize false-positive and to limit the time spent on symmetry
+                # calculation.
+                cell = cluster.cell()
+                if len(cell) > 6:
+                    self.logger.info(f"cell with many atoms ({len(cell)}) was ignored")
+                    continue
+                try:
+                    conventional_cell = self._create_conv_cell_system(cluster, structural_type)
+                except Exception as e:
+                    self.logger.error(
+                        "conventional cell information could not be created",
+                        exc_info=e,
+                        error=str(e)
+                    )
+                    continue
+                # We only accept the subsystem if the material id exists in the top
+                # 50k materials with most entries attached to them. This ensures
+                # that the material_id link points to valid materials and that we
+                # don't report anything too weird. The top 50k materials are
+                # pre-stored in a pickle file that has been created by using ES
+                # terms aggregation.
+                if conventional_cell.material_id in top_50k_material_ids:
+                    add_system(subsystem, topology, original)
+                    add_system_info(subsystem, topology)
+                    add_system(conventional_cell, topology, subsystem)
+                    add_system_info(conventional_cell, topology)
+                else:
+                    self.logger.info(f"material_id {conventional_cell.material_id} could not be verified")
 
-        # Do not return topology if only original system is in it. TODO: This should
-        # change once we are certain that we want to put everything into topology.
-        if len(topology) > 1:
-            return list(topology.values())
+        return list(topology.values())
 
-        return None
+    def _topology_bulk(self, original, topology) -> None:
+        '''Creates a topology for bulk structures as detected by the old matid
+        classification.'''
+        if self.conv_atoms is None:
+            return None
+
+        # Subsystem
+        subsystem = System(
+            method='matid',
+            label='subsystem',
+            dimensionality='3D',
+            structural_type='bulk',
+            description=subsystem_description,
+            system_relation=Relation(type='subsystem'),
+            indices=[list(range(original.n_atoms))]
+        )
+        add_system(subsystem, topology, original)
+        add_system_info(subsystem, topology)
+
+        # Conventional system
+        conv_system = System(
+            method='matid',
+            label='conventional cell',
+            system_relation=Relation(type='conventional_cell'),
+            dimensionality='3D',
+            structural_type='bulk',
+            description=conventional_description
+        )
+        conv_system.atoms = nomad_atoms_from_ase_atoms(self.conv_atoms)
+        symmetry_analyzer = self.repr_symmetry.m_cache.get("symmetry_analyzer")
+        conv_system.symmetry = self._create_symmetry(symmetry_analyzer)
+        conv_system.cell = cell_from_ase_atoms(self.conv_atoms)
+        conv_system.material_id = material_id_bulk(
+            symmetry_analyzer.get_space_group_number(),
+            symmetry_analyzer.get_wyckoff_sets_conventional()
+        )
+        add_system(conv_system, topology, subsystem)
+        add_system_info(conv_system, topology)
+
+    def _topology_1d(self, original, topology):
+        '''Creates a topology for 1D structures as detected by the old matid
+        classification.'''
+        if self.conv_atoms is None:
+            return None
+
+        # Subsystem
+        subsystem = System(
+            method='matid',
+            label='subsystem',
+            dimensionality='1D',
+            structural_type='1D',
+            description=subsystem_description,
+            system_relation=Relation(type='subsystem'),
+            indices=[list(range(original.n_atoms))]
+        )
+        add_system(subsystem, topology, original)
+        add_system_info(subsystem, topology)
+
+        # Conventional system
+        conv_system = System(
+            method='matid',
+            label='conventional cell',
+            system_relation=Relation(type='conventional_cell'),
+            dimensionality='1D',
+            structural_type='1D',
+        )
+        conv_system.atoms = nomad_atoms_from_ase_atoms(self.conv_atoms)
+        conv_system.cell = cell_from_ase_atoms(self.conv_atoms)
+
+        # The lattice parameters that are not well defined for 1D structures are unset
+        conv_system.cell.b = None
+        conv_system.cell.c = None
+        conv_system.cell.alpha = None
+        conv_system.cell.beta = None
+        conv_system.cell.gamma = None
+        conv_system.cell.atomic_density = None
+        conv_system.cell.mass_density = None
+        conv_system.cell.volume = None
+
+        conv_system.material_id = material_id_1d(self.conv_atoms)
+        add_system(conv_system, topology, subsystem)
+        add_system_info(conv_system, topology)
 
     def _create_subsystem(self, cluster: Cluster) -> Optional[System]:
         '''
@@ -342,7 +451,7 @@ class TopologyNormalizer():
         subsystem = System(
             method='matid',
             label='subsystem',
-            description='Automatically detected subsystem.',
+            description=subsystem_description,
             system_relation=Relation(type='subsystem'),
             indices=[list(cluster.indices)]
         )
@@ -365,7 +474,7 @@ class TopologyNormalizer():
             self._add_conventional_2d(cluster, symmsystem)
         else:
             self._add_conventional_bulk(cluster, symmsystem)
-        symmsystem.description = 'The conventional cell of the material from which the subsystem is constructed from.'
+        symmsystem.description = conventional_description
 
         return symmsystem
 
@@ -377,9 +486,7 @@ class TopologyNormalizer():
         symm = SymmetryAnalyzer(cell)
         conv_system = symm.get_conventional_system()
         subsystem.atoms = nomad_atoms_from_ase_atoms(conv_system)
-        prototype = self._create_prototype(symm, conv_system)
         spg_number = symm.get_space_group_number()
-        subsystem.prototype = prototype
         subsystem.cell = cell_from_ase_atoms(conv_system)
         symmetry = self._create_symmetry(symm)
         wyckoff_sets = symm.get_wyckoff_sets_conventional()
@@ -400,18 +507,12 @@ class TopologyNormalizer():
 
         # Here we zero out the irrelevant lattice parameters to correctly handle
         # 2D systems with nonzero thickness (e.g. MoS2).
-        if subsystem.cell.c is not None:
-            subsystem.cell.c = None
-        if subsystem.cell.alpha is not None:
-            subsystem.cell.alpha = None
-        if subsystem.cell.beta is not None:
-            subsystem.cell.beta = None
-        if subsystem.cell.atomic_density is not None:
-            subsystem.cell.atomic_density = None
-        if subsystem.cell.mass_density is not None:
-            subsystem.cell.mass_density = None
-        if subsystem.cell.volume is not None:
-            subsystem.cell.volume = None
+        subsystem.cell.c = None
+        subsystem.cell.alpha = None
+        subsystem.cell.beta = None
+        subsystem.cell.atomic_density = None
+        subsystem.cell.mass_density = None
+        subsystem.cell.volume = None
 
         subsystem.structural_type = '2D'
         subsystem.dimensionality = '2D'
@@ -420,6 +521,7 @@ class TopologyNormalizer():
 
     def _create_symmetry(self, symm: SymmetryAnalyzer) -> Symmetry:
         international_short = symm.get_space_group_international_short()
+        conv_system = symm.get_conventional_system()
 
         sec_symmetry = Symmetry()
         sec_symmetry.symmetry_method = 'MatID'
@@ -427,15 +529,13 @@ class TopologyNormalizer():
         sec_symmetry.space_group_symbol = international_short
         sec_symmetry.hall_number = symm.get_hall_number()
         sec_symmetry.hall_symbol = symm.get_hall_symbol()
-        sec_symmetry.international_short_symbol = international_short
         sec_symmetry.point_group = symm.get_point_group()
         sec_symmetry.crystal_system = symm.get_crystal_system()
         sec_symmetry.bravais_lattice = symm.get_bravais_lattice()
         sec_symmetry.origin_shift = symm._get_spglib_origin_shift()
         sec_symmetry.transformation_matrix = symm._get_spglib_transformation_matrix()
-        return sec_symmetry
+        sec_symmetry.wyckoff_sets = wyckoff_sets_from_matid(symm.get_wyckoff_sets_conventional())
 
-    def _create_prototype(self, symm: SymmetryAnalyzer, conv_system: System) -> Prototype:
         spg_number = symm.get_space_group_number()
         atom_species = conv_system.get_atomic_numbers()
         if type(conv_system) == Atoms or conv_system.wyckoff_letters is None:
@@ -446,24 +546,7 @@ class TopologyNormalizer():
         protoDict = atomutils.search_aflow_prototype(spg_number, norm_wyckoff)
 
         if protoDict is not None:
-            aflow_prototype_name = protoDict['Prototype']
-            aflow_strukturbericht_designation = protoDict['Strukturbericht Designation']
-            prototype_label = '%d-%s-%s' % (
-                spg_number,
-                aflow_prototype_name,
-                protoDict.get('Pearsons Symbol', '-')
-            )
-            prototype = Prototype()
-            prototype.label = prototype_label
+            sec_symmetry.prototype_label_aflow = protoDict.get('aflow_prototype_id')
+            sec_symmetry.prototype_name = structure_name_map.get(protoDict.get('Notes'))
 
-            prototype.formula = Formula(''.join(protoDict['atom_labels'])).format('hill')
-            prototype.aflow_id = protoDict['aflow_prototype_id']
-            prototype.aflow_url = protoDict['aflow_prototype_url']
-            prototype.assignment_method = 'normalized-wyckoff'
-            prototype.m_cache['prototype_notes'] = protoDict['Notes']
-            prototype.m_cache['prototype_name'] = aflow_prototype_name
-            if aflow_strukturbericht_designation != 'None':
-                prototype.m_cache['strukturbericht_designation'] = aflow_strukturbericht_designation
-        else:
-            prototype = None
-        return prototype
+        return sec_symmetry

@@ -357,6 +357,8 @@ registerFilter(
     {name: 'dimensionality', ...termQuantity},
     {name: 'building_block', ...termQuantity},
     {name: 'material_id', ...termQuantity},
+    {name: 'symmetry.prototype_name', ...termQuantity},
+    {name: 'symmetry.prototype_label_aflow', ...termQuantity},
     {name: 'n_atoms', ...numberHistogramQuantity},
     {name: 'atomic_fraction', ...numberHistogramQuantity},
     {name: 'mass_fraction', ...numberHistogramQuantity},

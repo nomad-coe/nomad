@@ -25,7 +25,7 @@ from matid.symmetry.wyckoffset import WyckoffSet  # pylint: disable=import-error
 from nomad.units import ureg
 from nomad import atomutils
 from nomad.utils import hash
-from nomad.normalizing.common import ase_atoms_from_nomad_atoms, ase_atoms_from_structure
+from nomad.normalizing.common import ase_atoms_from_nomad_atoms
 from nomad.datamodel.results import ElementalComposition
 from tests.normalizing.conftest import get_template_for_structure
 
@@ -52,47 +52,6 @@ def assert_symmetry(symmetry):
     assert symmetry.strukturbericht_designation
     assert symmetry.prototype_formula
     assert symmetry.prototype_aflow_id
-
-
-def assert_structure(structure, has_cell=True, has_wyckoff=False):
-    assert len(structure.cartesian_site_positions) == structure.n_sites
-    assert len(structure.species_at_sites) == structure.n_sites
-    assert len(structure.species) > 0
-    assert structure.species[0].name
-    assert structure.species[0].concentration
-    assert structure.species[0].chemical_symbols
-    if has_cell:
-        assert len(structure.dimension_types) == 3
-        assert np.sum(structure.dimension_types) == structure.nperiodic_dimensions
-        assert structure.lattice_vectors.shape == (3, 3)
-        a = structure.lattice_parameters.a
-        b = structure.lattice_parameters.b
-        c = structure.lattice_parameters.c
-        assert a is not None
-        assert b is not None
-        assert c is not None
-        if b != 0 and c != 0:
-            assert structure.lattice_parameters.alpha is not None
-        else:
-            assert structure.lattice_parameters.alpha is None
-        if a != 0 and c != 0:
-            assert structure.lattice_parameters.beta is not None
-        else:
-            assert structure.lattice_parameters.beta is None
-        if a != 0 and b != 0:
-            assert structure.lattice_parameters.gamma is not None
-        else:
-            assert structure.lattice_parameters.gamma is None
-        assert structure.cell_volume is not None
-        if structure.cell_volume != 0 and structure.nperiodic_dimensions == 3:
-            assert structure.mass_density
-            assert structure.atomic_density
-    if has_wyckoff:
-        assert len(structure.wyckoff_sets) > 0
-        for wset in structure.wyckoff_sets:
-            assert len(wset.indices) > 0
-            assert wset.wyckoff_letter
-            assert wset.element
 
 
 @pytest.mark.parametrize('fixture, formula_descriptive', [
@@ -122,9 +81,6 @@ def test_material_atom(atom):
     assert material.material_name is None
     assert material.symmetry is None
 
-    properties = atom.results.properties
-    assert_structure(properties.structures.structure_original)
-
 
 def test_material_molecule(molecule):
     material = molecule.results.material
@@ -137,9 +93,6 @@ def test_material_molecule(molecule):
     assert material.compound_type is None
     assert material.material_name is None
     assert material.symmetry is None
-
-    properties = molecule.results.properties
-    assert_structure(properties.structures.structure_original, has_cell=False)
 
 
 def test_material_1d(one_d):
@@ -161,25 +114,6 @@ def test_material_1d(one_d):
     assert material.elements == ['C', 'H']
     assert material.n_elements == 2
     assert material.symmetry is None
-
-    # Conventional structure
-    conv = one_d.results.properties.structures.structure_conventional
-    assert_structure(conv)
-    assert conv.n_sites == 4
-    assert conv.species_at_sites == ['C', 'C', 'H', 'H']
-    assert np.array_equal(conv.dimension_types, [1, 0, 0])
-    assert conv.lattice_parameters.a.to(ureg.angstrom).magnitude == pytest.approx(2.459, abs=1e-3)
-    assert conv.lattice_parameters.b.to(ureg.angstrom).magnitude == 0
-    assert conv.lattice_parameters.c.to(ureg.angstrom).magnitude == pytest.approx(2.890, abs=1e-3)
-    assert conv.lattice_parameters.alpha is None
-    assert conv.lattice_parameters.beta.magnitude == pytest.approx(np.pi / 2)
-    assert conv.lattice_parameters.gamma is None
-
-    # Original structure
-    assert_structure(one_d.results.properties.structures.structure_original)
-
-    # Primitive structure
-    assert_structure(one_d.results.properties.structures.structure_primitive)
 
 
 def test_material_2d(two_d):
@@ -235,25 +169,6 @@ def test_material_bulk(bulk):
     assert material.elements == ['Si']
     assert material.n_elements == 1
     assert_symmetry(material.symmetry)
-
-    # Conventional structure
-    conv = bulk.results.properties.structures.structure_conventional
-    assert_structure(conv, has_wyckoff=True)
-    assert conv.n_sites == 8
-    assert conv.species_at_sites == ['Si', 'Si', 'Si', 'Si', 'Si', 'Si', 'Si', 'Si']
-    assert np.array_equal(conv.dimension_types, [1, 1, 1])
-    assert conv.lattice_parameters.a.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
-    assert conv.lattice_parameters.b.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
-    assert conv.lattice_parameters.c.to(ureg.angstrom).magnitude == pytest.approx(5.431, abs=1e-3)
-    assert conv.lattice_parameters.alpha.magnitude == pytest.approx(np.pi / 2)
-    assert conv.lattice_parameters.beta.magnitude == pytest.approx(np.pi / 2)
-    assert conv.lattice_parameters.gamma.magnitude == pytest.approx(np.pi / 2)
-
-    # Original structure
-    assert_structure(bulk.results.properties.structures.structure_original)
-
-    # Primitive structure
-    assert_structure(bulk.results.properties.structures.structure_primitive)
 
 
 def test_material_eels(eels):
@@ -547,7 +462,7 @@ two_d_swap_expected = Atoms(
 @pytest.mark.parametrize(
     'atoms, expected',
     [
-        # pytest.param(one_d_split, one_d_split_expected, id='1D with cell boundary in the middle of the structure'),
+        pytest.param(one_d_split, one_d_split_expected, id='1D with cell boundary in the middle of the structure'),
         pytest.param(two_d_split, two_d_split_expected, id='2D with cell boundary in the middle of the structure'),
         pytest.param(two_d_swap, two_d_swap_expected, id='2D cell where the nonperiodic axis is not last by default in the conventional cell.'),
     ]
@@ -556,7 +471,7 @@ def test_conventional_structure(atoms, expected, monkeypatch):
     '''Tests that the conventional structure has the correct form.
     '''
     monkeypatch.setattr(
-        'nomad.normalizing.topology.TOP_50K_MATERIAL_IDS',
+        'nomad.normalizing.topology.top_50k_material_ids',
         {'upphbIG7rwgpi5sAvc9-z3GT1MCO': 1, 'nikqWRhuLtW8p8rPILRL60yQlf1C': 1}
     )
     entry = get_template_for_structure(atoms)
@@ -565,8 +480,6 @@ def test_conventional_structure(atoms, expected, monkeypatch):
         for top in topology:
             if top.label == 'conventional cell':
                 conv = ase_atoms_from_nomad_atoms(top.atoms)
-    else:
-        conv = ase_atoms_from_structure(entry.results.properties.structures.structure_conventional)
 
     assert np.array_equal(conv.get_pbc(), expected.get_pbc())
     assert np.allclose(conv.get_positions(), expected.get_positions())

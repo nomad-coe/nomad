@@ -30,8 +30,7 @@ from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.results import (
     Relation,
-    Symmetry,
-    Prototype,
+    SymmetryNew as Symmetry,
     Cell,
     WyckoffSet,
     System as ResultSystem
@@ -1387,8 +1386,8 @@ def create_system(label: str,
                   material_id: str = None,
                   atoms: NOMADAtoms = None,
                   cell: Cell = None,
-                  symmetry: Symmetry = None,
-                  prototype: Prototype = None) -> ResultSystem:
+                  symmetry: Symmetry = None
+                  ) -> ResultSystem:
     system = ResultSystem()
     system.label = label
     system.structural_type = structural_type
@@ -1406,21 +1405,39 @@ def create_system(label: str,
         system.atoms = atoms
         system.cell = cell
         system.symmetry = symmetry
-        system.prototype = prototype
     else:
         warn('Warning: subsystem label is missing')
     return system
 
 
-def crystal_structure_properties(crystal_structure):
-    if crystal_structure == 'fcc':
-        crystal_structure_property = Symmetry(bravais_lattice="cF", crystal_system="cubic", hall_number=523, hall_symbol="-F 4 2 3", point_group="m-3m", space_group_number=225, space_group_symbol="Fm-3m")
-    elif crystal_structure == 'bcc':
-        crystal_structure_property = Symmetry(bravais_lattice="cI", crystal_system="cubic", hall_number=529, hall_symbol="-I 4 2 3", point_group="m-3m", space_group_number=229, space_group_symbol="Im-3m")
-    elif crystal_structure is None:
-        warn('Warning: crystal structure is missing')
-        return None
-    return crystal_structure_property
+def create_symmetry(prototype):
+    if prototype == 'fcc':
+        symmetry = Symmetry(
+            bravais_lattice="cF",
+            crystal_system="cubic",
+            hall_number=523,
+            hall_symbol="-F 4 2 3",
+            point_group="m-3m",
+            space_group_number=225,
+            space_group_symbol="Fm-3m",
+            prototype_label_aflow="A_cF4_225_a",
+            prototype_name="fcc",
+        )
+    elif prototype == 'bcc':
+        symmetry = Symmetry(
+            bravais_lattice="cI",
+            crystal_system="cubic",
+            hall_number=529,
+            hall_symbol="-I 4 2 3",
+            point_group="m-3m",
+            space_group_number=229,
+            space_group_symbol="Im-3m",
+            prototype_label_aflow="A_cI2_229_a",
+            prototype_name="bcc",
+        )
+    else:
+        raise ValueError(f'No symmetry information for {prototype}')
+    return symmetry
 
 
 def conv_fcc(symbols):
@@ -1447,24 +1464,6 @@ def stack(a, b):
 def rattle(atoms):
     atoms.rattle(stdev=0.001, seed=7, rng=None)
     return atoms
-
-
-def prototype_fcc():
-    prototype_Cu_fcc = Prototype()
-    prototype_Cu_fcc.aflow_id = "A_cF4_225_a"
-    prototype_Cu_fcc.assignment_method = "normalized-wyckoff"
-    prototype_Cu_fcc.label = "225-Cu-cF4"
-    prototype_Cu_fcc.formula = "Cu4"
-    return prototype_Cu_fcc
-
-
-def prototype_bcc():
-    prototype_cr_bcc = Prototype()
-    prototype_cr_bcc.aflow_id = "A_cI2_229_a"
-    prototype_cr_bcc.assignment_method = "normalized-wyckoff"
-    prototype_cr_bcc.label = "229-W-cI2"
-    prototype_cr_bcc.formula = "W2"
-    return prototype_cr_bcc
 
 
 def single_cu_surface_topology() -> List[ResultSystem]:
@@ -1497,7 +1496,7 @@ def single_cu_surface_topology() -> List[ResultSystem]:
 
     cell = cell_from_ase_atoms(conv_cell)
     atoms = nomad_atoms_from_ase_atoms(conv_cell)
-    symmetry_fcc = crystal_structure_properties('fcc')
+    symmetry_fcc = create_symmetry('fcc')
     convsystem = create_system(
         label='conventional cell',
         structural_type='bulk',
@@ -1512,7 +1511,6 @@ def single_cu_surface_topology() -> List[ResultSystem]:
         atoms=atoms,
         cell=cell,
         symmetry=symmetry_fcc,
-        prototype=prototype_fcc()
     )
     return [subsystem, convsystem]
 
@@ -1546,7 +1544,7 @@ def single_cr_surface_topology() -> List[ResultSystem]:
 
     atoms = nomad_atoms_from_ase_atoms(conv_cell)
     cell = cell_from_ase_atoms(conv_cell)
-    symmetry_bcc = crystal_structure_properties('bcc')
+    symmetry_bcc = create_symmetry('bcc')
     convsystem = create_system(
         label='conventional cell',
         structural_type='bulk',
@@ -1561,7 +1559,6 @@ def single_cr_surface_topology() -> List[ResultSystem]:
         atoms=atoms,
         cell=cell,
         symmetry=symmetry_bcc,
-        prototype=prototype_bcc()
     )
     return [subsystem, convsystem]
 
@@ -1595,8 +1592,7 @@ def single_ni_surface_topology() -> List[ResultSystem]:
     wyckoff_sets.element = "Ni"
     cell = cell_from_ase_atoms(conv_cell)
     atoms = nomad_atoms_from_ase_atoms(conv_cell)
-    symmetry_fcc = crystal_structure_properties('fcc')
-    prototype_cu_fcc = prototype_fcc()
+    symmetry_fcc = create_symmetry('fcc')
     convsystem = create_system(
         label='conventional cell',
         structural_type='bulk',
@@ -1611,7 +1607,6 @@ def single_ni_surface_topology() -> List[ResultSystem]:
         atoms=atoms,
         cell=cell,
         symmetry=symmetry_fcc,
-        prototype=prototype_cu_fcc
     )
     return [subsystem, convsystem]
 
@@ -1685,7 +1680,6 @@ def graphene_topology() -> List[ResultSystem]:
         a=2.470 * ureg.angstrom,
         b=2.470 * ureg.angstrom,
         gamma=2.0943951023931957 * ureg.rad,
-        pbc=[True, True, False]
     )
     convsystem = create_system(
         label='conventional cell',
@@ -1701,7 +1695,6 @@ def graphene_topology() -> List[ResultSystem]:
         atoms=atoms_c_conv,
         cell=cell,
         symmetry=None,
-        prototype=None
     )
     return [subsystem, convsystem]
 
@@ -1768,7 +1761,6 @@ def boron_nitride_topology() -> List[ResultSystem]:
         a=2.513 * ureg.angstrom,
         b=2.513 * ureg.angstrom,
         gamma=2.0943951023931957 * ureg.rad,
-        pbc=[True, True, False]
     )
     convsystem = create_system(
         label='conventional cell',
@@ -1784,7 +1776,6 @@ def boron_nitride_topology() -> List[ResultSystem]:
         atoms=atoms,
         cell=cell,
         symmetry=None,
-        prototype=None
     )
     return [subsystem, convsystem]
 
@@ -1853,7 +1844,6 @@ def mos2_topology() -> List[ResultSystem]:
         a=3.22 * ureg.angstrom,
         b=3.22 * ureg.angstrom,
         gamma=2.0943951023931957 * ureg.rad,
-        pbc=[True, True, False]
     )
     convsystem = create_system(
         label='conventional cell',
@@ -1869,7 +1859,6 @@ def mos2_topology() -> List[ResultSystem]:
         atoms=atoms,
         cell=cell,
         symmetry=None,
-        prototype=None,
     )
     return [subsystem, convsystem]
 

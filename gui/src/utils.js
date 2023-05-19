@@ -1390,3 +1390,16 @@ export function getSuggestions(
 
   return {options, filter}
 }
+
+/**
+ * Removes the given prefix from the string if it is present.
+ *
+ * @param {str} string String to remove prefix from
+ * @param {str} prefix Prefix to remove
+ */
+export function removePrefix(string, prefix) {
+  if (string.startsWith(prefix)) {
+    string = string.substring(prefix.length)
+  }
+  return string
+}
