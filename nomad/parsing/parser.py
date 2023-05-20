@@ -196,6 +196,7 @@ class MatchingParser(Parser):
             mainfile_name_re: str = r'.*',
             mainfile_alternative: bool = False,
             mainfile_contents_dict: dict = None,
+            level: int = 0,
             domain='dft',
             metadata: dict = None,
             supported_compressions: List[str] = []) -> None:
@@ -210,6 +211,7 @@ class MatchingParser(Parser):
 
         assert self.code_name, f'please provide a code name for {name}'
         self.domain = domain
+        self.level = level
         self._mainfile_binary_header = mainfile_binary_header
         self._mainfile_mime_re = re.compile(mainfile_mime_re)
         self._mainfile_name_re = re.compile(mainfile_name_re)
