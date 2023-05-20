@@ -168,6 +168,9 @@ class Parser(PythonPluginBase):
     domain: str = Field('dft', description='''
         The domain value `dft` will apply all normalizers for atomistic codes. Deprecated.
     ''')
+    level: int = Field(0, description='''
+        The order by which the parser is executed with respect to other parsers.
+    ''')
 
     code_name: Optional[str]
     code_homepage: Optional[str]
