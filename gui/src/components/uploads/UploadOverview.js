@@ -280,7 +280,7 @@ function UploadOverview(props) {
   const {raiseError} = useErrors()
   const {
     uploadId, upload, entries, apiData, hasUpload, isProcessing, error,
-    isWriter, pagination, deleteRequested, updateUpload, requestRefreshUpload} = useUploadPageContext()
+    isWriter, pagination, deleteRequested, updateUpload, requestRefreshUpload, isMainAuthor} = useUploadPageContext()
   const [uploading, setUploading] = useState(null)
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
@@ -440,7 +440,7 @@ function UploadOverview(props) {
           <SourceApiDialogButton maxWidth="lg" fullWidth>
             <SourceApiCall {...apiData} />
           </SourceApiDialogButton>
-          <IconButton disabled={isPublished || !isWriter} onClick={handleDeleteButtonClicked} data-testid='upload-delete-action'>
+          <IconButton disabled={isPublished || !isMainAuthor} onClick={handleDeleteButtonClicked} data-testid='upload-delete-action'>
             <Tooltip title="Delete the upload">
               <DeleteIcon />
             </Tooltip>
