@@ -255,7 +255,7 @@ UploadCommands.propTypes = {
 }
 
 export function UploadsPage() {
-  const {api} = useApi()
+  const {api, user} = useApi()
   const errors = useErrors()
   const [apiData, setApiData] = useState(null)
   const data = useMemo(() => apiData?.response, [apiData])
@@ -321,6 +321,20 @@ export function UploadsPage() {
   }, [api, errors, setUploadCommands])
 
   const selectedUploads = useMemo(() => selected === 'all' ? unpublished.data.map(upload => upload.upload_id) : [...selected], [selected, unpublished])
+
+  // A map to store whether each of the upload object's main author is the current user
+  const currentUserUploadsMap = useMemo(() => {
+    const map = new Map()
+    if (data && user) {
+      data.data.forEach((d) => {
+        map[d.upload_id] = d.main_author === user.sub
+      })
+    }
+    return map
+  }, [data, user])
+
+  // boolean to disable the Delete button if any of the upload's main author is not the current user
+  const disableDeleteButton = useMemo(() => Array.from(selected).some((id) => !currentUserUploadsMap[id]), [selected, currentUserUploadsMap])
   const selectedCount = useMemo(() => selected === 'all' ? unpublished.pagination.total : selected?.size, [selected, unpublished])
   const deleteUploads = useCallback(() => {
     const promises = selectedUploads.map(upload_id => api.delete(`uploads/${upload_id}`))
@@ -404,6 +418,7 @@ export function UploadsPage() {
               <DatatableToolbarActions selection>
                 <DeleteUploadsButton
                   isIcon
+                  disabled={disableDeleteButton}
                   selectedCount={selectedCount}
                   selectedUploads={selectedUploads}
                   onSubmitted={handleDeleteSubmitted}

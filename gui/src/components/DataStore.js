@@ -89,6 +89,7 @@ const DataStore = React.memo(({children}) => {
         isProcessing: false,
         isViewer: false,
         isWriter: false,
+        isMainAuthor: false,
         isEditable: false,
 
         // ReadOnly - Managed by the store
@@ -169,6 +170,7 @@ const DataStore = React.memo(({children}) => {
     const writers = newStoreObj.upload?.writers
     newStoreObj.isViewer = !!(user && viewers?.includes(user.sub))
     newStoreObj.isWriter = !!(user && writers?.includes(user.sub))
+    newStoreObj.isMainAuthor = user && newStoreObj.upload?.main_author === user.sub
     newStoreObj.isEditable = newStoreObj.isWriter && !newStoreObj.upload.published
 
     // Update the store

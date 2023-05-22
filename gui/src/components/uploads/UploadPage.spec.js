@@ -69,6 +69,7 @@ const testPublishedWritePermissions = async () => {
 
   expect(screen.getByTestId('edit-members-action')).toBeEnabled()
   expect(screen.getByTestId('upload-download-action')).toBeEnabled()
+  expect(screen.getByTestId('upload-delete-action')).toBeDisabled()
   expect(screen.getByTestId('upload-reprocess-action')).toBeDisabled()
   expect(screen.getByTestId('upload-delete-action')).toBeDisabled()
 }
@@ -88,7 +89,6 @@ const testUnpublishedWritePermissions = async () => {
   expect(screen.getByTestId('edit-members-action')).toBeEnabled()
   expect(screen.getByTestId('upload-download-action')).toBeEnabled()
   expect(screen.getByTestId('upload-reprocess-action')).toBeEnabled()
-  expect(screen.getByTestId('upload-delete-action')).toBeEnabled()
   expect(screen.getByTestId('edit-metadata-button')).toBeEnabled()
   expect(screen.getByTestId('publish-upload-button')).toBeEnabled()
 }

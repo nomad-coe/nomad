@@ -1411,8 +1411,8 @@ async def delete_upload(
     not currently processed, can be deleted.
     '''
     upload = _get_upload_with_write_access(
-        upload_id, user, include_published=True, published_requires_admin=True, include_failed_imports=True)
-
+        upload_id, user, include_published=True, published_requires_admin=True,
+        include_failed_imports=True, only_main_author=True)
     try:
         upload.delete_upload()
     except ProcessAlreadyRunning:
@@ -1954,7 +1954,8 @@ def get_upload_with_read_access(upload_id: str, user: User, include_others: bool
 
 def _get_upload_with_write_access(
         upload_id: str, user: User, include_published: bool = False,
-        published_requires_admin: bool = True, include_failed_imports: bool = False) -> Upload:
+        published_requires_admin: bool = True, include_failed_imports: bool = False,
+        only_main_author: bool = False) -> Upload:
     '''
     Determines if the specified user has write access to the specified upload. If so, the
     corresponding Upload object is returned. If the upload does not exist, or the user has
@@ -1972,6 +1973,9 @@ def _get_upload_with_write_access(
         if not upload.coauthors or str(user.user_id) not in upload.coauthors:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You do not have write access to the specified upload.'''))
+        if only_main_author:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                Only main author has permissions for this operation.'''))
     if upload.published:
         is_failed_import = (
             upload.current_process.startswith('import_bundle') and upload.process_status == ProcessStatus.FAILURE)
