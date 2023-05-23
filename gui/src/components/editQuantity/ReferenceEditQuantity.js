@@ -343,7 +343,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     }
   }, [quantityDef, index])
 
-  const {helpDescription, ...otherProps} = getFieldProps(quantityDef)
+  const {helpDescription, showSectionLabel, ...otherProps} = getFieldProps(quantityDef)
 
   const handleSuccess = useCallback((value) => {
     setCreateEntryDialogOpen(false)
@@ -429,6 +429,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
           value={referencedValue}
           filtersLocked={filtersLocked}
           onError={handleError}
+          showSectionLabel={showSectionLabel}
           renderInput={(params) => {
             return (
               <TextField

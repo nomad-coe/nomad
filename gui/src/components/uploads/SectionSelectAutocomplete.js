@@ -35,7 +35,7 @@ const suggestionQuantities = [{'name': 'entry_name', 'size': 10}, {'name': 'main
 const quantitiesAllSet = new Set(['entry_name', 'mainfile'])
 
 const entryFilterOptions = (option) => {
-    return `${option.mainfile}|${option.entry_name}|${option.upload_name || option.upload_id}|${option.entry_id}`
+    return `${option.mainfile}|${option.entry_name}|${option.upload_name || option.upload_id}|${option.entry_id}|${option.shownValue}`
 }
 
 const pathFilterOptions = (option) => {
@@ -70,7 +70,7 @@ const filterOptions = (options, state) => {
 }
 
 function SectionSelectAutocomplete(props) {
-  const {renderInput, onValueChanged, value, filtersLocked, onError} = props
+  const {renderInput, onValueChanged, value, showSectionLabel, filtersLocked, onError} = props
   const {api} = useApi()
   const {raiseError} = useErrors()
   const globalMetainfo = useGlobalMetainfo()
@@ -79,9 +79,11 @@ function SectionSelectAutocomplete(props) {
   const [entries, setEntries] = useState([])
   const [selectedEntry, setSelectedEntry] = useState(undefined)
   const [suggestions] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput)
-  const [inputValue, setInputValue] = useState('')
+  const [inputValue, setInputValue] = useState({primary: '', secondary: ''})
+  const [lastInputValue, setLastInputValue] = useState({primary: '', secondary: ''})
   const [options, setOptions] = useState([])
   const [internalError, setInternalError] = useState('')
+  const [showPrimary, setShowPrimary] = useState(!showSectionLabel)
 
   useEffect(() => {
     setInternalError('')
@@ -148,7 +150,7 @@ function SectionSelectAutocomplete(props) {
 
   const handleInputChange = useCallback((event, value) => {
     if (event?.type === 'change') {
-      setInputValue(value)
+      setInputValue({primary: value, secondary: value})
       debouncedHandleInputChange(value)
     }
   }, [debouncedHandleInputChange])
@@ -169,21 +171,25 @@ function SectionSelectAutocomplete(props) {
   }, [entries, options, selectedEntry])
 
   const handleChange = useCallback((_, value) => {
-    setInputValue(value?.shownValue || '')
+    setInputValue({primary: value?.fullPath, secondary: value?.shownValue})
+    setLastInputValue({primary: value?.fullPath, secondary: value?.shownValue})
     onValueChanged(value)
   }, [onValueChanged])
 
   const setSection = useCallback((sections, value, updateInputValue) => {
     setSelectedEntry({entryId: value.entry_id, sections: sections})
     if (updateInputValue) {
-      setInputValue(`${value.mainfile}#`)
+      setInputValue({primary: `${value.mainfile}#`, secondary: `${value.mainfile}#`})
     } else {
-      const section = sections.find(section => section.value === value?.value)
+      const section = sections?.find(section => section.value === value?.value)
       if (!section) {
         onError('The provided path does not exist')
-        setInputValue(value?.archive?.mainfile ? (value?.value && value.value !== '/data' && value.value !== 'data' ? `${value.archive.mainfile}#${value?.value}` : value.archive.mainfile) : '')
+        const path = value?.archive?.mainfile ? (value?.value && value.value !== '/data' && value.value !== 'data' ? `${value.archive.mainfile}#${value?.value}` : value.archive.mainfile) : ''
+        setInputValue({primary: path, secondary: path})
+        setLastInputValue({primary: path, secondary: path})
       } else {
-        setInputValue(section.shownValue)
+        setInputValue({primary: section?.fullPath, secondary: section?.shownValue})
+        setLastInputValue({primary: section?.fullPath, secondary: section?.shownValue})
       }
     }
   }, [onError])
@@ -214,6 +220,13 @@ function SectionSelectAutocomplete(props) {
       loadSections(option, true)
     }
   }, [loadSections, selectedEntry])
+
+  const handleBlur = useCallback((event) => {
+    if (showSectionLabel) {
+      setShowPrimary(false)
+    }
+    setInputValue(lastInputValue)
+  }, [lastInputValue, showSectionLabel])
 
   if (options === undefined) {
     return null
@@ -250,11 +263,13 @@ function SectionSelectAutocomplete(props) {
       options={options}
       onInputChange={handleInputChange}
       onChange={handleChange}
+      onFocus={(event) => setShowPrimary(true)}
+      onBlur={handleBlur}
       getOptionLabel={(option) => option.shownValue || ''}
       filterOptions={filterOptions}
       renderInput={renderInput}
       renderOption={renderOption}
-      inputValue={inputValue}
+      inputValue={(showPrimary ? inputValue.primary : inputValue.secondary) || ''}
       freeSolo
   />
 }
@@ -265,6 +280,8 @@ SectionSelectAutocomplete.propTypes = {
   onValueChanged: PropTypes.func,
   // The default selected section
   value: PropTypes.object,
+  // True if the section label should be shown when the focus is lost
+  showSectionLabel: PropTypes.bool,
   // Determines the fixed search filters to find the corresponding references or the desired sections.
   filtersLocked: PropTypes.object,
   // Fires and passes the error message when an error occurs during fetching the data or resolving the value

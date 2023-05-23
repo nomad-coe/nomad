@@ -140,7 +140,7 @@ test.each([
   const referenceEditQuantities = within(powderMixture).getAllByTestId('reference-edit-quantity')
   const referenceEditQuantity = referenceEditQuantities[0]
   const inputTextField = within(referenceEditQuantity).getByRole('textbox')
-  await waitFor(() => expect(inputTextField.value).toEqual('ref5.archive.yaml#data/contents/3'))
+  await waitFor(() => expect(inputTextField.value).toEqual('SubstanceExtended1'))
 
   // test section select dialog
   const editReferenceButton = within(referenceEditQuantity).getByTitle('Search for the references').closest('button')

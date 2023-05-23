@@ -65,6 +65,7 @@ definitions:
           m_annotations:
             eln:
               component: ReferenceEditQuantity
+              showSectionLabel: true
     GeneralArchiveSection:
       base_section: nomad.datamodel.data.ArchiveSection
       m_annotations:
