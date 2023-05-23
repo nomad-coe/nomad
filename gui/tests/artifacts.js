@@ -62525,7 +62525,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "entry_timestamp",
                 "description": "A timestamp based on RFC3161.",
-                "sub_section": "/packages/13/section_definitions/2"
+                "sub_section": "/packages/13/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",

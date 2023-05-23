@@ -31,7 +31,7 @@ import base64
 from typing import Optional, cast, Any, List, Tuple, Set, Iterator, Dict, Iterable, Sequence, Union
 import rfc3161ng
 from mongoengine import (
-    StringField, DateTimeField, BooleanField, IntField, ListField, DictField)
+    StringField, DateTimeField, BooleanField, IntField, ListField, DictField, EmbeddedDocument, EmbeddedDocumentField)
 from pymongo import UpdateOne
 from structlog import wrap_logger
 from contextlib import contextmanager
@@ -666,6 +666,12 @@ class MetadataEditRequestHandler:
         return self.verified_file_metadata_cache[path_dir]
 
 
+class Timestamp(EmbeddedDocument):
+    token_seed = StringField()
+    token = StringField()
+    tsa_server = StringField()
+
+
 class Entry(Proc):
     '''
     Instances of this class represent entries. This class manages the elastic
@@ -713,6 +719,8 @@ class Entry(Proc):
     references = ListField(StringField())
     entry_coauthors = ListField()
     datasets = ListField(StringField())
+
+    entry_timestamp = EmbeddedDocumentField(Timestamp)
 
     meta: Any = {
         'strict': False,
@@ -781,46 +789,73 @@ class Entry(Proc):
         Applies metadata generated when processing or re-processing an entry to `entry_metadata`.
 
         Only update timestamp when entry is new or changed.
+
+        The timestamp is stored in both mongo and archive as metadata.
+        The mongo record is treated as the source of truth.
+        If the processed archives are re-processed or loaded from external sources,
+        the mongo database has no previously stored timestamp.
+        In this case, the timestamp stored in the archive is used.
+        If no previous timestamp is available, a new timestamp is generated.
         '''
         entry_metadata.nomad_version = config.meta.version
         entry_metadata.nomad_commit = ''
         entry_metadata.entry_hash = self.upload_files.entry_hash(self.mainfile, self.mainfile_key)
 
-        get_timestamp: bool = True  # do we need to get a new timestamp?
-        if config.process.rfc3161_skip_published and self.upload.published:
-            get_timestamp = False
+        stored_seed, stored_token, stored_server = None, None, None
+        if self.entry_timestamp:
+            stored_seed = self.entry_timestamp.token_seed
+            stored_token = base64.b64decode(self.entry_timestamp.token) if self.entry_timestamp.token else None
+            stored_server = self.entry_timestamp.tsa_server
 
-        try:
-            with self.upload_files.read_archive(self.entry_id) as archive:
-                entry_timestamp = archive[self.entry_id]['metadata']['entry_timestamp']
-                stored_seed = entry_timestamp['token_seed']
-                stored_token = base64.b64decode(entry_timestamp['token'])
-                stored_server = entry_timestamp['tsa_server']
-            has_existing_timestamp: bool = True
-        except KeyError:
-            stored_seed = None
-            stored_token = None
-            stored_server = None
-            has_existing_timestamp = False
-
-        if stored_seed == entry_metadata.entry_hash:
-            get_timestamp = False
-
-        if get_timestamp:
-            # entry is new or has changed
-            if token := get_rfc3161_token(entry_metadata.entry_hash):
-                entry_metadata.entry_timestamp = RFC3161Timestamp(
-                    token_seed=entry_metadata.entry_hash,
-                    token=token,
-                    tsa_server=config.rfc3161_timestamp.server,
-                    timestamp=rfc3161ng.get_timestamp(token))
-        elif has_existing_timestamp:
-            # entry is unchanged
+        # check if the new hash is different from the old one that is used for the timestamp
+        if entry_metadata.entry_hash == stored_seed and stored_token is not None and stored_server is not None:
+            # if matches, meaning that the old one is still valid, keep the old timestamp
             entry_metadata.entry_timestamp = RFC3161Timestamp(
                 token_seed=stored_seed,
                 token=stored_token,
-                tsa_server=stored_server,
+                tsa_server=stored_server,  # maybe missing or different from the current config
                 timestamp=rfc3161ng.get_timestamp(stored_token))
+            # will be written back to mongo in `.save()`
+        else:
+            # different from the old one, meaning two cases:
+            # 1. there is no previously stored timestamp in mongo, but the entry has not changed,
+            # 2. the entry has changed.
+
+            has_existing_timestamp: bool = True
+            if any((stored_seed is None, stored_token is None, stored_server is None)):
+                # no previously stored timestamp
+                # try if archive has one
+                try:
+                    with self.upload_files.read_archive(self.entry_id) as archive:
+                        entry_timestamp = archive[self.entry_id]['metadata']['entry_timestamp']
+                        stored_seed = entry_timestamp['token_seed']
+                        stored_token = base64.b64decode(entry_timestamp['token'])
+                        stored_server = entry_timestamp['tsa_server']
+                except Exception:  # noqa
+                    stored_seed, stored_token, stored_server = None, None, None
+                    has_existing_timestamp = False
+
+            get_timestamp: bool = True  # do we need to get a new timestamp?
+            if config.process.rfc3161_skip_published and self.upload.published:
+                get_timestamp = False
+            if entry_metadata.entry_hash == stored_seed:
+                get_timestamp = False
+
+            if get_timestamp:
+                # entry is new or has changed
+                if token := get_rfc3161_token(entry_metadata.entry_hash):
+                    entry_metadata.entry_timestamp = RFC3161Timestamp(
+                        token_seed=entry_metadata.entry_hash,
+                        token=token,
+                        tsa_server=config.rfc3161_timestamp.server,
+                        timestamp=rfc3161ng.get_timestamp(token))
+            elif has_existing_timestamp:
+                # entry is unchanged
+                entry_metadata.entry_timestamp = RFC3161Timestamp(
+                    token_seed=stored_seed,
+                    token=stored_token,
+                    tsa_server=stored_server,
+                    timestamp=rfc3161ng.get_timestamp(stored_token))
 
         entry_metadata.files = self.upload_files.entry_files(self.mainfile)
         entry_metadata.last_processing_time = datetime.utcnow()
@@ -853,6 +888,16 @@ class Entry(Proc):
         entry_metadata_dict = entry_metadata.m_to_dict(include_defaults=True)
         for quantity_name in mongo_entry_metadata_except_system_fields:
             setattr(self, quantity_name, entry_metadata_dict.get(quantity_name))
+
+        if not (rfc3161_timestamp := entry_metadata_dict.get('entry_timestamp', None)):
+            return
+
+        # setting rfc3161 related fields
+        timestamp = Timestamp()
+        for item in ('token_seed', 'token', 'tsa_server'):
+            if value := rfc3161_timestamp.get(item, None):
+                setattr(timestamp, item, value)
+        self.entry_timestamp = timestamp
 
     def set_mongo_entry_metadata(self, *args, **kwargs):
         '''

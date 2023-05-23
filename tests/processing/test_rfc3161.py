@@ -90,10 +90,11 @@ def test_rfc3161ng_processing(published, monkeypatch):
     del archive['metadata']['entry_timestamp']
     write_archive(file_path, 1, data=[(entry_id, archive)])
     monkeypatch.setattr('nomad.config.process.rfc3161_skip_published', True)
+    Entry.objects(entry_id=entry_id).first().update(unset__entry_timestamp=1)
     archive = _re_process()
     assert 'entry_timestamp' not in archive['metadata']
 
-    # 2. published, NOT skip published, expect timestamp
+    # 2. published, NOT skip published, expecting timestamp
     monkeypatch.setattr('nomad.config.process.rfc3161_skip_published', False)
     archive = _re_process()
     assert 'entry_timestamp' in archive['metadata']
