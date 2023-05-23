@@ -339,7 +339,11 @@ const useDatatableRowStyles = makeStyles(theme => ({
     width: 1,
     whiteSpace: 'nowrap',
     paddingTop: 0,
-    paddingBottom: 0
+    paddingBottom: 0,
+    position: 'sticky',
+    right: 0,
+    zIndex: 1,
+    backgroundColor: 'white'
   },
   detailsCell: {
     padding: 0
