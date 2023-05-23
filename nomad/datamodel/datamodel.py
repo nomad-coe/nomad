@@ -440,7 +440,7 @@ class EntryMetadata(MSection):
         categories=[MongoEntryMetadata])
 
     entry_timestamp = SubSection(
-        sub_section=EntryArchiveReference,
+        sub_section=RFC3161Timestamp,
         description='A timestamp based on RFC3161.')
 
     entry_create_time = Quantity(
