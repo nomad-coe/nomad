@@ -33,7 +33,7 @@ import * as THREE from 'three'
 import { withErrorHandler } from '../ErrorHandler'
 import { useAsyncError } from '../../hooks'
 import { useApi } from '../api'
-import { removePrefix } from '../../utils'
+import { parseNomadUrl } from '../../utils'
 
 const useStyles = makeStyles((theme) => ({
   canvas: {
@@ -276,12 +276,17 @@ const StructureNGL = React.memo(({
     const format = 'pdb'
     let component = componentsRef.current[data]
     if (!component) {
-      // Remove hashtag prefix: it is problematic when within query string as it
-      // typically denotes page fragments.
-      const path = removePrefix(data, '#/')
+      // The path may be a reference that points to some other entry as well,
+      // here it is resolved
+      let path = data
+      if (!data.startsWith('results')) {
+        const nomadUrl = parseNomadUrl(data)
+        entryId = nomadUrl.entryId || entryId
+        path = nomadUrl.path
+      }
       const system = await api.get(
         `systems/${entryId}`,
-        {path, format},
+        {path: path, format},
         {responseType: 'blob'}
       )
 

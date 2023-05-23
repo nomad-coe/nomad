@@ -47,7 +47,7 @@ from nomad.normalizing.common import (
 )
 
 conventional_description = 'The conventional cell of the material from which the subsystem is constructed from.'
-subsystem_description = 'Automatically detected subsystem.',
+subsystem_description = 'Automatically detected subsystem.'
 chemical_symbols = np.array(chemical_symbols)
 with open(pathlib.Path(__file__).parent / 'data/top_50k_material_ids.json', "r") as fin:
     top_50k_material_ids = json.load(fin)
