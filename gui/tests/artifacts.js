@@ -2929,6 +2929,16 @@ window.nomadArtifacts = {
       "shape": [],
       "aggregatable": false
     },
+    "results.method.simulation.precision.native_tier": {
+      "name": "native_tier",
+      "description": "The code-specific tag indicating the precision used\nfor the basis set and meshes of numerical routines.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [],
+      "aggregatable": true
+    },
     "results.method.simulation.precision.basis_set": {
       "name": "basis_set",
       "description": "The type of basis set used by the program.\n\n| Value                          |                       Description |\n| ------------------------------ | --------------------------------- |\n| `'APW'`                        | Augmented plane waves             |\n| `'LAPW'`                       | Linearized augmented plane waves  |\n| `'APW+lo'`             | Augmented plane waves with local orbitals |\n| `'LAPW+lo'` | Linearized augmented plane waves with local orbitals |\n| `'(L)APW'`                     |     A combination of APW and LAPW |\n| `'(L)APW+lo'`  | A combination of APW and LAPW with local orbitals |\n| `'plane waves'`                | Plane waves                       |\n| `'gaussians + plane waves'`    | Basis set of the Quickstep algorithm (DOI: 10.1016/j.cpc.2004.12.014) |\n| `'real-space grid'`            | Real-space grid                   |\n| `'suppport functions'`         | Support functions                 |",
@@ -4802,6 +4812,18 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "name": "native_tier",
+                "description": "The code-specific tag indicating the precision used\nfor the self-consistent cycle.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
                 "name": "n_max_iteration",
                 "description": "Specifies the maximum number of allowed self-consistent field (SCF) iterations in\na calculation.",
                 "type": {
@@ -4812,7 +4834,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -4830,10 +4852,10 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
+                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "threshold_density_change",
-                "description": "Specifies the threshold for the average  charge density change between two\nsubsequent self-consistent field (SCF) iterations. The SCF is considered converged\nwhen the density change between two SCF cycles is below the threshold (possibly in\ncombination with other criteria).",
+                "description": "Specifies the threshold for the average charge density change between two\nsubsequent self-consistent field (SCF) iterations. The SCF is considered converged\nwhen the density change between two SCF cycles is below the threshold (possibly in\ncombination with other criteria).",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -4842,7 +4864,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "minimization_algorithm",
                 "description": "Specifies the algorithm used for self consistency minimization.",
@@ -5973,6 +5995,23 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
+                    "results.method.simulation.precision.native_tier"
+                  ]
+                },
+                "name": "native_tier",
+                "description": "The code-specific tag indicating the precision used\nfor the basis set and meshes of numerical routines.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
                     "results.method.simulation.precision.basis_set",
                     "results.method.simulation.precision.basis_set__suggestion"
                   ]
@@ -6001,7 +6040,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "scope",
                 "description": "The extent of the electronic structure that the basis set encodes.\nThe partitions could be energetic (e.g. `core`, `valence`) in nature,\nspatial (e.g. `muffin-tin`, `interstitial`), or cover\nHamiltonian components (e.g. `kinetic energy`,\n`electron-electron interaction`), etc.",
@@ -16127,6 +16166,23 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
+                    "results.method.simulation.precision.native_tier"
+                  ]
+                },
+                "name": "native_tier",
+                "description": "The code-specific tag indicating the precision used\nfor the basis set and meshes of numerical routines.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
                     "results.method.simulation.precision.basis_set",
                     "results.method.simulation.precision.basis_set__suggestion"
                   ]
@@ -16155,7 +16211,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
+                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -16173,7 +16229,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [

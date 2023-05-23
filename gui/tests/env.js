@@ -153,6 +153,10 @@ window.nomadEnv = {
                 "label": "K-line density",
                 "align": "left"
               },
+              "results.method.simulation.precision.native_tier": {
+                "label": "Native tier",
+                "align": "left"
+              },
               "results.method.simulation.precision.planewave_cutoff": {
                 "label": "Plane wave cutoff",
                 "align": "left"
@@ -416,6 +420,10 @@ window.nomadEnv = {
               },
               "results.method.simulation.precision.k_line_density": {
                 "label": "K-line density",
+                "align": "left"
+              },
+              "results.method.simulation.precision.native_tier": {
+                "label": "Native tier",
                 "align": "left"
               },
               "results.method.simulation.precision.planewave_cutoff": {

@@ -237,6 +237,14 @@ class Scf(MSection):
 
     m_def = Section(validate=False)
 
+    native_tier = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The code-specific tag indicating the precision used
+        for the self-consistent cycle.
+        ''')
+
     n_max_iteration = Quantity(
         type=np.int32,
         shape=[],
@@ -260,11 +268,11 @@ class Scf(MSection):
         type=np.float64,
         shape=[],
         description='''
-        Specifies the threshold for the average  charge density change between two
+        Specifies the threshold for the average charge density change between two
         subsequent self-consistent field (SCF) iterations. The SCF is considered converged
         when the density change between two SCF cycles is below the threshold (possibly in
         combination with other criteria).
-        ''')
+        ''')  # TODO: unit
 
     minimization_algorithm = Quantity(
         type=str,
@@ -969,6 +977,15 @@ class BasisSetContainer(MSection):
     '''Container class for `BasisSet`'''
 
     m_def = Section(validate=False)
+
+    native_tier = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The code-specific tag indicating the precision used
+        for the basis set and meshes of numerical routines.
+        '''
+    )
 
     basis_sets = [
         'atom-centered orbitals',
