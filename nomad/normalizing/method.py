@@ -307,6 +307,7 @@ class MethodNormalizer():
                 try:
                     if 'wavefunction' in em['scope']:
                         simulation.precision.basis_set = em['type']
+                        simulation.precision.native_tier = em['native_tier']
                         for bs in em['basis_set']:
                             if 'cutoff' in bs.keys() and 'type' in bs.keys():
                                 simulation.precision.planewave_cutoff = bs['cutoff']

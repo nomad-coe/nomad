@@ -41,6 +41,14 @@ const FilterSubMenuPrecision = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputField
+          quantity="results.method.simulation.precision.native_tier"
+          visible={visible}
+          xs={12}
+          disableSearch
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputField
           quantity="results.method.simulation.precision.basis_set"
           visible={visible}
           xs={12}

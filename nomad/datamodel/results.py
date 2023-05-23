@@ -1734,6 +1734,8 @@ class Precision(MSection):
         ''',
         a_elasticsearch=[Elasticsearch(material_entry_type)],
     )
+    native_tier = BasisSetContainer.native_tier.m_copy(a_elasticsearch=[
+        Elasticsearch(material_entry_type)])
     basis_set = BasisSetContainer.type.m_copy(a_elasticsearch=[
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion='default'),
