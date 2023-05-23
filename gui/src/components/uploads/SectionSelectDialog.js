@@ -90,7 +90,8 @@ export async function getSectionsInfo(api, dataStore, reference, entry_id) {
   } catch (e) {
     return []
   }
-  const dataArchive = response?.data?.[0].archive
+  const dataArchive = response?.data?.[0]?.archive
+  if (!dataArchive) return
   const sections = Object.keys(dataArchive).filter((key) => 'm_def' in dataArchive[key])
   const referencedSubSections = []
   if (sections.length > 0) {
@@ -104,22 +105,27 @@ export async function getSectionsInfo(api, dataStore, reference, entry_id) {
         if (ref &&
           (sectionDef._qualifiedName === ref || sectionDef._allBaseSections?.map(section => section._qualifiedName).includes(ref))) {
           const itemLabelKey = getItemLabelKey(sectionDef)
-          const name = itemLabelKey && section[itemLabelKey] ? `${section[itemLabelKey]} (./${path})` : `./${path}`
+          const name = itemLabelKey && section[itemLabelKey]
           referencedSubSections.push({name: name, upload_id: response?.data?.[0]?.upload_id, entry_id: response?.data?.[0]?.entry_id, path: path})
         }
       })
     }
   }
   const references = referencedSubSections || []
-  return references.map(reference => ({
-    label: reference.name,
-    mainfile: dataArchive?.metadata?.mainfile,
-    entry_name: dataArchive?.metadata?.entry_name,
-    entry_id: reference.entry_id,
-    upload_id: reference.upload_id,
-    shownValue: reference?.path && reference.path !== '/data' && reference.path !== 'data' ? `${dataArchive?.metadata?.mainfile}#${reference.path}` : dataArchive?.metadata?.mainfile,
-    value: reference.path,
-    data: reference}))
+  return references.map(reference => {
+    const fullPath = reference?.path && reference.path !== '/data' && reference.path !== 'data' ? `${dataArchive?.metadata?.mainfile}#${reference.path}` : dataArchive?.metadata?.mainfile
+    return {
+      label: reference.name ? `${reference.name} (./${reference?.path})` : `./${reference?.path}`,
+      fullPath: fullPath,
+      mainfile: dataArchive?.metadata?.mainfile,
+      entry_name: dataArchive?.metadata?.entry_name,
+      entry_id: reference.entry_id,
+      upload_id: reference.upload_id,
+      shownValue: reference.name || fullPath,
+      value: reference.path,
+      data: reference
+    }
+  })
 }
 
 export async function getSchemaInfo(globalMetainfo, entry_id) {
@@ -127,13 +133,15 @@ export async function getSchemaInfo(globalMetainfo, entry_id) {
   const schemaArchive = customMetainfo[0]?._data
   const sectionDefs = schemaArchive?.definitions?.section_definitions
   return sectionDefs.map(sectionDef => {
+    const fullPath = `${schemaArchive?.metadata?.mainfile}#${sectionDef.name}`
     return {
       label: sectionDef.name,
+      fullPath: fullPath,
       mainfile: schemaArchive?.metadata?.mainfile,
       entry_name: schemaArchive?.metadata?.entry_name,
       entry_id: schemaArchive.metadata.entry_id,
       value: sectionDef.name,
-      shownValue: `${schemaArchive?.metadata?.mainfile}#${sectionDef.name}`,
+      shownValue: sectionDef.name || fullPath,
       data: {sectionDef: sectionDef, archive: schemaArchive}
     }
   })

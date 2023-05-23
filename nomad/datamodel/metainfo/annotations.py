@@ -188,11 +188,17 @@ class ELNAnnotation(AnnotationModel):
         Will show an error, if outside numbers are entered. Only works on quantities and
         in conjunction with `component=NumberEditQuantity`.
     ''')
+
     maxValue: Union[int, float] = Field(None, description='''
         Allows to specify a maximum value for quantity annotations with number type.
         Will show an error, if outside numbers are entered. Only works on quantities and
         in conjunction with `component=NumberEditQuantity`.
     ''')
+
+    showSectionLabel: bool = Field(None, description='''
+            To customize the ReferenceEditQuantity behaviour. If true the section label will be shown
+            instead of referenced file name and the path to the section.
+        ''')
 
     hide: List[str] = Field(None, description='''
         The annotation "hide" is deprecated. Use "visible" key of "properties" annotation instead.
