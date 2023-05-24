@@ -1255,7 +1255,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             return None
 
         quantity_def = self.m_def.all_quantities.get(key_quantity)
-        if quantity_def.type != str:
+        if quantity_def.type not in (MEnum, str):
             raise TypeError(f'Key quantity {key_quantity} must be of type str.')
 
         if self.m_is_set(quantity_def):
@@ -2230,16 +2230,19 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     if self.m_sub_section_count(sub_section_def) > 0:
                         is_set = True
                         subsections = self.m_get_sub_sections(sub_section_def)
-                        subsection_keys: list = [item.m_key for item in subsections if item and item.m_key]
-                        has_dup: bool = 0 < len(subsection_keys) != len(set(subsection_keys))
-                        if not has_dup and subsection_as_dict:
-                            serialised_dict: dict = {}
-                            for index, item in enumerate(subsections):
-                                if item is None:
-                                    continue
-                                item_key = item.m_key if item.m_key else index
-                                serialised_dict[item_key] = item.m_to_dict(**kwargs)
-                            yield name, serialised_dict
+                        if subsection_as_dict:
+                            subsection_keys: list = [item.m_key for item in subsections if item and item.m_key]
+                            has_dup: bool = 0 < len(subsection_keys) != len(set(subsection_keys))
+                            if not has_dup:
+                                serialised_dict: dict = {}
+                                for index, item in enumerate(subsections):
+                                    if item is None:
+                                        continue
+                                    item_key = item.m_key if item.m_key else index
+                                    serialised_dict[item_key] = item.m_to_dict(**kwargs)
+                                yield name, serialised_dict
+                            else:
+                                yield name, [None if item is None else item.m_to_dict(**kwargs) for item in subsections]
                         else:
                             yield name, [None if item is None else item.m_to_dict(**kwargs) for item in subsections]
                 else:
