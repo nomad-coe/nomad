@@ -16,7 +16,6 @@
 # limitations under the License.
 #
 import json
-
 import yaml
 import requests
 import re
