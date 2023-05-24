@@ -859,3 +859,49 @@ class TestEnvironment:
         sub_section_system = env.resolve_definition('systems', SubSection)
         assert sub_section_system.m_def == SubSection.m_def
         assert sub_section_system.name == 'systems'
+
+
+@pytest.mark.parametrize('as_dict', [True, False])
+@pytest.mark.parametrize('add_key', [True, False])
+@pytest.mark.parametrize('str_type', [True, False])
+@pytest.mark.parametrize('dup_key', [True, False])
+def test_serialise_as_dict(as_dict, add_key, str_type, dup_key):
+    class TestSection(MSection):
+        q = Quantity(type=str if str_type else int)
+
+    class TestContainer(MSection):
+        s = SubSection(sub_section=TestSection, repeats=True, key_quantity='q' if add_key else None)
+
+    container = TestContainer()
+
+    def __key(_i):
+        if str_type:
+            return 'abc' if dup_key else f'abc{_i}'
+
+        return 0 if dup_key else _i
+
+    for i in range(3):
+        section = TestSection(q=__key(i))
+        container.m_add_sub_section(TestContainer.s, section)
+
+    kwarg = {'subsection_as_dict': as_dict}
+    if not str_type and add_key:
+        with pytest.raises(TypeError):
+            for i in range(3):
+                _ = container.s[i].m_key
+    else:
+        for i in range(3):
+            assert container.s[i].q == __key(i)
+            if add_key and not dup_key:
+                assert container.s[f'abc{i}'].q == f'abc{i}'
+            else:
+                with pytest.raises(KeyError):
+                    _ = container.s[f'abc{i}'].q
+
+        json_dict = container.m_to_dict(**kwarg)
+
+        if not as_dict or add_key and dup_key:
+            assert isinstance(json_dict['s'], list)
+        else:
+            assert isinstance(json_dict['s'], dict)
+        assert json_dict == TestContainer.m_from_dict(json_dict).m_to_dict(**kwarg)

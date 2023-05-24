@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 from __future__ import annotations
+
 import base64
 from copy import deepcopy
 import importlib
@@ -26,14 +27,15 @@ import re
 import sys
 from collections.abc import Iterable as IterableABC
 from functools import reduce
-from pydantic import parse_obj_as, ValidationError, BaseModel, Field
 from typing import (
     Any, Callable as TypingCallable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union, cast, ClassVar)
+
 import docstring_parser
 import jmespath
 import numpy as np
 import pandas as pd
 import pint
+from pydantic import parse_obj_as, ValidationError, BaseModel, Field
 
 from nomad.config import process
 from nomad.metainfo.util import (
@@ -915,8 +917,8 @@ class Context:
         pass
 
     def create_reference(
-        self, section: MSection, quantity_def: Quantity, value: MSection,
-        global_reference: bool = False
+            self, section: MSection, quantity_def: Quantity, value: MSection,
+            global_reference: bool = False
     ) -> str:
         '''
         Returns a reference for the given target section (value) based on the given context.
@@ -1240,10 +1242,34 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return super().__setattr__(name, value)
 
+    @property
+    def m_key(self):
+        if (subsection := self.m_parent_sub_section) is None:
+            return None
+
+        if subsection.key_quantity is not None:
+            key_quantity = subsection.key_quantity
+        elif (label := subsection.more.get('label_quantity')) is not None:
+            key_quantity = label
+        else:
+            return None
+
+        quantity_def = self.m_def.all_quantities.get(key_quantity)
+        if quantity_def.type != str:
+            raise TypeError(f'Key quantity {key_quantity} must be of type str.')
+
+        if self.m_is_set(quantity_def):
+            return self.m_get(quantity_def)
+
+        return None
+
     def __getattr__(self, name):
         # The existence of __getattr__ will make mypy and pylint ignore 'missing' dynamic
         # attributes and functions and wrong types of those.
         # Ideally we have a plugin for both that add the correct type info
+
+        if name == 'm_key':
+            return self.get(name)
 
         if name in self.m_def.all_aliases:
             return getattr(self, self.m_def.all_aliases[name].name)
@@ -1842,7 +1868,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             categories: List[Union[Category, Type['MCategory']]] = None,
             include: TypingCallable[[Definition, MSection], bool] = None,
             exclude: TypingCallable[[Definition, MSection], bool] = None,
-            transform: TypingCallable[[Definition, MSection, Any, str], Any] = None) -> Dict[str, Any]:
+            transform: TypingCallable[[Definition, MSection, Any, str], Any] = None,
+            subsection_as_dict: bool = False,
+    ) -> Dict[str, Any]:
         '''
         Returns the data of this section as a (json serializable) dictionary.
 
@@ -1889,6 +1917,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 might have to ensure that the result is JSON-serializable.  By
                 default, values are serialized to JSON according to the quantity
                 type.
+            subsection_as_dict: If true, try to serialize subsections as dictionaries.
+                Only possible when the keys are unique. Otherwise, serialize as list.
         '''
         if isinstance(self, Definition) and not with_out_meta:
             with_meta = True
@@ -1899,7 +1929,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             include_derived=include_derived,
             resolve_references=resolve_references,
             exclude=exclude,
-            transform=transform)
+            transform=transform,
+            subsection_as_dict=subsection_as_dict
+        )
 
         assert not (include is not None and exclude is not None), 'You can only include or exclude, not both.'
 
@@ -2197,9 +2229,19 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if sub_section_def.repeats:
                     if self.m_sub_section_count(sub_section_def) > 0:
                         is_set = True
-                        yield name, [
-                            None if item is None else item.m_to_dict(**kwargs)
-                            for item in self.m_get_sub_sections(sub_section_def)]
+                        subsections = self.m_get_sub_sections(sub_section_def)
+                        subsection_keys: list = [item.m_key for item in subsections if item and item.m_key]
+                        has_dup: bool = 0 < len(subsection_keys) != len(set(subsection_keys))
+                        if not has_dup and subsection_as_dict:
+                            serialised_dict: dict = {}
+                            for index, item in enumerate(subsections):
+                                if item is None:
+                                    continue
+                                item_key = item.m_key if item.m_key else index
+                                serialised_dict[item_key] = item.m_to_dict(**kwargs)
+                            yield name, serialised_dict
+                        else:
+                            yield name, [None if item is None else item.m_to_dict(**kwargs) for item in subsections]
                 else:
                     sub_section = self.m_get_sub_section(sub_section_def, -1)
                     if sub_section is not None:
@@ -2265,9 +2307,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 sub_section_value = dct.get(name)
                 sub_section_cls = sub_section_def.sub_section.section_cls
                 if sub_section_def.repeats:
-                    for sub_section_dct in sub_section_value:
-                        sub_section = None if sub_section_dct is None else sub_section_cls.m_from_dict(
-                            sub_section_dct, m_parent=self, m_context=m_context)
+                    for sub_section_dct in sub_section_value if isinstance(
+                            sub_section_value, list) else sub_section_value.values():
+                        sub_section = None
+                        if sub_section_dct is not None:
+                            sub_section = sub_section_cls.m_from_dict(
+                                sub_section_dct, m_parent=self, m_context=m_context)
                         section.m_add_sub_section(sub_section_def, sub_section)
                 else:
                     sub_section = sub_section_cls.m_from_dict(
@@ -3542,6 +3587,7 @@ class SubSection(Property):
 
     sub_section: Quantity = _placeholder_quantity
     repeats: Quantity = _placeholder_quantity
+    key_quantity: Quantity = _placeholder_quantity
 
     def __get__(self, obj, type=None):
         # the class attribute case
@@ -4339,6 +4385,7 @@ Section.has_variable_names = has_variable_names
 Section.path = section_path
 
 SubSection.repeats = Quantity(type=bool, name='repeats', default=False)
+SubSection.key_quantity = Quantity(type=str, name='key_quantity', default=None)
 
 SubSection.sub_section = Quantity(
     type=SectionReference, name='sub_section',
