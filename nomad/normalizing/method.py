@@ -132,14 +132,6 @@ class MethodNormalizer():
 
             return settings.to_dict()
 
-        def _patch_basis_set(program_name: str) -> str:
-            '''Patch basis set name for `Simulation.dft.basis_set` for well-defined
-            programs.
-            '''
-            if program_name in ('exciting', 'FHI-aims', 'WIEN2k', 'Elk'):
-                return '(L)APW+lo'
-            return ''
-
         # workflow_name
         if self.entry_archive.workflow2:
             method.workflow_name = self.entry_archive.workflow2.m_def.name
@@ -238,9 +230,6 @@ class MethodNormalizer():
                 self.logger, entry_archive=self.entry_archive, methods=methods, repr_method=self.repr_method,
                 repr_system=self.repr_system, method=method, method_name=self.method_name,
                 settings_basis_set=settings_basis_set, functional_long_name=functional_long_name).simulation()
-            if self.run.program:
-                if basis_set_type_patched := _patch_basis_set(self.run.program.name):
-                    simulation.dft.basis_set_type = basis_set_type_patched
         elif self.method_name in ['GW', 'BSE', 'DFT+GW', 'DFT+BSE']:  # TODO extend for 'DFT+GW+BSE'
             simulation = ExcitedStateMethod(
                 self.logger, entry_archive=self.entry_archive, methods=methods, repr_method=self.repr_method,
@@ -474,6 +463,9 @@ class DFTMethod(ElectronicMethod):
                 'planewaves': 'plane waves'
             }
             name = name_mapping.get(key, name)
+        if self._entry_archive.m_xpath('run[0].program.name'):
+            if self._entry_archive.run[0].program.name in ('exciting', 'FHI-aims', 'WIEN2k', 'Elk'):
+                name = '(L)APW+lo'
         return name
 
     def basis_set_name(self) -> Union[str, None]:
@@ -752,12 +744,11 @@ class ExcitedStateMethod(ElectronicMethod):
                 functional_long_name=self._functional_long_name)
             try:
                 xs.starting_point_names = dft.xc_functional_names(self._repr_method.dft.xc_functional)
-                xs.starting_point_type = dft.xc_functional_type(xs.starting_point_names,
-                                                                abbrev_mapping=xc_treatments_extended)
+                xs.starting_point_type = dft.xc_functional_type(
+                    xs.starting_point_names, abbrev_mapping=xc_treatments_extended)
             except Exception:
                 self._logger.warning('Error extracting the DFT XC functional names.')
             xs.basis_set_type = dft.basis_set_type(self._repr_method)
-            xs.basis_set_name = dft.basis_set_name()
         else:
             xs_type = getattr(self._repr_method, f'{self._method.method_name.lower()}').type
             if self._method.method_name == 'BSE':
