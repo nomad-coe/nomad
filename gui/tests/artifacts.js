@@ -71691,6 +71691,17 @@ window.nomadArtifacts = {
                   "type_data": "bool"
                 },
                 "default": false
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "key_quantity",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "default": null
               }
             ]
           },

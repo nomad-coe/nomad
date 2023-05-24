@@ -343,6 +343,15 @@ class MSubSectionList(list):
     def __setitem__(self, key, value):
         raise NotImplementedError('You can only append subsections.')
 
+    def __getitem__(self, item):
+        if isinstance(item, str):
+            for sub_section in self:
+                if sub_section.m_key == item:
+                    return sub_section
+            raise KeyError(f'No subsection keyed {item} found.')
+
+        return super().__getitem__(item)
+
     def __delitem__(self, key):
         old_value = self[key]
         list.__delitem__(self, key)
