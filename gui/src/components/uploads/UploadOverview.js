@@ -19,7 +19,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
   Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
-  Input, DialogTitle, DialogContent, Dialog, LinearProgress, IconButton, Accordion, AccordionSummary, AccordionDetails} from '@material-ui/core'
+  Input, DialogTitle, DialogContent, Dialog, IconButton, Accordion, AccordionSummary, AccordionDetails} from '@material-ui/core'
 import { useDropzone } from 'react-dropzone'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
@@ -51,6 +51,7 @@ import {formatTimestamp} from '../../utils'
 import DialogLink from '../utils/DialogLink'
 import UploadName from './UploadName'
 import DeletingReferencesTable from './DeletingReferencesTable'
+import UploadProgressDialog from './UploadProgressDialog'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -208,22 +209,6 @@ function PublishUpload({upload, onPublish}) {
 PublishUpload.propTypes = {
   upload: PropTypes.object,
   onPublish: PropTypes.func
-}
-
-function LinearProgressWithLabel(props) {
-  return (
-    <Box display="flex" alignItems="center">
-      <Box width="100%" mr={1}>
-        <LinearProgress variant="determinate" {...props} />
-      </Box>
-      <Typography variant="body2" color="textSecondary">{`${Math.round(
-        props.value
-      )}%`}</Typography>
-    </Box>
-  )
-}
-LinearProgressWithLabel.propTypes = {
-  value: PropTypes.number.isRequired
 }
 
 function ProcessingStatus({data}) {
@@ -400,14 +385,7 @@ function UploadOverview(props) {
 
   return (
     <Page limitedWidth>
-      {(uploading || uploading === 0) && <Dialog open>
-        <DialogTitle>Uploading file ...</DialogTitle>
-        <DialogContent>
-          <Box width={300}>
-            <LinearProgressWithLabel value={uploading} />
-          </Box>
-        </DialogContent>
-      </Dialog>}
+      <UploadProgressDialog uploading={uploading} />
       <Grid container spacing={2} alignItems="center">
         <Grid item>
           <UploadStatus upload={upload} fontSize="large" />
