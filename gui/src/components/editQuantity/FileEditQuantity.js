@@ -26,6 +26,7 @@ import { useApi } from '../api'
 import { ItemButton } from '../archive/Browser'
 import { useEntryStore } from '../entry/EntryContext'
 import OverwriteExistingFileDialog from './OverwriteExistingFileDialog'
+import UploadProgressDialog from '../uploads/UploadProgressDialog'
 
 const useFileEditQuantityStyles = makeStyles(theme => ({
   dropzone: {
@@ -47,6 +48,7 @@ const FileEditQuantity = React.memo(props => {
   const {api} = useApi()
   const [askForOverwrite, setAskForOverwrite] = useState(false)
   const dropedFiles = useRef([])
+  const [uploading, setUploading] = useState(null)
 
   const uploadFile = useCallback((file, overwrite = false) => {
     const mainfilePathSegments = metadata.mainfile.split('/')
@@ -62,12 +64,16 @@ const FileEditQuantity = React.memo(props => {
         `/uploads/${uploadId}/raw/${mainfileDirEncoded}?wait_for_processing=true&overwrite_if_exists=${overwrite}`,
         formData, {
           onUploadProgress: (progressEvent) => {
-            // TODO: would be nice to show progress somehow
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            setUploading(percentCompleted)
           }
         }
       )
         .then(response => resolve({response, fullPath}))
         .catch(error => reject(error))
+        .finally(() => {
+          setUploading(null)
+        })
     })
   }, [api, uploadId, metadata])
 
@@ -119,6 +125,7 @@ const FileEditQuantity = React.memo(props => {
 
   return (
     <div {...getRootProps({className: dropzoneClassName})}>
+      <UploadProgressDialog uploading={uploading} />
       <input {...getInputProps()} />
       <TextField
         value={value || ''} onChange={handleChange}
