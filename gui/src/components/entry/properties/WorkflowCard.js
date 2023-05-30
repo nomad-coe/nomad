@@ -350,16 +350,20 @@ const Graph = React.memo(({
 
     const trimName = (name) => name && name.length > 25 ? `${name.substring(0, 22)}...` : name
 
-    svg.selectAll('g').remove()
     svg.attr('width', width)
       .attr('height', height)
 
-    const svgGroup = svg.append('g')
+    svg.append('g')
+      .attr('class', 'svgGroup')
 
-    const defs = svg.append('defs')
+    const svgGroup = svg.select('.svgGroup')
+
+    svg.append('defs')
+      .attr('class', 'defs')
 
     const addLinkMarkers = (links) => {
-      defs.selectAll('marker')
+      svg.select('.defs')
+        .selectAll('marker')
         .exit().remove()
         .data(links.map(link => link.id))
         .enter()
@@ -379,9 +383,11 @@ const Graph = React.memo(({
         .attr('d', 'M0,-5L10,0L0,5')
     }
 
-    const legend = svg.append('g')
+    svg.append('g')
       .attr('class', 'legend')
       .attr('visibility', 'visible')
+
+    const legend = svg.select('.legend')
 
     const addLegend = (label, index) => {
       const gLegend = legend.append('g')
